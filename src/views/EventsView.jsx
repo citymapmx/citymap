@@ -20,7 +20,7 @@ export default function EventsView({ navigate }) {
   const viewStyle = useUIStore(s => s.view === "list" ? "list" : "grid");
   const T = getT(dark);
   const { toggleFav, favIds } = useFavorites();
-  const { trackEvent, goDir, doShare } = useInteractions({ activeCity, sb, toast$ });
+  const { trackEvent, goDir, doShare } = useInteractions();
   const toggleSaveEvent = () => {};
   const AutoSliderEv = ({ children }) => <div style={{display:"flex", overflowX:"auto", gap:10}}>{children}</div>;
 

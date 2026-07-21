@@ -424,7 +424,7 @@ export default function CityGuide() {
   const loadReviews = useCallback(async bizId => { if (!bizId) return; try { const r = await sb.get("reviews", `?biz_id=eq.${bizId}&order=created_at.desc`); setReviews(r); } catch { setReviews([]); }; }, []);
 
 
-  const { trackEvent, goDir, callPhone, goWhatsApp, goWeb, doShare } = useInteractions({ activeCity, sb, toast$ });
+  const { trackEvent, goDir, callPhone, goWhatsApp, goWeb, doShare } = useInteractions();
   const {
     reviewText, setReviewText, reviewStar, setReviewStar, showReview, setShowReview,
     reviewImgFile, setReviewImgFile, reviewImgLoading, setReviewImgLoading,

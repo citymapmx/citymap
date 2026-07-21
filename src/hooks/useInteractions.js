@@ -1,9 +1,14 @@
 import { useCallback } from 'react';
+import { sb } from '../lib/supabase.js';
+import { useUIStore } from '../store/useUIStore.js';
 
-export function useInteractions({ activeCity, sb, toast$ }) {
+export function useInteractions() {
+  const activeCity = useUIStore(s => s.activeCity);
+  const toast$ = useUIStore(s => s.toast$);
+
   const trackEvent = useCallback(async (bizId, type) => {
     try { await sb.post("analytics", { biz_id: bizId, event_type: type, city_slug: activeCity }); } catch { }
-  }, [activeCity, sb]);
+  }, [activeCity]);
 
   const goDir = useCallback((b, e) => {
     if (e) e.stopPropagation();

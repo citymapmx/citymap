@@ -131,7 +131,7 @@ export default function DetailView({ navigate }) {
   const viewStyle = useUIStore(s => s.view === "list" ? "list" : "grid");
   const T = getT(dark);
   const { favIds, toggleFav } = useFavorites();
-  const { trackEvent, goWhatsApp, goDir, doShare, callPhone, goWeb } = useInteractions({ activeCity, sb, toast$ });
+  const { trackEvent, goWhatsApp, goDir, doShare, callPhone, goWeb } = useInteractions();
   const { reviewText, setReviewText, reviewStar, setReviewStar, showReview, setShowReview, reviewImgFile, setReviewImgFile, reviewImgLoading, postReview, toggleLikeReview } = useBusinessActions();
   const isOpen = (b) => isOpenNow(b.schedule);
   const setMapPin = useUIStore(s => s.setMapPin);

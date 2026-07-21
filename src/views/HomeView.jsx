@@ -320,7 +320,7 @@ export default function HomeView({ navigate, handleCardTap, loadPaginatedBiz, ha
   const displayList = viewStyle === "list";
   const T = getT(dark);
   const { favIds, toggleFav } = useFavorites();
-  const { trackEvent, goWhatsApp, goDir, doShare } = useInteractions({ activeCity, sb, toast$ });
+  const { trackEvent, goWhatsApp, goDir, doShare } = useInteractions();
   const isOpen = (b) => isOpenNow(b.schedule);
   const topFavsMemo = React.useMemo(() => {
     return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && globalFavCounts[b.id] > 0).sort((a, b) => (globalFavCounts[b.id] || 0) - (globalFavCounts[a.id] || 0)).slice(0, 10);

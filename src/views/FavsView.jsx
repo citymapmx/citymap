@@ -19,7 +19,7 @@ export default function FavsView({ hideHeader, navigate }) {
   const viewStyle = view === "list" ? "list" : "grid";
   const T = getT(dark);
   const { toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites();
-  const { trackEvent, goDir } = useInteractions({ activeCity, sb, toast$ });
+  const { trackEvent, goDir } = useInteractions();
   const { mapPins, events } = useDataStore(useShallow(s => ({ mapPins: s.mapPins, events: s.events })));
 
   return (
