@@ -225,9 +225,26 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
                           if (!isSelected) e.currentTarget.style.background = "transparent";
                         }}
                       >
-                        <span>{city.name}</span>
+                        <span style={{ 
+                          flex: 1, 
+                          textAlign: "left", 
+                          whiteSpace: "nowrap", 
+                          overflow: "hidden", 
+                          textOverflow: "ellipsis",
+                          paddingRight: 8
+                        }}>
+                          {city.name}
+                        </span>
                         {city.count > 0 && (
-                          <span style={{ fontSize: 12, opacity: 0.6 }}>{city.count} {city.count === 1 ? 'lugar' : 'lugares'}</span>
+                          <span style={{ 
+                            fontSize: 12, 
+                            opacity: 0.6,
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                            textAlign: "right"
+                          }}>
+                            {city.count} {city.count === 1 ? 'lugar' : 'lugares'}
+                          </span>
                         )}
                       </button>
                     )
