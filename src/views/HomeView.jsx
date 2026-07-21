@@ -445,7 +445,7 @@ export default function HomeView() {
                       />
                     </div>
                     <style>{`
-                      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
+                      @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');
                       @keyframes heroGradientFlow {
                         0% { background-position: 0% 50%; }
                         50% { background-position: 100% 50%; }
@@ -462,7 +462,13 @@ export default function HomeView() {
                         -webkit-text-fill-color: transparent;
                         animation: heroGradientFlow 6s ease infinite;
                         display: inline-block;
-                        padding-right: 4px;
+                        font-family: 'Caveat', cursive;
+                        font-size: 1.3em;
+                        font-weight: 700;
+                        line-height: 0.8;
+                        transform: rotate(-2deg);
+                        padding-right: 8px;
+                        padding-left: 2px;
                       }
                       .hero-title-anim {
                         animation: premiumFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
