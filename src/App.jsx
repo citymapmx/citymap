@@ -206,6 +206,15 @@ export default function CityGuide() {
   const routerNavigate = useNavigate();
   const [backgroundLocation, setBackgroundLocation] = useState(null);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 80);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   
   // Data
   const data = useDataStore(useShallow(s => ({
@@ -1387,28 +1396,35 @@ useEffect(() => {
             position: "fixed", 
             top: 0, 
             left: "50%", 
-            transform: `translateX(-50%) translateY(${navbarVisible ? "0" : "-100%"})`, 
+            transform: `translateX(-50%)`, 
             width: "100%", 
             maxWidth: 480, 
-            height: 52, 
+            height: 60, 
             display: "flex", 
             justifyContent: "space-between", 
             alignItems: "center", 
             padding: "0 20px", 
             zIndex: 998, 
-            background: "rgba(10, 15, 30, 0.7)", 
-            backdropFilter: "blur(24px) saturate(180%)", 
-            WebkitBackdropFilter: "blur(24px) saturate(180%)", 
-            borderBottom: "1px solid rgba(255, 255, 255, 0.08)", 
-            boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
-            transition: "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)" 
+            background: scrolled ? (dark ? "rgba(15, 23, 42, 0.75)" : "rgba(255, 255, 255, 0.8)") : "transparent", 
+            backdropFilter: scrolled ? "blur(24px) saturate(180%)" : "none", 
+            WebkitBackdropFilter: scrolled ? "blur(24px) saturate(180%)" : "none", 
+            borderBottom: scrolled ? `1px solid ${dark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"}` : "1px solid transparent", 
+            transition: "all 0.3s ease" 
           }}>
-            <div style={{ pointerEvents: "none", display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ 
+              pointerEvents: scrolled ? "auto" : "none", 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 6, 
+              opacity: scrolled ? 1 : 0, 
+              transform: scrolled ? "translateY(0)" : "translateY(-10px)",
+              transition: "all 0.3s ease" 
+            }}>
               <img 
                 src="/citymap.mx.png" 
                 alt="CityMap" 
                 style={{ 
-                  height: 36, 
+                  height: 32, 
                   objectFit: "contain",
                   filter: "drop-shadow(0 2px 8px rgba(56, 189, 248, 0.3))" 
                 }} 
