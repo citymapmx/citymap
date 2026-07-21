@@ -879,7 +879,7 @@ export default function CityGuide() {
     const d = new Date();
     const seed = d.getFullYear() + d.getMonth() * 31 + d.getDate();
     
-    return filtered.sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       const getPlanWeight = (plan) => {
         if (plan === "premium") return 3;
         if (plan === "destacado") return 2;

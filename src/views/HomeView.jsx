@@ -398,8 +398,8 @@ export default function HomeView({ navigate, handleCardTap, loadPaginatedBiz, ha
        timeList = mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "restaurantes" || b.category === "restaurante") && getMinutesToClose(b) > 0);
     }
 
-    timeList = timeList.sort((a, b) => b.plan - a.plan).slice(0, 8);
-    const sportsList = mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "fitness" || b.category === "unidad deportiva")).sort((a, b) => b.plan - a.plan).slice(0, 8);
+    timeList = [...timeList].sort((a, b) => b.plan - a.plan).slice(0, 8);
+    const sportsList = [...mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "fitness" || b.category === "unidad deportiva"))].sort((a, b) => b.plan - a.plan).slice(0, 8);
     const showActiva = h >= 6 && h < 18;
 
     return { listTitle, timeList, sportsList, showActiva };
