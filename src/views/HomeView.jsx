@@ -436,14 +436,13 @@ export default function HomeView() {
               {!search && (() => {
                 const cityName = detectedTown || (city || "").split(",")[0] || "tu ciudad";
                 return (
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 120, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 90, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
                     <div className="hero-title-anim" style={{ marginBottom: 16 }}>
                       <img 
                         src="/citymap.mx.png" 
                         alt="CityMap" 
-                        style={{ height: 48, objectFit: "contain", filter: "drop-shadow(0 4px 12px rgba(56, 189, 248, 0.3))" }} 
+                        style={{ height: 72, objectFit: "contain", filter: "drop-shadow(0 4px 12px rgba(56, 189, 248, 0.3))" }} 
                       />
-                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, letterSpacing: 2, margin: "10px 0 0 0", textTransform: "uppercase" }}>Tu guía local inteligente</p>
                     </div>
                     <style>{`
                       @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');

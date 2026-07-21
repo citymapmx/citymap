@@ -1405,10 +1405,10 @@ useEffect(() => {
             alignItems: "center", 
             padding: "0 20px", 
             zIndex: 998, 
-            background: scrolled ? (dark ? "rgba(15, 23, 42, 0.75)" : "rgba(255, 255, 255, 0.8)") : "transparent", 
+            background: scrolled ? "rgba(10, 15, 30, 0.7)" : "transparent", 
             backdropFilter: scrolled ? "blur(24px) saturate(180%)" : "none", 
             WebkitBackdropFilter: scrolled ? "blur(24px) saturate(180%)" : "none", 
-            borderBottom: scrolled ? `1px solid ${dark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"}` : "1px solid transparent", 
+            borderBottom: scrolled ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid transparent", 
             transition: "all 0.3s ease" 
           }}>
             <div style={{ 
