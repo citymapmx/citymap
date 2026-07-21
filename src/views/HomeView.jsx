@@ -455,11 +455,6 @@ export default function HomeView() {
                         100% { opacity: 1; transform: translateY(0); filter: blur(0); }
                       }
                       .animated-city {
-                        background: linear-gradient(270deg, #e0f2fe, #38bdf8, #0284c7, #e0f2fe);
-                        background-size: 300% 300%;
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
-                        animation: heroGradientFlow 6s ease infinite;
                         display: inline-block;
                         font-family: 'Brunson', sans-serif;
                         font-size: 1.1em;
@@ -469,10 +464,15 @@ export default function HomeView() {
                         padding-right: 8px;
                       }
                       .hero-title-anim {
-                        animation: premiumFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                        background: linear-gradient(90deg, #ffffff 0%, #e0f2fe 30%, #ffffff 60%, #0ea5e9 80%, #ffffff 100%);
+                        background-size: 300% 300%;
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        animation: premiumFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards, heroGradientFlow 8s ease-in-out infinite;
+                        filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6));
                       }
                     `}</style>
-                    <h1 className="hero-title-anim" style={{ fontFamily: "'Brunson', sans-serif", fontSize: 40, fontWeight: "normal", color: "#fff", lineHeight: 1.1, margin: 0, letterSpacing: "1px", textShadow: "0 4px 16px rgba(0,0,0,0.6)" }}>
+                    <h1 className="hero-title-anim" style={{ fontFamily: "'Brunson', sans-serif", fontSize: 40, fontWeight: "normal", lineHeight: 1.1, margin: 0, letterSpacing: "1px" }}>
                       Descubre lo mejor de <br/><span className="animated-city">{cityName}</span>
                     </h1>
                   </div>
