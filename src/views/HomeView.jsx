@@ -248,7 +248,7 @@ const FloatingParticles = () => {
           0% { transform: translateY(20vh) scale(0.5); opacity: 0; }
           20% { opacity: 0.9; }
           80% { opacity: 0.9; }
-          100% { transform: translateY(-30vh) scale(1.2); opacity: 0; }
+          100% { transform: translateY(-80vh) scale(1.2); opacity: 0; }
         }
         .stardust {
           position: absolute;
@@ -437,7 +437,7 @@ export default function HomeView() {
                 const cityName = detectedTown || (city || "").split(",")[0] || "tu ciudad";
                 return (
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 20, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
-                    <div className="hero-title-anim" style={{ marginBottom: 16 }}>
+                    <div className="hero-title-anim" style={{ marginBottom: 4 }}>
                       <img 
                         src="/citymap.mx.png" 
                         alt="CityMap" 
@@ -477,7 +477,7 @@ export default function HomeView() {
               })()}
 
               {/* ── Fila 3: Search Bar ── */}
-              <div style={{ position: "relative", width: "100%", marginTop: search ? 76 : 14, zIndex: 10 }}>
+              <div style={{ position: "relative", width: "100%", marginTop: search ? 76 : 8, zIndex: 10 }}>
                   <style>{`
                     @keyframes magicBorderSpin {
                       100% { transform: rotate(1turn); }

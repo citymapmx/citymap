@@ -1435,22 +1435,19 @@ useEffect(() => {
                 className="press" 
                 onClick={() => setShowCountryPicker(prev => !prev)} 
                 style={{ 
-                  background: "linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)", 
-                  backdropFilter: "blur(12px)", 
-                  WebkitBackdropFilter: "blur(12px)", 
-                  border: "1px solid rgba(255, 255, 255, 0.12)", 
-                  borderRadius: 100, 
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
                   padding: "8px", 
                   display: "flex", 
                   alignItems: "center", 
                   justifyContent: "center",
                   cursor: "pointer", 
                   color: "#fff", 
-                  boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
                   transition: "all 0.2s" 
                 }}
               >
-                <Icon name="globe" size={18} color="#38bdf8" />
+                <Icon name="globe" size={18} color="#ffffff" />
               </button>
               
               {showCountryPicker && (
