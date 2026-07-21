@@ -455,7 +455,7 @@ export default function HomeView() {
                         100% { opacity: 1; transform: translateY(0); filter: blur(0); }
                       }
                       .animated-city {
-                        background: linear-gradient(270deg, #fef9c3, #fde047, #eab308, #fef9c3);
+                        background: linear-gradient(270deg, #e0f2fe, #38bdf8, #0284c7, #e0f2fe);
                         background-size: 300% 300%;
                         -webkit-background-clip: text;
                         -webkit-text-fill-color: transparent;
