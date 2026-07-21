@@ -1406,7 +1406,7 @@ useEffect(() => {
                 src="/citymap.mx.png" 
                 alt="CityMap" 
                 style={{ 
-                  height: 28, 
+                  height: 36, 
                   objectFit: "contain",
                   filter: "drop-shadow(0 2px 8px rgba(56, 189, 248, 0.3))" 
                 }} 
