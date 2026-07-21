@@ -83,16 +83,42 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
     >
       <div style={{
         padding: "16px 16px 8px 16px",
-        fontSize: 10,
-        fontWeight: 700,
-        color: dark ? "#94a3b8" : "#64748b",
-        letterSpacing: 1.2,
-        textTransform: "uppercase",
         display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center"
+        alignItems: "center",
+        position: "relative"
       }}>
-        <span>Cambiar Destino</span>
+        <button
+          onClick={onClose}
+          style={{
+            background: "transparent",
+            border: "none",
+            padding: 4,
+            cursor: "pointer",
+            color: dark ? "#94a3b8" : "#64748b",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "50%",
+            transition: "background 0.2s",
+            position: "absolute",
+            left: 12
+          }}
+          onMouseOver={(e) => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)"}
+          onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
+        >
+          <Icon name="x" size={16} />
+        </button>
+        <span style={{
+          flex: 1,
+          textAlign: "center",
+          fontSize: 10,
+          fontWeight: 700,
+          color: dark ? "#94a3b8" : "#64748b",
+          letterSpacing: 1.2,
+          textTransform: "uppercase"
+        }}>
+          Cambiar Destino
+        </span>
       </div>
       
       <div style={{ padding: "0 8px 8px 8px", display: "flex", flexDirection: "column", gap: 4 }}>
