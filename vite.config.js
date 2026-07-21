@@ -11,7 +11,11 @@ export default defineConfig({
       includeAssets: ['favicon.png', 'apple-icon.png', 'Coolvetica Rg.otf'],
       workbox: {
         navigateFallbackDenylist: [/^\/native-auth\.html/],
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,jpg,jpeg,otf}'],
+        // Only precache static assets, NOT JS chunks (they change every deploy)
+        globPatterns: ['**/*.{css,html,ico,png,svg,webp,jpg,jpeg,otf}'],
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -19,6 +23,15 @@ export default defineConfig({
             options: {
               cacheName: 'google-fonts-cache',
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }
+            }
+          },
+          {
+            // JS/CSS assets: NetworkFirst so users always get the latest
+            urlPattern: /\.(?:js|css)$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'assets-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 }
             }
           }
         ]
