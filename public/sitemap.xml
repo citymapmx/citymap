@@ -571,11 +571,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://citymap.mx/tepic/eduardo-barber</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://citymap.mx/ciudad-de-mexico/tepic-estadio-banorte</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
