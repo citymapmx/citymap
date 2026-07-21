@@ -465,7 +465,8 @@ export default function HomeView() {
                         font-size: 1.1em;
                         font-weight: normal;
                         line-height: 1;
-                        padding-right: 4px;
+                        letter-spacing: 4px;
+                        padding-right: 8px;
                       }
                       .hero-title-anim {
                         animation: premiumFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
