@@ -4,6 +4,7 @@ import { useCart } from '../../hooks/useCart.js';
 import { useUIStore } from '../../store/useUIStore.js';
 import { buildWhatsAppMessage } from '../../lib/storeUtils.js';
 import { getThumbUrl } from '../../lib/utils.js';
+import { sb } from '../../lib/supabase.js';
 
 export default function CartDrawer({ business, T }) {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, updateNotes, getCartTotal, clearCart } = useCart();
@@ -51,6 +52,17 @@ export default function CartDrawer({ business, T }) {
 
     const url = `https://wa.me/${waNumber}?text=${encoded}`;
     window.open(url, '_blank');
+    
+    // Track analytics event
+    try {
+      sb.post("analytics", { 
+        biz_id: business.id, 
+        event_type: "menu_order", 
+        city_slug: business.city_slug || 'all' 
+      });
+    } catch (e) {
+      console.error(e);
+    }
     
     // Vaciar el carrito y cerrar el modal tras enviar el pedido
     clearCart();

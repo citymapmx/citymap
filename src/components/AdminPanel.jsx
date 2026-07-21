@@ -959,6 +959,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
           const aMaps = bizAn.filter(a => a.event_type === "maps").length;
           const aPhone = bizAn.filter(a => a.event_type === "phone").length;
           const aWeb = bizAn.filter(a => a.event_type === "website").length;
+          const aMenuOrders = bizAn.filter(a => a.event_type === "menu_order").length;
           const aReservations = data.reservations.filter(r => r.biz_id === b.id).length;
           
           const chartData = [];
@@ -1027,6 +1028,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <MetricCard label="Vistas Perfil" value={aViews} icon="eye" color="#3B82F6" T={T} />
               <MetricCard label="WhatsApp" value={aWa} icon="whatsapp" color="#25D366" T={T} />
+              <MetricCard label="Pedidos Menú" value={aMenuOrders} icon="shopping-bag" color="#F97316" T={T} />
               <MetricCard label="Reservaciones" value={aReservations} icon="calendar" color="#EAB308" T={T} />
               <MetricCard label="Llamadas" value={aPhone} icon="phone" color="#8B5CF6" T={T} />
               <MetricCard label="Mapas" value={aMaps} icon="map" color="#EA4335" T={T} />
