@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { sb } from '../lib/supabase.js';
 import { useDataStore } from '../store/useDataStore.js';
 import { useUIStore } from '../store/useUIStore.js';
+import { useAuthStore } from '../store/useAuthStore.js';
 
-export function useFavorites({ sb, user, setShowAuth, toast$ }) {
+export function useFavorites() {
+  const { user, setShowAuth } = useAuthStore();
+  const { toast$ } = useUIStore();
   const { favIds, setFavIds, globalFavCounts, setGlobalFavCounts, collections, setCollections } = useDataStore();
   const { movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm } = useUIStore();
 

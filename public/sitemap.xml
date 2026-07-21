@@ -96,6 +96,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://citymap.mx/tepic/kfc-san-juan</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://citymap.mx/puerto-vallarta/la-vaca-argentina-steak-house</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -107,11 +112,6 @@
   </url>
   <url>
     <loc>https://citymap.mx/tepic/hotel-fray-junipero-serra</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://citymap.mx/tepic/kfc-san-juan</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -141,11 +141,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://citymap.mx/tepic/parque-tachi-i</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://citymap.mx/tepic/om-coffee-company</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -171,11 +166,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://citymap.mx/tepic/volcan-las-navajas</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://citymap.mx/tepic/cinepolis</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -197,6 +187,11 @@
   </url>
   <url>
     <loc>https://citymap.mx/tepic/loma-42</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/tepic/volcan-las-navajas</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -291,11 +286,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://citymap.mx/tepic/plaza-forum-tepic</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://citymap.mx/tepic/umami-ramen</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -332,6 +322,11 @@
   </url>
   <url>
     <loc>https://citymap.mx/tepic/el-marlin-de-tepic</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/tepic/plaza-forum-tepic</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -386,12 +381,12 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://citymap.mx/guadalajara/brisket-house</loc>
+    <loc>https://citymap.mx/tepic/pizza-hut-tepic</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://citymap.mx/tepic/pizza-hut-tepic</loc>
+    <loc>https://citymap.mx/guadalajara/brisket-house</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -476,11 +471,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://citymap.mx/Zapopan/vincent-andares</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://citymap.mx/tepic/la-santa</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -511,6 +501,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://citymap.mx/Zapopan/vincent-andares</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://citymap.mx/tepic/senor-cajun-camarones-estilo-louisiana</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -537,6 +532,11 @@
   </url>
   <url>
     <loc>https://citymap.mx/tepic/el-salado-restaurante-de-mariscos</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/tepic/parque-tachi-i</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>

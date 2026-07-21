@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+
+citymap-mx-firebase-adminsdk-*.json
