@@ -446,9 +446,8 @@ export default function HomeView() {
                     </div>
                     <style>{`
                       @keyframes heroGradientFlow {
-                        0% { background-position: 0% 50%; }
-                        50% { background-position: 100% 50%; }
-                        100% { background-position: 0% 50%; }
+                        0% { background-position: 200% center; }
+                        100% { background-position: -200% center; }
                       }
                       @keyframes premiumFadeUp {
                         0% { opacity: 0; transform: translateY(15px); filter: blur(8px); }
@@ -465,10 +464,10 @@ export default function HomeView() {
                       }
                       .hero-title-anim {
                         background: linear-gradient(90deg, #ffffff 0%, #e0f2fe 30%, #ffffff 60%, #0ea5e9 80%, #ffffff 100%);
-                        background-size: 300% 300%;
+                        background-size: 300% auto;
                         -webkit-background-clip: text;
                         -webkit-text-fill-color: transparent;
-                        animation: premiumFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards, heroGradientFlow 8s ease-in-out infinite;
+                        animation: premiumFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards, heroGradientFlow 8s linear infinite;
                         filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6));
                       }
                     `}</style>
