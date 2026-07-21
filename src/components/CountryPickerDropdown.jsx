@@ -10,7 +10,7 @@ const FLAG_MAP = {
   "Colombia": "🇨🇴"
 };
 
-export default function CountryPickerDropdown({ cities, activeCity, onSelectCity, onClose, dark }) {
+export default function CountryPickerDropdown({ cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark }) {
   const [expandedCountry, setExpandedCountry] = useState(null);
   const [cityCounts, setCityCounts] = useState({});
   const ref = useRef(null);
@@ -87,12 +87,51 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
         fontWeight: 700,
         color: dark ? "#94a3b8" : "#64748b",
         letterSpacing: 1.2,
-        textTransform: "uppercase"
+        textTransform: "uppercase",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
       }}>
-        Cambiar Destino
+        <span>Cambiar Destino</span>
       </div>
       
       <div style={{ padding: "0 8px 8px 8px", display: "flex", flexDirection: "column", gap: 4 }}>
+        
+        {/* Detect location button */}
+        <button
+          onClick={onDetectCity}
+          disabled={locating}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 12px",
+            background: dark ? "rgba(56, 189, 248, 0.1)" : "rgba(2, 132, 199, 0.05)",
+            border: `1px solid ${dark ? "rgba(56, 189, 248, 0.2)" : "rgba(2, 132, 199, 0.1)"}`,
+            borderRadius: 10,
+            cursor: locating ? "wait" : "pointer",
+            color: dark ? "#38bdf8" : "#0284c7",
+            fontSize: 14,
+            fontWeight: 600,
+            textAlign: "left",
+            transition: "all 0.2s",
+            marginBottom: 4,
+            opacity: locating ? 0.7 : 1
+          }}
+          onMouseOver={(e) => {
+            if (!locating) e.currentTarget.style.background = dark ? "rgba(56, 189, 248, 0.15)" : "rgba(2, 132, 199, 0.08)";
+          }}
+          onMouseOut={(e) => {
+            if (!locating) e.currentTarget.style.background = dark ? "rgba(56, 189, 248, 0.1)" : "rgba(2, 132, 199, 0.05)";
+          }}
+        >
+          {locating ? (
+            <div style={{ width: 18, height: 18, border: `2px solid ${dark ? 'rgba(56, 189, 248, 0.3)' : 'rgba(2, 132, 199, 0.3)'}`, borderTop: `2px solid ${dark ? '#38bdf8' : '#0284c7'}`, borderRadius: '50%', animation: 'spin .8s linear infinite' }} />
+          ) : (
+            <Icon name="navigation" size={18} />
+          )}
+          <span>{locating ? "Buscando..." : "Usar mi ubicación"}</span>
+        </button>
         
         {activeCountryNames.map(country => {
           const isExpanded = expandedCountry === country || (!expandedCountry && currentCountry === country && activeCountryNames.length === 1);

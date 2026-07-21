@@ -1442,6 +1442,8 @@ useEffect(() => {
                   cities={cities} 
                   activeCity={activeCity} 
                   onSelectCity={handleCitySelect} 
+                  onDetectCity={() => { if (!locating) detectCity({ showToast: true }); setShowCountryPicker(false); }}
+                  locating={locating}
                   onClose={() => setShowCountryPicker(false)} 
                   dark={dark} 
                 />
