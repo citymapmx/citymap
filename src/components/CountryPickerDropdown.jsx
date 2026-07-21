@@ -81,6 +81,19 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
         flexDirection: "column"
       }}
     >
+      <style>{`
+        @keyframes dropdownGradientFlow {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animated-dropdown-city {
+          background: linear-gradient(270deg, #34D399, #38BDF8, #818CF8, #34D399) !important;
+          background-size: 300% 300% !important;
+          animation: dropdownGradientFlow 6s ease infinite !important;
+          color: #fff !important;
+        }
+      `}</style>
       <div style={{
         padding: "16px 16px 8px 16px",
         display: "flex",
@@ -203,18 +216,19 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
                           onSelectCity(city);
                           onClose();
                         }}
+                        className={isSelected ? "animated-dropdown-city" : ""}
                         style={{
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
                           padding: "8px 12px",
-                          background: isSelected ? (dark ? "rgba(56, 189, 248, 0.1)" : "rgba(2, 132, 199, 0.05)") : "transparent",
+                          background: isSelected ? "transparent" : "transparent",
                           border: "none",
                           borderRadius: 8,
                           cursor: "pointer",
-                          color: isSelected ? (dark ? "#38bdf8" : "#0284c7") : (dark ? "#cbd5e1" : "#475569"),
+                          color: isSelected ? "#fff" : (dark ? "#cbd5e1" : "#475569"),
                           fontSize: 14,
-                          fontWeight: isSelected ? 600 : 500,
+                          fontWeight: isSelected ? 700 : 500,
                           textAlign: "left",
                           transition: "background 0.2s"
                         }}
