@@ -436,7 +436,7 @@ export default function HomeView() {
               {!search && (() => {
                 const cityName = detectedTown || (city || "").split(",")[0] || "tu ciudad";
                 return (
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 90, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 20, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
                     <div className="hero-title-anim" style={{ marginBottom: 16 }}>
                       <img 
                         src="/citymap.mx.png" 

@@ -193,7 +193,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
               </button>
 
               {isExpanded && (
-                <div style={{ padding: "4px 0 4px 36px", display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ padding: "4px 0", display: "flex", flexDirection: "column", gap: 2 }}>
                   {countryCities.map(city => {
                     const isSelected = city.slug === activeCity;
                     return (
