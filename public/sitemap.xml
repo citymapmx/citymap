@@ -36,6 +36,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://citymap.mx/los-angeles/novikov-beverly-hills</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://citymap.mx/tepic/abolengo</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -47,6 +52,11 @@
   </url>
   <url>
     <loc>https://citymap.mx/tepic/taqueria-el-rojo</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/los-angeles/disneyland-park</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -777,6 +787,56 @@
   </url>
   <url>
     <loc>https://citymap.mx/Zapopan/educacion</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/los-angeles/restaurantes</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/los-angeles/cafe</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/los-angeles/salud</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/los-angeles/belleza</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/los-angeles/fitness</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/los-angeles/compras</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/los-angeles/tech</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/los-angeles/ocio</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/los-angeles/hoteles</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/los-angeles/educacion</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>

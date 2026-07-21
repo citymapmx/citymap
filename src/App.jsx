@@ -1399,13 +1399,13 @@ useEffect(() => {
             transform: `translateX(-50%)`, 
             width: "100%", 
             maxWidth: 480, 
-            height: 60, 
+            height: 50, 
             display: "flex", 
             justifyContent: "space-between", 
             alignItems: "center", 
             padding: "0 20px", 
             zIndex: 998, 
-            background: scrolled ? "rgba(10, 15, 30, 0.7)" : "transparent", 
+            background: scrolled ? "rgba(10, 15, 30, 0.45)" : "transparent", 
             backdropFilter: scrolled ? "blur(24px) saturate(180%)" : "none", 
             WebkitBackdropFilter: scrolled ? "blur(24px) saturate(180%)" : "none", 
             borderBottom: scrolled ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid transparent", 
@@ -1424,7 +1424,7 @@ useEffect(() => {
                 src="/citymap.mx.png" 
                 alt="CityMap" 
                 style={{ 
-                  height: 32, 
+                  height: 40, 
                   objectFit: "contain",
                   filter: "drop-shadow(0 2px 8px rgba(56, 189, 248, 0.3))" 
                 }} 

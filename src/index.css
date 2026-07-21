@@ -190,3 +190,17 @@ code {
   border-color: #aa3bff !important;
   box-shadow: 0 0 0 2px rgba(170, 59, 255, 0.2) !important;
 }
+
+/* Country Picker Dropdown Animation */
+@keyframes dropdownGradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animated-dropdown-city {
+  background: linear-gradient(270deg, #34D399, #38BDF8, #818CF8, #34D399) !important;
+  background-size: 300% 300% !important;
+  animation: dropdownGradientFlow 6s ease infinite !important;
+  color: #fff !important;
+}
