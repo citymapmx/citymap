@@ -385,7 +385,7 @@ export default function CityGuide() {
   }, []);
   
   const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); if (view === "home" || view === "onboarding") { routerNavigate(`/${s}`, { replace: true }); } } });
-  const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites({ sb, user, setShowAuth });
+  const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites();
   
   useEffect(() => {
     if (dbError) {
@@ -430,7 +430,7 @@ export default function CityGuide() {
     reviewImgFile, setReviewImgFile, reviewImgLoading, setReviewImgLoading,
     showBooking, setShowBooking, bookingForm, setBookingForm, bookingLoading, setBookingLoading,
     submitBooking, postReview, toggleLikeReview, doClaim
-  } = useBusinessActions({ sb, user, profile, toast$, setShowAuth, setMapPins, setSelected, loadReviews, reviews, setReviews });
+  } = useBusinessActions();
 
   // useAppInit will be called further down, after `navigate` is defined.
 
