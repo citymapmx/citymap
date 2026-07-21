@@ -59,6 +59,7 @@ const AdminPanel = lazy(() => import("./components/AdminPanel.jsx"));
 const StoreAdminPanel = lazy(() => import("./components/store/StoreAdminPanel.jsx"));
 const CityPicker = lazy(() => import("./components/CityPicker.jsx"));
 import { SplashScreen, PageLogo } from "./components/Brand.jsx";
+import CountryPickerDropdown from "./components/CountryPickerDropdown.jsx";
 
 const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:30,height:30,border:"3px solid #E4E8E4",borderTop:"3px solid #000000",borderRadius:"50%",animation:"spin .8s linear infinite"}}/></div>;
 const PAGE_LOAD_SEED = Math.random();
@@ -204,6 +205,7 @@ export default function CityGuide() {
   const location = useLocation();
   const routerNavigate = useNavigate();
   const [backgroundLocation, setBackgroundLocation] = useState(null);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   
   // Data
   const data = useDataStore(useShallow(s => ({
@@ -1412,34 +1414,39 @@ useEffect(() => {
                 }} 
               />
             </div>
-            <button 
-              className="press" 
-              onClick={() => setShowCityPicker(true)} 
-              style={{ 
-                background: "linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)", 
-                backdropFilter: "blur(12px)", 
-                WebkitBackdropFilter: "blur(12px)", 
-                border: "1px solid rgba(255, 255, 255, 0.12)", 
-                borderRadius: 100, 
-                padding: "6px 14px", 
-                display: "flex", 
-                alignItems: "center", 
-                gap: 6, 
-                cursor: "pointer", 
-                color: "#fff", 
-                fontSize: 13, 
-                fontWeight: 700, 
-                fontFamily: "system-ui, -apple-system, sans-serif",
-                boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-                transition: "all 0.2s" 
-              }}
-            >
-              <Icon name="pin" size={13} color="#38bdf8" sw={2.5} />
-              <span style={{ maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transform: "translateY(0.5px)", letterSpacing: "0.2px" }}>
-                {detectedTown || (city || "").split(",")[0]}
-              </span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
+            <div style={{ position: "relative" }}>
+              <button 
+                className="press" 
+                onClick={() => setShowCountryPicker(prev => !prev)} 
+                style={{ 
+                  background: "linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)", 
+                  backdropFilter: "blur(12px)", 
+                  WebkitBackdropFilter: "blur(12px)", 
+                  border: "1px solid rgba(255, 255, 255, 0.12)", 
+                  borderRadius: 100, 
+                  padding: "8px", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center",
+                  cursor: "pointer", 
+                  color: "#fff", 
+                  boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
+                  transition: "all 0.2s" 
+                }}
+              >
+                <Icon name="globe" size={18} color="#38bdf8" />
+              </button>
+              
+              {showCountryPicker && (
+                <CountryPickerDropdown 
+                  cities={cities} 
+                  activeCity={activeCity} 
+                  onSelectCity={handleCitySelect} 
+                  onClose={() => setShowCountryPicker(false)} 
+                  dark={dark} 
+                />
+              )}
+            </div>
           </div>
         )}
 
