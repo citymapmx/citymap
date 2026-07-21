@@ -1,10 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getT, FONT_BIZ } from "../lib/constants.js";
-import { useBusinessActions } from "../hooks/useBusinessActions.js";
-import { useInteractions } from "../hooks/useInteractions.js";
-import { useFavorites } from "../hooks/useFavorites.js";
-import { sb } from "../lib/supabase.js";
+import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
@@ -13,7 +9,8 @@ import useTimeStore from "../store/useTimeStore.js";
 import Icon from "../components/ui/Icon.jsx";
 import StarRow from "../components/ui/StarRow.jsx";
 import { ErrorBoundary } from "../components/ErrorBoundary.jsx";
-import { getThumbUrl, getKm, getEventStatus, createSlug, isOpenNow, CAT_EMOJI, getCategoryDescription, parseMenuUrls, getScheduleStatus, getSmartScheduleInfo, haptic } from "../lib/utils.js";
+import { haptic } from "../lib/utils.js";
+import { CAT_EMOJI, isOpenNow, getThumbUrl, getCategoryDescription, parseMenuUrls, getScheduleStatus, getSmartScheduleInfo } from "../lib/utils";
 
 const MapPicker = lazy(() => import('../components/map/MapPicker.jsx'));
 const Gallery = lazy(() => import('../components/Gallery.jsx'));
@@ -121,22 +118,13 @@ const GoogleReviewItem = ({ r, isElite, dText, dSub, T, isLast }) => {
   );
 };
 
-export default function DetailView({ navigate }) {
-  const { dark, activeCity, toast$, selected, setSelected, setView, setFade, userCoords, showGallery, setShowGallery, setShowMenuGallery, setClaimBiz } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$, selected: s.selected, setSelected: s.setSelected, setView: s.setView, setFade: s.setFade, userCoords: s.userCoords, showGallery: s.showGallery, setShowGallery: s.setShowGallery, setShowMenuGallery: s.setShowMenuGallery, setClaimBiz: s.setClaimBiz })));
-  const { dbReady, promos, coupons, events, wallet, setWallet, claimedCoupons, setClaimedCoupons, reviews, setReviews, globalFavCounts, raffles, mapPins, setMapPins } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, promos: s.promos, coupons: s.coupons, events: s.events, wallet: s.wallet, setWallet: s.setWallet, claimedCoupons: s.claimedCoupons, setClaimedCoupons: s.setClaimedCoupons, reviews: s.reviews, setReviews: s.setReviews, globalFavCounts: s.globalFavCounts, raffles: s.raffles, mapPins: s.mapPins, setMapPins: s.setMapPins })));
-  const { user, setShowAuth, profile } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth, profile: s.profile })));
-  const isAdmin = profile?.role === "admin";
-  const setBiz = setMapPins;
+export default function DetailView() {
+  const ctx = useAppContext();
+  const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
+  const { dbReady, promos, coupons, events, wallet, setWallet, claimedCoupons, setClaimedCoupons, reviews, setReviews, globalFavCounts, raffles } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, promos: s.promos, coupons: s.coupons, events: s.events, wallet: s.wallet, setWallet: s.setWallet, claimedCoupons: s.claimedCoupons, setClaimedCoupons: s.setClaimedCoupons, reviews: s.reviews, setReviews: s.setReviews, globalFavCounts: s.globalFavCounts, raffles: s.raffles })));
+  const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   
-  const viewStyle = useUIStore(s => s.view === "list" ? "list" : "grid");
-  const T = getT(dark);
-  const { favIds, toggleFav } = useFavorites();
-  const { trackEvent, goWhatsApp, goDir, doShare, callPhone, goWeb } = useInteractions();
-  const { reviewText, setReviewText, reviewStar, setReviewStar, showReview, setShowReview, reviewImgFile, setReviewImgFile, reviewImgLoading, postReview, toggleLikeReview } = useBusinessActions();
-  const isOpen = (b) => isOpenNow(b.schedule);
-  const setMapPin = useUIStore(s => s.setMapPin);
-  const setSelectedEvent = useUIStore(s => s.setSelectedEvent);
-  
+  const { viewStyle, selected, setView, setFade, navigate, T, favIds, toggleFav, goWhatsApp, goDir, doShare, getEventStatus, setReviewStar, setReviewText, setShowReview, biz, userCoords, getKm, showGallery, setShowGallery, FONT_BIZ, isOpen, callPhone, setMapPin, setShowMenuGallery, goWeb, trackEvent, setSelectedEvent, createSlug, showReview, reviewStar, reviewText, postReview, isAdmin, sb, setBiz, setSelected, toggleLikeReview, setClaimBiz, reviewImgFile, setReviewImgFile, reviewImgLoading } = ctx;
   const now = useTimeStore(s => s.now);
 
   const mapsOk = useGMaps();
@@ -197,7 +185,7 @@ export default function DetailView({ navigate }) {
             return val || {};
           };
           
-          const revs = [...(res[0].reviews || [])];
+          const revs = res[0].reviews || [];
           revs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           setReviews(revs);
           
@@ -917,3 +905,4 @@ export default function DetailView({ navigate }) {
     </div>
   );
 }
+

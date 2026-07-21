@@ -25,7 +25,6 @@ const lazy = (importer) => reactLazy(async () => {
   }
 });
 import { motion, AnimatePresence } from "framer-motion";
-import { Geolocation } from '@capacitor/geolocation';
 import './App.css';
 import { sb, cloudUpload, cloudUploadPDF, SUPABASE_URL, SUPABASE_ANON, CLOUDINARY_CLOUD, CLOUDINARY_PRESET, GMAPS_KEY } from './lib/supabase.js';
 import { useAuthStore } from "./store/useAuthStore.js";
@@ -38,7 +37,6 @@ import { Routes, Route, useLocation, useNavigate, matchPath } from 'react-router
 import { PLAN_META, CITY_TZ, FONT_BIZ, EVENT_CATS, getT, CATS_DEFAULT } from './lib/constants.js';
 import { fuzzyMatch } from './lib/utils.js';
 import Icon from './components/ui/Icon.jsx';
-import RotatingBusinessBanner from './components/RotatingBusinessBanner.jsx';
 import StarRow from './components/ui/StarRow.jsx';
 import { Sk, CardSk } from './components/ui/Skeleton.jsx';
 
@@ -68,10 +66,12 @@ const PAGE_LOAD_SEED = Math.random();
 
 // Clean base URL — strips any accidental /rest/v1 suffix
 
-import { useInteractions } from './hooks/useInteractions.js';
-import { useBusinessActions } from './hooks/useBusinessActions.js';
-import { useAppInit } from './hooks/useAppInit.js';
 
+import FeaturedCard from "./components/cards/FeaturedCard.jsx";
+import CompactCard from "./components/cards/CompactCard.jsx";
+import DestacadoCard from "./components/cards/DestacadoCard.jsx";
+
+import { AppContext } from "./context/AppContext.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 const HomeView = lazy(() => import("./views/HomeView.jsx"));
 const DetailView = lazy(() => import("./views/DetailView.jsx"));
@@ -84,6 +84,120 @@ const ReservationsAgenda = lazy(() => import("./components/ReservationsAgenda.js
 import { App as CapApp } from '@capacitor/app';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
+
+// ─── AUTO SLIDER CARD (DOTS) ───────────────────────────────────────────────────
+function AutoSlider({ businesses, T, dark, favIds, toggleFav, onTap, goWhatsApp, goDir, doShare, getDistStr, globalFavCounts }) {
+  const [idx, setIdx] = useState(0);
+  
+  useEffect(() => {
+    if (!businesses || businesses.length <= 1) return;
+    const interval = setInterval(() => {
+      setIdx(prev => (prev + 1) % businesses.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [businesses]);
+
+  if (!businesses || businesses.length === 0) return null;
+  const b = businesses[idx];
+  const distStr = getDistStr ? getDistStr(b) : null;
+
+  return (
+    <div style={{ padding: "0 20px 10px" }}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={b.id}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={onTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts?.[b.id] || 0} />
+        </motion.div>
+      </AnimatePresence>
+      <div style={{ display: "none" }}>
+        {[1, 2, 3].map(offset => {
+          const nextB = businesses[(idx + offset) % businesses.length];
+          const imgUrl = nextB?.photos?.[0]?.url || nextB?.img_url;
+          return imgUrl ? <img key={"preload_" + nextB.id} src={imgUrl} alt="" loading="eager" fetchpriority="high" /> : null;
+        })}
+      </div>
+      {businesses.length <= 15 && (
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 14 }}>
+          {businesses.map((_, i) => (
+            <div key={i} onClick={() => setIdx(i)} style={{ width: i === idx ? 16 : 6, height: 6, borderRadius: 3, background: i === idx ? T.green : T.border, transition: "all 0.3s", cursor: "pointer" }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── AUTO FADE BILLBOARD (NO CONTROLS) ─────────────────────────────────────────
+function AutoFadeBillboard({ businesses, T, dark, favIds, toggleFav, onTap, goWhatsApp, goDir, doShare, getDistStr, globalFavCounts }) {
+  const [idx, setIdx] = useState(0);
+  
+  useEffect(() => {
+    if (!businesses || businesses.length <= 1) return;
+    const interval = setInterval(() => {
+      setIdx(prev => (prev + 1) % businesses.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [businesses]);
+
+  if (!businesses || businesses.length === 0) return null;
+  const b = businesses[idx];
+  const distStr = getDistStr ? getDistStr(b) : null;
+
+  return (
+    <div style={{ padding: "0 20px 10px" }}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={b.id}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={onTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts?.[b.id] || 0} />
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+
+// ─── AUTO CAROUSEL ────────────────────────────────────────────────────────────
+function FeaturedCarousel({ items, T, dark, favIds, toggleFav, onTap, goWhatsApp, goDir, doShare }) {
+  const [idx, setIdx] = useState(0);
+  const [fade, setFade] = useState(true);
+
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const t = setInterval(() => {
+      setFade(false);
+      setTimeout(() => { setIdx(i => (i + 1) % items.length); setFade(true); }, 350);
+    }, 3000);
+    return () => clearInterval(t);
+  }, [items.length]);
+
+  if (items.length === 0) return null;
+  const b = items[idx];
+  return (
+    <div>
+      <div style={{ opacity: fade ? 1 : 0, transform: fade ? "translateY(0)" : "translateY(8px)", transition: "opacity .35s ease,transform .35s ease" }}>
+        <FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav}
+          onTap={onTap}
+          goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} realFavs={globalFavCounts?.[b.id] || 0} />
+      </div>
+      {items.length > 1 && <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 12 }}>
+        {items.map((_, i) => (
+          <div key={i} onClick={() => { setFade(false); setTimeout(() => { setIdx(i); setFade(true); }, 350); }}
+            style={{ width: i === idx ? 20 : 6, height: 6, borderRadius: 3, background: i === idx ? T.green : `${T.green}44`, cursor: "pointer", transition: "all .3s cubic-bezier(.34,1.1,.64,1)" }} />
+        ))}
+      </div>}
+    </div>
+  );
+}
 
 
 export default function CityGuide() {
@@ -360,9 +474,22 @@ export default function CityGuide() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
-  const { search, setSearch, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, fade, setFade, navbarVisible, setNavbarVisible, showMoreTopRated, setShowMoreTopRated, showMoreTopFavs, setShowMoreTopFavs, showLocModal, setShowLocModal } = useUIStore();
-  const { ownerRes, setOwnerRes, ownerView, setOwnerView, storeAdminBiz, setStoreAdminBiz, adminStoreBiz, setAdminStoreBiz, ownerStats, setOwnerStats } = useDataStore();
-
+  const [showMoreTopRated, setShowMoreTopRated] = useState(false);
+  const [showMoreTopFavs, setShowMoreTopFavs] = useState(false);
+  const [showLocModal, setShowLocModal] = useState(() => shouldShowLocationModal());
+  const [reviewText, setReviewText] = useState("");
+  const [reviewStar, setReviewStar] = useState(5);
+  const [showReview, setShowReview] = useState(false);
+  const [reviewImgFile, setReviewImgFile] = useState(null);
+  const [reviewImgLoading, setReviewImgLoading] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
+  const [bookingForm, setBookingForm] = useState({ service: "", date: "", time: "", name: "", notes: "" });
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [ownerRes, setOwnerRes] = useState([]);
+  const [ownerView, setOwnerView] = useState(null);
+  const [storeAdminBiz, setStoreAdminBiz] = useState(null);
+  const [adminStoreBiz, setAdminStoreBiz] = useState(null);
+  const [ownerStats, setOwnerStats] = useState({ views: 0, whatsapp: 0, phone: 0 });
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [createEvForm, setCreateEvForm] = useState({ title: "", description: "", date: "", time: "", end_date: "", end_time: "", price_type: "gratis", price: "", event_category: "", venue_name: "", venue_address: "", whatsapp: "", img_url: "" });
   const [savedEventIds, setSavedEventIds] = useState(() => { try { return JSON.parse(localStorage.getItem("cg_saved_ev") || "[]"); } catch { return []; } });
@@ -370,7 +497,13 @@ export default function CityGuide() {
   const [editBizId, setEditBizId] = useState(null);
   
   const [activeTab, setActiveTab] = useState("descubrir");
+  const [search, setSearch] = useState("");
+
   const [mapQ, setMapQ] = useState("");
+  const [nearbyRadius, setNearbyRadius] = useState(1);
+  const [nearbyFilter, setNearbyFilter] = useState("all"); // "all" | "open"
+  const [fade, setFade] = useState(true);
+  const [navbarVisible, setNavbarVisible] = useState(true);
   const lastScrollY = useRef(0);
   useEffect(() => {
     const handleScroll = () => {
@@ -385,7 +518,7 @@ export default function CityGuide() {
   }, []);
   
   const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); if (view === "home" || view === "onboarding") { routerNavigate(`/${s}`, { replace: true }); } } });
-  const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites();
+  const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites({ sb, user, setShowAuth });
   
   useEffect(() => {
     if (dbError) {
@@ -424,15 +557,160 @@ export default function CityGuide() {
   const loadReviews = useCallback(async bizId => { if (!bizId) return; try { const r = await sb.get("reviews", `?biz_id=eq.${bizId}&order=created_at.desc`); setReviews(r); } catch { setReviews([]); }; }, []);
 
 
-  const { trackEvent, goDir, callPhone, goWhatsApp, goWeb, doShare } = useInteractions();
-  const {
-    reviewText, setReviewText, reviewStar, setReviewStar, showReview, setShowReview,
-    reviewImgFile, setReviewImgFile, reviewImgLoading, setReviewImgLoading,
-    showBooking, setShowBooking, bookingForm, setBookingForm, bookingLoading, setBookingLoading,
-    submitBooking, postReview, toggleLikeReview, doClaim
-  } = useBusinessActions();
+  // Track analytics
+  const trackEvent = useCallback(async (bizId, type) => {
+    try { await sb.post("analytics", { biz_id: bizId, event_type: type, city_slug: activeCity }); } catch { }
+  }, [activeCity]);
 
-  // useAppInit will be called further down, after `navigate` is defined.
+useEffect(() => {
+    (async () => {
+      // Limpieza de caché por versión (Punto 9)
+      const APP_VERSION = "1.1.0"; // Actualizar esta versión cuando cambien las estructuras de datos
+      if (localStorage.getItem("cg_app_version") !== APP_VERSION) {
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith("cg_data_") || key.startsWith("cg_mapPins_")) {
+            localStorage.removeItem(key);
+          }
+        });
+        localStorage.setItem("cg_app_version", APP_VERSION);
+        console.log("Caché limpiado por actualización de versión.");
+      }
+
+      // Parsear token de Google OAuth si viene en la URL
+      sb.parseOAuthHash();
+      // Cargar sesión y datos en paralelo
+      const startTime = Date.now();
+      
+      const [u] = await Promise.all([
+        sb.getUser(),
+        (async () => {
+          if (localStorage.getItem("cg_city_slug")) {
+            await loadData();
+          } else {
+            await loadData("tepic"); // Fallback temporal antes de que el GPS decida
+          }
+        })()
+      ]);
+      
+      // Asegurar que el logo dure como mínimo 600ms para evitar parpadeos
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 600) {
+        await new Promise(r => setTimeout(r, 600 - elapsed));
+      }
+      if (u?.id) {
+        setUser(u);
+        const profs = await sb.get("profiles", `?id=eq.${u.id}`).catch(() => []);
+        let myProf = profs[0] || null;
+        
+        if (myProf && (!myProf.name || !myProf.avatar_url) && u.user_metadata) {
+          const mName = u.user_metadata.full_name || u.user_metadata.name;
+          const mAv = u.user_metadata.avatar_url || u.user_metadata.picture;
+          if ((!myProf.name && mName) || (!myProf.avatar_url && mAv)) {
+            const updates = {};
+            if (!myProf.name && mName) updates.name = mName;
+            if (!myProf.avatar_url && mAv) updates.avatar_url = mAv;
+            const savedCity = localStorage.getItem("cg_city_slug");
+            if (!myProf.city && savedCity) updates.city = savedCity;
+            
+            if (Object.keys(updates).length > 0) {
+              await sb.patch("profiles", u.id, updates).catch(()=>{});
+              myProf = { ...myProf, ...updates };
+            }
+          }
+        }
+        
+        setProfile(myProf);
+        await loadFavs(u.id);
+        const myBizLoaded = await loadMyBiz(u.id);
+
+        // Asociar token de push al usuario recién autenticado (por si se registró sin sesión)
+        if (Capacitor.isNativePlatform()) {
+          try {
+            PushNotifications.register(); // Triggers registration event which will update the token with user_id
+          } catch (_) {}
+        }
+
+        if (initialManageParam.current) {
+          const mBiz = myBizLoaded.find(b => b.id === initialManageParam.current);
+          if (mBiz) {
+            setOwnerView(mBiz);
+            navigate("account");
+          }
+          initialManageParam.current = null;
+        }
+      }
+      // Abrir negocio directo si la URL tiene ?b=
+     const urlB = initialBizParam.current;
+     const urlEv = initialEvParam.current;
+      if (urlB) {
+        try {
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(urlB);
+          const q = isUUID ? `?id=eq.${urlB}` : `?slug=eq.${urlB}`;
+          let r = await sb.get("businesses", `${q}&status=eq.approved`);
+          if (!r?.[0] && !isUUID) {
+            const searchName = urlB.split("-").join("%25");
+            r = await sb.get("businesses", `?name=ilike.*${searchName}*&status=eq.approved`);
+          }
+          if (r?.[0]) { 
+            const parseJSON = (val) => {
+              if (typeof val === 'string') {
+                try { return JSON.parse(val); } catch(e) { return {}; }
+              }
+              return val || {};
+            };
+            const parsedB = {
+              ...r[0],
+              schedule: parseJSON(r[0].schedule),
+              social_links: parseJSON(r[0].social_links),
+              booking_config: parseJSON(r[0].booking_config),
+              blocked_slots: parseJSON(r[0].blocked_slots),
+              photos: parseJSON(r[0].photos)
+            };
+            setSelected(parsedB); 
+            navigate("detail"); 
+          }
+          else navigate("home");
+        } catch { navigate("home"); }
+      } else if (urlEv) {
+        try {
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(urlEv);
+          let r = await sb.get("events", isUUID ? `?id=eq.${urlEv}` : `?slug=eq.${urlEv}`);
+          if (!r?.[0] && !isUUID) {
+            const searchName = urlEv.split("-").join("%25");
+            r = await sb.get("events", `?title=ilike.*${searchName}*&status=eq.approved`);
+          }
+          if (r?.[0]) setSelectedEvent(r[0]);
+          navigate("home");
+        } catch { navigate("home"); }
+      } else if (initialJoinParam.current) {
+        navigate("plans");
+      } else if (initialPlanParam.current) {
+        navigate("mis-planes");
+      } else if (initialVistaParam.current) {
+        const v = initialVistaParam.current;
+        if (v === "eventos") navigate("events");
+        else if (v === "mapa") navigate("map");
+        else if (v === "admin_notifs") navigate("admin_notifs");
+        else if (v === "user_notifs") navigate("user_notifs");
+        else if (v === "about") navigate("about");
+        else if (v === "privacy") navigate("privacy");
+        else if (v === "terms") navigate("terms");
+        else if (v === "admin") navigate("admin");
+        else if (v === "cuenta") navigate("account");
+        else if (v === "favoritos") navigate("favs");
+        else if (v === "planes") navigate("plans");
+        else if (v === "mis-planes") navigate("mis-planes");
+        else navigate("home");
+      } else if (initialCatParam.current) {
+        setActiveCat(initialCatParam.current);
+        navigate("home");
+      } else {
+        navigate("home");
+      }
+      setAuthChecked(true);
+      deepLinkHandled.current = true;
+    })();
+  }, []);
 
   useEffect(() => { localStorage.setItem("cg_dark", dark); }, [dark]);
 
@@ -733,11 +1011,11 @@ export default function CityGuide() {
     }
   }, [selectedEvent]);
 
-  useAppInit({
-    sb, user, setUser, profile, setProfile, loadFavs, loadMyBiz, loadData, activeCity, view, navigate, routerNavigate,
-    initialManageParam, initialBizParam, initialEvParam, initialJoinParam, initialPlanParam, initialVistaParam, initialCatParam,
-    setActiveCat, setSelected, setSelectedEvent, setAuthChecked, deepLinkHandled, setOwnerView
-  });
+  const goDir = useCallback((b, e) => { if (e) e.stopPropagation(); trackEvent(b.id, "maps"); window.open(`https://www.google.com/maps/dir/?api=1&destination=${b.lat},${b.lng}`, "_blank"); }, [trackEvent]);
+  const callPhone = useCallback((b, e) => { if (e) e.stopPropagation(); trackEvent(b.id, "phone"); window.open(`tel:${b.phone}`); }, [trackEvent]);
+  const goWhatsApp = useCallback((b, e) => { if (e) e.stopPropagation(); trackEvent(b.id, "whatsapp"); window.open(`https://wa.me/${(b.whatsapp || b.phone || "").replace(/\D/g, "")}`, "_blank"); }, [trackEvent]);
+  const goWeb = useCallback((b, e) => { if (e) e.stopPropagation(); trackEvent(b.id, "website"); window.open(`https://${b.website}`, "_blank"); }, [trackEvent]);
+  const doShare = useCallback((b, e) => { if (e) e.stopPropagation(); const url = `https://citymap.mx/${b.city_slug || activeCity}/${cleanCityPrefix(b.slug || createSlug(b.name), b.city_slug || activeCity)}`; if (navigator.share) navigator.share({ title: b.name, url }); else { navigator.clipboard?.writeText(url); toast$("Enlace copiado"); } }, [activeCity]);
 
   const handleCardTap = useCallback((b) => {
     setSelected(b);
@@ -755,16 +1033,111 @@ export default function CityGuide() {
   };
   const doSignOut = async () => { await handleSignOut(); setFavIds([]); navigate("home"); toast$("Sesión cerrada"); };
 
-  const isAdmin = profile?.role === "admin";
-  const requestLocation = async () => { 
+  const submitBooking = async () => {
+    if (!bookingForm.service || !bookingForm.date || !bookingForm.time || !bookingForm.name.trim()) return;
+    setBookingLoading(true);
     try {
-      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+      await sb.post("reservations", { biz_id: selected.id, date: bookingForm.date, time: bookingForm.time, client_name: bookingForm.name.trim(), service: bookingForm.service, notes: bookingForm.notes?.trim() || "", status: "pending" });
+      if (selected.owner_id) {
+        await sb.notify(selected.owner_id, "Nueva solicitud de reservación", `${bookingForm.name.trim()} ha solicitado una reserva para el ${bookingForm.date}.`, "booking");
+      }
+      setShowBooking(false);
+      setBookingForm({ service: "", date: "", time: "", name: "", notes: "" });
+      toast$("Reserva enviada");
+      const w = (selected.whatsapp || selected.phone || "").replace(/\D/g, "");
+      if (w) {
+        const msg = `Nueva reserva en ${selected.name}: ${bookingForm.name.trim()} - ${bookingForm.service} - ${bookingForm.date} a las ${bookingForm.time}${bookingForm.notes?.trim() ? `\nNotas: ${bookingForm.notes.trim()}` : ''}`;
+        window.open(`https://wa.me/${w}?text=${encodeURIComponent(msg)}`, "_blank");
+      }
+    } catch { toast$("Error al reservar"); }
+    finally { setBookingLoading(false); }
+  };
+
+  const postReview = async bizId => {
+    if (!user) {
+      toast$("Inicia sesión para opinar");
+      setShowAuth(true);
+      return;
+    }
+    try {
+      setReviewImgLoading(true);
+      let img_url = null;
+      if (reviewImgFile) {
+        img_url = await cloudUpload(reviewImgFile, () => {}, "cityguide/reviews");
+      }
+      
+      const cols = ["#7C3AED", "#DB2777", "#2563EB", "#059669", "#D97706"];
+      const uName = user.user_metadata?.name || profile?.name || user.email.split("@")[0];
+      await sb.post("reviews", { 
+        biz_id: bizId, 
+        user_id: user.id, 
+        user_name: uName, 
+        user_init: uName.slice(0, 2).toUpperCase(), 
+        user_color: cols[Math.floor(Math.random() * cols.length)], 
+        stars: reviewStar, 
+        text: reviewText.trim(),
+        img_url
+      });
+      const all = await sb.get("reviews", `?biz_id=eq.${bizId}`).catch(() => []);
+      const count = Array.isArray(all) ? all.length : 0;
+      const avg = count > 0 ? Math.round((all.reduce((s, r) => s + (r.stars || 0), 0) / count) * 10) / 10 : 0;
+      await sb.patch("businesses", bizId, { rating: avg, review_count: count }).catch(() => {});
+      setMapPins(prev => prev.map(b => b.id === bizId ? { ...b, rating: avg, review_count: count } : b));
+      setSelected(prev => prev?.id === bizId ? { ...prev, rating: avg, review_count: count } : prev);
+      await loadReviews(bizId);
+      setReviewText("");
+      setReviewImgFile(null);
+      setShowReview(false);
+      toast$("Reseña publicada");
+    } catch(err) {
+      toast$("Error: " + err.message);
+    } finally {
+      setReviewImgLoading(false);
+    }
+  };
+  const toggleLikeReview = async (r) => {
+    if (!user) {
+      toast$("Inicia sesión para votar");
+      setShowAuth(true);
+      return;
+    }
+    const likes = r.liked_by || [];
+    const hasLiked = likes.includes(user.id);
+    const newLikes = hasLiked ? likes.filter(id => id !== user.id) : [...likes, user.id];
+    
+    setReviews(reviews.map(x => x.id === r.id ? { ...x, liked_by: newLikes } : x));
+    try {
+      await sb.rpc("toggle_review_like", { r_id: r.id, u_id: user.id });
+    } catch {
+      setReviews(reviews.map(x => x.id === r.id ? { ...x, liked_by: likes } : x));
+      toast$("Error al votar. Faltan permisos en la base de datos.");
+    }
+  };
+
+  const doClaim = async (id, formData) => { 
+    if (!user) return; 
+    try {
+      await sb.post("business_claims", { 
+        business_id: id, 
+        user_id: user.id, 
+        email: user.email, 
+        phone: formData?.phone || "", 
+        role: formData?.role || "Dueño",
+        status: "pending"
+      });
+      toast$("Solicitud enviada — la revisaremos pronto"); 
+    } catch (e) {
+      toast$("Error al enviar solicitud: " + e.message);
+    }
+  };
+
+  const isAdmin = profile?.role === "admin";
+  const requestLocation = () => { 
+    navigator.geolocation?.getCurrentPosition(pos => {
       const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       setUserCoords(coords);
       localStorage.setItem("cg_coords", JSON.stringify(coords));
-    } catch (e) {
-      // Ignored on fail
-    }
+    }, () => { }, { enableHighAccuracy: true, timeout: 10000 }); 
   };
   useEffect(() => {
     const cachedCity = localStorage.getItem("cg_city_slug");
@@ -788,11 +1161,11 @@ export default function CityGuide() {
         },
         onError: setDefaultCity
       });
-    } else if (cachedCity && cities.length > 0) {
+    } else if (cachedCity && cities.length > 0 && navigator.permissions && navigator.geolocation) {
       // Auto-update location if permission was previously granted AND user hasn't manually locked city
       if (!localStorage.getItem("cg_manual_city")) {
-        Geolocation.checkPermissions().then(result => {
-          if (result.location === 'granted') {
+        navigator.permissions.query({ name: 'geolocation' }).then(result => {
+          if (result.state === 'granted') {
             detectCity({ 
               showToast: false, 
               onDone: (slug) => {
@@ -879,7 +1252,7 @@ export default function CityGuide() {
     const d = new Date();
     const seed = d.getFullYear() + d.getMonth() * 31 + d.getDate();
     
-    return [...filtered].sort((a, b) => {
+    return filtered.sort((a, b) => {
       const getPlanWeight = (plan) => {
         if (plan === "premium") return 3;
         if (plan === "destacado") return 2;
@@ -962,8 +1335,19 @@ export default function CityGuide() {
   // Stubs for collection and event functions to prevent crashes
 
   const toggleSaveEvent = () => {};
+  const AutoSliderEv = ({ children }) => <div style={{display:"flex", overflowX:"auto", gap:10}}>{children}</div>;
 
+  const topFavsMemo = useMemo(() => {
+    return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && globalFavCounts[b.id] > 0).sort((a, b) => (globalFavCounts[b.id] || 0) - (globalFavCounts[a.id] || 0)).slice(0, 10);
+  }, [mapPins, activeCity, globalFavCounts, userCoords]);
 
+  const topRatedMemo = useMemo(() => {
+    return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && b.review_count > 0).sort((a, b) => b.rating - a.rating || b.review_count - a.review_count).slice(0, 10);
+  }, [mapPins, activeCity, userCoords]);
+
+  const newBizMemo = useMemo(() => {
+    return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved").sort((a, b) => new Date(b.created_at || 0).getTime() < new Date(a.created_at || 0).getTime() ? -1 : 1).slice(0, 8);
+  }, [mapPins, activeCity, userCoords]);
 
   // ── SPLASH ────────────────────────────────────────────────────────────────
   // Bypass onboarding if user arrived via a shared plan/join link
@@ -972,8 +1356,22 @@ export default function CityGuide() {
     return <SplashScreen navigate={navigate} T={T} />;
   }
 
+  const appContextValue = {
+    viewStyle, cityImg, locating, detectCity, setShowCityPicker, city, isAdmin, setShowAdmin, search, setSearch, user, setShowAuth, toast$, setShowAddBiz, dbReady, dark, cats, activeCat, setActiveCat, T, mapPins, activeCity, banners: filteredBanners, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, globalFavCounts, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, coupons, biz: filteredBiz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState,
+    // From MapView
+    mapPin, setMapPin, requestLocation, allNearby,
+    // From FavsView
+    collections, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, createCollection, updateCollection, deleteCollection, setMovingBiz, movingBiz, setCollections,
+    // From EventsView
+    events: filteredEvents, EVENT_CATS, getEventStatus, savedEventIds, toggleSaveEvent, selectedEvent, setSelectedEvent, AutoSliderEv, setShowCreateEvent, createSlug, setSavedEventIds, cleanCityPrefix,
+    // From DetailView
+    selected, setView, setFade, showGallery, setShowGallery, reviews, promos, wallet, setWallet, parseMenuUrls, setShowMenuGallery, goWeb, showReview, setShowReview, reviewStar, setReviewStar, reviewText, setReviewText, reviewImgFile, setReviewImgFile, reviewImgLoading, postReview, sb, setReviews, setBiz: setMapPins, toggleLikeReview, setClaimBiz, callPhone,
+    // Globals
+    LoaderFallback, GMap
+  };
+
   return (
-    <>
+    <AppContext.Provider value={appContextValue}>
       <div style={{ fontFamily: "'DM Sans',system-ui,sans-serif", background: T.bg, minHeight: "100vh", width: "100%", position: "relative", transition: "background .3s" }}>
         {/* Center column on desktop */}
         <div style={{ maxWidth: 480, margin: "0 auto", minHeight: "100vh", position: "relative", background: T.bg, boxShadow: "0 0 60px rgba(0,0,0,.08)" }}>
@@ -1041,28 +1439,10 @@ export default function CityGuide() {
         <motion.div animate={{ opacity: fade ? 1 : 0 }} transition={{ duration: 0.15, ease: "easeInOut" }}>
           <ErrorBoundary>
             <Suspense fallback={<LoaderFallback/>}>
-              {(view === "home" || (view === "detail" && lastView === "home")) && (
-                <HomeView 
-                  navigate={navigate}
-                  handleCardTap={handleCardTap}
-                  loadPaginatedBiz={loadPaginatedBiz}
-                  hasMore={hasMore}
-                  loadingMore={loadingMore}
-                  detectCity={detectCity}
-                  getKm={getKm}
-                  biz={filteredBiz}
-                  allNearby={allNearby}
-                  cityImg={cityImg}
-                />
-              )}
-              {(view === "map" || (view === "detail" && lastView === "map")) && (
-                <MapView 
-                  navigate={navigate}
-                  allNearby={allNearby}
-                />
-              )}
+              {(view === "home" || (view === "detail" && lastView === "home")) && <HomeView />}
+              {(view === "map" || (view === "detail" && lastView === "map")) && <MapView />}
               {(view === "mis-planes" || (view === "detail" && lastView === "mis-planes") || view === "plans" || (view === "detail" && lastView === "plans")) && <TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} profile={profile} initialPlanId={initialPlanParam.current} initialJoinToken={initialJoinParam.current} onInitialPlanOpened={() => { initialPlanParam.current = null; initialJoinParam.current = null; }} />}
-              {(view === "events" || (view === "detail" && lastView === "events")) && <EventsView navigate={navigate} />}
+              {(view === "events" || (view === "detail" && lastView === "events")) && <EventsView />}
               {(view === "account" || (view === "detail" && lastView === "account")) && <AccountView
             user={user} authChecked={authChecked} profile={profile} isAdmin={isAdmin} T={T} dark={dark} setDark={setDark}
             favIds={favIds} reviews={reviews} wallet={wallet} coupons={coupons} claimedCoupons={claimedCoupons}
@@ -1189,7 +1569,7 @@ export default function CityGuide() {
         {storeAdminBiz && <Suspense fallback={<LoaderFallback/>}><StoreAdminPanel business={storeAdminBiz} onClose={() => setStoreAdminBiz(null)} T={T} /></Suspense>}
 
         {/* ════ EVENTOS ════ */}
-        {view === "eventos" && <EventsView navigate={navigate} />}
+        {view === "eventos" && <EventsView />}
 
         {/* ════ CREAR EVENTO MODAL ════ */}
         {showCreateEvent && <div className="ov" onClick={() => setShowCreateEvent(false)}>
@@ -1536,6 +1916,7 @@ export default function CityGuide() {
         onDismiss={() => setShowLocModal(false)}
       />
     )}
-    </>
+
+    </AppContext.Provider>
   );
 }

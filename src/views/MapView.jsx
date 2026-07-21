@@ -1,24 +1,20 @@
-import React, { Suspense } from "react";
+import { Suspense } from "react";
 import { motion } from "framer-motion";
-import { getThumbUrl, getScheduleStatus, isNear, isOpenNow, getKm, CAT_EMOJI } from "../lib/utils";
-import { getT, FONT_BIZ } from "../lib/constants";
+import { getThumbUrl, getScheduleStatus, isNear } from "../lib/utils";
+import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon.jsx";
 
-const GMap = React.lazy(() => import('../components/GMap.jsx'));
-const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:30,height:30,border:"3px solid #E4E8E4",borderTop:"3px solid #000000",borderRadius:"50%",animation:"spin .8s linear infinite"}}/></div>;
-
-export default function MapView({ navigate, allNearby }) {
-  const { dark, activeCity, toast$, activeCat, setActiveCat, mapPin, setMapPin, userCoords, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, city, requestLocation, setSelected, setShowAddBiz, view } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$, activeCat: s.activeCat, setActiveCat: s.setActiveCat, mapPin: s.mapPin, setMapPin: s.setMapPin, userCoords: s.userCoords, nearbyRadius: s.nearbyRadius, setNearbyRadius: s.setNearbyRadius, nearbyFilter: s.nearbyFilter, setNearbyFilter: s.setNearbyFilter, city: s.city, requestLocation: s.requestLocation, setSelected: s.setSelected, setShowAddBiz: s.setShowAddBiz, view: s.view })));
+export default function MapView() {
+  const ctx = useAppContext();
+  const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
   const { cats, mapPins } = useDataStore(useShallow(s => ({ cats: s.cats, mapPins: s.mapPins })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   
-  const viewStyle = view === "list" ? "list" : "grid";
-  const T = getT(dark);
-  const isOpen = (b) => isOpenNow(b.schedule);
+  const { viewStyle, T, activeCat, setActiveCat, GMap, navigate, setSelected, setMapPin, mapPin, userCoords, requestLocation, FONT_BIZ, CAT_EMOJI, getKm, isOpen, allNearby, nearbyRadius, setNearbyRadius, setNearbyFilter, nearbyFilter, LoaderFallback, setShowAddBiz, city } = ctx;
 
   const cityPins = mapPins.filter(b => isNear(b, userCoords, activeCity, 40));
   let displayedPins = (activeCat === "todas" || activeCat === "explorar") ? cityPins : cityPins.filter(b => b.category === activeCat);
@@ -250,3 +246,4 @@ export default function MapView({ navigate, allNearby }) {
         </div>
   );
 }
+

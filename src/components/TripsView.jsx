@@ -161,7 +161,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
 
   const parseDBPlan = (dbPlan, extraBizMap = {}) => {
     // Map items to proper local structure
-    const places = [...(dbPlan.plan_items || [])].sort((a,b) => a.position - b.position).map(item => {
+    const places = (dbPlan.plan_items || []).sort((a,b) => a.position - b.position).map(item => {
       let biz = null;
       if (item.type === 'business' && item.business_id) {
         // First try mapPins (local cache), then extraBizMap (fetched from DB)
@@ -708,7 +708,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
           </motion.div>
         ) : (
           <motion.div key="guardados" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={{ paddingTop: 0 }}>
-             <FavsView hideHeader={true} navigate={navigate} />
+             <FavsView hideHeader={true} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -745,3 +745,4 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     </div>
   );
 }
+

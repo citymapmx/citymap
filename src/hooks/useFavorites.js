@@ -1,14 +1,29 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { sb } from '../lib/supabase.js';
-import { useDataStore } from '../store/useDataStore.js';
-import { useUIStore } from '../store/useUIStore.js';
-import { useAuthStore } from '../store/useAuthStore.js';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
-export function useFavorites() {
-  const { user, setShowAuth } = useAuthStore();
-  const { toast$ } = useUIStore();
-  const { favIds, setFavIds, globalFavCounts, setGlobalFavCounts, collections, setCollections } = useDataStore();
-  const { movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm } = useUIStore();
+export function useFavorites({ sb, user, setShowAuth, toast$ }) {
+  const [favIds, setFavIds] = useState([]);
+  const [globalFavCounts, setGlobalFavCounts] = useState({});
+  const [movingBiz, setMovingBiz] = useState(null);
+  const [activeCollection, setActiveCollection] = useState(null);
+  const [newColModal, setNewColModal] = useState(false);
+  const [newColForm, setNewColForm] = useState({ name: "", emoji: "🌟" });
+
+  const [collections, setCollections] = useState(() => {
+    try {
+      const saved = localStorage.getItem("citymap_collections");
+      return saved ? JSON.parse(saved) : [
+        { id: "col_visitar", name: "Por visitar", emoji: "📌", items: [] },
+        { id: "col_cita", name: "Para cita", emoji: "👩‍❤️‍👨", items: [] },
+        { id: "col_cafe", name: "Cafés Top", emoji: "☕", items: [] }
+      ];
+    } catch {
+      return [
+        { id: "col_visitar", name: "Por visitar", emoji: "📌", items: [] },
+        { id: "col_cita", name: "Para cita", emoji: "👩‍❤️‍👨", items: [] },
+        { id: "col_cafe", name: "Cafés Top", emoji: "☕", items: [] }
+      ];
+    }
+  });
 
   const didMigrate = useRef(false);
 
@@ -111,3 +126,4 @@ export function useFavorites() {
     createCollection, updateCollection, deleteCollection
   };
 }
+

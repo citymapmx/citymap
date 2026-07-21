@@ -1,9 +1,17 @@
-import { useCallback } from 'react';
-import { Geolocation } from '@capacitor/geolocation';
-import { useUIStore } from '../store/useUIStore.js';
+import { useState, useCallback } from 'react';
 
 export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
-  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState } = useUIStore();
+  const [city, setCity] = useState(() => localStorage.getItem("cg_city_name") || "Tepic, Nayarit");
+  const [locating, setLocating] = useState(false);
+  const [userCoords, setUserCoords] = useState(() => {
+    try {
+      const saved = localStorage.getItem("cg_coords");
+      if (saved) return JSON.parse(saved);
+    } catch(e) {}
+    return null;
+  });
+  const [detectedTown, setDetectedTown] = useState(null);
+  const [detectedState, setDetectedState] = useState(null);
 
   const getKm = useCallback((lat1, lng1, lat2, lng2) => { 
     const R = 6371; 
@@ -13,7 +21,11 @@ export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
   }, []);
 
-  const detectCity = useCallback(async ({ showToast = false, onDone, onError } = {}) => {
+  const detectCity = useCallback(({ showToast = false, onDone, onError } = {}) => {
+    if (!navigator.geolocation) {
+      onError?.();
+      return;
+    }
     setLocating(true);
     
     // Fallback timer for MacOS/Safari bug where getCurrentPosition hangs indefinitely
@@ -23,62 +35,67 @@ export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
       onError?.();
     }, 8000);
 
-    try {
-      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
-      clearTimeout(fallbackTimer);
-      const { latitude: lat, longitude: lng } = pos.coords;
-      const coords = { lat, lng };
-      setUserCoords(coords);
-      localStorage.setItem("cg_coords", JSON.stringify(coords));
-      
-      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`);
-      const d = await r.json();
-      
-      let name = d.address?.city || d.address?.town || d.address?.village || d.address?.county || "Tepic";
-      let state = d.address?.state || "";
-      
-      setDetectedTown(name);
-      setDetectedState(state);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        clearTimeout(fallbackTimer);
+        const { latitude: lat, longitude: lng } = pos.coords;
+        const coords = { lat, lng };
+        setUserCoords(coords);
+        localStorage.setItem("cg_coords", JSON.stringify(coords));
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`)
+          .then(r => r.json())
+          .then(d => {
+            let name = d.address?.city || d.address?.town || d.address?.village || d.address?.county || "Tepic";
+            let state = d.address?.state || "";
+            
+            setDetectedTown(name);
+            setDetectedState(state);
 
-      let slug = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-");
-      let displayName = state ? `${name}, ${state}` : name;
+            let slug = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-");
+            let displayName = state ? `${name}, ${state}` : name;
 
-      // Nearest City Logic: if detected city isn't supported, find closest supported city slug for backward compatibility
-      // but keep the displayName as the ACTUAL town name.
-      const isSupported = cities && cities.some(c => c.slug === slug);
-      if (!isSupported && mapPins && mapPins.length > 0) {
-        let nearestDist = Infinity;
-        let cityObj = null;
-        for (let i = 0; i < mapPins.length; i++) {
-           const p = mapPins[i];
-           const d = getKm(lat, lng, p.lat, p.lng);
-           if (d < nearestDist) {
-               nearestDist = d;
-               cityObj = cities?.find(c => c.slug === p.city_slug);
-           }
-        }
-        if (nearestDist < 50) { // arbitrary threshold, e.g., 50km
-           if (cityObj) {
-               slug = cityObj.slug;
-               // We intentionally do NOT overwrite displayName anymore.
-           }
-        }
-      }
+            // Nearest City Logic: if detected city isn't supported, find closest supported city slug for backward compatibility
+            // but keep the displayName as the ACTUAL town name.
+            const isSupported = cities && cities.some(c => c.slug === slug);
+            if (!isSupported && mapPins && mapPins.length > 0) {
+              let closestBiz = null;
+              let minD = Infinity;
+              for (const b of mapPins) {
+                if (!b.lat || !b.lng) continue;
+                const dist = getKm(lat, lng, parseFloat(b.lat), parseFloat(b.lng));
+                if (dist < minD) { minD = dist; closestBiz = b; }
+              }
+              if (closestBiz && minD < 60) {
+                 const cityObj = cities.find(c => c.slug === closestBiz.city_slug);
+                 if (cityObj) {
+                     slug = cityObj.slug;
+                     // We intentionally do NOT overwrite displayName anymore.
+                 }
+              }
+            }
 
-      setCity(displayName);
-      const currentSlug = localStorage.getItem("cg_city_slug");
-      if (setActiveCity && slug !== currentSlug) setActiveCity(slug);
-      localStorage.setItem("cg_city_slug", slug);
-      localStorage.setItem("cg_city_name", displayName);
-      if (showToast && toast$) toast$(name);
-      onDone?.(slug);
-    } catch (e) {
-      clearTimeout(fallbackTimer);
-      if (showToast && toast$) toast$("No se pudo obtener la ubicación o ciudad");
-      onError?.();
-    } finally {
-      setLocating(false);
-    }
+            setCity(displayName);
+            const currentSlug = localStorage.getItem("cg_city_slug");
+            if (setActiveCity && slug !== currentSlug) setActiveCity(slug);
+            localStorage.setItem("cg_city_slug", slug);
+            localStorage.setItem("cg_city_name", displayName);
+            if (showToast && toast$) toast$(name);
+            onDone?.(slug);
+          })
+          .catch(() => { 
+            if (showToast && toast$) toast$("No se pudo obtener la ciudad"); 
+            onError?.();
+          })
+          .finally(() => setLocating(false));
+      },
+      () => { 
+        clearTimeout(fallbackTimer);
+        setLocating(false); 
+        if (showToast && toast$) toast$("Activa el GPS en ajustes"); 
+        onError?.();
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
   }, [cities, mapPins, setActiveCity, toast$, getKm]);
 
   const handleCitySelect = useCallback((c) => {
@@ -104,3 +121,4 @@ export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
     getKm, detectCity, handleCitySelect
   };
 }
+

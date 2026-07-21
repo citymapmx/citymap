@@ -12,25 +12,6 @@ export const useDataStore = create((set, get) => ({
   cities: [], setCities: (val) => set(s => ({ cities: typeof val === 'function' ? val(s.cities) : val })),
   wallet: (() => { try { return JSON.parse(localStorage.getItem("citymap_wallet") || "[]"); } catch { return []; } })(),
   setWallet: (val) => set(s => ({ wallet: typeof val === 'function' ? val(s.wallet) : val })),
-  favIds: [], setFavIds: (val) => set(s => ({ favIds: typeof val === 'function' ? val(s.favIds) : val })),
-  collections: (() => {
-    try {
-      const saved = localStorage.getItem("citymap_collections");
-      return saved ? JSON.parse(saved) : [
-        { id: "col_visitar", name: "Por visitar", emoji: "📌", items: [] },
-        { id: "col_cita", name: "Para cita", emoji: "👩‍❤️‍👨", items: [] },
-        { id: "col_cafe", name: "Cafés Top", emoji: "☕", items: [] }
-      ];
-    } catch {
-      return [
-        { id: "col_visitar", name: "Por visitar", emoji: "📌", items: [] },
-        { id: "col_cita", name: "Para cita", emoji: "👩‍❤️‍👨", items: [] },
-        { id: "col_cafe", name: "Cafés Top", emoji: "☕", items: [] }
-      ];
-    }
-  })(),
-  setCollections: (val) => set(s => ({ collections: typeof val === 'function' ? val(s.collections) : val })),
-
   claimedCoupons: (() => { try { return JSON.parse(localStorage.getItem("citymap_claims") || "{}"); } catch { return {}; } })(),
   setClaimedCoupons: (val) => set(s => ({ claimedCoupons: typeof val === 'function' ? val(s.claimedCoupons) : val })),
   dbReady: false, setDbReady: (val) => set(s => ({ dbReady: typeof val === 'function' ? val(s.dbReady) : val })),
@@ -38,11 +19,6 @@ export const useDataStore = create((set, get) => ({
   mapPins: [], setMapPins: (val) => set(s => ({ mapPins: typeof val === 'function' ? val(s.mapPins) : val })),
   myBizList: [], setMyBizList: (val) => set(s => ({ myBizList: typeof val === 'function' ? val(s.myBizList) : val })),
   globalFavCounts: {}, setGlobalFavCounts: (val) => set(s => ({ globalFavCounts: typeof val === 'function' ? val(s.globalFavCounts) : val })),
-  ownerRes: [], setOwnerRes: (val) => set(s => ({ ownerRes: typeof val === 'function' ? val(s.ownerRes) : val })),
-  ownerView: null, setOwnerView: (val) => set(s => ({ ownerView: typeof val === 'function' ? val(s.ownerView) : val })),
-  storeAdminBiz: null, setStoreAdminBiz: (val) => set(s => ({ storeAdminBiz: typeof val === 'function' ? val(s.storeAdminBiz) : val })),
-  adminStoreBiz: null, setAdminStoreBiz: (val) => set(s => ({ adminStoreBiz: typeof val === 'function' ? val(s.adminStoreBiz) : val })),
-  ownerStats: { views: 0, whatsapp: 0, phone: 0 }, setOwnerStats: (val) => set(s => ({ ownerStats: typeof val === 'function' ? val(s.ownerStats) : val })),
 
   parseJSON: (val) => {
     if (typeof val === 'string') {
@@ -201,3 +177,4 @@ export const useDataStore = create((set, get) => ({
     return [];
   }
 }));
+

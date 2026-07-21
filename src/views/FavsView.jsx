@@ -1,26 +1,16 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getT, FONT_BIZ } from "../lib/constants.js";
-import { getThumbUrl, getScheduleStatus, isNear, isOpenNow, getKm } from "../lib/utils";
-import { useInteractions } from "../hooks/useInteractions";
-import { useFavorites } from "../hooks/useFavorites";
-import { sb } from "../lib/supabase.js";
+import { useAppContext } from "../context/AppContext";
+import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
-import { useAuthStore } from "../store/useAuthStore.js";
-import useTimeStore from "../store/useTimeStore.js";
 import Icon from "../components/ui/Icon.jsx";
 import { useShallow } from 'zustand/react/shallow';
 
-export default function FavsView({ hideHeader, navigate }) {
-  const { dark, activeCity, toast$, userCoords, city, savedEventIds, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, selectedEvent, setSelectedEvent, setSelected, view } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$, userCoords: s.userCoords, city: s.city, savedEventIds: s.savedEventIds, movingBiz: s.movingBiz, setMovingBiz: s.setMovingBiz, activeCollection: s.activeCollection, setActiveCollection: s.setActiveCollection, newColModal: s.newColModal, setNewColModal: s.setNewColModal, newColForm: s.newColForm, setNewColForm: s.setNewColForm, selectedEvent: s.selectedEvent, setSelectedEvent: s.setSelectedEvent, setSelected: s.setSelected, view: s.view })));
-  const { collections, setCollections, favIds } = useDataStore(useShallow(s => ({ collections: s.collections, setCollections: s.setCollections, favIds: s.favIds })));
-  const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
-  const now = useTimeStore(s => s.now);
-  const viewStyle = view === "list" ? "list" : "grid";
-  const T = getT(dark);
-  const { toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites();
-  const { trackEvent, goDir } = useInteractions();
+export default function FavsView({ hideHeader }) {
+  const ctx = useAppContext();
+  const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
   const { mapPins, events } = useDataStore(useShallow(s => ({ mapPins: s.mapPins, events: s.events })));
+  const { viewStyle, T, favIds, toggleFav, biz, navigate, setSelected, trackEvent, userCoords, getKm, collections, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, createCollection, updateCollection, deleteCollection, city, savedEventIds, setCollections, FONT_BIZ, goDir, setMovingBiz, setSelectedEvent, movingBiz } = ctx;
 
   return (
     <div style={hideHeader ? { paddingBottom: 20 } : { paddingBottom: 84, ...viewStyle }}>
@@ -229,3 +219,4 @@ export default function FavsView({ hideHeader, navigate }) {
 
   );
 }
+

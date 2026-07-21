@@ -1,23 +1,17 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useShallow } from 'zustand/react/shallow';
-import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear, cleanCityPrefix, createSlug, CAT_EMOJI } from "../lib/utils";
-import { getT, FONT_BIZ } from "../lib/constants";
-import { useInteractions } from "../hooks/useInteractions";
-import { useFavorites } from "../hooks/useFavorites";
-import { sb } from "../lib/supabase.js";
+import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear } from "../lib/utils";
 import Icon from "../components/ui/Icon.jsx";
 import { PageLogo } from "../components/Brand.jsx";
 import { Sk, CardSk, DuoSk, EventSk } from "../components/ui/Skeleton.jsx";
 import FeaturedCard from "../components/cards/FeaturedCard.jsx";
 import DestacadoCard from "../components/cards/DestacadoCard.jsx";
 import CompactCard from "../components/cards/CompactCard.jsx";
-import AutoSlider from "../components/ui/AutoSlider.jsx";
-import AutoFadeBillboard from "../components/ui/AutoFadeBillboard.jsx";
-import FeaturedCarousel from "../components/ui/FeaturedCarousel.jsx";
 import BentoCategories from "../components/BentoCategories.jsx";
 import { Virtuoso } from "react-virtuoso";
 import { Helmet } from "react-helmet-async";
@@ -282,7 +276,8 @@ const FloatingParticles = () => {
   );
 };
 
-export default function HomeView({ navigate, handleCardTap, loadPaginatedBiz, hasMore, loadingMore, detectCity, getKm, biz, allNearby, cityImg }) {
+export default function HomeView() {
+  const ctx = useAppContext();
   const { dark, activeCity, showCityPicker, setShowCityPicker, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, showCityPicker: s.showCityPicker, setShowCityPicker: s.setShowCityPicker, toast$: s.toast$ })));
   const { dbReady, cats, banners, mapPins, globalFavCounts, coupons, events, raffles } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, cats: s.cats, banners: s.banners, mapPins: s.mapPins, globalFavCounts: s.globalFavCounts, coupons: s.coupons, events: s.events, raffles: s.raffles })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
@@ -311,28 +306,8 @@ export default function HomeView({ navigate, handleCardTap, loadPaginatedBiz, ha
     }, 3000);
     return () => clearInterval(interval);
   }, []);
-  const profile = useAuthStore(s => s.profile);
-  const isAdmin = profile?.role === "admin";
-  const { locating, city, search, setSearch, activeCat, setActiveCat, userCoords, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, showMoreTopFavs, setShowMoreTopFavs, showMoreTopRated, setShowMoreTopRated, detectedTown, detectedState, setShowAdmin, setShowAddBiz, setSelected, requestLocation, setSelectedEvent } = useUIStore(useShallow(s => ({
-    locating: s.locating, city: s.city, search: s.search, setSearch: s.setSearch, activeCat: s.activeCat, setActiveCat: s.setActiveCat, userCoords: s.userCoords, nearbyRadius: s.nearbyRadius, setNearbyRadius: s.setNearbyRadius, nearbyFilter: s.nearbyFilter, setNearbyFilter: s.setNearbyFilter, showMoreTopFavs: s.showMoreTopFavs, setShowMoreTopFavs: s.setShowMoreTopFavs, showMoreTopRated: s.showMoreTopRated, setShowMoreTopRated: s.setShowMoreTopRated, detectedTown: s.detectedTown, detectedState: s.detectedState, setShowAdmin: s.setShowAdmin, setShowAddBiz: s.setShowAddBiz, setSelected: s.setSelected, requestLocation: s.requestLocation, setSelectedEvent: s.setSelectedEvent
-  })));
-  const viewStyle = useUIStore(s => s.view === "list" ? "list" : "grid");
-  const displayList = viewStyle === "list";
-  const T = getT(dark);
-  const { favIds, toggleFav } = useFavorites();
-  const { trackEvent, goWhatsApp, goDir, doShare } = useInteractions();
-  const isOpen = (b) => isOpenNow(b.schedule);
-  const topFavsMemo = React.useMemo(() => {
-    return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && globalFavCounts[b.id] > 0).sort((a, b) => (globalFavCounts[b.id] || 0) - (globalFavCounts[a.id] || 0)).slice(0, 10);
-  }, [mapPins, activeCity, globalFavCounts, userCoords]);
 
-  const topRatedMemo = React.useMemo(() => {
-    return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && b.review_count > 0).sort((a, b) => b.rating - a.rating || b.review_count - a.review_count).slice(0, 10);
-  }, [mapPins, activeCity, userCoords]);
-
-  const newBizMemo = React.useMemo(() => {
-    return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved").sort((a, b) => new Date(b.created_at || 0).getTime() < new Date(a.created_at || 0).getTime() ? -1 : 1).slice(0, 8);
-  }, [mapPins, activeCity, userCoords]);
+  const { viewStyle, cityImg, locating, detectCity, city, isAdmin, setShowAdmin, search, setSearch, setShowAddBiz, activeCat, setActiveCat, T, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, requestLocation, allNearby, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, biz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState, setSelectedEvent, cleanCityPrefix, createSlug } = ctx;
 
   const nearbyList = React.useMemo(() => {
     if (!allNearby || !allNearby.length) return [];
@@ -398,8 +373,8 @@ export default function HomeView({ navigate, handleCardTap, loadPaginatedBiz, ha
        timeList = mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "restaurantes" || b.category === "restaurante") && getMinutesToClose(b) > 0);
     }
 
-    timeList = [...timeList].sort((a, b) => b.plan - a.plan).slice(0, 8);
-    const sportsList = [...mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "fitness" || b.category === "unidad deportiva"))].sort((a, b) => b.plan - a.plan).slice(0, 8);
+    timeList = timeList.sort((a, b) => b.plan - a.plan).slice(0, 8);
+    const sportsList = mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "fitness" || b.category === "unidad deportiva")).sort((a, b) => b.plan - a.plan).slice(0, 8);
     const showActiva = h >= 6 && h < 18;
 
     return { listTitle, timeList, sportsList, showActiva };
@@ -1008,3 +983,4 @@ export default function HomeView({ navigate, handleCardTap, loadPaginatedBiz, ha
         </div>
   );
 }
+

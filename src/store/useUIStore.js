@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { Geolocation } from '@capacitor/geolocation';
 
 export const useUIStore = create((set) => ({
   dark: false,
@@ -65,91 +64,6 @@ export const useUIStore = create((set) => ({
   setSelectedEvent: (val) => set(s => ({ selectedEvent: typeof val === 'function' ? val(s.selectedEvent) : val })),
 
   installPromptEvent: null,
-  setInstallPromptEvent: (event) => set({ installPromptEvent: event }),
-
-  search: "",
-  setSearch: (val) => set(s => ({ search: typeof val === 'function' ? val(s.search) : val })),
-
-  nearbyRadius: 1,
-  setNearbyRadius: (val) => set(s => ({ nearbyRadius: typeof val === 'function' ? val(s.nearbyRadius) : val })),
-
-  nearbyFilter: "all",
-  setNearbyFilter: (val) => set(s => ({ nearbyFilter: typeof val === 'function' ? val(s.nearbyFilter) : val })),
-
-  fade: true,
-  setFade: (val) => set(s => ({ fade: typeof val === 'function' ? val(s.fade) : val })),
-
-  navbarVisible: true,
-  setNavbarVisible: (val) => set(s => ({ navbarVisible: typeof val === 'function' ? val(s.navbarVisible) : val })),
-
-  showMoreTopRated: false,
-  setShowMoreTopRated: (val) => set(s => ({ showMoreTopRated: typeof val === 'function' ? val(s.showMoreTopRated) : val })),
-
-  showMoreTopFavs: false,
-  setShowMoreTopFavs: (val) => set(s => ({ showMoreTopFavs: typeof val === 'function' ? val(s.showMoreTopFavs) : val })),
-
-  showLocModal: false,
-  setShowLocModal: (val) => set(s => ({ showLocModal: typeof val === 'function' ? val(s.showLocModal) : val })),
-
-  userCoords: (() => {
-    try {
-      const saved = localStorage.getItem("cg_coords");
-      if (saved) return JSON.parse(saved);
-    } catch(e) {}
-    return null;
-  })(),
-  setUserCoords: (coords) => set({ userCoords: coords }),
-  
-  requestLocation: async () => {
-    try {
-      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
-      const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      set({ userCoords: coords });
-      localStorage.setItem("cg_coords", JSON.stringify(coords));
-    } catch (e) {
-      // Ignored on fail
-    }
-  },
-
-  locating: false,
-  setLocating: (val) => set(s => ({ locating: typeof val === 'function' ? val(s.locating) : val })),
-
-  city: (() => localStorage.getItem("cg_city_name") || "Tepic, Nayarit")(),
-  setCity: (val) => set(s => ({ city: typeof val === 'function' ? val(s.city) : val })),
-
-  detectedTown: null,
-  setDetectedTown: (val) => set(s => ({ detectedTown: typeof val === 'function' ? val(s.detectedTown) : val })),
-
-  detectedState: null,
-  setDetectedState: (val) => set(s => ({ detectedState: typeof val === 'function' ? val(s.detectedState) : val })),
-
-  showCreateEvent: false,
-  setShowCreateEvent: (val) => set(s => ({ showCreateEvent: typeof val === 'function' ? val(s.showCreateEvent) : val })),
-
-  createEvForm: { title: "", description: "", date: "", time: "", end_date: "", end_time: "", price_type: "gratis", price: "", event_category: "", venue_name: "", venue_address: "", whatsapp: "", img_url: "" },
-  setCreateEvForm: (val) => set(s => ({ createEvForm: typeof val === 'function' ? val(s.createEvForm) : val })),
-
-  savedEventIds: (() => { try { return JSON.parse(localStorage.getItem("cg_saved_ev") || "[]"); } catch { return []; } })(),
-  setSavedEventIds: (val) => {
-    set(s => {
-      const next = typeof val === 'function' ? val(s.savedEventIds) : val;
-      localStorage.setItem("cg_saved_ev", JSON.stringify(next));
-      return { savedEventIds: next };
-    });
-  },
-
-  selectedEvent: null,
-  setSelectedEvent: (val) => set(s => ({ selectedEvent: typeof val === 'function' ? val(s.selectedEvent) : val })),
-
-  movingBiz: null,
-  setMovingBiz: (val) => set(s => ({ movingBiz: typeof val === 'function' ? val(s.movingBiz) : val })),
-
-  activeCollection: null,
-  setActiveCollection: (val) => set(s => ({ activeCollection: typeof val === 'function' ? val(s.activeCollection) : val })),
-
-  newColModal: false,
-  setNewColModal: (val) => set(s => ({ newColModal: typeof val === 'function' ? val(s.newColModal) : val })),
-
-  newColForm: { name: "", emoji: "🌟" },
-  setNewColForm: (val) => set(s => ({ newColForm: typeof val === 'function' ? val(s.newColForm) : val }))
+  setInstallPromptEvent: (event) => set({ installPromptEvent: event })
 }));
+

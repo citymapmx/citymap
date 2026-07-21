@@ -1,28 +1,21 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getThumbUrl, getKm, getEventStatus, createSlug, cleanCityPrefix } from "../lib/utils";
-import { getT, EVENT_CATS, FONT_BIZ } from "../lib/constants";
-import { useInteractions } from "../hooks/useInteractions";
-import { useFavorites } from "../hooks/useFavorites";
-import { sb } from "../lib/supabase.js";
+import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon.jsx";
 import { Sk } from "../components/ui/Skeleton.jsx";
+import { getThumbUrl } from "../lib/utils";
 import useTimeStore from "../store/useTimeStore.js";
-export default function EventsView({ navigate }) {
-  const { dark, activeCity, toast$, userCoords, city, savedEventIds, setSavedEventIds, selectedEvent, setSelectedEvent, setShowCreateEvent, setSelected } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$, userCoords: s.userCoords, city: s.city, savedEventIds: s.savedEventIds, setSavedEventIds: s.setSavedEventIds, selectedEvent: s.selectedEvent, setSelectedEvent: s.setSelectedEvent, setShowCreateEvent: s.setShowCreateEvent, setSelected: s.setSelected })));
-  const { events } = useDataStore(useShallow(s => ({ events: s.events })));
+
+export default function EventsView() {
+  const ctx = useAppContext();
+  const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
   const { user } = useAuthStore(useShallow(s => ({ user: s.user })));
   const now = useTimeStore(s => s.now);
-  const viewStyle = useUIStore(s => s.view === "list" ? "list" : "grid");
-  const T = getT(dark);
-  const { toggleFav, favIds } = useFavorites();
-  const { trackEvent, goDir, doShare } = useInteractions();
-  const toggleSaveEvent = () => {};
-  const AutoSliderEv = ({ children }) => <div style={{display:"flex", overflowX:"auto", gap:10}}>{children}</div>;
+  const { viewStyle, T, favIds, toggleFav, navigate, setSelected, trackEvent, userCoords, getKm, EVENT_CATS, getEventStatus, goDir, savedEventIds, toggleSaveEvent, selectedEvent, setSelectedEvent, FONT_BIZ, doShare, AutoSliderEv, city, setShowCreateEvent, createSlug, setSavedEventIds, cleanCityPrefix, events } = ctx;
 
   return (
     <div style={{ paddingBottom: 84, ...viewStyle }}>
@@ -161,3 +154,4 @@ export default function EventsView({ navigate }) {
 
   );
 }
+

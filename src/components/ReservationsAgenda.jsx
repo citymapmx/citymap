@@ -54,9 +54,9 @@ export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes })
     : `${FULL_DIRS[selectedDateObj.getDay()].charAt(0).toUpperCase() + FULL_DIRS[selectedDateObj.getDay()].slice(1)} ${selectedDateObj.getDate()} de ${FULL_MONTHS[selectedDateObj.getMonth()]}`;
 
   const selectedRes = activeRes.filter(r => r.date === selectedDate);
-  const pending = selectedRes.filter(r => r.status === "pending").sort((a,b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
-  const upcoming = selectedRes.filter(r => r.status === "confirmed").sort((a,b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
-  const history = selectedRes.filter(r => r.status === "cancelled").sort((a,b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
+  const pending = [...selectedRes.filter(r => r.status === "pending")].sort((a,b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+  const upcoming = [...selectedRes.filter(r => r.status === "confirmed")].sort((a,b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+  const history = [...selectedRes.filter(r => r.status === "cancelled")].sort((a,b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
   const pendingCount = pending.length;
 
   const formatTimeAMPM = (timeStr) => {
