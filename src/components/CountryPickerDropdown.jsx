@@ -12,6 +12,7 @@ const FLAG_MAP = {
 
 export default function CountryPickerDropdown({ cities, activeCity, onSelectCity, onClose, dark }) {
   const [expandedCountry, setExpandedCountry] = useState(null);
+  const [cityCounts, setCityCounts] = useState({});
   const ref = useRef(null);
 
   useEffect(() => {
@@ -24,9 +25,31 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
+  useEffect(() => {
+    import('../lib/supabase.js').then(({ sb }) => {
+      sb.get("businesses", "?select=city_slug&status=eq.approved").then(res => {
+        if (Array.isArray(res)) {
+          const counts = {};
+          res.forEach(r => {
+            counts[r.city_slug] = (counts[r.city_slug] || 0) + 1;
+          });
+          setCityCounts(counts);
+        }
+      });
+    }).catch(() => {});
+  }, []);
+
   const activeCountriesMap = {};
-  cities.forEach(city => {
-    const country = city.country || "México";
+  
+  // Sort cities globally by count first
+  const sortedCities = [...cities].map(city => ({
+    ...city,
+    country: city.slug === "los-angeles" ? "Estados Unidos" : (city.country || "México"),
+    count: cityCounts[city.slug] || 0
+  })).sort((a, b) => b.count - a.count);
+
+  sortedCities.forEach(city => {
+    const country = city.country;
     if (!activeCountriesMap[country]) {
       activeCountriesMap[country] = [];
     }
@@ -36,8 +59,8 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
   const activeCountryNames = Object.keys(activeCountriesMap);
   const comingSoonCountries = ["Canadá", "España", "Argentina", "Colombia"].filter(c => !activeCountryNames.includes(c));
 
-  const currentCityObj = cities.find(c => c.slug === activeCity);
-  const currentCountry = currentCityObj ? (currentCityObj.country || "México") : null;
+  const currentCityObj = sortedCities.find(c => c.slug === activeCity);
+  const currentCountry = currentCityObj ? currentCityObj.country : null;
 
   return (
     <div 
@@ -118,6 +141,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
                         style={{
                           display: "flex",
                           alignItems: "center",
+                          justifyContent: "space-between",
                           padding: "8px 12px",
                           background: isSelected ? (dark ? "rgba(56, 189, 248, 0.1)" : "rgba(2, 132, 199, 0.05)") : "transparent",
                           border: "none",
@@ -136,7 +160,10 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
                           if (!isSelected) e.currentTarget.style.background = "transparent";
                         }}
                       >
-                        {city.name}
+                        <span>{city.name}</span>
+                        {city.count > 0 && (
+                          <span style={{ fontSize: 12, opacity: 0.6 }}>{city.count} {city.count === 1 ? 'lugar' : 'lugares'}</span>
+                        )}
                       </button>
                     )
                   })}
