@@ -255,6 +255,23 @@ export default function AccountView({
             })}
           </div>
         )}
+        {/* ── APP STORES ── */}
+        <div style={{ margin: "24px 16px 0", display: "flex", gap: 12, justifyContent: "center" }}>
+          <div className="press" onClick={() => toast$("Próximamente en App Store")} style={{ flex: 1, background: "#000", color: "#fff", borderRadius: 12, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", border: "1px solid #333" }}>
+            <svg viewBox="0 0 384 512" style={{ width: 22, height: 22, fill: "#fff" }}><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 9, opacity: 0.8, lineHeight: 1.2 }}>Consíguelo en el</div>
+              <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>App Store</div>
+            </div>
+          </div>
+          <div className="press" onClick={() => toast$("Próximamente en Google Play")} style={{ flex: 1, background: "#000", color: "#fff", borderRadius: 12, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", border: "1px solid #333" }}>
+            <svg viewBox="0 0 512 512" style={{ width: 22, height: 22, fill: "#fff" }}><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 9, opacity: 0.8, lineHeight: 1.2 }}>DISPONIBLE EN</div>
+              <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>Google Play</div>
+            </div>
+          </div>
+        </div>
 
         {/* ── CERRAR SESIÓN ── */}
         <button onClick={doSignOut} style={{ width: "calc(100% - 32px)", margin: "16px 16px 0", padding: "13px 0", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 14, fontSize: 15, fontWeight: 700, color: T.red, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
