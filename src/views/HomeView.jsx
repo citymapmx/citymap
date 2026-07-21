@@ -461,15 +461,14 @@ export default function HomeView() {
                         -webkit-background-clip: text;
                         -webkit-text-fill-color: transparent;
                         animation: heroGradientFlow 6s ease infinite;
-                        font-style: italic;
                         display: inline-block;
-                        padding-right: 4px; /* Evita que el italics se corte */
+                        padding-right: 4px;
                       }
                       .hero-title-anim {
                         animation: premiumFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                       }
                     `}</style>
-                    <h1 className="hero-title-anim" style={{ fontFamily: "'Playfair Display', serif", fontSize: 34, fontWeight: 600, color: "#fff", lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", textShadow: "0 4px 16px rgba(0,0,0,0.6)" }}>
+                    <h1 className="hero-title-anim" style={{ fontFamily: "'Outfit', 'Inter', sans-serif", fontSize: 36, fontWeight: 800, color: "#fff", lineHeight: 1.1, margin: 0, letterSpacing: "-1px", textShadow: "0 4px 16px rgba(0,0,0,0.6)" }}>
                       Descubre lo mejor de <br/><span className="animated-city">{cityName}</span>
                     </h1>
                   </div>
