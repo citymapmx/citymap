@@ -1381,14 +1381,64 @@ useEffect(() => {
 
         {/* ── GLOBAL GLASS NAVBAR (Fixed, home only) ── */}
         {view === "home" && (
-          <div style={{ position: "fixed", top: 0, left: "50%", transform: `translateX(-50%) translateY(${navbarVisible ? "0" : "-100%"})`, width: "100%", maxWidth: 480, height: 48, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 20px", zIndex: 998, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.08)", transition: "transform 0.35s cubic-bezier(0.4,0,0.2,1)" }}>
-            <div style={{ pointerEvents: "none", display: "flex", alignItems: "center" }}>
-              <img src="/citymap.mx.png" alt="CityMap" style={{ height: 36, objectFit: "contain" }} />
+          <div style={{ 
+            position: "fixed", 
+            top: 0, 
+            left: "50%", 
+            transform: `translateX(-50%) translateY(${navbarVisible ? "0" : "-100%"})`, 
+            width: "100%", 
+            maxWidth: 480, 
+            height: 52, 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center", 
+            padding: "0 20px", 
+            zIndex: 998, 
+            background: "rgba(10, 15, 30, 0.7)", 
+            backdropFilter: "blur(24px) saturate(180%)", 
+            WebkitBackdropFilter: "blur(24px) saturate(180%)", 
+            borderBottom: "1px solid rgba(255, 255, 255, 0.08)", 
+            boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
+            transition: "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)" 
+          }}>
+            <div style={{ pointerEvents: "none", display: "flex", alignItems: "center", gap: 6 }}>
+              <img 
+                src="/citymap.mx.png" 
+                alt="CityMap" 
+                style={{ 
+                  height: 28, 
+                  objectFit: "contain",
+                  filter: "drop-shadow(0 2px 8px rgba(56, 189, 248, 0.3))" 
+                }} 
+              />
             </div>
-            <button className="press" onClick={() => setShowCityPicker(true)} style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 100, padding: "6px 14px", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", color: "#fff", fontSize: 13, fontWeight: 700, transition: "background 0.2s" }}>
-              <Icon name="pin" size={14} color="#fff" />
-              <span style={{ maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transform: "translateY(1px)" }}>{detectedTown || (city || "").split(",")[0]}</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <button 
+              className="press" 
+              onClick={() => setShowCityPicker(true)} 
+              style={{ 
+                background: "linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)", 
+                backdropFilter: "blur(12px)", 
+                WebkitBackdropFilter: "blur(12px)", 
+                border: "1px solid rgba(255, 255, 255, 0.12)", 
+                borderRadius: 100, 
+                padding: "6px 14px", 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 6, 
+                cursor: "pointer", 
+                color: "#fff", 
+                fontSize: 13, 
+                fontWeight: 700, 
+                fontFamily: "system-ui, -apple-system, sans-serif",
+                boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
+                transition: "all 0.2s" 
+              }}
+            >
+              <Icon name="pin" size={13} color="#38bdf8" sw={2.5} />
+              <span style={{ maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transform: "translateY(0.5px)", letterSpacing: "0.2px" }}>
+                {detectedTown || (city || "").split(",")[0]}
+              </span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
           </div>
         )}
