@@ -461,7 +461,7 @@ export default function HomeView() {
                         line-height: 1;
                         letter-spacing: normal;
                         padding-right: 8px;
-                        background: linear-gradient(90deg, #38caba 0%, #748eef 25%, #38caba 50%, #748eef 75%, #38caba 100%);
+                        background: linear-gradient(90deg, #34D399 0%, #38BDF8 25%, #818CF8 50%, #38BDF8 75%, #34D399 100%);
                         background-size: 200% auto;
                         -webkit-background-clip: text;
                         -webkit-text-fill-color: transparent;
