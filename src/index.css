@@ -6,6 +6,14 @@
   font-display: block;
 }
 
+@font-face {
+  font-family: 'Brunson';
+  src: url('/Brunson.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;

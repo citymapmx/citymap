@@ -445,7 +445,6 @@ export default function HomeView() {
                       />
                     </div>
                     <style>{`
-                      @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');
                       @keyframes heroGradientFlow {
                         0% { background-position: 0% 50%; }
                         50% { background-position: 100% 50%; }
@@ -462,19 +461,17 @@ export default function HomeView() {
                         -webkit-text-fill-color: transparent;
                         animation: heroGradientFlow 6s ease infinite;
                         display: inline-block;
-                        font-family: 'Caveat', cursive;
-                        font-size: 1.3em;
-                        font-weight: 700;
-                        line-height: 0.8;
-                        transform: rotate(-2deg);
-                        padding-right: 8px;
-                        padding-left: 2px;
+                        font-family: 'Brunson', sans-serif;
+                        font-size: 1.1em;
+                        font-weight: normal;
+                        line-height: 1;
+                        padding-right: 4px;
                       }
                       .hero-title-anim {
                         animation: premiumFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                       }
                     `}</style>
-                    <h1 className="hero-title-anim" style={{ fontFamily: "'Outfit', 'Inter', sans-serif", fontSize: 36, fontWeight: 800, color: "#fff", lineHeight: 1.1, margin: 0, letterSpacing: "-1px", textShadow: "0 4px 16px rgba(0,0,0,0.6)" }}>
+                    <h1 className="hero-title-anim" style={{ fontFamily: "'Brunson', sans-serif", fontSize: 40, fontWeight: "normal", color: "#fff", lineHeight: 1.1, margin: 0, letterSpacing: "1px", textShadow: "0 4px 16px rgba(0,0,0,0.6)" }}>
                       Descubre lo mejor de <br/><span className="animated-city">{cityName}</span>
                     </h1>
                   </div>
