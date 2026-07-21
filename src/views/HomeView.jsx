@@ -473,7 +473,7 @@ export default function HomeView() {
                         filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6));
                       }
                     `}</style>
-                    <h1 className="hero-title-anim" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(24px, 6.5vw, 36px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px" }}>
+                    <h1 className="hero-title-anim" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(28px, 7.5vw, 42px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px" }}>
                       Descubre lo mejor de <br/><span className="animated-city">{cityName}</span>
                     </h1>
                   </div>
