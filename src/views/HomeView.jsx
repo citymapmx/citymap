@@ -456,11 +456,11 @@ export default function HomeView() {
                       }
                       .animated-city {
                         display: inline-block;
-                        font-family: 'Brunson', sans-serif;
+                        font-family: 'Montserrat', sans-serif;
                         font-size: 1.1em;
-                        font-weight: normal;
+                        font-weight: 800;
                         line-height: 1;
-                        letter-spacing: 4px;
+                        letter-spacing: normal;
                         padding-right: 8px;
                       }
                       .hero-title-anim {
@@ -472,7 +472,7 @@ export default function HomeView() {
                         filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6));
                       }
                     `}</style>
-                    <h1 className="hero-title-anim" style={{ fontFamily: "'Brunson', sans-serif", fontSize: 40, fontWeight: "normal", lineHeight: 1.1, margin: 0, letterSpacing: "1px" }}>
+                    <h1 className="hero-title-anim" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 40, fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "normal" }}>
                       Descubre lo mejor de <br/><span className="animated-city">{cityName}</span>
                     </h1>
                   </div>
