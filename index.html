@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-TGZ7JVM90W"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-TGZ7JVM90W');
+    </script>
+
+    <!-- Fuentes Optimizadas -->
+    <link rel="preload" href="/Coolvetica Rg.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" as="style" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png?v=citymap1" />
+    <link rel="apple-touch-icon" href="/apple-icon.png?v=citymap1" />
+
+    <!-- Viewport y tema -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000000" />
+
+    <!-- SEO básico -->
+    <title>CityMap — La guía de tu ciudad</title>
+    <meta name="description" content="Explora negocios locales, lugares de interés y eventos exclusivos. Encuentra lo mejor de tu ciudad en un solo lugar." />
+    <meta name="keywords" content="CityMap, guia turistica, eventos, restaurantes, que hacer, negocios, directorio local" />
+    <meta name="author" content="CityMap.mx" />
+    <link rel="canonical" href="https://citymap.mx" />
+    <script>
+      // Dynamic canonical: update on every navigation so Google sees the correct URL per page
+      function updateCanonical() {
+        var path = window.location.pathname.replace(/\/$/, '') || '/';
+        var canonical = document.querySelector('link[rel="canonical"]');
+        if (canonical) canonical.href = 'https://citymap.mx' + path;
+      }
+      updateCanonical();
+      // Listen to SPA route changes
+      var _pushState = history.pushState;
+      history.pushState = function() { _pushState.apply(history, arguments); updateCanonical(); };
+      window.addEventListener('popstate', updateCanonical);
+    </script>
+
+    <!-- Open Graph (WhatsApp, Facebook, LinkedIn) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://citymap.mx" />
+    <meta property="og:title" content="CityMap — La guía de tu ciudad" />
+    <meta property="og:description" content="Explora negocios locales, lugares de interés y eventos exclusivos. Encuentra lo mejor de tu ciudad en un solo lugar." />
+    <meta property="og:image" content="https://citymap.mx/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="es_MX" />
+    <meta property="og:site_name" content="CityMap México" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CityMap México — Descubre tu ciudad" />
+    <meta name="twitter:description" content="Encuentra los mejores negocios, restaurantes, eventos y lugares cerca de ti." />
+    <meta name="twitter:image" content="https://citymap.mx/og-image.jpg" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

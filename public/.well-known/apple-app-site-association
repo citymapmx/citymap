@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAM_ID_AQUI.mx.citymap.app",
+        "paths": ["*"]
+      }
+    ]
+  }
+}

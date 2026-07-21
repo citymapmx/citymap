@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "769139703867",
+    "project_id": "citymap-mx",
+    "storage_bucket": "citymap-mx.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:769139703867:android:59950ef718fdd9198f5c1e",
+        "android_client_info": {
+          "package_name": "mx.citymap.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLt_31dmJwxdDF_8g8UzJuUe2m4r8E5OA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

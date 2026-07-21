@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciando sesión...</title>
+  <style>
+    body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #000; color: #fff; }
+    .loader { border: 4px solid rgba(255,255,255,0.2); border-left-color: #fff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="loader"></div>
+  <p>Redirigiendo a CityMap...</p>
+  <script>
+    const hash = window.location.hash;
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    
+    if (isAndroid) {
+      // Use Android Intent URI to bypass Chrome Custom Tab block
+      // Format: intent://<host><path>?<query>#Intent;scheme=<scheme>;package=<package>;end
+      window.location.replace("intent://login" + hash + "#Intent;scheme=mx.citymap.app;package=mx.citymap.app;end");
+    } else {
+      window.location.replace("mx.citymap.app://login" + hash);
+    }
+    
+    // Fallback if the redirect fails
+    setTimeout(() => {
+      document.body.innerHTML = '<p style="padding: 20px; text-align: center;">Si la aplicación no se abre automáticamente, <br><br><a href="intent://login' + hash + '#Intent;scheme=mx.citymap.app;package=mx.citymap.app;end" style="display: inline-block; padding: 12px 24px; background: #1A7A5E; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px;">Toca aquí para continuar</a></p>';
+    }, 1500);
+  </script>
+</body>
+</html>

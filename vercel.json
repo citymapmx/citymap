@@ -1,0 +1,57 @@
+{
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap.xml"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/evento/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Googlebot|bingbot|TelegramBot|Applebot|Discordbot|Slackbot|vkShare|Pinterest|w3c_validator|curl|python-requests|Discord|Skype|Viber).*|.*(bot|Bot|spider|Spider|crawler|Crawler|whatsapp|WhatsApp|Telegram|Discord).*"
+        }
+      ],
+      "destination": "/api/og?ev=:slug"
+    },
+    {
+      "source": "/:city",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Googlebot|bingbot|TelegramBot|Applebot|Discordbot|Slackbot|vkShare|Pinterest|w3c_validator|curl|python-requests|Discord|Skype|Viber).*|.*(bot|Bot|spider|Spider|crawler|Crawler|whatsapp|WhatsApp|Telegram|Discord).*"
+        }
+      ],
+      "destination": "/api/og?city=:city"
+    },
+    {
+      "source": "/:city/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Googlebot|bingbot|TelegramBot|Applebot|Discordbot|Slackbot|vkShare|Pinterest|w3c_validator|curl|python-requests|Discord|Skype|Viber).*|.*(bot|Bot|spider|Spider|crawler|Crawler|whatsapp|WhatsApp|Telegram|Discord).*"
+        }
+      ],
+      "destination": "/api/og?b=:slug&city=:city"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

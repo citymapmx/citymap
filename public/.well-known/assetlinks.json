@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "mx.citymap.app",
+    "sha256_cert_fingerprints": [
+      "DF:F8:96:47:1C:DC:6D:B5:5C:87:E5:63:87:0A:97:68:3D:6D:09:24:73:0D:FC:18:6A:A1:69:73:86:E9:76:D5"
+    ]
+  }
+}]

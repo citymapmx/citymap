@@ -1,0 +1,10 @@
+{
+  "appId": "mx.citymap.app",
+  "appName": "CityMap",
+  "webDir": "dist",
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}
