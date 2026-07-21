@@ -176,21 +176,25 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
         {/* Tabs */}
         <div style={{ display: "flex", background: T.bg, borderRadius: 12, padding: 4, marginBottom: 20, border: `1px solid ${T.border}` }}>
           <button onClick={() => setTab("blocked")} style={{ flex: 1, padding: "10px 0", background: tab === "blocked" ? T.white : "transparent", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 800, color: tab === "blocked" ? T.text : T.sub, cursor: "pointer", fontFamily: "inherit", boxShadow: tab === "blocked" ? T.shadow : "none", transition: "all 0.2s" }}>
-            Bloqueos
+            Bloquear Horas/Días
           </button>
           <button onClick={() => setTab("schedule")} style={{ flex: 1, padding: "10px 0", background: tab === "schedule" ? T.white : "transparent", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 800, color: tab === "schedule" ? T.text : T.sub, cursor: "pointer", fontFamily: "inherit", boxShadow: tab === "schedule" ? T.shadow : "none", transition: "all 0.2s" }}>
-            Horario Base
+            Horarios del Negocio
           </button>
           <button onClick={() => setTab("booking")} style={{ flex: 1, padding: "10px 0", background: tab === "booking" ? T.white : "transparent", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 800, color: tab === "booking" ? T.text : T.sub, cursor: "pointer", fontFamily: "inherit", boxShadow: tab === "booking" ? T.shadow : "none", transition: "all 0.2s" }}>
-            Reservaciones
+            Reglas de Reserva
           </button>
         </div>
 
         <div style={{ marginBottom: 20 }}>
           {tab === "blocked" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div style={{ fontSize: 13, color: T.sub, marginBottom: 16, lineHeight: 1.5 }}>
+                Usa esta sección para suspender citas en fechas específicas (días festivos, vacaciones o imprevistos).
+              </div>
+
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>Selecciona un Día</label>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>Paso 1: Selecciona la fecha</label>
                 <div style={{ display: "flex", gap: 10 }}>
                   <input 
                     type="date" 
@@ -201,17 +205,17 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
                   />
                   <button onClick={toggleBlockDate} style={{ padding: "0 16px", background: isDateBlocked ? "#FEE2E2" : "#fff", border: `1.5px solid ${isDateBlocked ? "#FCA5A5" : "#E4E8E4"}`, borderRadius: 10, color: isDateBlocked ? "#DC2626" : T.sub, fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s" }} className="press">
                     <Icon name="slash" size={14} color={isDateBlocked ? "#DC2626" : T.sub} />
-                    {isDateBlocked ? "Día Bloqueado" : "Bloquear Día"}
+                    {isDateBlocked ? "Día Suspendido" : "Suspender Día"}
                   </button>
                 </div>
               </div>
 
               {!isDateBlocked ? (
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>Horarios del Día (Toca para bloquear)</label>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>Paso 2: Toca las horas para cancelarlas/bloquearlas en este día</label>
                   {availableSlotsForDate.length === 0 ? (
                     <div style={{ padding: 16, textAlign: "center", background: "#FEE2E2", color: "#991B1B", borderRadius: 12, fontSize: 13, fontWeight: 700 }}>
-                      El negocio está cerrado o no hay horario configurado para este día.
+                      El negocio está marcado como Cerrado en tu "Horario Base" para este día.
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
