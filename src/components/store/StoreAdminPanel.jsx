@@ -44,10 +44,10 @@ export default function StoreAdminPanel({ business, onClose, T }) {
       
       if (data) {
         data.forEach(cat => {
-          if (cat.store_products) {
-            cat.store_products.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-          }
-        });
+            if (cat.store_products) {
+              cat.store_products = [...cat.store_products].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+            }
+          });
         setCategories(data);
       }
     } catch (error) {

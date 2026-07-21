@@ -197,7 +197,7 @@ export default function DetailView({ navigate }) {
             return val || {};
           };
           
-          const revs = res[0].reviews || [];
+          const revs = [...(res[0].reviews || [])];
           revs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           setReviews(revs);
           
