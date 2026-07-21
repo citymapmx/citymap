@@ -979,7 +979,8 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
               name: d.toLocaleDateString("es-MX", { weekday: 'short', day: 'numeric' }),
               vistas: dayAn.filter(a => a.event_type === "view").length,
               llamadas: dayAn.filter(a => a.event_type === "phone").length,
-              whatsapp: dayAn.filter(a => a.event_type === "whatsapp").length
+              whatsapp: dayAn.filter(a => a.event_type === "whatsapp").length,
+              pedidos: dayAn.filter(a => a.event_type === "menu_order").length
             });
           }
 
@@ -993,24 +994,29 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
               <p className="text-sm" style={{ fontWeight: 700, color: "#0F1A14", marginBottom: 20 }}>Interacciones los últimos 7 días</p>
               <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", height: 200, gap: 8, paddingBottom: 10 }}>
                 {(() => {
-                  const maxVal = Math.max(1, ...chartData.map(d => Math.max(d.vistas, d.llamadas, d.whatsapp)));
+                  const maxVal = Math.max(1, ...chartData.map(d => Math.max(d.vistas, d.llamadas, d.whatsapp, d.pedidos)));
                   return chartData.map((d, i) => (
                     <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", position: "relative" }}>
                       <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: "100%", width: "100%", justifyContent: "center", paddingBottom: 6 }}>
                         {/* Vistas Bar */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", width: "30%", maxWidth: 12 }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", width: "22%", maxWidth: 10 }}>
                           {d.vistas > 0 && <span style={{ fontSize: 8, fontWeight: 800, color: "#3B82F6", marginBottom: 3 }}>{d.vistas}</span>}
                           <div style={{ width: "100%", height: `${(d.vistas / maxVal) * 100}%`, minHeight: d.vistas > 0 ? 4 : 0, background: "#3B82F6", borderRadius: "3px 3px 0 0", transition: "height 0.3s ease" }} />
                         </div>
                         {/* Llamadas Bar */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", width: "30%", maxWidth: 12 }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", width: "22%", maxWidth: 10 }}>
                           {d.llamadas > 0 && <span style={{ fontSize: 8, fontWeight: 800, color: "#8B5CF6", marginBottom: 3 }}>{d.llamadas}</span>}
                           <div style={{ width: "100%", height: `${(d.llamadas / maxVal) * 100}%`, minHeight: d.llamadas > 0 ? 4 : 0, background: "#8B5CF6", borderRadius: "3px 3px 0 0", transition: "height 0.3s ease" }} />
                         </div>
                         {/* Whatsapp Bar */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", width: "30%", maxWidth: 12 }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", width: "22%", maxWidth: 10 }}>
                           {d.whatsapp > 0 && <span style={{ fontSize: 8, fontWeight: 800, color: "#25D366", marginBottom: 3 }}>{d.whatsapp}</span>}
                           <div style={{ width: "100%", height: `${(d.whatsapp / maxVal) * 100}%`, minHeight: d.whatsapp > 0 ? 4 : 0, background: "#25D366", borderRadius: "3px 3px 0 0", transition: "height 0.3s ease" }} />
+                        </div>
+                        {/* Pedidos Bar */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", width: "22%", maxWidth: 10 }}>
+                          {d.pedidos > 0 && <span style={{ fontSize: 8, fontWeight: 800, color: "#F97316", marginBottom: 3 }}>{d.pedidos}</span>}
+                          <div style={{ width: "100%", height: `${(d.pedidos / maxVal) * 100}%`, minHeight: d.pedidos > 0 ? 4 : 0, background: "#F97316", borderRadius: "3px 3px 0 0", transition: "height 0.3s ease" }} />
                         </div>
                       </div>
                       <div className="text-micro" style={{ color: "#5A6872", whiteSpace: "nowrap", textAlign: "center", textTransform: "capitalize", borderTop: "1px solid #E4E8E4", paddingTop: 8, width: "100%" }}>{d.name.split(',')[0]}</div>
@@ -1022,6 +1028,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: "50%", background: "#3B82F6" }} /><span className="text-xs" style={{ color: "#5A6872", fontWeight: 600 }}>Vistas</span></div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: "50%", background: "#8B5CF6" }} /><span className="text-xs" style={{ color: "#5A6872", fontWeight: 600 }}>Llamadas</span></div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: "50%", background: "#25D366" }} /><span className="text-xs" style={{ color: "#5A6872", fontWeight: 600 }}>WhatsApp</span></div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: "50%", background: "#F97316" }} /><span className="text-xs" style={{ color: "#5A6872", fontWeight: 600 }}>Pedidos</span></div>
               </div>
             </div>
 
