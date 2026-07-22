@@ -274,7 +274,6 @@ export default function DetailView() {
       <Helmet>
         <title>{selected.name} en CityMap</title>
         <meta name="description" content={schemaOrgJSONLD.description} />
-        <link rel="canonical" href={canonicalUrl} />
       </Helmet>
       
       {/* Schema.org Injection */}

@@ -415,7 +415,6 @@ export default function HomeView() {
       <Helmet>
         <title>{currentTitle}</title>
         <meta name="description" content={currentDesc} />
-        <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
           {/* ── HERO HEADER ── */}
