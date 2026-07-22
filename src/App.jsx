@@ -403,13 +403,14 @@ export default function CityGuide() {
 
     const regListener = PushNotifications.addListener('registration', async (token) => {
       console.log('Push token: ' + token.value);
+      // Siempre guardamos el token localmente, sin importar si hay sesión
+      localStorage.setItem('cg_push_token', token.value);
+
       try {
         const u = useAuthStore.getState().user;
-        if (!u?.id) return; // Esperar a que el usuario inicie sesión
-        
-        localStorage.setItem('cg_push_token', token.value);
+        if (!u?.id) return; // Si no hay sesión, terminamos aquí. El login lo enviará luego.
 
-        // Registrar el token de forma segura en el backend (elimina tokens huérfanos de otros usuarios en este dispositivo)
+        // Registrar el token de forma segura en el backend
         await fetch(`https://citymap.mx/api/register-token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -635,10 +636,20 @@ useEffect(() => {
         await loadFavs(u.id);
         const myBizLoaded = await loadMyBiz(u.id);
 
-        // Asociar token de push al usuario recién autenticado (por si se registró sin sesión)
+        // Asociar token de push al usuario recién autenticado
         if (Capacitor.isNativePlatform()) {
           try {
-            PushNotifications.register(); // Triggers registration event which will update the token with user_id
+            PushNotifications.register(); // Intentar registrar para obtener uno nuevo si es necesario
+            
+            // Si ya teníamos uno guardado, enviarlo manualmente para garantizar la sincronización
+            const localToken = localStorage.getItem('cg_push_token');
+            if (localToken) {
+              fetch(`https://citymap.mx/api/register-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: localToken, user_id: u.id })
+              }).catch(e => console.error("Manual token sync error:", e));
+            }
           } catch (_) {}
         }
 
