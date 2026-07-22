@@ -60,6 +60,7 @@ const StoreAdminPanel = lazy(() => import("./components/store/StoreAdminPanel.js
 const CityPicker = lazy(() => import("./components/CityPicker.jsx"));
 import { SplashScreen, PageLogo } from "./components/Brand.jsx";
 import CountryPickerDropdown from "./components/CountryPickerDropdown.jsx";
+import TopSheetCityPicker from "./components/TopSheetCityPicker.jsx";
 
 const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:30,height:30,border:"3px solid #E4E8E4",borderTop:"3px solid #000000",borderRadius:"50%",animation:"spin .8s linear infinite"}}/></div>;
 const PAGE_LOAD_SEED = Math.random();
@@ -79,8 +80,6 @@ const DetailView = lazy(() => import("./views/DetailView.jsx"));
 const MapView = lazy(() => import("./views/MapView.jsx"));
 const FavsView = lazy(() => import("./views/FavsView.jsx"));
 const EventsView = lazy(() => import("./views/EventsView.jsx"));
-const LocationPermissionModal = lazy(() => import("./components/LocationPermissionModal.jsx"));
-import { shouldShowLocationModal } from "./lib/utils.js";
 const ReservationsAgenda = lazy(() => import("./components/ReservationsAgenda.jsx"));
 import { App as CapApp } from '@capacitor/app';
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -487,7 +486,7 @@ export default function CityGuide() {
   }, []);
   const [showMoreTopRated, setShowMoreTopRated] = useState(false);
   const [showMoreTopFavs, setShowMoreTopFavs] = useState(false);
-  const [showLocModal, setShowLocModal] = useState(() => shouldShowLocationModal());
+
   const [reviewText, setReviewText] = useState("");
   const [reviewStar, setReviewStar] = useState(5);
   const [showReview, setShowReview] = useState(false);
@@ -515,6 +514,7 @@ export default function CityGuide() {
   const [nearbyFilter, setNearbyFilter] = useState("all"); // "all" | "open"
   const [fade, setFade] = useState(true);
   const [navbarVisible, setNavbarVisible] = useState(true);
+  const [requireCitySelection, setRequireCitySelection] = useState(false);
   const lastScrollY = useRef(0);
   useEffect(() => {
     const handleScroll = () => {
@@ -1154,28 +1154,7 @@ useEffect(() => {
     const cachedCity = localStorage.getItem("cg_city_slug");
 
     if (!cachedCity && cities.length > 0) {
-      const setDefaultCity = () => {
-        const defaultCity = cities.find(c => c.slug === "tepic") || cities[0];
-        if (defaultCity) {
-          const displayName = defaultCity.state ? `${defaultCity.name}, ${defaultCity.state}` : defaultCity.name;
-          setActiveCity(defaultCity.slug);
-          localStorage.setItem("cg_city_slug", defaultCity.slug);
-          localStorage.setItem("cg_city_name", displayName);
-          loadData(defaultCity.slug);
-        }
-      };
-
-      if (shouldShowLocationModal()) {
-        setDefaultCity();
-      } else {
-        detectCity({ 
-          showToast: false, 
-          onDone: (slug) => {
-            loadData(slug);
-          },
-          onError: setDefaultCity
-        });
-      }
+      setRequireCitySelection(true);
     } else if (cachedCity && cities.length > 0 && navigator.permissions && navigator.geolocation) {
       // Auto-update location if permission was previously granted AND user hasn't manually locked city
       if (!localStorage.getItem("cg_manual_city")) {
@@ -1427,9 +1406,11 @@ useEffect(() => {
               <img 
                 src="/citymap.mx.png" 
                 alt="CityMap" 
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 style={{ 
                   height: 40, 
                   objectFit: "contain",
+                  cursor: "pointer",
                   filter: "drop-shadow(0 2px 8px rgba(56, 189, 248, 0.3))" 
                 }} 
               />
@@ -1469,6 +1450,29 @@ useEffect(() => {
           </div>
         )}
 
+        {requireCitySelection && (
+          <TopSheetCityPicker
+            cities={cities}
+            activeCity={activeCity}
+            onSelectCity={(city) => { handleCitySelect(city); setRequireCitySelection(false); }}
+            onDetectCity={() => { 
+              if (!locating) {
+                detectCity({ 
+                  showToast: true, 
+                  onDone: (slug) => { 
+                    const found = cities.find(c => c.slug === slug);
+                    if (found) handleCitySelect(found);
+                    setRequireCitySelection(false); 
+                  }
+                }); 
+              }
+            }}
+            locating={locating}
+            onClose={() => {}} 
+            dark={dark}
+            mandatory={true}
+          />
+        )}
         {showCityPicker && <Suspense fallback={<LoaderFallback/>}><CityPicker current={activeCity} cities={cities} onSelect={handleCitySelect} onClose={() => setShowCityPicker(false)} onDetectCity={() => { if (!locating) detectCity({ showToast: true }); setShowCityPicker(false); }} locating={locating} T={T} /></Suspense>}
         {showAdmin && <Suspense fallback={<LoaderFallback/>}><AdminPanel onClose={() => { setShowAdmin(false); loadData(); }} onToast={toast$} T={T} onOpenStoreAdmin={(biz) => setAdminStoreBiz(biz)} /></Suspense>}
         {adminStoreBiz && <Suspense fallback={<LoaderFallback/>}><StoreAdminPanel business={adminStoreBiz} onClose={() => setAdminStoreBiz(null)} T={T} /></Suspense>}
@@ -1888,7 +1892,7 @@ useEffect(() => {
         {view === "detail" && selected && <Suspense fallback={<LoaderFallback/>}><DetailView /></Suspense>}
 
         {/* ════ BOTTOM NAV ════ */}
-        <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, width: "100%", background: "rgba(0,0,0,0.75)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)", borderTop: `1px solid rgba(255,255,255,0.08)`, display: "flex", alignItems: "center", justifyContent: "space-around", padding: "4px 12px", paddingBottom: "calc(4px + env(safe-area-inset-bottom, 8px))", zIndex: 50, boxShadow: `0 -8px 32px rgba(0,0,0,0.4)` }}>
+        <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, width: "100%", background: "rgba(10, 15, 30, 0.45)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)", borderTop: `1px solid rgba(255,255,255,0.08)`, display: "flex", alignItems: "center", justifyContent: "space-around", padding: "4px 12px", paddingBottom: "calc(4px + env(safe-area-inset-bottom, 8px))", zIndex: 50, boxShadow: "none" }}>
           {[{ id: "home", icon: "home", label: "Inicio" }, { id: "mis-planes", icon: "bookmark", label: "Planes" }, { id: "map", icon: "map_svg", label: "Mapa" }, { id: "eventos", icon: "calendar", label: "Eventos" }, { id: "account", icon: "user", label: "Mi Perfil" }].map(n => {
             const isActive = view === n.id || (n.id === "eventos" && view === "events");
             return <motion.button whileTap={{ scale: 0.85 }} key={n.id} onClick={() => { if (n.id === "account" && !user) { setShowAuth(true); return; } navigate(n.id); }} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "4px 10px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", minWidth: 48 }}>
@@ -1896,9 +1900,9 @@ useEffect(() => {
                 <motion.div layoutId="activeNavBubble" style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.12)", borderRadius: 36, zIndex: 0 }} transition={{ type: "spring", bounce: 0.25, duration: 0.5 }} />
               )}
               <div style={{ position: "relative", zIndex: 1, transform: isActive ? "scale(1.28)" : "scale(1)", transition: "transform .35s cubic-bezier(.34,1.56,.64,1)", display: 'flex', alignItems: 'center', justifyContent: 'center', height: 24 }}>
-                <Icon name={n.icon} size={20} color={isActive ? T.green : "rgba(255,255,255,0.7)"} sw={1.8} />
+                <Icon name={n.icon} size={20} color={isActive ? "#FFFFFF" : "rgba(255,255,255,0.7)"} sw={1.8} />
               </div>
-              <span className="text-micro" style={{ position: "relative", zIndex: 1, fontWeight: 600, color: isActive ? T.green : "rgba(255,255,255,0.7)", whiteSpace: "nowrap", transition: "color .2s" }}>{n.label}</span>
+              <span className="text-micro" style={{ position: "relative", zIndex: 1, fontWeight: 600, color: isActive ? "#FFFFFF" : "rgba(255,255,255,0.7)", whiteSpace: "nowrap", transition: "color .2s" }}>{n.label}</span>
             </motion.button>;
           })}
         </nav>
@@ -1981,17 +1985,6 @@ useEffect(() => {
     </div>
 
 
-    {showLocModal && (
-      <LocationPermissionModal
-        T={T}
-        onGranted={(coords) => {
-          setUserCoords(coords);
-          detectCity({ showToast: false, onDone: (slug) => { loadData(slug); } });
-          setShowLocModal(false);
-        }}
-        onDismiss={() => setShowLocModal(false)}
-      />
-    )}
 
     </AppContext.Provider>
   );

@@ -577,6 +577,18 @@ export default function HomeView() {
               <button className="press" onClick={() => { if (!user) { setShowAuth(true); toast$("Inicia sesión para agregar tu negocio"); } else { setShowAddBiz(true); } }} style={{ width: "100%", padding: "16px", background: dark ? "#ffffff" : "#000000", color: dark ? "#000000" : "#ffffff", border: "none", borderRadius: 16, fontSize: 14, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "transform 0.2s" }}>
                 <Icon name="plus" size={16} color={dark ? "#000" : "#fff"} /> Registra tu negocio primero
               </button>
+              
+              <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${T.border}`, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 12 }}>Próximamente disponible en</div>
+                <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                  <a href="#" className="press" onClick={e => e.preventDefault()} style={{ width: 130 }}>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Disponible en Google Play" style={{ width: "100%", height: "auto" }} />
+                  </a>
+                  <a href="#" className="press" onClick={e => e.preventDefault()} style={{ width: 130 }}>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="Consíguelo en el App Store" style={{ width: "100%", height: "auto" }} />
+                  </a>
+                </div>
+              </div>
             </div>
           )}
 
