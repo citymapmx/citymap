@@ -1165,13 +1165,17 @@ useEffect(() => {
         }
       };
 
-      detectCity({ 
-        showToast: false, 
-        onDone: (slug) => {
-          loadData(slug);
-        },
-        onError: setDefaultCity
-      });
+      if (shouldShowLocationModal()) {
+        setDefaultCity();
+      } else {
+        detectCity({ 
+          showToast: false, 
+          onDone: (slug) => {
+            loadData(slug);
+          },
+          onError: setDefaultCity
+        });
+      }
     } else if (cachedCity && cities.length > 0 && navigator.permissions && navigator.geolocation) {
       // Auto-update location if permission was previously granted AND user hasn't manually locked city
       if (!localStorage.getItem("cg_manual_city")) {
