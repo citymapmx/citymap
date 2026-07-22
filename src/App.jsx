@@ -1884,7 +1884,7 @@ useEffect(() => {
         {view === "detail" && selected && <Suspense fallback={<LoaderFallback/>}><DetailView /></Suspense>}
 
         {/* ════ BOTTOM NAV ════ */}
-        <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, width: "100%", background: "#060B14", borderTop: `1px solid rgba(255,255,255,0.08)`, display: "flex", alignItems: "center", justifyContent: "space-around", padding: "4px 12px", paddingBottom: "calc(4px + env(safe-area-inset-bottom, 8px))", zIndex: 50, boxShadow: `0 -8px 32px rgba(0,0,0,0.4)` }}>
+        <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, width: "100%", background: "rgba(0,0,0,0.75)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)", borderTop: `1px solid rgba(255,255,255,0.08)`, display: "flex", alignItems: "center", justifyContent: "space-around", padding: "4px 12px", paddingBottom: "calc(4px + env(safe-area-inset-bottom, 8px))", zIndex: 50, boxShadow: `0 -8px 32px rgba(0,0,0,0.4)` }}>
           {[{ id: "home", icon: "home", label: "Inicio" }, { id: "mis-planes", icon: "bookmark", label: "Planes" }, { id: "map", icon: "map_svg", label: "Mapa" }, { id: "eventos", icon: "calendar", label: "Eventos" }, { id: "account", icon: "user", label: "Mi Perfil" }].map(n => {
             const isActive = view === n.id || (n.id === "eventos" && view === "events");
             return <motion.button whileTap={{ scale: 0.85 }} key={n.id} onClick={() => { if (n.id === "account" && !user) { setShowAuth(true); return; } navigate(n.id); }} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "4px 10px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", minWidth: 48 }}>
@@ -1892,9 +1892,9 @@ useEffect(() => {
                 <motion.div layoutId="activeNavBubble" style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.12)", borderRadius: 36, zIndex: 0 }} transition={{ type: "spring", bounce: 0.25, duration: 0.5 }} />
               )}
               <div style={{ position: "relative", zIndex: 1, transform: isActive ? "scale(1.28)" : "scale(1)", transition: "transform .35s cubic-bezier(.34,1.56,.64,1)", display: 'flex', alignItems: 'center', justifyContent: 'center', height: 24 }}>
-                <Icon name={n.icon} size={20} color={isActive ? T.green : "rgba(255,255,255,0.6)"} sw={1.8} />
+                <Icon name={n.icon} size={20} color={isActive ? T.green : "rgba(255,255,255,0.7)"} sw={1.8} />
               </div>
-              <span className="text-micro" style={{ position: "relative", zIndex: 1, fontWeight: 600, color: isActive ? T.green : "rgba(255,255,255,0.6)", whiteSpace: "nowrap", transition: "color .2s" }}>{n.label}</span>
+              <span className="text-micro" style={{ position: "relative", zIndex: 1, fontWeight: 600, color: isActive ? T.green : "rgba(255,255,255,0.7)", whiteSpace: "nowrap", transition: "color .2s" }}>{n.label}</span>
             </motion.button>;
           })}
         </nav>
