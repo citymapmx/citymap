@@ -1,6 +1,7 @@
 import React from 'react';
 import Icon from '../ui/Icon';
 import Uploader from '../Uploader';
+import OptimizedImage from '../ui/OptimizedImage';
 
 export default function AdminCategoriesTab({
   data,
@@ -46,7 +47,7 @@ export default function AdminCategoriesTab({
           <div>
             <div className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, marginBottom: 6 }}>Imagen de fondo (Opcional)</div>
             <Uploader onDone={url => setCatForm(f => ({ ...f, img_url: url }))} />
-            {catForm.img_url && <img src={catForm.img_url} alt="" style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 8, marginTop: 8 }} loading="lazy" />}
+            {catForm.img_url && <OptimizedImage src={catForm.img_url} widthRequest={400} alt="" style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 8, marginTop: 8 }} />}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setCatForm(null)} style={{ flex: 1, padding: 12, background: "#fff", border: "1.5px solid #E4E8E4", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>

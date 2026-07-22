@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import Icon from '../ui/Icon.jsx';
+import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { useCart } from '../../hooks/useCart.js';
 import { useUIStore } from '../../store/useUIStore.js';
 import { buildWhatsAppMessage } from '../../lib/storeUtils.js';
@@ -112,7 +113,7 @@ export default function CartDrawer({ business, T }) {
                 {/* Product Thumbnail */}
                 {item.product.image_url && (
                   <div style={{ width: 72, height: 72, borderRadius: 16, overflow: 'hidden', flexShrink: 0, background: dark ? '#334155' : '#E2E8F0' }}>
-                    <img src={getThumbUrl(item.product.image_url, 160, 160)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                    <OptimizedImage src={item.product.image_url} widthRequest={200} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                   </div>
                 )}
 

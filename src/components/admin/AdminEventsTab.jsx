@@ -1,6 +1,7 @@
 import React from 'react';
 import Icon from '../ui/Icon';
 import Uploader from '../Uploader';
+import OptimizedImage from '../ui/OptimizedImage';
 import FI from './FI';
 import { getEventStatus, createSlug } from '../../lib/utils.js';
 
@@ -25,7 +26,7 @@ export default function AdminEventsTab({
           const st = getEventStatus(ev);
           const isPending = ev.status === "pending" || !ev.active;
           return <div key={ev.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 10, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
-            {(ev.img_url || ev.img) && <div style={{ height: 70, overflow: "hidden" }}><img src={ev.img_url || ev.img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /></div>}
+            {(ev.img_url || ev.img) && <div style={{ height: 70, overflow: "hidden" }}><OptimizedImage src={ev.img_url || ev.img} widthRequest={400} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>}
             <div style={{ padding: "10px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -75,7 +76,7 @@ export default function AdminEventsTab({
           <FI label="WhatsApp contacto" field="whatsapp" src={evForm} set={setEvForm} ph="3111234567" />
           <FI label="Sitio web / Boletos (Opcional)" field="website" src={evForm} set={setEvForm} ph="https://..." />
           <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Ciudad</label><select value={evForm.city_slug || "all"} onChange={e => setEvForm(f => ({ ...f, city_slug: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}><option value="all">Todas</option>{data.cities.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select></div>
-          <div><div className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, marginBottom: 6 }}>Imagen del evento</div><Uploader onDone={url => setEvForm(f => ({ ...f, img_url: url }))} />{(evForm.img_url || evForm.img) && <img src={evForm.img_url || evForm.img} alt="" style={{ width: "100%", height: 100, objectFit: "contain", borderRadius: 8, marginTop: 8 }} loading="lazy" />}</div>
+          <div><div className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, marginBottom: 6 }}>Imagen del evento</div><Uploader onDone={url => setEvForm(f => ({ ...f, img_url: url }))} />{(evForm.img_url || evForm.img) && <OptimizedImage src={evForm.img_url || evForm.img} widthRequest={400} alt="" style={{ width: "100%", height: 100, objectFit: "contain", borderRadius: 8, marginTop: 8 }} />}</div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => setEvForm(null)} style={{ flex: 1, padding: 14, background: "#fff", border: "1.5px solid #E4E8E4", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>

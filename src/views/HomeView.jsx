@@ -13,6 +13,7 @@ import FeaturedCard from "../components/cards/FeaturedCard.jsx";
 import DestacadoCard from "../components/cards/DestacadoCard.jsx";
 import CompactCard from "../components/cards/CompactCard.jsx";
 import BentoCategories from "../components/BentoCategories.jsx";
+import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import { Virtuoso } from "react-virtuoso";
 import { Helmet } from "react-helmet-async";
 
@@ -97,7 +98,7 @@ function SquareCarousel({ title, list, handleCardTap, getThumbUrl, CAT_EMOJI, T,
               <div key={b.id} className="press" onClick={() => handleCardTap(b)} style={{ width: "100%", background: T.white, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 14, boxShadow: T.shadow, cursor: "pointer", border: `1px solid ${T.border}` }}>
                 <div style={{ width: 64, height: 64, borderRadius: 12, overflow: "hidden", background: T.border, flexShrink: 0, position: "relative" }}>
                   {imgToUse
-                    ? <img src={getThumbUrl(imgToUse, 600, 600)} alt={b.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ? <OptimizedImage src={imgToUse} alt={b.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{(b.emoji || CAT_EMOJI[b.category]) || "📍"}</div>
                   }
                 </div>
@@ -113,7 +114,7 @@ function SquareCarousel({ title, list, handleCardTap, getThumbUrl, CAT_EMOJI, T,
             <div key={b.id} className="press" onClick={() => handleCardTap(b)} style={{ minWidth: 90, maxWidth: 90, flexShrink: 0, cursor: "pointer", display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ width: 90, height: 90, borderRadius: 20, overflow: "hidden", background: T.border, boxShadow: T.shadow, position: "relative" }}>
                 {imgToUse
-                  ? <img src={getThumbUrl(imgToUse, 600, 600)} alt={b.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ? <OptimizedImage src={imgToUse} alt={b.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>{(b.emoji || CAT_EMOJI[b.category]) || "📍"}</div>
                 }
               </div>
@@ -218,13 +219,13 @@ function BannerSlider({ activeBanners }) {
             }
           }}
         >
-          <img src={getThumbUrl(bn.img_url, 1400, 600)} alt={bn.title || ""} style={{ width: "100%", height: "100%", objectFit: "cover", cursor: bn.link_url ? "pointer" : "default" }} loading="lazy" />
+          <OptimizedImage src={bn.img_url} widthRequest={1400} alt={bn.title || ""} style={{ width: "100%", height: "100%", objectFit: "cover", cursor: bn.link_url ? "pointer" : "default" }} />
         </motion.div>
       </AnimatePresence>
       <div style={{ display: "none" }}>
         {[1].map(offset => {
           const nextBn = activeBanners[(idx + offset) % activeBanners.length];
-          return nextBn?.img_url ? <img key={"preload_" + nextBn.id} src={getThumbUrl(nextBn.img_url, 1400, 600)} alt="" loading="eager" fetchpriority="high" /> : null;
+          return nextBn?.img_url ? <OptimizedImage key={"preload_" + nextBn.id} src={nextBn.img_url} widthRequest={1400} priority={true} /> : null;
         })}
       </div>
     </>
@@ -740,7 +741,7 @@ export default function HomeView() {
                           {/* Photo */}
                           <div style={{ height: 90, overflow: "hidden", position: "relative", background: T.border }}>
                             {b.photos?.[0]?.url
-                              ? <img src={getThumbUrl(b.photos[0].url, 300, 300)} alt={b.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              ? <OptimizedImage src={b.photos[0].url} alt={b.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                               : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{(b.emoji || CAT_EMOJI[b.category]) || "📍"}</div>
                             }
                           </div>

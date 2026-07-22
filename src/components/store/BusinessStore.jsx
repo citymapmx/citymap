@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sb } from '../../lib/supabase.js';
 import Icon from '../ui/Icon.jsx';
+import OptimizedImage from '../ui/OptimizedImage.jsx';
 import ProductModal from './ProductModal.jsx';
 import CartDrawer from './CartDrawer.jsx';
 import { useCart } from '../../hooks/useCart.js';
@@ -140,7 +141,7 @@ export default function BusinessStore({ business, T, isElite }) {
                 <div style={{ width: 84, height: 84, borderRadius: "50%", overflow: "hidden", background: dark ? '#334155' : '#f1f5f9', border: `2.5px solid ${dark ? '#475569' : '#E2E8F0'}`, boxShadow: "0 4px 12px rgba(0,0,0,0.08)", position: "relative" }}>
                   {(() => {
                     const imgSrc = p.image_url || p._catImg;
-                    if (imgSrc) return <img src={getThumbUrl(imgSrc, 200, 200)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />;
+                    if (imgSrc) return <OptimizedImage src={imgSrc} widthRequest={400} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />;
                     const colors = ['#6366F1','#F97316','#10B981','#EC4899','#3B82F6','#F59E0B','#8B5CF6','#14B8A6'];
                     const bg = colors[p.name.charCodeAt(0) % colors.length];
                     const bg2 = colors[(p.name.charCodeAt(0) + 3) % colors.length];
@@ -288,7 +289,7 @@ export default function BusinessStore({ business, T, isElite }) {
                   {/* Image on Left */}
                   {product.image_url && (
                     <div style={{ width: 140, background: dark ? '#334155' : '#F8FAFC', flexShrink: 0, overflow: 'hidden', borderRadius: 12 }}>
-                      <img src={getThumbUrl(product.image_url, 400, 300)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" loading="lazy" />
+                      <OptimizedImage src={product.image_url} widthRequest={400} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                     </div>
                   )}
 

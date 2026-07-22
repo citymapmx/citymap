@@ -1,6 +1,7 @@
 import { useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Icon from "../ui/Icon.jsx";
+import OptimizedImage from "../ui/OptimizedImage.jsx";
 import { FONT_BIZ } from "../../lib/constants.js";
 import { CAT_EMOJI, isOpenNow, getScheduleStatus, getThumbUrl, haptic } from "../../lib/utils.js";
 import ProgressiveImage from "../ProgressiveImage.jsx";
@@ -44,7 +45,7 @@ export default memo(function FeaturedCard({ b, T, dark, isFav, toggleFav, onTap,
         {/* Premium Logo (Top Left) */}
         {b.logo_url && (
           <div style={{ position: "absolute", top: 12, left: rank ? 56 : 12, width: 76, height: 76, borderRadius: "50%", background: "#fff", border: "1px solid rgba(255,255,255,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", boxSizing: "border-box", overflow: "hidden" }}>
-            <img src={getThumbUrl(b.logo_url, 150, 150)} width={76} height={76} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "50%" }} alt="logo" />
+            <OptimizedImage src={b.logo_url} widthRequest={200} style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "50%" }} alt="logo" />
           </div>
         )}
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Icon from '../ui/Icon.jsx';
+import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { useCart, calculateItemTotal } from '../../hooks/useCart.js';
 import { getThumbUrl } from '../../lib/utils.js';
 
@@ -96,7 +97,7 @@ export default function ProductModal({ product, businessId, onClose, T }) {
         {/* Product Image */}
         {product.image_url && (
           <div style={{ width: '100%', aspectRatio: '4/3', background: T.border }}>
-            <img src={getThumbUrl(product.image_url, 800, 600)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+            <OptimizedImage src={product.image_url} widthRequest={800} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
           </div>
         )}
 

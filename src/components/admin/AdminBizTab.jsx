@@ -1,6 +1,7 @@
 import React from 'react';
 import Icon from '../ui/Icon';
 import Uploader from '../Uploader';
+import OptimizedImage from '../ui/OptimizedImage';
 import MenuManager from '../MenuManager';
 import BookingManager from '../BookingManager';
 import FI from './FI';
@@ -67,7 +68,7 @@ export default function AdminBizTab({
           return filtered.map(b => {
             const pm = PLAN_META[b.plan] || PLAN_META.free;
             return <div key={b.id} style={{ background: "#fff", borderRadius: 14, padding: "12px 14px", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
-              <div style={{ width: 46, height: 46, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#F7F8F6" }}>{b.photos?.[0]?.url ? <img src={b.photos[0].url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={18} color="#5A6872" /></div>}</div>
+              <div style={{ width: 46, height: 46, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#F7F8F6" }}>{b.photos?.[0]?.url ? <OptimizedImage src={b.photos[0].url} widthRequest={200} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={18} color="#5A6872" /></div>}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="text-sm" style={{ fontWeight: 700, color: "#0F1A14", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</div>
                 <div style={{ display: "flex", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
@@ -201,7 +202,7 @@ export default function AdminBizTab({
                     <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Logotipo en el Mapa</label>
                     <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                       <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#F7F8F6", border: "1.5px solid #E4E8E4", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {bizForm.logo_url ? <img src={bizForm.logo_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Icon name="image" size={20} color="#5A6872" />}
+                        {bizForm.logo_url ? <OptimizedImage src={bizForm.logo_url} widthRequest={400} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Icon name="image" size={20} color="#5A6872" />}
                       </div>
                       <div style={{ flex: 1 }}>
                         <Uploader aspect={1} label="Subir Logotipo" onDone={url => setBizForm(f => ({ ...f, logo_url: url }))} />
@@ -276,7 +277,7 @@ export default function AdminBizTab({
       {/* Photos in form */}
       <div style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
         <div className="text-sm" style={{ fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>Fotos ({(bizForm.photos || []).length}/{bizForm.is_place ? "∞" : PLAN_META[bizForm.plan || "free"].max_photos})</div>
-        {(bizForm.photos || []).length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>{(bizForm.photos || []).map((ph, idx) => <div key={idx} style={{ position: "relative" }}><div style={{ width: 64, height: 64, borderRadius: 10, overflow: "hidden", border: "1.5px solid #E4E8E4" }}>{ph.url && <img src={ph.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />}</div><button onClick={() => setBizForm(f => ({ ...f, photos: f.photos.filter((_, i) => i !== idx) }))} style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%", background: "#D94F3D", color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="x" size={9} color="#fff" /></button></div>)}</div>}
+        {(bizForm.photos || []).length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>{(bizForm.photos || []).map((ph, idx) => <div key={idx} style={{ position: "relative" }}><div style={{ width: 64, height: 64, borderRadius: 10, overflow: "hidden", border: "1.5px solid #E4E8E4" }}>{ph.url && <OptimizedImage src={ph.url} widthRequest={200} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</div><button onClick={() => setBizForm(f => ({ ...f, photos: f.photos.filter((_, i) => i !== idx) }))} style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%", background: "#D94F3D", color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="x" size={9} color="#fff" /></button></div>)}</div>}
         {(bizForm.is_place || (bizForm.photos || []).length < PLAN_META[bizForm.plan || "free"].max_photos) && <Uploader multiple={true} onDone={url => setBizForm(f => ({ ...f, photos: [...(f.photos || []), { url, label: "Foto" }] }))} />}
       </div>
       

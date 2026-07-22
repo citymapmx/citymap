@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Icon from '../ui/Icon';
 import FI from './FI';
 import Uploader from '../Uploader';
+import OptimizedImage from '../ui/OptimizedImage';
 
 export default function AdminCitiesTab({
   data,
@@ -26,7 +27,7 @@ export default function AdminCitiesTab({
           <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EAF4F0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
               {c.bg_image
-                ? <img src={c.bg_image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ? <OptimizedImage src={c.bg_image} widthRequest={400} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 : <Icon name="pin" size={16} color="#1A7A5E" />}
             </div>
             <div style={{ flex: 1 }}>
@@ -42,7 +43,7 @@ export default function AdminCitiesTab({
           {cityEditId === c.id && <div style={{ borderTop: "1px solid #EAF4F0", padding: "12px 14px", background: "#F8FFFE" }}>
             <Uploader label="Subir imagen de fondo" onDone={async url => { await sb.patch("cities", c.id, { bg_image: url }); onToast("Imagen guardada"); await load(); setCityEditId(null); }} />
             {c.bg_image && <div style={{ marginTop: 8, borderRadius: 8, overflow: "hidden", height: 64, position: "relative" }}>
-              <img src={c.bg_image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <OptimizedImage src={c.bg_image} widthRequest={800} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               <button onClick={async () => { await sb.patch("cities", c.id, { bg_image: null }); onToast("Imagen eliminada"); await load(); setCityEditId(null); }} style={{ position: "absolute", top: 6, right: 6, background: "#D94F3D", border: "none", borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>Quitar</button>
             </div>}
           </div>}

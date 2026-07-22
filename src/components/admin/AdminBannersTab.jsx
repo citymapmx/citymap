@@ -1,6 +1,7 @@
 import React from 'react';
 import Icon from '../ui/Icon';
 import FI from './FI';
+import OptimizedImage from '../ui/OptimizedImage';
 
 export default function AdminBannersTab({
   data,
@@ -29,7 +30,7 @@ export default function AdminBannersTab({
           const statusColor = statusLbl === "Activo" ? "#16A34A" : statusLbl === "Programado" ? "#3B82F6" : "#9CA3AF";
           const statusBg = statusLbl === "Activo" ? "#DCFCE7" : statusLbl === "Programado" ? "#EFF6FF" : "#F3F4F6";
           return <div key={bn.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 10, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
-            {bn.img_url && <div style={{ height: 80, overflow: "hidden", background: "#F7F8F6" }}><img src={bn.img_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /></div>}
+            {bn.img_url && <div style={{ height: 80, overflow: "hidden", background: "#F7F8F6" }}><OptimizedImage src={bn.img_url} widthRequest={800} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>}
             <div style={{ padding: "10px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -74,7 +75,7 @@ export default function AdminBannersTab({
               <div style={{ position: "absolute", top: 2, left: banForm.repeat_yearly ? 22 : 2, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .2s", boxShadow: "0 1px 4px rgba(0,0,0,.2)" }} />
             </button>
           </div>
-          <div><div className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, marginBottom: 6 }}>Imagen del banner</div><Uploader aspect={21/9} onDone={url => setBanForm(f => ({ ...f, img_url: url }))} />{banForm.img_url && <img src={banForm.img_url} alt="" style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 8, marginTop: 8 }} loading="lazy" />}</div>
+          <div><div className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, marginBottom: 6 }}>Imagen del banner</div><Uploader aspect={21/9} onDone={url => setBanForm(f => ({ ...f, img_url: url }))} />{banForm.img_url && <OptimizedImage src={banForm.img_url} widthRequest={800} alt="" style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 8, marginTop: 8 }} />}</div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => setBanForm(null)} style={{ flex: 1, padding: 14, background: "#fff", border: "1.5px solid #E4E8E4", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>

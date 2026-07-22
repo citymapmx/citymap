@@ -260,17 +260,31 @@ export function parseMenuUrls(val) {
   }
   return [val];
 }
-export function getThumbUrl(url, w = 400, h = 300, fit = "cover") {
+export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
   if (!url || typeof url !== "string") return url;
+  
+  // Bucketing de anchos para estandarizar cache y ahorrar transformaciones
+  const bucketWidth = (width) => {
+    if (!width) return 400;
+    if (width <= 200) return 200;
+    if (width <= 400) return 400;
+    if (width <= 800) return 800;
+    if (width <= 1200) return 1200;
+    return 1600;
+  };
+  
+  const targetW = bucketWidth(w);
+
   if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
-    const cFit = fit === "contain" ? "c_limit" : "c_lfill";
-    const hParam = h ? `,h_${h}` : "";
-    return url.replace("/upload/", `/upload/${cFit},w_${w}${hParam},q_auto:best,f_auto/`);
+    // Ya no usamos h_ para forzar el recorte, dejamos que scale mantenga el ratio original
+    // y delegamos a CSS (object-fit: cover) el recorte. Usamos c_limit.
+    // Tambien cambiamos q_auto:best a q_auto y agregamos f_auto
+    return url.replace("/upload/", `/upload/c_limit,w_${targetW},q_auto,f_auto/`);
   }
+  
   if (url.includes("supabase.co") && url.includes("/object/public/")) {
     const joinChar = url.includes("?") ? "&" : "?";
-    const resizeMode = fit === "contain" ? "contain" : "cover";
-    return url.replace("/object/public/", "/render/image/public/") + `${joinChar}width=${w}&resize=${resizeMode}&quality=100&format=webp`;
+    return url.replace("/object/public/", "/render/image/public/") + `${joinChar}width=${targetW}&quality=80&format=webp`;
   }
   return url;
 }

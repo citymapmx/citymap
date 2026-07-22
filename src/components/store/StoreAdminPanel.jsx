@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabase.js';
 import Icon from '../ui/Icon.jsx';
+import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { getThumbUrl } from '../../lib/utils.js';
 import { lazy, Suspense } from 'react';
 
@@ -290,7 +291,7 @@ export default function StoreAdminPanel({ business, onClose, T }) {
                       onClick={() => { document.getElementById(`cat-img-${c.id}`).click(); }}
                     >
                       {c.image_url
-                        ? <img src={getThumbUrl(c.image_url, 200, 200)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ? <OptimizedImage src={c.image_url} widthRequest={200} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="image" size={16} color={T.sub} /></div>
                       }
                     </div>
@@ -364,7 +365,7 @@ export default function StoreAdminPanel({ business, onClose, T }) {
                 {currentCat.store_products.map(p => (
                   <div key={p.id} style={{ display: "flex", gap: 12, background: T.white, padding: "12px", borderRadius: 12, border: `1px solid ${T.border}` }}>
                     <div style={{ width: 60, height: 60, borderRadius: 8, background: T.border, overflow: "hidden", flexShrink: 0 }}>
-                      {p.image_url ? <img src={getThumbUrl(p.image_url, 200, 200)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="image" size={20} color={T.sub} /></div>}
+                      {p.image_url ? <OptimizedImage src={p.image_url} widthRequest={200} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="image" size={20} color={T.sub} /></div>}
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 800, color: T.text, fontSize: 15 }}>{p.name} {!p.is_available && <span style={{ color: T.red, fontSize: 10, fontWeight: 700, padding: "2px 6px", background: "rgba(239, 68, 68, 0.1)", borderRadius: 4 }}>Agotado</span>}</div>
@@ -388,7 +389,7 @@ export default function StoreAdminPanel({ business, onClose, T }) {
           <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ textAlign: "center", marginBottom: 10 }}>
               <div style={{ width: 120, height: 120, borderRadius: 16, background: T.border, overflow: "hidden", margin: "0 auto 12px", border: `2px solid ${T.white}`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)", position: "relative" }}>
-                {prodForm.image_url ? <img src={prodForm.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="image" size={32} color={T.sub} /></div>}
+                {prodForm.image_url ? <OptimizedImage src={prodForm.image_url} widthRequest={400} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="image" size={32} color={T.sub} /></div>}
                 {prodForm.image_url && <button onClick={() => setProdForm({ ...prodForm, image_url: null })} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", border: "none", width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="trash" size={12} color="#fff" /></button>}
               </div>
               {!prodForm.image_url && (
