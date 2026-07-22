@@ -289,9 +289,9 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
       const pathParts = url.split('/public/');
       if (pathParts.length > 1) {
         const path = pathParts[1];
+        // Eliminamos el aspect_ratio para que Bunny mantenga la proporción original
+        // y delegamos el recorte visual a CSS (object-fit), igual que hicimos con Cloudinary.
         let bunnyQuery = `?width=${targetW}`;
-        if (h) bunnyQuery += `&aspect_ratio=${targetW}:${h}`;
-        bunnyQuery += `&class=bcdn`;
         return `${bunnyUrl.replace(/\/$/, "")}/${path}${bunnyQuery}`;
       }
     }
