@@ -25,20 +25,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Se requiere una imagen en base64' });
   }
 
-  const prompt = `Eres un asistente experto en digitalizar menús y catálogos de negocios en México.
+  const prompt = `Analiza la imagen y extrae todos los productos visibles.
 
-Analiza esta imagen y extrae TODOS los productos/platillos/servicios que veas.
+Responde SOLO con JSON válido:
 
-Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta (sin texto adicional, sin markdown, solo el JSON):
 {
   "categories": [
     {
-      "name": "Nombre de categoría",
+      "name": "",
       "items": [
         {
-          "name": "Nombre del producto",
-          "description": "Descripción breve si existe",
-          "price": 120
+          "name": "",
+          "description": "",
+          "price": null
         }
       ]
     }
@@ -46,12 +45,12 @@ Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta (sin texto adici
 }
 
 Reglas:
-- Si el precio no es claro, usa null
-- Si no hay categorías visibles, agrupa todos en "General"
-- Infiere categorías lógicas si el menú no las tiene (Entradas, Platos Fuertes, Bebidas, Postres, etc.)
-- Los precios deben ser números sin símbolo de moneda
-- Los nombres deben ser exactamente como aparecen en el menú
-- El negocio es de tipo: ${businessType || 'restaurante/tienda'}`;
+- Sin texto adicional.
+- price = número sin símbolo de moneda.
+- Si no se ve el precio, usa null.
+- Si no hay categorías, usa "General".
+- Mantén nombres exactamente como aparecen.
+- description vacía si no existe.`;
 
   try {
     const modelsToTry = [
@@ -101,9 +100,9 @@ Reglas:
       } else {
         errText = await response.text();
         console.warn(`Groq API error with model ${model}:`, errText);
-        // If it's a decommissioned error or similar model error, try the next one.
-        if (!errText.includes('decommissioned') && !errText.includes('does not exist')) {
-          break; // It's another type of error, stop trying.
+        // Break only on Auth errors or Rate limits. Continue to next model on other errors (like model not found).
+        if (response.status === 401 || response.status === 429) {
+          break;
         }
       }
     }

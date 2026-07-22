@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     tokens = data.map(t => t.token);
 
     if (!tokens || tokens.length === 0) {
-      return res.status(200).json({ message: 'No hay tokens registrados para enviar push', count: 0 });
+      return res.status(200).json({ message: 'No hay tokens registrados para enviar push', successCount: 0, failureCount: 0 });
     }
 
     // 3. Enviar en lotes de 500 (límite de FCM)

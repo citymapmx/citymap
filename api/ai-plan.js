@@ -56,7 +56,8 @@ Responde ÚNICAMENTE con el texto de la descripción, sin usar comillas al inici
     if (response.ok) break;
     else {
       errText = await response.text();
-      if (!errText.includes('decommissioned') && !errText.includes('does not exist')) break;
+      // Break only on Auth errors or Rate limits. Continue to next model on other errors (like model not found).
+      if (response.status === 401 || response.status === 429) break;
     }
   }
 

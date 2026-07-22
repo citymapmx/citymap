@@ -111,6 +111,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://citymap.mx/tepic/piloncillo</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://citymap.mx/puerto-vallarta/la-vaca-argentina-steak-house</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -346,17 +351,17 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://citymap.mx/tepic/parque-la-loma</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://citymap.mx/Zapopan/campomar-andares</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://citymap.mx/tepic/starbucks-manglar</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://citymap.mx/tepic/parque-la-loma</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -517,11 +522,6 @@
   </url>
   <url>
     <loc>https://citymap.mx/tepic/senor-cajun-camarones-estilo-louisiana</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://citymap.mx/tepic/piloncillo</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>

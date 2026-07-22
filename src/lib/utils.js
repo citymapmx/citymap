@@ -156,7 +156,7 @@ export function getScheduleStatus(b, isOpen, short = false) {
 
 export function getSmartScheduleInfo(b, tz, now) {
   const sch = b.schedule;
-  if (!sch || typeof sch !== "object" || Object.keys(sch).length === 0) return { text: !!b.open ? "Abierto ahora" : "Cerrado", color: !!b.open ? "#16A34A" : "#DC2626" };
+  if (!sch || typeof sch !== "object" || Object.keys(sch).length === 0) return { text: b.open ? "Abierto ahora" : "Cerrado", color: b.open ? "#16A34A" : "#DC2626" };
   let suffix = "";
   if (sch.type === "appointment") suffix = " · Previa Cita";
   if (sch.type === "delivery") suffix = " · Solo para llevar";
@@ -228,7 +228,7 @@ export function getSmartScheduleInfo(b, tz, now) {
       if (minUntilOpen <= 60) return { text: [`Abre pronto (${minUntilOpen}m)`, deliverySuffix], color: "#F59E0B" };
       return { text: ["Cerrado", deliverySuffix], color: "#DC2626" };
     }
-  } catch { return { text: [(!!b.open ? "Abierto ahora" : "Cerrado"), deliverySuffix], color: !!b.open ? "#16A34A" : "#DC2626" }; }
+  } catch { return { text: [(b.open ? "Abierto ahora" : "Cerrado"), deliverySuffix], color: b.open ? "#16A34A" : "#DC2626" }; }
 }
 
 export function createSlug(name) {
