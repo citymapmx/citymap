@@ -1400,6 +1400,7 @@ useEffect(() => {
             </div>
             <div style={{ position: "relative" }}>
               <button 
+                aria-label="Seleccionar ciudad o región"
                 className="press" 
                 onClick={() => setShowCountryPicker(prev => !prev)} 
                 style={{ 
