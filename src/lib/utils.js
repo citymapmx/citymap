@@ -291,7 +291,8 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
         const path = pathParts[1];
         // Eliminamos el aspect_ratio para que Bunny mantenga la proporción original
         // y delegamos el recorte visual a CSS (object-fit), igual que hicimos con Cloudinary.
-        let bunnyQuery = `?width=${targetW}`;
+        // Agregamos quality=95 para garantizar que no haya pérdida de nitidez.
+        let bunnyQuery = `?width=${targetW}&quality=95`;
         return `${bunnyUrl.replace(/\/$/, "")}/${path}${bunnyQuery}`;
       }
     }
