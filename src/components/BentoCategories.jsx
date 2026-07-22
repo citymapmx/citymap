@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FONT_BIZ } from "../lib/constants";
+import { getThumbUrl } from "../lib/utils";
 
 function BentoCard({ cat, flex, onSelect, isSmall }) {
   if (!cat) return <div style={{ flex }} />;
 
-  const imgToUse = cat.img_url;
+  const imgToUse = cat.img_url ? getThumbUrl(cat.img_url, 400, 300) : null;
   const subtitleToUse = cat.subtitle || "Explora más";
 
   // Todos los degradados negros con menor intensidad

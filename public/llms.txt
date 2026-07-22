@@ -1,0 +1,10 @@
+# CityMap
+
+CityMap es la guía definitiva de tu ciudad. Encuentra los mejores negocios locales, eventos, lugares de interés y servicios en un solo lugar.
+
+## Exploración de Negocios
+Descubre restaurantes, cafeterías, antros, bares y más. Con CityMap, siempre sabrás qué hacer y a dónde ir.
+
+## Enlaces útiles
+- [Inicio](https://citymap.mx)
+- [Contacto](https://citymap.mx/contacto)

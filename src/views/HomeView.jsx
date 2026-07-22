@@ -583,10 +583,10 @@ export default function HomeView() {
                 <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 12 }}>Próximamente disponible en</div>
                 <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
                   <a href="#" className="press" onClick={e => e.preventDefault()} style={{ width: 130 }}>
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Disponible en Google Play" style={{ width: "100%", height: "auto" }} />
+                    <img src="/google-play-badge.svg" alt="Disponible en Google Play" style={{ width: "100%", height: "auto" }} />
                   </a>
                   <a href="#" className="press" onClick={e => e.preventDefault()} style={{ width: 130 }}>
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="Consíguelo en el App Store" style={{ width: "100%", height: "auto" }} />
+                    <img src="/app-store-badge.svg" alt="Consíguelo en el App Store" style={{ width: "100%", height: "auto" }} />
                   </a>
                 </div>
               </div>
