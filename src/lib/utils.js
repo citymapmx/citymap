@@ -283,6 +283,19 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
   }
   
   if (url.includes("supabase.co") && url.includes("/object/public/")) {
+    const bunnyUrl = import.meta.env.VITE_BUNNY_CDN_URL;
+    if (bunnyUrl) {
+      // Usar BunnyCDN si está configurado en las variables de entorno
+      const pathParts = url.split('/public/');
+      if (pathParts.length > 1) {
+        const path = pathParts[1];
+        let bunnyQuery = `?width=${targetW}`;
+        if (h) bunnyQuery += `&aspect_ratio=${targetW}:${h}`;
+        bunnyQuery += `&class=bcdn`;
+        return `${bunnyUrl.replace(/\/$/, "")}/${path}${bunnyQuery}`;
+      }
+    }
+    // Fallback: usar Supabase Render API directo si no hay BunnyCDN
     const joinChar = url.includes("?") ? "&" : "?";
     return url.replace("/object/public/", "/render/image/public/") + `${joinChar}width=${targetW}&quality=80&format=webp`;
   }

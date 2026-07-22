@@ -335,33 +335,37 @@ const sb = {
 };
 
 // ─── CLOUDINARY ───────────────────────────────────────────────────────────────
-async function cloudUpload(file, onPct, folder = "cityguide") {
-  const fd = new FormData(); fd.append("file", file); fd.append("upload_preset", CLOUDINARY_PRESET); fd.append("folder", folder);
-  return new Promise((res, rej) => { const x = new XMLHttpRequest(); x.open("POST", `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`); x.upload.onprogress = e => e.lengthComputable && onPct(Math.round(e.loaded / e.total * 100)); x.onload = () => { const d = JSON.parse(x.responseText); d.secure_url ? res(d.secure_url) : rej(new Error(d.error?.message)); }; x.onerror = () => rej(new Error("Error de red")); x.send(fd); });
-}
-async function cloudUploadPDF(file, onPct) {
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("upload_preset", CLOUDINARY_PRESET);
-  fd.append("folder", "cityguide/menus");
-  fd.append("resource_type", "raw");
-  fd.append("public_id", file.name.replace(/\.pdf$/i, ""));
+async function cloudUpload(file, onPct = () => {}, folder = "cityguide") {
+  const ext = file.name.split('.').pop();
+  const path = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/media/${path}`;
+  
+  const token = sb._token || SUPABASE_ANON;
+  
   return new Promise((res, rej) => {
     const x = new XMLHttpRequest();
-    x.open("POST", `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/raw/upload`);
+    x.open("POST", endpoint);
+    x.setRequestHeader("Authorization", `Bearer ${token}`);
+    x.setRequestHeader("apikey", SUPABASE_ANON);
+    x.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    
     x.upload.onprogress = e => e.lengthComputable && onPct(Math.round(e.loaded / e.total * 100));
     x.onload = () => {
-      const d = JSON.parse(x.responseText);
-      if (d.secure_url) {
-        const url = d.secure_url.endsWith(".pdf") ? d.secure_url : d.secure_url + ".pdf";
-        res(url);
+      if (x.status >= 200 && x.status < 300) {
+        // Devolvemos la URL pública
+        res(`${SUPABASE_URL}/storage/v1/object/public/media/${path}`);
       } else {
-        rej(new Error(d.error?.message));
+        rej(new Error(`Error al subir a Supabase Storage: ${x.responseText}`));
       }
     };
-    x.onerror = () => rej(new Error("Error de red"));
-    x.send(fd);
+    x.onerror = () => rej(new Error("Error de red al subir a Supabase"));
+    x.send(file);
   });
+}
+
+async function cloudUploadPDF(file, onPct = () => {}) {
+  // Los PDFs van a la misma bóveda pero en una subcarpeta
+  return cloudUpload(file, onPct, "cityguide/menus");
 }
 
 export { sb, cloudUpload, cloudUploadPDF, SUPABASE_URL, SUPABASE_ANON, CLOUDINARY_CLOUD, CLOUDINARY_PRESET, GMAPS_KEY };
