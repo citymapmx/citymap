@@ -817,8 +817,8 @@ export default function HomeView() {
                           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%)", pointerEvents: "none" }} />
                           
                           {/* Badge */}
-                          <div style={{ position: "absolute", top: 20, left: 0, background: "#000", color: "#fff", padding: "6px 16px 6px 14px", borderRadius: "0 12px 12px 0", border: "2px dashed rgba(255,255,255,0.9)", borderLeft: "none", fontWeight: 800, fontSize: 13, letterSpacing: 1, boxShadow: "4px 4px 15px rgba(0,0,0,0.6)", animation: isToday ? "pulse 2s infinite" : "none", display: "flex", alignItems: "center", gap: 6, zIndex: 2 }}>
-                            {isToday ? "✨ " : "⏳ "}{labelText}
+                          <div style={{ position: "absolute", top: 20, left: 0, background: "#000", color: "#fff", padding: "6px 16px 6px 14px", borderRadius: "0 12px 12px 0", border: "1.5px dotted rgba(255,255,255,0.9)", borderLeft: "none", fontWeight: 800, fontSize: 13, letterSpacing: 1, boxShadow: "4px 4px 15px rgba(0,0,0,0.6)", animation: isToday ? "pulse 2s infinite" : "none", display: "flex", alignItems: "center", gap: 6, zIndex: 2 }}>
+                            {isToday ? "🤩 " : "⏳ "}{labelText}
                           </div>
                           
                           {/* Info */}
