@@ -270,7 +270,8 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
     if (width <= 400) return 400;
     if (width <= 800) return 800;
     if (width <= 1200) return 1200;
-    return 1600;
+    if (width <= 1600) return 1600;
+    return 2400;
   };
   
   const targetW = bucketWidth(w);

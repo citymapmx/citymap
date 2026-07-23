@@ -38,7 +38,7 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
       <div style={{ position: "relative", flex: 1, overflow: "hidden", padding: isFullscreen ? "90px 0 0 0" : 0 }}>
         <img
           key={p.url}
-          src={getThumbUrl(p.url, 1200, 1000, fit)}
+          src={getThumbUrl(p.url, isFullscreen ? 2400 : 1200, 1000, fit)}
           alt=""
           loading="eager"
           onLoad={() => setLoaded(true)}
