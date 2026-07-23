@@ -788,28 +788,70 @@ export default function HomeView() {
             );
             if (upcomingEvents.length === 0) return null;
             
+            const now = new Date();
+            const tz = window.CITY_TZ || 'America/Mazatlan';
+            const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+            const tomorrow = new Date(now.getTime() + 86400000);
+            const tomorrowStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(tomorrow);
+
+            const heroEvents = upcomingEvents.filter(ev => ev.date === todayStr || ev.date === tomorrowStr);
+            const regularEvents = upcomingEvents.filter(ev => ev.date !== todayStr && ev.date !== tomorrowStr);
+            
             return (
-              <div style={{ padding: "24px 0 0 20px" }}>
+              <div style={{ padding: "24px 0 0 0" }}>
                 <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 22, color: T.text, letterSpacing: 0.5, textAlign: "center", margin: "0 0 16px 0" }}>Agenda Local</h2>
-                <div style={{ display: "flex", gap: 14, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 16, paddingRight: 20 }}>
-                  {upcomingEvents.map(ev => {
-                    const posterUrl = getThumbUrl(ev.img_url || cityImg, 600, 800);
-                    return (
-                      <div key={ev.id} className="press" onClick={() => { setSelectedEvent(ev); navigate("events"); }} style={{ width: 150, height: 210, borderRadius: 18, background: `url(${posterUrl}) center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: "0 8px 20px rgba(0,0,0,0.15)", position: "relative", overflow: "hidden" }}>
-                        {ev.date && (() => {
-                          const d = new Date(ev.date + "T12:00:00");
-                          const m = d.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
-                          return (
-                            <div style={{ position: "absolute", bottom: 10, left: 10, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", padding: "6px 10px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.2)", display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
-                              <span style={{ fontSize: 16, fontWeight: 800, color: "#fff", marginBottom: 2 }}>{d.getDate()}</span>
-                              <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase" }}>{m}</span>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    );
-                  })}
-                </div>
+                
+                {/* HERO EVENTS (Today / Tomorrow) */}
+                {heroEvents.length > 0 && (
+                  <div style={{ display: "flex", gap: 16, overflowX: "auto", scrollbarWidth: "none", padding: "0 20px 24px 20px" }}>
+                    {heroEvents.map(ev => {
+                      const isToday = ev.date === todayStr;
+                      const labelText = isToday ? "✨ ES HOY" : "⏳ MAÑANA";
+                      const labelColor = isToday ? "#FF3B30" : "#FF9500";
+                      const posterUrl = getThumbUrl(ev.img_url || cityImg, 1200, 800);
+                      return (
+                        <div key={ev.id} className="press" onClick={() => { setSelectedEvent(ev); navigate("events"); }} style={{ width: "88vw", maxWidth: 380, height: 240, borderRadius: 24, background: `url(${posterUrl}) center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: "0 12px 30px rgba(0,0,0,0.25)", position: "relative", overflow: "hidden" }}>
+                          {/* Dark overlay at bottom for text readability */}
+                          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%)" }} />
+                          
+                          {/* Badge */}
+                          <div style={{ position: "absolute", top: 16, right: 16, background: labelColor, color: "#fff", padding: "6px 14px", borderRadius: 20, fontWeight: 800, fontSize: 13, letterSpacing: 0.5, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", animation: isToday ? "pulse 2s infinite" : "none" }}>
+                            {labelText}
+                          </div>
+                          
+                          {/* Info */}
+                          <div style={{ position: "absolute", bottom: 20, left: 20, right: 20 }}>
+                            <h3 style={{ margin: 0, color: "#fff", fontSize: 24, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1.1, textShadow: "0 2px 8px rgba(0,0,0,0.5)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ev.title}</h3>
+                            {ev.place && <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600, marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}><Icon name="map-pin" size={12} color="rgba(255,255,255,0.85)"/> {ev.place}</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* REGULAR EVENTS (Future) */}
+                {regularEvents.length > 0 && (
+                  <div style={{ display: "flex", gap: 14, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 16, paddingLeft: 20, paddingRight: 20 }}>
+                    {regularEvents.map(ev => {
+                      const posterUrl = getThumbUrl(ev.img_url || cityImg, 600, 800);
+                      return (
+                        <div key={ev.id} className="press" onClick={() => { setSelectedEvent(ev); navigate("events"); }} style={{ width: 150, height: 210, borderRadius: 18, background: `url(${posterUrl}) center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: "0 8px 20px rgba(0,0,0,0.15)", position: "relative", overflow: "hidden" }}>
+                          {ev.date && (() => {
+                            const d = new Date(ev.date + "T12:00:00");
+                            const m = d.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
+                            return (
+                              <div style={{ position: "absolute", bottom: 10, left: 10, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", padding: "6px 10px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.2)", display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
+                                <span style={{ fontSize: 16, fontWeight: 800, color: "#fff", marginBottom: 2 }}>{d.getDate()}</span>
+                                <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase" }}>{m}</span>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })()}
