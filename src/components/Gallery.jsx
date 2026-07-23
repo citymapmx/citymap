@@ -36,13 +36,20 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
     <div style={{ position: "relative", height: h, overflow: "hidden", background: bg, userSelect: "none", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
       {/* ── MAIN IMAGE ── */}
       <div style={{ position: "relative", flex: 1, overflow: "hidden", padding: isFullscreen ? "90px 0 0 0" : 0 }}>
+        {/* Spinner Minimalista */}
+        {!loaded && p.url && (
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", zIndex: 1 }}>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.15)", borderTopColor: "#fff", animation: "spin 1s linear infinite" }} />
+          </div>
+        )}
+
         <img
           key={p.url}
           src={getThumbUrl(p.url, isFullscreen ? 2400 : 1200, 1000, fit)}
           alt=""
           loading="eager"
           onLoad={() => setLoaded(true)}
-          style={{ width: "100%", height: "100%", objectFit: fit, objectPosition: "center", display: "block" }}
+          style={{ width: "100%", height: "100%", objectFit: fit, objectPosition: "center", display: "block", opacity: loaded ? 1 : 0, transition: "opacity 0.25s ease-out" }}
         />
 
         {/* Counter */}
