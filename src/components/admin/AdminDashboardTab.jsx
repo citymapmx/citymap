@@ -17,9 +17,9 @@ function MetricCard({ label, value, icon, color, T }) {
 }
 
 export default function AdminDashboardTab({ data, dashCityFilter, setDashCityFilter, T }) {
-  const dashBiz = dashCityFilter === "all" ? data.biz : data.biz.filter(b => b.city_slug === dashCityFilter);
-  const dashEv = dashCityFilter === "all" ? data.events : data.events.filter(ev => ev.city_slug === dashCityFilter);
-  const dashAn = dashCityFilter === "all" ? data.analytics : data.analytics.filter(a => a.city_slug === dashCityFilter);
+  const dashBiz = dashCityFilter === "all" ? data.biz : data.biz.filter(b => b.city_slug === "all" || (b.city_slug && b.city_slug.split(",").includes(dashCityFilter)));
+  const dashEv = dashCityFilter === "all" ? data.events : data.events.filter(ev => ev.city_slug === "all" || (ev.city_slug && ev.city_slug.split(",").includes(dashCityFilter)));
+  const dashAn = dashCityFilter === "all" ? data.analytics : data.analytics.filter(a => a.city_slug === "all" || (a.city_slug && a.city_slug.split(",").includes(dashCityFilter)));
   
   const stats = { 
     total: dashBiz.filter(b => b.status !== "pending" && b.status !== "needs_changes").length, 

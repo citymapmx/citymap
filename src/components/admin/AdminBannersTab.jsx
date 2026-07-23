@@ -36,7 +36,7 @@ export default function AdminBannersTab({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="text-sm" style={{ fontWeight: 700, color: "#0F1A14" }}>{bn.title || "Sin título"}</div>
                   <div className="text-xs" style={{ color: "#5A6872", marginTop: 2 }}>
-                    {bn.city_slug === "all" ? "Todas las ciudades" : bn.city_slug}
+                    {bn.city_slug === "all" ? "Todas las ciudades" : (bn.city_slug || "Todas las ciudades").split(",").join(", ")}
                     {bn.start_date && ` · Desde ${bn.start_date}`}
                     {bn.end_date && ` hasta ${bn.end_date}`}
                     {bn.repeat_yearly && " · Repite anual"}

@@ -680,7 +680,7 @@ export default function HomeView() {
 
           {/* ── CERCA DE TI ── */}
           {(() => {
-            const isLocal = !userCoords || mapPins.some(b => b.city_slug === activeCity && b.lat && b.lng && getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) < 50);
+            const isLocal = !userCoords || mapPins.some(b => b.city_slug && b.city_slug.split(",").includes(activeCity) && b.lat && b.lng && getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) < 50);
             if (search || !dbReady || !isLocal || activeCat === "explorar") return null;
             return (
             <div style={{ padding: "8px 20px 0" }}>

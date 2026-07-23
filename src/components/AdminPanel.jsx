@@ -109,9 +109,9 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
   const geo = () => { if (!gok || !bizForm?.address) return; new window.google.maps.Geocoder().geocode({ address: bizForm.address }, (r, s) => { if (s === "OK") { const l = r[0].geometry.location; setBizForm(f => ({ ...f, lat: l.lat(), lng: l.lng() })); } }); };
 
   // ─ Dashboard stats ─
-  const dashBiz = dashCityFilter === "all" ? data.biz : data.biz.filter(b => b.city_slug === dashCityFilter);
-  const dashEv = dashCityFilter === "all" ? data.events : data.events.filter(ev => ev.city_slug === dashCityFilter);
-  const dashAn = dashCityFilter === "all" ? data.analytics : data.analytics.filter(a => a.city_slug === dashCityFilter);
+  const dashBiz = dashCityFilter === "all" ? data.biz : data.biz.filter(b => b.city_slug === "all" || (b.city_slug && b.city_slug.split(",").includes(dashCityFilter)));
+  const dashEv = dashCityFilter === "all" ? data.events : data.events.filter(ev => ev.city_slug === "all" || (ev.city_slug && ev.city_slug.split(",").includes(dashCityFilter)));
+  const dashAn = dashCityFilter === "all" ? data.analytics : data.analytics.filter(a => a.city_slug === "all" || (a.city_slug && a.city_slug.split(",").includes(dashCityFilter)));
   const stats = { total: dashBiz.filter(b => b.status !== "pending" && b.status !== "needs_changes").length, approved: dashBiz.filter(b => b.status === "approved").length, pending: dashBiz.filter(b => b.status === "pending" || b.status === "needs_changes").length + dashEv.filter(ev => ev.status === "pending").length, views: dashAn.filter(a => a.event_type === "view").length, whatsapp: dashAn.filter(a => a.event_type === "whatsapp").length, phone: dashAn.filter(a => a.event_type === "phone").length, website: dashAn.filter(a => a.event_type === "website").length, maps: dashAn.filter(a => a.event_type === "maps").length };
 
   const TABS = [["dashboard", "Panel"], ["biz", "Negocios"], ["pending", "Pendientes"], ["media", "Multimedia"], ["events", "Eventos"], ["promos", "Promos"], ["coupons", "Cupones"], ["raffles", "Sorteos"], ["banners", "Banners"], ["cities", "Ciudades"], ["categories", "Categorías"], ["reservations", "Reservas"], ["push", "Push"]];

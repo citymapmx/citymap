@@ -26,7 +26,7 @@ export function isNear(item, userCoords, activeCity, maxKm = 40) {
   if (!item) return false;
   
   // Siempre incluir negocios que pertenezcan explícitamente a la ciudad seleccionada
-  if (item.city_slug === activeCity) return true;
+  if (item.city_slug === "all" || (item.city_slug && item.city_slug.split(",").includes(activeCity))) return true;
   
   // Si no pertenece a la ciudad seleccionada, pero está muy cerca (ej. municipio conurbado), incluirlo
   if (userCoords && userCoords.lat && userCoords.lng && item.lat && item.lng) {

@@ -8,7 +8,7 @@ function CityPicker({ current, cities = [], onSelect, onClose, onDetectCity, loc
 
   const sortedCities = useMemo(() => {
     return [...cities].map(c => {
-      const count = mapPins.filter(p => p.city_slug === c.slug).length;
+      const count = mapPins.filter(p => p.city_slug === "all" || (p.city_slug && p.city_slug.split(",").includes(c.slug))).length;
       return { ...c, count };
     }).sort((a, b) => b.count - a.count);
   }, [cities, mapPins]);

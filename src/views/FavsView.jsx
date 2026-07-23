@@ -20,7 +20,7 @@ export default function FavsView({ hideHeader }) {
               <p style={{ fontSize: 14, color: T.sub, marginBottom: 20 }}>Tus lugares favoritos en {(city || "").split(",")[0]}</p>
             </>}
             {(() => {
-              const allSavedBiz = mapPins.filter(b => favIds.includes(b.id) && b.city_slug === activeCity);
+              const allSavedBiz = mapPins.filter(b => favIds.includes(b.id) && b.city_slug && b.city_slug.split(",").includes(activeCity));
               const unsortedBiz = allSavedBiz.filter(b => !collections.some(c => c.items.includes(b.id)));
               const savedEv = events.filter(e => {
                 if (!savedEventIds.includes(e.id)) return false;
