@@ -5,7 +5,7 @@ import { sb } from '../lib/supabase.js';
 import { FONT_BIZ } from '../lib/constants.js';
 import { isOpenNow, createSlug } from '../lib/utils.js';
 import { useUIStore } from '../store/useUIStore.js';
-
+import { useAuthStore } from '../store/useAuthStore.js';
 export default function AccountView({
   user, profile, isAdmin, T, dark, favIds, reviews,
   wallet, coupons, claimedCoupons, biz, myBizList,
@@ -33,8 +33,15 @@ export default function AccountView({
   const saveProfile = async () => {
     setSavingProfile(true);
     try {
-      const d = await sb.updateUser({ data: { name: editName, avatar_url: editPhoto } });
-      if (d?.id) setUser(d); else if (d?.user) setUser(d.user);
+      await sb.updateUser({ data: { name: editName, avatar_url: editPhoto } });
+      const refreshed = await sb.refresh();
+      const updatedUser = refreshed?.user;
+      if (updatedUser) {
+        setUser(updatedUser);
+        await sb.patch("profiles", updatedUser.id, { name: editName, avatar_url: editPhoto }).catch(() => {});
+        const authSt = useAuthStore.getState();
+        if (authSt.profile) authSt.setProfile({ ...authSt.profile, name: editName, avatar_url: editPhoto });
+      }
       setIsEditingProfile(false);
       toast$("Perfil actualizado ✓");
     } catch (e) {
