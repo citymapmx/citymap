@@ -57,7 +57,7 @@ export default function EventsView() {
               if (!ev.active || ev.status === "pending" || ev.status === "rejected") return false;
               if (ev.date) {
                 const endDateStr = ev.end_date || ev.date;
-                const evDT = ev.time ? new Date(`${endDateStr}T${ev.time}`) : new Date(`${endDateStr}T23:59`);
+                const evDT = ev.time ? new Date(`${endDateStr}T${ev.time}:00`) : new Date(`${endDateStr}T23:59:00`);
                 if ((now2 - evDT) > 86400000) return false;
               }
               return true;

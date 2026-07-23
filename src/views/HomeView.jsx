@@ -772,10 +772,14 @@ export default function HomeView() {
           {!search && activeCat === "explorar" && (() => {
             const now2 = new Date();
             const upcomingEvents = (events || []).filter(ev => {
-              if (ev.city_slug !== activeCity || ev.status !== "approved") return false;
+              if (ev.status !== "approved") return false;
+              if (ev.city_slug !== "all" && ev.city_slug) {
+                const cities = ev.city_slug.split(",");
+                if (!cities.includes(activeCity)) return false;
+              }
               if (ev.date) {
                 const endDateStr = ev.end_date || ev.date;
-                const evDT = ev.time ? new Date(`${endDateStr}T${ev.time}`) : new Date(`${endDateStr}T23:59`);
+                const evDT = ev.time ? new Date(`${endDateStr}T${ev.time}:00`) : new Date(`${endDateStr}T23:59:00`);
                 if ((now2 - evDT) > 86400000) return false;
               }
               return true;
