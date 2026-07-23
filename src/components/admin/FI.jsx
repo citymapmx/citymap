@@ -11,8 +11,8 @@ export default function FI({ label, field, src, set, type = "text", rows, ph = "
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8 }}>{label}</label>
       {rows
-        ? <textarea rows={rows} defaultValue={src[field] || ""} placeholder={ph} onBlur={handleChange} style={{ ...inputStyle, resize: "vertical" }} />
-        : <input type={type} defaultValue={src[field] ?? ""} placeholder={ph} key={`${field}-${src?.id || "new"}`} onBlur={handleChange} style={inputStyle} />
+        ? <textarea rows={rows} defaultValue={src[field] || ""} placeholder={ph} onChange={handleChange} style={{ ...inputStyle, resize: "vertical" }} />
+        : <input type={type} defaultValue={src[field] ?? ""} placeholder={ph} key={`${field}-${src?.id || "new"}`} onChange={handleChange} style={inputStyle} />
       }
     </div>
   );
