@@ -270,8 +270,7 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
     if (width <= 400) return 400;
     if (width <= 800) return 800;
     if (width <= 1200) return 1200;
-    if (width <= 1600) return 1600;
-    return 2400;
+    return 1600;
   };
   
   const targetW = bucketWidth(w);
@@ -290,10 +289,9 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
       const pathParts = url.split('/public/');
       if (pathParts.length > 1) {
         const path = pathParts[1];
-        // Eliminamos el aspect_ratio para que Bunny mantenga la proporción original
-        // y delegamos el recorte visual a CSS (object-fit), igual que hicimos con Cloudinary.
-        // Agregamos quality=95 para garantizar que no haya pérdida de nitidez.
-        let bunnyQuery = `?width=${targetW}&quality=95`;
+        // BunnyCDN Optimization API params
+        let bunnyQuery = `?width=${targetW}&aspect_ratio=${w}:${h || w}`;
+        if (fit === "cover") bunnyQuery += "&crop=true";
         return `${bunnyUrl.replace(/\/$/, "")}/${path}${bunnyQuery}`;
       }
     }
