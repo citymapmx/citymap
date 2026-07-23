@@ -269,8 +269,8 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
     if (width <= 200) return 200;
     if (width <= 400) return 400;
     if (width <= 800) return 800;
-    if (width <= 1200) return 1200;
-    return 1600;
+    if (width <= 1600) return 1600;
+    return 2400;
   };
   
   const targetW = bucketWidth(w);
@@ -289,9 +289,8 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
       const pathParts = url.split('/public/');
       if (pathParts.length > 1) {
         const path = pathParts[1];
-        // BunnyCDN Optimization API params
-        let bunnyQuery = `?width=${targetW}&aspect_ratio=${w}:${h || w}`;
-        if (fit === "cover") bunnyQuery += "&crop=true";
+        // Delegamos el recorte a CSS (object-fit) para no aplastar la imagen
+        let bunnyQuery = `?width=${targetW}`;
         return `${bunnyUrl.replace(/\/$/, "")}/${path}${bunnyQuery}`;
       }
     }
