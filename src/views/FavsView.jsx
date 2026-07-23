@@ -22,7 +22,11 @@ export default function FavsView({ hideHeader }) {
             {(() => {
               const allSavedBiz = mapPins.filter(b => favIds.includes(b.id) && b.city_slug === activeCity);
               const unsortedBiz = allSavedBiz.filter(b => !collections.some(c => c.items.includes(b.id)));
-              const savedEv = events.filter(e => savedEventIds.includes(e.id) && (!e.city_slug || e.city_slug === "all" || e.city_slug === activeCity));
+              const savedEv = events.filter(e => {
+                if (!savedEventIds.includes(e.id)) return false;
+                if (!e.city_slug || e.city_slug === "all") return true;
+                return e.city_slug.split(",").includes(activeCity);
+              });
               const hasFavs = allSavedBiz.length > 0 || savedEv.length > 0;
 
               if (activeCollection) {

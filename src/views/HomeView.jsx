@@ -606,7 +606,10 @@ export default function HomeView() {
             const query = search.toLowerCase();
             const qWords = query.split(/\s+/).filter(Boolean);
             const matchingEvents = (events || []).filter(ev => {
-              if (ev.city_slug !== activeCity) return false;
+              if (ev.city_slug !== "all" && ev.city_slug) {
+                const cities = ev.city_slug.split(",");
+                if (!cities.includes(activeCity)) return false;
+              }
               const text = [ev.title, ev.description, ev.location, ev.venue_name, ev.category].join(" ").toLowerCase();
               return qWords.every(w => text.includes(w));
             });
