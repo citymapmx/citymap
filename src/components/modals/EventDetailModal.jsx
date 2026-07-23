@@ -41,9 +41,9 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
             <div style={{ width: "100%", maxWidth: 460, margin: "0 auto", padding: 0, display: "flex", flexDirection: "column", minHeight: "100%" }}>
               
               {/* --- HERO IMAGE SECTION --- */}
-              <div style={{ position: "relative", width: "100%", height: "45vh", minHeight: 300, background: T.border, overflow: "hidden" }}>
+              <div style={{ position: "relative", width: "100%", minHeight: 200, background: T.border, overflow: "hidden" }}>
                 {imgSrc ? (
-                  <img src={imgSrc} alt="" style={{ position: "relative", width: "100%", height: "100%", objectFit: "cover", zIndex: 1 }} loading="eager" />
+                  <img src={imgSrc} alt="" style={{ position: "relative", width: "100%", height: "auto", display: "block", zIndex: 1 }} loading="eager" />
                 ) : (
                   <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#E5E7EB" }}>
                     <Icon name="calendar" size={48} color="#9CA3AF" />
