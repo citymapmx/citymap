@@ -433,10 +433,11 @@ export default function CityGuide() {
     const actionListener = PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
       const deepLink = action.notification?.data?.deepLink;
       if (deepLink) {
-        // Convertir la URL a una ruta relativa para el router interno
         try {
           const url = new URL(deepLink);
-          routerNavigate(url.pathname);
+          // Forzamos la recarga de la URL para que el inicializador de la app procese el negocio
+          // igual que como funcionan los Android App Links nativos
+          window.location.href = url.pathname + url.search;
         } catch (e) {
           console.error('Deep link error:', e);
         }
