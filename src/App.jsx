@@ -414,7 +414,11 @@ export default function CityGuide() {
         await fetch(`https://citymap.mx/api/register-token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: token.value, user_id: u.id })
+          body: JSON.stringify({ 
+            token: token.value, 
+            user_id: u.id,
+            city_slug: useUIStore.getState().activeCity // Guardamos la ciudad actual del usuario
+          })
         });
       } catch (err) {
         console.error("Error saving token:", err);
@@ -647,7 +651,11 @@ useEffect(() => {
               fetch(`https://citymap.mx/api/register-token`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: localToken, user_id: u.id })
+                body: JSON.stringify({ 
+                  token: localToken, 
+                  user_id: u.id,
+                  city_slug: useUIStore.getState().activeCity // Guardamos la ciudad actual del usuario
+                })
               }).catch(e => console.error("Manual token sync error:", e));
             }
           } catch (_) {}

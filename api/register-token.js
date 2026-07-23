@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { token, user_id } = req.body;
+    const { token, user_id, city_slug } = req.body;
 
     if (!token || !user_id) {
       return res.status(400).json({ error: 'Missing token or user_id' });
@@ -37,6 +37,11 @@ export default async function handler(req, res) {
     });
 
     // 2. Insertar el token para el usuario actual
+    const insertData = { token, user_id };
+    if (city_slug) {
+      insertData.city_slug = city_slug;
+    }
+
     const insertRes = await fetch(`${supabaseUrl}/rest/v1/push_tokens`, {
       method: 'POST',
       headers: {
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify({ token, user_id })
+      body: JSON.stringify(insertData)
     });
 
     if (!insertRes.ok) {

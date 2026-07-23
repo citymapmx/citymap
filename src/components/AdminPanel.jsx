@@ -498,6 +498,8 @@ function PushTab({ T, onToast }) {
   const [allEvents, setAllEvents] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [targetCity, setTargetCity] = useState("");
+  const [cities, setCities] = useState([]);
 
   // Load biz and events for search
   useEffect(() => {
@@ -511,6 +513,11 @@ function PushTab({ T, onToast }) {
     setSelectedItem(null);
     setSearch("");
   }, [deepLinkType]);
+
+  // Load cities for target filter
+  useEffect(() => {
+    sb.get("cities", "?select=slug,name&order=name.asc").then(data => setCities(data || []));
+  }, []);
 
   const items = deepLinkType === "biz" 
     ? allBiz.filter(b => b.name?.toLowerCase().includes(search.toLowerCase()))
@@ -534,7 +541,13 @@ function PushTab({ T, onToast }) {
       const res = await fetch("https://citymap.mx/api/send-notification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body, deepLink, secret: import.meta.env.VITE_ADMIN_SECRET })
+        body: JSON.stringify({ 
+          title, 
+          body, 
+          deepLink, 
+          target_city: targetCity || null,
+          secret: import.meta.env.VITE_ADMIN_SECRET 
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al enviar");
@@ -552,8 +565,16 @@ function PushTab({ T, onToast }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <h3 className="text-lg" style={{ margin: 0, color: T.text }}>Enviar Notificación Push</h3>
-      <p className="text-sm" style={{ margin: 0, color: T.sub }}>Esta notificación llegará a todos los usuarios que tengan instalada la app CityMap en Android o iOS.</p>
+      <p className="text-sm" style={{ margin: 0, color: T.sub }}>Esta notificación llegará a los usuarios con la app CityMap instalada en sus celulares.</p>
       
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <label className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase" }}>Ciudad Destino</label>
+        <select value={targetCity} onChange={e => setTargetCity(e.target.value)} style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid " + T.border, outline: "none", fontSize: 14, fontFamily: "inherit", background: T.white, color: T.text, appearance: "none" }}>
+          <option value="">🌎 Enviar a TODAS las ciudades (Global)</option>
+          {cities.map(c => <option key={c.slug} value={c.slug}>📍 Solo usuarios en: {c.name}</option>)}
+        </select>
+      </div>
+
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <label className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase" }}>Título</label>
         <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: ¡Nueva Taquería!" style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid " + T.border, outline: "none", fontSize: 14, fontFamily: "inherit", background: T.white, color: T.text }} />

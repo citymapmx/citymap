@@ -28,7 +28,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { title, body, deepLink, secret, user_id, type = 'system' } = req.body;
+    const { title, body, deepLink, secret, user_id, type = 'system', target_city } = req.body;
 
     // Proteger el endpoint
     if (secret !== process.env.ADMIN_SECRET) {
@@ -69,7 +69,10 @@ export default async function handler(req, res) {
     if (user_id) {
       // Fetch SOLO los tokens de ese usuario específico
       queryUrl += `&user_id=eq.${user_id}`;
-    } // else: Fetch ALL tokens (Envío global)
+    } else if (target_city) {
+      // Filtro por ciudad si se solicita envío masivo segmentado
+      queryUrl += `&city_slug=eq.${target_city}`;
+    } // else: Fetch ALL tokens (Envío masivo global)
 
     const r = await fetch(queryUrl, {
       headers: {
