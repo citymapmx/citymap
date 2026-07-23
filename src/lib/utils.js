@@ -47,7 +47,6 @@ export function isOpenNow(b, tz, now) {
   const sch = b.schedule;
   if (!sch || typeof sch !== "object" || Object.keys(sch).length === 0) return !!b.open;
   if (sch.type === "always_open") return true;
-  if (sch.type === "appointment" || sch.type === "delivery") return false;
   
   try {
     const d = now || (typeof window !== "undefined" && window.APP_NOW) || new Date();
@@ -96,7 +95,6 @@ export function getMinutesToClose(b, tz, now) {
   const sch = b.schedule;
   if (!sch || typeof sch !== "object" || Object.keys(sch).length === 0) return Infinity;
   if (sch.type === "always_open") return Infinity;
-  if (sch.type === "appointment" || sch.type === "delivery") return -1;
 
   try {
     const d = now || (typeof window !== "undefined" && window.APP_NOW) || new Date();
