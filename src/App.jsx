@@ -1208,7 +1208,8 @@ useEffect(() => {
         const linkedBiz = mapPins.find(biz => biz.id === b.business_id);
         return isNear(linkedBiz || b, userCoords, activeCity);
       }
-      return b.city_slug === activeCity;
+      if (!b.city_slug) return false;
+      return b.city_slug === "all" || b.city_slug.split(",").includes(activeCity);
     });
   }, [banners, activeCity, detectedTown, userCoords, mapPins]);
 
@@ -1218,7 +1219,8 @@ useEffect(() => {
         const linkedBiz = mapPins.find(biz => biz.id === e.business_id);
         return isNear(linkedBiz || e, userCoords, activeCity);
       }
-      return e.city_slug === activeCity;
+      if (!e.city_slug) return false;
+      return e.city_slug === "all" || e.city_slug.split(",").includes(activeCity);
     });
   }, [events, activeCity, detectedTown, userCoords, mapPins]);
 
