@@ -63,33 +63,41 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
                 
                 {ev.event_category && <div style={{ fontSize: 13, fontWeight: 700, color: T.text, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 20 }}>{ev.event_category}</div>}
                 
-                {/* --- PREMIUM BENTO GRID (Fecha & Precio) --- */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
-                  
-                  {/* Fecha */}
-                  {ev.date && (
-                    <div style={{ background: dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${T.border}`, borderRadius: 20, padding: "16px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, boxShadow: "0 4px 20px rgba(0,0,0,0.03)", textAlign: "center", justifyContent: "center" }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 14, background: dark ? "#fff" : "#111827", color: dark ? "#000" : "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", marginTop: -2, letterSpacing: 0.5, opacity: 0.9 }}>
-                          {(() => { const [,m] = ev.date.split("-").map(Number); return ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][m-1]; })()}
-                        </span>
-                        <span style={{ fontSize: 18, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.5px" }}>{ev.date.split('-')[2]}</span>
+                {/* --- INFORMACIÓN GENERAL (Stacked List) --- */}
+                <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ fontSize: 17, fontWeight: 800, color: T.text, marginBottom: 12 }}>Información general</h3>
+                  <div style={{ background: dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+                    
+                    {/* Fecha */}
+                    {ev.date && (
+                      <div style={{ display: "flex", alignItems: "center", padding: "16px", borderBottom: `1px solid ${T.border}` }}>
+                        <Icon name="calendar" size={20} color={T.text} style={{ marginRight: 14, opacity: 0.8 }} />
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: 15, fontWeight: 700, color: T.text, display: "block", marginBottom: 2 }}>
+                            {fmtDate(ev.date)} {ev.end_date && ev.end_date !== ev.date ? ` al ${fmtDate(ev.end_date)}` : ''}
+                          </span>
+                          {ev.time && (
+                            <span style={{ fontSize: 13, fontWeight: 500, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>
+                              <Icon name="clock" size={12} color={T.sub} /> {fmtTime(ev.time)} {ev.end_time ? `- ${fmtTime(ev.end_time)}` : ''}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ color: T.text, fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px", lineHeight: 1.2 }}>
-                        {fmtDate(ev.date)} {ev.time && <span style={{color: T.sub, fontWeight: 600}}> • {fmtTime(ev.time)}</span>}
-                      </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Entradas */}
-                  <div style={{ background: dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${T.border}`, borderRadius: 20, padding: "16px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, boxShadow: "0 4px 20px rgba(0,0,0,0.03)", textAlign: "center", justifyContent: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: T.sub }}>
-                      <span style={{ fontSize: 16, fontWeight: 900, lineHeight: 1, color: T.text }}>$</span>
-                      <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.2 }}>Entradas</span>
+                    {/* Entradas */}
+                    <div style={{ display: "flex", alignItems: "center", padding: "16px" }}>
+                      <div style={{ width: 20, display: "flex", justifyContent: "center", marginRight: 14 }}>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: T.text, opacity: 0.8 }}>$</span>
+                      </div>
+                      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>Entradas</span>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: ev.price_type === "gratis" ? "#16A34A" : T.text, background: ev.price_type === "gratis" ? "#DCFCE7" : (dark ? "#374151" : "#F3F4F6"), padding: "4px 10px", borderRadius: 8 }}>
+                          {ev.price_type === "gratis" ? "Gratis" : `Desde ${ev.price || ""}`}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ color: ev.price_type === "gratis" ? "#16A34A" : T.text, fontSize: 15, fontWeight: 800, lineHeight: 1.3, letterSpacing: "-0.2px" }}>
-                      {ev.price_type === "gratis" ? "Gratis" : `Desde ${ev.price || ""}`}
-                    </div>
+
                   </div>
                 </div>
 
