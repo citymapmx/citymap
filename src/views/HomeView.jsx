@@ -798,8 +798,10 @@ export default function HomeView() {
             const tomorrow = new Date(now.getTime() + 86400000);
             const tomorrowStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(tomorrow);
 
-            const heroEvents = upcomingEvents.filter(ev => ev.date === todayStr || ev.date === tomorrowStr);
-            const regularEvents = upcomingEvents.filter(ev => ev.date !== todayStr && ev.date !== tomorrowStr);
+            const isEventToday = ev => ev.date === todayStr || (ev.end_date && ev.date <= todayStr && ev.end_date >= todayStr);
+            const isEventTomorrow = ev => ev.date === tomorrowStr || (ev.end_date && ev.date <= tomorrowStr && ev.end_date >= tomorrowStr);
+            const heroEvents = upcomingEvents.filter(ev => isEventToday(ev) || isEventTomorrow(ev));
+            const regularEvents = upcomingEvents.filter(ev => !isEventToday(ev) && !isEventTomorrow(ev));
             
             return (
               <div style={{ padding: "24px 0 0 0" }}>
@@ -809,7 +811,7 @@ export default function HomeView() {
                 {heroEvents.length > 0 && (
                   <div style={{ display: "flex", gap: 16, overflowX: "auto", scrollbarWidth: "none", padding: "0 20px 24px 20px", justifyContent: heroEvents.length === 1 ? "center" : "flex-start" }}>
                     {heroEvents.map(ev => {
-                      const isToday = ev.date === todayStr;
+                      const isToday = isEventToday(ev);
                       const labelText = isToday ? "ES HOY" : "MAÑANA";
                       const posterUrl = getThumbUrl(ev.img_url || cityImg, 1200, 1200);
                       return (
