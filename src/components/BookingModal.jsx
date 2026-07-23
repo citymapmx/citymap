@@ -127,6 +127,11 @@ export default function BookingModal({ biz, onClose }) {
       
       if (openMin === null || closeMin === null) return [];
 
+      // Handle closing times that pass midnight (e.g. 12:00am or 2:00am)
+      if (closeMin <= openMin) {
+        closeMin += 24 * 60; // Add 24 hours
+      }
+
       // Restrict by service time range if available
       if (selectedService.timeRange) {
         const svcSegs = String(selectedService.timeRange).split(/\s*[–\-]\s*|\s+a\s+/i);
@@ -349,23 +354,23 @@ ${notes ? `*Notas:* ${notes}` : ""}
             {/* 1. Servicio */}
             {Array.isArray(config.services) && config.services.length > 0 ? (
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>1. Elige un servicio</label>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {config.services.map(s => (
-                    <label key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, border: `1.5px solid ${serviceId === s.id ? "#0F1A14" : "#E4E8E4"}`, borderRadius: 12, background: serviceId === s.id ? "#0F1A14" : "#fff", cursor: "pointer", transition: "all 0.2s" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${serviceId === s.id ? "#fff" : "#D1D5DB"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          {serviceId === s.id && <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#fff" }} />}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 14, color: serviceId === s.id ? "#fff" : "#0F1A14" }}>{s.name}</div>
-                          <div style={{ fontSize: 12, color: serviceId === s.id ? "#A1A1AA" : "#5A6872", marginTop: 2 }}>{s.durationMin} min</div>
-                        </div>
-                      </div>
-                      {(s.price && s.price !== "0") && <div style={{ fontWeight: 700, fontSize: 14, color: serviceId === s.id ? "#fff" : "#1A7A5E" }}>${s.price}</div>}
-                      <input type="radio" name="service" value={s.id} checked={serviceId === s.id} onChange={() => setServiceId(s.id)} style={{ display: "none" }} />
-                    </label>
-                  ))}
+                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>1. Selecciona el servicio</label>
+                <div style={{ position: "relative" }}>
+                  <select 
+                    value={serviceId || ""} 
+                    onChange={e => setServiceId(e.target.value)} 
+                    style={{ width: "100%", padding: "14px 16px", border: "1.5px solid #E4E8E4", borderRadius: 12, fontSize: 14, fontWeight: 700, color: "#0F1A14", appearance: "none", background: "#F9FAFB", cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    <option value="" disabled>Selecciona una opción...</option>
+                    {config.services.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} {s.durationMin ? `(${s.durationMin} min)` : ""} {s.price && s.price !== "0" ? `- $${s.price}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ position: "absolute", right: 16, top: 16, pointerEvents: "none" }}>
+                    <Icon name="chevron" size={16} color="#5A6872" />
+                  </div>
                 </div>
               </div>
             ) : (
