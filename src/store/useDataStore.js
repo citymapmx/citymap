@@ -106,7 +106,7 @@ export const useDataStore = create((set, get) => ({
 
       get().loadMapPins(targetCity);
       
-      const pEvents = sb.get("events", `?status=eq.approved&city_slug=in.(${targetCity},all)`).catch(() => []);
+      const pEvents = sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,city_slug.ilike.*${targetCity}*)`).catch(() => []);
       const pPromos = sb.get("promos").catch(() => []);
       const pRaffles = sb.get("raffles").catch(() => []);
       const pCoupons = sb.get("coupons").catch(() => []);

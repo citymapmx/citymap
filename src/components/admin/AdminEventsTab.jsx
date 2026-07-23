@@ -75,7 +75,25 @@ export default function AdminEventsTab({
           <FI label="Dirección" field="venue_address" src={evForm} set={setEvForm} ph="Av. México 123" />
           <FI label="WhatsApp contacto" field="whatsapp" src={evForm} set={setEvForm} ph="3111234567" />
           <FI label="Sitio web / Boletos (Opcional)" field="website" src={evForm} set={setEvForm} ph="https://..." />
-          <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Ciudad</label><select value={evForm.city_slug || "all"} onChange={e => setEvForm(f => ({ ...f, city_slug: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}><option value="all">Todas</option>{data.cities.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select></div>
+          <div>
+            <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Ciudades</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <button type="button" onClick={() => setEvForm(f => ({ ...f, city_slug: "all" }))} style={{ padding: "6px 12px", border: `1.5px solid ${evForm.city_slug === "all" || !evForm.city_slug ? "#1A7A5E" : "#E4E8E4"}`, borderRadius: 20, fontSize: 12, fontWeight: 700, background: evForm.city_slug === "all" || !evForm.city_slug ? "#EAF4F0" : "#fff", color: evForm.city_slug === "all" || !evForm.city_slug ? "#1A7A5E" : "#5A6872", cursor: "pointer" }}>Todas</button>
+              {data.cities.map(c => {
+                const isSelected = evForm.city_slug && evForm.city_slug !== "all" && evForm.city_slug.split(",").includes(c.slug);
+                return (
+                  <button key={c.slug} type="button" onClick={() => {
+                    setEvForm(f => {
+                      let current = (f.city_slug && f.city_slug !== "all") ? f.city_slug.split(",") : [];
+                      if (isSelected) current = current.filter(x => x !== c.slug);
+                      else current.push(c.slug);
+                      return { ...f, city_slug: current.length > 0 ? current.join(",") : "all" };
+                    });
+                  }} style={{ padding: "6px 12px", border: `1.5px solid ${isSelected ? "#1A7A5E" : "#E4E8E4"}`, borderRadius: 20, fontSize: 12, fontWeight: 700, background: isSelected ? "#EAF4F0" : "#fff", color: isSelected ? "#1A7A5E" : "#5A6872", cursor: "pointer" }}>{c.name}</button>
+                )
+              })}
+            </div>
+          </div>
           <div><div className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, marginBottom: 6 }}>Imagen del evento</div><Uploader onDone={url => setEvForm(f => ({ ...f, img_url: url }))} />{(evForm.img_url || evForm.img) && <OptimizedImage src={evForm.img_url || evForm.img} widthRequest={400} alt="" style={{ width: "100%", height: 100, objectFit: "contain", borderRadius: 8, marginTop: 8 }} />}</div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
