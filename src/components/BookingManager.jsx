@@ -57,8 +57,8 @@ export default function BookingManager({ bookingConfig, onChange, T }) {
             <Icon name="calendar" size={16} color={config.enabled ? "#16A34A" : "#9CA3AF"} />
           </div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: T?.text || "#0F1A14" }}>Pedidos y Reservaciones</div>
-            <div style={{ fontSize: 11, color: T?.sub || "#5A6872" }}>Activa esto para vender desde tu perfil</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: T?.text || "#0F1A14" }}>Reservaciones y Citas</div>
+            <div style={{ fontSize: 11, color: T?.sub || "#5A6872" }}>Activa esto para recibir citas o reservas desde tu perfil</div>
           </div>
         </div>
         <button type="button" onClick={toggleEnabled} style={{ width: 44, height: 24, borderRadius: 12, background: config.enabled ? "#1A7A5E" : "#D1D5DB", border: "none", position: "relative", cursor: "pointer", transition: "all 0.2s" }}>
@@ -73,10 +73,10 @@ export default function BookingManager({ bookingConfig, onChange, T }) {
               <div style={{ fontSize: 13, fontWeight: 700, color: T?.text || "#0F1A14", textAlign: "center", marginBottom: 4 }}>¿Cómo quieres recibir a tus clientes?</div>
               
               <button type="button" onClick={() => setField("type", "native")} className="press" style={{ padding: 16, borderRadius: 12, border: `1.5px solid ${T?.border || "#E4E8E4"}`, background: T?.bg || "#F9FAFB", display: "flex", alignItems: "center", gap: 12, cursor: "pointer", textAlign: "left", boxShadow: "0 2px 6px rgba(0,0,0,0.03)" }}>
-                <div style={{ fontSize: 26 }}>📋</div>
+                <div style={{ fontSize: 26 }}>📅</div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: T?.text || "#0F1A14" }}>Crear mi menú o catálogo aquí</div>
-                  <div style={{ fontSize: 11, color: T?.sub || "#5A6872", marginTop: 2, lineHeight: 1.3 }}>Vende tus servicios, productos o recibe citas directamente dentro de CityMap.</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: T?.text || "#0F1A14" }}>Gestionar mis reservas aquí</div>
+                  <div style={{ fontSize: 11, color: T?.sub || "#5A6872", marginTop: 2, lineHeight: 1.3 }}>Recibe citas, agenda reuniones o reservas directamente en CityMap.</div>
                 </div>
               </button>
 
@@ -92,7 +92,7 @@ export default function BookingManager({ bookingConfig, onChange, T }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 16, animation: "fadeIn 0.3s ease" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 10, borderBottom: `1px solid ${T?.border || "#E4E8E4"}` }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#1A7A5E", display: "flex", alignItems: "center", gap: 6 }}>
-                  {config.type === "native" ? "📋 Menú o Catálogo Propio" : "🔗 Enlaces a otras Apps"}
+                  {config.type === "native" ? "📅 Sistema de Reservas Propio" : "🔗 Enlaces a otras Apps"}
                 </div>
                 <button type="button" onClick={() => setField("type", null)} style={{ background: "none", border: "none", color: T?.sub || "#9CA3AF", fontSize: 11, textDecoration: "underline", cursor: "pointer", padding: 0 }}>
                   Cambiar opción
@@ -187,7 +187,7 @@ export default function BookingManager({ bookingConfig, onChange, T }) {
                     </div>
                   ) : (
                     <div style={{ fontSize: 12, color: T?.sub || "#9CA3AF", padding: "16px", background: T?.bg || "#F9FAFB", borderRadius: 10, textAlign: "center", border: `1px dashed ${T?.border || "#E4E8E4"}` }}>
-                      Agrega tu primer producto o servicio 👇
+                      Agrega tu primer servicio o tipo de cita 👇
                     </div>
                   )}
 
@@ -195,7 +195,7 @@ export default function BookingManager({ bookingConfig, onChange, T }) {
                   <div style={{ display: "flex", flexDirection: "column", gap: 12, background: T?.white || "#fff", padding: 14, borderRadius: 12, border: `1.5px solid ${T?.border || "#E4E8E4"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
                     <div style={{ display: "flex", gap: 8 }}>
                       <div style={{ flex: 2 }}>
-                        <input type="text" placeholder="¿Qué ofreces? (Ej: Corte de Cabello)" value={newSvcName} onChange={e => setNewSvcName(e.target.value)} style={{ width: "100%", padding: "12px", border: `1px solid ${T?.border || "#E4E8E4"}`, borderRadius: 8, fontSize: 13, background: T?.bg || "#F9FAFB", color: T?.text || "#0F1A14", fontFamily: "inherit" }} />
+                        <input type="text" placeholder="¿Qué servicio ofreces? (Ej: Corte de Cabello)" value={newSvcName} onChange={e => setNewSvcName(e.target.value)} style={{ width: "100%", padding: "12px", border: `1px solid ${T?.border || "#E4E8E4"}`, borderRadius: 8, fontSize: 13, background: T?.bg || "#F9FAFB", color: T?.text || "#0F1A14", fontFamily: "inherit" }} />
                       </div>
                       <div style={{ flex: 1 }}>
                         <input type="number" placeholder="Precio ($)" value={newSvcPrice} onChange={e => setNewSvcPrice(e.target.value)} style={{ width: "100%", padding: "12px", border: `1px solid ${T?.border || "#E4E8E4"}`, borderRadius: 8, fontSize: 13, background: T?.bg || "#F9FAFB", color: T?.text || "#0F1A14", fontFamily: "inherit" }} />
