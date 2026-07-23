@@ -770,7 +770,7 @@ export default function HomeView() {
 
           {/* ── AGENDA LOCAL (EVENTOS DE HOY/PRÓXIMOS) ── */}
           {!search && activeCat === "explorar" && (() => {
-            const now2 = now;
+            const now2 = new Date();
             const upcomingEvents = (events || []).filter(ev => {
               if (ev.city_slug !== activeCity || ev.status !== "approved") return false;
               if (ev.date) {
