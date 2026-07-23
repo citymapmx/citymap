@@ -33,7 +33,7 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
   const mainH = isFullscreen && total > 1 ? "calc(100dvh - 90px)" : h;
 
   return (
-    <div style={{ position: "relative", height: h, overflow: "hidden", background: bg, userSelect: "none", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
+    <div style={{ position: "relative", width: "100%", height: h, overflow: "hidden", background: bg, userSelect: "none", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
       {/* ── MAIN IMAGE ── */}
       <div style={{ position: "relative", flex: 1, overflow: "hidden", padding: isFullscreen ? "90px 0 0 0" : 0 }}>
         {/* Spinner Minimalista */}
