@@ -128,9 +128,31 @@ export default function EventsView() {
                         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)", pointerEvents: "none" }} />
                         
                         {/* Heart Button */}
-                        <button onClick={e => { e.stopPropagation(); const nw = isSaved ? savedEventIds.filter(x => x !== ev.id) : [...savedEventIds, ev.id]; setSavedEventIds(nw); localStorage.setItem("cg_saved_ev", JSON.stringify(nw)); }} style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.2)", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", width: 40, height: 40, borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", transition: "all 0.2s" }}>
+                        <button onClick={e => { e.stopPropagation(); const nw = isSaved ? savedEventIds.filter(x => x !== ev.id) : [...savedEventIds, ev.id]; setSavedEventIds(nw); localStorage.setItem("cg_saved_ev", JSON.stringify(nw)); }} style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.2)", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", width: 40, height: 40, borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", transition: "all 0.2s", zIndex: 10 }}>
                           <Icon name={isSaved ? "heart_f" : "heart"} size={18} color={isSaved ? "#EF4444" : "#fff"} />
                         </button>
+                        
+                        {/* Date Badge */}
+                        {ev.date && (() => {
+                          const d = new Date(ev.date + "T12:00:00");
+                          const m = d.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
+                          let dayTxt = d.getDate();
+                          let moTxt = m;
+                          if (ev.end_date && ev.end_date !== ev.date) {
+                              const d2 = new Date(ev.end_date + "T12:00:00");
+                              dayTxt = `${d.getDate()}-${d2.getDate()}`;
+                              if (d.getMonth() !== d2.getMonth()) {
+                                  const m2 = d2.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
+                                  moTxt = `${m}/${m2}`;
+                              }
+                          }
+                          return (
+                            <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", padding: "8px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.2)", display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1, zIndex: 10 }}>
+                              <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", marginBottom: 2, whiteSpace: "nowrap" }}>{dayTxt}</span>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", whiteSpace: "nowrap", letterSpacing: 0.5 }}>{moTxt}</span>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Text (Bottom) */}
