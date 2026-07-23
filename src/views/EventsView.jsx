@@ -156,14 +156,16 @@ export default function EventsView() {
                       </div>
 
                       {/* Text (Bottom) */}
-                      <div style={{ padding: "14px 14px 16px", display: "flex", flexDirection: "column", flex: 1 }}>
-                        <div style={{ fontSize: 10, fontWeight: 800, color: T.green, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>{dateLbl}</div>
-                        <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 15, color: T.text, lineHeight: 1.25, marginBottom: 12, wordBreak: "break-word", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ev.title}</div>
-                        {ev.time && (
-                          <div style={{ fontSize: 12, color: T.sub, display: "flex", alignItems: "center", gap: 5, marginTop: "auto", fontWeight: 600 }}>
-                            <Icon name="clock" size={13} color={T.sub} /> {formatTimeAMPM(ev.time)}
-                          </div>
-                        )}
+                      <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", flex: 1, justifyContent: "space-between" }}>
+                        <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 15, color: T.text, lineHeight: 1.2, marginBottom: 6, wordBreak: "break-word", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ev.title}</div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
+                          {ev.time ? (
+                            <div style={{ fontSize: 12, color: T.green, display: "flex", alignItems: "center", gap: 4, fontWeight: 700 }}>
+                              <Icon name="clock" size={12} color={T.green} /> {formatTimeAMPM(ev.time)}
+                            </div>
+                          ) : <div/>}
+                          <div style={{ background: dark ? "#374151" : "#F3F4F6", padding: "4px 8px", borderRadius: 8, fontSize: 10, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>Info</div>
+                        </div>
                       </div>
 
                     </div>
