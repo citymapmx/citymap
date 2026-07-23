@@ -803,26 +803,28 @@ export default function HomeView() {
                 
                 {/* HERO EVENTS (Today / Tomorrow) */}
                 {heroEvents.length > 0 && (
-                  <div style={{ display: "flex", gap: 16, overflowX: "auto", scrollbarWidth: "none", padding: "0 20px 24px 20px" }}>
+                  <div style={{ display: "flex", gap: 16, overflowX: "auto", scrollbarWidth: "none", padding: "0 20px 24px 20px", justifyContent: heroEvents.length === 1 ? "center" : "flex-start" }}>
                     {heroEvents.map(ev => {
                       const isToday = ev.date === todayStr;
-                      const labelText = isToday ? "✨ ES HOY" : "⏳ MAÑANA";
-                      const labelColor = isToday ? "#FF3B30" : "#FF9500";
-                      const posterUrl = getThumbUrl(ev.img_url || cityImg, 1200, 800);
+                      const labelText = isToday ? "ES HOY" : "MAÑANA";
+                      const posterUrl = getThumbUrl(ev.img_url || cityImg, 1200, 1200);
                       return (
-                        <div key={ev.id} className="press" onClick={() => { setSelectedEvent(ev); navigate("events"); }} style={{ width: "88vw", maxWidth: 380, height: 240, borderRadius: 24, background: `url(${posterUrl}) center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: "0 12px 30px rgba(0,0,0,0.25)", position: "relative", overflow: "hidden" }}>
+                        <div key={ev.id} className="press" onClick={() => { setSelectedEvent(ev); navigate("events"); }} style={{ width: "88vw", maxWidth: 400, borderRadius: 24, background: "#000", cursor: "pointer", flexShrink: 0, boxShadow: "0 12px 30px rgba(0,0,0,0.25)", position: "relative", overflow: "hidden" }}>
+                          
+                          <img src={posterUrl} style={{ width: "100%", maxHeight: "60vh", objectFit: "contain", display: "block" }} alt={ev.title} />
+                          
                           {/* Dark overlay at bottom for text readability */}
-                          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%)" }} />
+                          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%)", pointerEvents: "none" }} />
                           
                           {/* Badge */}
-                          <div style={{ position: "absolute", top: 16, right: 16, background: labelColor, color: "#fff", padding: "6px 14px", borderRadius: 20, fontWeight: 800, fontSize: 13, letterSpacing: 0.5, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", animation: isToday ? "pulse 2s infinite" : "none" }}>
-                            {labelText}
+                          <div style={{ position: "absolute", top: 20, left: 0, background: "#000", color: "#fff", padding: "6px 16px 6px 14px", borderRadius: "0 12px 12px 0", border: "2px dashed rgba(255,255,255,0.9)", borderLeft: "none", fontWeight: 800, fontSize: 13, letterSpacing: 1, boxShadow: "4px 4px 15px rgba(0,0,0,0.6)", animation: isToday ? "pulse 2s infinite" : "none", display: "flex", alignItems: "center", gap: 6, zIndex: 2 }}>
+                            {isToday ? "✨ " : "⏳ "}{labelText}
                           </div>
                           
                           {/* Info */}
-                          <div style={{ position: "absolute", bottom: 20, left: 20, right: 20 }}>
-                            <h3 style={{ margin: 0, color: "#fff", fontSize: 24, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1.1, textShadow: "0 2px 8px rgba(0,0,0,0.5)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ev.title}</h3>
-                            {ev.place && <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600, marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}><Icon name="map-pin" size={12} color="rgba(255,255,255,0.85)"/> {ev.place}</div>}
+                          <div style={{ position: "absolute", bottom: 20, left: 20, right: 20, zIndex: 2 }}>
+                            <h3 style={{ margin: 0, color: "#fff", fontSize: 24, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1.1, textShadow: "0 2px 10px rgba(0,0,0,0.8)", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ev.title}</h3>
+                            {ev.place && <div style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: 600, marginTop: 8, display: "flex", alignItems: "center", gap: 4, textShadow: "0 2px 4px rgba(0,0,0,0.8)" }}><Icon name="map-pin" size={12} color="rgba(255,255,255,0.9)"/> {ev.place}</div>}
                           </div>
                         </div>
                       );
