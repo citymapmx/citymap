@@ -79,9 +79,11 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
                         <span style={{ fontSize: 18, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.5px" }}>{ev.date.split('-')[2]}</span>
                       </div>
                       <div>
-                        <div style={{ fontSize: 11, color: T.sub, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4 }}>Fecha y Hora</div>
-                        <div style={{ color: T.text, fontSize: 15, fontWeight: 800, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{fmtDate(ev.date)}</div>
-                        {ev.time && <div style={{ color: T.sub, fontSize: 13, fontWeight: 600, marginTop: 3 }}>{fmtTime(ev.time)}</div>}
+                        <div style={{ fontSize: 11, color: T.sub, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4 }}>{ev.end_date ? "Fechas y Horarios" : "Fecha y Hora"}</div>
+                        <div style={{ color: T.text, fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{fmtDate(ev.date)} {ev.time && <span style={{color: T.sub, fontWeight: 600}}> • {fmtTime(ev.time)}</span>}</div>
+                        {ev.end_date && (
+                          <div style={{ color: T.text, fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px", lineHeight: 1.2, marginTop: 4 }}>{fmtDate(ev.end_date)} {ev.end_time && <span style={{color: T.sub, fontWeight: 600}}> • {fmtTime(ev.end_time)}</span>}</div>
+                        )}
                       </div>
                     </div>
                   )}
