@@ -538,6 +538,16 @@ export default function HomeView() {
 
               {/* Fila 4: Categorías Iconos (Ocultos en Inicio) */}
               {!search && <div style={{ margin: "12px -20px 0" }}>
+                <style>{`
+                  @keyframes catHeartbeat {
+                    0% { transform: translateY(-4px) scale(1.1); }
+                    14% { transform: translateY(-4px) scale(1.3); }
+                    28% { transform: translateY(-4px) scale(1.1); }
+                    42% { transform: translateY(-4px) scale(1.3); }
+                    70% { transform: translateY(-4px) scale(1.1); }
+                    100% { transform: translateY(-4px) scale(1.1); }
+                  }
+                `}</style>
                 <div style={{ display: "flex", alignItems: "flex-start", overflowX: "auto", paddingTop: 8, paddingBottom: 8, paddingLeft: 20, paddingRight: 20, gap: 20, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
                   {!dbReady ? [1, 2, 3, 4, 5].map(i => <Sk key={i} w={56} h={56} r={28} dark={true} style={{ flexShrink: 0 }} />)
                     : [{id: "explorar", label: "Explorar"}, ...cats].map((c) => {
@@ -551,7 +561,7 @@ export default function HomeView() {
 
                       return (
                         <a href={catUrl} key={c.id} onClick={(e) => { e.preventDefault(); haptic("light"); setActiveCat(c.id); window.history.pushState(null, "", catUrl); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0, width: 64 }}>
-                          <div style={{ width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", transform: isActive ? "translateY(-4px) scale(1.1)" : "none" }}>
+                          <div style={{ width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", transition: isActive ? "none" : "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", transform: isActive ? "translateY(-4px) scale(1.1)" : "none", animation: isActive ? "catHeartbeat 1.5s ease-in-out infinite" : "none" }}>
                             {isImage ? (
                               <img src={`/${cleanEmoji}`} alt={c.label} style={{ width: 32, height: 32, objectFit: "contain", filter: isActive ? "drop-shadow(0 6px 12px rgba(255,255,255,0.15))" : "drop-shadow(0 2px 6px rgba(0,0,0,0.4))" }} />
                             ) : (
