@@ -541,10 +541,7 @@ export default function HomeView() {
                 <style>{`
                   @keyframes catHeartbeat {
                     0% { transform: translateY(-4px) scale(1.1); }
-                    14% { transform: translateY(-4px) scale(1.3); }
-                    28% { transform: translateY(-4px) scale(1.1); }
-                    42% { transform: translateY(-4px) scale(1.3); }
-                    70% { transform: translateY(-4px) scale(1.1); }
+                    50% { transform: translateY(-4px) scale(1.25); }
                     100% { transform: translateY(-4px) scale(1.1); }
                   }
                 `}</style>
@@ -561,7 +558,7 @@ export default function HomeView() {
 
                       return (
                         <a href={catUrl} key={c.id} onClick={(e) => { e.preventDefault(); haptic("light"); setActiveCat(c.id); window.history.pushState(null, "", catUrl); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0, width: 64 }}>
-                          <div style={{ width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", transition: isActive ? "none" : "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", transform: isActive ? "translateY(-4px) scale(1.1)" : "none", animation: isActive ? "catHeartbeat 1.5s ease-in-out infinite" : "none" }}>
+                          <div style={{ width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", transition: isActive ? "none" : "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", transform: isActive ? "translateY(-4px) scale(1.1)" : "none", animation: isActive ? "catHeartbeat 2s ease-in-out infinite" : "none" }}>
                             {isImage ? (
                               <img src={`/${cleanEmoji}`} alt={c.label} style={{ width: 32, height: 32, objectFit: "contain", filter: isActive ? "drop-shadow(0 6px 12px rgba(255,255,255,0.15))" : "drop-shadow(0 2px 6px rgba(0,0,0,0.4))" }} />
                             ) : (
