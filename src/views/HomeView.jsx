@@ -548,12 +548,17 @@ export default function HomeView() {
                       let bg = isActive ? "linear-gradient(145deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05))" : "rgba(0,0,0,0.25)";
                       let border = isActive ? "1px solid rgba(255,255,255,0.4)" : "1px solid rgba(255,255,255,0.06)";
                       let boxShadow = isActive ? "0 10px 24px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.3)" : "inset 0 1px 1px rgba(255,255,255,0.05)";
-                      let emoji = c.id === "explorar" ? "🌎" : (c.icon === "❤️" ? "🤍" : (c.emoji || c.icon || "✨"));
+                      let emojiVal = c.id === "explorar" ? "🌎" : (c.icon === "❤️" ? "🤍" : (c.emoji || c.icon || "✨"));
+                      let isImage = typeof emojiVal === 'string' && (emojiVal.endsWith('.svg') || emojiVal.endsWith('.png'));
 
                       return (
                         <a href={catUrl} key={c.id} onClick={(e) => { e.preventDefault(); haptic("light"); setActiveCat(c.id); window.history.pushState(null, "", catUrl); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textDecoration: "none", flexShrink: 0, width: 56 }}>
                           <div style={{ width: 42, height: 42, borderRadius: 14, background: bg, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", transform: isActive ? "translateY(-4px)" : "none", border: border, boxShadow: boxShadow }}>
-                            <span style={{ fontSize: 20, lineHeight: 1, filter: isActive ? "drop-shadow(0 4px 8px rgba(0,0,0,0.3))" : "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }}>{emoji}</span>
+                            {isImage ? (
+                              <img src={`/${emojiVal}`} alt={c.label} style={{ width: 24, height: 24, objectFit: "contain", filter: isActive ? "drop-shadow(0 4px 8px rgba(0,0,0,0.3))" : "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }} />
+                            ) : (
+                              <span style={{ fontSize: 20, lineHeight: 1, filter: isActive ? "drop-shadow(0 4px 8px rgba(0,0,0,0.3))" : "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }}>{emojiVal}</span>
+                            )}
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? "#fff" : "rgba(255,255,255,0.7)", textAlign: "center", lineHeight: 1.15, textShadow: "0 2px 4px rgba(0,0,0,0.5)", transition: "color 0.3s" }}>{c.label}</span>
