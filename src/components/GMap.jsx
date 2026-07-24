@@ -196,10 +196,23 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
         img.style.boxSizing = "border-box";
         content.appendChild(img);
       } else {
-        const emoji = biz.emoji || categories.find(c => c.id === biz.category)?.icon || CAT_EMOJI[biz.category] || "📍";
-        content.innerText = emoji;
-        content.style.fontSize = `${sel ? 28 : 22}px`;
-        content.style.textShadow = "0 3px 6px rgba(0,0,0,0.4)";
+        const emojiVal = biz.emoji || categories.find(c => c.id === biz.category)?.icon || CAT_EMOJI[biz.category] || "📍";
+        const cleanEmoji = typeof emojiVal === 'string' ? emojiVal.trim() : emojiVal;
+        const isImg = typeof cleanEmoji === 'string' && (cleanEmoji.toLowerCase().endsWith('.svg') || cleanEmoji.toLowerCase().endsWith('.png'));
+
+        if (isImg) {
+          const img = document.createElement("img");
+          img.src = `/${cleanEmoji}`;
+          img.style.width = `${sel ? 28 : 22}px`;
+          img.style.height = `${sel ? 28 : 22}px`;
+          img.style.objectFit = "contain";
+          img.style.filter = "drop-shadow(0 3px 6px rgba(0,0,0,0.4))";
+          content.appendChild(img);
+        } else {
+          content.innerText = cleanEmoji;
+          content.style.fontSize = `${sel ? 28 : 22}px`;
+          content.style.textShadow = "0 3px 6px rgba(0,0,0,0.4)";
+        }
       }
 
       const m = new HTMLMarker(

@@ -56,7 +56,12 @@ export default function MapView() {
                                <motion.div layoutId="mapCatIndicator" className="animated-pill" style={{ position: "absolute", inset: 0, borderRadius: 20, zIndex: -1, boxShadow: "0 2px 8px rgba(56, 189, 248, 0.3)" }} transition={{ type: "spring", bounce: 0.25, duration: 0.5 }} />
                              </>
                            )}
-                           <span style={{ fontSize: 14 }}>{c.icon || "📍"}</span>
+                           {(() => {
+                             let iconVal = c.icon || "📍";
+                             let cleanIcon = typeof iconVal === 'string' ? iconVal.trim() : iconVal;
+                             let isImg = typeof cleanIcon === 'string' && (cleanIcon.toLowerCase().endsWith('.svg') || cleanIcon.toLowerCase().endsWith('.png'));
+                             return isImg ? <img src={`/${cleanIcon}`} alt="" style={{ width: 14, height: 14, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>{cleanIcon}</span>;
+                           })()}
                            <span>{c.label}</span>
                          </button>
                        );
@@ -104,7 +109,14 @@ export default function MapView() {
               <div style={{ width: "100%", height: 140, background: T.bg, position: "relative" }}>
                 {mapPin.photos?.[0]?.url
                   ? <img src={getThumbUrl(mapPin.photos[0].url, 1000, 700)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
-                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>{(mapPin.emoji || CAT_EMOJI[mapPin.category]) || "📍"}</div>
+                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>
+                      {(() => {
+                        let emojiVal = mapPin.emoji || cats.find(c => c.id === mapPin.category)?.icon || CAT_EMOJI[mapPin.category] || "📍";
+                        let cleanEmoji = typeof emojiVal === 'string' ? emojiVal.trim() : emojiVal;
+                        let isImg = typeof cleanEmoji === 'string' && (cleanEmoji.toLowerCase().endsWith('.svg') || cleanEmoji.toLowerCase().endsWith('.png'));
+                        return isImg ? <img src={`/${cleanEmoji}`} alt="" style={{ width: 64, height: 64, objectFit: "contain" }} /> : cleanEmoji;
+                      })()}
+                    </div>
                 }
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(to top, rgba(0,0,0,0.55), transparent)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: 10, left: 12, right: 12, zIndex: 2 }}>
