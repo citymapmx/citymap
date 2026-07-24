@@ -63,7 +63,15 @@ export default function AdminCategoriesTab({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A6872" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
           </div>
-          <div className="text-xl" style={{ width: 36, height: 36, borderRadius: 10, background: "#EAF4F0", display: "flex", alignItems: "center", justifyContent: "center" }}>{c.icon}</div>
+          {(() => {
+            let cleanIcon = typeof c.icon === 'string' ? c.icon.trim() : c.icon;
+            let isImg = typeof cleanIcon === 'string' && (cleanIcon.toLowerCase().endsWith('.svg') || cleanIcon.toLowerCase().endsWith('.png'));
+            return (
+              <div className="text-xl" style={{ width: 36, height: 36, borderRadius: 10, background: "#EAF4F0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {isImg ? <img src={`/${cleanIcon}`} style={{ width: 20, height: 20, objectFit: "contain" }} alt="" /> : cleanIcon}
+              </div>
+            );
+          })()}
           <div style={{ flex: 1 }}>
             <div className="text-sm" style={{ fontWeight: 700, color: "#0F1A14" }}>{c.name}</div>
             <div className="text-xs" style={{ color: "#5A6872", marginTop: 1 }}>/{c.slug} · orden {c.sort_order}</div>
