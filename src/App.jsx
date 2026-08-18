@@ -1001,7 +1001,7 @@ useEffect(() => {
         {toast && <div className="tb">{toast}</div>}
 
         {/* ── GLOBAL GLASS NAVBAR (Fixed, home only) ── */}
-        {(location.pathname === "/" || location.pathname === `/${activeCity}`) && !location.pathname.includes("/lugar/") && !location.pathname.includes("/evento/") && (
+        {(location.pathname === "/" || location.pathname === `/${activeCity}` || location.pathname === buildCityPath(activeCity, cities)) && !location.pathname.includes("/lugar/") && !location.pathname.includes("/evento/") && (
           <div style={{ 
             position: "fixed", 
             top: 0, 
