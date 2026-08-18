@@ -1,16 +1,19 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon.jsx";
+import Footer from "../components/Footer.jsx";
 import { Sk } from "../components/ui/Skeleton.jsx";
 import { getThumbUrl } from "../lib/utils";
 import useTimeStore from "../store/useTimeStore.js";
+import { Helmet } from "react-helmet-async";
 
 export default function EventsView() {
+  const [activeIdx, setActiveIdx] = useState(0);
   const ctx = useAppContext();
   const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
   const { user } = useAuthStore(useShallow(s => ({ user: s.user })));
@@ -19,32 +22,51 @@ export default function EventsView() {
 
   return (
     <div style={{ paddingBottom: 84, ...viewStyle }}>
-          <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 24px) 20px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <div>
-              <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 28, color: T.text, marginBottom: 6 }}>Eventos</h2>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, background: dark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "4px 8px", borderRadius: 6, width: "fit-content" }}>
-                <Icon name="map-pin" size={12} color={T.green} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>{(city || "TEPIC").split(",")[0]}</span>
-              </div>
-            </div>
+      <Helmet>
+        <title>Eventos en {(city || activeCity || "tu ciudad").split(",")[0]} - CityMap</title>
+        <link rel="canonical" href="https://citymap.mx/eventos" />
+      </Helmet>
+      <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 16px", background: T.white, textAlign: "center" }}>
+            <style>{`
+              @keyframes evGradientFlow {
+                0% { background-position: 0% center; }
+                100% { background-position: 200% center; }
+              }
+              .ev-city-anim {
+                display: inline;
+                background: linear-gradient(90deg, #34D399 0%, #38BDF8 25%, #818CF8 50%, #38BDF8 75%, #34D399 100%);
+                background-size: 200% auto;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                animation: evGradientFlow 4s linear infinite;
+                font-weight: 900;
+              }
+            `}</style>
+            <img
+              src="/citymap.mx.png"
+              alt="CityMap"
+              style={{ height: 44, objectFit: "contain", filter: dark ? "none" : "brightness(0)", display: "block", margin: "0 auto 10px" }}
+            />
+            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: T.text, lineHeight: 1.25, fontFamily: "var(--heading)" }}>
+              Eventos que no te puedes perder en
+            </p>
+            <p style={{ margin: "2px 0 0 0", fontSize: 22, lineHeight: 1.2, fontFamily: "var(--heading)" }}>
+              <span className="ev-city-anim">{(city || activeCity || "tu ciudad").split(",")[0]}</span>
+            </p>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", padding: "8px 20px 4px" }}>
             {user && (
               <>
                 <style>{`
-                  @keyframes pillGradientFlow {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                  }
                   .animated-pill-btn {
-                    background: linear-gradient(270deg, #34D399, #38BDF8, #818CF8, #34D399);
-                    background-size: 300% 300%;
-                    animation: pillGradientFlow 6s ease infinite;
+                    background: #0f172a;
                   }
                 `}</style>
                 <button 
                   className="animated-pill-btn press"
                   onClick={() => setShowCreateEvent(true)} 
-                  style={{ color: "#fff", border: "none", borderRadius: 20, padding: "8px 16px", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 8px rgba(56, 189, 248, 0.3)" }}
+                  style={{ color: "#fff", border: "none", borderRadius: 20, padding: "8px 16px", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}
                 >
                   <Icon name="plus" size={14} color="#fff" /> Crear Evento
                 </button>
@@ -105,75 +127,60 @@ export default function EventsView() {
               <div style={{ fontWeight: 700, fontSize: 16, color: T.text }}>Sin eventos por ahora</div>
               <div style={{ fontSize: 13, color: T.sub, marginTop: 6 }}>Pronto habrá novedades en tu ciudad</div>
             </div>;
+
             return (
-              <div style={{ padding: "0 20px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
-                {visible.map(ev => {
-                  const isSaved = savedEventIds.includes(ev.id);
-                  const imgSrc = ev.img_url || ev.img;
-                  const dateLbl = fmtCardDate(ev);
-                  return (
-                    <div key={ev.id} className="press" onClick={() => { setSelectedEvent(ev); }} style={{ background: T.card, borderRadius: 20, border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`, boxShadow: dark ? '0 4px 12px rgba(0,0,0,0.5)' : '0 8px 20px rgba(0,0,0,0.06)', position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                      
-                      {/* Image (Top) */}
-                      <div style={{ width: "100%", aspectRatio: "3/4", background: dark ? "#1F2937" : "#F3F4F6", position: "relative" }}>
-                        {imgSrc ? (
-                          <img src={getThumbUrl(imgSrc, 400, 500)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
-                        ) : (
-                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: dark ? "#374151" : "#E5E7EB" }}>
-                            <Icon name="calendar" size={32} color="#9CA3AF" />
-                          </div>
-                        )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+                
+                {/* Grid Section */}
+                {visible.length > 0 && (
+                  <div style={{ padding: "0 20px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+                    {visible.map(ev => {
+                      const isSaved = savedEventIds.includes(ev.id);
+                      const imgSrc = ev.img_url || ev.img;
+                      const dateLbl = fmtCardDate(ev);
+                      return (
+                        <div key={ev.id} className="press" onClick={() => { setSelectedEvent(ev); }} style={{ background: T.card, borderRadius: 20, border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`, boxShadow: dark ? '0 4px 12px rgba(0,0,0,0.5)' : '0 8px 20px rgba(0,0,0,0.06)', position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                          <div style={{ width: "100%", aspectRatio: "5/7", background: imgSrc ? `${dark ? "#1F2937" : "#F3F4F6"} url('${getThumbUrl(imgSrc, 400, 560)}') center/cover` : (dark ? "#1F2937" : "#F3F4F6"), position: "relative" }}>
+                            {!imgSrc && (
+                              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: dark ? "#374151" : "#E5E7EB" }}>
+                                <Icon name="calendar" size={32} color="#9CA3AF" />
+                              </div>
+                            )}
 
-                        {/* Top Gradient Overlay */}
-                        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)", pointerEvents: "none" }} />
-                        
-                        {/* Heart Button */}
-                        <button onClick={e => { e.stopPropagation(); const nw = isSaved ? savedEventIds.filter(x => x !== ev.id) : [...savedEventIds, ev.id]; setSavedEventIds(nw); localStorage.setItem("cg_saved_ev", JSON.stringify(nw)); }} style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.2)", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", width: 40, height: 40, borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", transition: "all 0.2s", zIndex: 10 }}>
-                          <Icon name={isSaved ? "heart_f" : "heart"} size={18} color={isSaved ? "#EF4444" : "#fff"} />
-                        </button>
-                        
-                        {/* Date Badge */}
-                        {ev.date && (() => {
-                          const d = new Date(ev.date + "T12:00:00");
-                          const m = d.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
-                          let dayTxt = d.getDate();
-                          let moTxt = m;
-                          if (ev.end_date && ev.end_date !== ev.date) {
-                              const d2 = new Date(ev.end_date + "T12:00:00");
-                              dayTxt = `${d.getDate()}-${d2.getDate()}`;
-                              if (d.getMonth() !== d2.getMonth()) {
-                                  const m2 = d2.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
-                                  moTxt = `${m}/${m2}`;
+                            <button onClick={e => { e.stopPropagation(); const nw = isSaved ? savedEventIds.filter(x => x !== ev.id) : [...savedEventIds, ev.id]; setSavedEventIds(nw); localStorage.setItem("cg_saved_ev", JSON.stringify(nw)); }} style={{ position: "absolute", top: 10, right: 10, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))", zIndex: 10 }}>
+                              <Icon name={isSaved ? "heart_overlay_f" : "heart_overlay"} size={26} color="none" />
+                            </button>
+                            {ev.date && (() => {
+                              const d = new Date(ev.date + "T12:00:00");
+                              const m = d.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
+                              let dayTxt = d.getDate();
+                              let moTxt = m;
+                              if (ev.end_date && ev.end_date !== ev.date) {
+                                  const d2 = new Date(ev.end_date + "T12:00:00");
+                                  dayTxt = `${d.getDate()}-${d2.getDate()}`;
+                                  if (d.getMonth() !== d2.getMonth()) {
+                                      const m2 = d2.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
+                                      moTxt = `${m}/${m2}`;
+                                  }
                               }
-                          }
-                          return (
-                            <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", padding: "8px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.2)", display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1, zIndex: 10 }}>
-                              <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", marginBottom: 2, whiteSpace: "nowrap" }}>{dayTxt}</span>
-                              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", whiteSpace: "nowrap", letterSpacing: 0.5 }}>{moTxt}</span>
-                            </div>
-                          );
-                        })()}
-                      </div>
+                              return (
+                                <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", padding: "8px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.2)", display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1, zIndex: 10 }}>
+                                  <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", marginBottom: 2, whiteSpace: "nowrap" }}>{dayTxt}</span>
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", whiteSpace: "nowrap", letterSpacing: 0.5 }}>{moTxt}</span>
+                                </div>
+                              );
+                            })()}
+                          </div>
 
-                      {/* Text (Bottom) */}
-                      <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", flex: 1, justifyContent: "space-between" }}>
-                        <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 15, color: T.text, lineHeight: 1.2, marginBottom: 6, wordBreak: "break-word", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ev.title}</div>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
-                          {ev.time ? (
-                            <div style={{ fontSize: 12, color: T.green, display: "flex", alignItems: "center", gap: 4, fontWeight: 700 }}>
-                              <Icon name="clock" size={12} color={T.green} /> {formatTimeAMPM(ev.time)}
-                            </div>
-                          ) : <div/>}
-                          <div style={{ background: dark ? "#374151" : "#F3F4F6", padding: "4px 8px", borderRadius: 8, fontSize: 10, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>Info</div>
                         </div>
-                      </div>
-
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })()}
+        <Footer />
         </div>
 
   );

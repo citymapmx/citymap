@@ -52,9 +52,12 @@ export function useFavorites({ sb, user, setShowAuth, toast$ }) {
         try {
           const localCols = JSON.parse(localStorage.getItem("citymap_collections") || "[]");
           if (localCols.length > 0) {
-            const toInsert = localCols.map(lc => ({ id: lc.id, user_id: uid, name: lc.name, emoji: lc.emoji, items: lc.items }));
-            await sb.post("collections", toInsert);
-            setCollections(localCols); // They are already identical, but ensures state matches
+            // Don't send local string IDs (like "col_visitar") — let Supabase generate proper UUIDs
+            const toInsert = localCols.map(lc => ({ user_id: uid, name: lc.name, emoji: lc.emoji, items: lc.items || [] }));
+            const inserted = await sb.post("collections", toInsert);
+            if (Array.isArray(inserted) && inserted.length > 0) {
+              setCollections(inserted);
+            }
           }
         } catch(e) {}
       }

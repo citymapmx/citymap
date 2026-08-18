@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 
 export default function ProgressiveImage({
   src,
@@ -14,7 +14,7 @@ export default function ProgressiveImage({
   const [isLoaded, setIsLoaded] = useState(false);
 
   return (
-    <motion.div
+    <m.div
       className={className}
       variants={variants}
       transition={transition}
@@ -44,7 +44,7 @@ export default function ProgressiveImage({
       />
       
       {/* Actual High Res Image */}
-      <motion.img
+      <m.img
         src={src}
         alt={alt}
         loading="lazy"
@@ -61,6 +61,6 @@ export default function ProgressiveImage({
           objectPosition: style.objectPosition || 'center',
         }}
       />
-    </motion.div>
+    </m.div>
   );
 }

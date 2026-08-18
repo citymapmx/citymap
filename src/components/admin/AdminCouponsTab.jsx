@@ -1,17 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Icon from '../ui/Icon';
 import FI from './FI';
 
 export default function AdminCouponsTab({
   data,
-  cpForm,
-  setCpForm,
   sb,
   load,
-  onToast,
-  saving,
-  setSaving
+  onToast
 }) {
+  const [cpForm, setCpForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+
   return (
     <>
       {!cpForm && <div>

@@ -10,7 +10,7 @@ export default function Terms({ T, onBack }) {
         <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: "50%", background: T.bg, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
           <Icon name="chevron" size={20} color={T.text} style={{ transform: "rotate(180deg)" }} />
         </button>
-        <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 22, color: T.text, margin: 0, letterSpacing: 0.5 }}>Términos de Uso</h2>
+        <h2 style={{ fontFamily: "var(--heading)", fontSize: 22, color: T.text, margin: 0, letterSpacing: 0.5 }}>Términos de Uso</h2>
       </div>
 
       <div style={{ padding: "24px 20px", flex: 1, color: T.text, fontSize: 14, lineHeight: 1.6 }}>

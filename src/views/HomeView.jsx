@@ -1,5 +1,6 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import ReactDOM from "react-dom";
+import { m, AnimatePresence } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
@@ -7,308 +8,79 @@ import { useAuthStore } from "../store/useAuthStore.js";
 import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear } from "../lib/utils";
 import Icon from "../components/ui/Icon.jsx";
+import Footer from "../components/Footer.jsx";
+import ExperienceViewer from "../components/ExperienceViewer.jsx";
 import { PageLogo } from "../components/Brand.jsx";
 import { Sk, CardSk, DuoSk, EventSk } from "../components/ui/Skeleton.jsx";
 import FeaturedCard from "../components/cards/FeaturedCard.jsx";
 import DestacadoCard from "../components/cards/DestacadoCard.jsx";
 import CompactCard from "../components/cards/CompactCard.jsx";
-import BentoCategories from "../components/BentoCategories.jsx";
 import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import { Virtuoso } from "react-virtuoso";
 import { Helmet } from "react-helmet-async";
 
 const SESSION_SEED = Math.random();
 
-function DebouncedSearchBar({ initialValue, onSearch, placeholders, phIdx, locating, detectCity }) {
-  const [localSearch, setLocalSearch] = React.useState(initialValue);
-  const [displayedPlaceholder, setDisplayedPlaceholder] = React.useState("");
-  
-  React.useEffect(() => {
-    setLocalSearch(initialValue);
-  }, [initialValue]);
 
-  React.useEffect(() => {
-    const t = setTimeout(() => onSearch(localSearch), 300);
-    return () => clearTimeout(t);
-  }, [localSearch, onSearch]);
 
-  React.useEffect(() => {
-    const targetText = placeholders[phIdx] || "";
-    let i = 0;
-    setDisplayedPlaceholder("|"); // Start with cursor
-    
-    let interval;
-    const timeout = setTimeout(() => {
-      interval = setInterval(() => {
-        setDisplayedPlaceholder(targetText.slice(0, i + 1) + (i < targetText.length - 1 ? "|" : ""));
-        i++;
-        if (i >= targetText.length) {
-          clearInterval(interval);
-          setDisplayedPlaceholder(targetText);
-        }
-      }, 50);
-    }, phIdx === 0 ? 500 : 100);
+import DebouncedSearchBar from "../components/home/DebouncedSearchBar.jsx";
 
-    return () => {
-      clearTimeout(timeout);
-      if (interval) clearInterval(interval);
-    };
-  }, [phIdx, placeholders]);
-
-  return (
-    <>
-      <input 
-        className="inp hero-search-input" 
-        style={{ width: "100%", padding: "12px 16px 12px 44px", border: "none", borderRadius: 100, color: "#fff", fontSize: 15, fontWeight: 600, outline: "none", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }} 
-        placeholder={displayedPlaceholder} 
-        value={localSearch} 
-        onChange={e => setLocalSearch(e.target.value)} 
-      />
-      <span style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", zIndex: 5, pointerEvents: "none", display: "flex" }}>
-        <Icon name="search" size={18} color="rgba(255,255,255,0.8)" sw={2} />
-      </span>
-      {localSearch ? (
-        <button aria-label="Borrar búsqueda" className="press" onClick={() => setLocalSearch("")} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.15)", borderRadius: "50%", width: 28, height: 28, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 5, padding: 0 }}>
-          <Icon name="x" size={14} color="#fff" sw={3} />
-        </button>
-      ) : (
-        <button aria-label="Actualizar ubicación" className="press" onClick={() => { localStorage.removeItem("cg_manual_city"); if (!locating) detectCity({ showToast: true }); }} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 5, padding: 8, animation: locating ? "pulse 1.5s infinite" : "none" }} title="Actualizar GPS">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line></svg>
-        </button>
-      )}
-    </>
-  );
-}
-
-function SquareCarousel({ title, list, handleCardTap, getThumbUrl, CAT_EMOJI, T, FONT_BIZ }) {
-  if (!list || list.length === 0) return null;
-  const isSingle = list.length === 1;
-
-  return (
-    <div style={{ padding: "24px 0 0" }}>
-      <div style={{ padding: "0 20px", marginBottom: 12 }}>
-        <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 22, color: T.text, letterSpacing: 0.5, textAlign: "center", margin: 0 }}>{title}</h2>
-      </div>
-      <div style={{ display: "flex", gap: 10, overflowX: isSingle ? "visible" : "auto", paddingLeft: 20, paddingRight: 20, paddingBottom: 6, scrollbarWidth: "none" }}>
-        {list.map((b) => {
-          const imgToUse = b.logo_url || b.photos?.[0]?.url;
-          
-          if (isSingle) {
-            return (
-              <div key={b.id} className="press" onClick={() => handleCardTap(b)} style={{ width: "100%", background: T.white, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 14, boxShadow: T.shadow, cursor: "pointer", border: `1px solid ${T.border}` }}>
-                <div style={{ width: 64, height: 64, borderRadius: 12, overflow: "hidden", background: T.border, flexShrink: 0, position: "relative" }}>
-                  {imgToUse
-                    ? <OptimizedImage src={imgToUse} alt={b.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{(b.emoji || CAT_EMOJI[b.category]) || "📍"}</div>
-                  }
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 16, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.2 }}>{b.name}</div>
-                  <div style={{ fontSize: 13, color: T.sub, marginTop: 4, textTransform: "capitalize" }}>{b.category}</div>
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            <div key={b.id} className="press" onClick={() => handleCardTap(b)} style={{ minWidth: 90, maxWidth: 90, flexShrink: 0, cursor: "pointer", display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ width: 90, height: 90, borderRadius: 20, overflow: "hidden", background: T.border, boxShadow: T.shadow, position: "relative" }}>
-                {imgToUse
-                  ? <OptimizedImage src={imgToUse} alt={b.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>{(b.emoji || CAT_EMOJI[b.category]) || "📍"}</div>
-                }
-              </div>
-              <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 11, color: T.text, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.1 }}>{b.name}</div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function DuoAutoSlider({ openBiz, userCoords, getKm, cityImg, setSelected, navigate, trackEvent, T, FONT_BIZ }) {
-  const [displayed, setDisplayed] = React.useState([]);
-  const [keySuffix, setKeySuffix] = React.useState(0);
-  
-  React.useEffect(() => {
-    if (openBiz.length === 0) return;
-    if (openBiz.length <= 2) {
-      setDisplayed(openBiz);
-      return;
-    }
-    
-    const pickRandom = (current) => {
-      const currentIds = current.map(c => c.id);
-      const available = openBiz.filter(b => !currentIds.includes(b.id));
-      const shuffled = available.sort(() => 0.5 - Math.random());
-      return shuffled.slice(0, 2);
-    };
-
-    setDisplayed(pickRandom([]));
-
-    const interval = setInterval(() => {
-      setDisplayed(prev => pickRandom(prev));
-      setKeySuffix(k => k + 1);
-    }, 4500);
-    return () => clearInterval(interval);
-  }, [openBiz]);
-
-  return (
-    <div style={{ display: "flex", gap: 12, overflow: "hidden", padding: "0 20px 10px" }}>
-      <AnimatePresence mode="popLayout">
-        {displayed.map(b => {
-          const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
-          const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : "";
-          const imgToUseRaw = b.photos?.[0]?.url || b.logo_url || cityImg;
-          const imgToUse = getThumbUrl(imgToUseRaw, 600, 450);
-          return (
-            <motion.div
-              key={b.id + "-" + keySuffix}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="press" 
-              onClick={() => { setSelected(b); navigate("detail"); trackEvent(b.id, "view"); }} 
-              style={{ flex: 1, minWidth: "calc(50% - 6px)", height: 140, borderRadius: 16, background: `linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 60%), url(${imgToUse}) center/cover`, position: "relative", cursor: "pointer", boxShadow: T.shadow }}
-            >
-              {distStr && <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.5)", padding: "2px 4px", borderRadius: 4 }}><span style={{ fontSize: 9, color: "#fff", fontWeight: 700, lineHeight: 1, display: "block" }}>{distStr}</span></div>}
-              <div style={{ position: "absolute", bottom: 12, left: 8, right: 8, display: "flex", justifyContent: "center", textAlign: "center" }}>
-                <span style={{ fontFamily: FONT_BIZ, fontSize: 14, fontWeight: 800, color: "#fff", lineHeight: 1.2, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>{b.name}</span>
-              </div>
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function BannerSlider({ activeBanners }) {
-  const [idx, setIdx] = React.useState(0);
-  
-  React.useEffect(() => {
-    if (!activeBanners || activeBanners.length <= 1) return;
-    const interval = setInterval(() => {
-      setIdx(prev => (prev + 1) % activeBanners.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [activeBanners]);
-
-  if (!activeBanners || activeBanners.length === 0) return null;
-  const bn = activeBanners[idx];
-
-  return (
-    <>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={bn.id}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          style={{ height: "100%", width: "100%", position: "absolute", top: 0, left: 0 }}
-          onClick={() => {
-            if (bn.link_url) {
-              let url = bn.link_url.trim();
-              if (!url.match(/^https?:\/\//i) && !url.match(/^(mailto|tel|sms):/i)) {
-                url = 'https://' + url;
-              }
-              window.open(url, "_blank");
-            }
-          }}
-        >
-          <OptimizedImage src={bn.img_url} widthRequest={1400} alt={bn.title || ""} style={{ width: "100%", height: "100%", objectFit: "cover", cursor: bn.link_url ? "pointer" : "default" }} />
-        </motion.div>
-      </AnimatePresence>
-      <div style={{ display: "none" }}>
-        {[1].map(offset => {
-          const nextBn = activeBanners[(idx + offset) % activeBanners.length];
-          return nextBn?.img_url ? <OptimizedImage key={"preload_" + nextBn.id} src={nextBn.img_url} widthRequest={1400} priority={true} /> : null;
-        })}
-      </div>
-    </>
-  );
-}
+import TopImperdibles from "../components/home/TopImperdibles.jsx";
+import SquareCarousel from "../components/home/SquareCarousel.jsx";
+import BannerSlider from "../components/home/BannerSlider.jsx";
 import { getDailyScore } from '../lib/utils.js';
 import useTimeStore from '../store/useTimeStore.js';
+import CityEmptyState from '../components/CityEmptyState.jsx';
 
-const stardustParticles = [...Array(30)].map((_, i) => ({
-  size: Math.random() * 2 + 1.5,
-  left: Math.random() * 100,
-  animDuration: Math.random() * 8 + 12,
-  delay: Math.random() * 20
-}));
+// Removed FloatingParticles
 
-const FloatingParticles = () => {
-  return (
-    <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
-      <style>{`
-        @keyframes stardustFloat {
-          0% { transform: translateY(20vh) scale(0.5); opacity: 0; }
-          20% { opacity: 0.9; }
-          80% { opacity: 0.9; }
-          100% { transform: translateY(-80vh) scale(1.2); opacity: 0; }
-        }
-        .stardust {
-          position: absolute;
-          background: rgba(255, 255, 255, 0.9);
-          border-radius: 50%;
-          filter: blur(0.5px);
-          bottom: 0;
-          box-shadow: 0 0 6px rgba(255,255,255,0.6);
-        }
-      `}</style>
-      {stardustParticles.map((p, i) => (
-        <div
-          key={i}
-          className="stardust"
-          style={{
-            width: p.size,
-            height: p.size,
-            left: `${p.left}%`,
-            animation: `stardustFloat ${p.animDuration}s linear infinite`,
-            animationDelay: `-${p.delay}s`,
-          }}
-        />
-      ))}
-    </div>
-  );
-};
+const placeholders = [
+  "Buscar lugares, eventos...",
+  "Buscar 'Sushi'...",
+  "Cafeterías cerca...",
+  "¿Antojo de mariscos?...",
+  "Descubre bares locales...",
+  "Buscar 'Tacos'...",
+  "Lugares para cenar...",
+  "¿Qué hacer hoy?...",
+  "Buscar 'Pizza'...",
+  "Restaurantes románticos...",
+  "Eventos de fin de semana...",
+  "Buscar 'Hamburguesas'...",
+  "Desayunos deliciosos...",
+  "Lugares pet-friendly...",
+  "Comida saludable...",
+  "Postres y helados...",
+  "Cena con amigos...",
+  "Buffets cerca de mi...",
+  "Dónde tomar un café...",
+  "Buscar 'Cerveza artesanal'...",
+  "Comida típica de la región...",
+  "Lugares para leer un libro...",
+  "Parques y lugares al aire libre...",
+  "Centros comerciales...",
+  "Buscar 'Cortes de carne'..."
+];
 
-export default function HomeView() {
+export default function HomeView({ isBackground }) {
   const ctx = useAppContext();
   const { dark, activeCity, showCityPicker, setShowCityPicker, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, showCityPicker: s.showCityPicker, setShowCityPicker: s.setShowCityPicker, toast$: s.toast$ })));
-  const { dbReady, cats, banners, mapPins, globalFavCounts, coupons, events, raffles } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, cats: s.cats, banners: s.banners, mapPins: s.mapPins, globalFavCounts: s.globalFavCounts, coupons: s.coupons, events: s.events, raffles: s.raffles })));
+  const { dbReady, cats, banners, mapPins, globalFavCounts, coupons, events, raffles, cities, experiences } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, cats: s.cats, banners: s.banners, mapPins: s.mapPins, globalFavCounts: s.globalFavCounts, coupons: s.coupons, events: s.events, raffles: s.raffles, cities: s.cities, experiences: s.experiences })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   const now = useTimeStore(s => s.now);
   
+  const [viewingPlan, setViewingPlan] = React.useState(null);
+  const [isViewing, setIsViewing] = React.useState(false);
   const [phIdx, setPhIdx] = React.useState(0);
-  const placeholders = [
-    "Buscar lugares, eventos...",
-    "Buscar 'Sushi'...",
-    "Cafeterías cerca...",
-    "¿Antojo de mariscos?...",
-    "Descubre bares locales...",
-    "Buscar 'Tacos'...",
-    "Lugares para cenar...",
-    "¿Qué hacer hoy?...",
-    "Buscar 'Pizza'...",
-    "Restaurantes románticos...",
-    "Eventos de fin de semana...",
-    "Buscar 'Hamburguesas'...",
-    "Desayunos deliciosos...",
-    "Lugares pet-friendly..."
-  ];
+
   React.useEffect(() => {
     const interval = setInterval(() => {
       setPhIdx(prev => (prev + 1) % placeholders.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [placeholders.length]);
 
-  const { viewStyle, cityImg, locating, detectCity, city, isAdmin, setShowAdmin, search, setSearch, setShowAddBiz, activeCat, setActiveCat, T, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, requestLocation, allNearby, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, biz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState, setSelectedEvent, cleanCityPrefix, createSlug } = ctx;
+  const { viewStyle, cityImg, locating, detectCity, city, isAdmin, setShowAdmin, search, setSearch, setShowAddBiz, activeCat, setActiveCat, T, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, requestLocation, allNearby, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, biz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState, setSelectedEvent, cleanCityPrefix, createSlug } = ctx;
 
   const nearbyList = React.useMemo(() => {
     if (!allNearby || !allNearby.length) return [];
@@ -318,27 +90,12 @@ export default function HomeView() {
     }
     if (nearbyFilter === "open") list = list.filter(b => isOpen(b));
     return list;
-  }, [allNearby, nearbyRadius, nearbyFilter, activeCat, isOpen, now]);
-
-  const openBizMemo = React.useMemo(() => {
-    const isExcluded = (b) => {
-       if (!b.category) return false;
-       const c = b.category.toLowerCase();
-       return c.includes("lugares") || c.includes("plaza") || c.includes("unidad") || c.includes("parque");
-    };
-    
-    const d = new Date();
-    const dailySeed = d.getFullYear() + d.getMonth() * 31 + d.getDate();
-
-    return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && isOpen(b) && !isExcluded(b)).sort((a, b) => {
-       return getDailyScore(b.id, dailySeed) - getDailyScore(a.id, dailySeed);
-    });
-  }, [mapPins, activeCity, isOpen, now]);
+  }, [allNearby, nearbyRadius, nearbyFilter, activeCat, isOpen]);
 
   const timeBasedListsMemo = React.useMemo(() => {
     const h = new Date().getHours();
-    let listTitle = "Para iniciar el día";
-    let timeList = [];
+    let listTitle;
+    let timeList;
 
     if (h >= 17 || h < 4) {
       listTitle = "Para cerrar el día";
@@ -374,17 +131,34 @@ export default function HomeView() {
        timeList = mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "restaurantes" || b.category === "restaurante") && getMinutesToClose(b) > 0);
     }
 
-    timeList = timeList.sort((a, b) => b.plan - a.plan).slice(0, 8);
-    const sportsList = mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "fitness" || b.category === "unidad deportiva")).sort((a, b) => b.plan - a.plan).slice(0, 8);
+    timeList = timeList.sort((a, b) => {
+      if (userCoords) {
+        const distA = getKm(userCoords.lat, userCoords.lng, a.lat, a.lng);
+        const distB = getKm(userCoords.lat, userCoords.lng, b.lat, b.lng);
+        return distA - distB;
+      }
+      return b.plan - a.plan;
+    }).slice(0, 8);
+    
+    const sportsList = mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "fitness" || b.category === "unidad deportiva")).sort((a, b) => {
+      if (userCoords) {
+        const distA = getKm(userCoords.lat, userCoords.lng, a.lat, a.lng);
+        const distB = getKm(userCoords.lat, userCoords.lng, b.lat, b.lng);
+        return distA - distB;
+      }
+      return b.plan - a.plan;
+    }).slice(0, 8);
+    
     const showActiva = h >= 6 && h < 18;
 
     return { listTitle, timeList, sportsList, showActiva };
-  }, [mapPins, activeCity]);
+  }, [mapPins, activeCity, userCoords, getKm]);
 
   const activeBannersMemo = React.useMemo(() => {
     const today = now.toISOString().split("T")[0];
     const todayMD = today.slice(5);
     return banners.filter(bn => {
+      if (!bn) return false;
       if (!bn.active) return false;
       if (bn.city_slug !== "all" && bn.city_slug !== activeCity) return false;
       if (bn.repeat_yearly) {
@@ -411,21 +185,17 @@ export default function HomeView() {
   const canonicalUrl = `https://citymap.mx/${activeCity}`;
 
   return (
-<div style={{ paddingBottom: 84, ...viewStyle }}>
-      <Helmet>
-        <title>{currentTitle}</title>
-        <meta name="description" content={currentDesc} />
-      </Helmet>
+    <div style={{ paddingBottom: 84, position: "relative", ...viewStyle }}>
+      {!isBackground && (
+        <Helmet>
+          <title>{currentTitle}</title>
+          <meta name="description" content={currentDesc} />
+          <link rel="canonical" href={canonicalUrl} />
+        </Helmet>
+      )}
 
           {/* ── HERO HEADER ── */}
-          <div style={{ position: "relative", overflow: "hidden", padding: "8px 20px 0px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "#0F172A" }}>
-            {/* Fondo Premium */}
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, background: "#060B14", overflow: "hidden" }}>
-              {/* Subtle Glows */}
-              <div style={{ position: "absolute", top: "-30%", left: "-10%", width: "70%", height: "70%", background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, rgba(124,58,237,0) 70%)", filter: "blur(40px)" }} />
-              <div style={{ position: "absolute", bottom: "-10%", right: "-20%", width: "80%", height: "80%", background: "radial-gradient(circle, rgba(56,189,248,0.08) 0%, rgba(56,189,248,0) 70%)", filter: "blur(40px)" }} />
-              <FloatingParticles />
-            </div>
+          <div style={{ position: "relative", padding: "8px 20px 0px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "transparent" }}>
 
             {/* Contenido Header (Por encima del fondo) */}
             <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", flex: 1 }}>
@@ -436,12 +206,12 @@ export default function HomeView() {
               {!search && (() => {
                 const cityName = detectedTown || (city || "").split(",")[0] || "tu ciudad";
                 return (
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 20, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 10, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
                     <div className="hero-title-anim" style={{ marginBottom: 4 }}>
                       <img 
                         src="/citymap.mx.png" 
                         alt="CityMap" 
-                        style={{ height: 72, objectFit: "contain", filter: "drop-shadow(0 4px 12px rgba(56, 189, 248, 0.3))" }} 
+                        style={{ height: 56, objectFit: "contain", filter: dark ? "none" : "invert(1)" }} 
                       />
                     </div>
                     <style>{`
@@ -473,7 +243,7 @@ export default function HomeView() {
                         filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6));
                       }
                     `}</style>
-                    <h1 className="hero-title-anim" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(28px, 7.5vw, 42px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px" }}>
+                    <h1 className="hero-title-anim" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(24px, 6vw, 36px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: dark ? "#fff" : T.text }}>
                       Descubre lo mejor de <br/><span className="animated-city">{cityName}</span>
                     </h1>
                   </div>
@@ -495,22 +265,16 @@ export default function HomeView() {
                       pointer-events: none;
                     }
                     .hero-search-magic-container::before {
-                      content: "";
-                      position: absolute;
-                      top: -50%; left: -50%;
-                      width: 200%; height: 200%;
-                      background: conic-gradient(from 90deg, #0ea5e9, #1e3a8a, #3b82f6, #93c5fd, #1d4ed8, #0ea5e9);
-                      animation: magicBorderSpin 8s linear infinite;
-                      filter: blur(2px);
+                      display: none;
                     }
                     .hero-search-magic-inner {
                       position: absolute;
-                      top: 2px; left: 2px; right: 2px; bottom: 2px;
+                      top: 0; left: 0; right: 0; bottom: 0;
                       border-radius: 100px;
                       background: rgba(15, 23, 42, 0.8);
                       backdrop-filter: blur(24px);
                       -webkit-backdrop-filter: blur(24px);
-                      box-shadow: inset 0 1px 1px rgba(255,255,255,0.15), 0 0 25px rgba(56, 189, 248, 0.4);
+                      box-shadow: inset 0 1px 1px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.1);
                       z-index: 2;
                     }
                     .hero-search-input {
@@ -533,7 +297,7 @@ export default function HomeView() {
                   <div className="hero-search-magic-container">
                     <div className="hero-search-magic-inner"></div>
                   </div>
-                  <DebouncedSearchBar initialValue={search} onSearch={setSearch} placeholders={placeholders} phIdx={phIdx} locating={locating} detectCity={detectCity} />
+                  <DebouncedSearchBar initialValue={search} onSearch={setSearch} placeholders={placeholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} />
               </div>
 
               {/* Fila 4: Categorías Iconos (Ocultos en Inicio) */}
@@ -560,14 +324,14 @@ export default function HomeView() {
                         <a href={catUrl} key={c.id} onClick={(e) => { e.preventDefault(); haptic("light"); setActiveCat(c.id); window.history.pushState(null, "", catUrl); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0, width: 64 }}>
                           <div style={{ width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", transition: isActive ? "none" : "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", transform: isActive ? "translateY(-4px) scale(1.1)" : "none", animation: isActive ? "catHeartbeat 2s ease-in-out infinite" : "none" }}>
                             {isImage ? (
-                              <img src={`/${cleanEmoji}`} alt={c.label} style={{ width: 32, height: 32, objectFit: "contain", filter: isActive ? "drop-shadow(0 6px 12px rgba(255,255,255,0.15))" : "drop-shadow(0 2px 6px rgba(0,0,0,0.4))" }} />
+                              <img src={`/${cleanEmoji}`} alt={c.label} style={{ width: 32, height: 32, objectFit: "contain" }} />
                             ) : (
-                              <span style={{ fontSize: 32, lineHeight: 1, filter: isActive ? "drop-shadow(0 6px 12px rgba(255,255,255,0.15))" : "drop-shadow(0 2px 6px rgba(0,0,0,0.4))", color: isActive ? "#fff" : "rgba(255,255,255,0.9)" }}>{cleanEmoji}</span>
+                              <span style={{ fontSize: 32, lineHeight: 1 }}>{cleanEmoji}</span>
                             )}
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? "#fff" : "rgba(255,255,255,0.7)", textAlign: "center", lineHeight: 1.15, textShadow: "0 2px 4px rgba(0,0,0,0.5)", transition: "color 0.3s" }}>{c.label}</span>
-                            {isActive && <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#FDE047", boxShadow: "0 0 8px rgba(253, 224, 71, 0.8)" }} />}
+                            <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? T.text : T.sub, textAlign: "center", lineHeight: 1.15, transition: "color 0.3s" }}>{c.label}</span>
+                            {isActive && <div style={{ width: 4, height: 4, borderRadius: "50%", background: T.text }} />}
                           </div>
                         </a>
                       );
@@ -578,37 +342,18 @@ export default function HomeView() {
             </div>
           </div>
 
-          {/* ── NEW CITY CONQUEST MODE (Apple Minimalist) ── */}
+          {/* ── EMPTY CITY STATE ── */}
           {!search && dbReady && mapPins.filter(b => isNear(b, userCoords, activeCity)).length === 0 && (
-            <div style={{ margin: "24px 20px 10px", padding: "30px 24px", background: dark ? "#111" : "#ffffff", borderRadius: 24, boxShadow: dark ? "0 12px 32px rgba(0,0,0,0.5)" : "0 8px 32px rgba(0,0,0,0.06)", border: `1px solid ${T.border}`, textAlign: "center", position: "relative" }}>
-              <div style={{ display: "inline-flex", padding: "6px 12px", background: T.bg, borderRadius: 20, fontSize: 11, fontWeight: 800, color: T.text, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16, border: `1px solid ${T.border}` }}>Nueva Ciudad</div>
-              <h2 style={{ fontFamily: "'Coolvetica', sans-serif", letterSpacing: 0.5, fontSize: 28, color: T.text, margin: "0 0 14px", lineHeight: 1.15, textTransform: "capitalize" }}>Sé el pionero en <span style={{ fontStyle: "italic" }}>{(activeCity || "").replace(/-/g, " ")}</span></h2>
-              <p style={{ fontSize: 15, color: T.sub, margin: "0 0 24px", lineHeight: 1.5 }}>Destaca ante toda la ciudad registrando tu negocio antes que tu competencia.</p>
-              <button className="press" onClick={() => { if (!user) { setShowAuth(true); toast$("Inicia sesión para agregar tu negocio"); } else { setShowAddBiz(true); } }} style={{ width: "100%", padding: "16px", background: dark ? "#ffffff" : "#000000", color: dark ? "#000000" : "#ffffff", border: "none", borderRadius: 16, fontSize: 14, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "transform 0.2s" }}>
-                <Icon name="plus" size={16} color={dark ? "#000" : "#fff"} /> Registra tu negocio primero
-              </button>
-              
-              <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${T.border}`, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 12 }}>Próximamente disponible en</div>
-                <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-                  <a href="#" className="press" onClick={e => e.preventDefault()} style={{ width: 130 }}>
-                    <img src="/google-play-badge.svg" alt="Disponible en Google Play" style={{ width: "100%", height: "auto" }} />
-                  </a>
-                  <a href="#" className="press" onClick={e => e.preventDefault()} style={{ width: 130 }}>
-                    <img src="/app-store-badge.svg" alt="Consíguelo en el App Store" style={{ width: "100%", height: "auto" }} />
-                  </a>
-                </div>
-              </div>
-            </div>
+            <CityEmptyState 
+              activeCity={activeCity} 
+              userCoords={userCoords} 
+              cities={cities} 
+              T={T} 
+              dark={dark} 
+            />
           )}
 
-          {/* ── BANNERS ── */}
-          {!search && activeCat === "explorar" && (() => {
-            if (activeBannersMemo.length === 0) return null;
-            return <div style={{ margin: "24px 20px 8px", borderRadius: 14, overflow: "hidden", aspectRatio: "21/9", position: "relative", background: T.border, boxShadow: "0 6px 16px rgba(0,0,0,0.1)" }}>
-              <BannerSlider activeBanners={activeBannersMemo} />
-            </div>;
-          })()}
+
 
 
           {/* ── SEARCH RESULTS ── */}
@@ -624,7 +369,6 @@ export default function HomeView() {
               return qWords.every(w => text.includes(w));
             });
             const isEventQuery = qWords.some(w => w === "evento" || w === "eventos");
-            const hasResults = displayList.length > 0 || matchingEvents.length > 0;
             
             const EventosBlock = () => matchingEvents.length > 0 ? (
               <div style={{ marginBottom: 10, marginTop: isEventQuery ? 0 : 20 }}>
@@ -633,7 +377,7 @@ export default function HomeView() {
                   {matchingEvents.map(ev => {
                     const posterUrl = ev.img_url || ev.img || ev.poster_url;
                     return (
-                      <div key={ev.id} className="press" onClick={() => { setSelectedEvent(ev); navigate("events"); }} style={{ width: 140, height: 180, borderRadius: 14, background: `#f3f4f6 url('${getThumbUrl(posterUrl, 400, 500)}') center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: T.shadow, position: "relative", overflow: "hidden" }}>
+                      <div key={ev.id} className="press" onClick={() => { handleEventTap(ev); }} style={{ width: 140, height: 180, borderRadius: 14, background: `#f3f4f6 url('${getThumbUrl(posterUrl, 400, 500)}') center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: T.shadow, position: "relative", overflow: "hidden" }}>
                         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.85))", padding: "20px 10px 10px", color: "#fff", fontSize: 12, fontWeight: 700, lineHeight: 1.2 }}>
                           {ev.title}
                         </div>
@@ -647,7 +391,7 @@ export default function HomeView() {
             return (
               <div style={{ padding: "16px 20px 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                  <span style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 20, color: T.text }}>"{search}"</span>
+                  <span style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 20, color: T.text }}>"{search}"</span>
                   <span style={{ fontSize: 12, color: T.sub, fontWeight: 600 }}>{displayList.length + matchingEvents.length} resultados</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -655,34 +399,90 @@ export default function HomeView() {
                   
                   {isEventQuery && <EventosBlock />}
 
-                  {dbReady && displayList.length > 0 && <Virtuoso
-                    useWindowScroll
-                    data={displayList}
-                    endReached={() => { if (hasMore && !loadingMore) loadPaginatedBiz(false); }}
-                    components={{ Footer: !isEventQuery ? EventosBlock : undefined }}
-                    itemContent={(index, b) => {
-                      const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
-                      const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : null;
-                      
-                      if (b.plan === "premium") {
-                        return <div style={{ paddingBottom: 14 }}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
-                      } else if (b.plan === "destacado") {
-                        return <div style={{ paddingBottom: 14 }}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
-                      } else {
-                        return <div style={{ paddingBottom: 14 }}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
-                      }
-                    }}
-                  />}
+                  {dbReady && displayList.length > 0 && displayList.map((b, index) => {
+                    const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
+                    const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : null;
+                    if (b.plan === "premium") {
+                      return <div key={b.id} style={{ paddingBottom: 14 }}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                    } else if (b.plan === "destacado") {
+                      return <div key={b.id} style={{ paddingBottom: 14 }}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                    } else {
+                      return <div key={b.id} style={{ paddingBottom: 14 }}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                    }
+                  })}
+                  {dbReady && hasMore && (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
+                      <button
+                        onClick={() => loadPaginatedBiz(false)}
+                        disabled={loadingMore}
+                        style={{ padding: '10px 28px', borderRadius: 20, border: `1px solid ${T.border}`, background: 'none', color: T.text, fontWeight: 700, fontSize: 14, cursor: loadingMore ? 'default' : 'pointer', opacity: loadingMore ? 0.5 : 1 }}
+                      >{loadingMore ? 'Cargando...' : 'Ver más'}</button>
+                    </div>
+                  )}
                   
                   {dbReady && displayList.length === 0 && !isEventQuery && matchingEvents.length > 0 && <EventosBlock />}
                   
-                  {dbReady && displayList.length === 0 && matchingEvents.length === 0 && (
-                    <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                      <Icon name="search" size={32} color={T.border} />
-                      <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginTop: 12 }}>No encontramos resultados</div>
-                      <div style={{ fontSize: 14, color: T.sub, marginTop: 4 }}>Intenta con otras palabras o busca en otra ciudad.</div>
-                    </div>
-                  )}
+                  {dbReady && displayList.length === 0 && matchingEvents.length === 0 && (() => {
+                    const q = search.toLowerCase();
+                    const isVuelos = /vuelo|flight|avion|avión|aero/.test(q);
+                    const isRenta = /renta|auto|carro|car|rent/.test(q);
+                    const isHotel = /hotel|hostal|hospedaje|alojamiento|stay/.test(q);
+                    const isTours = /tour|ticket|actividad|excursion|excursión/.test(q);
+                    const isTravel = isVuelos || isRenta || isHotel || isTours;
+
+                    const travelOptions = [
+                      { label: "Vuelos Baratos", emoji: "✈️", url: "https://expedia.com/affiliate/G4ETQnX", match: isVuelos },
+                      { label: "Hospedaje Ideal", emoji: "🏨", url: "https://booking.stay22.com/citymapmx/MQbyFZdMFZ", match: isHotel },
+                      { label: "Renta de Autos", emoji: "🚗", url: "https://expedia.com/affiliate/DTtL3D8", match: isRenta },
+                      { label: "Tours y Tickets", emoji: "🎟️", url: "https://getyourguide.stay22.com/citymapmx/594Wk5DWwJ", match: isTours },
+                    ];
+
+                    return (
+                      <div style={{ padding: "8px 0 20px" }}>
+                        {isTravel ? (
+                          <>
+                            <div style={{ fontSize: 14, color: T.sub, marginBottom: 16, textAlign: "center" }}>
+                              No encontramos negocios para <strong style={{ color: T.text }}>"{search}"</strong>, pero puedes reservar aquí:
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                              {travelOptions.map(opt => (
+                                <a
+                                  key={opt.label}
+                                  href={opt.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    padding: "14px 12px",
+                                    borderRadius: 16,
+                                    background: opt.match
+                                      ? (dark ? "rgba(74,222,128,0.15)" : "rgba(22,163,74,0.08)")
+                                      : (dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"),
+                                    border: opt.match
+                                      ? `1.5px solid ${dark ? "rgba(74,222,128,0.4)" : "rgba(22,163,74,0.3)"}`
+                                      : `1px solid ${dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"}`,
+                                    textDecoration: "none",
+                                    transition: "transform 0.15s ease",
+                                  }}
+                                >
+                                  <span style={{ fontSize: 22 }}>{opt.emoji}</span>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: T.text, lineHeight: 1.3 }}>{opt.label}</span>
+                                </a>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                            <Icon name="search" size={32} color={T.border} />
+                            <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginTop: 12 }}>No encontramos resultados</div>
+                            <div style={{ fontSize: 14, color: T.sub, marginTop: 4 }}>Intenta con otras palabras o busca en otra ciudad.</div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             );
@@ -697,7 +497,7 @@ export default function HomeView() {
               <div>
                 {/* Title row */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 12 }}>
-                  <span style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 22, color: T.text, fontWeight: 700, margin: 0 }}>{activeCat === "explorar" || activeCat === "todas" ? "Cerca de ti" : `${cats.find(c => c.id === activeCat)?.label || "Lugares"} cerca de ti`}</span>
+                  <span style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 22, color: T.text, margin: 0 }}>{activeCat === "explorar" || activeCat === "todas" ? "Cerca de ti" : `${cats.find(c => c.id === activeCat)?.label || "Lugares"} cerca de ti`}</span>
                   {userCoords && nearbyList.length > 0 && <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>{nearbyList.length} lugares</span>}
                 </div>
 
@@ -707,14 +507,14 @@ export default function HomeView() {
                     
                     {/* Magnetic Segmented Control */}
                     <div style={{ display: "flex", background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", padding: 4, borderRadius: 24, position: "relative" }}>
-                      {[0.4, 1, 3, 5].map(km => {
-                        const active = nearbyRadius === km;
+                      {[{ km: 0.5, label: "🚶‍♂️ 500m" }, { km: 1, label: "🚶‍♂️ 1km" }, { km: 2, label: "🚗 2km" }, { km: 3, label: "🚗 3km" }].map(opt => {
+                        const active = nearbyRadius === opt.km;
                         return (
-                          <button key={km} onClick={() => setNearbyRadius(km)} style={{ position: "relative", zIndex: 1, padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 700, color: active ? (dark ? "#000" : "#000") : T.text, background: "transparent", border: "none", cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap", transition: "color 0.3s ease", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <button key={opt.km} onClick={() => setNearbyRadius(opt.km)} style={{ position: "relative", zIndex: 1, padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 700, color: active ? (dark ? "#000" : "#000") : T.text, background: "transparent", border: "none", cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap", transition: "color 0.3s ease", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             {active && (
-                              <motion.div layoutId="homeDistIndicator" style={{ position: "absolute", inset: 0, background: dark ? "#fff" : "#fff", borderRadius: 20, zIndex: -1, boxShadow: "0 2px 8px rgba(0,0,0,0.12)" }} transition={{ type: "spring", bounce: 0.25, duration: 0.5 }} />
+                              <m.div layoutId="homeDistIndicator" style={{ position: "absolute", inset: 0, background: dark ? "#fff" : "#fff", borderRadius: 20, zIndex: -1, boxShadow: "0 2px 8px rgba(0,0,0,0.12)" }} transition={{ type: "spring", bounce: 0.25, duration: 0.5 }} />
                             )}
-                            {km === 0.4 ? "🚶‍♂️ 5 min" : `${km} km`}
+                            {opt.label}
                           </button>
                         );
                       })}
@@ -738,12 +538,14 @@ export default function HomeView() {
 
                 {userCoords && <>
                   {nearbyList.length === 0 ? (
-                    <div className="press" onClick={() => { if (!user) { setShowAuth(true); toast$("Inicia sesión para sugerir un lugar"); } else { setShowAddBiz(true); } }} style={{ padding: "14px 16px", background: T.white, borderRadius: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: T.shadow, cursor: "pointer", border: `1.5px dashed ${T.border}` }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: T.greenL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="plus" size={16} color={T.green} /></div>
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: 13, color: T.text }}>¡Sé el primero en descubrir esta zona! 🗺️</div>
-                          <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>Amplía tu radio de búsqueda o sugiere una joya oculta</div>
-                        </div>
+                    <div style={{ padding: "24px 16px", background: dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: 16, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12 }}>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: 14, color: T.text, marginBottom: 4 }}>¡Sé el primero en descubrir esta zona! 🗺️</div>
+                        <div style={{ fontSize: 13, color: T.sub }}>Amplía tu radio de búsqueda o sugiere una joya oculta</div>
+                      </div>
+                      <button className="press" onClick={() => { if (!user) { setShowAuth(true); toast$("Inicia sesión para sugerir un lugar"); } else { setShowAddBiz(true); } }} style={{ background: "#0ea5e9", color: "#fff", border: "none", borderRadius: 20, padding: "8px 16px", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                        <Icon name="plus" size={16} color="#fff" /> Sugerir lugar
+                      </button>
                     </div>
                   ) : (
                     <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, scrollbarWidth: "none", alignItems: "flex-start", marginRight: -20, paddingRight: 20 }}>
@@ -753,7 +555,7 @@ export default function HomeView() {
                           {/* Photo */}
                           <div style={{ height: 90, overflow: "hidden", position: "relative", background: T.border }}>
                             {b.photos?.[0]?.url
-                              ? <OptimizedImage src={b.photos[0].url} alt={b.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              ? <OptimizedImage src={b.photos[0].url} widthRequest={200} heightRequest={200} alt={b.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                               : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{(b.emoji || CAT_EMOJI[b.category]) || "📍"}</div>
                             }
                           </div>
@@ -796,10 +598,10 @@ export default function HomeView() {
                 if ((now2 - evDT) > 86400000) return false;
               }
               return true;
-            }).sort((a,b) => a.date.localeCompare(b.date));
+            }).filter(ev => ev && ev.date).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
             if (!dbReady) return (
               <div style={{ padding: "24px 0 0 20px" }}>
-                <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 18, color: T.text, margin: "0 0 12px 0", letterSpacing: 0.5 }}>Agenda Local</h2>
+                <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 18, color: T.text, margin: "0 0 12px 0", letterSpacing: "-0.5px" }}>Agenda Local</h2>
                 <EventSk dark={dark} />
               </div>
             );
@@ -813,51 +615,24 @@ export default function HomeView() {
 
             const isEventToday = ev => ev.date === todayStr || (ev.end_date && ev.date <= todayStr && ev.end_date >= todayStr);
             const isEventTomorrow = ev => ev.date === tomorrowStr || (ev.end_date && ev.date <= tomorrowStr && ev.end_date >= tomorrowStr);
-            const heroEvents = upcomingEvents.filter(ev => isEventToday(ev) || isEventTomorrow(ev));
-            const regularEvents = upcomingEvents.filter(ev => !isEventToday(ev) && !isEventTomorrow(ev));
             
             return (
               <div style={{ padding: "24px 0 0 0" }}>
-                <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 22, color: T.text, letterSpacing: 0.5, textAlign: "center", margin: "0 0 16px 0" }}>Agenda Local</h2>
+                <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: "0 0 16px 0" }}>Agenda Local</h2>
                 
-                {/* HERO EVENTS (Today / Tomorrow) */}
-                {heroEvents.length > 0 && (
-                  <div style={{ display: "flex", gap: 16, overflowX: "auto", scrollbarWidth: "none", padding: "0 20px 24px 20px", justifyContent: heroEvents.length === 1 ? "center" : "flex-start" }}>
-                    {heroEvents.map(ev => {
-                      const isToday = isEventToday(ev);
-                      const labelText = isToday ? "ES HOY" : "MAÑANA";
-                      const posterUrl = getThumbUrl(ev.img_url || cityImg, 1200, 1200);
-                      return (
-                        <div key={ev.id} className="press" onClick={() => { setSelectedEvent(ev); navigate("events"); }} style={{ width: "88vw", maxWidth: 400, borderRadius: 24, background: "#000", cursor: "pointer", flexShrink: 0, boxShadow: "0 12px 30px rgba(0,0,0,0.25)", position: "relative", overflow: "hidden" }}>
-                          
-                          <img src={posterUrl} style={{ width: "100%", maxHeight: "60vh", objectFit: "contain", display: "block" }} alt={ev.title} />
-                          
-                          {/* Dark overlay at bottom for text readability */}
-                          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%)", pointerEvents: "none" }} />
-                          
-                          {/* Badge */}
-                          <div style={{ position: "absolute", top: 20, left: 0, background: "#000", color: "#fff", padding: "6px 16px 6px 14px", borderRadius: "0 12px 12px 0", border: "1.5px dashed rgba(255,255,255,0.7)", borderLeft: "none", fontWeight: 800, fontSize: 13, letterSpacing: 1, boxShadow: "4px 4px 15px rgba(0,0,0,0.6)", animation: isToday ? "pulse 2s infinite" : "none", display: "flex", alignItems: "center", gap: 6, zIndex: 2 }}>
-                            {isToday ? "🤩 " : "⏳ "}{labelText}
-                          </div>
-                          
-                          {/* Info */}
-                          <div style={{ position: "absolute", bottom: 20, left: 20, right: 20, zIndex: 2 }}>
-                            <h3 style={{ margin: 0, color: "#fff", fontSize: 24, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1.1, textShadow: "0 2px 10px rgba(0,0,0,0.8)", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ev.title}</h3>
-                            {ev.place && <div style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: 600, marginTop: 8, display: "flex", alignItems: "center", gap: 4, textShadow: "0 2px 4px rgba(0,0,0,0.8)" }}><Icon name="map-pin" size={12} color="rgba(255,255,255,0.9)"/> {ev.place}</div>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* REGULAR EVENTS (Future) */}
-                {regularEvents.length > 0 && (
+                {upcomingEvents.length > 0 && (
                   <div style={{ display: "flex", gap: 14, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 16, paddingLeft: 20, paddingRight: 20 }}>
-                    {regularEvents.map(ev => {
+                    {upcomingEvents.map(ev => {
                       const posterUrl = getThumbUrl(ev.img_url || cityImg, 600, 800);
+                      const isToday = isEventToday(ev);
+                      const isTomorrow = isEventTomorrow(ev);
                       return (
-                        <div key={ev.id} className="press" onClick={() => { setSelectedEvent(ev); navigate("events"); }} style={{ width: 150, height: 210, borderRadius: 18, background: `url(${posterUrl}) center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: "0 8px 20px rgba(0,0,0,0.15)", position: "relative", overflow: "hidden" }}>
+                        <div key={ev.id} className="press" onClick={() => { handleEventTap(ev); }} style={{ width: 150, height: 210, borderRadius: 18, background: `url(${posterUrl}) center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: "0 8px 20px rgba(0,0,0,0.15)", position: "relative", overflow: "hidden" }}>
+                          {(isToday || isTomorrow) && (
+                            <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", color: "#fff", padding: "4px 8px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", fontWeight: 800, fontSize: 10, letterSpacing: 0.5, animation: isToday ? "pulse 2s infinite" : "none", display: "flex", alignItems: "center", gap: 4, zIndex: 2 }}>
+                              {isToday ? "🤩 ES HOY" : "⏳ MAÑANA"}
+                            </div>
+                          )}
                           {ev.date && (() => {
                             const d = new Date(ev.date + "T12:00:00");
                             const m = d.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
@@ -887,43 +662,23 @@ export default function HomeView() {
             );
           })()}
 
-          {/* ── BENTO CATEGORIES ── */}
-          {!search && activeCat === "explorar" && dbReady && cats?.length > 0 && (
-             <BentoCategories 
-               categories={cats} 
-               onSelectCategory={catId => { 
-                 haptic("light");
-                 setActiveCat(catId);
-                 window.scrollTo({ top: 0, behavior: "smooth" });
-                 const catSlug = (catId || "").replace(/\s+/g, '-').toLowerCase();
-                 window.history.pushState(null, "", `/${activeCity || ""}/${catSlug}`);
-               }} 
-             />
-          )}
-
-          {!search && activeCat === "explorar" && <div id="explorar-section">
+          {/* ── BENTO CATEGORIES (REMOVED) ── */}          {!search && activeCat === "explorar" && <div id="explorar-section">
+            {/* ── BANNERS ── */}
             {(() => {
-              const openBiz = openBizMemo;
-              if (openBiz.length === 0) return null;
-              return <div style={{ padding: "24px 0 0px" }}>
-                <div style={{ padding: "0 20px", display: "flex", justifyContent: "center", alignItems: "center", marginBottom: 16 }}>
-                  <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 22, color: T.text, letterSpacing: 0.5, textAlign: "center", margin: 0 }}>Abiertos ahora mismo</h2>
-                </div>
-                <DuoAutoSlider openBiz={openBiz} userCoords={userCoords} getKm={getKm} cityImg={cityImg} setSelected={setSelected} navigate={navigate} trackEvent={trackEvent} T={T} FONT_BIZ={FONT_BIZ} />
+              if (activeBannersMemo.length === 0) return null;
+              return <div style={{ margin: "24px 20px 8px", borderRadius: 14, overflow: "hidden", aspectRatio: "21/9", position: "relative", background: T.border, boxShadow: "0 6px 16px rgba(0,0,0,0.1)" }}>
+                <BannerSlider activeBanners={activeBannersMemo} />
               </div>;
             })()}
-
             {(() => {
-              const { listTitle, timeList, sportsList, showActiva } = timeBasedListsMemo;
+              const { listTitle, timeList } = timeBasedListsMemo;
               if (timeList.length === 0) return null;
               return (
-                <>
-                  <SquareCarousel title={listTitle} list={timeList} handleCardTap={handleCardTap} getThumbUrl={getThumbUrl} CAT_EMOJI={CAT_EMOJI} T={T} FONT_BIZ={FONT_BIZ} />
-                  {showActiva && <SquareCarousel title="Activa tu día" list={sportsList} handleCardTap={handleCardTap} getThumbUrl={getThumbUrl} CAT_EMOJI={CAT_EMOJI} T={T} FONT_BIZ={FONT_BIZ} />}
-                </>
+                <SquareCarousel title={listTitle} list={timeList} handleCardTap={handleCardTap} getThumbUrl={getThumbUrl} CAT_EMOJI={CAT_EMOJI} T={T} FONT_BIZ={FONT_BIZ} />
               );
             })()}
 
+            <TopImperdibles experiences={experiences} globalFavCounts={globalFavCounts} setViewingPlan={setViewingPlan} setIsViewing={setIsViewing} T={T} FONT_BIZ={FONT_BIZ} city={city} />
 
           </div>}
 
@@ -936,7 +691,11 @@ export default function HomeView() {
 
               return <div style={{ margin: "24px 20px" }}>
                 <div style={{ textAlign: "center", marginBottom: 16 }}>
-                  <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 22, color: T.text, letterSpacing: 0.5, textAlign: "center", margin: 0 }}>🤍 Favoritos de la ciudad 🤍</h2>
+                  <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                    <div style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))", display: "flex" }}><Icon name="heart_overlay_f" size={22} color="none" /></div>
+                    Favoritos de la ciudad
+                    <div style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))", display: "flex" }}><Icon name="heart_overlay_f" size={22} color="none" /></div>
+                  </h2>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -974,7 +733,7 @@ export default function HomeView() {
 
               return <div style={{ margin: "24px 20px" }}>
                 <div style={{ textAlign: "center", marginBottom: 16 }}>
-                  <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 22, color: T.text, letterSpacing: 0.5, textAlign: "center", margin: 0 }}>⭐ Mejor Calificados ⭐</h2>
+                  <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0 }}>⭐ Mejor Calificados ⭐</h2>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -1008,32 +767,42 @@ export default function HomeView() {
 
           {/* ── TODOS LOS NEGOCIOS POR CATEGORÍA ── */}
           {!search && activeCat !== "explorar" && <div id="all-biz-section" style={{ padding: "20px 20px 0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 6 }}>
-              {!dbReady ? <Sk w="40%" h={22} r={6} dark={dark} /> : <h1 style={{ fontFamily: "'Coolvetica', sans-serif", letterSpacing: 0.5, fontSize: 26, color: T.text, margin: 0, padding: 0 }}>{cats.find(c => c.id === activeCat)?.label || activeCat} en {(city || "").split(',')[0]}</h1>}
-              {!dbReady ? <Sk w={60} h={14} r={5} dark={dark} /> : <span style={{ fontSize: 13, color: T.sub, fontWeight: 700, paddingBottom: 4 }}>{displayList.length} lugares</span>}
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
+              {!dbReady ? <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Sk w="60%" h={26} r={6} dark={dark} /></div> : <h1 style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 26, color: T.text, margin: "0 0 6px 0", padding: 0, textAlign: "center" }}>{cats.find(c => c.id === activeCat)?.label || activeCat} en {(city || "").split(',')[0]}</h1>}
+              {!dbReady ? <div style={{ display: "flex", justifyContent: "center" }}><Sk w="80%" h={14} r={4} dark={dark} /></div> : <h2 style={{ fontSize: 13, color: T.sub, fontWeight: 500, margin: 0, lineHeight: 1.4, textAlign: "center" }}>{getCategoryDescription(activeCat, cats.find(c => c.id === activeCat)?.label, city)}</h2>}
             </div>
-            {!dbReady ? null : <h2 style={{ fontSize: 13, color: T.sub, fontWeight: 500, margin: "0 0 16px 0", lineHeight: 1.4, textAlign: "left" }}>{getCategoryDescription(activeCat, cats.find(c => c.id === activeCat)?.label, city)}</h2>}
             <div style={{ flexDirection: "column", gap: 14 }}>
               {!dbReady && [1, 2, 3].map(i => <CardSk key={i} dark={dark} />)}
-              {dbReady && displayList.length > 0 && <Virtuoso
-                useWindowScroll
-                data={displayList}
-                endReached={() => { if (hasMore && !loadingMore) loadPaginatedBiz(false); }}
-                itemContent={(index, b) => {
-                  const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
-                  const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : null;
-                  
-                  if (b.plan === "premium") {
-                    return <div style={{ paddingBottom: 14 }}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
-                  } else if (b.plan === "destacado") {
-                    return <div style={{ paddingBottom: 14 }}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
-                  } else {
-                    return <div style={{ paddingBottom: 14 }}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
-                  }
-                }}
-              />}
+              {dbReady && displayList.length > 0 && (
+                <Virtuoso
+                  useWindowScroll
+                  data={displayList}
+                  endReached={() => {
+                    if (hasMore && !loadingMore) loadPaginatedBiz(false);
+                  }}
+                  computeItemKey={(index, b) => b.id}
+                  itemContent={(index, b) => {
+                    const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
+                    const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : null;
+                    
+                    if (b.plan === "premium") {
+                      return <div style={{ paddingBottom: 14 }}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                    } else if (b.plan === "destacado") {
+                      return <div style={{ paddingBottom: 14 }}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                    } else {
+                      return <div style={{ paddingBottom: 14 }}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                    }
+                  }}
+                  components={{
+                    Footer: () => (
+                      <div style={{ paddingBottom: 20 }}>
+                        {loadingMore && [1, 2].map(i => <CardSk key={`more-${i}`} dark={dark} />)}
+                      </div>
+                    )
+                  }}
+                />
+              )}
               {dbReady && displayList.length === 0 && <div style={{ textAlign: "center", padding: "32px 0", color: T.sub }}><Icon name="search" size={36} color={T.border} /><p style={{ fontWeight: 700, color: T.text, marginTop: 14, marginBottom: 6 }}>Sin negocios en esta categoría</p><p style={{ fontSize: 14 }}>Prueba otra categoría</p></div>}
-              {loadingMore && [1, 2].map(i => <CardSk key={`more-${i}`} dark={dark} />)}
             </div>
           </div>}
           {!search && raffles && raffles.length > 0 && <div style={{ padding: "20px 20px 0" }}>
@@ -1074,8 +843,31 @@ export default function HomeView() {
             </div>
           </div>}
 
+
+          {/* Footer */}
+          <Footer />
+
           {/* Bottom Spacing */}
           <div style={{ height: 20 }} />
+
+          {ReactDOM.createPortal(
+            <AnimatePresence>
+              {isViewing && viewingPlan && (
+                <ExperienceViewer 
+                  exp={viewingPlan} 
+                  T={T} 
+                  dark={dark} 
+                  onClose={() => { 
+                    setIsViewing(false); 
+                    setTimeout(() => setViewingPlan(null), 300);
+                    // restore URL to home view
+                    window.history.pushState({}, '', `/${activeCity}`);
+                  }} 
+                />
+              )}
+            </AnimatePresence>,
+            document.body
+          )}
         </div>
   );
 }

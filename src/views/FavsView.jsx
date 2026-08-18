@@ -1,10 +1,11 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import Icon from "../components/ui/Icon.jsx";
 import { useShallow } from 'zustand/react/shallow';
+import { getThumbUrl } from "../lib/utils.js";
 
 export default function FavsView({ hideHeader }) {
   const ctx = useAppContext();
@@ -13,13 +14,19 @@ export default function FavsView({ hideHeader }) {
   const { viewStyle, T, favIds, toggleFav, biz, navigate, setSelected, trackEvent, userCoords, getKm, collections, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, createCollection, updateCollection, deleteCollection, city, savedEventIds, setCollections, FONT_BIZ, goDir, setMovingBiz, setSelectedEvent, movingBiz } = ctx;
 
   return (
-    <div style={hideHeader ? { paddingBottom: 20 } : { paddingBottom: 84, ...viewStyle }}>
-          <div style={{ padding: hideHeader ? "10px 20px" : "calc(env(safe-area-inset-top, 0px) + 24px) 18px 20px" }}>
-            {!hideHeader && <>
-              <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 26, color: T.text, marginBottom: 4 }}>Colecciones</h2>
-              <p style={{ fontSize: 14, color: T.sub, marginBottom: 20 }}>Tus lugares favoritos en {(city || "").split(",")[0]}</p>
-            </>}
-            {(() => {
+    <div style={hideHeader ? { paddingBottom: 20 } : { paddingBottom: 84, ...viewStyle, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      {!hideHeader && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.white }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <button onClick={() => window.history.length > 2 ? window.history.back() : navigate("account")} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
+              <Icon name="arrow_left" size={24} color={T.text} />
+            </button>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.5px" }}>Mis Favoritos</h1>
+          </div>
+        </div>
+      )}
+      <div style={{ padding: "20px", flex: 1 }}>
+        {(() => {
               const allSavedBiz = mapPins.filter(b => favIds.includes(b.id) && b.city_slug && b.city_slug.split(",").includes(activeCity));
               const unsortedBiz = allSavedBiz.filter(b => !collections.some(c => c.items.includes(b.id)));
               const savedEv = events.filter(e => {
@@ -54,7 +61,7 @@ export default function FavsView({ hideHeader }) {
                       {colItems.map(b => (
                         <div key={b.id} className="press" onClick={() => { setSelected(b); navigate("detail"); }} style={{ background: T.bg, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", position: "relative" }}>
                           <div style={{ height: 140, background: T.border, position: "relative" }}>
-                            {b.photos?.[0]?.url ? <img src={b.photos[0].url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={24} color={T.sub} /></div>}
+                            {b.photos?.[0]?.url ? <img src={getThumbUrl(b.photos[0].url, 400, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={24} color={T.sub} /></div>}
                             <button onClick={e => toggleFav(b.id, e)} style={{ position: "absolute", top: 10, right: 10, background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}><Icon name="heart_overlay_f" size={26} color="none" /></button>
                           </div>
                           <div style={{ padding: "10px 12px" }}>
@@ -111,7 +118,7 @@ export default function FavsView({ hideHeader }) {
 
                 {!hasFavs && <div style={{ textAlign: "center", padding: "60px 20px" }}>
                   <div style={{ width: 80, height: 80, borderRadius: 24, background: T.greenL, margin: "0 auto 20px", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="heart" size={36} color={T.green} /></div>
-                  <h3 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 20, color: T.text, marginBottom: 8 }}>Aún no hay favoritos</h3>
+                  <h3 style={{ fontFamily: "var(--heading)", fontSize: 20, color: T.text, marginBottom: 8 }}>Aún no hay favoritos</h3>
                   <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.5, marginBottom: 24 }}>Explora la ciudad y guarda los lugares o eventos que más te gusten para tenerlos a la mano.</p>
                   <button className="btn-g press" onClick={() => navigate("home")}>Explorar ciudad</button>
         </div>}
@@ -122,7 +129,7 @@ export default function FavsView({ hideHeader }) {
                     {unsortedBiz.map(b => (
                       <div key={b.id} className="press" draggable={true} onDragStart={e => { e.dataTransfer.setData("bizId", b.id); e.currentTarget.style.opacity = "0.5"; }} onDragEnd={e => { e.currentTarget.style.opacity = "1"; }} onClick={() => setMovingBiz(b)} style={{ background: T.bg, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", position: "relative", cursor: "grab" }}>
                         <div style={{ height: 140, background: T.border, position: "relative" }}>
-                          {b.photos?.[0]?.url ? <img src={b.photos[0].url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={24} color={T.sub} /></div>}
+                          {b.photos?.[0]?.url ? <img src={getThumbUrl(b.photos[0].url, 400, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={24} color={T.sub} /></div>}
                           <button onClick={e => toggleFav(b.id, e)} style={{ position: "absolute", top: 10, right: 10, background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}><Icon name="heart_overlay_f" size={26} color="none" /></button>
                         </div>
                         <div style={{ padding: "10px 12px" }}>
@@ -142,7 +149,7 @@ export default function FavsView({ hideHeader }) {
                       <div key={e.id} className="press" onClick={() => setSelectedEvent(e)} style={{ display: "flex", background: T.bg, borderRadius: 16, overflow: "hidden", position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
                         <div style={{ width: 100, height: 100, background: T.border, flexShrink: 0, position: "relative" }}>
                           {e.img_url ? (
-                            <img src={e.img_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} loading="lazy" />
+                            <img src={getThumbUrl(e.img_url, 300, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} loading="lazy" />
                           ) : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar" size={24} color={T.sub} /></div>}
                         </div>
                         <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", justifyContent: "center", flex: 1 }}>
@@ -161,7 +168,7 @@ export default function FavsView({ hideHeader }) {
                   <div style={{ background: T.white, borderRadius: "0 0 24px 24px", width: "100%", maxHeight: "85vh", overflowY: "auto", padding: "calc(env(safe-area-inset-top, 0px) + 24px) 20px 32px", position: "relative", animation: "slideDown .3s cubic-bezier(0.1, 1, 0.2, 1)", boxShadow: "0 12px 40px rgba(0,0,0,0.2)" }}>
                     <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 24 }}>
                       <div style={{ width: 60, height: 60, borderRadius: 12, background: T.bg, overflow: "hidden" }}>
-                        {movingBiz.photos?.[0]?.url ? <img src={movingBiz.photos[0].url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={24} color={T.sub} /></div>}
+                        {movingBiz.photos?.[0]?.url ? <img src={getThumbUrl(movingBiz.photos[0].url, 200, 200)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={24} color={T.sub} /></div>}
                       </div>
                       <div>
                         <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, margin: "0 0 4px" }}>{movingBiz.name}</h3>
@@ -169,7 +176,7 @@ export default function FavsView({ hideHeader }) {
                       </div>
                     </div>
                     
-                    <button className="press" onClick={() => { setMovingBiz(null); setSelected(movingBiz); navigate("detail"); }} style={{ width: "100%", background: T.bg, border: "none", borderRadius: 16, padding: "16px", fontSize: 16, fontWeight: 700, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}><div style={{ width: 32, height: 32, borderRadius: "50%", background: T.white, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="nav" size={16} color={T.text} /></div> Ver detalles del lugar</button>
+                    <button className="press" onClick={() => { setMovingBiz(null); setSelected(movingBiz); navigate(`/${movingBiz.city}/${movingBiz.slug}`); }} style={{ width: "100%", background: T.bg, border: "none", borderRadius: 16, padding: "16px", fontSize: 16, fontWeight: 700, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}><div style={{ width: 32, height: 32, borderRadius: "50%", background: T.white, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="nav" size={16} color={T.text} /></div> Ver detalles del lugar</button>
 
                     <div style={{ margin: "24px 0 12px", fontSize: 13, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: 1 }}>Mover a colección</div>
                     
@@ -184,7 +191,7 @@ export default function FavsView({ hideHeader }) {
                   </div>
         </div>}
                 {/* NEW COLLECTION MODAL */}
-                {newColModal && <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+                {newColModal && <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "80px 20px 20px" }}>
                   <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} onClick={() => setNewColModal(false)} />
                   <div style={{ background: T.white, borderRadius: 24, padding: 24, width: "100%", maxWidth: 360, position: "relative", animation: "popIn .3s cubic-bezier(0.1, 1, 0.2, 1)", boxShadow: "0 12px 40px rgba(0,0,0,0.2)" }}>
                     <h3 style={{ fontSize: 20, fontWeight: 800, color: T.text, margin: "0 0 20px", textAlign: "center" }}>Nueva Colección</h3>

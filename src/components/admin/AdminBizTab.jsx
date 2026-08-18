@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '../ui/Icon';
 import Uploader from '../Uploader';
 import OptimizedImage from '../ui/OptimizedImage';
@@ -6,33 +6,139 @@ import MenuManager from '../MenuManager';
 import BookingManager from '../BookingManager';
 import FI from './FI';
 import { PLAN_META } from '../../lib/constants';
+import { sb, cloudDeleteBatch } from '../../lib/supabase';
+import { createSlug } from "../../lib/utils";
+import { useGMaps } from "../GMap.jsx";
 
 export default function AdminBizTab({
   data,
-  bizForm,
-  setBizForm,
-  bizSearch,
-  setBizSearch,
-  bizTypeFilter,
-  setBizTypeFilter,
-  bizCityFilter,
-  setBizCityFilter,
   setAnalyticsTarget,
   setTab,
   setMediaTarget,
   onOpenStoreAdmin,
-  delBiz,
-  geo,
-  saveBiz,
-  saving,
+  onToast,
   T
 }) {
+  const [bizForm, setBizForm] = useState(null);
+  const [bizSearch, setBizSearch] = useState("");
+  const [bizTypeFilter, setBizTypeFilter] = useState("all");
+  const [bizCityFilter, setBizCityFilter] = useState("all");
+  const [saving, setSaving] = useState(false);
+  const gok = useGMaps();
+
+  const geo = () => { if (!gok || !bizForm?.address) return; new window.google.maps.Geocoder().geocode({ address: bizForm.address }, (r, s) => { if (s === "OK") { const l = r[0].geometry.location; setBizForm(f => ({ ...f, lat: l.lat(), lng: l.lng() })); } }); };
+
+  const saveBiz = async () => {
+    setSaving(true);
+    try {
+      const tags = typeof bizForm.tags === "string" ? bizForm.tags.split(",").map(t => t.trim()).filter(Boolean) : bizForm.tags;
+      const cty = bizForm.city_slug || (data.cities && data.cities.length > 0 ? data.cities[0].slug : "");
+      const cleanName = createSlug(bizForm.name);
+      let baseSlug = `${cty}-${cleanName}`;
+      let newSlug = baseSlug;
+      
+      let counter = 1;
+      let exists = true;
+      while(exists) {
+        const check = await sb.get("businesses", `?slug=eq.${newSlug}`);
+        if (check.length === 0 || check[0].id === bizForm.id) exists = false;
+        else newSlug = `${baseSlug}-${counter++}`;
+      }
+
+      const payload = {
+        category: bizForm.category, name: bizForm.name, slug: newSlug, emoji: bizForm.emoji || null,
+        type: bizForm.type, tagline: bizForm.tagline, schedule: bizForm.schedule || {}, address: bizForm.address,
+        city_slug: bizForm.city_slug || (data.cities && data.cities.length > 0 ? data.cities[0].slug : ""), lat: bizForm.lat, lng: bizForm.lng, phone: bizForm.phone,
+        whatsapp: bizForm.whatsapp, website: bizForm.website, video_url: bizForm.video_url || null,
+        logo_url: bizForm.logo_url || null, hours: bizForm.hours, tags, description: bizForm.description,
+        open: bizForm.open, badge: bizForm.badge || null, plan: bizForm.plan || "free",
+        status: bizForm.status || "pending", photos: bizForm.photos || [], social_links: bizForm.social_links || {},
+        menu_pdf_url: bizForm.menu_pdf_url || null, hide_location: bizForm.hide_location || false,
+        mercado_libre_nickname: bizForm.mercado_libre_nickname || null,
+        booking_config: bizForm.booking_config || null
+      };
+      if (bizForm._new) await sb.post("businesses", payload);
+      else await sb.patch("businesses", bizForm.id, payload);
+      if (onToast) onToast(bizForm._new ? "Negocio creado ✓" : "Negocio actualizado ✓");
+      setBizForm(null);
+      
+      fetchBiz(0, false);
+    } catch (e) {
+      if (onToast) onToast("Error: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const delBiz = async (id) => { 
+    if (!window.confirm("¿Eliminar?")) return; 
+    const b = localBiz.find(x => x.id === id); 
+    if (b) { 
+      const paths = [b.logo_url, b.menu_pdf_url, ...(b.photos || []).map(p => p.url)].filter(Boolean); 
+      await cloudDeleteBatch(paths); 
+    } 
+    await sb.del("businesses", id); 
+    if (onToast) onToast("Eliminado"); 
+    setPage(0);
+    fetchBiz(0, false); 
+  };
+
+  const [localBiz, setLocalBiz] = useState([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const PER_PAGE = 5;
+
+  const fetchBiz = async (pageNum = 0, append = false) => {
+    setLoadingList(true);
+    try {
+      let query = `?status=not.in.(pending,needs_changes)&order=created_at.desc&limit=${PER_PAGE}&offset=${pageNum * PER_PAGE}`;
+      
+      if (bizCityFilter !== "all") query += `&city_slug=eq.${bizCityFilter}`;
+      if (bizTypeFilter === "biz") query += `&is_place=eq.false`;
+      if (bizTypeFilter === "place") query += `&is_place=eq.true`;
+      if (bizSearch) query += `&name=ilike.*${encodeURIComponent(bizSearch)}*`;
+
+      const results = await sb.get("businesses", query);
+      
+      const parsedResults = results.map(biz => ({
+        ...biz,
+        schedule: typeof biz.schedule === 'string' ? JSON.parse(biz.schedule) : (biz.schedule || {}),
+        social_links: typeof biz.social_links === 'string' ? JSON.parse(biz.social_links) : (biz.social_links || {}),
+        booking_config: typeof biz.booking_config === 'string' ? JSON.parse(biz.booking_config) : (biz.booking_config || null),
+        blocked_slots: typeof biz.blocked_slots === 'string' ? JSON.parse(biz.blocked_slots) : (biz.blocked_slots || null),
+        photos: typeof biz.photos === 'string' ? JSON.parse(biz.photos) : (biz.photos || [])
+      }));
+
+      if (append) {
+        setLocalBiz(prev => [...prev, ...parsedResults]);
+      } else {
+        setLocalBiz(parsedResults);
+      }
+      
+      setHasMore(results.length === PER_PAGE);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
+  useEffect(() => {
+    // Debounce search
+    const t = setTimeout(() => {
+      setPage(0);
+      fetchBiz(0, false);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [bizSearch, bizCityFilter, bizTypeFilter]);
+
   return (
     <>
       {!bizForm && <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>{data.biz.length} negocios totales</span>
-          <button onClick={() => setBizForm({ _new: true, category: data.categories.length > 0 ? data.categories[0].slug : "restaurantes", open: true, photos: [], tags: "", lat: 21.5042, lng: -104.8944, plan: "free", status: "pending", city_slug: "tepic", social_links: {} })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo</button>
+          <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>Listado de negocios</span>
+          <button onClick={() => setBizForm({ _new: true, category: data.categories.length > 0 ? data.categories[0].slug : "restaurantes", open: true, photos: [], tags: "", lat: 21.5042, lng: -104.8944, plan: "free", status: "pending", city_slug: (data.cities && data.cities.length > 0 ? data.cities[0].slug : ""), social_links: {} })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo</button>
         </div>
 
         <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
@@ -52,14 +158,11 @@ export default function AdminBizTab({
         </div>
 
         {(() => {
-          const filtered = data.biz.filter(b => {
-            if (b.status === "pending" || b.status === "needs_changes") return false;
-            if (bizCityFilter !== "all" && b.city_slug !== bizCityFilter) return false;
-            if (bizTypeFilter === "biz" && b.is_place) return false;
-            if (bizTypeFilter === "place" && !b.is_place) return false;
-            if (bizSearch && !b.name?.toLowerCase().includes(bizSearch.toLowerCase())) return false;
-            return true;
-          });
+          const filtered = localBiz;
+
+          if (loadingList && page === 0) {
+            return <div style={{ padding: "40px 0", textAlign: "center", color: "#5A6872" }}>Cargando negocios...</div>;
+          }
 
           if (filtered.length === 0) {
             return <div className="text-sm" style={{ textAlign: "center", padding: "40px 0", color: "#5A6872" }}>No se encontraron negocios con esos filtros.</div>;
@@ -80,12 +183,28 @@ export default function AdminBizTab({
                 <button onClick={() => setBizForm({ ...b, tags: Array.isArray(b.tags) ? b.tags.join(", ") : b.tags, social_links: b.social_links || {} })} style={{ background: "#EAF4F0", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer" }}><Icon name="edit" size={13} color="#1A7A5E" /></button>
                 <button onClick={() => { setAnalyticsTarget(b.id); setTab("analytics"); }} style={{ background: "#FEF3C7", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer", display: "flex", alignItems: "center" }}><Icon name="eye" size={13} color="#D97706" /></button>
                 <button onClick={() => { setMediaTarget(b.id); setTab("media"); }} style={{ background: "#EEF2FF", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer" }}><Icon name="image" size={13} color="#4F46E5" /></button>
-                {!b.is_place && <button onClick={() => onOpenStoreAdmin?.(b)} style={{ background: "#DCFCE7", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer" }}><Icon name="store" size={13} color="#16A34A" /></button>}
+                <button onClick={() => onOpenStoreAdmin?.(b)} style={{ background: "#DCFCE7", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer" }}><Icon name="store" size={13} color="#16A34A" /></button>
                 <button onClick={() => delBiz(b.id)} style={{ background: "#FFF5F5", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer" }}><Icon name="trash" size={13} color="#D94F3D" /></button>
               </div>
             </div>;
           });
         })()}
+
+        {hasMore && localBiz.length > 0 && (
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
+            <button 
+              onClick={() => {
+                const nextPage = page + 1;
+                setPage(nextPage);
+                fetchBiz(nextPage, true);
+              }} 
+              disabled={loadingList}
+              style={{ padding: "10px 24px", background: "#E4E8E4", color: "#0F1A14", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: loadingList ? "wait" : "pointer" }}
+            >
+              {loadingList ? "Cargando..." : "Cargar más negocios"}
+            </button>
+          </div>
+        )}
       </div>}
 
       {/* ─ BIZ FORM ─ */}
@@ -97,22 +216,17 @@ export default function AdminBizTab({
             <div style={{ width: 80 }}><FI label="Emoji" field="emoji" src={bizForm} set={setBizForm} ph="Ej: 🌮" /></div>
           </div>
           <FI label="Tipo" field="type" src={bizForm} set={setBizForm} ph="Restaurante · Cocina de Autor" />
-          <FI label="Tagline" field="tagline" src={bizForm} set={setBizForm} />
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px", background: "#F5F3FF", borderRadius: 12, border: "1.5px dashed #7C3AED" }}>
-            <input type="checkbox" id="is_place" checked={bizForm.is_place || false} onChange={e => setBizForm(f => ({ ...f, is_place: e.target.checked }))} style={{ width: 18, height: 18, accentColor: "#7C3AED", cursor: "pointer" }} />
-            <label className="text-sm" htmlFor="is_place" style={{ fontWeight: 700, color: "#7C3AED", cursor: "pointer" }}>📍 Es un lugar público (Ocultar info de negocio)</label>
-          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Categoría</label><select value={bizForm.category || (data.categories.length > 0 ? data.categories[0].slug : "restaurantes")} onChange={e => setBizForm(f => ({ ...f, category: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{data.categories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select></div>
-            {!bizForm.is_place && <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Plan</label><select value={bizForm.plan || "free"} onChange={e => setBizForm(f => ({ ...f, plan: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{Object.entries(PLAN_META).map(([k, m]) => <option key={k} value={k}>{m.label}</option>)}</select></div>}
+            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Categoría</label><select value={bizForm.category || (data.categories.length > 0 ? data.categories[0].slug : "restaurantes")} onChange={e => setBizForm(f => ({ ...f, category: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{(() => { const cityCatSlugs = (data.city_categories || []).map(cc => cc.category_slug); return data.categories.filter(c => !cityCatSlugs.includes(c.slug) || (data.city_categories || []).some(cc => cc.category_slug === c.slug && cc.city_slug === (bizForm.city_slug || ""))).map(c => <option key={c.slug} value={c.slug}>{c.name}</option>); })()}</select></div>
+            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Plan</label><select value={bizForm.plan || "free"} onChange={e => setBizForm(f => ({ ...f, plan: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{Object.entries(PLAN_META).map(([k, m]) => <option key={k} value={k}>{m.label}</option>)}</select></div>
             <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Estado</label><select value={bizForm.status || "pending"} onChange={e => setBizForm(f => ({ ...f, status: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{["pending", "approved", "rejected"].map(s => <option key={s}>{s}</option>)}</select></div>
-            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Ciudad</label><select value={bizForm.city_slug || "tepic"} onChange={e => setBizForm(f => ({ ...f, city_slug: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{data.cities.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select></div>
-            {!bizForm.is_place && <>
+            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Ciudad</label><select value={bizForm.city_slug || (data.cities && data.cities.length > 0 ? data.cities[0].slug : "")} onChange={e => setBizForm(f => ({ ...f, city_slug: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{data.cities.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select></div>
+            <>
               <FI label="Teléfono" field="phone" src={bizForm} set={setBizForm} />
               <FI label="WhatsApp" field="whatsapp" src={bizForm} set={setBizForm} />
-            </>}
+            </>
           </div>
-          {!bizForm.is_place && <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
               <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Tipo de Horario</label>
               <select value={(bizForm.schedule || {}).type || "regular"} onChange={e => setBizForm(f => ({ ...f, schedule: { ...(f.schedule || {}), type: e.target.value } }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>
@@ -192,17 +306,21 @@ export default function AdminBizTab({
                 </div>;
               })}
             </div>}
-          </div>}
-          {!bizForm.is_place && (
-            <>
-              <FI label="Website" field="website" src={bizForm} set={setBizForm} />
+          </div>
+          <>
+            <FI label="Sitio Web" field="website" src={bizForm} set={setBizForm} />
               {bizForm.plan === "premium" ? (
                 <>
                   <div style={{ marginBottom: 12 }}>
                     <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Logotipo en el Mapa</label>
                     <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#F7F8F6", border: "1.5px solid #E4E8E4", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {bizForm.logo_url ? <OptimizedImage src={bizForm.logo_url} widthRequest={400} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Icon name="image" size={20} color="#5A6872" />}
+                      <div style={{ position: "relative", width: 44, height: 44, flexShrink: 0 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#F7F8F6", border: "1.5px solid #E4E8E4", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {bizForm.logo_url ? <OptimizedImage src={bizForm.logo_url} widthRequest={400} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Icon name="image" size={20} color="#5A6872" />}
+                        </div>
+                        {bizForm.logo_url && (
+                          <button onClick={() => setBizForm(f => ({ ...f, logo_url: "" }))} title="Eliminar logo" style={{ position: "absolute", top: -4, right: -4, width: 18, height: 18, borderRadius: "50%", background: "#EF4444", border: "none", color: "#fff", fontSize: 10, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>✕</button>
+                        )}
                       </div>
                       <div style={{ flex: 1 }}>
                         <Uploader aspect={1} label="Subir Logotipo" onDone={url => setBizForm(f => ({ ...f, logo_url: url }))} />
@@ -212,14 +330,31 @@ export default function AdminBizTab({
                   <FI label="Video Promocional (YouTube/TikTok)" field="video_url" src={bizForm} set={setBizForm} ph="https://youtube.com/watch?v=..." />
                 </>
               ) : (
-                <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Video Promocional y Logotipo</label><div className="text-sm" style={{ padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, color: "#9CA3AF", background: "#F3F4F6", fontFamily: "inherit" }}>Requiere plan Premium</div></div>
+                <div>
+                  <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Video Promocional y Logotipo</label>
+                  {bizForm.logo_url ? (
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 10px", border: "1.5px solid #FECACA", borderRadius: 10, background: "#FEF2F2" }}>
+                      <div style={{ position: "relative", width: 36, height: 36, flexShrink: 0 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", border: "1.5px solid #E4E8E4" }}>
+                          <OptimizedImage src={bizForm.logo_url} widthRequest={200} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        </div>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div className="text-xs" style={{ fontWeight: 700, color: "#B91C1C" }}>Logo activo (plan gratuito)</div>
+                        <div className="text-xs" style={{ color: "#9CA3AF" }}>El logo no se mostrará hasta que el plan sea Premium</div>
+                      </div>
+                      <button onClick={() => setBizForm(f => ({ ...f, logo_url: "" }))} style={{ padding: "5px 10px", background: "#EF4444", color: "#fff", border: "none", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>Eliminar logo</button>
+                    </div>
+                  ) : (
+                    <div className="text-sm" style={{ padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, color: "#9CA3AF", background: "#F3F4F6", fontFamily: "inherit" }}>Requiere plan Premium</div>
+                  )}
+                </div>
               )}
             </>
-          )}
-          <FI label="Tags (separar con coma)" field="tags" src={bizForm} set={setBizForm} />
-          <FI label="Badge" field="badge" src={bizForm} set={setBizForm} ph="Muy popular…" />
-          <FI label="Descripción" field="description" src={bizForm} set={setBizForm} rows={3} />
-          {!bizForm.is_place && <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <FI label="Etiquetas (separar con coma)" field="tags" src={bizForm} set={setBizForm} ph="tacos, mariscos, comida mexicana" />
+          <FI label="Insignia" field="badge" src={bizForm} set={setBizForm} ph="Muy popular, Nuevo, Recomendado…" />
+          <FI label="Descripción del negocio" field="description" src={bizForm} set={setBizForm} rows={3} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8 }}>Redes sociales</label>
             {[
               { sn: "instagram", color: "#E1306C", icon: "M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.227-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" },
@@ -249,12 +384,23 @@ export default function AdminBizTab({
             />
             {bizForm.social_links?.google_place_id && <a className="text-xs" href={`https://www.google.com/maps/place/?q=place_id:${bizForm.social_links.google_place_id}`} target="_blank" rel="noreferrer" style={{ color: "#DB4437", fontWeight: 700, textDecoration: "none" }}>Ver mapa →</a>}
           </div>
-        </div>}
-        {!bizForm.is_place && <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, background: "#fff", marginTop: 4 }}>
+            <div style={{ width: 20, height: 20, background: "#FFE600", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="shopping-bag" size={12} color="#2D3277" /></div>
+            <span className="text-xs" style={{ color: "#5A6872", fontWeight: 600 }}>ML:</span>
+            <input
+              value={bizForm.mercado_libre_nickname || ""}
+              onChange={e => setBizForm(f => ({ ...f, mercado_libre_nickname: e.target.value.trim() }))}
+              placeholder="Enlace de Mercado Libre (https://...)"
+              style={{ flex: 1, border: "none", outline: "none", fontSize: 13, color: "#0F1A14", background: "transparent", fontFamily: "inherit" }}
+            />
+            {bizForm.mercado_libre_nickname && <a className="text-xs" href={bizForm.mercado_libre_nickname.startsWith('http') ? bizForm.mercado_libre_nickname : `https://${bizForm.mercado_libre_nickname}`} target="_blank" rel="noreferrer" style={{ color: "#2D3277", fontWeight: 700, textDecoration: "none" }}>Probar link →</a>}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <label className="text-sm" style={{ fontWeight: 600, color: "#0F1A14" }}>Estado actual:</label>
           <button onClick={() => setBizForm(f => ({ ...f, open: !f.open }))} style={{ width: 46, height: 24, borderRadius: 12, border: "none", cursor: "pointer", background: bizForm.open ? "#1A7A5E" : "#E4E8E4", position: "relative", transition: "background .2s" }}><div style={{ position: "absolute", top: 2, left: bizForm.open ? 24 : 2, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .2s", boxShadow: "0 1px 4px rgba(0,0,0,.2)" }} /></button>
           <span className="text-sm" style={{ color: bizForm.open ? "#16A34A" : "#D94F3D", fontWeight: 700 }}>{bizForm.open ? "Abierto" : "Cerrado"}</span>
-        </div>}
+        </div>
       </div>
       
       {/* Location */}
@@ -276,13 +422,13 @@ export default function AdminBizTab({
       
       {/* Photos in form */}
       <div style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
-        <div className="text-sm" style={{ fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>Fotos ({(bizForm.photos || []).length}/{bizForm.is_place ? "∞" : PLAN_META[bizForm.plan || "free"].max_photos})</div>
+        <div className="text-sm" style={{ fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>Fotos ({(bizForm.photos || []).length}/{PLAN_META[bizForm.plan || "free"].max_photos})</div>
         {(bizForm.photos || []).length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>{(bizForm.photos || []).map((ph, idx) => <div key={idx} style={{ position: "relative" }}><div style={{ width: 64, height: 64, borderRadius: 10, overflow: "hidden", border: "1.5px solid #E4E8E4" }}>{ph.url && <OptimizedImage src={ph.url} widthRequest={200} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</div><button onClick={() => setBizForm(f => ({ ...f, photos: f.photos.filter((_, i) => i !== idx) }))} style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%", background: "#D94F3D", color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="x" size={9} color="#fff" /></button></div>)}</div>}
-        {(bizForm.is_place || (bizForm.photos || []).length < PLAN_META[bizForm.plan || "free"].max_photos) && <Uploader multiple={true} onDone={url => setBizForm(f => ({ ...f, photos: [...(f.photos || []), { url, label: "Foto" }] }))} />}
+        {(bizForm.photos || []).length < PLAN_META[bizForm.plan || "free"].max_photos && <Uploader multiple={true} onDone={url => setBizForm(f => ({ ...f, photos: [...(f.photos || []), { url, label: "Foto" }] }))} />}
       </div>
       
       {/* PDF Menu */}
-      {!bizForm.is_place && (bizForm.plan === "destacado" || bizForm.plan === "premium") && <div style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
+      {(bizForm.plan === "destacado" || bizForm.plan === "premium") && <div style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
         <div className="text-sm" style={{ fontWeight: 700, color: "#5A6872", marginBottom: 6 }}>Menú Digital (Imágenes o PDF)</div>
         <MenuManager 
           menuPdfUrl={bizForm.menu_pdf_url} 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import Icon from "./ui/Icon.jsx";
 import BookingManager from "./BookingManager.jsx";
@@ -106,10 +106,23 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
     const dayKey = dayNames[d.getDay()];
     
     const hours = schedule[dayKey];
-    if (!hours || /cerrado/i.test(hours)) return [];
+    if (!hours) return [];
 
-    const segs = hours.split(/\s*[–\-]\s*|\s+a\s+/i);
-    if (segs.length < 2) return [];
+    // Support both object format { open, close, closed } and string format "09:00 - 18:00"
+    let openStr, closeStr;
+    if (typeof hours === 'object' && hours !== null) {
+      if (hours.closed || !hours.open || !hours.close) return [];
+      openStr = hours.open;
+      closeStr = hours.close;
+    } else if (typeof hours === 'string') {
+      if (/cerrado/i.test(hours)) return [];
+      const segs = hours.split(/\s*[–\-]\s*|\s+a\s+/i);
+      if (segs.length < 2) return [];
+      openStr = segs[0];
+      closeStr = segs[1];
+    } else {
+      return [];
+    }
 
     const toMinutes = (timeStr) => {
       const m = (timeStr || "").trim().match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
@@ -122,12 +135,17 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
       return h * 60 + min;
     };
 
-    const openMin = toMinutes(segs[0]);
-    const closeMin = toMinutes(segs[1]);
+    const openMin = toMinutes(openStr);
+    let closeMin = toMinutes(closeStr);
     if (openMin === null || closeMin === null) return [];
 
+    // Si cierra pasada la medianoche o a las 00:00, sumamos 1440 min
+    if (closeMin <= openMin) {
+      closeMin += 1440;
+    }
+
     const minDur = (biz.booking_config?.services && biz.booking_config.services.length > 0) 
-      ? Math.min(...biz.booking_config.services.map(s => s.durationMin || 60)) 
+      ? Math.min(...biz.booking_config.services.map(s => parseInt(s.durationMin || 60))) 
       : 60;
     const dur = minDur; 
     let slots = [];
@@ -159,7 +177,7 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <motion.div 
+      <m.div 
         initial={{ scale: 0.95, opacity: 0, y: 10 }} 
         animate={{ scale: 1, opacity: 1, y: 0 }} 
         onClick={e => e.stopPropagation()}
@@ -188,7 +206,7 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
 
         <div style={{ marginBottom: 20 }}>
           {tab === "blocked" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div style={{ fontSize: 13, color: T.sub, marginBottom: 16, lineHeight: 1.5 }}>
                 Usa esta sección para suspender citas en fechas específicas (días festivos, vacaciones o imprevistos).
               </div>
@@ -264,11 +282,11 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
                   <div style={{ fontSize: 13, color: "#B91C1C", marginTop: 4, maxWidth: 280, margin: "4px auto 0" }}>Los clientes no podrán ver disponibilidad ni reservar en esta fecha.</div>
                 </div>
               )}
-            </motion.div>
+            </m.div>
           )}
 
           {tab === "schedule" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div style={{ fontSize: 13, color: T.sub, marginBottom: 16, lineHeight: 1.5 }}>
                 Establece tus horas de apertura y cierre. Usa el interruptor para marcar un día como <strong>Cerrado</strong>.
               </div>
@@ -321,17 +339,17 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
                   );
                 })}
               </div>
-            </motion.div>
+            </m.div>
           )}
 
           {tab === "booking" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <BookingManager 
                 bookingConfig={bookingConfig} 
                 onChange={setBookingConfig} 
                 T={T} 
               />
-            </motion.div>
+            </m.div>
           )}
         </div>
         </div>
@@ -345,7 +363,7 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
             {loading ? "Guardando..." : "Guardar Agenda"}
           </button>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

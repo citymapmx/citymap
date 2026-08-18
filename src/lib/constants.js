@@ -22,7 +22,7 @@ const CITY_TZ = {
   "los-cabos": "America/Mazatlan",
 };
 
-const FONT_BIZ = "'Outfit', sans-serif";
+const FONT_BIZ = "var(--heading)";
 
 export const CATS_DEFAULT = [{ id: "restaurantes", label: "Restaurantes" }, { id: "cafe", label: "Cafés" }, { id: "salud", label: "Salud" }, { id: "belleza", label: "Belleza" }, { id: "fitness", label: "Fitness" }, { id: "compras", label: "Compras" }, { id: "tech", label: "Tech" }, { id: "ocio", label: "Ocio" }];
 const EVENT_CATS = ["Música en vivo", "DJ", "Karaoke", "Fiesta", "Deportes", "Comedia", "Networking", "Promoción especial", "Otro"];
@@ -33,7 +33,7 @@ const getT = dark => dark ? {
   green:    "#FFFFFF", // White primary
   greenL:   "#1A1A1A", // Dark gray for active tags/chips
   greenD:   "#E5E7EB", // Light gray for hover states
-  bg:       "#0A0A0A",
+  bg:       "#000000",
   white:    "#141414",
   text:     "#F0F0F0",
   sub:      "#9CA3AF",
@@ -58,7 +58,7 @@ const getT = dark => dark ? {
   green:    "#000000", // Black primary
   greenL:   "#F3F4F6", // Light gray for active tags/chips
   greenD:   "#222222", // Very dark gray for hover states
-  bg:       "#F8F9FA",
+  bg:       "#FFFFFF",
   white:    "#FFFFFF",
   text:     "#0F1A14",
   sub:      "#6B7280",

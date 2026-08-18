@@ -12,8 +12,8 @@ export const useUIStore = create((set) => ({
     set({ activeCity });
   },
   
-  showCityPicker: false,
-  setShowCityPicker: (val) => set(s => ({ showCityPicker: typeof val === 'function' ? val(s.showCityPicker) : val })),
+  showCountryPicker: false,
+  setShowCountryPicker: (val) => set(s => ({ showCountryPicker: typeof val === 'function' ? val(s.showCountryPicker) : val })),
   
   toast: null,
   toast$: (msg) => {
@@ -33,11 +33,20 @@ export const useUIStore = create((set) => ({
   selected: null,
   setSelected: (val) => set(s => ({ selected: typeof val === 'function' ? val(s.selected) : val })),
 
+  selectedExpSlug: null,
+  setSelectedExpSlug: (val) => set(s => ({ selectedExpSlug: typeof val === 'function' ? val(s.selectedExpSlug) : val })),
+
   mapPin: null,
   setMapPin: (val) => set(s => ({ mapPin: typeof val === 'function' ? val(s.mapPin) : val })),
 
   showAdmin: false,
   setShowAdmin: (val) => set(s => ({ showAdmin: typeof val === 'function' ? val(s.showAdmin) : val })),
+
+  showItineraryModal: false,
+  setShowItineraryModal: (val) => set(s => ({ showItineraryModal: typeof val === 'function' ? val(s.showItineraryModal) : val })),
+
+  itineraryTargetBiz: null,
+  setItineraryTargetBiz: (val) => set(s => ({ itineraryTargetBiz: typeof val === 'function' ? val(s.itineraryTargetBiz) : val })),
 
   showPlans: false,
   setShowPlans: (val) => set(s => ({ showPlans: typeof val === 'function' ? val(s.showPlans) : val })),
@@ -64,6 +73,9 @@ export const useUIStore = create((set) => ({
   setSelectedEvent: (val) => set(s => ({ selectedEvent: typeof val === 'function' ? val(s.selectedEvent) : val })),
 
   installPromptEvent: null,
-  setInstallPromptEvent: (event) => set({ installPromptEvent: event })
+  setInstallPromptEvent: (event) => set({ installPromptEvent: event }),
+
+  ownerView: null,
+  setOwnerView: (val) => set(s => ({ ownerView: typeof val === 'function' ? val(s.ownerView) : val }))
 }));
 

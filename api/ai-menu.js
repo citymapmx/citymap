@@ -15,8 +15,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'No autorizado' });
   }
 
-  if (!process.env.GROQ_API_KEY) {
-    return res.status(500).json({ error: 'Falta configurar GROQ_API_KEY en Vercel' });
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(500).json({ error: 'Falta configurar GEMINI_API_KEY en las variables de entorno' });
   }
 
   const { imageBase64, mimeType, businessType } = req.body;
@@ -53,99 +53,60 @@ Reglas:
 - description vacía si no existe.`;
 
   try {
-    const modelsToTry = [
-      'llama-3.2-90b-vision-instruct',
-      'llama-3.2-11b-vision-instruct',
-      'llama-3.2-90b-vision',
-      'llama-3.2-11b-vision',
-      'llama-3.2-11b-vision-preview',
-      'llama-3.2-90b-vision-preview',
-      'qwen-vl-plus',
-      'qwen/qwen3.6-27b'
-    ];
-
-    let response;
-    let errText = '';
-
-    for (const model of modelsToTry) {
-      response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: prompt + '\nCRÍTICO: NO uses etiquetas <think>. NO pienses en voz alta. Genera el JSON directamente.' },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`,
-                  }
+    const apiKey = process.env.GEMINI_API_KEY.replace(/['"]/g, '').trim();
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: mimeType || 'image/jpeg',
+                  data: imageBase64
                 }
-              ]
-            }
-          ],
-          max_tokens: 8192,
+              }
+            ]
+          }
+        ],
+        generationConfig: {
           temperature: 0.1,
-        })
-      });
-
-      if (response.ok) {
-        break; // Success!
-      } else {
-        errText = await response.text();
-        console.warn(`Groq API error with model ${model}:`, errText);
-        // Break only on Auth errors or Rate limits. Continue to next model on other errors (like model not found).
-        if (response.status === 401 || response.status === 429) {
-          break;
+          response_mime_type: "application/json"
         }
-      }
-    }
-
-    if (!response || !response.ok) {
-      let parsedErr;
-      try {
-        parsedErr = JSON.parse(errText);
-      } catch (e) {}
-      
-      const details = parsedErr?.error?.message || errText;
-      return res.status(500).json({ error: 'Error de IA (Groq ' + response?.status + '): ' + details });
-    }
+      })
+    });
 
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content;
 
-    if (!text) {
-      return res.status(500).json({ error: 'Groq no devolvió contenido' });
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Error en la API de Gemini');
     }
 
-    // Parse JSON from response
-    let jsonText = text.trim();
+    const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
-    if (jsonText.includes('<think>')) {
-      jsonText = jsonText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    if (!textResult) {
+      throw new Error('Respuesta vacía de la IA');
     }
 
-    if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(textResult);
+    } catch (e) {
+      // Limpiar posibles etiquetas markdown residuales
+      let clean = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
+      parsedJson = JSON.parse(clean);
     }
 
-    const startIndex = jsonText.indexOf('{');
-    const endIndex = jsonText.lastIndexOf('}');
-    if (startIndex !== -1 && endIndex !== -1) {
-      jsonText = jsonText.substring(startIndex, endIndex + 1);
-    }
-
-    const parsed = JSON.parse(jsonText);
-    return res.status(200).json({ success: true, result: parsed });
-
-  } catch (err) {
-    console.error('Error en ai-menu:', err);
-    return res.status(500).json({ error: 'Error procesando la imagen: ' + err.message });
+    return res.status(200).json({ success: true, result: parsedJson });
+  } catch (error) {
+    console.error('AI Processing Error:', error);
+    return res.status(500).json({ error: error.message || 'Error procesando la imagen' });
   }
 }

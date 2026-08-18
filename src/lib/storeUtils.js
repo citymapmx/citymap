@@ -2,17 +2,17 @@ export function buildWhatsAppMessage(cartItems, business, customerName = "", ord
   // Format price
   const f = (val) => "$" + Number(val).toFixed(2);
 
-  let msg = `*Pedido de ${business.name}* vía CityMap\n\n`;
+  let msg = `🔔 *Nuevo pedido vía CityMap*\n\n`;
 
   if (customerName.trim()) {
-    msg += `*Cliente:* ${customerName}\n\n`;
+    msg += `👤 *Cliente:* ${customerName}\n\n`;
   }
   
   if (orderType === "delivery") {
-    msg += `*Método:* 🛵 Envío a domicilio\n\n`;
-    msg += `*Dirección:* ${address}\n\n`;
+    msg += `🛵 *Método:* Envío a domicilio\n\n`;
+    msg += `📍 *Dirección:* ${address}\n\n`;
   } else {
-    msg += `*Método:* 🛍️ Pasar a recoger\n\n`;
+    msg += `🛍️ *Método:* Pasar a recoger\n\n`;
   }
 
   let total = 0;
@@ -21,7 +21,7 @@ export function buildWhatsAppMessage(cartItems, business, customerName = "", ord
     const itemTotal = item.unitTotal * item.quantity;
     total += itemTotal;
 
-    let productLine = `${item.quantity}x ${item.product.name}`;
+    let productLine = `*${item.quantity}x* ${item.product.name}`;
     if (item.specialInstructions && item.specialInstructions.trim()) {
       productLine += ` (${item.specialInstructions.trim()})`;
     }
@@ -52,7 +52,7 @@ export function buildWhatsAppMessage(cartItems, business, customerName = "", ord
     msg += `\n`;
   });
 
-  msg += `*Total: ${f(total)} MXN*\n`;
+  msg += `💰 *Total: ${f(total)} MXN*\n`;
 
   if (generalNotes && generalNotes.trim()) {
     msg += `\n📝 *Notas:* ${generalNotes.trim()}\n`;

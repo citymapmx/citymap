@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { useCart, calculateItemTotal } from '../../hooks/useCart.js';
@@ -85,7 +86,29 @@ export default function ProductModal({ product, businessId, onClose, T }) {
   const unitTotal = calculateItemTotal(product, formattedOptionsForTotal, 1);
   const finalTotal = unitTotal * quantity;
 
-  return (
+  let calculatedPrice = Number(product.price) || 0;
+  let isFromPrice = false;
+  if (product.store_product_options && product.store_product_options.length > 0) {
+    let requiredMinAdd = 0;
+    let hasVariableOptions = false;
+    product.store_product_options.forEach(opt => {
+      if (opt.is_required && opt.store_option_values && opt.store_option_values.length > 0) {
+        const minOptPrice = Math.min(...opt.store_option_values.map(v => Number(v.extra_price) || 0));
+        requiredMinAdd += minOptPrice;
+      }
+      if (opt.store_option_values && opt.store_option_values.some(v => Number(v.extra_price) > 0)) {
+        hasVariableOptions = true;
+      }
+    });
+    if (requiredMinAdd > 0) {
+      calculatedPrice += requiredMinAdd;
+      isFromPrice = true;
+    } else if (calculatedPrice === 0 && hasVariableOptions) {
+      isFromPrice = true;
+    }
+  }
+
+  return ReactDOM.createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', background: T.bg, animation: 'slideUp .3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
       {/* Header */}
       <div style={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', background: T.bg, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
@@ -97,13 +120,21 @@ export default function ProductModal({ product, businessId, onClose, T }) {
         {/* Product Image */}
         {product.image_url && (
           <div style={{ width: '100%', aspectRatio: '4/3', background: T.border }}>
-            <OptimizedImage src={product.image_url} widthRequest={800} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+            <OptimizedImage src={product.image_url} widthRequest={800} heightRequest={600} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
           </div>
         )}
 
         <div style={{ padding: '20px 16px' }}>
+          {product.cat_name && (
+            <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', color: T.sub, letterSpacing: 0.5, marginBottom: 4 }}>
+              {product.cat_name}
+            </div>
+          )}
           <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 8px 0' }}>{product.name}</h2>
-          <div style={{ fontSize: 18, fontWeight: 700, color: T.green }}>${Number(product.price).toFixed(2)}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: T.green }}>
+            {isFromPrice && <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginRight: 6 }}>Desde</span>}
+            ${Number(calculatedPrice).toFixed(calculatedPrice % 1 === 0 ? 0 : 2)}
+          </div>
           {product.description && (
             <p style={{ fontSize: 14, color: T.sub, marginTop: 12, lineHeight: 1.5 }}>{product.description}</p>
           )}
@@ -304,6 +335,7 @@ export default function ProductModal({ product, businessId, onClose, T }) {
           to { transform: translateY(0); }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }

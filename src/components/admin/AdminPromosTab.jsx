@@ -1,17 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Icon from '../ui/Icon';
 import FI from './FI';
 
 export default function AdminPromosTab({
   data,
-  prForm,
-  setPrForm,
   sb,
   load,
-  onToast,
-  saving,
-  setSaving
+  onToast
 }) {
+  const [prForm, setPrForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+
   return (
     <>
       {!prForm && <div>

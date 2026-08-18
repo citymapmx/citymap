@@ -84,18 +84,18 @@ export default function UserNotifs({ T, onBack, user }) {
   const unreadCount = notifs.filter(n => !n.read).length;
 
   return (
-    <div className="sh" style={{ background: T.bg, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 8000, display: "flex", flexDirection: "column" }}>
       {/* Header */}
-      <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", background: T.white, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <button className="press" onClick={onBack} style={{ width: 36, height: 36, borderRadius: "50%", background: T.bg, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-            <Icon name="chevron" size={20} color={T.text} style={{ transform: "rotate(180deg)" }} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.white }}>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <button onClick={onBack} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
+            <Icon name="arrow_left" size={24} color={T.text} />
           </button>
-          <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 22, color: T.text, margin: 0, letterSpacing: 0.5 }}>Notificaciones</h2>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.5px" }}>Notificaciones</h1>
         </div>
         {unreadCount > 0 && (
           <button className="press" onClick={markAllAsRead} style={{ fontSize: 13, fontWeight: 700, color: T.green, background: "none", border: "none", cursor: "pointer" }}>
-            Marcar todas leídas
+            Marcar leídas
           </button>
         )}
       </div>
@@ -120,7 +120,30 @@ export default function UserNotifs({ T, onBack, user }) {
               return (
                 <div 
                   key={n.id} 
-                  onClick={() => markAsRead(n.id, n.read)}
+                  onClick={() => {
+                    markAsRead(n.id, n.read);
+                    const link = n.deep_link || n.action_url;
+                    if (link) {
+                      if (link.startsWith('http')) {
+                        try {
+                          const url = new URL(link);
+                          if (url.hostname === 'citymap.mx' || url.hostname === window.location.hostname) {
+                            if (onBack) onBack(); // Close modal if needed
+                            window.location.href = url.pathname + url.search;
+                          } else {
+                            window.open(link, '_blank');
+                          }
+                        } catch (e) {
+                          window.location.href = link;
+                        }
+                      } else if (link.startsWith('/')) {
+                        if (onBack) onBack();
+                        window.location.href = link;
+                      } else {
+                        window.location.href = link;
+                      }
+                    }
+                  }}
                   style={{ 
                     background: T.white, 
                     borderRadius: 16, 

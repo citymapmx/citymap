@@ -35,6 +35,10 @@ export default async function handler(req) {
     const cRes = await fetch(`${SUPABASE_URL}/rest/v1/cities?select=slug,name`, { headers });
     const cities = cRes.ok ? await cRes.json() : [];
 
+    // Fetch all experiences
+    const expRes = await fetch(`${SUPABASE_URL}/rest/v1/experiences?select=slug,id,city_slug,updated_at`, { headers });
+    const experiences = expRes.ok ? await expRes.json() : [];
+
     const BASE_URL = "https://citymap.mx";
     const CATEGORIES = ["restaurantes", "cafe", "salud", "belleza", "fitness", "compras", "tech", "ocio", "hoteles", "educacion"];
     const today = new Date().toISOString().split('T')[0];
@@ -62,6 +66,9 @@ export default async function handler(req) {
           urls.push({ loc: `${BASE_URL}/${esc(c.slug)}/${esc(cat)}`, freq: "weekly", priority: "0.85" });
         }
       }
+
+      // Experiencias page per city
+      urls.push({ loc: `${BASE_URL}/experiencias/${esc(c.slug)}`, freq: "daily", priority: "0.9", lastmod: today });
     }
 
     // Individual business pages with clean URLs: /city/business-slug
@@ -77,6 +84,16 @@ export default async function handler(req) {
         priority: "0.7",
         lastmod: b.updated_at ? b.updated_at.split('T')[0] : undefined
       });
+
+      // Add /menu endpoint for food businesses
+      if (b.category === 'restaurantes' || b.category === 'cafe') {
+        urls.push({
+          loc: `${BASE_URL}/${esc(city)}/${esc(cleanedSlug)}/menu`,
+          freq: "weekly",
+          priority: "0.6",
+          lastmod: b.updated_at ? b.updated_at.split('T')[0] : undefined
+        });
+      }
     }
 
     // Events
@@ -88,6 +105,19 @@ export default async function handler(req) {
         freq: "daily",
         priority: "0.7",
         lastmod: e.updated_at ? e.updated_at.split('T')[0] : undefined
+      });
+    }
+
+    // Experiences (Individual)
+    for (const exp of experiences) {
+      const expSlug = exp.slug || exp.id;
+      const city = exp.city_slug || "tepic";
+      if (!expSlug) continue;
+      urls.push({
+        loc: `${BASE_URL}/experiencias/${esc(city)}/${esc(expSlug)}`,
+        freq: "weekly",
+        priority: "0.8",
+        lastmod: exp.updated_at ? exp.updated_at.split('T')[0] : undefined
       });
     }
 

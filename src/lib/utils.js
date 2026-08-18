@@ -22,11 +22,20 @@ export function getKm(lat1, lon1, lat2, lon2) {
   return 12742 * Math.asin(Math.sqrt(a));
 }
 
+export const METRO_ZONES = {
+  "xalisco": ["tepic", "xalisco"],
+  "tepic": ["tepic", "xalisco"]
+};
+
 export function isNear(item, userCoords, activeCity, maxKm = 40) {
   if (!item) return false;
   
-  // Siempre incluir negocios que pertenezcan explícitamente a la ciudad seleccionada
-  if (item.city_slug === "all" || (item.city_slug && item.city_slug.split(",").includes(activeCity))) return true;
+  // Siempre incluir negocios que pertenezcan explícitamente a la ciudad seleccionada o su zona metropolitana
+  const allowedCities = ["all"];
+  if (METRO_ZONES[activeCity]) allowedCities.push(...METRO_ZONES[activeCity]);
+  else allowedCities.push(activeCity);
+
+  if (item.city_slug && item.city_slug.split(",").some(c => allowedCities.includes(c))) return true;
   
   // Si no pertenece a la ciudad seleccionada, pero está muy cerca (ej. municipio conurbado), incluirlo
   if (userCoords && userCoords.lat && userCoords.lng && item.lat && item.lng) {
@@ -173,10 +182,10 @@ export function getSmartScheduleInfo(b, tz, now) {
     const h = parseInt(get("hour"));
     const min = parseInt(get("minute"));
     const dayMap = { Sun: "dom", Mon: "lun", Tue: "mar", Wed: "mie", Thu: "jue", Fri: "vie", Sat: "sab" };
-    const txt = sch[dayMap[get("weekday")] || ""];
-    
-    if (!txt || /cerrado/i.test(txt)) return { text: ["Cerrado", deliverySuffix], color: "#DC2626" };
-    
+    const cur = (h === 24 ? 0 : h) * 60 + min;
+    const daysOrder = ["dom", "lun", "mar", "mie", "jue", "vie", "sab"];
+    const currentDayIdx = daysOrder.indexOf(dayMap[get("weekday")] || "dom");
+
     const toMin = s => {
       const m = s.trim().match(/(\d{1,2})(?:\s*:\s*(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
       if (!m) return null;
@@ -187,43 +196,79 @@ export function getSmartScheduleInfo(b, tz, now) {
       if (p === "am" && hh === 12) hh = 0;
       return hh * 60 + mm;
     };
-    
-    const cur = (h === 24 ? 0 : h) * 60 + min;
-    const shifts = txt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
-    
+
     let isCurrentlyOpen = false;
     let minUntilClose = Infinity;
     let minUntilOpen = Infinity;
-    
-    for (const shift of shifts) {
-      const segs = shift.split(/\s*[–\-]\s*|\s+a\s+/i).map(s => s.trim());
-      if (segs.length < 2) continue;
-      const open = toMin(segs[0]);
-      const close = toMin(segs[1]);
-      if (open === null || close === null) continue;
-      
-      let shiftEnd = close;
-      if (close <= open) shiftEnd += 1440; 
-      
-      let curCheck = cur;
-      if (close <= open && cur < (shiftEnd - 1440)) curCheck += 1440;
-      
-      if (curCheck >= open && curCheck < shiftEnd) {
-         isCurrentlyOpen = true;
-         let m = shiftEnd - curCheck;
-         if (m < minUntilClose) minUntilClose = m;
-      } else {
-         let m = open - cur;
-         if (m < 0) m += 1440; 
-         if (m < minUntilOpen) minUntilOpen = m;
+
+    // Check today's schedule for current status
+    const txt = sch[daysOrder[currentDayIdx]];
+    if (txt && !/cerrado/i.test(txt)) {
+      const shifts = txt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
+      for (const shift of shifts) {
+        const segs = shift.split(/\s*[–\-]\s*|\s+a\s+/i).map(s => s.trim());
+        if (segs.length < 2) continue;
+        const open = toMin(segs[0]);
+        const close = toMin(segs[1]);
+        if (open === null || close === null) continue;
+        
+        let shiftEnd = close;
+        if (close <= open) shiftEnd += 1440; 
+        
+        let curCheck = cur;
+        if (close <= open && cur < (shiftEnd - 1440)) curCheck += 1440;
+        
+        if (curCheck >= open && curCheck < shiftEnd) {
+           isCurrentlyOpen = true;
+           let m = shiftEnd - curCheck;
+           if (m < minUntilClose) minUntilClose = m;
+        } else {
+           let m = open - cur;
+           if (m < 0) m += 1440; 
+           if (m < minUntilOpen) minUntilOpen = m;
+        }
       }
     }
-    
+
     if (isCurrentlyOpen) {
       if (minUntilClose <= 60) return { text: [`Cierra pronto (${minUntilClose}m)`, deliverySuffix], color: "#F59E0B" };
       return { text: ["Abierto ahora", deliverySuffix], color: "#16A34A" };
     } else {
       if (minUntilOpen <= 60) return { text: [`Abre pronto (${minUntilOpen}m)`, deliverySuffix], color: "#F59E0B" };
+      
+      // Find next open time
+      let nextOpenStr = null;
+      for (let i = 0; i < 7; i++) {
+        const checkIdx = (currentDayIdx + i) % 7;
+        const dayTxt = sch[daysOrder[checkIdx]];
+        if (dayTxt && !/cerrado/i.test(dayTxt)) {
+          const shifts2 = dayTxt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
+          for (const shift2 of shifts2) {
+            const segs2 = shift2.split(/\s*[–\-]\s*|\s+a\s+/i).map(s => s.trim());
+            if (segs2.length < 2) continue;
+            const open2 = toMin(segs2[0]);
+            if (open2 !== null) {
+              if (i === 0 && open2 <= cur) continue;
+              
+              const h12 = Math.floor(open2 / 60) % 12 || 12;
+              const mStr = (open2 % 60).toString().padStart(2, '0');
+              const ampm = Math.floor(open2 / 60) >= 12 ? 'pm' : 'am';
+              const timeStr = `${h12}:${mStr}${ampm}`;
+              
+              if (i === 0) nextOpenStr = `abre hoy a las ${timeStr}`;
+              else if (i === 1) nextOpenStr = `abre mañana a las ${timeStr}`;
+              else {
+                const dayNames = {dom:"el domingo", lun:"el lunes", mar:"el martes", mie:"el miércoles", jue:"el jueves", vie:"el viernes", sab:"el sábado"};
+                nextOpenStr = `abre ${dayNames[daysOrder[checkIdx]]} a las ${timeStr}`;
+              }
+              break;
+            }
+          }
+        }
+        if (nextOpenStr) break;
+      }
+      if (nextOpenStr) return { text: [`Cerrado, ${nextOpenStr}`, deliverySuffix], color: "#DC2626" };
+      
       return { text: ["Cerrado", deliverySuffix], color: "#DC2626" };
     }
   } catch { return { text: [(b.open ? "Abierto ahora" : "Cerrado"), deliverySuffix], color: b.open ? "#16A34A" : "#DC2626" }; }
@@ -272,30 +317,47 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
   };
   
   const targetW = bucketWidth(w);
+  const targetH = h ? bucketWidth(h) : null;
 
   if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
-    // Ya no usamos h_ para forzar el recorte, dejamos que scale mantenga el ratio original
-    // y delegamos a CSS (object-fit: cover) el recorte. Usamos c_limit.
-    // Tambien cambiamos q_auto:best a q_auto y agregamos f_auto
-    return url.replace("/upload/", `/upload/c_limit,w_${targetW},q_auto,f_auto/`);
+    // Limpiamos transformaciones viejas para que no se acumulen
+    let cleanUrl = url;
+    const vMatch = url.match(/\/upload\/(?:[a-zA-Z0-9_,]+\/)*(v\d+\/.*)/);
+    if (vMatch && vMatch[1]) {
+       const base = url.split("/upload/")[0];
+       cleanUrl = base + "/upload/" + vMatch[1];
+    }
+    
+    let transform = targetH ? `c_fill,w_${targetW},h_${targetH},q_auto,f_auto` : `c_limit,w_${targetW},q_auto,f_auto`;
+    if (fit === "contain" && targetH) {
+       transform = `c_pad,w_${targetW},h_${targetH},q_auto,f_auto`;
+    }
+    return cleanUrl.replace("/upload/", `/upload/${transform}/`);
   }
   
   if (url.includes("supabase.co") && url.includes("/object/public/")) {
     const bunnyUrl = import.meta.env.VITE_BUNNY_CDN_URL;
     if (bunnyUrl) {
-      // Usar BunnyCDN si está configurado en las variables de entorno
+      // Usar BunnyCDN si está configurado
       const pathParts = url.split('/public/');
       if (pathParts.length > 1) {
         const path = pathParts[1];
-        // Delegamos el recorte a CSS (object-fit) para no aplastar la imagen
         let bunnyQuery = `?width=${targetW}`;
+        if (targetH) {
+          bunnyQuery += `&aspect_ratio=${w}:${h}`;
+          if (fit === "cover") bunnyQuery += "&crop=true";
+        }
         return `${bunnyUrl.replace(/\/$/, "")}/${path}${bunnyQuery}`;
       }
     }
-    // Fallback: usar Supabase Render API directo si no hay BunnyCDN
+    
+    // Fallback a Supabase Render API
     const joinChar = url.includes("?") ? "&" : "?";
-    return url.replace("/object/public/", "/render/image/public/") + `${joinChar}width=${targetW}&quality=80&format=webp`;
+    let renderQuery = `width=${targetW}&quality=80&format=webp`;
+    if (targetH) renderQuery += `&height=${targetH}&resize=${fit}`;
+    return url.replace("/object/public/", "/render/image/public/") + joinChar + renderQuery;
   }
+  
   return url;
 }
 
@@ -316,6 +378,7 @@ export const getCategoryDescription = (categoryId, categoryLabel, cityLabel) => 
   if (id === 'compras' || id === 'tiendas') return `Vete de shopping por ${city}. Descubre desde plazas comerciales hasta boutiques locales para encontrar exactamente lo que buscas.`;
   if (id === 'tech' || id === 'tecnologia' || id === 'tecnología') return `Actualízate con las mejores tiendas de tecnología en ${city}. Encuentra desde el último smartphone hasta expertos en reparaciones.`;
   if (id === 'ocio' || id === 'entretenimiento') return `Rompe la rutina con el mejor entretenimiento en ${city}. Descubre cines, boliches, parques y actividades divertidas para toda la familia.`;
+  if (id === 'hospedaje' || id === 'hoteles') return `Encuentra y reserva los mejores lugares de hospedaje en ${city}. Compara opciones, revisa opiniones reales de viajeros y asegura tu reservación al mejor precio.`;
   
   let features = "ubicaciones, horarios, detalles y reseñas";
   if (['comida'].includes(id)) {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sb } from '../../lib/supabase.js';
 import Icon from '../ui/Icon.jsx';
@@ -7,9 +8,12 @@ import ProductModal from './ProductModal.jsx';
 import CartDrawer from './CartDrawer.jsx';
 import { useCart } from '../../hooks/useCart.js';
 import { useUIStore } from '../../store/useUIStore.js';
-import { getThumbUrl } from '../../lib/utils.js';
+import { useDataStore } from '../../store/useDataStore.js';
+import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix } from '../../lib/utils.js';
+import { FONT_BIZ } from '../../lib/constants.js';
 
-export default function BusinessStore({ business, T, isElite }) {
+export default function BusinessStore({ business, T, isElite, inline = false, onBack }) {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -18,9 +22,12 @@ export default function BusinessStore({ business, T, isElite }) {
   const [toastName, setToastName] = useState('');
   const [expandedCategories, setExpandedCategories] = useState({});
   const [activeTabId, setActiveTabId] = useState(null);
+  const activeTabIdRef = useRef(activeTabId);
+  useEffect(() => { activeTabIdRef.current = activeTabId; }, [activeTabId]);
   const [showMenuModal, setShowMenuModal] = useState(false);
   
   const { dark } = useUIStore();
+  const { globalFavCounts } = useDataStore();
   const { items, setIsOpen, addItem, removeItem, updateQuantity } = useCart();
   const cartTotal = items.reduce((acc, item) => acc + (item.quantity * item.unitTotal), 0);
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
@@ -87,6 +94,45 @@ export default function BusinessStore({ business, T, isElite }) {
     }
   }, [activeCategories, activeTabId]);
 
+  // Scroll Spy for categories
+  const isClickScrolling = useRef(false);
+  const spyTimeout = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isClickScrolling.current) return; // Don't spy while auto-scrolling
+        
+        let visibleCatId = null;
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            visibleCatId = entry.target.getAttribute('data-catid');
+          }
+        });
+
+        if (visibleCatId && visibleCatId !== activeTabIdRef.current) {
+          if (spyTimeout.current) clearTimeout(spyTimeout.current);
+          spyTimeout.current = setTimeout(() => {
+            setActiveTabId(visibleCatId);
+            const tabEl = document.getElementById(`tab-${visibleCatId}`);
+            if (tabEl && tabsRef.current) {
+              const tabsContainer = tabsRef.current;
+              const scrollLeft = tabEl.offsetLeft - (tabsContainer.offsetWidth / 2) + (tabEl.offsetWidth / 2);
+              tabsContainer.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+            }
+          }, 100);
+        }
+      },
+      { rootMargin: '-140px 0px -70% 0px', threshold: 0 }
+    );
+
+    Object.values(categoryRefs.current).forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [activeCategories, menuSearch]);
+
   if (loading) {
     return <div style={{ padding: 20, textAlign: 'center', color: T.sub }}>Cargando menú...</div>;
   }
@@ -108,120 +154,158 @@ export default function BusinessStore({ business, T, isElite }) {
 
   const previewProducts = [];
   let totalProducts = 0;
-  // Build a map of categoryId → category image_url for fallback
-  const catImgMap = {};
-  for (const cat of activeCategories) {
-    if (cat.image_url) catImgMap[cat.id] = cat.image_url;
-  }
-  for (const cat of activeCategories) {
-    for (const p of cat.store_products) {
-      if (p.is_available) {
-        totalProducts++;
-        if (previewProducts.length < 4) {
-          previewProducts.push({ ...p, _catImg: catImgMap[p.category_id] });
-        }
-      }
-    }
-  }
+
+  const coverPhoto = business.banner_url || business.logo_url || (business.photos && business.photos[0] ? business.photos[0].url : null);
+  const isOpen = isOpenNow(business, business.timezone);
+  const scheduleInfo = getSmartScheduleInfo(business, business.timezone);
 
   return (
-    <div style={{ marginTop: 24, paddingBottom: cartCount > 0 ? 80 : 0 }}>
-      {!showMenuModal ? (
+    <div style={{ marginTop: inline ? 0 : 24, paddingBottom: cartCount > 0 ? 80 : 0 }}>
+      {!showMenuModal && !inline ? (
         <div style={{ margin: '0 16px' }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: dark ? '#fff' : '#0F172A', letterSpacing: "-0.5px" }}>Menú</div>
-            {totalProducts > 4 && (
-              <div onClick={() => setShowMenuModal(true)} style={{ fontSize: 13, fontWeight: 700, color: '#16A34A', cursor: "pointer" }}>Ver todo</div>
-            )}
-          </div>
-
-          <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 10, paddingLeft: 2, scrollSnapType: "x mandatory" }} className="no-scrollbar">
-            {previewProducts.map((p, i) => (
-              <div key={p.id} onClick={() => setShowMenuModal(true)} style={{ flexShrink: 0, cursor: "pointer", scrollSnapAlign: "start", position: "relative" }}>
-                <div style={{ width: 84, height: 84, borderRadius: "50%", overflow: "hidden", background: dark ? '#334155' : '#f1f5f9', border: `2.5px solid ${dark ? '#475569' : '#E2E8F0'}`, boxShadow: "0 4px 12px rgba(0,0,0,0.08)", position: "relative" }}>
-                  {(() => {
-                    const imgSrc = p.image_url || p._catImg;
-                    if (imgSrc) return <OptimizedImage src={imgSrc} widthRequest={400} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />;
-                    const colors = ['#6366F1','#F97316','#10B981','#EC4899','#3B82F6','#F59E0B','#8B5CF6','#14B8A6'];
-                    const bg = colors[p.name.charCodeAt(0) % colors.length];
-                    const bg2 = colors[(p.name.charCodeAt(0) + 3) % colors.length];
-                    return <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg, ${bg}, ${bg2})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "rgba(255,255,255,0.9)", fontFamily: "'Outfit', sans-serif" }}>{p.name.charAt(0).toUpperCase()}</div>;
-                  })()}
-                  {i === 3 && totalProducts > 4 && (
-                    <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16 }}>
-                      +{totalProducts - 4}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
           <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
             <button 
                className="press"
-               onClick={() => setShowMenuModal(true)} 
-               style={{ width: '100%', maxWidth: 300, padding: '14px 20px', borderRadius: 30, background: '#F97316', border: 'none', color: '#FFFFFF', fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer' }}
+               onClick={() => navigate(`/${business.city_slug}/${cleanCityPrefix(business.slug, business.city_slug)}/menu`)} 
+               style={{ width: '100%', maxWidth: 400, padding: '14px 20px', borderRadius: 12, background: 'transparent', border: `1px solid ${T.border}`, color: T.text, fontSize: 15, fontFamily: FONT_BIZ, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer' }}
             >
-              <img src="/food.svg" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)' }} alt="" />
-              Ver menú completo
+              <img src="/pedido.png" alt="Pedido" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+              Ver menú y hacer pedido
             </button>
           </div>
         </div>
       ) : (
         <AnimatePresence>
           <motion.div 
-             initial={{ y: '100%' }}
-             animate={{ y: 0 }}
-             exit={{ y: '100%' }}
-             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-             style={{ position: 'fixed', inset: 0, zIndex: 80000, background: dark ? '#0F172A' : '#F8FAFC', overflowY: 'auto' }}
+             initial={inline ? false : { y: '100%' }}
+             animate={inline ? false : { y: 0 }}
+             exit={inline ? false : { y: '100%' }}
+             transition={inline ? {} : { type: 'spring', damping: 25, stiffness: 200 }}
+             style={{ 
+               position: inline ? 'relative' : 'fixed', 
+               inset: inline ? 'auto' : 0, 
+               zIndex: inline ? 'auto' : 80000, 
+               background: dark ? '#0F172A' : '#F8FAFC', 
+               overflowY: inline ? 'visible' : 'auto',
+               minHeight: inline ? '100%' : 'auto'
+             }}
           >
-            {/* Header with Close Button */}
-            <div style={{ position: 'sticky', top: 0, zIndex: 101, background: dark ? '#0F172A' : '#F8FAFC', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${dark ? '#1E293B' : '#E2E8F0'}` }}>
-               <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: dark ? '#F8FAFC' : '#0F172A' }}>Menú</h2>
-               <button onClick={() => setShowMenuModal(false)} style={{ background: dark ? '#1E293B' : '#E2E8F0', border: 'none', width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                 <Icon name="x" size={20} color={dark ? '#F8FAFC' : '#0F172A'} />
-               </button>
+            {/* Banner Area (Baryo Style) */}
+            <div style={{ position: 'relative', width: '100%', paddingBottom: 8, background: dark ? '#0F172A' : '#FFFFFF' }}>
+              <div style={{ position: 'relative', width: '100%', height: 220, background: '#1E293B' }}>
+                {coverPhoto && (
+                  <OptimizedImage 
+                    src={getThumbUrl(coverPhoto, 800, 600)} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    alt={business.name} 
+                  />
+                )}
+                
+                {/* Gradient Overlay fading to background color */}
+                <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, ${dark ? '#0F172A' : '#FFFFFF'} 0%, rgba(0,0,0,0) 40%)` }} />
+                
+                {/* Close/Back Button */}
+                <button 
+                  onClick={() => inline ? (onBack && onBack()) : setShowMenuModal(false)}
+                  style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#111', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                >
+                  <Icon name={inline ? "arrow_left" : "x"} size={20} />
+                </button>
+              </div>
+
+              {/* Business Info under the image */}
+              <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginTop: -20, padding: '0 20px' }}>
+                <h1 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: dark ? '#FFFFFF' : '#111111', fontFamily: FONT_BIZ, letterSpacing: '-1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {business.name}
+                  {(business.plan === "destacado" || business.plan === "premium" || business.plan === "pro") && (
+                    <img src="/verificado.png" alt="Verificado" width="26" height="26" style={{ flexShrink: 0, marginTop: 4 }} />
+                  )}
+                </h1>
+                
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 8, marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <img src="/estrella.svg" alt="star" style={{ width: 15, height: 15, marginTop: -2, filter: dark ? 'invert(1)' : 'none' }} />
+                    <span style={{ fontSize: 14, fontWeight: 800, color: dark ? '#FFFFFF' : '#111111' }}>
+                      {business.rating && !isNaN(parseFloat(String(business.rating).replace(',', '.'))) ? parseFloat(String(business.rating).replace(',', '.')).toFixed(1) : "N/A"}
+                    </span>
+                    <span style={{ fontSize: 12, color: dark ? '#94A3B8' : '#64748B', fontWeight: 600 }}>({business.review_count || 0})</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <Icon name="heart_f" size={16} />
+                    <span style={{ fontSize: 14, fontWeight: 700, color: dark ? '#FFFFFF' : '#111111' }}>
+                      {globalFavCounts[business.id] || 0}
+                    </span>
+                  </div>
+                </div>
+
+                {!business.hide_location && business.address && (
+                  <div style={{ fontSize: 13, color: dark ? '#94A3B8' : '#6B7280', marginTop: 4, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {business.address}
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                   <Icon name="clock" size={14} color={isOpen ? "#10B981" : "#EF4444"} />
+                   <span style={{ fontSize: 14, fontWeight: 700, color: isOpen ? "#10B981" : "#EF4444", textTransform: 'capitalize' }}>
+                     {scheduleInfo?.text?.[0] || (isOpen ? "Abierto" : "Cerrado")}
+                   </span>
+                </div>
+              </div>
             </div>
             
-            <div style={{ paddingBottom: 100 }}>
-      
-      {/* Sticky Header: Tabs + Search */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: dark ? '#0F172A' : '#FFFFFF', paddingBottom: 16, paddingTop: 8, borderBottom: `1px solid ${dark ? '#1E293B' : '#F1F5F9'}` }}>
+            <div style={{ paddingBottom: cartCount > 0 ? 100 : 80 }}>
+      {/* Sticky Header: Search + Tabs */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: dark ? '#0F172A' : '#FFFFFF', paddingBottom: 12, paddingTop: 4, borderBottom: `1px solid ${dark ? '#1E293B' : '#F1F5F9'}` }}>
+        {/* Search */}
+        <div style={{ padding: '0 16px', marginBottom: 16, position: 'relative' }}>
+          <span style={{ position: 'absolute', left: 30, top: '50%', transform: 'translateY(-50%)' }}><Icon name="search" size={16} color={dark ? '#94A3B8' : '#6B7280'} /></span>
+          <input
+            type="text"
+            value={menuSearch}
+            onChange={e => setMenuSearch(e.target.value)}
+            placeholder="Buscar en el menú"
+            style={{ width: '100%', padding: '12px 16px 12px 40px', borderRadius: 12, border: 'none', background: dark ? '#1E293B' : '#F3F4F6', color: dark ? '#FFFFFF' : '#111111', fontSize: 15, fontWeight: 500, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+          />
+          {menuSearch && <button onClick={() => setMenuSearch('')} style={{ position: 'absolute', right: 26, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><Icon name="x" size={16} color={dark ? '#94A3B8' : '#6B7280'} /></button>}
+        </div>
+
         {/* Category Tabs */}
         {activeCategories.length > 1 && (
           <div ref={tabsRef} style={{ padding: '0 16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <div style={{ display: 'inline-flex', gap: 4, background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', padding: 4, borderRadius: 24, position: 'relative' }}>
+            <div style={{ display: 'inline-flex', gap: 8 }}>
               {[{id: 'all', name: 'Todos'}, ...activeCategories].map(cat => {
                 const isActive = activeTabId === cat.id;
                 return (
                   <button
                     key={cat.id}
+                    id={`tab-${cat.id}`}
                     onClick={() => { 
                       setMenuSearch(''); 
-                      setActiveTabId(cat.id); 
-                      window.scrollTo({ top: tabsRef.current?.offsetTop - 80 || 0, behavior: 'smooth' });
+                      setActiveTabId(cat.id);
+                      isClickScrolling.current = true;
+                      
+                      if (cat.id === 'all') {
+                        window.scrollTo({ top: tabsRef.current?.offsetTop - 140 || 0, behavior: 'smooth' });
+                      } else {
+                        const el = categoryRefs.current[cat.id];
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                      
+                      setTimeout(() => { isClickScrolling.current = false; }, 800);
                     }}
                     style={{
-                      position: 'relative',
-                      zIndex: 1,
-                      background: 'transparent',
-                      color: isActive ? '#FFFFFF' : (dark ? '#E2E8F0' : '#1E293B'),
+                      background: isActive ? (dark ? '#FFFFFF' : '#111111') : (dark ? '#1E293B' : '#F3F4F6'),
+                      color: isActive ? (dark ? '#111111' : '#FFFFFF') : (dark ? '#E2E8F0' : '#111111'),
                       border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: 20,
-                      fontSize: 14,
-                      fontWeight: 800,
+                      padding: '6px 14px',
+                      borderRadius: 16,
+                      fontSize: 13,
+                      fontWeight: 700,
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                       flexShrink: 0,
-                      transition: 'color 0.2s',
+                      transition: 'all 0.2s',
                     }}
                   >
-                    {isActive && (
-                      <motion.div layoutId="storeTabIndicator" style={{ position: "absolute", inset: 0, background: "#F97316", borderRadius: 20, zIndex: -1, boxShadow: "0 2px 8px rgba(249, 115, 22, 0.3)" }} transition={{ type: "spring", bounce: 0.25, duration: 0.5 }} />
-                    )}
                     {cat.name}
                   </button>
                 );
@@ -229,19 +313,6 @@ export default function BusinessStore({ business, T, isElite }) {
             </div>
           </div>
         )}
-
-        {/* Search */}
-        <div style={{ padding: '16px 16px 0', position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 32, top: '50%', transform: 'translateY(-50%)', marginTop: 8 }}><Icon name="search" size={16} color={dark ? '#94A3B8' : '#94A3B8'} /></span>
-          <input
-            type="text"
-            value={menuSearch}
-            onChange={e => setMenuSearch(e.target.value)}
-            placeholder="Buscar en el menú..."
-            style={{ width: '100%', padding: '12px 16px 12px 42px', borderRadius: 14, border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, background: dark ? '#1E293B' : '#FFFFFF', color: T.text, fontSize: 15, fontWeight: 500, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
-          />
-          {menuSearch && <button onClick={() => setMenuSearch('')} style={{ position: 'absolute', right: 28, top: '50%', transform: 'translateY(-50%)', marginTop: 6, background: 'none', border: 'none', cursor: 'pointer' }}><Icon name="x" size={14} color={T.sub} /></button>}
-        </div>
       </div>
 
       {filteredCategories.length === 0 && searchLower && (
@@ -251,16 +322,17 @@ export default function BusinessStore({ business, T, isElite }) {
         </div>
       )}
 
-      {(activeTabId === 'all' || searchLower ? filteredCategories : filteredCategories.filter(c => c.id === activeTabId)).map(cat => {
+      <div style={{ paddingTop: 16 }}>
+      {(searchLower ? filteredCategories : activeCategories).map(cat => {
         const availableProducts = cat.store_products.filter(p => p.is_available);
         const isExpanded = expandedCategories[cat.id];
         const visibleProducts = isExpanded ? availableProducts : availableProducts.slice(0, 6);
         const hasMore = availableProducts.length > 6;
 
         return (
-          <div key={cat.id} ref={el => categoryRefs.current[cat.id] = el} style={{ marginBottom: 24, scrollMarginTop: '130px' }}>
-            <div style={{ background: '#1A1A1A', margin: '0 16px 12px 16px', padding: '12px 16px', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.3px' }}>{cat.name}</h3>
+          <div key={cat.id} data-catid={cat.id} ref={el => categoryRefs.current[cat.id] = el} style={{ marginBottom: 24, scrollMarginTop: '130px' }}>
+            <div style={{ margin: '0 16px 12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: 19, fontWeight: 800, color: dark ? '#FFFFFF' : '#111111', margin: 0, letterSpacing: '-0.5px' }}>{cat.name}</h3>
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -268,7 +340,29 @@ export default function BusinessStore({ business, T, isElite }) {
                 const hasOptions = product.store_product_options && product.store_product_options.length > 0;
                 const cartItems = items.filter(i => i.product.id === product.id);
                 const totalInCart = cartItems.reduce((acc, i) => acc + i.quantity, 0);
-                const productWithCategory = { ...product, name: `${product.name} (${cat.name})` };
+                const productWithCategory = { ...product, cat_name: cat.name };
+
+                let calculatedPrice = Number(product.price) || 0;
+                let isFromPrice = false;
+                if (hasOptions) {
+                  let requiredMinAdd = 0;
+                  let hasVariableOptions = false;
+                  product.store_product_options.forEach(opt => {
+                    if (opt.is_required && opt.store_option_values && opt.store_option_values.length > 0) {
+                      const minOptPrice = Math.min(...opt.store_option_values.map(v => Number(v.extra_price) || 0));
+                      requiredMinAdd += minOptPrice;
+                    }
+                    if (opt.store_option_values && opt.store_option_values.some(v => Number(v.extra_price) > 0)) {
+                      hasVariableOptions = true;
+                    }
+                  });
+                  if (requiredMinAdd > 0) {
+                    calculatedPrice += requiredMinAdd;
+                    isFromPrice = true;
+                  } else if (calculatedPrice === 0 && hasVariableOptions) {
+                    isFromPrice = true;
+                  }
+                }
 
                 return (
                 <div 
@@ -277,40 +371,57 @@ export default function BusinessStore({ business, T, isElite }) {
                   style={{ 
                     display: 'flex', 
                     background: dark ? '#1E293B' : '#FFFFFF',
-                    border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`,
-                    borderRadius: 12,
-                    marginBottom: 10,
+                    borderRadius: 20,
+                    marginBottom: 16,
+                    margin: '0 16px 16px',
                     cursor: 'pointer',
                     alignItems: 'stretch',
                     position: 'relative',
-                    overflow: 'hidden'
+                    boxShadow: dark ? '0 2px 10px rgba(0,0,0,0.2)' : '0 2px 12px rgba(0,0,0,0.04)',
+                    border: `1px solid ${dark ? '#334155' : '#F3F4F6'}`
                   }}
                 >
                   {/* Image on Left */}
                   {product.image_url && (
-                    <div style={{ width: 140, background: dark ? '#334155' : '#F8FAFC', flexShrink: 0, overflow: 'hidden', borderRadius: 12 }}>
-                      <OptimizedImage src={product.image_url} widthRequest={400} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                    <div style={{ width: 120, height: 120, margin: 12, flexShrink: 0, position: 'relative' }}>
+                      <div style={{ width: '100%', height: '100%', borderRadius: 16, overflow: 'hidden', background: dark ? '#334155' : '#F8FAFC' }}>
+                        <OptimizedImage src={product.image_url} widthRequest={400} heightRequest={400} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                      </div>
+                      {/* Promo Badge */}
+                      {product.badge === 'PROMO' && (
+                        <div style={{ position: 'absolute', top: 0, left: 0, background: '#E11D48', color: '#FFF', fontSize: 10, fontWeight: 900, padding: '4px 8px', borderRadius: '16px 0 16px 0', textTransform: 'uppercase' }}>
+                          PROMO
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  <div style={{ flex: 1, display: "flex", alignItems: 'center', minHeight: product.image_url ? 100 : 'auto', padding: "12px 16px" }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "16px 56px 16px 16px", position: 'relative' }}>
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", textAlign: 'left' }}>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', marginBottom: 4, lineHeight: 1.2 }}>
-                        {product.badge ? product.badge + ' ' : ''}{product.name}
+                      <div style={{ fontSize: 16, fontWeight: 800, color: dark ? '#F8FAFC' : '#111111', marginBottom: 4, lineHeight: 1.3, wordBreak: 'break-word' }}>
+                        {product.name}
                       </div>
                       
                       {product.description && (
-                        <div style={{ fontSize: 13, color: dark ? '#94A3B8' : '#64748B', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4, marginBottom: 8, paddingRight: 8 }}>
+                        <div style={{ fontSize: 13, color: dark ? '#94A3B8' : '#6B7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4, marginBottom: 8, paddingRight: 8 }}>
                           {product.description}
                         </div>
                       )}
                       
-                      <div style={{ fontSize: 15, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A' }}>
-                        ${Number(product.price).toFixed(2)}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 'auto' }}>
+                        {product.old_price && (
+                           <span style={{ fontSize: 14, color: '#9CA3AF', textDecoration: 'line-through', fontWeight: 600 }}>
+                             ${Number(product.old_price).toFixed(0)}
+                           </span>
+                        )}
+                        <span style={{ fontSize: 16, fontWeight: 900, color: dark ? '#F8FAFC' : '#111111' }}>
+                          {isFromPrice && <span style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', marginRight: 4 }}>Desde</span>}
+                          ${Number(calculatedPrice).toFixed(calculatedPrice % 1 === 0 ? 0 : 2)}
+                        </span>
                       </div>
                     </div>
 
-                    <div style={{ marginLeft: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ position: 'absolute', bottom: 12, right: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {totalInCart === 0 ? (
                         <button 
                           onClick={(e) => {
@@ -321,9 +432,9 @@ export default function BusinessStore({ business, T, isElite }) {
                               handleAddWithToast(productWithCategory, [], "", 1, business.id);
                             }
                           }}
-                          style={{ width: 36, height: 36, borderRadius: '50%', background: dark ? '#1E293B' : '#FFFFFF', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', flexShrink: 0, transition: 'transform 0.1s' }}
+                          style={{ width: 36, height: 36, borderRadius: '50%', background: '#374151', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
                         >
-                          <Icon name="plus" size={16} color="#F97316" />
+                          <Icon name="plus" size={18} color="#FFF" />
                         </button>
                       ) : (
                         <div 
@@ -350,7 +461,7 @@ export default function BusinessStore({ business, T, isElite }) {
                               }
                             }}
                             style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                          ><Icon name="minus" size={14} color="#F97316" /></button>
+                          ><Icon name="minus" size={16} color="#374151" /></button>
                           
                           <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', minWidth: 24, textAlign: 'center' }}>{totalInCart}</div>
                           
@@ -364,7 +475,7 @@ export default function BusinessStore({ business, T, isElite }) {
                               }
                             }}
                             style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                          ><Icon name="plus" size={14} color="#F97316" /></button>
+                          ><Icon name="plus" size={16} color="#374151" /></button>
                         </div>
                       )}
                     </div>
@@ -377,15 +488,26 @@ export default function BusinessStore({ business, T, isElite }) {
             {hasMore && (
               <button 
                 onClick={() => setExpandedCategories(prev => ({ ...prev, [cat.id]: !prev[cat.id] }))} 
-                style={{ width: 'calc(100% - 32px)', margin: '12px 16px 0', padding: '14px', background: dark ? '#1E293B' : '#F8FAFC', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 12, color: dark ? '#F8FAFC' : '#0F172A', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'background 0.2s' }}
+                style={{ width: '100%', padding: '12px 0', background: 'transparent', border: 'none', color: dark ? '#94A3B8' : '#64748B', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'color 0.2s' }}
               >
                 {isExpanded ? 'Mostrar menos' : `Ver todo (${availableProducts.length})`}
-                <Icon name="chevron" size={16} color={dark ? '#94A3B8' : '#64748B'} style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(-90deg)' }} />
+                <Icon name="chevron" size={16} color={dark ? '#94A3B8' : '#64748B'} style={{ transform: isExpanded ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.3s ease' }} />
               </button>
             )}
           </div>
         );
       })}
+        {filteredCategories.length > 0 && (
+          <div style={{ padding: '24px 20px 24px', textAlign: 'center' }}>
+            <p style={{ fontSize: 11, color: dark ? '#64748B' : '#94A3B8', lineHeight: 1.5, opacity: 0.8, margin: 0, fontWeight: 500 }}>
+              Aviso legal: Los precios, imágenes y descripciones son administrados por cada negocio y pueden cambiar. CityMap no se responsabiliza por diferencias al momento de la compra.
+            </p>
+            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', opacity: 1 }}>
+              <img src="/citymap.mx.png" alt="CityMap" style={{ height: 60, filter: "brightness(0)" }} />
+            </div>
+          </div>
+        )}
+      </div>
             </div>
           </motion.div>
         </AnimatePresence>
@@ -395,24 +517,30 @@ export default function BusinessStore({ business, T, isElite }) {
       {showToast && (
         <div style={{
           position: 'fixed',
-          top: 80,
+          top: 40,
           left: '50%',
           transform: 'translateX(-50%)',
-          background: '#059669',
-          color: '#fff',
-          padding: '12px 24px',
+          background: dark ? 'rgba(30, 41, 59, 0.9)' : 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          color: '#ffffff',
+          padding: '8px 16px 8px 12px',
           borderRadius: 30,
-          fontSize: 14,
-          fontWeight: 700,
-          boxShadow: '0 8px 24px rgba(5, 150, 105, 0.4)',
+          fontSize: 13,
+          fontWeight: 600,
+          boxShadow: '0 12px 32px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.1)',
           zIndex: 99999,
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          animation: 'toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-          whiteSpace: 'nowrap'
+          animation: 'toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          whiteSpace: 'nowrap',
+          maxWidth: '90%'
         }}>
-          <Icon name="check" size={16} color="#fff" /> ¡{toastName} agregado!
+          <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="check" size={12} color="#fff" sw={2.5} />
+          </div>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Agregado: {toastName}</span>
         </div>
       )}
 
@@ -421,7 +549,7 @@ export default function BusinessStore({ business, T, isElite }) {
         <div style={{ position: 'fixed', bottom: 20, left: 16, right: 16, zIndex: 90000 }}>
           <button onClick={() => setIsOpen(true)} style={{ width: '100%', background: '#0F172A', color: '#FFFFFF', border: 'none', borderRadius: 16, padding: '14px 20px', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(15, 23, 42, 0.4)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#F97316', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff', boxShadow: 'inset 0 -2px 4px rgba(0,0,0,0.2)' }}>{cartCount}</div>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: dark ? '#F8FAFC' : '#111111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: dark ? '#111111' : '#FFFFFF', boxShadow: 'inset 0 -2px 4px rgba(0,0,0,0.2)' }}>{cartCount}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="shopping-cart" size={20} color="#fff" />
                 <span style={{ fontSize: 16 }}>Ver carrito</span>

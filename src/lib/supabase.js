@@ -114,7 +114,7 @@ const sb = {
     });
     return r.ok;
   },
-  async notify(user_id, title, body, type = 'system') {
+  async notify(user_id, title, body, type = 'system', deepLink = null) {
     if (!user_id) return;
     try {
       // Send request to Vercel API. The API will securely fetch tokens and insert the DB notification.
@@ -126,6 +126,7 @@ const sb = {
           body,
           type,
           user_id,
+          deepLink,
           secret: import.meta.env.VITE_ADMIN_SECRET
         })
       });
@@ -179,55 +180,67 @@ const sb = {
     localStorage.removeItem("cg_r");
   },
   async signInWithOAuth(provider) {
-    if (!navigator.onLine) {
-      alert("Necesitas conexión a internet para iniciar sesión.");
-      return;
-    }
-
-    const isNative = Capacitor.isNativePlatform();
-    
-    if (isNative) {
-      // Usar App Link nativo con esquema personalizado para evitar errores de intercepción en Android
-      const redirectTo = encodeURIComponent('mx.citymap.app://login');
-      const url = `${_AUTH}/authorize?provider=${provider}&redirect_to=${redirectTo}`;
-      const { Browser } = await import('@capacitor/browser');
-      // Listen for browser close as a fallback
-      const closeListener = await Browser.addListener('browserFinished', async () => {
-        closeListener.remove();
-        setTimeout(async () => {
-          const tok = localStorage.getItem("cg_t");
-          if (tok) window.location.reload();
-        }, 500);
-      });
-      await Browser.open({ url });
-    } else {
-      const redirectTo = encodeURIComponent(window.location.origin);
-      const url = `${_AUTH}/authorize?provider=${provider}&redirect_to=${redirectTo}`;
-      
-      // Use popup for PWA/Web to avoid iOS Safari kicking out of standalone mode
-      const width = 500;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      const popup = window.open(url, 'oauth', `width=${width},height=${height},left=${left},top=${top}`);
-      
-      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        // Fallback if popups are blocked
-        window.location.href = url;
+    try {
+      if (!navigator.onLine) {
+        alert("Necesitas conexión a internet para iniciar sesión.");
         return;
       }
 
-      // Poll to see if the popup completed login and saved the token
-      const checkInterval = setInterval(() => {
-        if (localStorage.getItem("cg_t")) {
-          clearInterval(checkInterval);
-          if (!popup.closed) popup.close();
-          window.location.reload();
+      const isNative = Capacitor.isNativePlatform();
+      
+      if (isNative) {
+        // Usar App Link nativo con esquema personalizado para evitar errores de intercepción en Android
+        const redirectTo = encodeURIComponent('mx.citymap.app://login');
+        const url = `${_AUTH}/authorize?provider=${provider}&redirect_to=${redirectTo}`;
+        const { Browser } = await import('@capacitor/browser');
+        // Listen for browser close as a fallback
+        const closeListener = await Browser.addListener('browserFinished', async () => {
+          closeListener.remove();
+          setTimeout(async () => {
+            const tok = localStorage.getItem("cg_t");
+            if (tok) window.location.reload();
+          }, 500);
+        });
+        await Browser.open({ url, presentationStyle: 'popover' });
+      } else {
+        const redirectTo = encodeURIComponent(window.location.origin);
+        const url = `${_AUTH}/authorize?provider=${provider}&redirect_to=${redirectTo}`;
+        
+        // Detect if we are in iOS PWA Standalone mode (specifically iOS, not Mac desktop)
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isIOSPWA = isIOS && (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches);
+
+        if (isIOSPWA) {
+          // Use popup ONLY for PWA to avoid iOS Safari kicking out of standalone mode
+          const width = 500;
+          const height = 600;
+          const left = window.screenX + (window.outerWidth - width) / 2;
+          const top = window.screenY + (window.outerHeight - height) / 2;
+          const popup = window.open(url, 'oauth', `width=${width},height=${height},left=${left},top=${top}`);
+          
+          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            window.location.href = url;
+            return;
+          }
+
+          const checkInterval = setInterval(() => {
+            if (localStorage.getItem("cg_t")) {
+              clearInterval(checkInterval);
+              if (!popup.closed) popup.close();
+              window.location.reload();
+            }
+            if (popup.closed) {
+              clearInterval(checkInterval);
+            }
+          }, 1000);
+        } else {
+          // Normal web browser (Mac, PC, Android Chrome, etc) - ALWAYS redirect directly
+          // This prevents popup blockers from silently eating the login request!
+          window.location.href = url;
         }
-        if (popup.closed) {
-          clearInterval(checkInterval);
-        }
-      }, 500);
+      }
+    } catch (err) {
+      throw new Error(err.message);
     }
   },
   async setSessionFromUrl(url) {
@@ -368,4 +381,100 @@ async function cloudUploadPDF(file, onPct = () => {}) {
   return cloudUpload(file, onPct, "cityguide/menus");
 }
 
-export { sb, cloudUpload, cloudUploadPDF, SUPABASE_URL, SUPABASE_ANON, CLOUDINARY_CLOUD, CLOUDINARY_PRESET, GMAPS_KEY };
+async function cloudDelete(url) {
+  if (!url || typeof url !== "string" || !url.includes("supabase.co") || !url.includes("/object/public/media/")) return false;
+  const path = url.split("/object/public/media/")[1];
+  if (!path) return false;
+  
+  const token = sb._token || SUPABASE_ANON;
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/media/${path}`;
+  
+  try {
+    const res = await fetch(endpoint, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}`, "apikey": SUPABASE_ANON }
+    });
+    return res.ok;
+  } catch (e) {
+    console.error("Error deleting from Supabase", e);
+    return false;
+  }
+}
+
+async function cloudDeleteBatch(paths) {
+  if (!paths || !Array.isArray(paths) || paths.length === 0) return true;
+  
+  const token = sb._token || SUPABASE_ANON;
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/media`;
+  
+  try {
+    const res = await fetch(endpoint, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "apikey": SUPABASE_ANON,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ prefixes: paths })
+    });
+    return res.ok;
+  } catch (e) {
+    console.error("Error batch deleting from Supabase", e);
+    return false;
+  }
+}
+
+async function cloudListAllFiles(folderPath = "") {
+  const token = sb._token || SUPABASE_ANON;
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/list/media`;
+  
+  let allFiles = [];
+  let limit = 1000;
+  let offset = 0;
+  let hasMore = true;
+  
+  while (hasMore) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "apikey": SUPABASE_ANON,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prefix: folderPath,
+          limit: limit,
+          offset: offset,
+          sortBy: { column: "name", order: "asc" }
+        })
+      });
+      if (!res.ok) throw new Error("Error listing files");
+      const data = await res.json();
+      if (!data || data.length === 0) {
+        hasMore = false;
+      } else {
+        for (const f of data) {
+          if (!f.name || f.name === ".emptyFolderPlaceholder") continue;
+          const fullPath = folderPath ? `${folderPath}/${f.name}` : f.name;
+          if (f.id) {
+            // It's a file
+            allFiles.push(fullPath);
+          } else {
+            // It's a folder — recurse into it
+            const subFiles = await cloudListAllFiles(fullPath);
+            allFiles.push(...subFiles);
+          }
+        }
+        if (data.length < limit) hasMore = false;
+        else offset += limit;
+      }
+    } catch (e) {
+      console.error("Error listing files in Supabase:", folderPath, e);
+      hasMore = false;
+    }
+  }
+  return allFiles;
+}
+
+export { sb, cloudUpload, cloudUploadPDF, cloudDelete, cloudDeleteBatch, cloudListAllFiles, SUPABASE_URL, SUPABASE_ANON, CLOUDINARY_CLOUD, CLOUDINARY_PRESET, GMAPS_KEY };

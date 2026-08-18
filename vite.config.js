@@ -33,6 +33,18 @@ export default defineConfig({
               cacheName: 'assets-cache',
               expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 }
             }
+          },
+          {
+            // Supabase API requests: NetworkFirst to always get fresh data (fixes stale data bugs after edits)
+            urlPattern: /^https:\/\/dpkjxhjkzdlkvyotoeai\.supabase\.co\/rest\/v1\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-api-cache',
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 }, // Cache for 7 days
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
           }
         ]
       },

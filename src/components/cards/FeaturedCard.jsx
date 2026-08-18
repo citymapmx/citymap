@@ -1,5 +1,5 @@
 import { useState, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import Icon from "../ui/Icon.jsx";
 import OptimizedImage from "../ui/OptimizedImage.jsx";
 import { FONT_BIZ } from "../../lib/constants.js";
@@ -19,7 +19,7 @@ export default memo(function FeaturedCard({ b, T, dark, isFav, toggleFav, onTap,
     toggleFav(b.id, e);
   };
   return (
-    <motion.div whileHover="hover" whileTap={{ scale: 0.96 }} className="press" onClick={() => { haptic("light"); onTap(b); }} style={{ borderRadius: 18, overflow: "hidden", background: "#0a0a0a", position: "relative", display: "flex", flexDirection: "column", border: `1.5px solid ${T.border}`, boxShadow: T.shadow }} variants={{ hover: { y: -4, boxShadow: T.shadowLg } }} transition={{ duration: 0.3, ease: "easeOut" }}>
+    <m.div whileHover="hover" whileTap={{ scale: 0.96 }} className="press" onClick={() => { haptic("light"); onTap(b); }} style={{ borderRadius: 18, overflow: "hidden", background: "#0a0a0a", position: "relative", display: "flex", flexDirection: "column", border: `1.5px solid ${T.border}`, boxShadow: T.shadow }} variants={{ hover: { y: -4, boxShadow: T.shadowLg } }} transition={{ duration: 0.3, ease: "easeOut" }}>
       <div style={{ position: "relative", height: 190, overflow: "hidden" }}>
         {thumb?.url
          ? <ProgressiveImage 
@@ -38,27 +38,27 @@ export default memo(function FeaturedCard({ b, T, dark, isFav, toggleFav, onTap,
         {/* Podium Badge */}
         {rank && (
           <div style={{ position: "absolute", top: 12, left: 12, width: 36, height: 36, borderRadius: "50%", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
-            <span style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 18, color: rank === 1 ? "#FDE047" : rank === 2 ? "#E5E7EB" : rank === 3 ? "#FDBA74" : "#FFFFFF" }}>{rank}</span>
+            <span style={{ fontFamily: "var(--heading)", fontSize: 18, color: rank === 1 ? "#FDE047" : rank === 2 ? "#E5E7EB" : rank === 3 ? "#FDBA74" : "#FFFFFF" }}>{rank}</span>
           </div>
         )}
 
         {/* Premium Logo (Top Left) */}
-        {b.logo_url && (
-          <div style={{ position: "absolute", top: 12, left: rank ? 56 : 12, width: 76, height: 76, borderRadius: "50%", background: "#fff", border: "1px solid rgba(255,255,255,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", boxSizing: "border-box", overflow: "hidden" }}>
-            <OptimizedImage src={b.logo_url} widthRequest={200} style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "50%" }} alt="logo" />
+        {b.logo_url && (b.plan === "premium" || b.plan === "pro" || b.plan === "destacado") && (
+          <div style={{ position: "absolute", top: 12, left: rank ? 56 : 12, width: 76, height: 76, borderRadius: "50%", background: "#fff", border: "1px solid rgba(255,255,255,0.8)", zIndex: 10, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", boxSizing: "border-box", overflow: "hidden" }}>
+            <OptimizedImage src={b.logo_url} widthRequest={200} heightRequest={200} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%", display: "block" }} alt="logo" />
           </div>
         )}
 
         {/* Top right actions (Fav only) */}
         <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10 }}>
-          <motion.button whileTap={{ scale: 0.7 }} aria-label={isFav ? "Quitar de favoritos" : "Añadir a favoritos"} onClick={handleFav} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}>
+          <m.button whileTap={{ scale: 0.7 }} aria-label={isFav ? "Quitar de favoritos" : "Añadir a favoritos"} onClick={handleFav} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}>
             <Icon name={isFav ? "heart_overlay_f" : "heart_overlay"} size={26} color="none" />
-          </motion.button>
+          </m.button>
           <AnimatePresence>
             {showPlus && (
-              <motion.div initial={{ opacity: 0, y: 0, scale: 0.5 }} animate={{ opacity: 1, y: -30, scale: 1.2 }} exit={{ opacity: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} style={{ position: "absolute", top: 0, left: 0, right: 0, pointerEvents: "none", display: "flex", justifyContent: "center", color: "#FFFFFF", fontWeight: 900, fontSize: 18, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
+              <m.div initial={{ opacity: 0, y: 0, scale: 0.5 }} animate={{ opacity: 1, y: -30, scale: 1.2 }} exit={{ opacity: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} style={{ position: "absolute", top: 0, left: 0, right: 0, pointerEvents: "none", display: "flex", justifyContent: "center", color: "#FFFFFF", fontWeight: 900, fontSize: 18, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
                 +1
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
@@ -66,17 +66,22 @@ export default memo(function FeaturedCard({ b, T, dark, isFav, toggleFav, onTap,
         {/* Text overlay bottom */}
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "30px 14px 4px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
           {b.badge && <div style={{ fontSize: 9, fontWeight: 800, color: "#C9A84C", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 2 }}>{b.badge}</div>}
-          <h3 style={{ fontFamily: FONT_BIZ, fontSize: 22, color: "#fff", lineHeight: 1.15, fontWeight: 800, marginBottom: 2, textShadow: "0 2px 4px rgba(0,0,0,0.5)", paddingRight: 8 }}>{b.name}</h3>
+          <h3 style={{ fontFamily: FONT_BIZ, fontSize: 22, color: "#fff", lineHeight: 1.15, fontWeight: 800, letterSpacing: 0, marginBottom: 2, textShadow: "0 2px 4px rgba(0,0,0,0.5)", paddingRight: 8, display: "flex", alignItems: "center" }}>
+            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</span>
+            {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
+              <img src="/verificado.png" alt="Verificado" width="18" height="18" style={{ marginLeft: 6, flexShrink: 0, filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.5))" }} />
+            )}
+          </h3>
           
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {showStars ? (
                 b.review_count > 0 ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(0,0,0,0.04)", padding: "4px 8px", borderRadius: 20 }}>
-                    <img src="/estrella.svg" alt="star" width={14} height={14} loading="lazy" style={{ width: 14, height: 14, marginTop: -2, filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.5))" }} />
+                    <img src="/estrella.svg" alt="star" width={14} height={14} loading="lazy" style={{ width: 14, height: 14, marginTop: -2, filter: "brightness(0) invert(1) drop-shadow(0px 1px 2px rgba(0,0,0,0.5))" }} />
                     <span style={{ fontSize: 13, fontWeight: 800, color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{b.rating && !isNaN(parseFloat(String(b.rating).replace(',', '.'))) ? parseFloat(String(b.rating).replace(',', '.')).toFixed(1) : "N/A"}</span>
-                    <span style={{ fontSize: 12, color: "rgba(255,255,255,.6)", fontWeight: 500, marginLeft: 2 }}>({b.review_count})</span>
-                    {realFavs > 0 && <><span style={{ fontSize: 10, color: "rgba(255,255,255,.4)", margin: "0 2px" }}>·</span><Icon name="heart" size={11} color="rgba(255,255,255,.6)" /><span style={{ fontSize: 11, color: "rgba(255,255,255,.6)", fontWeight: 600, marginLeft: 2 }}>{realFavs}</span></>}
+                    <span style={{ fontSize: 12, color: "rgba(255,255,255,.9)", fontWeight: 500, marginLeft: 2, textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>({b.review_count})</span>
+                    {realFavs > 0 && <><span style={{ fontSize: 10, color: "rgba(255,255,255,.4)", margin: "0 2px" }}>·</span><Icon name="heart" size={11} color="rgba(255,255,255,.9)" /><span style={{ fontSize: 11, color: "rgba(255,255,255,.9)", fontWeight: 600, marginLeft: 2, textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{realFavs}</span></>}
                   </div>
                 ) : (
                   <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -100,7 +105,7 @@ export default memo(function FeaturedCard({ b, T, dark, isFav, toggleFav, onTap,
               <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>·</span>
               
               <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span className={getScheduleStatus(b, isOpenNow(b), true).dot} style={{ width: 6, height: 6, boxShadow: "0 0 6px rgba(0,0,0,0.5)" }} />
+                <span className={getScheduleStatus(b, isOpenNow(b), true).dot} style={{ width: 4, height: 4, boxShadow: "0 0 4px rgba(0,0,0,0.5)" }} />
                 <span style={{ fontSize: 11, color: getScheduleStatus(b, isOpenNow(b), true).color, fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>{getScheduleStatus(b, isOpenNow(b), true).text}</span>
               </div>
             </div>
@@ -142,6 +147,6 @@ export default memo(function FeaturedCard({ b, T, dark, isFav, toggleFav, onTap,
           </div>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 });

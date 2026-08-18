@@ -45,7 +45,7 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
 
         <img
           key={p.url}
-          src={getThumbUrl(p.url, isFullscreen ? 2400 : 1200, 1000, fit)}
+          src={isFullscreen ? p.url : getThumbUrl(p.url, 1200, 1000, fit)}
           alt=""
           loading="eager"
           onLoad={() => setLoaded(true)}

@@ -1,11 +1,15 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import Icon from './ui/Icon.jsx';
 import Uploader from './Uploader.jsx';
 import { sb } from '../lib/supabase.js';
 import { FONT_BIZ } from '../lib/constants.js';
-import { isOpenNow, createSlug } from '../lib/utils.js';
+import { isOpenNow, createSlug, cleanCityPrefix } from '../lib/utils.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
+import { useDataStore } from '../store/useDataStore.js';
+import { useAppContext } from '../context/AppContext';
+import { getThumbUrl } from '../lib/utils.js';
+import Footer from './Footer.jsx';
 export default function AccountView({
   user, profile, isAdmin, T, dark, favIds, reviews,
   wallet, coupons, claimedCoupons, biz, myBizList,
@@ -16,6 +20,9 @@ export default function AccountView({
 }) {
   const isOpen = isOpenNow;
   const { installPromptEvent, setInstallPromptEvent } = useUIStore();
+  const { events } = useDataStore();
+  const ctx = useAppContext();
+  const { savedEventIds, setSelectedEvent } = ctx;
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
@@ -23,6 +30,15 @@ export default function AccountView({
   const [editName, setEditName] = useState("");
   const [editPhoto, setEditPhoto] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [qrModalBiz, setQrModalBiz] = useState(null);
+
+  const [myClaims, setMyClaims] = useState([]);
+  useEffect(() => {
+    if (!user) return;
+    sb.get("business_claims", `?user_id=eq.${user.id}`).then(res => {
+      if (Array.isArray(res)) setMyClaims(res);
+    });
+  }, [user]);
 
   const startEditProfile = () => {
     setEditName(user?.user_metadata?.name || profile?.name || user.email?.split("@")[0] || "");
@@ -55,6 +71,8 @@ export default function AccountView({
     {
       title: "Cuenta",
       items: [
+        { label: "Mis Favoritos", icon: "heart", act: "favs" },
+        { label: "Mis Planes (Itinerarios)", icon: "map", act: "itineraries" },
         { label: "Editar perfil", icon: "user", act: "edit_profile" },
         { label: "Notificaciones", icon: "bell", act: "notif" },
       ]
@@ -64,11 +82,18 @@ export default function AccountView({
         ? `Mi Negocio (${myBizList.filter(b => b.status === "approved")[0].name})` 
         : "Mi Negocio",
       items: [
-        ...myBizList.filter(b => b.status === "approved").flatMap(b => [
-          { label: "Editar menú o catálogo", icon: "list", act: `owner_menu_${b.id}` },
-          { label: "Editar negocio", icon: "edit", act: `owner_edit_${b.id}` },
-          { label: "Reservaciones", icon: "calendar", act: `owner_res_${b.id}` }
-        ]),
+        ...myBizList.filter(b => b.status === "approved").flatMap(b => {
+          const items = [];
+          if (b.plan && b.plan !== "free") {
+            items.push({ label: "Reservaciones", icon: "calendar", act: `owner_res_${b.id}` });
+          }
+          items.push(
+            { label: "Editar menú o catálogo", icon: "list", act: `owner_menu_${b.id}` },
+            { label: "Editar negocio", icon: "edit", act: `owner_edit_${b.id}` },
+            { label: "Descargar Códigos QR", icon: "grid", act: `owner_qr_${b.id}` }
+          );
+          return items;
+        }),
         ...(!isAdmin ? [{ label: "Agregar mi negocio", icon: "plus", act: "add_biz" }] : []),
         { label: "Planes y precios", icon: "award", act: "plans" },
       ]
@@ -84,7 +109,6 @@ export default function AccountView({
       items: [
         { label: "Sobre CityMap", icon: "info", act: "about" },
         ...(!isStandalone && (installPromptEvent || isIOS) ? [{ label: "Instalar App", icon: "download", act: "install_pwa" }] : []),
-        { label: "Actualizar App", icon: "refresh", act: "clear_cache" },
       ]
     }
   ];
@@ -97,6 +121,8 @@ export default function AccountView({
       if (installPromptEvent) { installPromptEvent.prompt(); installPromptEvent.userChoice.then(r => { if (r.outcome === 'accepted') setInstallPromptEvent(null); }); }
       else if (isIOS) toast$("Toca 'Compartir' ⬆ y luego 'Agregar a Inicio' 📱");
     } else if (act === "edit_profile") startEditProfile();
+    else if (act === "favs") navigate("favs");
+    else if (act === "itineraries") navigate("itineraries");
     else if (act === "plans") setShowPlans(true);
     else if (act === "add_biz") { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); }
     else if (act === "about") navigate("about");
@@ -116,7 +142,14 @@ export default function AccountView({
     }
     else if (act.startsWith("owner_res_")) {
       const b = myBizList.find(x => x.id === act.replace("owner_res_", ""));
-      if (b) setOwnerView(b);
+      if (b) {
+        setOwnerView(b);
+        navigate("manage/" + (b.slug || b.id));
+      }
+    }
+    else if (act.startsWith("owner_qr_")) {
+      const b = myBizList.find(x => x.id === act.replace("owner_qr_", ""));
+      if (b) setQrModalBiz(b);
     }
   };
 
@@ -151,6 +184,76 @@ export default function AccountView({
           </div>
         )}
 
+        {/* ── QR CODES MODAL ── */}
+        {qrModalBiz && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => setQrModalBiz(null)}>
+            <div style={{ width: "100%", maxWidth: 420, background: T.white, borderRadius: 24, padding: "32px 24px", animation: "fadeUp .35s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+              
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: 20, position: "relative" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 20, color: T.text }}>
+                  <Icon name="grid" size={22} /> Códigos QR
+                </div>
+                <button onClick={() => setQrModalBiz(null)} style={{ position: "absolute", right: 0, background: T.bg, color: T.text, border: "none", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="x" size={14} /></button>
+              </div>
+              
+              <p style={{ fontSize: 14, color: T.sub, margin: "0 0 28px 0", lineHeight: 1.5, textAlign: "center" }}>
+                Descarga los códigos QR de <strong>{qrModalBiz.name}</strong>. Nunca caducan y están listos para imprimir.
+              </p>
+              
+              <div style={{ display: "flex", gap: 12 }}>
+                <button 
+                  onClick={async () => {
+                    const city = qrModalBiz.city_slug || 'merida';
+                    const slug = cleanCityPrefix(qrModalBiz.slug || createSlug(qrModalBiz.name || ''), city);
+                    const url = `https://citymap.mx/${city}/${slug}`;
+                    try {
+                      const res = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=1024x1024&data=${encodeURIComponent(url)}`);
+                      const blob = await res.blob();
+                      const a = document.createElement("a");
+                      a.href = URL.createObjectURL(blob);
+                      a.download = `QR_Perfil_${qrModalBiz.name.replace(/\s+/g, '_')}.png`;
+                      a.click();
+                    } catch(e) { toast$("Error al generar QR"); }
+                  }} 
+                  style={{ flex: 1, padding: "20px 14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, color: T.text, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
+                >
+                  <div style={{ background: T.white, padding: 12, borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+                    <Icon name="user" size={28} color={T.text} />
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>Perfil</div>
+                    <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>Página principal</div>
+                  </div>
+                </button>
+                <button 
+                  onClick={async () => {
+                    const city = qrModalBiz.city_slug || 'merida';
+                    const slug = cleanCityPrefix(qrModalBiz.slug || createSlug(qrModalBiz.name || ''), city);
+                    const url = `https://citymap.mx/${city}/${slug}/menu`;
+                    try {
+                      const res = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=1024x1024&data=${encodeURIComponent(url)}`);
+                      const blob = await res.blob();
+                      const a = document.createElement("a");
+                      a.href = URL.createObjectURL(blob);
+                      a.download = `QR_Menu_${qrModalBiz.name.replace(/\s+/g, '_')}.png`;
+                      a.click();
+                    } catch(e) { toast$("Error al generar QR"); }
+                  }} 
+                  style={{ flex: 1, padding: "20px 14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, color: T.text, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
+                >
+                  <div style={{ background: T.white, padding: 12, borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+                    <Icon name="list" size={28} color={T.text} />
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>Menú</div>
+                    <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>Abre tu menú</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── PROFILE HEADER ── */}
         <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 24px) 16px 16px", background: "transparent", borderBottom: `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -178,6 +281,7 @@ export default function AccountView({
             )}
           </div>
         </div>
+
 
 
         {/* ── WALLET ── */}
@@ -218,33 +322,49 @@ export default function AccountView({
           {menuGroups.map((group, gIdx) => (
             <div key={group.title} style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: T.text, marginBottom: 16, marginLeft: 8, letterSpacing: "-0.5px", textAlign: "left" }}>{group.title}</div>
-              <div style={{ background: dark ? "rgba(255,255,255,0.06)" : "#F3F4F6", borderRadius: 16, overflow: "hidden" }}>
-                {group.items.map(({ label, icon, act }, i, arr) => (
-                  <div key={label} onClick={() => handleMenuAction(act)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"}` : "none", cursor: "pointer", background: "transparent", transition: "background .15s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    <Icon name={icon} size={20} color={T.sub} sw={1.5} />
-                    <span style={{ fontSize: 15, fontWeight: 500, color: T.text, flex: 1 }}>{label}</span>
-                    {act === "toggle_dark" ? (
-                      <div style={{ width: 44, height: 26, borderRadius: 13, background: dark ? T.green : "#D1D5DB", transition: "background 0.25s", position: "relative", flexShrink: 0 }}>
-                        <div style={{ position: "absolute", top: 3, left: dark ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.25)", transition: "left 0.25s cubic-bezier(0.34,1.56,0.64,1)" }} />
+              <div style={{ background: "transparent", borderRadius: 16, overflow: "hidden" }}>
+                {group.items.map(({ label, icon, act }, i, arr) => {
+                  if (act.startsWith("owner_res_")) {
+                    return (
+                      <div key={label} onClick={() => handleMenuAction(act)} className="press" style={{ background: "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)", margin: "8px", borderRadius: 12, display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", cursor: "pointer", boxShadow: "0 4px 12px rgba(109,40,217,0.25)" }}>
+                        <div style={{ background: "rgba(255,255,255,0.2)", width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <Icon name="calendar" size={18} color="#fff" />
+                        </div>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: "#fff", flex: 1, letterSpacing: 0.2 }}>{label}</span>
+                        <div style={{ background: "#fff", color: "#6D28D9", fontSize: 11, fontWeight: 800, padding: "4px 8px", borderRadius: 12 }}>Panel</div>
                       </div>
-                    ) : (
-                      <Icon name="chevron" size={16} color={T.border} sw={2} />
-                    )}
-                  </div>
-                ))}
+                    );
+                  }
+                  
+                  const isNextRes = i < arr.length - 1 && arr[i+1].act.startsWith("owner_res_");
+                  
+                  return (
+                    <div key={label} onClick={() => handleMenuAction(act)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 16px", borderBottom: i < arr.length - 1 && !isNextRes ? `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"}` : "none", cursor: "pointer", background: "transparent", transition: "background .15s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <Icon name={icon} size={20} color={T.sub} sw={1.5} />
+                      <span style={{ fontSize: 15, fontWeight: 500, color: T.text, flex: 1 }}>{label}</span>
+                      {act === "toggle_dark" ? (
+                        <div style={{ width: 44, height: 26, borderRadius: 13, background: dark ? T.green : "#D1D5DB", transition: "background 0.25s", position: "relative", flexShrink: 0 }}>
+                          <div style={{ position: "absolute", top: 3, left: dark ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.25)", transition: "left 0.25s cubic-bezier(0.34,1.56,0.64,1)" }} />
+                        </div>
+                      ) : (
+                        <Icon name="chevron" size={16} color={T.border} sw={2} />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}
         </div>
 
         {/* ── NEGOCIOS PENDIENTES ── */}
-        {myBizList.filter(b => b.status !== "approved").length > 0 && (
+        {(myBizList.filter(b => b.status === "pending" || b.status === "needs_changes").length > 0 || myClaims.filter(c => c.status === "pending").length > 0) && (
           <div style={{ padding: "16px 16px 0" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Mis solicitudes</div>
-            {myBizList.filter(b => b.status !== "approved").map(b => {
-              const stMap = { pending: { lbl: "En revisión", c: "#D97706", bg: "#FEF3C7" }, approved: { lbl: "Aprobado", c: "#16A34A", bg: "#DCFCE7" }, rejected: { lbl: "Rechazado", c: "#D94F3D", bg: "#FEE2E2" }, needs_changes: { lbl: "Requiere cambios", c: "#7C3AED", bg: "#F5F3FF" } };
+            {myBizList.filter(b => b.status === "pending" || b.status === "needs_changes").map(b => {
+              const stMap = { pending: { lbl: "En revisión" }, needs_changes: { lbl: "Requiere cambios" } };
               const st = stMap[b.status] || stMap.pending;
               return (
                 <div key={b.id} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", marginBottom: 8, border: `1px solid ${T.border}` }}>
@@ -253,10 +373,26 @@ export default function AccountView({
                       <div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{b.name}</div>
                       <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{b.type || b.category}</div>
                     </div>
-                    <span style={{ background: st.bg, color: st.c, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{st.lbl}</span>
+                    <span style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{st.lbl}</span>
                   </div>
-                  {b.admin_notes && <div style={{ background: T.bg, borderRadius: 8, padding: "8px 10px", fontSize: 12, color: T.sub, borderLeft: `3px solid ${st.c}`, marginBottom: 8 }}>{b.admin_notes}</div>}
-                  {b.status === "needs_changes" && <button onClick={() => { setEditBizId(b.id); setAddBizForm({ name: b.name || "", category: b.category || b.type || "", emoji: b.emoji || "", description: b.description || "", address: b.address || "", city: b.city_slug || "", phone: b.phone || "", whatsapp: b.whatsapp || "", website: b.website || "", lat: b.lat || "", lng: b.lng || "", photos: b.photos?.map(p => p.url) || [], facebook: b.facebook || "", instagram: b.instagram || "", tiktok: b.tiktok || "", schedule: b.schedule || {}, owner_id: b.owner_id, user_id: b.user_id, plan: b.plan, status: b.status, video_url: b.video_url || "", logo_url: b.logo_url || "", menu_pdf_url: b.menu_pdf_url || "", booking_config: b.booking_config || null }); setShowAddBiz(true); }} style={{ width: "100%", padding: "9px 0", background: "#F5F3FF", border: "1.5px solid #7C3AED", borderRadius: 10, fontSize: 13, fontWeight: 700, color: "#7C3AED", cursor: "pointer", fontFamily: "inherit" }}>Editar y reenviar</button>}
+                  {b.admin_notes && <div style={{ background: T.bg, borderRadius: 8, padding: "8px 10px", fontSize: 12, color: T.sub, borderLeft: `3px solid ${T.border}`, marginBottom: 8 }}>{b.admin_notes}</div>}
+                  {b.status === "needs_changes" && <button onClick={() => { setEditBizId(b.id); setAddBizForm({ name: b.name || "", category: b.category || b.type || "", emoji: b.emoji || "", description: b.description || "", address: b.address || "", city: b.city_slug || "", phone: b.phone || "", whatsapp: b.whatsapp || "", website: b.website || "", lat: b.lat || "", lng: b.lng || "", photos: b.photos?.map(p => p.url) || [], facebook: b.facebook || "", instagram: b.instagram || "", tiktok: b.tiktok || "", schedule: b.schedule || {}, owner_id: b.owner_id, user_id: b.user_id, plan: b.plan, status: b.status, video_url: b.video_url || "", logo_url: b.logo_url || "", menu_pdf_url: b.menu_pdf_url || "", booking_config: b.booking_config || null }); setShowAddBiz(true); }} style={{ width: "100%", padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>Editar y reenviar</button>}
+                </div>
+              );
+            })}
+            
+            {myClaims.filter(c => c.status === "pending").map(claim => {
+              const b = biz?.find(x => x.id === claim.business_id);
+              if (!b) return null;
+              return (
+                <div key={claim.id} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", marginBottom: 8, border: `1px solid ${T.border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{b.name}</div>
+                      <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{b.type || b.category}</div>
+                    </div>
+                    <span style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>Reclamo en revisión</span>
+                  </div>
                 </div>
               );
             })}
@@ -293,7 +429,7 @@ export default function AccountView({
       ) : (
         <div style={{ padding: "88px 26px 0", textAlign: "center" }}>
           <div style={{ width: 68, height: 68, borderRadius: 18, background: T.greenL, margin: "0 auto 18px", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="user" size={30} color={T.green} /></div>
-          <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 24, color: T.text, marginBottom: 9 }}>Tu cuenta</h2>
+          <h2 style={{ fontFamily: "var(--heading)", fontSize: 24, color: T.text, marginBottom: 9 }}>Tu cuenta</h2>
           <p style={{ color: T.sub, fontSize: 15, lineHeight: 1.65, marginBottom: 28 }}>Inicia sesión para guardar favoritos, escribir reseñas y acceder desde cualquier dispositivo.</p>
           <button className="btn-g press" onClick={() => setShowAuth(true)}>Iniciar sesión</button>
           <button className="btn-s press" style={{ marginTop: 11 }} onClick={() => { setAuthMode("register"); setShowAuth(true); }}>Crear cuenta gratis</button>
@@ -306,16 +442,7 @@ export default function AccountView({
       )}
 
       {/* ── FOOTER ── */}
-      <div style={{ textAlign: "center", marginTop: 28, paddingBottom: 24, display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
-          <span onClick={() => navigate("privacy")} style={{ fontSize: 12, color: T.sub, textDecoration: "underline", cursor: "pointer" }}>Aviso de Privacidad</span>
-          <span style={{ fontSize: 12, color: T.border }}>•</span>
-          <span onClick={() => navigate("terms")} style={{ fontSize: 12, color: T.sub, textDecoration: "underline", cursor: "pointer" }}>Términos de Uso</span>
-          <span style={{ fontSize: 12, color: T.border }}>•</span>
-          <span onClick={() => window.location.href = "mailto:soporte@citymap.mx"} style={{ fontSize: 12, color: T.sub, textDecoration: "underline", cursor: "pointer" }}>Contacto</span>
-        </div>
-        <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, letterSpacing: 0.5 }}>CityMap v1.0.0</div>
-      </div>
+      <Footer />
     </div>
   );
 }

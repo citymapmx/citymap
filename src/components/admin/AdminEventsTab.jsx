@@ -1,20 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Icon from '../ui/Icon';
 import Uploader from '../Uploader';
 import OptimizedImage from '../ui/OptimizedImage';
 import FI from './FI';
-import { getEventStatus, createSlug } from '../../lib/utils.js';
+import BookingManager from '../BookingManager';
+import { getEventStatus, createSlug, getThumbUrl } from '../../lib/utils.js';
+import { cloudDelete } from '../../lib/supabase.js';
 
 export default function AdminEventsTab({
   data,
-  evForm,
-  setEvForm,
   sb,
   load,
-  onToast,
-  saving,
-  setSaving
+  onToast
 }) {
+  const [evForm, setEvForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+
   return (
     <>
       {!evForm && <div>
@@ -25,31 +26,38 @@ export default function AdminEventsTab({
         {data.events.filter(ev => ev.status !== "pending").map(ev => {
           const st = getEventStatus(ev);
           const isPending = ev.status === "pending" || !ev.active;
+          const thumb = ev.img_url || ev.img;
           return <div key={ev.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 10, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
-            {(ev.img_url || ev.img) && <div style={{ height: 70, overflow: "hidden" }}><OptimizedImage src={ev.img_url || ev.img} widthRequest={400} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>}
-            <div style={{ padding: "10px 14px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="text-sm" style={{ fontWeight: 700, color: "#0F1A14" }}>{ev.title}</div>
-                  <div className="text-xs" style={{ color: "#5A6872", marginTop: 2 }}>
-                    {ev.date}{ev.time && " · " + ev.time}
-                    {ev.event_category && " · " + ev.event_category}
-                    {ev.venue_name && " · " + ev.venue_name}
-                  </div>
-                </div>
-                <span className="text-micro" style={{ background: st.bg, color: st.color, borderRadius: 20, padding: "3px 9px", fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{st.lbl}</span>
+            <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+              {/* Thumbnail pequeño */}
+              <div style={{ width: 52, height: 52, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#F7F8F6" }}>
+                {thumb
+                  ? <img src={getThumbUrl(thumb, 120, 120)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar" size={20} color="#5A6872" /></div>
+                }
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 2 }}>
+                  <div className="text-sm" style={{ fontWeight: 700, color: "#0F1A14" }}>{ev.title}</div>
+                  <span className="text-micro" style={{ background: st.bg, color: st.color, borderRadius: 20, padding: "3px 9px", fontWeight: 700, flexShrink: 0 }}>{st.lbl}</span>
+                </div>
+                <div className="text-xs" style={{ color: "#5A6872", marginTop: 2 }}>
+                  {ev.date}{ev.time && " · " + ev.time}
+                  {ev.event_category && " · " + ev.event_category}
+                  {ev.venue_name && " · " + ev.venue_name}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: "0 14px 10px", display: "flex", gap: 6 }}>
                 {isPending && <button onClick={async () => { 
                   await sb.patch("events", ev.id, { status: "approved", active: true }); 
                   if (ev.user_id) await sb.notify(ev.user_id, "Evento Aprobado", `Tu evento "${ev.title}" ya es público.`, "system");
                   onToast("Evento aprobado"); 
                   await load(); 
                 }} style={{ flex: 1, padding: "7px 0", background: "#DCFCE7", border: "none", borderRadius: 8, fontSize: 11, fontWeight: 700, color: "#16A34A", cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>}
-                {isPending && <button onClick={async () => { if (!window.confirm("¿Rechazar y eliminar este evento por completo?")) return; await sb.del("events", ev.id); onToast("Evento eliminado"); await load(); }} style={{ flex: 1, padding: "7px 0", background: "#FEE2E2", border: "none", borderRadius: 8, fontSize: 11, fontWeight: 700, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>}
+                {isPending && <button onClick={async () => { if (!window.confirm("¿Rechazar y eliminar este evento por completo?")) return; if (ev.img_url || ev.img) await cloudDelete(ev.img_url || ev.img); await sb.del("events", ev.id); onToast("Evento eliminado"); await load(); }} style={{ flex: 1, padding: "7px 0", background: "#FEE2E2", border: "none", borderRadius: 8, fontSize: 11, fontWeight: 700, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>}
                 {!isPending && <button onClick={() => setEvForm({ ...ev })} style={{ flex: 1, background: "#EAF4F0", border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontSize: 11, fontWeight: 700, color: "#1A7A5E", fontFamily: "inherit" }}>Editar</button>}
-                <button onClick={async () => { if (!window.confirm("Eliminar evento?")) return; await sb.del("events", ev.id); onToast("Eliminado"); await load(); }} style={{ background: "#FFF5F5", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer" }}><Icon name="trash" size={12} color="#D94F3D" /></button>
-              </div>
+                <button onClick={async () => { if (!window.confirm("Eliminar evento?")) return; if (ev.img_url || ev.img) await cloudDelete(ev.img_url || ev.img); await sb.del("events", ev.id); onToast("Eliminado"); await load(); }} style={{ background: "#FFF5F5", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer" }}><Icon name="trash" size={12} color="#D94F3D" /></button>
             </div>
           </div>;
         })}
@@ -74,7 +82,21 @@ export default function AdminEventsTab({
           <FI label="Lugar / Venue" field="venue_name" src={evForm} set={setEvForm} ph="Club 24, Tepic Centro" />
           <FI label="Dirección" field="venue_address" src={evForm} set={setEvForm} ph="Av. México 123" />
           <FI label="WhatsApp contacto" field="whatsapp" src={evForm} set={setEvForm} ph="3111234567" />
-          <FI label="Sitio web / Boletos (Opcional)" field="website" src={evForm} set={setEvForm} ph="https://..." />
+          {(() => {
+            let cfg = { enabled: false, type: "external", externalLinks: [] };
+            if (evForm.website && evForm.website.startsWith('{')) {
+              try { cfg = JSON.parse(evForm.website); } catch(e) {}
+            } else if (evForm.website) {
+              cfg = { enabled: true, type: "external", externalLinks: [{ platform: "otro", url: evForm.website, label: "Boletos / Sitio Web" }] };
+            }
+            return (
+              <BookingManager 
+                bookingConfig={cfg} 
+                onChange={(newCfg) => setEvForm(f => ({ ...f, website: JSON.stringify(newCfg) }))} 
+                T={{ bg: "#fff", text: "#0F1A14", sub: "#5A6872", border: "#E4E8E4", green: "#1A7A5E" }} 
+              />
+            );
+          })()}
           <div>
             <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Ciudades</label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -98,7 +120,7 @@ export default function AdminEventsTab({
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => setEvForm(null)} style={{ flex: 1, padding: 14, background: "#fff", border: "1.5px solid #E4E8E4", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
-          <button onClick={async () => { setSaving(true); try { const cty = evForm.city_slug && evForm.city_slug !== "all" ? evForm.city_slug : "tepic"; let baseSlug = evForm.slug || createSlug(evForm.title); if (!baseSlug.startsWith(cty + "-")) baseSlug = `${cty}-${baseSlug}`; let newSlug = baseSlug; let counter = 1; while (data.events.some(e => e.slug === newSlug && e.id !== evForm.id)) { newSlug = `${baseSlug}-${counter++}`; } const p = { title: evForm.title, slug: newSlug, description: evForm.description, date: evForm.date, time: evForm.time, end_date: evForm.end_date, end_time: evForm.end_time, price_type: evForm.price_type, price: evForm.price, event_category: evForm.event_category, venue_name: evForm.venue_name, venue_address: evForm.venue_address, whatsapp: evForm.whatsapp, website: evForm.website, city_slug: evForm.city_slug || "all", img_url: evForm.img_url || evForm.img, status: "approved", active: true }; if (evForm._new) await sb.post("events", p); else await sb.patch("events", evForm.id, p); onToast("Guardado"); setEvForm(null); await load(); } catch(e) { onToast("Error: " + e.message); } finally { setSaving(false); } }} disabled={saving || !evForm.title} style={{ flex: 2, padding: 14, background: saving || !evForm.title ? "#9CA3AF" : "#1A7A5E", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>{saving ? "Guardando..." : evForm._new ? "Crear" : "Guardar"}</button>
+          <button onClick={async () => { setSaving(true); try { const cty = evForm.city_slug && evForm.city_slug !== "all" ? evForm.city_slug : (data.cities && data.cities.length > 0 ? data.cities[0].slug : ""); let baseSlug = evForm.slug || createSlug(evForm.title); if (!baseSlug.startsWith(cty + "-")) baseSlug = `${cty}-${baseSlug}`; let newSlug = baseSlug; let counter = 1; while (data.events.some(e => e.slug === newSlug && e.id !== evForm.id)) { newSlug = `${baseSlug}-${counter++}`; } const p = { title: evForm.title, slug: newSlug, description: evForm.description, date: evForm.date, time: evForm.time, end_date: evForm.end_date, end_time: evForm.end_time, price_type: evForm.price_type, price: evForm.price, event_category: evForm.event_category, venue_name: evForm.venue_name, venue_address: evForm.venue_address, whatsapp: evForm.whatsapp, website: evForm.website, city_slug: evForm.city_slug || "all", img_url: evForm.img_url || evForm.img, status: "approved", active: true }; if (evForm._new) await sb.post("events", p); else await sb.patch("events", evForm.id, p); onToast("Guardado"); setEvForm(null); await load(); } catch(e) { onToast("Error: " + e.message); } finally { setSaving(false); } }} disabled={saving || !evForm.title} style={{ flex: 2, padding: 14, background: saving || !evForm.title ? "#9CA3AF" : "#1A7A5E", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>{saving ? "Guardando..." : evForm._new ? "Crear" : "Guardar"}</button>
         </div>
       </div>}
     </>

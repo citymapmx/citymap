@@ -99,7 +99,8 @@ export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
   }, [cities, mapPins, setActiveCity, toast$, getKm]);
 
   const handleCitySelect = useCallback((c) => {
-    const displayName = c.state ? `${c.name}, ${c.state}` : c.name;
+    const realState = c.state ? c.state.split(";")[0] : "";
+    const displayName = realState ? `${c.name}, ${realState}` : c.name;
     setCity(displayName);
     if (setActiveCity) setActiveCity(c.slug);
     setDetectedTown(null);

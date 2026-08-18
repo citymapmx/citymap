@@ -252,26 +252,27 @@ export default function AiMenuImporter({ onImport, bizType, adminSecret }) {
         onClick={() => fileRef.current?.click()}
         style={{
           width: '100%',
-          padding: '14px 16px',
-          background: 'linear-gradient(135deg, rgba(124,58,237,0.08), rgba(79,70,229,0.08))',
-          border: '1.5px dashed #7C3AED',
+          padding: '16px',
+          background: '#FFFFFF',
+          border: '1px solid #E2E8F0',
           borderRadius: 12,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
+          gap: 16,
           textAlign: 'left',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
         }}
       >
-        <div style={{ fontSize: 28, flexShrink: 0 }}>🤖</div>
+        <div style={{ fontSize: 24, flexShrink: 0 }}>🤖</div>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 13, color: '#7C3AED' }}>Importar con IA</div>
-          <div style={{ fontSize: 11, color: '#6D28D9', marginTop: 2, lineHeight: 1.3 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#0F172A' }}>Importar con IA</div>
+          <div style={{ fontSize: 13, color: '#64748B', marginTop: 2, lineHeight: 1.4 }}>
             Sube una foto o PDF de tu menú/catálogo y la IA lo digitalizará automáticamente.
           </div>
         </div>
         <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
-          <Icon name="image" size={18} color="#7C3AED" />
+          <Icon name="image" size={18} color="#94A3B8" />
         </div>
       </button>
 

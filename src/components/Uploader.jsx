@@ -29,7 +29,7 @@ export default function Uploader({ onDone, label = "Subir foto", accept = "image
     if (!multiple) {
       const file = files[0];
       const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-      if (aspect && !isPdf && file.type.startsWith("image/")) {
+      if (aspect && !isPdf && file.type.startsWith("image/") && file.type !== "image/svg+xml") {
         setOriginalFile(file);
         const reader = new FileReader();
         reader.addEventListener('load', () => setImageSrc(reader.result));
@@ -63,24 +63,30 @@ export default function Uploader({ onDone, label = "Subir foto", accept = "image
       const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
       let fileToUpload = file;
 
-      if (!isPdf && file.type.startsWith("image/")) {
-        const options = avatarMode ? {
-          maxSizeMB: 0.1,
-          maxWidthOrHeight: 300,
-          useWebWorker: true,
-          initialQuality: 0.8,
-          fileType: 'image/webp'
-        } : {
-          maxSizeMB: 4,
-          maxWidthOrHeight: 2500,
-          useWebWorker: true,
-          initialQuality: 0.95,
-          fileType: 'image/webp'
-        };
-        try {
-          fileToUpload = await imageCompression(file, options);
-        } catch (error) {
-          console.warn("Compression error, uploading original", error);
+      if (!isPdf && file.type.startsWith("image/") && file.type !== "image/svg+xml") {
+        const targetMB = avatarMode ? 0.1 : 1.5;
+        // Solo comprimimos si el archivo es más pesado que nuestro límite
+        if (file.size > targetMB * 1024 * 1024) {
+          const options = avatarMode ? {
+            maxSizeMB: 0.1,
+            maxWidthOrHeight: 300,
+            useWebWorker: true,
+            initialQuality: 0.8,
+            fileType: 'image/webp'
+          } : {
+            maxSizeMB: 1.5,
+            maxWidthOrHeight: 2000,
+            useWebWorker: true,
+            initialQuality: 0.95,
+            fileType: 'image/webp'
+          };
+          try {
+            const compressed = await imageCompression(file, options);
+            const newName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
+            fileToUpload = new File([compressed], newName, { type: 'image/webp' });
+          } catch (error) {
+            console.warn("Compression error, uploading original", error);
+          }
         }
       }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import Icon from "./ui/Icon.jsx";
 import CompactCard from "./cards/CompactCard.jsx";
 import DestacadoCard from "./cards/DestacadoCard.jsx";
@@ -12,36 +12,36 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
 
   const mockFree = {
     id: "mock_free",
-    name: "Starbucks Manglar",
-    category: "Cafeterías",
+    name: "Donatella",
+    category: "Restaurantes",
     plan: "gratis",
-    rating: 5.0,
-    review_count: 1,
-    photos: [{ url: "https://res.cloudinary.com/da6g5pt5x/image/upload/v1783319210/cityguide/ebrcuafqo3il7dl1lgc7.png" }],
+    rating: 4.9,
+    review_count: 12,
+    photos: [{ url: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=800&q=80" }],
   };
 
   const mockPro = {
     id: "mock_pro",
-    name: "Starbucks Manglar",
-    category: "Cafeterías",
+    name: "Donatella",
+    category: "Restaurantes",
     plan: "destacado",
-    rating: 5.0,
-    review_count: 1,
-    photos: [{ url: "https://res.cloudinary.com/da6g5pt5x/image/upload/v1783319210/cityguide/ebrcuafqo3il7dl1lgc7.png" }],
+    rating: 4.9,
+    review_count: 12,
+    photos: [{ url: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=800&q=80" }],
   };
 
   const mockElite = {
     id: "mock_elite",
-    name: "Starbucks Manglar",
-    category: "Cafeterías",
+    name: "Donatella",
+    category: "Restaurantes",
     plan: "premium",
-    logo_url: "https://res.cloudinary.com/da6g5pt5x/image/upload/v1783319244/cityguide/ytlhnaxpkghht8uow7zv.png",
-    rating: 5.0,
-    review_count: 1,
-    photos: [{ url: "https://res.cloudinary.com/da6g5pt5x/image/upload/v1783319210/cityguide/ebrcuafqo3il7dl1lgc7.png" }],
-    whatsapp: "123",
-    instagram: "starbucksmex",
-    facebook: "StarbucksMexico"
+    logo_url: "https://images.unsplash.com/photo-1590947132387-155cc02f3212?auto=format&fit=crop&w=200&q=80",
+    rating: 4.9,
+    review_count: 12,
+    photos: [{ url: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=800&q=80" }],
+    whatsapp: "1234567890",
+    instagram: "donatella.mx",
+    facebook: "donatella"
   };
 
   const plans = [
@@ -50,41 +50,44 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
       name: "Gratuito", 
       priceMonthly: "$0", 
       priceAnnual: "$0", 
-      desc: "Ideal para que cualquier negocio tenga presencia en CityMap.",
-      color: "#6B7280", 
+      desc: "Ideal para que cualquier negocio tenga presencia básica.",
+      color: dark ? "#9CA3AF" : "#6B7280", 
       icon: "user", 
-      iconBg: "#F3F4F6", 
-      features: ["Portada", "Información del negocio", "Teléfono", "Dirección", "Horarios", "Banner tamaño estándar"], 
-      missing: [] 
+      features: ["Portada e Información del negocio", "Teléfono y Dirección", "Horarios", "Banner estándar"], 
     },
     { 
       key: "pro", 
       name: "Destacado", 
-      priceMonthly: "$99", 
-      priceAnnual: "$990", 
-      desc: "Ideal para negocios que buscan más clientes y más visibilidad.",
-      color: "#3B82F6", 
+      priceMonthly: "$149", 
+      oldPriceMonthly: "$299",
+      priceAnnual: "$1,490", 
+      oldPriceAnnual: "$2,990",
+      desc: "Ideal para negocios que buscan captar clientes y mayor visibilidad.",
+      color: dark ? "#E2E8F0" : "#0F172A", 
       icon: "star", 
       badge: "Más popular",
-      iconBg: "#E0E7FF", 
-      mpLinkMonthly: "https://www.mercadopago.com.mx/subscriptions/checkout?preapproval_plan_id=1345ec4d71144a8c86f0a0311175ad97", 
-      mpLinkAnnual: "https://www.mercadopago.com.mx/subscriptions/checkout?preapproval_plan_id=476ef47b9f2c4e90afa40dc9634fdda8", 
-      features: ["Todo lo del plan gratuito, más:", "Banner de tamaño destacado", "Hasta 6 fotos en la galería", "Enlace directo a WhatsApp", "Integración con redes sociales", "Enlace al sitio web", "Menú digital (PDF)", "Estadísticas básicas", "Prioridad media en búsquedas", "Actualización de imágenes una vez al mes"], 
-      missing: [] 
+      features: ["Todo lo del plan gratuito, más:", "Banner destacado", "Galería de fotos", "Enlace a WhatsApp y redes sociales", "Menú Digital", "Panel de administrador"], 
+      screenshots: [
+        { url: "/plans/menu-digital.png", label: "Menú Digital" },
+        { url: "/plans/galeria.png", label: "Galería de Fotos" }
+      ]
     },
     { 
       key: "elite", 
       name: "Premium", 
-      priceMonthly: "$199", 
-      priceAnnual: "$1,990", 
-      desc: "Ideal para negocios que quieran destacar frente a su competencia.",
-      color: "#D97706", 
+      priceMonthly: "$299", 
+      oldPriceMonthly: "$599",
+      priceAnnual: "$2,990", 
+      oldPriceAnnual: "$5,990",
+      desc: "Ideal para negocios líderes que buscan dominar su mercado.",
+      color: dark ? "#E2E8F0" : "#0F172A", 
       icon: "award", 
-      iconBg: "#FEF3C7", 
-      mpLinkMonthly: "https://www.mercadopago.com.mx/subscriptions/checkout?preapproval_plan_id=b0011d69b19a466588d8b7a143af10e1", 
-      mpLinkAnnual: "https://www.mercadopago.com.mx/subscriptions/checkout?preapproval_plan_id=edafc715b2324b74b82124230c8c9fd0", 
-      features: ["Todo lo incluido en el plan Destacado, más:", "Banner de tamaño premium", "Logotipo resaltado en el mapa", "Logotipo circular en tu banner", "Vídeos", "Botones directos en tu banner", "Menú interactivo con carrito", "Hasta 10 fotos en la galería", "Eventos personalizados", "Reservas disponibles 24/7", "Estadísticas avanzadas", "Actualizaciones ilimitadas", "Soporte técnico"], 
-      missing: [] 
+      badge: "Lo mejor",
+      features: ["Todo lo del plan Destacado, más:", "Banner premium y Logotipo en mapa", "Vídeos", "Menú interactivo con carrito enlazado a WhatsApp", "Galería de fotos ilimitada", "Gestión de Eventos y Reservas", "Reseñas de Google Maps", "Estadísticas y Soporte prioritario"], 
+      screenshots: [
+        { url: "/plans/menu-interactivo.png", label: "Menú Interactivo y Carrito" },
+        { url: "/plans/reservas.png", label: "Gestión de Reservas" }
+      ]
     },
   ];
 
@@ -101,33 +104,37 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 9999, overflowY: "auto", fontFamily: "inherit", animation: "fadeUp .4s ease" }}>
+      <style>{`
+        @keyframes gradient-pan {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 100% 50%; }
+        }
+      `}</style>
       
       {/* Header */}
-      <div style={{ position: "sticky", top: 0, background: T.bg, zIndex: 10, borderBottom: `1px solid ${T.border}`, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-        <button className="press" onClick={onClose} style={{ background: T.white, border: `1.5px solid ${T.border}`, width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-          <Icon name="chevron" size={20} color={T.text} style={{ transform: "rotate(180deg)" }} />
-        </button>
-        <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 22, color: T.text, margin: 0 }}>Planes para tu negocio</h2>
+      <div style={{ position: "sticky", top: 0, background: T.white, zIndex: 10, borderBottom: `1px solid ${T.border}`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
+            <Icon name="arrow_left" size={24} color={T.text} />
+          </button>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.5px" }}>Planes para tu negocio</h1>
+        </div>
       </div>
 
       <div style={{ padding: "0 20px 80px" }}>
         
         {/* Hero Section */}
-        <div style={{ textAlign: "center", padding: "32px 0 28px" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, rgba(34,197,94,0.1), rgba(59,130,246,0.1))", padding: "6px 14px", borderRadius: 20, marginBottom: 16 }}>
-            <Icon name="star" size={14} color="#D97706" />
-            <span style={{ fontSize: 12, fontWeight: 800, color: "#D97706", textTransform: "uppercase", letterSpacing: 0.5 }}>Oferta de lanzamiento</span>
-          </div>
-          <h1 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 28, color: T.text, margin: "0 0 8px 0", lineHeight: 1.2, letterSpacing: '1px' }}>Haz que más clientes te encuentren</h1>
-          <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.6, maxWidth: 340, margin: "0 auto" }}>Más de 100 negocios ya están en CityMap. Aumenta tu visibilidad y atrae más clientes desde hoy.</p>
+        <div style={{ textAlign: "center", padding: "40px 0 30px" }}>
+          <h1 style={{ fontSize: 32, fontWeight: 700, color: T.text, margin: "0 0 12px 0", letterSpacing: '-0.5px' }}>Planes diseñados para crecer</h1>
+          <p style={{ fontSize: 16, color: T.sub, lineHeight: 1.5, maxWidth: 360, margin: "0 auto", fontWeight: 400 }}>Elige la suscripción que mejor se adapte a los objetivos de tu negocio.</p>
         </div>
 
         {/* Stats Row */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
+        <div style={{ display: "flex", gap: 12, marginBottom: 40 }}>
           {stats.map(s => (
-            <div key={s.label} style={{ flex: 1, background: T.white, borderRadius: 14, padding: "14px 8px", textAlign: "center", border: `1px solid ${T.border}` }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: T.text, fontFamily: "'Coolvetica', sans-serif", letterSpacing: '1px' }}>{s.num}</div>
-              <div style={{ fontSize: 10, color: T.sub, fontWeight: 600, marginTop: 2 }}>{s.label}</div>
+            <div key={s.label} style={{ flex: 1, borderTop: `1px solid ${T.border}`, paddingTop: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: T.text }}>{s.num}</div>
+              <div style={{ fontSize: 11, color: T.sub, fontWeight: 500, marginTop: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -146,59 +153,49 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
         {/* Plan Cards */}
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {plans.map((p, idx) => (
-            <motion.div 
+            <m.div 
               key={p.key} 
               initial={{ opacity: 0, y: 20 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ delay: idx * 0.1, duration: 0.4 }}
               style={{ 
-                background: p.key === "elite" 
-                  ? `linear-gradient(135deg, ${dark ? "#2D2410" : "#FFFBEB"}, ${dark ? "#1a1a1a" : "#fff"})` 
-                  : T.white, 
-                borderRadius: 20, 
-                padding: "20px", 
-                boxShadow: p.key === "pro" ? "0 8px 24px rgba(59,130,246,0.12)" : p.key === "elite" ? "0 8px 24px rgba(217,119,6,0.12)" : "0 4px 16px rgba(0,0,0,0.04)", 
-                border: p.key === "elite" ? `2px solid ${T.gold}` : p.key === "pro" ? "2px solid #3B82F6" : `1px solid ${T.border}`, 
+                '--bg': T.bg,
+                background: p.key === "elite" ? `linear-gradient(var(--bg), var(--bg)) padding-box, linear-gradient(to right, #34D399, #3B82F6, #8B5CF6, #34D399, #3B82F6) border-box` : T.bg, 
+                backgroundSize: p.key === "elite" ? '100% 100%, 400% 100%' : 'auto',
+                animation: p.key === "elite" ? 'gradient-pan 4s linear infinite' : 'none',
+                borderRadius: 16, 
+                padding: "24px", 
+                border: p.key === "elite" ? `2px solid transparent` : `1px solid ${T.border}`, 
                 position: "relative",
-                overflow: "hidden"
               }}
             >
               {/* Badge */}
-              {p.badge && <div style={{ position: "absolute", top: 0, right: 0, background: "linear-gradient(135deg, #3B82F6, #2563EB)", color: "#fff", padding: "6px 14px 6px 18px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, borderBottomLeftRadius: 12 }}>★ {p.badge}</div>}
-              {p.key === "elite" && <div style={{ position: "absolute", top: 0, right: 0, background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff", padding: "6px 14px 6px 18px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, borderBottomLeftRadius: 12 }}>👑 Lo mejor</div>}
+              {p.badge && <div style={{ position: "absolute", top: -10, left: 24, background: p.key === "elite" ? "linear-gradient(to right, #34D399, #3B82F6, #8B5CF6, #34D399, #3B82F6)" : p.color, backgroundSize: p.key === "elite" ? "400% 100%" : "auto", animation: p.key === "elite" ? "gradient-pan 4s linear infinite" : "none", color: p.key === "elite" ? "#fff" : (dark ? "#0F172A" : "#fff"), padding: "4px 12px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, borderRadius: 20 }}>{p.key === "elite" ? "✨ " + p.badge : p.badge}</div>}
               
               {/* Plan Header */}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: p.iconBg, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 12px ${p.color}22` }}>
-                  <Icon name={p.icon} size={24} color={p.color} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: 20, fontWeight: 800, color: T.text, margin: 0 }}>{p.name}</h3>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 2 }}>
-                    <span style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 28, color: p.color }}>
-                      {billing === "monthly" ? p.priceMonthly : p.priceAnnual}
+              <div style={{ marginBottom: 20, marginTop: p.badge ? 10 : 0 }}>
+                <h3 style={{ fontSize: 22, fontWeight: 700, color: T.text, margin: "0 0 8px 0" }}>{p.name}</h3>
+                <p style={{ fontSize: 14, color: T.sub, margin: 0, lineHeight: 1.5 }}>{p.desc}</p>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 16 }}>
+                  {(billing === "monthly" ? p.oldPriceMonthly : p.oldPriceAnnual) && (
+                    <span style={{ fontSize: 18, color: T.sub, textDecoration: "line-through", fontWeight: 400 }}>
+                      {billing === "monthly" ? p.oldPriceMonthly : p.oldPriceAnnual}
                     </span>
-                    <span style={{ fontSize: 13, color: T.sub, fontWeight: 500 }}>
-                      MXN/{billing === "monthly" ? "mes" : "año"}
-                    </span>
-                    {billing === "annual" && p.key !== "free" && (
-                      <span style={{ background: "rgba(34, 197, 94, 0.15)", color: "#166534", padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, marginLeft: 4 }}>
-                        2 meses gratis
-                      </span>
-                    )}
-                  </div>
+                  )}
+                  <span style={{ fontSize: 36, fontWeight: 800, color: T.text, letterSpacing: '-1px' }}>
+                    {billing === "monthly" ? p.priceMonthly : p.priceAnnual}
+                  </span>
+                  <span style={{ fontSize: 14, color: T.sub, fontWeight: 500 }}>
+                    MXN / {billing === "monthly" ? "mes" : "año"}
+                  </span>
                 </div>
               </div>
-              
-              <p style={{ fontSize: 13, color: T.sub, marginBottom: 16, lineHeight: 1.5 }}>{p.desc}</p>
 
               {/* Features */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 20, paddingTop: 14, borderTop: `1px solid ${dark ? "rgba(255,255,255,0.06)" : "#F1F5F9"}` }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28, paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
                 {p.features.map(f => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: T.text, fontWeight: f.startsWith("Todo lo") ? 700 : 400 }}>
-                    <div style={{ width: 20, height: 20, borderRadius: 6, background: `${p.color}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Icon name="check" size={12} color={p.color} />
-                    </div>
+                  <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 12, fontSize: 14, color: T.text, lineHeight: 1.4 }}>
+                    <div style={{ marginTop: 2 }}><Icon name="check" size={14} color={p.key === "elite" ? "#8B5CF6" : p.color} /></div>
                     {f}
                   </div>
                 ))}
@@ -212,6 +209,23 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
                   {p.key === "pro" && <DestacadoCard b={mockPro} T={T} favIds={["mock_pro"]} toggleFav={()=>{}} distStr="2.6km" realFavs={12} />}
                   {p.key === "elite" && <FeaturedCard b={mockElite} T={T} favIds={["mock_elite"]} toggleFav={()=>{}} distStr="1.2km" realFavs={45} showStars={false} />}
                 </div>
+
+                {/* Screenshots */}
+                {p.screenshots && p.screenshots.length > 0 && (
+                  <div style={{ marginTop: 20, padding: "0 16px" }}>
+                    <p style={{ fontSize: 11, color: T.sub, marginBottom: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>Características incluidas</p>
+                    <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 12, scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                      {p.screenshots.map((shot, sIdx) => (
+                        <div key={sIdx} style={{ flex: "0 0 160px", display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ width: 160, height: 240, borderRadius: 12, overflow: "hidden", background: T.bg, border: `1px solid ${T.border}` }}>
+                            <img src={shot.url} alt={shot.label} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: T.text, textAlign: "center", lineHeight: 1.3 }}>{shot.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* CTA Button */}
@@ -222,27 +236,27 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
                 } : (!myBizList || myBizList.length === 0) ? onAddBiz : undefined} 
                 style={{ 
                   width: "100%", 
-                  padding: 15, 
-                  background: p.key === "elite" ? "linear-gradient(135deg, #F59E0B, #D97706)" : p.key === "pro" ? "linear-gradient(135deg, #3B82F6, #2563EB)" : (!myBizList || myBizList.length === 0) ? T.greenL : "#E4E8E4", 
-                  border: "none", 
-                  borderRadius: 14, 
-                  fontWeight: 800, 
+                  padding: "14px", 
+                  background: p.key === "free" ? "transparent" : p.key === "elite" ? "linear-gradient(to right, #34D399, #3B82F6, #8B5CF6, #34D399, #3B82F6)" : p.color, 
+                  backgroundSize: p.key === "elite" ? "400% 100%" : "auto",
+                  animation: p.key === "elite" ? "gradient-pan 4s linear infinite" : "none",
+                  border: p.key === "free" ? `1px solid ${T.border}` : "none", 
+                  borderRadius: 12, 
+                  fontWeight: 600, 
                   fontSize: 15, 
-                  color: p.key === "free" ? ((!myBizList || myBizList.length === 0) ? T.green : T.sub) : "#fff", 
+                  color: p.key === "free" ? T.text : (p.key === "pro" && dark ? "#0F172A" : "#fff"), 
                   cursor: p.key === "free" && myBizList?.length > 0 ? "default" : "pointer", 
-                  fontFamily: "inherit",
-                  boxShadow: p.key === "pro" ? "0 6px 20px rgba(59,130,246,0.3)" : p.key === "elite" ? "0 6px 20px rgba(217,119,6,0.3)" : "none"
                 }}
               >
-                {p.key === "free" ? ((!myBizList || myBizList.length === 0) ? "Registrar mi negocio gratis" : "Plan actual") : `Activar plan ${p.name}`}
+                {p.key === "free" ? ((!myBizList || myBizList.length === 0) ? "Registrarse gratis" : "Plan actual") : `Activar ${p.name}`}
               </button>
-            </motion.div>
+            </m.div>
           ))}
         </div>
 
         {/* Social Proof */}
         <div style={{ marginTop: 36 }}>
-          <h3 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 20, color: T.text, textAlign: "center", marginBottom: 16 }}>Lo que dicen nuestros clientes</h3>
+          <h3 style={{ fontFamily: "var(--heading)", fontSize: 20, color: T.text, textAlign: "center", marginBottom: 16 }}>Lo que dicen nuestros clientes</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {testimonials.map((t, i) => (
               <div key={i} style={{ background: T.white, borderRadius: 16, padding: "16px", border: `1px solid ${T.border}` }}>
@@ -268,7 +282,7 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
 
         {/* FAQ */}
         <div style={{ marginTop: 36 }}>
-          <h3 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 20, color: T.text, textAlign: "center", marginBottom: 16 }}>Preguntas frecuentes</h3>
+          <h3 style={{ fontFamily: "var(--heading)", fontSize: 20, color: T.text, textAlign: "center", marginBottom: 16 }}>Preguntas frecuentes</h3>
           {[
             { q: "¿Puedo cancelar en cualquier momento?", a: "Sí, puedes cancelar tu suscripción cuando quieras. No hay contratos ni penalizaciones." },
             { q: "¿Cómo se realiza el pago?", a: "A través de MercadoPago con tarjeta de crédito, débito o transferencia. Totalmente seguro." },
@@ -302,12 +316,12 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
       {/* Payment Modal */}
       <AnimatePresence>
         {selectedPlan && (
-          <motion.div 
+          <m.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
             style={{ position: "fixed", inset: 0, zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", padding: 20 }} 
             onClick={() => setSelectedPlan(null)}
           >
-            <motion.div 
+            <m.div 
               initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }} transition={{ duration: 0.3, ease: "easeOut" }}
               onClick={e => e.stopPropagation()} 
               style={{ background: dark ? "#1a1a1a" : "#fff", width: "100%", maxWidth: 340, borderRadius: 24, padding: "24px", position: "relative", boxShadow: "0 24px 48px rgba(0,0,0,0.2)" }}
@@ -374,8 +388,8 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
                 Pagar con Tarjeta (Stripe)
               </button>
               <p style={{ fontSize: 11, color: T.sub, textAlign: "center", margin: 0 }}>🔒 Pago 100% seguro y encriptado</p>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

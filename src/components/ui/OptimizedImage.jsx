@@ -21,15 +21,18 @@ const OptimizedImage = memo(({
   src, 
   alt = "", 
   widthRequest = 400, 
+  heightRequest = null,
   priority = false, 
   className, 
   style,
   onClick 
 }) => {
+  const [loaded, setLoaded] = React.useState(false);
+  
   if (!src) return null;
 
   // Process the URL using the bucketed width logic
-  const optimizedSrc = getThumbUrl(src, widthRequest);
+  const optimizedSrc = getThumbUrl(src, widthRequest, heightRequest);
 
   return (
     <img 
@@ -38,7 +41,14 @@ const OptimizedImage = memo(({
       loading={priority ? "eager" : "lazy"}
       fetchpriority={priority ? "high" : "auto"}
       className={className}
-      style={style}
+      style={{
+        ...style,
+        opacity: loaded ? 1 : 0,
+        transition: "opacity 0.4s ease-out",
+        backgroundColor: "#F1F5F9"
+      }}
+      onLoad={() => setLoaded(true)}
+      onError={() => setLoaded(true)} // Prevents being stuck invisible on error
       onClick={onClick}
     />
   );

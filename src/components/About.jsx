@@ -17,7 +17,7 @@ export default function About({ T, onBack }) {
         <div style={{ marginBottom: 48 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
             <Icon name="map" size={32} color={T.text} />
-            <h1 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 36, color: T.text, margin: 0, letterSpacing: 0.5 }}>CityMap</h1>
+            <h1 style={{ fontFamily: "var(--heading)", fontSize: 36, color: T.text, margin: 0, letterSpacing: 0.5 }}>CityMap</h1>
           </div>
           <p style={{ fontSize: 18, color: T.sub, lineHeight: 1.6, fontWeight: 500 }}>
             Tu guía local inteligente para descubrir lo mejor de la ciudad, en un solo lugar.

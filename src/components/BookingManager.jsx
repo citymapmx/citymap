@@ -116,14 +116,18 @@ export default function BookingManager({ bookingConfig, onChange, T }) {
                       >
                         <option value="airbnb">Airbnb</option>
                         <option value="booking">Booking</option>
+                        <option value="tiqets">Tiqets</option>
                         <option value="tripadvisor">TripAdvisor</option>
                         <option value="expedia">Expedia</option>
+                        <option value="hoteles">Hoteles.com</option>
+                        <option value="getyourguide">GetYourGuide</option>
+                        <option value="renta_auto">Rentar Auto</option>
                         <option value="opentable">OpenTable</option>
-                        <option value="resy">Resy</option>
                         <option value="ubereats">Uber Eats</option>
                         <option value="rappi">Rappi</option>
                         <option value="didifood">DiDi Food</option>
                         <option value="whatsapp">WhatsApp</option>
+                        <option value="comprar_entradas">Comprar Entradas</option>
                         <option value="otro">Otro / Web</option>
                       </select>
                       <input 
@@ -269,6 +273,10 @@ export default function BookingManager({ bookingConfig, onChange, T }) {
                         <div>
                           <label style={{ fontSize: 10, fontWeight: 700, color: T?.sub || "#5A6872", textTransform: "uppercase", marginBottom: 4, display: "block" }}>Max. a la vez</label>
                           <input type="number" defaultValue={config.maxPerSlot || 1} min={1} onBlur={e => setField("maxPerSlot", parseInt(e.target.value) || 1)} onChange={e => { const v = parseInt(e.target.value); if (v >= 1) setField("maxPerSlot", v); }} style={{ width: "100%", padding: "8px", border: `1px solid ${T?.border || "#E4E8E4"}`, borderRadius: 8, fontSize: 12, background: T?.white || "#fff", color: T?.text || "#0F1A14" }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 10, fontWeight: 700, color: T?.sub || "#5A6872", textTransform: "uppercase", marginBottom: 4, display: "block" }}>T. Preparación (Min)</label>
+                          <input type="number" placeholder="Ej: 15" defaultValue={config.bufferMin || 0} min={0} onBlur={e => setField("bufferMin", parseInt(e.target.value) || 0)} onChange={e => { const v = parseInt(e.target.value); if (v >= 0) setField("bufferMin", v); }} style={{ width: "100%", padding: "8px", border: `1px solid ${T?.border || "#E4E8E4"}`, borderRadius: 8, fontSize: 12, background: T?.white || "#fff", color: T?.text || "#0F1A14" }} />
                         </div>
                       </div>
                     )}

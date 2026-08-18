@@ -1,26 +1,45 @@
-const BOTS = ["googlebot","facebookexternalhit","twitterbot","linkedinbot","whatsapp","telegrambot","discordbot","slackbot","applebot","bingbot","pinterest","vkshare","w3c_validator"];
-
-export default function middleware(request) {
+export default async function middleware(request) {
   const ua = request.headers.get("user-agent") || "";
   const lower = ua.toLowerCase();
-  const bot = BOTS.some(b => lower.includes(b));
   
-  if (!bot) return;
-
+  const SEARCH_BOTS = ["googlebot", "bingbot", "yandex", "duckduckbot", "slurp"];
+  const isSearchBot = SEARCH_BOTS.some(b => lower.includes(b));
+  
+  if (isSearchBot) {
+    const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/') || url.pathname === '/sitemap.xml' || url.pathname.includes('.')) return;
+    
+    // Configura tu token de Prerender.io en Vercel Env (PRERENDER_TOKEN)
+    const PRERENDER_TOKEN = process.env.PRERENDER_TOKEN || ""; 
+    const prerenderUrl = `https://service.prerender.io/${request.url}`;
+    
+    try {
+      const res = await fetch(prerenderUrl, {
+        headers: {
+          'X-Prerender-Token': PRERENDER_TOKEN,
+          'User-Agent': ua
+        }
+      });
+      if (res.ok) {
+        const html = await res.text();
+        return new Response(html, {
+          status: 200,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
+      }
+    } catch (e) {
+      console.error("Prerender error:", e);
+    }
+  }
+  
+  // Lógica anterior para rutas con parámetros
   const url = new URL(request.url);
-  
-  // Prevent infinite redirects or intercepting api/sitemaps
-  if (url.pathname.startsWith('/api/') || url.pathname === '/sitemap.xml') return;
-
-  const segments = url.pathname.split('/').filter(Boolean);
-
-  // Legacy search params
   const b = url.searchParams.get("b");
   const ev = url.searchParams.get("ev");
   const lugar = url.searchParams.get("lugar");
   const evento = url.searchParams.get("evento");
   const vista = url.searchParams.get("vista");
-
+  
   if (vista) return new Response(null, { status: 302, headers: { Location: `/api/og?vista=${vista}` } });
   if (b || lugar) {
     const finalId = b || lugar.split("_").pop();
@@ -30,9 +49,9 @@ export default function middleware(request) {
     const finalId = ev || evento.split("_").pop();
     return new Response(null, { status: 302, headers: { Location: `/api/og?ev=${finalId}` } });
   }
-
-  // Allow clean URLs to fall through to vercel.json native rewrites
-  // which return 200 OK (Facebook requires 200 OK, not 302 Redirects).
+  
+  // Los bots sociales como Facebook o WhatsApp pasarán de largo aquí
+  // y serán atrapados por vercel.json que los mandará a /api/og de forma nativa.
 }
 
 export const config = {

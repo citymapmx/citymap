@@ -1,5 +1,5 @@
 import { useState, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import Icon from "../ui/Icon.jsx";
 import { FONT_BIZ } from "../../lib/constants.js";
 import { CAT_EMOJI, isOpenNow, getScheduleStatus, getThumbUrl, haptic } from "../../lib/utils.js";
@@ -18,7 +18,7 @@ export default memo(function DestacadoCard({ b, T, dark, isFav, toggleFav, onTap
     toggleFav(b.id, e);
   };
   return (
-    <motion.div whileHover="hover" whileTap={{ scale: 0.96 }} className="press" onClick={() => { haptic("light"); onTap(b); }} style={{ background: T.white, borderRadius: 16, overflow: "hidden", boxShadow: T.shadow, display: "flex", flexDirection: "column", position: "relative", border: `1.5px solid ${T.green}40` }} variants={{ hover: { y: -4, boxShadow: "0 16px 40px rgba(0, 0, 0, 0.12)" } }} transition={{ duration: 0.3, ease: "easeOut" }}>
+    <m.div whileHover="hover" whileTap={{ scale: 0.96 }} className="press" onClick={() => { haptic("light"); onTap(b); }} style={{ background: T.white, borderRadius: 16, overflow: "hidden", boxShadow: T.shadow, display: "flex", flexDirection: "column", position: "relative", border: `1.5px solid ${T.green}40` }} variants={{ hover: { y: -4, boxShadow: "0 16px 40px rgba(0, 0, 0, 0.12)" } }} transition={{ duration: 0.3, ease: "easeOut" }}>
       {/* Top Banner */}
       <div style={{ height: 120, position: "relative", background: T.border }}>
         {thumb?.url
@@ -35,14 +35,14 @@ export default memo(function DestacadoCard({ b, T, dark, isFav, toggleFav, onTap
         
         {/* Heart overlaid on top banner */}
         <div style={{ position: "absolute", top: 10, right: 10, zIndex: 10 }}>
-          <motion.button whileTap={{ scale: 0.7 }} aria-label={isFav ? "Quitar de favoritos" : "Añadir a favoritos"} onClick={handleFav} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}>
+          <m.button whileTap={{ scale: 0.7 }} aria-label={isFav ? "Quitar de favoritos" : "Añadir a favoritos"} onClick={handleFav} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}>
             <Icon name={isFav ? "heart_overlay_f" : "heart_overlay"} size={26} color="none" />
-          </motion.button>
+          </m.button>
           <AnimatePresence>
             {showPlus && (
-              <motion.div initial={{ opacity: 0, y: 0, scale: 0.5 }} animate={{ opacity: 1, y: -30, scale: 1.2 }} exit={{ opacity: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} style={{ position: "absolute", top: 0, left: 0, right: 0, pointerEvents: "none", display: "flex", justifyContent: "center", color: "#FFFFFF", fontWeight: 900, fontSize: 18, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
+              <m.div initial={{ opacity: 0, y: 0, scale: 0.5 }} animate={{ opacity: 1, y: -30, scale: 1.2 }} exit={{ opacity: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} style={{ position: "absolute", top: 0, left: 0, right: 0, pointerEvents: "none", display: "flex", justifyContent: "center", color: "#FFFFFF", fontWeight: 900, fontSize: 18, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
                 +1
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
@@ -50,7 +50,12 @@ export default memo(function DestacadoCard({ b, T, dark, isFav, toggleFav, onTap
 
       {/* Content */}
       <div style={{ padding: "12px 14px", position: "relative" }}>
-        <h3 style={{ fontFamily: FONT_BIZ, fontSize: 18, color: T.text, lineHeight: 1.2, fontWeight: 800, marginBottom: 8, textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</h3>
+        <h3 style={{ fontFamily: FONT_BIZ, fontSize: 18, color: T.text, lineHeight: 1.2, fontWeight: 800, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</span>
+          {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
+            <img src="/verificado.png" alt="Verificado" width="18" height="18" style={{ marginLeft: 6, flexShrink: 0 }} />
+          )}
+        </h3>
         
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -76,6 +81,6 @@ export default memo(function DestacadoCard({ b, T, dark, isFav, toggleFav, onTap
           {distStr && <div style={{ fontSize: 11, fontWeight: 600, color: T.sub }}>{distStr}</div>}
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 });

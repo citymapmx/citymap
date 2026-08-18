@@ -36,7 +36,7 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
         return (
           <div
             key="event-modal"
-            style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100dvh", background: T.bg, zIndex: 100000, overflowY: "auto", WebkitOverflowScrolling: "touch" }}
+            style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100dvh", background: dark ? "#000" : "#fff", zIndex: 100000, overflowY: "auto", WebkitOverflowScrolling: "touch" }}
           >
             <div style={{ width: "100%", maxWidth: 460, margin: "0 auto", padding: 0, display: "flex", flexDirection: "column", minHeight: "100%" }}>
               
@@ -54,89 +54,162 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
                 <button onClick={(e) => { e.stopPropagation(); setSelectedEvent(null); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 44, height: 44, borderRadius: 22, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
                   <Icon name="chevron" size={22} color="#fff" style={{ transform: "rotate(180deg)", marginLeft: -2 }} />
                 </button>
+                
+                {/* Floating Share Button */}
+                <button onClick={(e) => { e.stopPropagation(); const evUrl = `https://citymap.mx/evento/${createSlug(ev.title)}_${ev.id}`; if (navigator.share) navigator.share({ title: ev.title, text: evShareMsg, url: evUrl }); else { navigator.clipboard?.writeText(evUrl); toast$("Enlace copiado"); } }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 44, height: 44, borderRadius: 22, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+                  <Icon name="share" size={20} color="#fff" style={{ marginRight: 2 }} />
+                </button>
               </div>
 
               {/* --- CONTENT CARD (No overlap) --- */}
-              <div style={{ position: "relative", zIndex: 2, background: T.bg, padding: "20px 20px 40px", flex: 1, display: "flex", flexDirection: "column" }}>
+              <div style={{ position: "relative", zIndex: 2, background: dark ? "#000" : "#fff", padding: "20px 20px 40px", flex: 1, display: "flex", flexDirection: "column" }}>
 
-                <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.1, marginBottom: ev.event_category ? 4 : 16 }}>{ev.title}</h1>
+                <h1 style={{ fontFamily: FONT_BIZ, fontSize: 26, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 8, marginBottom: ev.event_category ? 8 : 24, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
                 
-                {ev.event_category && <div style={{ fontSize: 13, fontWeight: 700, color: T.text, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 20 }}>{ev.event_category}</div>}
-                
-                {/* --- INFORMACIÓN GENERAL (Stacked List) --- */}
-                <div style={{ marginBottom: 24 }}>
-                  <h3 style={{ fontSize: 17, fontWeight: 800, color: T.text, marginBottom: 12 }}>Información general</h3>
-                  <div style={{ background: dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
-                    
-                    {/* Fecha */}
-                    {ev.date && (
-                      <div style={{ display: "flex", alignItems: "center", padding: "16px", borderBottom: `1px solid ${T.border}` }}>
-                        <Icon name="calendar" size={20} color={T.text} style={{ marginRight: 14, opacity: 0.8 }} />
-                        <div style={{ flex: 1 }}>
-                          <span style={{ fontSize: 15, fontWeight: 700, color: T.text, display: "block", marginBottom: 2 }}>
-                            {fmtDate(ev.date)} {ev.end_date && ev.end_date !== ev.date ? ` al ${fmtDate(ev.end_date)}` : ''}
-                          </span>
-                          {ev.time && (
-                            <span style={{ fontSize: 13, fontWeight: 500, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>
-                              <Icon name="clock" size={12} color={T.sub} /> {fmtTime(ev.time)} {ev.end_time ? `- ${fmtTime(ev.end_time)}` : ''}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                {ev.event_category && <div style={{ fontSize: 13, fontWeight: 800, color: T.text, textTransform: "uppercase", letterSpacing: 1, marginBottom: 24, textAlign: "left" }}>{ev.event_category}</div>}
 
-                    {/* Entradas */}
-                    <div style={{ display: "flex", alignItems: "center", padding: "16px" }}>
-                      <div style={{ width: 20, display: "flex", justifyContent: "center", marginRight: 14 }}>
-                        <span style={{ fontSize: 18, fontWeight: 800, color: T.text, opacity: 0.8 }}>$</span>
-                      </div>
-                      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>Entradas</span>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: ev.price_type === "gratis" ? "#16A34A" : T.text, background: ev.price_type === "gratis" ? "#DCFCE7" : (dark ? "#374151" : "#F3F4F6"), padding: "4px 10px", borderRadius: 8 }}>
-                          {ev.price_type === "gratis" ? "Gratis" : `Desde ${ev.price || ""}`}
-                        </span>
-                      </div>
-                    </div>
-
-                  </div>
+                {/* --- BOTONES AGENDAR --- */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 24 }}>
+                  <button className="press" onClick={() => { const startStr = ev.date.replace(/-/g, '') + (ev.time ? `T${ev.time.replace(':', '')}00` : ''); const endStr = ev.end_date ? ev.end_date.replace(/-/g, '') + (ev.end_time ? `T${ev.end_time.replace(':', '')}00` : '') : (ev.time ? startStr : startStr + '/' + startStr); const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(ev.description || '')}&location=${encodeURIComponent(ev.venue_address || ev.venue_name || '')}`; window.open(calUrl, "_blank"); }} style={{ padding: "10px 20px", background: dark ? "rgba(255,255,255,0.05)" : "#F3F4F6", border: `1px solid ${T.border}`, borderRadius: 24, fontSize: 13, fontWeight: 800, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                    <Icon name="calendar" size={16} color={T.text} /> Agendar en calendario
+                  </button>
                 </div>
-
-                {/* --- LUGAR (Stacked List) --- */}
-                {ev.venue_name && (
-                  <div style={{ marginBottom: 24 }}>
-                    <h3 style={{ fontSize: 17, fontWeight: 800, color: T.text, marginBottom: 12 }}>Lugar</h3>
-                    <div style={{ background: dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
-                      <div style={{ display: "flex", alignItems: "center", padding: "16px", borderBottom: ev.venue_address ? `1px solid ${T.border}` : 'none' }}>
-                        <Icon name="pin" size={20} color={T.text} style={{ marginRight: 14, opacity: 0.8 }} />
-                        <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: T.text }}>{ev.venue_name}</span>
-                      </div>
-                      {ev.venue_address && (
-                        <div style={{ display: "flex", alignItems: "center", padding: "16px", borderBottom: `1px solid ${T.border}` }}>
-                          <Icon name="map" size={18} color={T.sub} style={{ marginRight: 16, opacity: 0.8 }} />
-                          <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: T.sub, lineHeight: 1.4 }}>{ev.venue_address}</span>
-                        </div>
-                      )}
-                      {ev.venue_address && (
-                        <div onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(ev.venue_address)}`, "_blank")} className="press" style={{ display: "flex", alignItems: "center", padding: "16px", cursor: "pointer" }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "#3B82F6" }}>Ver en el mapa</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* --- DETALLES ADICIONALES (Stacked List) --- */}
-                {ev.description && (
-                  <div style={{ marginBottom: 30 }}>
-                    <h3 style={{ fontSize: 17, fontWeight: 800, color: T.text, marginBottom: 12 }}>Detalles adicionales</h3>
-                    <div style={{ background: dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
-                      <div style={{ padding: "16px" }}>
-                        <p className="text-sm" style={{ color: T.text, lineHeight: 1.6, whiteSpace: 'pre-wrap', fontWeight: 500 }}>{ev.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
                 
+                {/* --- INFO SUMMARY (Article Style) --- */}
+                <div style={{ display: "flex", flexDirection: "column", marginBottom: 32 }}>
+                  
+                  {/* Fecha y Hora */}
+                  {(ev.date || ev.time) && (
+                    <div style={{ marginBottom: 24, textAlign: "left" }}>
+                      <h3 style={{ fontSize: 16, fontWeight: 900, color: T.text, marginBottom: 8, fontFamily: FONT_BIZ, letterSpacing: "-0.2px" }}>Fecha y hora</h3>
+                      {ev.date && (
+                        <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.6, margin: 0 }}>
+                          {fmtDate(ev.date)} {ev.end_date && ev.end_date !== ev.date ? ` al ${fmtDate(ev.end_date)}` : ''}
+                        </p>
+                      )}
+                      {ev.time && (
+                        <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.6, margin: "4px 0 0" }}>
+                          {fmtTime(ev.time)} {ev.end_time ? ` a ${fmtTime(ev.end_time)}` : ''}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Lugar */}
+                  {ev.venue_name && (
+                    <div style={{ marginBottom: 24, textAlign: "left" }}>
+                      <h3 style={{ fontSize: 16, fontWeight: 900, color: T.text, marginBottom: 8, fontFamily: FONT_BIZ, letterSpacing: "-0.2px" }}>Ubicación</h3>
+                      <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.6, margin: 0 }}>
+                        <strong style={{ color: T.text }}>{ev.venue_name}</strong>
+                        {ev.venue_address && <span style={{ display: "block" }}>{ev.venue_address}</span>}
+                      </p>
+                      {ev.venue_address && (
+                        <div onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(ev.venue_address)}`, "_blank")} className="press" style={{ cursor: "pointer", display: "inline-block", marginTop: 8, padding: "6px 14px", border: `1px solid ${T.border}`, borderRadius: 20 }}>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: T.text }}>Ver mapa</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Entradas */}
+                  <div style={{ marginBottom: 24, textAlign: "left" }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 900, color: T.text, marginBottom: 8, fontFamily: FONT_BIZ, letterSpacing: "-0.2px" }}>Entradas</h3>
+                    <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.6, margin: 0, marginBottom: (ev.booking_config?.enabled && ev.booking_config.type === "external" && ev.booking_config.externalLinks?.length > 0) ? 12 : 0 }}>
+                      {ev.price_type === "gratis" ? "Gratis" : `Desde ${ev.price || ""}`}
+                    </p>
+
+                  {ev.booking_config?.enabled && ev.booking_config.type === "external" && ev.booking_config.externalLinks?.length > 0 && (() => {
+                    const links = ev.booking_config.externalLinks;
+                    const PLATFORM_STYLES = {
+                      airbnb: { color: "#FF5A5F", label: "Airbnb", img: "/airbnb.svg" },
+                      booking: { color: "#003580", label: "Booking.com", img: "/booking.png" },
+                      tiqets: { color: "#4bc2c5", label: "Comprar entradas", img: "/tiqets.png" },
+                      tripadvisor: { color: "#000000", label: "TripAdvisor", img: "/tripadvisor.png" },
+                      expedia: { color: "#00005C", label: "Expedia.com", img: "/expedia.png" },
+                      hoteles: { color: "#D11013", label: "Hoteles.com", img: "/hoteles.com.png" },
+                      getyourguide: { color: "#FF5B00", label: "GetYourGuide", img: "/getyourguide.png" },
+                      renta_auto: { color: "#E11D48", label: "Rentar Auto", icon: "🚗" },
+                      opentable: { color: "#DA3743", label: "OpenTable", icon: "🍽️" },
+                      ubereats: { color: "#06C167", label: "Uber Eats", icon: "🍔" },
+                      rappi: { color: "#FF4500", label: "Rappi", icon: "🛵" },
+                      didifood: { color: "#F76B1C", label: "DiDi Food", icon: "🥡" },
+                      whatsapp: { color: "#25D366", label: "WhatsApp", icon: "💬" },
+                      comprar_entradas: { color: "#111827", label: "Comprar Entradas", icon: "🎟️" },
+                      otro: { color: "#1877F2", label: "Sitio Web", icon: "🔗" }
+                    };
+                    
+                    const renderIcon = (s, size = 16) => {
+                      if (s.img) return <img src={s.img} alt={s.label} style={{ height: size * 1.4, width: "auto", display: "block", filter: s.invertImg ? "invert(1) brightness(2)" : "none" }} />;
+                      return <span style={{ fontSize: size }}>{s.icon}</span>;
+                    };
+
+                    const openLink = (url) => {
+                      let finalUrl = url;
+                      if (!finalUrl.startsWith('http') && !finalUrl.startsWith('wa.me')) finalUrl = 'https://' + finalUrl;
+                      window.open(finalUrl, '_blank', 'noopener,noreferrer');
+                    };
+
+                    const getPrefix = (platform) => {
+                      if (platform === 'tiqets' || platform === 'comprar_entradas') return '';
+                      if (['ubereats', 'rappi', 'didifood'].includes(platform)) return 'Haz tu pedido en';
+                      if (['whatsapp', 'otro'].includes(platform)) return 'Ir a';
+                      return 'Boletos en:';
+                    };
+
+                    if (links.length === 1) {
+                      const l = links[0];
+                      const s = PLATFORM_STYLES[l.platform] || PLATFORM_STYLES.otro;
+                      const prefix = getPrefix(l.platform);
+                      return (
+                          <button className="press" onClick={() => openLink(l.url)} style={{ width: "100%", background: T.text, border: "none", borderRadius: 12, padding: "14px", color: T.bg, fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                            {renderIcon(s, 18)} {prefix ? prefix + ' ' : ''}{s.label}
+                          </button>
+                      );
+                    }
+                    
+                    if (links.length === 2) {
+                      return (
+                        <div style={{ display: "flex", gap: 10, justifyContent: "center", width: "100%" }}>
+                          {links.map((l, i) => {
+                            const s = PLATFORM_STYLES[l.platform] || PLATFORM_STYLES.otro;
+                            const prefix = getPrefix(l.platform);
+                            return (
+                              <button key={i} className="press" onClick={() => openLink(l.url)} style={{ flex: 1, background: T.text, border: "none", borderRadius: 12, padding: "12px", color: T.bg, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                                {renderIcon(s, 18)} 
+                                <span style={{ textAlign: "center", lineHeight: 1.2 }}>{prefix ? prefix + ' ' : ''}{s.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <div style={{ width: "100%" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                          {links.map((l, i) => {
+                            const s = PLATFORM_STYLES[l.platform] || PLATFORM_STYLES.otro;
+                            const prefix = getPrefix(l.platform);
+                            return (
+                              <button key={i} className="press" onClick={() => openLink(l.url)} style={{ background: T.text, border: "none", borderRadius: 12, padding: "10px", color: T.bg, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, textAlign: "center" }}>
+                                {renderIcon(s, 18)} 
+                                <span style={{ lineHeight: 1.2 }}>{prefix ? prefix + ' ' : ''}{s.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  </div>
+                  {/* --- DETALLES ADICIONALES (Editorial Text) --- */}
+                  {ev.description && (
+                    <div style={{ textAlign: "left", marginBottom: 24 }}>
+                      <h3 style={{ fontSize: 16, fontWeight: 900, color: T.text, marginBottom: 8, fontFamily: FONT_BIZ, letterSpacing: "-0.2px" }}>Información</h3>
+                      <p style={{ color: T.sub, fontSize: 15, lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{ev.description}</p>
+                    </div>
+                  )}
+                </div>
                 <div style={{ flex: 1 }} /> {/* Spacer */}
 
                 {/* --- BUTTONS --- */}
@@ -147,24 +220,10 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
                     </button>
                   )}
 
-                  {ev.website && (
-                    <button onClick={() => window.open(ev.website.startsWith('http') ? ev.website : `https://${ev.website}`, "_blank")} style={{ width: "100%", padding: "16px 0", background: `linear-gradient(135deg, ${T.text}, ${dark ? "#444" : "#333"})`, border: "none", borderRadius: 16, fontSize: 14, fontWeight: 800, color: T.bg, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: `0 4px 16px rgba(0,0,0,${dark ? 0.4 : 0.15})` }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg> Comprar Boletos
-                    </button>
-                  )}
 
-                  <button onClick={() => { const nw = isSaved ? savedEventIds.filter(x => x !== ev.id) : [...savedEventIds, ev.id]; setSavedEventIds(nw); localStorage.setItem("cg_saved_ev", JSON.stringify(nw)); }} style={{ width: "100%", padding: "16px 0", background: isSaved ? "#FEE2E2" : T.bg, border: `1.5px solid ${isSaved ? "#FCA5A5" : T.border}`, borderRadius: 16, fontSize: 14, fontWeight: 700, color: isSaved ? "#D94F3D" : T.text, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <button onClick={() => { const nw = isSaved ? savedEventIds.filter(x => x !== ev.id) : [...savedEventIds, ev.id]; setSavedEventIds(nw); localStorage.setItem("cg_saved_ev", JSON.stringify(nw)); }} style={{ width: "100%", padding: "16px 0", background: isSaved ? "#FEE2E2" : T.bg, border: `1px solid ${isSaved ? "#FCA5A5" : T.border}`, borderRadius: 16, fontSize: 14, fontWeight: 700, color: isSaved ? "#D94F3D" : T.text, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                     <Icon name={isSaved ? "heart_f" : "heart"} size={16} color={isSaved ? "#D94F3D" : T.text} />
-                    {isSaved ? "Evento guardado en tus planes" : "Guardar en mis planes"}
-                  </button>
-                </div>
-
-                <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-                  <button onClick={() => { const evUrl = `https://citymap.mx/evento/${cleanCityPrefix(ev.slug || createSlug(ev.title), activeCity)}_${ev.id}`; if (navigator.share) navigator.share({ title: ev.title, text: evShareMsg, url: evUrl }); else { navigator.clipboard?.writeText(evUrl); toast$("Enlace copiado"); } }} style={{ flex: 1, padding: "12px 0", background: "transparent", border: "none", fontSize: 13, fontWeight: 700, color: T.sub, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                    <Icon name="share" size={16} color={T.sub} /> Compartir
-                  </button>
-                  <button onClick={() => { const startStr = ev.date.replace(/-/g, '') + (ev.time ? `T${ev.time.replace(':', '')}00` : ''); const endStr = ev.end_date ? ev.end_date.replace(/-/g, '') + (ev.end_time ? `T${ev.end_time.replace(':', '')}00` : '') : (ev.time ? startStr : startStr + '/' + startStr); const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(ev.description || '')}&location=${encodeURIComponent(ev.venue_address || ev.venue_name || '')}`; window.open(calUrl, "_blank"); }} style={{ flex: 1, padding: "12px 0", background: "transparent", border: "none", fontSize: 13, fontWeight: 700, color: T.sub, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                    <Icon name="calendar" size={16} color={T.sub} /> Agendar
+                    {isSaved ? "Guardado en tus planes" : "Guardar en mis planes"}
                   </button>
                 </div>
               </div>

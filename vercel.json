@@ -28,6 +28,28 @@
       "destination": "/api/og?ev=:slug"
     },
     {
+      "source": "/experiencias/:city/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Googlebot|bingbot|TelegramBot|Applebot|Discordbot|Slackbot|vkShare|Pinterest|w3c_validator|curl|python-requests|Discord|Skype|Viber).*|.*(bot|Bot|spider|Spider|crawler|Crawler|whatsapp|WhatsApp|Telegram|Discord).*"
+        }
+      ],
+      "destination": "/api/og?exp=:slug&city=:city"
+    },
+    {
+      "source": "/experiencias/:city",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Googlebot|bingbot|TelegramBot|Applebot|Discordbot|Slackbot|vkShare|Pinterest|w3c_validator|curl|python-requests|Discord|Skype|Viber).*|.*(bot|Bot|spider|Spider|crawler|Crawler|whatsapp|WhatsApp|Telegram|Discord).*"
+        }
+      ],
+      "destination": "/api/og?city=:city"
+    },
+    {
       "source": "/:city",
       "has": [
         {
@@ -48,6 +70,17 @@
         }
       ],
       "destination": "/api/og?b=:slug&city=:city"
+    },
+    {
+      "source": "/:city/:slug/menu",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Googlebot|bingbot|TelegramBot|Applebot|Discordbot|Slackbot|vkShare|Pinterest|w3c_validator|curl|python-requests|Discord|Skype|Viber).*|.*(bot|Bot|spider|Spider|crawler|Crawler|whatsapp|WhatsApp|Telegram|Discord).*"
+        }
+      ],
+      "destination": "/api/og?b=:slug&city=:city&menu=true"
     },
     {
       "source": "/(.*)",

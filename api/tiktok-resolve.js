@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     // Extraer el ID del video
     const match = finalUrl.match(/video\/(\d+)/);
     if (match && match[1]) {
-      return res.status(200).json({ videoId: match[1] });
+      return res.status(200).json({ videoId: match[1], finalUrl });
     }
 
     return res.status(400).json({ error: 'Could not extract ID from the redirected URL' });

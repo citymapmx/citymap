@@ -11,7 +11,7 @@ export default function Privacy({ T, onBack }) {
         Regresar
       </button>
 
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: T.text, marginBottom: 20, fontFamily: "'Coolvetica', sans-serif", letterSpacing: 0.5 }}>Aviso de Privacidad</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 800, color: T.text, marginBottom: 20, fontFamily: "var(--heading)", letterSpacing: 0.5 }}>Aviso de Privacidad</h1>
       
       <div style={{ color: T.sub, fontSize: 15, lineHeight: 1.6, display: "flex", flexDirection: "column", gap: 16 }}>
         <p><strong>Última actualización:</strong> junio de 2026</p>

@@ -26,10 +26,10 @@ function SplashScreen({ T }) {
 }
 
 // ─── PAGE LOGO ───────────────────────────────────────────────────────────────
-function PageLogo({ dark }) {
+function PageLogo({ dark, height = 48 }) {
   return (
     <div style={{ display: "flex", justifyContent: "center" }}>
-      <div className="logo-container" style={{ height: 48 }}>
+      <div className="logo-container" style={{ height }}>
         <img
           src={LOGO_URL}
           alt="logo"

@@ -30,7 +30,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
         <div style={{ width: 36, height: 4, borderRadius: 2, background: T.border, margin: "0 auto 16px" }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
           <div>
-            <h2 className="text-xl" style={{ fontFamily: "'Coolvetica', sans-serif", color: T.text, marginBottom: 4 }}>Crear evento</h2>
+            <h2 className="text-xl" style={{ fontFamily: "var(--heading)", color: T.text, marginBottom: 4 }}>Crear evento</h2>
             <p className="text-sm" style={{ color: T.sub }}>Se publicará tras la aprobación del admin</p>
           </div>
           <button onClick={() => setShowCreateEvent(false)} style={{ width: 44, height: 44, borderRadius: "50%", background: T.border, color: T.text, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="x" size={18} /></button>

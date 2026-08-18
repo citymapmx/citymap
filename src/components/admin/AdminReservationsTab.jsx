@@ -9,7 +9,7 @@ export default function AdminReservationsTab({
 }) {
   return (
     <div>
-      <p className="text-lg" style={{ fontFamily: "'Coolvetica', sans-serif", color: "#0F1A14", marginBottom: 14 }}>Reservaciones</p>
+      <p className="text-lg" style={{ fontFamily: "var(--heading)", color: "#0F1A14", marginBottom: 14 }}>Reservaciones</p>
       {data.reservations.filter(r => r.status !== "deleted").length === 0
         ? <div style={{ textAlign: "center", padding: "40px 0", color: "#5A6872" }}><Icon name="calendar" size={36} color="#E4E8E4" /><p style={{ marginTop: 12, fontWeight: 600 }}>Sin reservaciones aún</p></div>
         : data.reservations.filter(r => r.status !== "deleted").map(r => {

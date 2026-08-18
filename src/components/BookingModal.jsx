@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import Icon from "./ui/Icon.jsx";
 import { getThumbUrl } from "../lib/utils.js";
@@ -29,6 +29,7 @@ export default function BookingModal({ biz, onClose }) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [serviceId, setServiceId] = useState("");
+  const [step, setStep] = useState(1);
   const [name, setName] = useState(user?.user_metadata?.name || "");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -69,6 +70,23 @@ export default function BookingModal({ biz, onClose }) {
   }, [config.services, serviceId]);
 
   const isAllDay = (parseInt(selectedService?.durationMin || 60, 10)) >= 1440;
+
+  const formatTimeRange = (timeStr) => {
+    const dur = parseInt(selectedService?.durationMin || 60, 10);
+    const [h, m] = timeStr.split(":");
+    let min = parseInt(h) * 60 + parseInt(m);
+    
+    const format = (mins) => {
+      let hh = Math.floor(mins / 60);
+      let mm = mins % 60;
+      const ampm = hh >= 12 && hh < 24 ? "PM" : "AM";
+      if (hh === 0) hh = 12;
+      if (hh > 12) hh -= 12;
+      return `${hh}:${String(mm).padStart(2, "0")} ${ampm}`;
+    };
+    
+    return `${format(min)} - ${format(min + dur)}`;
+  };
 
   // Fetch reservations for the selected date to check capacity
   useEffect(() => {
@@ -148,6 +166,8 @@ export default function BookingModal({ biz, onClose }) {
         : 60;
       
       let slots = [];
+      const bufferMin = parseInt(config.bufferMin || 0, 10);
+      const totalDur = dur + bufferMin;
 
       const existingRanges = [];
       if (Array.isArray(existingRes)) {
@@ -157,7 +177,7 @@ export default function BookingModal({ biz, onClose }) {
             if (resMin !== null) {
               const rSvc = (Array.isArray(config.services) ? config.services : []).find(s => s?.name === r.service || s?.id === r.service);
               const rDur = rSvc ? parseInt(rSvc.durationMin || 60, 10) : 60;
-              existingRanges.push({ start: resMin, end: resMin + rDur });
+              existingRanges.push({ start: resMin, end: resMin + rDur + bufferMin });
             }
           }
         });
@@ -185,7 +205,7 @@ export default function BookingModal({ biz, onClose }) {
         
         let overlapCount = 0;
         for (const rng of existingRanges) {
-          if (m < rng.end && (m + dur) > rng.start) overlapCount++;
+          if (m < rng.end && (m + totalDur) > rng.start) overlapCount++;
         }
         const isFull = overlapCount >= maxPerSlot;
         
@@ -219,16 +239,7 @@ export default function BookingModal({ biz, onClose }) {
     }
   }, [isAllDay, availableSlots, date]);
 
-  const groupedSlots = useMemo(() => {
-    const groups = { morning: [], afternoon: [], evening: [] };
-    availableSlots.forEach(slot => {
-      const h = parseInt(slot.time.split(":")[0]);
-      if (h < 12) groups.morning.push(slot);
-      else if (h < 18) groups.afternoon.push(slot);
-      else groups.evening.push(slot);
-    });
-    return groups;
-  }, [availableSlots]);
+
 
   const submitBooking = async (e) => {
     e.preventDefault();
@@ -243,20 +254,24 @@ export default function BookingModal({ biz, onClose }) {
       const status = config.autoApprove ? "confirmed" : "pending";
       
       const payload = {
-        biz_id: biz.id,
-        user_id: user?.id || null,
-        client_name: name,
-        client_phone: phone,
-        date,
-        time,
-        service: selectedService.name,
-        status,
-        notes
+        p_biz_id: biz.id,
+        p_user_id: user?.id || null,
+        p_client_name: name,
+        p_client_phone: phone,
+        p_date: date,
+        p_time: time,
+        p_service: selectedService.name,
+        p_status: status,
+        p_notes: notes || "",
+        p_max_per_slot: config.maxPerSlot || 1
       };
 
-      await sb.post("reservations", payload);
+      const result = await sb.rpc("secure_reserve", payload);
+      if (result && result.success === false) {
+        throw new Error(result.error || "El horario ya no está disponible.");
+      }
       if (biz.owner_id) {
-        await sb.notify(biz.owner_id, "Nueva solicitud de reservación", `${name} ha solicitado una reserva para el ${date}.`, "booking");
+        await sb.notify(biz.owner_id, "Nueva solicitud de reservación", `${name} ha solicitado una reserva para el ${date}.`, "booking", `https://citymap.mx/manage/${biz.slug || biz.id}`);
       }
       setSuccess(true);
     } catch (err) {
@@ -302,30 +317,34 @@ ${notes ? `*Notas:* ${notes}` : ""}
     onClose();
   };
 
+  const formatDuration = (mins) => {
+    if (!mins) return "";
+    if (mins < 60) return `${mins} min`;
+    if (mins >= 1440) return "Día completo";
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (m === 0) return `${h} hora${h > 1 ? "s" : ""}`;
+    return `${h}h ${m}m`;
+  };
+
   return (
     <div 
       style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
       onClick={onClose}
     >
-      <motion.div 
+      <m.div 
         initial={{ scale: 0.95, opacity: 0, y: 10 }} 
         animate={{ scale: 1, opacity: 1, y: 0 }} 
         onClick={e => e.stopPropagation()}
-        style={{ background: "#fff", width: "100%", maxWidth: 440, borderRadius: 24, padding: 24, boxShadow: "0 10px 40px rgba(0,0,0,0.2)", maxHeight: "90vh", overflowY: "auto" }}
+        style={{ background: "#ffffff", border: "1px solid rgba(0,0,0,0.05)", width: "100%", maxWidth: 440, borderRadius: 28, padding: 24, boxShadow: "0 24px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.02)", maxHeight: "90vh", overflowY: "auto" }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, position: "relative" }}>
-          {biz.logo_url ? (
-            <img src={getThumbUrl(biz.logo_url, 150, 150)} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", border: "1.5px solid #E4E8E4", background: "#fff" }} alt="" />
-          ) : (
-            <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#EAF4F0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Icon name="calendar" size={20} color="#1A7A5E" />
-            </div>
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0F1A14", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{config.label || "Reservar"}</h2>
-            <div style={{ fontSize: 12, color: "#5A6872", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{biz.name}</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, position: "relative" }}>
+          <div style={{ width: 48, height: 48 }} />
+          <div style={{ flex: 1, textAlign: "center", padding: "0 12px" }}>
+            <h2 style={{ fontSize: 20, fontWeight: 900, color: "#0F1A14", margin: 0, letterSpacing: "-0.5px" }}>{config.label || "Reservar"}</h2>
+            <div style={{ fontSize: 13, color: "#5A6872", marginTop: 2, fontWeight: 600 }}>{biz.name}</div>
           </div>
-          <button onClick={onClose} style={{ background: "#F3F4F6", border: "none", width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="x" size={14} color="#5A6872" /></button>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.6)", backdropFilter: "blur(4px)", border: "1px solid rgba(0,0,0,0.05)", width: 40, height: 40, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}><Icon name="x" size={14} color="#0F1A14" /></button>
         </div>
 
         {success ? (
@@ -351,194 +370,247 @@ ${notes ? `*Notas:* ${notes}` : ""}
           </div>
         ) : (
           <form onSubmit={submitBooking} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* 1. Servicio */}
-            {Array.isArray(config.services) && config.services.length > 0 ? (
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>1. Selecciona el servicio</label>
-                <div style={{ position: "relative" }}>
-                  <select 
-                    value={serviceId || ""} 
-                    onChange={e => setServiceId(e.target.value)} 
-                    style={{ width: "100%", padding: "14px 16px", border: "1.5px solid #E4E8E4", borderRadius: 12, fontSize: 14, fontWeight: 700, color: "#0F1A14", appearance: "none", background: "#F9FAFB", cursor: "pointer", fontFamily: "inherit" }}
-                  >
-                    <option value="" disabled>Selecciona una opción...</option>
-                    {config.services.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} {s.durationMin ? `(${s.durationMin} min)` : ""} {s.price && s.price !== "0" ? `- $${s.price}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <div style={{ position: "absolute", right: 16, top: 16, pointerEvents: "none" }}>
-                    <Icon name="chevron" size={16} color="#5A6872" />
+            {step === 1 && (
+              <m.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
+                {Array.isArray(config.services) && config.services.length > 0 ? (
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#5A6872", marginBottom: 16, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>1. Selecciona el servicio</label>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {config.services.map((s, i) => {
+                        const isSelected = serviceId === s.id;
+                        return (
+                          <m.button
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            key={s.id}
+                            type="button"
+                            onClick={() => setServiceId(s.id)}
+                            style={{
+                              width: "100%", textAlign: "left", padding: "18px", borderRadius: 20,
+                              border: isSelected ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(0,0,0,0.05)",
+                              background: isSelected ? "linear-gradient(135deg, rgba(240,253,244,0.9), rgba(220,252,231,0.6))" : "#ffffff",
+                              backdropFilter: "blur(10px)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
+                              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                              boxShadow: isSelected ? "0 8px 24px rgba(16, 185, 129, 0.15), inset 0 2px 4px rgba(255,255,255,0.8)" : "0 4px 12px rgba(0,0,0,0.03), inset 0 2px 4px rgba(255,255,255,0.8)",
+                              transform: isSelected ? "scale(1.02)" : "scale(1)"
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: isSelected ? "#064E3B" : "#0F1A14", marginBottom: 6 }}>{s.name}</div>
+                              <div style={{ fontSize: 13, color: isSelected ? "#047857" : "#64748B", display: "flex", gap: 12, fontWeight: 600 }}>
+                                {s.durationMin && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="clock" size={14} color={isSelected ? "#047857" : "#94A3B8"} />{formatDuration(s.durationMin)}</span>}
+                                {s.price && s.price !== "0" && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="credit-card" size={14} color={isSelected ? "#047857" : "#94A3B8"} />${s.price}</span>}
+                              </div>
+                            </div>
+                            <div style={{
+                              width: 28, height: 28, borderRadius: "50%",
+                              border: isSelected ? "none" : "2px solid rgba(15,26,20,0.15)",
+                              background: isSelected ? "linear-gradient(135deg, #34D399, #10B981)" : "rgba(255,255,255,0.5)",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              boxShadow: "none",
+                              transition: "all 0.3s"
+                            }}>
+                              {isSelected && <Icon name="check" size={16} color="#FFF" />}
+                            </div>
+                          </m.button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ padding: "20px", textAlign: "center", color: "#5A6872", background: "#F3F4F6", borderRadius: 12 }}>
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#E5E7EB", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Icon name="calendar" size={20} color="#9CA3AF" />
+                ) : (
+                  <div style={{ padding: "30px 20px", textAlign: "center", color: "#5A6872", background: "rgba(255,255,255,0.5)", backdropFilter: "blur(10px)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.5)" }}>
+                    <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.8)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+                        <Icon name="calendar" size={24} color="#9CA3AF" />
+                      </div>
+                    </div>
+                    <div style={{ fontWeight: 800, color: "#0F1A14", fontSize: 16 }}>Aún no hay servicios disponibles</div>
+                    <div style={{ fontSize: 13, marginTop: 6, fontWeight: 500 }}>Este negocio no ha configurado sus opciones de reserva. Por favor contacta directamente al lugar.</div>
                   </div>
-                </div>
-                <div style={{ fontWeight: 700, color: "#0F1A14", fontSize: 14 }}>Aún no hay servicios disponibles</div>
-                <div style={{ fontSize: 12, marginTop: 4 }}>Este negocio no ha configurado sus opciones de reserva. Por favor contacta directamente al lugar.</div>
-              </div>
+                )}
+              </m.div>
             )}
-            
+
             {/* 2. Fecha y Hora */}
-            {serviceId && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
-                <div style={{ height: 1, background: "#E4E8E4", margin: "4px 0 16px 0" }} />
+            {step === 2 && (
+              <m.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#5A6872", marginBottom: 16, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>2. Selecciona Fecha y Hora</label>
                 
                 {/* Month Label */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 900, color: "#0F1A14", margin: 0, textTransform: "capitalize" }}>{formatMonthName(selectedDateObj)} {selectedDateObj.getFullYear()}</h3>
-                  <div style={{ fontSize: 12, color: "#5A6872", fontWeight: 700 }}>2. Selecciona Fecha</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, padding: "0 4px" }}>
+                  <h3 style={{ fontSize: 20, fontWeight: 900, color: "#0F1A14", margin: 0, textTransform: "capitalize", letterSpacing: "-0.5px" }}>{formatMonthName(selectedDateObj)} {selectedDateObj.getFullYear()}</h3>
                 </div>
                 
                 {/* Day Strip */}
-                <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 16, margin: "0 -4px", padding: "0 4px 16px 4px", scrollbarWidth: "none" }}>
-                  {daysStrip.map(d => {
+                <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 16, margin: "0 -4px", padding: "0 4px 16px 4px", scrollbarWidth: "none" }}>
+                  <style>{`.no-scroll-bar::-webkit-scrollbar { display: none; }`}</style>
+                  {daysStrip.map((d, i) => {
                     const localDate = toLocalYYYYMMDD(d);
                     const isSelected = date === localDate;
                     return (
-                      <button
+                      <m.button
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.02 }}
                         key={localDate}
                         type="button"
                         onClick={() => setDate(localDate)}
                         style={{
-                          flexShrink: 0,
-                          width: 56,
-                          height: 72,
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          borderRadius: 16,
-                          border: isSelected ? "none" : "1.5px solid #E4E8E4",
-                          background: isSelected ? "#0F1A14" : "transparent",
-                          color: isSelected ? "#fff" : "#0F1A14",
-                          cursor: "pointer",
-                          transition: "all 0.2s"
+                          flexShrink: 0, width: 64, height: 84, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 24,
+                          border: isSelected ? "2px solid #0F1A14" : "2px solid rgba(15,26,20,0.15)",
+                          background: isSelected ? "#0F1A14" : "#ffffff",
+                          color: isSelected ? "#fff" : "#0F1A14", cursor: "pointer",
+                          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                          boxShadow: "none",
+                          transform: isSelected ? "scale(1.05)" : "scale(1)"
                         }}
                       >
-                        <span style={{ fontSize: 12, fontWeight: 700, color: isSelected ? "#A1A1AA" : "#5A6872", marginBottom: 4 }}>{formatDayName(d)}</span>
-                        <span style={{ fontSize: 18, fontWeight: 800 }}>{d.getDate()}</span>
-                      </button>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? "rgba(255,255,255,0.8)" : "#64748B", marginBottom: 6 }}>{formatDayName(d)}</span>
+                        <span style={{ fontSize: 20, fontWeight: 900 }}>{d.getDate()}</span>
+                      </m.button>
                     );
                   })}
                 </div>
 
-                <div style={{ fontSize: 12, color: "#5A6872", textAlign: "center", paddingBottom: 16, borderBottom: "1px solid #E4E8E4", marginBottom: 16 }}>Las horas se muestran en tu horario local</div>
+                <div style={{ fontSize: 12, color: "#64748B", textAlign: "center", paddingBottom: 16, borderBottom: "1px solid rgba(0,0,0,0.05)", marginBottom: 16, fontWeight: 600 }}>Las horas se muestran en tu horario local</div>
 
-                {date && (
-                  fetchingSlots ? (
-                    <div style={{ textAlign: "center", padding: 20, color: "#9CA3AF", fontSize: 13 }}>Cargando disponibilidad...</div>
-                  ) : (biz.booking_config?.blocked_dates || []).includes(date) ? (
-                    <div style={{ textAlign: "center", padding: "12px", background: "#FEE2E2", color: "#991B1B", borderRadius: 10, fontSize: 13, fontWeight: 600 }}>
+                <div style={{ minHeight: 260 }}>
+                  {date && (
+                    fetchingSlots ? (
+                      <div style={{ textAlign: "center", padding: "40px 20px", color: "#9CA3AF", fontSize: 14, fontWeight: 600 }}>
+                        <Icon name="clock" size={24} color="#D1D5DB" style={{ marginBottom: 12, display: "block", margin: "0 auto" }} />
+                        Cargando disponibilidad...
+                      </div>
+                    ) : (biz.booking_config?.blocked_dates || []).includes(date) ? (
+                    <div style={{ textAlign: "center", padding: "20px", background: "rgba(254, 226, 226, 0.8)", backdropFilter: "blur(10px)", color: "#991B1B", borderRadius: 16, fontSize: 14, fontWeight: 700, border: "1px solid rgba(254, 226, 226, 0.9)" }}>
                       No hay espacios disponibles para esta fecha.
                     </div>
                   ) : availableSlots.length > 0 ? (
                     isAllDay ? (
-                      <div style={{ textAlign: "center", padding: "16px", background: "#EAF4F0", border: "1.5px solid #1A7A5E", borderRadius: 12 }}>
-                        <Icon name="check-circle" size={24} color="#1A7A5E" />
-                        <div style={{ fontWeight: 800, color: "#1A7A5E", fontSize: 16, marginTop: 8 }}>Evento de Todo el Día</div>
-                        <div style={{ fontSize: 13, color: "#0F1A14", marginTop: 4 }}>Esta reservación asegurará tu lugar para todo el turno de la fecha seleccionada.</div>
+                      <div style={{ textAlign: "center", padding: "24px", background: "linear-gradient(135deg, rgba(240,253,244,0.9), rgba(220,252,231,0.6))", border: "1px solid rgba(16, 185, 129, 0.4)", borderRadius: 20, backdropFilter: "blur(10px)", boxShadow: "0 8px 24px rgba(16, 185, 129, 0.1)" }}>
+                        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #34D399, #10B981)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", boxShadow: "0 4px 10px rgba(16,185,129,0.3)" }}>
+                          <Icon name="check" size={24} color="#FFF" />
+                        </div>
+                        <div style={{ fontWeight: 900, color: "#064E3B", fontSize: 18, marginTop: 8 }}>Evento de Todo el Día</div>
+                        <div style={{ fontSize: 14, color: "#047857", marginTop: 6, fontWeight: 600, lineHeight: 1.4 }}>Esta reservación asegurará tu lugar para todo el turno de la fecha seleccionada.</div>
                       </div>
                     ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                        
-                        {groupedSlots.morning.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 12, color: "#5A6872", marginBottom: 8, fontWeight: 600 }}>Mañana</div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                              {groupedSlots.morning.map(slot => (
-                                <button key={slot.time} type="button" disabled={!slot.available} onClick={() => setTime(slot.time)} style={{ flex: "1 0 calc(33.33% - 8px)", padding: "12px 0", border: `1.5px solid ${time === slot.time ? "#0F1A14" : !slot.available ? "transparent" : "#E4E8E4"}`, borderRadius: 10, background: time === slot.time ? "#0F1A14" : !slot.available ? "#F3F4F6" : "transparent", color: time === slot.time ? "#fff" : !slot.available ? "#D1D5DB" : "#0F1A14", fontWeight: 800, fontSize: 13, cursor: slot.available ? "pointer" : "not-allowed", transition: "all 0.2s" }}>
-                                  {formatTimeAMPM(slot.time)}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {groupedSlots.afternoon.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 12, color: "#5A6872", marginBottom: 8, fontWeight: 600 }}>Tarde</div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                              {groupedSlots.afternoon.map(slot => (
-                                <button key={slot.time} type="button" disabled={!slot.available} onClick={() => setTime(slot.time)} style={{ flex: "1 0 calc(33.33% - 8px)", padding: "12px 0", border: `1.5px solid ${time === slot.time ? "#0F1A14" : !slot.available ? "transparent" : "#E4E8E4"}`, borderRadius: 10, background: time === slot.time ? "#0F1A14" : !slot.available ? "#F3F4F6" : "transparent", color: time === slot.time ? "#fff" : !slot.available ? "#D1D5DB" : "#0F1A14", fontWeight: 800, fontSize: 13, cursor: slot.available ? "pointer" : "not-allowed", transition: "all 0.2s" }}>
-                                  {formatTimeAMPM(slot.time)}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {groupedSlots.evening.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 12, color: "#5A6872", marginBottom: 8, fontWeight: 600 }}>Noche</div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                              {groupedSlots.evening.map(slot => (
-                                <button key={slot.time} type="button" disabled={!slot.available} onClick={() => setTime(slot.time)} style={{ flex: "1 0 calc(33.33% - 8px)", padding: "12px 0", border: `1.5px solid ${time === slot.time ? "#0F1A14" : !slot.available ? "transparent" : "#E4E8E4"}`, borderRadius: 10, background: time === slot.time ? "#0F1A14" : !slot.available ? "#F3F4F6" : "transparent", color: time === slot.time ? "#fff" : !slot.available ? "#D1D5DB" : "#0F1A14", fontWeight: 800, fontSize: 13, cursor: slot.available ? "pointer" : "not-allowed", transition: "all 0.2s" }}>
-                                  {formatTimeAMPM(slot.time)}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                        {availableSlots.map((slot, i) => (
+                          <m.button
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: i * 0.02 }}
+                            key={slot.time}
+                            type="button"
+                            disabled={!slot.available}
+                            onClick={() => setTime(slot.time)}
+                            style={{
+                              width: "100%", padding: "14px 8px",
+                              border: time === slot.time ? "2px solid #0F1A14" : !slot.available ? "2px solid rgba(0,0,0,0.03)" : "2px solid rgba(15,26,20,0.15)",
+                              borderRadius: 18,
+                              background: time === slot.time ? "#ffffff" : !slot.available ? "rgba(0,0,0,0.02)" : "#ffffff",
+                              display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 4,
+                              cursor: slot.available ? "pointer" : "not-allowed",
+                              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                              boxShadow: "none",
+                              color: !slot.available ? "#D1D5DB" : (time === slot.time ? "#064E3B" : "#0F1A14"),
+                              transform: time === slot.time ? "scale(1.05)" : "scale(1)"
+                            }}
+                          >
+                            <span style={{ fontSize: 15, fontWeight: time === slot.time ? 900 : 700, letterSpacing: "-0.5px" }}>
+                              {formatTimeAMPM(slot.time)}
+                            </span>
+                            {time === slot.time ? (
+                              <span style={{ fontSize: 11, fontWeight: 800, color: "#10B981" }}>Elegido</span>
+                            ) : (
+                              <span style={{ fontSize: 11, color: !slot.available ? "#D1D5DB" : "#64748B", fontWeight: 600 }}>
+                                {formatTimeRange(slot.time).split(" - ")[1]}
+                              </span>
+                            )}
+                          </m.button>
+                        ))}
                       </div>
                     )
                   ) : (
-                    <div style={{ textAlign: "center", padding: "12px", background: "#FEE2E2", color: "#991B1B", borderRadius: 10, fontSize: 13, fontWeight: 600 }}>
+                    <div style={{ textAlign: "center", padding: "20px", background: "rgba(254, 226, 226, 0.8)", backdropFilter: "blur(10px)", color: "#991B1B", borderRadius: 16, fontSize: 14, fontWeight: 700, border: "1px solid rgba(254, 226, 226, 0.9)" }}>
                       Cerrado o sin disponibilidad este día.
                     </div>
                   )
                 )}
-              </motion.div>
+                </div>
+              </m.div>
             )}
 
             {/* 3. Datos Personales */}
-            {serviceId && time && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
-                <div style={{ height: 1, background: "#E4E8E4", margin: "16px 0" }} />
-                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 12 }}>3. Tus Datos</label>
+            {step === 3 && (
+              <m.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#5A6872", marginBottom: 20, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>3. Tus Datos</label>
                 
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div>
-                    <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#5A6872", marginBottom: 4, textTransform: "uppercase", letterSpacing: .6 }}>Nombre completo *</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Carlos Slim" style={{ width: "100%", padding: "12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 14, background: "#F9FAFB", color: T?.text || "#0F1A14", fontFamily: "inherit" }} required />
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 6, letterSpacing: "0.5px" }}>Nombre completo *</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Carlos Slim" style={{ width: "100%", padding: "16px", border: "2px solid rgba(15,26,20,0.15)", borderRadius: 16, fontSize: 15, background: "#ffffff", color: T?.text || "#0F1A14", fontFamily: "inherit", fontWeight: 600, boxShadow: "none", outline: "none", transition: "all 0.2s" }} onFocus={e => e.target.style.border="2px solid #0F1A14"} onBlur={e => e.target.style.border="2px solid rgba(15,26,20,0.15)"} required />
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#5A6872", marginBottom: 4, textTransform: "uppercase", letterSpacing: .6 }}>Teléfono / WhatsApp *</label>
-                    <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Ej: 311 123 4567" style={{ width: "100%", padding: "12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 14, background: "#F9FAFB", color: T?.text || "#0F1A14", fontFamily: "inherit" }} required />
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 6, letterSpacing: "0.5px" }}>Teléfono / WhatsApp *</label>
+                    <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Ej: 311 123 4567" style={{ width: "100%", padding: "16px", border: "2px solid rgba(15,26,20,0.15)", borderRadius: 16, fontSize: 15, background: "#ffffff", color: T?.text || "#0F1A14", fontFamily: "inherit", fontWeight: 600, boxShadow: "none", outline: "none", transition: "all 0.2s" }} onFocus={e => e.target.style.border="2px solid #0F1A14"} onBlur={e => e.target.style.border="2px solid rgba(15,26,20,0.15)"} required />
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#5A6872", marginBottom: 4, textTransform: "uppercase", letterSpacing: .6 }}>Notas Adicionales</label>
-                    <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Ej: Alergias, celebrar un cumpleaños..." rows={2} style={{ width: "100%", padding: "12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 14, background: "#F9FAFB", color: T?.text || "#0F1A14", fontFamily: "inherit", resize: "none" }} />
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 6, letterSpacing: "0.5px" }}>Notas Adicionales</label>
+                    <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Ej: Alergias, celebrar un cumpleaños..." rows={2} style={{ width: "100%", padding: "16px", border: "2px solid rgba(15,26,20,0.15)", borderRadius: 16, fontSize: 15, background: "#ffffff", color: T?.text || "#0F1A14", fontFamily: "inherit", fontWeight: 600, boxShadow: "none", outline: "none", transition: "all 0.2s", resize: "none" }} onFocus={e => e.target.style.border="2px solid #0F1A14"} onBlur={e => e.target.style.border="2px solid rgba(15,26,20,0.15)"} />
                   </div>
                 </div>
 
                 {submitError && (
-                  <div style={{ padding: 12, background: "#FEE2E2", color: "#991B1B", borderRadius: 10, fontSize: 13, fontWeight: 600, marginTop: 16 }}>
+                  <div style={{ padding: "16px", background: "rgba(254, 226, 226, 0.8)", backdropFilter: "blur(10px)", color: "#991B1B", borderRadius: 16, fontSize: 14, fontWeight: 700, marginTop: 20, border: "1px solid rgba(254, 226, 226, 0.9)" }}>
                     {submitError}
                   </div>
                 )}
+              </m.div>
+            )}
 
+            {/* Pagination Controls */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, paddingTop: 20, borderTop: "1px solid rgba(0,0,0,0.05)" }}>
+              {step > 1 ? (
+                <button type="button" onClick={() => setStep(step - 1)} style={{ padding: "12px 20px", background: "#ffffff", border: "2px solid rgba(15,26,20,0.15)", borderRadius: 20, fontSize: 14, fontWeight: 800, color: "#0F1A14", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "none" }}>
+                  <Icon name="chevron-left" size={16} /> Atrás
+                </button>
+              ) : (
+                <div style={{ width: 80 }} />
+              )}
+              
+              <div style={{ display: "flex", gap: 6 }}>
+                {[1, 2, 3].map(i => (
+                  <div key={i} style={{ width: i === step ? 24 : 8, height: 8, borderRadius: 4, background: i === step ? "#10B981" : "rgba(0,0,0,0.1)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }} />
+                ))}
+              </div>
+
+              {step < 3 ? (
+                <button 
+                  type="button" 
+                  disabled={(step === 1 && !serviceId) || (step === 2 && (!date || !time))}
+                  onClick={() => setStep(step + 1)} 
+                  style={{ padding: "12px 24px", background: (step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? "rgba(0,0,0,0.05)" : "#0F1A14", border: "none", borderRadius: 20, fontSize: 14, fontWeight: 800, color: (step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? "#9CA3AF" : "#fff", cursor: (step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "none", transition: "all 0.2s" }}
+                >
+                  Siguiente <Icon name="chevron-right" size={16} color={(step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? "#9CA3AF" : "#fff"} />
+                </button>
+              ) : (
                 <button 
                   type="submit" 
                   disabled={loading || !date || !time || !name || !phone || !serviceId}
-                  style={{ width: "100%", padding: 15, background: loading || !time ? "#9CA3AF" : "#1A7A5E", color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: loading || !time ? "default" : "pointer", marginTop: 16 }}
+                  style={{ padding: "12px 24px", background: loading || !name || !phone ? "rgba(0,0,0,0.05)" : "linear-gradient(135deg, #10B981, #059669)", border: "none", borderRadius: 20, fontSize: 14, fontWeight: 800, color: loading || !name || !phone ? "#9CA3AF" : "#fff", cursor: loading || !name || !phone ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: loading || !name || !phone ? "none" : "0 8px 20px rgba(16,185,129,0.3)", transition: "all 0.2s" }}
                 >
-                  {loading ? "Procesando..." : config.autoApprove ? `Confirmar ${config.label || "Reservación"}` : `Solicitar ${config.label || "Reservación"}`}
+                  {loading ? "Enviando..." : config.autoApprove ? "Confirmar" : "Solicitar"}
                 </button>
-              </motion.div>
-            )}
+              )}
+            </div>
           </form>
         )}
-      </motion.div>
+      </m.div>
     </div>
   );
 }

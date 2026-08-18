@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { GMAPS_KEY } from "../lib/supabase.js";
-import { CAT_EMOJI } from "../lib/utils.js";
+import { CAT_EMOJI, getThumbUrl } from "../lib/utils.js";
 
 export function useGMaps() {
   const [ok, setOk] = useState(!!window.google?.maps);
@@ -20,7 +20,7 @@ export function useGMaps() {
   return ok;
 }
 
-const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocation, onRequestLocation, categories = [], radiusKm }) {
+const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocation, onRequestLocation, categories = [], radiusKm, onBoundsChanged }) {
   const ref = useRef(); 
   const map = useRef(); 
   const pins = useRef([]); 
@@ -68,6 +68,22 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
         ],
       });
       infoWin.current = new window.google.maps.InfoWindow();
+      
+      window.google.maps.event.addListener(map.current, 'idle', () => {
+        if (onBoundsChanged) {
+          const bounds = map.current.getBounds();
+          if (bounds) {
+            const ne = bounds.getNorthEast();
+            const sw = bounds.getSouthWest();
+            onBoundsChanged({
+              minLat: sw.lat(),
+              maxLat: ne.lat(),
+              minLng: sw.lng(),
+              maxLng: ne.lng(),
+            });
+          }
+        }
+      });
     }
 
     // Clear old business markers
@@ -185,15 +201,43 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
         content.style.boxShadow = "0 3px 6px rgba(0,0,0,0.4)";
         content.style.background = "#fff";
         content.style.border = sel ? "2px solid #3B82F6" : "1px solid #e5e7eb";
+        content.style.position = "relative";
+        
+        const spinner = document.createElement("div");
+        spinner.style.position = "absolute";
+        spinner.style.inset = "0";
+        spinner.style.display = "flex";
+        spinner.style.alignItems = "center";
+        spinner.style.justifyContent = "center";
+        spinner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>`;
+        content.appendChild(spinner);
         
         const img = document.createElement("img");
-        img.src = biz.logo_url;
+        img.src = getThumbUrl(biz.logo_url, 100, 100);
         img.style.width = "100%";
         img.style.height = "100%";
-        img.style.objectFit = "contain";
+        img.style.objectFit = "cover";
         img.style.borderRadius = "50%";
         img.style.padding = "1px";
         img.style.boxSizing = "border-box";
+        img.style.opacity = "0"; // oculto hasta que cargue
+        img.style.transition = "opacity 0.2s";
+        
+        img.onload = () => {
+          if (spinner.parentNode) spinner.parentNode.removeChild(spinner);
+          img.style.opacity = "1";
+        };
+        
+        img.onerror = () => {
+          if (spinner.parentNode) spinner.parentNode.removeChild(spinner);
+          img.style.display = "none";
+          const fallback = document.createElement("div");
+          fallback.innerText = "📍";
+          fallback.style.fontSize = "16px";
+          fallback.style.lineHeight = "1";
+          content.appendChild(fallback);
+        };
+        
         content.appendChild(img);
       } else {
         const emojiVal = biz.emoji || categories.find(c => c.id === biz.category)?.icon || CAT_EMOJI[biz.category] || "📍";
@@ -311,6 +355,7 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
       }}>
         {/* Mi Ubicación */}
         <button
+          className="press"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -321,14 +366,14 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
             }
           }}
           style={{
-            width: 38,
-            height: 38,
-            background: "rgba(0, 0, 0, 0.65)",
+            width: 42,
+            height: 42,
+            background: "rgba(255, 255, 255, 0.9)",
             backdropFilter: "blur(12px)",
             WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: "50%",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+            border: "1px solid rgba(0,0,0,0.08)",
+            borderRadius: 14,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
@@ -337,7 +382,7 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
           }}
           title="Mi ubicación"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="2" x2="12" y2="5"></line>
             <line x1="12" y1="19" x2="12" y2="22"></line>
@@ -350,27 +395,27 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
         <div style={{
           display: "flex",
           flexDirection: "column",
-          background: "rgba(0, 0, 0, 0.65)",
+          background: "rgba(255, 255, 255, 0.9)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          borderRadius: 20,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+          border: "1px solid rgba(0,0,0,0.08)",
+          borderRadius: 14,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
           overflow: "hidden"
         }}>
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (map.current) map.current.setZoom(map.current.getZoom() + 1); }}
-            style={{ width: 38, height: 38, background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.15)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s" }}
+            style={{ width: 42, height: 42, background: "transparent", border: "none", borderBottom: "1px solid rgba(0,0,0,0.08)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
             title="Acercar"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           </button>
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (map.current) map.current.setZoom(map.current.getZoom() - 1); }}
-            style={{ width: 38, height: 38, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s" }}
+            style={{ width: 42, height: 42, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
             title="Alejar"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           </button>
         </div>
       </div>

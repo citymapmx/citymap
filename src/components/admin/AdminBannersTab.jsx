@@ -1,19 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Icon from '../ui/Icon';
 import FI from './FI';
 import OptimizedImage from '../ui/OptimizedImage';
+import { cloudDelete } from '../../lib/supabase.js';
+import Uploader from '../Uploader';
 
 export default function AdminBannersTab({
   data,
-  banForm,
-  setBanForm,
   sb,
   load,
-  onToast,
-  saving,
-  setSaving,
-  Uploader
+  onToast
 }) {
+  const [banForm, setBanForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+
   return (
     <>
       {!banForm && <div>
@@ -47,7 +47,7 @@ export default function AdminBannersTab({
               <div style={{ display: "flex", gap: 6 }}>
                 <button onClick={() => setBanForm({ ...bn })} style={{ flex: 1, background: "#EAF4F0", border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontSize: 11, fontWeight: 700, color: "#1A7A5E", fontFamily: "inherit" }}>Editar</button>
                 <button onClick={async () => { await sb.patch("banners", bn.id, { active: !bn.active }); onToast(bn.active ? "Desactivado" : "Activado"); await load(); }} style={{ flex: 1, background: bn.active ? "#FEF3C7" : "#DCFCE7", border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontSize: 11, fontWeight: 700, color: bn.active ? "#D97706" : "#16A34A", fontFamily: "inherit" }}>{bn.active ? "Desactivar" : "Activar"}</button>
-                <button onClick={async () => { if (!window.confirm("Eliminar banner?")) return; await sb.del("banners", bn.id); onToast("Eliminado"); await load(); }} style={{ background: "#FFF5F5", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer" }}><Icon name="trash" size={12} color="#D94F3D" /></button>
+                <button onClick={async () => { if (!window.confirm("Eliminar banner?")) return; if (bn.img_url) await cloudDelete(bn.img_url); await sb.del("banners", bn.id); onToast("Eliminado"); await load(); }} style={{ background: "#FFF5F5", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer" }}><Icon name="trash" size={12} color="#D94F3D" /></button>
               </div>
             </div>
           </div>;

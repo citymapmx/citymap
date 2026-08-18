@@ -35,7 +35,7 @@ export default function AddBizModal({
     <div className="ov" onClick={() => { setShowAddBiz(false); setEditBizId(null); }}>
       <div className="sh" style={{ maxHeight: "94vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-          <h2 style={{ fontFamily: "'Coolvetica', sans-serif", fontSize: 22, color: T.text }}>{editBizId ? "Actualizar negocio" : "Sugerir un lugar o negocio"}</h2>
+          <h2 style={{ fontFamily: "var(--heading)", fontSize: 22, color: T.text }}>{editBizId ? "Actualizar negocio" : "Sugerir un lugar o negocio"}</h2>
           <button onClick={() => { setShowAddBiz(false); setEditBizId(null); }} style={{ background: T.bg, border: "none", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, marginLeft: 12 }}><Icon name="x" size={16} color={T.sub} /></button>
         </div>
         <p style={{ fontSize: 13, color: T.sub, marginBottom: 18 }}>{editBizId ? "Corrige la información y reenvía para revisión" : "Se publicará tras la revisión del equipo CityMap"}</p>
@@ -91,15 +91,22 @@ export default function AddBizModal({
             )}
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Ciudad <span style={{ color: T.red }}>*</span></div>
-              {isFreeOwner ? (
-                <div style={{ padding: "12px 14px", background: T.bg, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.sub, fontFamily: "inherit", minHeight: 44 }}>{addBizForm.city || "tepic"}</div>
-              ) : (
-                <input className="inp" placeholder="Ej: Tepic" value={addBizForm.city || ""} onChange={e => setAddBizForm(f => ({ ...f, city: e.target.value }))} />
-              )}
+              <div style={{ padding: "12px 14px", background: T.bg, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.sub, fontFamily: "inherit", minHeight: 44 }}>
+                {addBizForm.city || activeCity}
+              </div>
             </div>
           </div>
+
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Etiquetas o Subcategorías (Separadas por comas)</div>
+            <input className="inp" placeholder="Desayunos, tacos, terraza, pet-friendly..." value={Array.isArray(addBizForm.tags) ? addBizForm.tags.join(", ") : (addBizForm.tags || "")} onChange={e => setAddBizForm(f => ({ ...f, tags: e.target.value }))} />
+          </div>
+
           {!(addBizForm.is_owner || isOwnerEdit) && (
             <div><div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>¿Por qué lo recomiendas?</div><textarea className="inp" placeholder="Tienen los mejores tacos de la ciudad..." rows={3} value={addBizForm.description} onChange={e => setAddBizForm(f => ({ ...f, description: e.target.value }))} style={{ resize: "none", height: 80 }} /></div>
+          )}
+          {isOwnerEdit && (
+            <div><div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Descripción del negocio</div><textarea className="inp" placeholder="Breve descripción del negocio..." rows={3} value={addBizForm.description} onChange={e => setAddBizForm(f => ({ ...f, description: e.target.value }))} style={{ resize: "none", height: 80 }} /></div>
           )}
           
           <div>
@@ -228,6 +235,11 @@ export default function AddBizModal({
                     <input className="inp" placeholder="https://..." value={addBizForm.website} onChange={e => setAddBizForm(f => ({ ...f, website: e.target.value }))} style={{ marginBottom: 12 }} />
                   </div>
 
+                  <div style={{ position: "relative" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Enlace de Mercado Libre</div>
+                    <input className="inp" placeholder="https://listado.mercadolibre..." value={addBizForm.mercado_libre_nickname || ""} onChange={e => setAddBizForm(f => ({ ...f, mercado_libre_nickname: e.target.value.trim() }))} style={{ marginBottom: 12, border: "1px solid #FCD34D", background: T.white }} />
+                  </div>
+
                   <div style={{ marginTop: 8, padding: 16, background: "#FEF3C7", borderRadius: 16, border: "1px solid #FDE68A" }}>
                     <div style={{ fontSize: 15, fontWeight: 800, color: "#92400E", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
                       <Icon name="star" size={16} color="#92400E" /> Funciones Premium
@@ -285,7 +297,7 @@ export default function AddBizModal({
 
 
           <button onClick={async () => {
-            if (!addBizForm.name || !addBizForm.category || !addBizForm.city) { toast$("Nombre, categoría y ciudad son obligatorios"); return; }
+            if (!addBizForm.name || !addBizForm.category || !(addBizForm.city || activeCity)) { toast$("Nombre, categoría y ciudad son obligatorios"); return; }
             setAddBizLoading(true);
             try {
               const existingBiz = biz.find(b => b.id === editBizId);
@@ -311,8 +323,10 @@ export default function AddBizModal({
                 website: addBizForm.website, 
                 video_url: addBizForm.video_url || null,
                 logo_url: addBizForm.logo_url || null,
+                mercado_libre_nickname: addBizForm.mercado_libre_nickname || null,
                 lat: addBizForm.lat || null, 
                 lng: addBizForm.lng || null, 
+                tags: typeof addBizForm.tags === "string" ? addBizForm.tags.split(",").map(t => t.trim()).filter(Boolean) : addBizForm.tags,
                 schedule: addBizForm.schedule || {}, 
                 social_links: {
                   facebook: addBizForm.facebook || null,
@@ -336,7 +350,7 @@ export default function AddBizModal({
                 loadMapPins(activeCity); 
               }
               setShowAddBiz(false); setEditBizId(null);
-              setAddBizForm({ name: "", category: "", city: "", description: "", address: "", phone: "", whatsapp: "", website: "", video_url: "", logo_url: "", lat: "", lng: "", photos: [], facebook: "", instagram: "", tiktok: "", schedule: {} });
+              setAddBizForm({ name: "", category: "", city: "", description: "", address: "", phone: "", whatsapp: "", website: "", mercado_libre_nickname: "", video_url: "", logo_url: "", lat: "", lng: "", tags: [], photos: [], facebook: "", instagram: "", tiktok: "", schedule: {} });
               await loadMyBiz(user?.id);
             } catch(e) { toast$("Error: " + e.message); } finally { setAddBizLoading(false); }
           }} style={{ padding: 15, background: addBizLoading ? T.sub : T.green, border: "none", borderRadius: 14, fontSize: 15, fontWeight: 800, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>

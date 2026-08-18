@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
-import { sb } from "../lib/supabase.js";
+import { sb, cloudDeleteBatch, cloudListAllFiles } from "../lib/supabase.js";
 import { PLAN_META, EVENT_CATS } from "../lib/constants.js";
-import { getEventStatus, createSlug } from "../lib/utils.js";
+import { getEventStatus, createSlug, getThumbUrl } from "../lib/utils.js";
 import Icon from "./ui/Icon.jsx";
 import Uploader from "./Uploader.jsx";
 import MenuManager from "./MenuManager.jsx";
@@ -26,6 +26,7 @@ function MetricCard({ label, value, icon, color, T }) {
 const AdminDashboardTab = lazy(() => import('./admin/AdminDashboardTab.jsx'));
 const AdminBizTab = lazy(() => import('./admin/AdminBizTab.jsx'));
 const AdminEventsTab = lazy(() => import('./admin/AdminEventsTab.jsx'));
+const AdminExperiencesTab = lazy(() => import('./admin/AdminExperiencesTab.jsx'));
 const AdminPromosTab = lazy(() => import('./admin/AdminPromosTab.jsx'));
 const AdminCouponsTab = lazy(() => import('./admin/AdminCouponsTab.jsx'));
 const AdminRafflesTab = lazy(() => import('./admin/AdminRafflesTab.jsx'));
@@ -36,20 +37,8 @@ const AdminReservationsTab = lazy(() => import('./admin/AdminReservationsTab.jsx
 
 function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
   const [tab, setTab] = useState("dashboard");
-  const [data, setData] = useState({ biz: [], events: [], promos: [], coupons: [], raffles: [], banners: [], cities: [], categories: [], analytics: [], reservations: [], claims: [] });
+  const [data, setData] = useState({ biz: [], events: [], experiences: [], promos: [], coupons: [], raffles: [], banners: [], cities: [], categories: [], city_categories: [], analytics: [], reservations: [], claims: [] });
   const [loading, setLoading] = useState(true);
-  const [bizForm, setBizForm] = useState(null);
-  const [evForm, setEvForm] = useState(null);
-  const [prForm, setPrForm] = useState(null);
-  const [cpForm, setCpForm] = useState(null);
-  const [rfForm, setRfForm] = useState(null);
-  const [banForm, setBanForm] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [catForm, setCatForm] = useState(null);
-  const [cityForm, setCityForm] = useState(null);
-  const [bizSearch, setBizSearch] = useState("");
-  const [bizCityFilter, setBizCityFilter] = useState("all");
-  const [bizTypeFilter, setBizTypeFilter] = useState("all");
   const [dashCityFilter, setDashCityFilter] = useState("all");
   const [analyticsTarget, setAnalyticsTarget] = useState(null);
   const gok = useGMaps();
@@ -64,14 +53,24 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
   const load = useCallback(async () => { 
     setLoading(true); 
     try { 
-      const [b, e, p, c, bn, ci, ca, an, rv, cl, rf] = await Promise.all([
-        sb.get("businesses", "?order=created_at.desc"), 
+      const [b, e, ex, p, c, bn, ci, ca, cc, an, rv, cl, rf, ml] = await Promise.all([
+        (async () => {
+          const [allLite, pendingFull] = await Promise.all([
+            sb.get("businesses", "?select=id,name,status,city_slug,plan,photos,menu_pdf_url,logo_url,owner_id,slug,booking_config,social_links,schedule,blocked_slots"),
+            sb.get("businesses", "?status=in.(pending,needs_changes)")
+          ]);
+          const pendingMap = {};
+          pendingFull.forEach(b => pendingMap[b.id] = b);
+          return allLite.map(b => pendingMap[b.id] || b);
+        })(),
         sb.get("events", "?order=created_at.desc"), 
+        sb.get("experiences", "?order=created_at.desc").catch(() => []),
         sb.get("promos", "?order=created_at.desc"), 
         sb.get("coupons", "?order=created_at.desc"), 
         sb.get("banners", "?order=sort_order.asc"), 
         sb.get("cities", "?order=name.asc"), 
         sb.get("categories", "?order=sort_order.asc"), 
+        sb.get("city_categories").catch(() => []),
         (async () => {
           let all = [];
           let offset = 0;
@@ -85,7 +84,8 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
         })(),
         sb.get("reservations", "?order=created_at.desc&limit=200"), 
         sb.get("business_claims", "?status=eq.pending"),
-        sb.get("raffles", "?order=created_at.desc").catch(() => [])
+        sb.get("raffles", "?order=created_at.desc").catch(() => []),
+        sb.get("mercadolibre_products", "?order=created_at.desc").catch(() => [])
       ]); 
       
       const parsedBiz = Array.isArray(b) ? b.map(biz => ({
@@ -97,7 +97,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
         photos: parseJSON(biz.photos)
       })) : [];
 
-      setData({ biz: parsedBiz, events: e, promos: p, coupons: c, raffles: Array.isArray(rf) ? rf : [], banners: bn, cities: ci, categories: ca, analytics: an, reservations: Array.isArray(rv) ? rv : [], claims: Array.isArray(cl) ? cl : [] }); 
+      setData({ biz: parsedBiz, events: e, experiences: Array.isArray(ex) ? ex : [], promos: p, coupons: c, raffles: Array.isArray(rf) ? rf : [], banners: bn, cities: ci, categories: ca, city_categories: cc, analytics: an, reservations: Array.isArray(rv) ? rv : [], claims: Array.isArray(cl) ? cl : [],  }); 
     } catch (e) { 
       onToast("Error cargando datos");
     } finally { 
@@ -106,28 +106,25 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
   }, []);
   useEffect(() => { load(); }, []);
 
-  const geo = () => { if (!gok || !bizForm?.address) return; new window.google.maps.Geocoder().geocode({ address: bizForm.address }, (r, s) => { if (s === "OK") { const l = r[0].geometry.location; setBizForm(f => ({ ...f, lat: l.lat(), lng: l.lng() })); } }); };
-
   // ─ Dashboard stats ─
   const dashBiz = dashCityFilter === "all" ? data.biz : data.biz.filter(b => b.city_slug === "all" || (b.city_slug && b.city_slug.split(",").includes(dashCityFilter)));
   const dashEv = dashCityFilter === "all" ? data.events : data.events.filter(ev => ev.city_slug === "all" || (ev.city_slug && ev.city_slug.split(",").includes(dashCityFilter)));
   const dashAn = dashCityFilter === "all" ? data.analytics : data.analytics.filter(a => a.city_slug === "all" || (a.city_slug && a.city_slug.split(",").includes(dashCityFilter)));
   const stats = { total: dashBiz.filter(b => b.status !== "pending" && b.status !== "needs_changes").length, approved: dashBiz.filter(b => b.status === "approved").length, pending: dashBiz.filter(b => b.status === "pending" || b.status === "needs_changes").length + dashEv.filter(ev => ev.status === "pending").length, views: dashAn.filter(a => a.event_type === "view").length, whatsapp: dashAn.filter(a => a.event_type === "whatsapp").length, phone: dashAn.filter(a => a.event_type === "phone").length, website: dashAn.filter(a => a.event_type === "website").length, maps: dashAn.filter(a => a.event_type === "maps").length };
 
-  const TABS = [["dashboard", "Panel"], ["biz", "Negocios"], ["pending", "Pendientes"], ["media", "Multimedia"], ["events", "Eventos"], ["promos", "Promos"], ["coupons", "Cupones"], ["raffles", "Sorteos"], ["banners", "Banners"], ["cities", "Ciudades"], ["categories", "Categorías"], ["reservations", "Reservas"], ["push", "Push"]];
+  const TABS = [["dashboard", "Panel"], ["biz", "Negocios"], ["pending", "Pendientes"], ["media", "Multimedia"], ["events", "Eventos"], ["experiences", "Experiencias"], ["promos", "Promos"], ["coupons", "Cupones"], ["raffles", "Sorteos"], ["banners", "Banners"], ["cities", "Ciudades"], ["categories", "Categorías"], ["reservations", "Reservas"], ["push", "Push"]];
 
 
 
-  const saveBiz = async () => { setSaving(true); try { const tags = typeof bizForm.tags === "string" ? bizForm.tags.split(",").map(t => t.trim()).filter(Boolean) : bizForm.tags; const cty = bizForm.city_slug || "tepic"; let baseSlug = bizForm.slug || createSlug(bizForm.name); if (!baseSlug.startsWith(cty + "-")) baseSlug = `${cty}-${baseSlug}`; let newSlug = baseSlug; let counter = 1; while (data.biz.some(b => b.slug === newSlug && b.id !== bizForm.id)) { newSlug = `${baseSlug}-${counter++}`; } const payload = { category: bizForm.category, name: bizForm.name, slug: newSlug, emoji: bizForm.emoji || null, type: bizForm.type, tagline: bizForm.tagline, schedule: bizForm.schedule || {}, address: bizForm.address, city_slug: bizForm.city_slug || "tepic", lat: bizForm.lat, lng: bizForm.lng, phone: bizForm.phone, whatsapp: bizForm.whatsapp, website: bizForm.website, video_url: bizForm.video_url || null, logo_url: bizForm.logo_url || null, hours: bizForm.hours, tags, description: bizForm.description, open: bizForm.open, badge: bizForm.badge || null, plan: bizForm.plan || "free", status: bizForm.status || "pending", photos: bizForm.photos || [], social_links: bizForm.social_links || {}, menu_pdf_url: bizForm.menu_pdf_url || null, is_place: bizForm.is_place || false, hide_location: bizForm.hide_location || false, booking_config: bizForm.booking_config || null }; if (bizForm._new) await sb.post("businesses", payload); else await sb.patch("businesses", bizForm.id, payload); onToast(bizForm._new ? "Negocio creado ✓" : "Negocio actualizado ✓"); setBizForm(null); await load(); } catch (e) { onToast("Error: " + e.message); } finally { setSaving(false); } };
   const approveBiz = async (id) => { 
     await sb.patch("businesses", id, { status: "approved" }); 
     const b = data.biz.find(x => x.id === id);
-    if (b?.owner_id) await sb.notify(b.owner_id, "¡Negocio aprobado!", `Tu negocio ${b.name} ya es público.`, "approval");
+    const targetUserId = b?.owner_id || b?.user_id;
+    if (targetUserId) await sb.notify(targetUserId, "¡Negocio aprobado!", `Tu negocio ${b.name} ya es público.`, "approval");
     onToast("Negocio aprobado ✓"); 
     await load(); 
   };
-  const rejectBiz = async (id) => { if (!window.confirm("¿Estás seguro de que deseas rechazar y eliminar este negocio por completo?")) return; await sb.del("businesses", id); onToast("Negocio eliminado"); await load(); };
-  const delBiz = async (id) => { if (!window.confirm("¿Eliminar?")) return; await sb.del("businesses", id); onToast("Eliminado"); await load(); };
+  const rejectBiz = async (id) => { if (!window.confirm("¿Estás seguro de que deseas rechazar y eliminar este negocio por completo?")) return; const b = data.biz.find(x => x.id === id); if (b) { const paths = [b.logo_url, b.menu_pdf_url, ...(b.photos || []).map(p => p.url)].filter(Boolean); await cloudDeleteBatch(paths); } await sb.del("businesses", id); onToast("Negocio eliminado"); await load(); };
 
   // Photo management for a business
   const [mediaTarget, setMediaTarget] = useState(null);
@@ -145,7 +142,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
       </div>
       {/* Scrollable tab bar */}
       <div style={{ display: "flex", gap: 0, overflowX: "auto", paddingBottom: 0 }}>
-        {TABS.map(([id, lbl]) => <button key={id} onClick={() => { setTab(id); setBizForm(null); setEvForm(null); setPrForm(null); setCpForm(null); setBanForm(null); setMediaTarget(null); setCityForm(null); }} style={{ padding: "10px 14px", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, background: "transparent", color: tab === id ? "#fff" : "rgba(255,255,255,.5)", borderBottom: `2px solid ${tab === id ? "#fff" : "transparent"}`, whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}>{lbl}</button>)}
+        {TABS.map(([id, lbl]) => <button key={id} onClick={() => { setTab(id); setMediaTarget(null); }} style={{ padding: "10px 14px", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, background: "transparent", color: tab === id ? "#fff" : "rgba(255,255,255,.5)", borderBottom: `2px solid ${tab === id ? "#fff" : "transparent"}`, whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}>{lbl}</button>)}
       </div>
     </div>
 
@@ -156,7 +153,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
         {/* ─ DASHBOARD ─ */}
         {tab === "dashboard" && (
           <Suspense fallback={null}>
-            <AdminDashboardTab data={data} dashCityFilter={dashCityFilter} setDashCityFilter={setDashCityFilter} T={T} />
+            <AdminDashboardTab data={data} dashCityFilter={dashCityFilter} setDashCityFilter={setDashCityFilter} T={T} onToast={onToast} cloudListAllFiles={cloudListAllFiles} cloudDeleteBatch={cloudDeleteBatch} sb={sb} />
           </Suspense>
         )}
 
@@ -165,22 +162,11 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
           <Suspense fallback={null}>
             <AdminBizTab
               data={data}
-              bizForm={bizForm}
-              setBizForm={setBizForm}
-              bizSearch={bizSearch}
-              setBizSearch={setBizSearch}
-              bizTypeFilter={bizTypeFilter}
-              setBizTypeFilter={setBizTypeFilter}
-              bizCityFilter={bizCityFilter}
-              setBizCityFilter={setBizCityFilter}
               setAnalyticsTarget={setAnalyticsTarget}
               setTab={setTab}
               setMediaTarget={setMediaTarget}
               onOpenStoreAdmin={onOpenStoreAdmin}
-              delBiz={delBiz}
-              geo={geo}
-              saveBiz={saveBiz}
-              saving={saving}
+              onToast={onToast}
               T={T}
             />
           </Suspense>
@@ -188,7 +174,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
 
         {/* ─ PENDIENTES ─ */}
         {tab === "pending" && <div>
-          <p className="text-lg" style={{ fontFamily: "'Coolvetica', sans-serif", color: "#0F1A14", marginBottom: 14 }}>Solicitudes pendientes</p>
+          <p className="text-lg" style={{ fontFamily: "var(--heading)", color: "#0F1A14", marginBottom: 14 }}>Solicitudes pendientes</p>
           {(() => {
             const claims = data.claims || [];
             
@@ -201,14 +187,14 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
               {claims.map(claim => {
                 const b = data.biz.find(x => x.id === claim.business_id);
                 const bizName = b ? b.name : "Negocio Desconocido";
-                return <div key={claim.id} style={{ background: "#FEF9C3", borderRadius: 14, padding: "14px", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,.05)", borderLeft: "4px solid #EAB308" }}>
+                return <div key={claim.id} style={{ background: T.white, borderRadius: 14, padding: "14px", marginBottom: 12, boxShadow: T.shadow, border: `1px solid ${T.border}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <div className="text-base" style={{ fontWeight: 800, color: "#854D0E" }}>Reclamo de {bizName}</div>
-                    <span className="text-micro" style={{ background: "#FEF08A", color: "#854D0E", borderRadius: 20, padding: "2px 8px", fontWeight: 800 }}>Por revisar</span>
+                    <div className="text-base" style={{ fontWeight: 800, color: T.text }}>Reclamo de {bizName}</div>
+                    <span className="text-micro" style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontWeight: 800 }}>Por revisar</span>
                   </div>
-                  <div className="text-sm" style={{ color: "#713F12", marginBottom: 4 }}><strong>Email:</strong> {claim.email}</div>
-                  <div className="text-sm" style={{ color: "#713F12", marginBottom: 4 }}><strong>Teléfono:</strong> {claim.phone}</div>
-                  <div className="text-sm" style={{ color: "#713F12", marginBottom: 12 }}><strong>Rol:</strong> {claim.role}</div>
+                  <div className="text-sm" style={{ color: T.sub, marginBottom: 4 }}><strong>Email:</strong> {claim.email}</div>
+                  <div className="text-sm" style={{ color: T.sub, marginBottom: 4 }}><strong>Teléfono:</strong> {claim.phone}</div>
+                  <div className="text-sm" style={{ color: T.sub, marginBottom: 12 }}><strong>Rol:</strong> {claim.role}</div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={async () => { 
                       await sb.patch("businesses", claim.business_id, { owner_id: claim.user_id }); 
@@ -217,8 +203,8 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                       await sb.notify(claim.user_id, "Reclamo aprobado", `Eres el administrador oficial de ${b ? b.name : 'tu negocio'}.`, "approval");
                       onToast("Reclamo aprobado ✓"); 
                       await load(); 
-                    }} style={{ flex: 1, padding: "9px 0", background: "#EAB308", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>Aprobar Reclamo</button>
-                    <button onClick={async () => { await sb.patch("business_claims", claim.id, { status: "rejected" }); onToast("Reclamo rechazado"); await load(); }} style={{ flex: 1, padding: "9px 0", background: "transparent", border: "1.5px solid #EAB308", borderRadius: 10, fontWeight: 800, fontSize: 12, color: "#A16207", cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
+                    }} style={{ flex: 1, padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>Aprobar Reclamo</button>
+                    <button onClick={async () => { await sb.patch("business_claims", claim.id, { status: "rejected" }); onToast("Reclamo rechazado"); await load(); }} style={{ flex: 1, padding: "9px 0", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 800, fontSize: 12, color: T.sub, cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
                   </div>
                 </div>
               })}
@@ -227,11 +213,11 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
           {data.biz.some(b => b.status === "pending" || b.status === "needs_changes") && <div className="text-sm" style={{ fontWeight: 800, color: "#5A6872", marginBottom: 10, marginTop: 10, textTransform: "uppercase", letterSpacing: 1 }}>Negocios</div>}
           {data.biz.filter(b => b.status === "pending" || b.status === "needs_changes").map(b => <div key={b.id} style={{ background: "#fff", borderRadius: 14, padding: "14px", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
             <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 10 }}>
-              <div style={{ width: 52, height: 52, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: "#F7F8F6" }}>{b.photos?.[0]?.url ? <img src={b.photos[0].url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Icon name="store" size={20} color="#5A6872" />}</div>
+              <div style={{ width: 52, height: 52, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: "#F7F8F6" }}>{b.photos?.[0]?.url ? <img src={getThumbUrl(b.photos[0].url, 120, 120)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /> : <Icon name="store" size={20} color="#5A6872" />}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div className="text-base" style={{ fontWeight: 700, color: "#0F1A14" }}>{b.name}</div>
-                  <span className="text-micro" style={{ background: b.status === "needs_changes" ? "#F5F3FF" : "#FEF3C7", color: b.status === "needs_changes" ? "#7C3AED" : "#D97706", borderRadius: 20, padding: "2px 8px", fontWeight: 700, flexShrink: 0, marginLeft: 6 }}>{b.status === "needs_changes" ? "Requiere cambios" : "Pendiente"}</span>
+                  <span className="text-micro" style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontWeight: 800, flexShrink: 0, marginLeft: 6 }}>{b.status === "needs_changes" ? "Requiere cambios" : "Pendiente"}</span>
                 </div>
                 <div className="text-xs" style={{ color: "#5A6872", marginTop: 2 }}>{b.type || b.category} · {b.address}</div>
                 {b.phone && <div className="text-xs" style={{ color: "#5A6872" }}>Tel: {b.phone}{b.whatsapp && " · WA: " + b.whatsapp}</div>}
@@ -239,15 +225,15 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                 {(b.facebook || b.instagram || b.tiktok) && <div className="text-xs" style={{ color: "#5A6872", marginTop: 4 }}>{[b.facebook && "FB", b.instagram && "IG", b.tiktok && "TK"].filter(Boolean).join(" · ")}</div>}
               </div>
             </div>
-            {b.admin_notes && <div className="text-xs" style={{ background: "#F5F3FF", borderRadius: 8, padding: "8px 10px", color: "#7C3AED", marginBottom: 8, borderLeft: "3px solid #7C3AED" }}>Nota anterior: {b.admin_notes}</div>}
+            {b.admin_notes && <div className="text-xs" style={{ background: T.bg, borderRadius: 8, padding: "8px 10px", color: T.sub, marginBottom: 8, borderLeft: `3px solid ${T.border}` }}>Nota anterior: {b.admin_notes}</div>}
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <button onClick={() => approveBiz(b.id)} style={{ flex: 1, padding: "9px 0", background: "#DCFCE7", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, color: "#16A34A", cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>
-              <button onClick={() => rejectBiz(b.id)} style={{ flex: 1, padding: "9px 0", background: "#FEE2E2", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
-              <button onClick={() => setBizForm({ ...b, tags: Array.isArray(b.tags) ? b.tags.join(", ") : b.tags, social_links: b.social_links || {} })} style={{ padding: "9px 12px", background: "#EAF4F0", border: "none", borderRadius: 10, cursor: "pointer" }}><Icon name="edit" size={13} color="#1A7A5E" /></button>
+              <button onClick={() => approveBiz(b.id)} style={{ flex: 1, padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>
+              <button onClick={() => rejectBiz(b.id)} style={{ flex: 1, padding: "9px 0", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 800, fontSize: 12, color: T.sub, cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
+              <button onClick={() => setBizForm({ ...b, tags: Array.isArray(b.tags) ? b.tags.join(", ") : b.tags, social_links: b.social_links || {} })} style={{ padding: "9px 12px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, cursor: "pointer" }}><Icon name="edit" size={13} color={T.text} /></button>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <input className="text-xs" placeholder="Comentario para el propietario..." style={{ flex: 1, padding: "9px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }} id={`note-${b.id}`} defaultValue={b.admin_notes || ""} />
-              <button onClick={async () => { const note = document.getElementById(`note-${b.id}`)?.value || ""; await sb.patch("businesses", b.id, { status: "needs_changes", admin_notes: note }); onToast("Enviado"); await load(); }} style={{ padding: "9px 12px", background: "#F5F3FF", border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#7C3AED", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Pedir cambios</button>
+              <input className="text-xs" placeholder="Comentario para el propietario..." style={{ flex: 1, padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: 10, color: T.text, background: "transparent", fontFamily: "inherit" }} id={`note-${b.id}`} defaultValue={b.admin_notes || ""} />
+              <button onClick={async () => { const note = document.getElementById(`note-${b.id}`)?.value || ""; await sb.patch("businesses", b.id, { status: "needs_changes", admin_notes: note }); const targetUserId = b.owner_id || b.user_id; if (targetUserId) await sb.notify(targetUserId, "Se requieren cambios", `Revisa las notas para ${b.name}.`, "alert"); onToast("Enviado"); await load(); }} style={{ padding: "9px 12px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 12, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Pedir cambios</button>
             </div>
           </div>)}
 
@@ -255,11 +241,11 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
           {data.events.filter(ev => ev.status === "pending").map(ev => {
              return <div key={ev.id} style={{ background: "#fff", borderRadius: 14, padding: "14px", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 10 }}>
-                <div style={{ width: 52, height: 52, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: "#F7F8F6" }}>{(ev.img_url || ev.img) ? <img src={ev.img_url || ev.img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar" size={20} color="#5A6872" /></div>}</div>
+                <div style={{ width: 52, height: 52, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: "#F7F8F6" }}>{(ev.img_url || ev.img) ? <img src={getThumbUrl(ev.img_url || ev.img, 120, 120)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar" size={20} color="#5A6872" /></div>}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div className="text-base" style={{ fontWeight: 700, color: "#0F1A14" }}>{ev.title}</div>
-                    <span className="text-micro" style={{ background: "#FEF3C7", color: "#D97706", borderRadius: 20, padding: "2px 8px", fontWeight: 700, flexShrink: 0, marginLeft: 6 }}>Pendiente</span>
+                    <span className="text-micro" style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontWeight: 800, flexShrink: 0, marginLeft: 6 }}>Pendiente</span>
                   </div>
                   <div className="text-xs" style={{ color: "#5A6872", marginTop: 2 }}>{ev.date}{ev.time && " · " + ev.time}</div>
                   {ev.venue_name && <div className="text-xs" style={{ color: "#5A6872" }}>Lugar: {ev.venue_name}</div>}
@@ -282,10 +268,10 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
 
         {/* ─ MULTIMEDIA ─ */}
         {tab === "media" && <div>
-          <p className="text-lg" style={{ fontFamily: "'Coolvetica', sans-serif", color: "#0F1A14", marginBottom: 14 }}>Gestión multimedia</p>
+          <p className="text-lg" style={{ fontFamily: "var(--heading)", color: "#0F1A14", marginBottom: 14 }}>Gestión multimedia</p>
           {!mediaTarget && <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {data.biz.filter(b => b.status === "approved").map(b => <div key={b.id} className="press" onClick={() => setMediaTarget(b.id)} style={{ background: "#fff", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 2px 8px rgba(0,0,0,.05)", cursor: "pointer" }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#F7F8F6" }}>{b.photos?.[0]?.url ? <img src={b.photos[0].url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={18} color="#5A6872" /></div>}</div>
+              <div style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#F7F8F6" }}>{b.photos?.[0]?.url ? <img src={getThumbUrl(b.photos[0].url, 100, 100)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={18} color="#5A6872" /></div>}</div>
               <div style={{ flex: 1 }}><div className="text-sm" style={{ fontWeight: 700, color: "#0F1A14" }}>{b.name}</div><div className="text-xs" style={{ color: "#5A6872", marginTop: 1 }}>{b.photos?.length || 0} fotos · {b.menu_pdf_url ? "Menú adjunto" : "Sin menú"}</div></div>
               <Icon name="chevron" size={16} color="#5A6872" />
             </div>)}
@@ -324,57 +310,64 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
           <Suspense fallback={null}>
             <AdminEventsTab
               data={data}
-              evForm={evForm}
-              setEvForm={setEvForm}
               sb={sb}
               load={load}
               onToast={onToast}
-              saving={saving}
-              setSaving={setSaving}
             />
           </Suspense>
         )}
 
+        {/* ─ EXPERIENCES ─ */}
+        {tab === "experiences" && (
+          <Suspense fallback={null}>
+            <AdminExperiencesTab
+              data={data}
+              sb={sb}
+              load={load}
+              onToast={onToast}
+            />
+          </Suspense>
+        )}
 
         {/* ─ PROMOS ─ */}
         {tab === "promos" && (
           <Suspense fallback={null}>
-            <AdminPromosTab data={data} prForm={prForm} setPrForm={setPrForm} sb={sb} load={load} onToast={onToast} saving={saving} setSaving={setSaving} />
+            <AdminPromosTab data={data} sb={sb} load={load} onToast={onToast} />
           </Suspense>
         )}
 
         {/* ─ COUPONS ─ */}
         {tab === "coupons" && (
           <Suspense fallback={null}>
-            <AdminCouponsTab data={data} cpForm={cpForm} setCpForm={setCpForm} sb={sb} load={load} onToast={onToast} saving={saving} setSaving={setSaving} />
+            <AdminCouponsTab data={data} sb={sb} load={load} onToast={onToast} />
           </Suspense>
         )}
 
         {/* ─ RAFFLES ─ */}
         {tab === "raffles" && (
           <Suspense fallback={null}>
-            <AdminRafflesTab data={data} rfForm={rfForm} setRfForm={setRfForm} sb={sb} load={load} onToast={onToast} saving={saving} setSaving={setSaving} />
+            <AdminRafflesTab data={data} sb={sb} load={load} onToast={onToast} />
           </Suspense>
         )}
 
         {/* ─ BANNERS ─ */}
         {tab === "banners" && (
           <Suspense fallback={null}>
-            <AdminBannersTab data={data} banForm={banForm} setBanForm={setBanForm} sb={sb} load={load} onToast={onToast} saving={saving} setSaving={setSaving} Uploader={Uploader} />
+            <AdminBannersTab data={data} sb={sb} load={load} onToast={onToast} Uploader={Uploader} />
           </Suspense>
         )}
 
         {/* ─ CITIES ─ */}
         {tab === "cities" && (
           <Suspense fallback={null}>
-            <AdminCitiesTab data={data} cityForm={cityForm} setCityForm={setCityForm} sb={sb} load={load} onToast={onToast} saving={saving} setSaving={setSaving} />
+            <AdminCitiesTab data={data} sb={sb} load={load} onToast={onToast} />
           </Suspense>
         )}
 
         {/* ─ CATEGORIES ─ */}
         {tab === "categories" && (
           <Suspense fallback={null}>
-            <AdminCategoriesTab data={data} catForm={catForm} setCatForm={setCatForm} sb={sb} load={load} onToast={onToast} saving={saving} setSaving={setSaving} />
+            <AdminCategoriesTab data={data} sb={sb} load={load} onToast={onToast} />
           </Suspense>
         )}
 
@@ -425,7 +418,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
           return <div>
             <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 20 }}>
               <button onClick={() => { setTab("biz"); setAnalyticsTarget(null); }} style={{ background: "#F3F4F6", border: "none", borderRadius: 10, padding: 10, cursor: "pointer", display: "flex", alignItems: "center" }}><Icon name="x" size={16} color="#5A6872" /></button>
-              <h2 className="text-xl" style={{ fontFamily: "'Coolvetica', sans-serif", color: "#0F1A14", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</h2>
+              <h2 className="text-xl" style={{ fontFamily: "var(--heading)", color: "#0F1A14", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</h2>
             </div>
             
             <div style={{ background: "#fff", borderRadius: 14, padding: "20px", marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
