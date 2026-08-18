@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
+import { IS_WORLD } from '../lib/domain.js';
 
 const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:30,height:30,border:"3px solid #E4E8E4",borderTop:"3px solid #000000",borderRadius:"50%",animation:"spin .8s linear infinite"}}/></div>;
 
@@ -14,18 +15,18 @@ const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/mis-planes', '/experiencias', 
 
 function isHomePath(pathname) {
   if (pathname === '/') return true;
-  // /:city (one segment, not a known non-home prefix)
   if (NON_HOME_PREFIXES.some(p => pathname.startsWith(p))) return false;
-  // Two segments (/:city/:slug) = detail view, but HomeView should STAY MOUNTED
-  // So we include detail paths too – HomeView just renders behind DetailView
   const segments = pathname.split('/').filter(Boolean);
-  return segments.length <= 2; // / or /:city or /:city/:slug
+  // On citymap.world paths have an extra country prefix: /mx/cancun or /mx/cancun/slug
+  const maxHomeSegments = IS_WORLD ? 3 : 2;
+  return segments.length <= maxHomeSegments;
 }
 
 function isDetailPath(pathname) {
   if (NON_HOME_PREFIXES.some(p => pathname.startsWith(p))) return false;
   const segments = pathname.split('/').filter(Boolean);
-  return segments.length === 2; // /:city/:slug
+  // .world: /mx/cancun/slug = 3 segments | .mx: /cancun/slug = 2 segments
+  return IS_WORLD ? segments.length === 3 : segments.length === 2;
 }
 
 function isEventDetailPath(pathname) {
@@ -106,8 +107,11 @@ export default function AppRouter(props) {
         {/* ── DETAIL OVERLAY ────────────────────────────────────────── */}
         {showDetail && (
           <Routes>
+            {/* citymap.mx routes */}
             <Route path="/:city/:slug" element={<DetailView />} />
             <Route path="/evento/:slug" element={<DetailView />} />
+            {/* citymap.world routes (country prefix) */}
+            <Route path="/:country/:city/:slug" element={<DetailView />} />
             <Route path="/itinerario/:id" element={<ItineraryDetail T={T} dark={dark} navigate={navigate} id={pathname.split('/itinerario/')[1]} userCoords={userCoords} />} />
             <Route path="/plan/:token" element={<ItineraryDetail T={T} dark={dark} navigate={navigate} token={pathname.split('/plan/')[1]} userCoords={userCoords} />} />
           </Routes>
@@ -117,6 +121,7 @@ export default function AppRouter(props) {
         {!showHomeView && !showDetail && (
           <Routes>
             <Route path="/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />
+            <Route path="/:country/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />
             
             <Route path="/mapa" element={<MapView />} />
             <Route path="/mapa/:city" element={<MapView />} />
