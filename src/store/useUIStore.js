@@ -12,6 +12,28 @@ export const useUIStore = create((set) => ({
     set({ activeCity });
   },
   
+  lang: (() => {
+    try {
+      const saved = localStorage.getItem("cg_lang");
+      if (saved) return saved;
+      if (typeof window !== "undefined") {
+        const isWorld = window.location.hostname.endsWith("citymap.world");
+        if (isWorld) {
+          const path = window.location.pathname;
+          const segments = path.split('/').filter(Boolean);
+          if (segments[0] === "us" || segments[0] === "ca") return "en";
+        }
+        const navLang = navigator.language || navigator.userLanguage;
+        if (navLang && !navLang.startsWith("es")) return "en";
+      }
+    } catch {}
+    return "es";
+  })(),
+  setLang: (lang) => {
+    try { localStorage.setItem("cg_lang", lang); } catch {}
+    set({ lang });
+  },
+  
   showCountryPicker: false,
   setShowCountryPicker: (val) => set(s => ({ showCountryPicker: typeof val === 'function' ? val(s.showCountryPicker) : val })),
   

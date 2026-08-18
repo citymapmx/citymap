@@ -5,6 +5,7 @@ import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
+import { useTranslation } from "../hooks/useTranslation.js";
 import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear } from "../lib/utils";
 import Icon from "../components/ui/Icon.jsx";
@@ -69,16 +70,53 @@ export default function HomeView({ isBackground }) {
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   const now = useTimeStore(s => s.now);
   
+  const { t, lang } = useTranslation();
+
+  const placeholdersKeys = React.useMemo(() => [
+    "buscar_placeholder", "buscar_sushi", "cafeterias_cerca", "antojo_mariscos",
+    "bares_locales", "buscar_tacos", "lugares_cenar", "que_hacer", "buscar_pizza",
+    "romanticos", "fin_de_semana", "buscar_hamburguesas", "desayunos", "pet_friendly",
+    "healthy", "postres", "cena_amigos", "buffets", "donde_cafe", "buscar_cerveza",
+    "típica", "leer_libro", "aire_libre", "comerciales", "cortes"
+  ], []);
+
+  const localizedPlaceholders = React.useMemo(() => {
+    return placeholdersKeys.map(k => t(k));
+  }, [lang, t, placeholdersKeys]);
+
+  const getCategoryDesc = React.useCallback((catId, catLabel, cityLabel) => {
+    const desc = getCategoryDescription(catId, catLabel, cityLabel);
+    if (lang === 'en') {
+      const cityClean = (cityLabel || "your city").split(',')[0];
+      const id = catId.toLowerCase();
+      if (id === 'salud') return `Find the best medical care in ${cityClean}. Trusted specialists, clinics, and hospitals with verified services and hours.`;
+      if (id === 'educacion') return `Boost your future at the best schools and academies in ${cityClean}. Find the ideal institution for your development and learning.`;
+      if (id === 'restaurantes') return `Delight in the best restaurants in ${cityClean}. Find everything from local gems to fine dining with menus, hours, and reviews.`;
+      if (id === 'cafe') return `Discover the best coffee shops and bakeries in ${cityClean}. Ideal spots to work, read, or enjoy a good cup of coffee.`;
+      if (id === 'belleza') return `Pamper yourself at the top salons, spas, and barbershops in ${cityClean}. Verified services, prices, and reviews for your personal care.`;
+      if (id === 'fitness') return `Stay active at the best gyms, yoga studios, and sports centers in ${cityClean}. Choose the discipline that fits your lifestyle.`;
+      if (id === 'compras') return `Explore the best local stores and boutiques in ${cityClean}. Support local businesses and discover unique products.`;
+      if (id === 'tech') return `Solve your digital needs with local tech services in ${cityClean}. Repair shops, software, and accessories with verified quality.`;
+      if (id === 'ocio') return `Find the best entertainment in ${cityClean}. Cinemas, parks, and recreational activities for the whole family.`;
+      if (id === 'hoteles') return `Find the best hotels and hostels in ${cityClean}. Verified lodging options for a comfortable and safe stay.`;
+      if (id === 'antros-y-bares') return `Enjoy the nightlife in ${cityClean}. Bars, clubs, and pubs with the best atmosphere, drinks, and music.`;
+      if (id === 'servicios') return `Find trusted professional services in ${cityClean}. Plumbers, mechanics, and legal consultants near you.`;
+      if (id === 'mascotas') return `Keep your best friend happy with the top vets, groomers, and pet stores in ${cityClean}.`;
+      return `Discover the best places and experiences in ${cityClean}.`;
+    }
+    return desc;
+  }, [lang]);
+
   const [viewingPlan, setViewingPlan] = React.useState(null);
   const [isViewing, setIsViewing] = React.useState(false);
   const [phIdx, setPhIdx] = React.useState(0);
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setPhIdx(prev => (prev + 1) % placeholders.length);
+      setPhIdx(prev => (prev + 1) % placeholdersKeys.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [placeholders.length]);
+  }, [placeholdersKeys.length]);
 
   const { viewStyle, cityImg, locating, detectCity, city, isAdmin, setShowAdmin, search, setSearch, setShowAddBiz, activeCat, setActiveCat, T, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, requestLocation, allNearby, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, biz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState, setSelectedEvent, cleanCityPrefix, createSlug } = ctx;
 
@@ -244,7 +282,7 @@ export default function HomeView({ isBackground }) {
                       }
                     `}</style>
                     <h1 className="hero-title-anim" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(24px, 6vw, 36px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: dark ? "#fff" : T.text }}>
-                      Descubre lo mejor de <br/><span className="animated-city">{cityName}</span>
+                      {t("descubre_lo_mejor", "Descubre lo mejor de")} <br/><span className="animated-city">{cityName}</span>
                     </h1>
                   </div>
                 );
@@ -297,7 +335,7 @@ export default function HomeView({ isBackground }) {
                   <div className="hero-search-magic-container">
                     <div className="hero-search-magic-inner"></div>
                   </div>
-                  <DebouncedSearchBar initialValue={search} onSearch={setSearch} placeholders={placeholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} />
+                  <DebouncedSearchBar initialValue={search} onSearch={setSearch} placeholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} />
               </div>
 
               {/* Fila 4: Categorías Iconos (Ocultos en Inicio) */}
@@ -311,7 +349,7 @@ export default function HomeView({ isBackground }) {
                 `}</style>
                 <div style={{ display: "flex", alignItems: "flex-start", overflowX: "auto", paddingTop: 8, paddingBottom: 8, paddingLeft: 20, paddingRight: 20, gap: 20, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
                   {!dbReady ? [1, 2, 3, 4, 5].map(i => <Sk key={i} w={56} h={56} r={28} dark={true} style={{ flexShrink: 0 }} />)
-                    : [{id: "explorar", label: "Explorar"}, ...cats].map((c) => {
+                    : [{id: "explorar", label: t("explorar", "Explorar")}, ...cats.map(c => ({ ...c, label: t(c.label, c.label) }))].map((c) => {
                       const isActive = activeCat === c.id
                       const catSlug = (c.id || "").replace(/\s+/g, '-').toLowerCase();
                       const catUrl = `/${(activeCity || city || "").split(",")[0]}${c.id === "explorar" ? "" : "/" + catSlug}`;
@@ -392,7 +430,7 @@ export default function HomeView({ isBackground }) {
               <div style={{ padding: "16px 20px 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                   <span style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 20, color: T.text }}>"{search}"</span>
-                  <span style={{ fontSize: 12, color: T.sub, fontWeight: 600 }}>{displayList.length + matchingEvents.length} resultados</span>
+                  <span style={{ fontSize: 12, color: T.sub, fontWeight: 600 }}>{displayList.length + matchingEvents.length} {t("resultados", "resultados")}</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {!dbReady && [1, 2].map(i => <CardSk key={i} dark={dark} />)}
@@ -416,7 +454,7 @@ export default function HomeView({ isBackground }) {
                         onClick={() => loadPaginatedBiz(false)}
                         disabled={loadingMore}
                         style={{ padding: '10px 28px', borderRadius: 20, border: `1px solid ${T.border}`, background: 'none', color: T.text, fontWeight: 700, fontSize: 14, cursor: loadingMore ? 'default' : 'pointer', opacity: loadingMore ? 0.5 : 1 }}
-                      >{loadingMore ? 'Cargando...' : 'Ver más'}</button>
+                      >{loadingMore ? t("cargando", "Cargando...") : t("ver_mas", "Ver más")}</button>
                     </div>
                   )}
                   
@@ -431,10 +469,10 @@ export default function HomeView({ isBackground }) {
                     const isTravel = isVuelos || isRenta || isHotel || isTours;
 
                     const travelOptions = [
-                      { label: "Vuelos Baratos", emoji: "✈️", url: "https://expedia.com/affiliate/G4ETQnX", match: isVuelos },
-                      { label: "Hospedaje Ideal", emoji: "🏨", url: "https://booking.stay22.com/citymapmx/MQbyFZdMFZ", match: isHotel },
-                      { label: "Renta de Autos", emoji: "🚗", url: "https://expedia.com/affiliate/DTtL3D8", match: isRenta },
-                      { label: "Tours y Tickets", emoji: "🎟️", url: "https://getyourguide.stay22.com/citymapmx/594Wk5DWwJ", match: isTours },
+                      { label: t("vuelos_baratos", "Vuelos Baratos"), emoji: "✈️", url: "https://expedia.com/affiliate/G4ETQnX", match: isVuelos },
+                      { label: t("hospedaje_ideal", "Hospedaje Ideal"), emoji: "🏨", url: "https://booking.stay22.com/citymapmx/MQbyFZdMFZ", match: isHotel },
+                      { label: t("renta_autos", "Renta de Autos"), emoji: "🚗", url: "https://expedia.com/affiliate/DTtL3D8", match: isRenta },
+                      { label: t("tours_tickets", "Tours y Tickets"), emoji: "🎟️", url: "https://getyourguide.stay22.com/citymapmx/594Wk5DWwJ", match: isTours },
                     ];
 
                     return (
@@ -442,7 +480,7 @@ export default function HomeView({ isBackground }) {
                         {isTravel ? (
                           <>
                             <div style={{ fontSize: 14, color: T.sub, marginBottom: 16, textAlign: "center" }}>
-                              No encontramos negocios para <strong style={{ color: T.text }}>"{search}"</strong>, pero puedes reservar aquí:
+                              {t("no_encontramos_negocios", "No encontramos negocios para")} <strong style={{ color: T.text }}>"{search}"</strong>, {t("pero_reservar", "pero puedes reservar aquí:")}
                             </div>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                               {travelOptions.map(opt => (
@@ -476,8 +514,8 @@ export default function HomeView({ isBackground }) {
                         ) : (
                           <div style={{ textAlign: "center", padding: "40px 20px" }}>
                             <Icon name="search" size={32} color={T.border} />
-                            <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginTop: 12 }}>No encontramos resultados</div>
-                            <div style={{ fontSize: 14, color: T.sub, marginTop: 4 }}>Intenta con otras palabras o busca en otra ciudad.</div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginTop: 12 }}>{t("no_resultados", "No encontramos resultados")}</div>
+                            <div style={{ fontSize: 14, color: T.sub, marginTop: 4 }}>{t("intenta_otro", "Intenta con otras palabras o busca en otra ciudad.")}</div>
                           </div>
                         )}
                       </div>
@@ -497,8 +535,8 @@ export default function HomeView({ isBackground }) {
               <div>
                 {/* Title row */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 12 }}>
-                  <span style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 22, color: T.text, margin: 0 }}>{activeCat === "explorar" || activeCat === "todas" ? "Cerca de ti" : `${cats.find(c => c.id === activeCat)?.label || "Lugares"} cerca de ti`}</span>
-                  {userCoords && nearbyList.length > 0 && <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>{nearbyList.length} lugares</span>}
+                  <span style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 22, color: T.text, margin: 0 }}>{activeCat === "explorar" || activeCat === "todas" ? t("cerca_de_ti", "Cerca de ti") : `${t(cats.find(c => c.id === activeCat)?.label || "Lugares")} ${t("cerca_de_ti", "cerca de ti").toLowerCase()}`}</span>
+                  {userCoords && nearbyList.length > 0 && <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>{nearbyList.length} {t("lugares_cerca", "lugares")}</span>}
                 </div>
 
                 {/* Filter pills */}
@@ -522,7 +560,7 @@ export default function HomeView({ isBackground }) {
 
                     <button className="press" onClick={() => setNearbyFilter(nearbyFilter === "open" ? "all" : "open")} style={{ display: "flex", alignItems: "center", gap: 5, background: nearbyFilter === "open" ? (dark ? "#fff" : "#1a1a1a") : "transparent", color: nearbyFilter === "open" ? (dark ? "#000" : "#fff") : T.text, border: nearbyFilter === "open" ? "none" : `1.5px solid ${T.border}`, padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all .2s", flexShrink: 0, whiteSpace: "nowrap" }}>
                       <div className="live-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "#16A34A" }} />
-                      Abiertos ahora
+                      {t("abierto_ahora", "Abiertos ahora")}
                     </button>
                   </div>
                 )}
@@ -532,7 +570,7 @@ export default function HomeView({ isBackground }) {
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: T.greenL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <Icon name="pin" size={16} color={T.green} />
                     </div>
-                    <span style={{ fontSize: 13, color: T.green, fontWeight: 600 }}>Toca para ver lugares cerca de ti</span>
+                    <span style={{ fontSize: 13, color: T.green, fontWeight: 600 }}>{t("toca_cerca", "Toca para ver lugares cerca de ti")}</span>
                   </div>
                 )}
 
@@ -540,11 +578,11 @@ export default function HomeView({ isBackground }) {
                   {nearbyList.length === 0 ? (
                     <div style={{ padding: "24px 16px", background: dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: 16, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12 }}>
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: 14, color: T.text, marginBottom: 4 }}>¡Sé el primero en descubrir esta zona! 🗺️</div>
-                        <div style={{ fontSize: 13, color: T.sub }}>Amplía tu radio de búsqueda o sugiere una joya oculta</div>
+                        <div style={{ fontWeight: 800, fontSize: 14, color: T.text, marginBottom: 4 }}>{t("sugerir_zona", "¡Sé el primero en descubrir esta zona! 🗺️")}</div>
+                        <div style={{ fontSize: 13, color: T.sub }}>{t("sugerir_desc", "Amplía tu radio de búsqueda o sugiere una joya oculta")}</div>
                       </div>
                       <button className="press" onClick={() => { if (!user) { setShowAuth(true); toast$("Inicia sesión para sugerir un lugar"); } else { setShowAddBiz(true); } }} style={{ background: "#0ea5e9", color: "#fff", border: "none", borderRadius: 20, padding: "8px 16px", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                        <Icon name="plus" size={16} color="#fff" /> Sugerir lugar
+                        <Icon name="plus" size={16} color="#fff" /> {t("sugerir_btn", "Sugerir lugar")}
                       </button>
                     </div>
                   ) : (
@@ -565,7 +603,7 @@ export default function HomeView({ isBackground }) {
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                                 <div style={{ width: 5, height: 5, borderRadius: "50%", background: getScheduleStatus(b, isOpen(b)).color, flexShrink: 0 }} />
-                                <span style={{ fontSize: 9, color: getScheduleStatus(b, isOpen(b)).color, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.2 }}>{getScheduleStatus(b, isOpen(b)).text}</span>
+                                <span style={{ fontSize: 9, color: getScheduleStatus(b, isOpen(b)).color, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.2 }}>{t(getScheduleStatus(b, isOpen(b)).text)}</span>
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 1, color: T.sub, fontSize: 10, fontWeight: 600 }}>
                                 <Icon name="pin" size={9} color={T.sub} />
@@ -601,7 +639,7 @@ export default function HomeView({ isBackground }) {
             }).filter(ev => ev && ev.date).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
             if (!dbReady) return (
               <div style={{ padding: "24px 0 0 20px" }}>
-                <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 18, color: T.text, margin: "0 0 12px 0", letterSpacing: "-0.5px" }}>Agenda Local</h2>
+                <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 18, color: T.text, margin: "0 0 12px 0", letterSpacing: "-0.5px" }}>{t("agenda_local", "Agenda Local")}</h2>
                 <EventSk dark={dark} />
               </div>
             );
@@ -618,7 +656,7 @@ export default function HomeView({ isBackground }) {
             
             return (
               <div style={{ padding: "24px 0 0 0" }}>
-                <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: "0 0 16px 0" }}>Agenda Local</h2>
+                <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: "0 0 16px 0" }}>{t("agenda_local", "Agenda Local")}</h2>
                 
                 {upcomingEvents.length > 0 && (
                   <div style={{ display: "flex", gap: 14, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 16, paddingLeft: 20, paddingRight: 20 }}>
@@ -630,7 +668,7 @@ export default function HomeView({ isBackground }) {
                         <div key={ev.id} className="press" onClick={() => { handleEventTap(ev); }} style={{ width: 150, height: 210, borderRadius: 18, background: `url(${posterUrl}) center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: "0 8px 20px rgba(0,0,0,0.15)", position: "relative", overflow: "hidden" }}>
                           {(isToday || isTomorrow) && (
                             <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", color: "#fff", padding: "4px 8px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", fontWeight: 800, fontSize: 10, letterSpacing: 0.5, animation: isToday ? "pulse 2s infinite" : "none", display: "flex", alignItems: "center", gap: 4, zIndex: 2 }}>
-                              {isToday ? "🤩 ES HOY" : "⏳ MAÑANA"}
+                              {isToday ? t("es_hoy", "🤩 ES HOY") : t("manana", "⏳ MAÑANA")}
                             </div>
                           )}
                           {ev.date && (() => {
@@ -693,7 +731,7 @@ export default function HomeView({ isBackground }) {
                 <div style={{ textAlign: "center", marginBottom: 16 }}>
                   <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
                     <div style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))", display: "flex" }}><Icon name="heart_overlay_f" size={22} color="none" /></div>
-                    Favoritos de la ciudad
+                    {t("favoritos_ciudad", "Favoritos de la ciudad")}
                     <div style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))", display: "flex" }}><Icon name="heart_overlay_f" size={22} color="none" /></div>
                   </h2>
                 </div>
@@ -719,7 +757,7 @@ export default function HomeView({ isBackground }) {
                 
                 {topFavs.length > 5 && (
                   <button onClick={() => setShowMoreTopFavs(v => !v)} className="press" style={{ width: "100%", padding: "12px", background: "none", border: `1px solid ${T.border}`, borderRadius: 12, marginTop: 12, fontSize: 13, fontWeight: 700, color: T.green, cursor: "pointer", fontFamily: "inherit" }}>
-                    {showMoreTopFavs ? "Ver menos" : "Ver 5 más"}
+                    {showMoreTopFavs ? t("ver_menos", "Ver menos") : t("ver_mas", "Ver 5 más")}
                   </button>
                 )}
               </div>;
@@ -733,7 +771,7 @@ export default function HomeView({ isBackground }) {
 
               return <div style={{ margin: "24px 20px" }}>
                 <div style={{ textAlign: "center", marginBottom: 16 }}>
-                  <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0 }}>⭐ Mejor Calificados ⭐</h2>
+                  <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0 }}>⭐ {t("los_mas_valorados", "Los más valorados")} ⭐</h2>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -757,7 +795,7 @@ export default function HomeView({ isBackground }) {
                 
                 {topRated.length > 5 && (
                   <button onClick={() => setShowMoreTopRated(v => !v)} className="press" style={{ width: "100%", padding: "12px", background: "none", border: `1px solid ${T.border}`, borderRadius: 12, marginTop: 12, fontSize: 13, fontWeight: 700, color: T.green, cursor: "pointer", fontFamily: "inherit" }}>
-                    {showMoreTopRated ? "Ver menos" : "Ver 5 más"}
+                    {showMoreTopRated ? t("ver_menos", "Ver menos") : t("ver_mas", "Ver 5 más")}
                   </button>
                 )}
               </div>;
@@ -768,7 +806,7 @@ export default function HomeView({ isBackground }) {
           {/* ── TODOS LOS NEGOCIOS POR CATEGORÍA ── */}
           {!search && activeCat !== "explorar" && <div id="all-biz-section" style={{ padding: "20px 20px 0" }}>
             <div style={{ textAlign: "center", marginBottom: 16 }}>
-              {!dbReady ? <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Sk w="60%" h={26} r={6} dark={dark} /></div> : <h1 style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 26, color: T.text, margin: "0 0 6px 0", padding: 0, textAlign: "center" }}>{cats.find(c => c.id === activeCat)?.label || activeCat} en {(city || "").split(',')[0]}</h1>}
+              {!dbReady ? <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Sk w="60%" h={26} r={6} dark={dark} /></div> : <h1 style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 26, color: T.text, margin: "0 0 6px 0", padding: 0, textAlign: "center" }}>{t(cats.find(c => c.id === activeCat)?.label || activeCat)} {lang === 'en' ? 'in' : 'en'} {(city || "").split(',')[0]}</h1>}
               {!dbReady ? <div style={{ display: "flex", justifyContent: "center" }}><Sk w="80%" h={14} r={4} dark={dark} /></div> : <h2 style={{ fontSize: 13, color: T.sub, fontWeight: 500, margin: 0, lineHeight: 1.4, textAlign: "center" }}>{getCategoryDescription(activeCat, cats.find(c => c.id === activeCat)?.label, city)}</h2>}
             </div>
             <div style={{ flexDirection: "column", gap: 14 }}>
@@ -802,12 +840,12 @@ export default function HomeView({ isBackground }) {
                   }}
                 />
               )}
-              {dbReady && displayList.length === 0 && <div style={{ textAlign: "center", padding: "32px 0", color: T.sub }}><Icon name="search" size={36} color={T.border} /><p style={{ fontWeight: 700, color: T.text, marginTop: 14, marginBottom: 6 }}>Sin negocios en esta categoría</p><p style={{ fontSize: 14 }}>Prueba otra categoría</p></div>}
+              {dbReady && displayList.length === 0 && <div style={{ textAlign: "center", padding: "32px 0", color: T.sub }}><Icon name="search" size={36} color={T.border} /><p style={{ fontWeight: 700, color: T.text, marginTop: 14, marginBottom: 6 }}>{t("sin_negocios_cat", "Sin negocios en esta categoría")}</p><p style={{ fontSize: 14 }}>{t("prueba_otra_cat", "Prueba otra categoría")}</p></div>}
             </div>
           </div>}
           {!search && raffles && raffles.length > 0 && <div style={{ padding: "20px 20px 0" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ fontWeight: 800, fontSize: 16, color: T.text, display: "flex", alignItems: "center", gap: 6 }}><Icon name="gift" size={18} color="#D94F3D" /> Sorteos de la semana</span>
+              <span style={{ fontWeight: 800, fontSize: 16, color: T.text, display: "flex", alignItems: "center", gap: 6 }}><Icon name="gift" size={18} color="#D94F3D" /> {t("sorteos_semana", "Sorteos de la semana")}</span>
             </div>
             <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
               {raffles.map(r => {
@@ -817,11 +855,11 @@ export default function HomeView({ isBackground }) {
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F59E0B", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0 }}><Icon name="gift" size={20} /></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 900, fontSize: 14, color: "#92400E", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.title}</div>
-                      <div style={{ fontSize: 11, color: "#B45309", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Por {b?.name}</div>
+                      <div style={{ fontSize: 11, color: "#B45309", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t("por", "Por")} {b?.name}</div>
                     </div>
                   </div>
                   <div style={{ background: "rgba(255,255,255,0.7)", borderRadius: 8, padding: "8px", textAlign: "center" }}>
-                    <div style={{ fontSize: 12, fontWeight: 900, color: "#D97706" }}>Premio: {r.prize}</div>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: "#D97706" }}>{t("premio", "Premio")}: {r.prize}</div>
                   </div>
                 </div>;
               })}
@@ -829,7 +867,7 @@ export default function HomeView({ isBackground }) {
           </div>}
           {!search && coupons.length > 0 && <div style={{ padding: "20px 20px 0" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ fontWeight: 800, fontSize: 16, color: T.text }}>Cupones activos</span>
+              <span style={{ fontWeight: 800, fontSize: 16, color: T.text }}>{t("cupones_activos", "Cupones activos")}</span>
             </div>
             <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
               {coupons.map(c => {

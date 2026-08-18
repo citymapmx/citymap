@@ -5,6 +5,7 @@ import OptimizedImage from "../ui/OptimizedImage.jsx";
 import { FONT_BIZ } from "../../lib/constants.js";
 import { CAT_EMOJI, isOpenNow, getScheduleStatus, getThumbUrl, haptic } from "../../lib/utils.js";
 import ProgressiveImage from "../ProgressiveImage.jsx";
+import { useTranslation } from "../../hooks/useTranslation.js";
 
 export default memo(function BusinessCard({
   variant = "compact", // "compact" | "destacado" | "featured"
@@ -29,6 +30,7 @@ export default memo(function BusinessCard({
 }) {
   const thumb = b.photos?.[0];
   const [showPlus, setShowPlus] = useState(false);
+  const { t } = useTranslation();
 
   const handleFav = (e) => {
     e.stopPropagation();
@@ -71,7 +73,7 @@ export default memo(function BusinessCard({
             }}
             style={{ marginTop: 14, width: "100%", background: "transparent", color: T.sub, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 0", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", gap: 6 }}
           >
-            Abrir ubicación en Maps
+            {t("abrir_maps", "Abrir ubicación en Maps")}
           </button>
         )}
         {(note || stayTimeStr) && (
@@ -79,14 +81,14 @@ export default memo(function BusinessCard({
             {stayTimeStr && (
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ fontSize: 14 }}>🕒</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Estancia: <span style={{ fontWeight: 500, color: T.sub }}>{stayTimeStr}</span></span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{t("estancia", "Estancia")}: <span style={{ fontWeight: 500, color: T.sub }}>{stayTimeStr}</span></span>
               </div>
             )}
             {note && (
               <div style={{ position: "relative" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                   <span style={{ fontSize: 14 }}>📝</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: "0.5px" }}>Nota</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("nota", "Nota")}</span>
                 </div>
                 <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5, whiteSpace: "pre-wrap", paddingRight: onEditNote ? 24 : 0 }}>{note}</p>
                 {onEditNote && (
@@ -186,7 +188,7 @@ export default memo(function BusinessCard({
               {!hideSchedule && (
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <span className={getScheduleStatus(b, isOpenNow(b), true).dot} style={{ width: 4, height: 4 }} />
-                  <span style={{ fontSize: 11, color: getScheduleStatus(b, isOpenNow(b), true).color, fontWeight: 600 }}>{getScheduleStatus(b, isOpenNow(b), true).text}</span>
+                  <span style={{ fontSize: 11, color: getScheduleStatus(b, isOpenNow(b), true).color, fontWeight: 600 }}>{t(getScheduleStatus(b, isOpenNow(b), true).text)}</span>
                 </div>
               )}
             </div>
@@ -200,7 +202,7 @@ export default memo(function BusinessCard({
                   }}
                   style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
                 >
-                  <Icon name="map" size={14} /> Cómo llegar
+                  <Icon name="map" size={14} /> {t("como_llegar", "Cómo llegar")}
                 </button>
               </div>
             )}
@@ -212,14 +214,14 @@ export default memo(function BusinessCard({
             {stayTimeStr && (
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ fontSize: 14 }}>🕒</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Estancia: <span style={{ fontWeight: 500, color: T.sub }}>{stayTimeStr}</span></span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{t("estancia", "Estancia")}: <span style={{ fontWeight: 500, color: T.sub }}>{stayTimeStr}</span></span>
               </div>
             )}
             {note && (
               <div style={{ position: "relative" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                   <span style={{ fontSize: 14 }}>📝</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: "0.5px" }}>Nota</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("nota", "Nota")}</span>
                 </div>
                 <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5, whiteSpace: "pre-wrap", paddingRight: onEditNote ? 24 : 0 }}>{note}</p>
                 {onEditNote && (
@@ -238,7 +240,7 @@ export default memo(function BusinessCard({
         {/* Fav button */}
         {!hideFavs && (
           <div style={{ position: "absolute", bottom: -2, right: 4, zIndex: 10 }}>
-            <m.button whileTap={{ scale: 0.7 }} aria-label={isFav ? "Quitar de favoritos" : "Añadir a favoritos"} onClick={handleFav} style={{ width: 44, height: 44, background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", outline: "none" }}>
+            <m.button whileTap={{ scale: 0.7 }} aria-label={isFav ? t("quitar_fav", "Quitar de favoritos") : t("anadir_fav", "Añadir a favoritos")} onClick={handleFav} style={{ width: 44, height: 44, background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", outline: "none" }}>
               <Icon name={isFav ? "heart_f" : "heart"} size={16} color={isFav ? "#F07060" : T.sub} />
             </m.button>
             <AnimatePresence>
@@ -291,7 +293,7 @@ export default memo(function BusinessCard({
           
           {/* Heart overlaid on top banner */}
           <div style={{ position: "absolute", top: 10, right: 10, zIndex: 10 }}>
-            <m.button whileTap={{ scale: 0.7 }} aria-label={isFav ? "Quitar de favoritos" : "Añadir a favoritos"} onClick={handleFav} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}>
+            <m.button whileTap={{ scale: 0.7 }} aria-label={isFav ? t("quitar_fav", "Quitar de favoritos") : t("anadir_fav", "Añadir a favoritos")} onClick={handleFav} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}>
               <Icon name={isFav ? "heart_overlay_f" : "heart_overlay"} size={26} color="none" />
             </m.button>
             <AnimatePresence>
@@ -330,7 +332,7 @@ export default memo(function BusinessCard({
               <span style={{ fontSize: 10, color: T.border }}>·</span>
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <span className={getScheduleStatus(b, isOpenNow(b), true).dot} style={{ width: 6, height: 6 }} />
-                <span style={{ fontSize: 12, color: getScheduleStatus(b, isOpenNow(b), true).color, fontWeight: 600 }}>{getScheduleStatus(b, isOpenNow(b), true).text}</span>
+                <span style={{ fontSize: 12, color: getScheduleStatus(b, isOpenNow(b), true).color, fontWeight: 600 }}>{t(getScheduleStatus(b, isOpenNow(b), true).text)}</span>
               </div>
             </div>
             
@@ -393,7 +395,7 @@ export default memo(function BusinessCard({
 
           {/* Top right actions (Fav only) */}
           <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10 }}>
-            <m.button whileTap={{ scale: 0.7 }} aria-label={isFav ? "Quitar de favoritos" : "Añadir a favoritos"} onClick={handleFav} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}>
+            <m.button whileTap={{ scale: 0.7 }} aria-label={isFav ? t("quitar_fav", "Quitar de favoritos") : t("anadir_fav", "Añadir a favoritos")} onClick={handleFav} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}>
               <Icon name={isFav ? "heart_overlay_f" : "heart_overlay"} size={26} color="none" />
             </m.button>
             <AnimatePresence>
@@ -439,7 +441,7 @@ export default memo(function BusinessCard({
                   ) : (
                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                        <span style={{ fontSize: 13, opacity: 0.4 }}>🤍</span>
-                       <span style={{ fontSize: 11, color: "rgba(255,255,255,.6)", fontStyle: "italic", fontWeight: 500 }}>Sé el primero en apoyar</span>
+                       <span style={{ fontSize: 11, color: "rgba(255,255,255,.6)", fontStyle: "italic", fontWeight: 500 }}>{t("primer_apoyo", "Sé el primero en apoyar")}</span>
                      </div>
                   )
                 )}
@@ -448,7 +450,7 @@ export default memo(function BusinessCard({
                 
                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <span className={getScheduleStatus(b, isOpenNow(b), true).dot} style={{ width: 4, height: 4, boxShadow: "0 0 4px rgba(0,0,0,0.5)" }} />
-                  <span style={{ fontSize: 11, color: getScheduleStatus(b, isOpenNow(b), true).color, fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>{getScheduleStatus(b, isOpenNow(b), true).text}</span>
+                  <span style={{ fontSize: 11, color: getScheduleStatus(b, isOpenNow(b), true).color, fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>{t(getScheduleStatus(b, isOpenNow(b), true).text)}</span>
                 </div>
               </div>
               
