@@ -20,20 +20,42 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { biz_id, plan_id, interval, user_id, host_url } = req.body;
+    const { biz_id, plan_id, interval, user_id, host_url, currency: clientCurrency } = req.body;
+    const currency = (clientCurrency || 'mxn').toLowerCase();
     
     // Configurar precios
     let unit_amount = 0;
     let name = "";
     
-    if (plan_id === 'pro') {
-      name = "Plan Destacado";
-      unit_amount = interval === 'year' ? 99000 : 9900; // $990 MXN o $99 MXN
-    } else if (plan_id === 'elite') {
-      name = "Plan Premium";
-      unit_amount = interval === 'year' ? 199000 : 19900; // $1,990 MXN o $199 MXN
+    if (currency === 'eur') {
+      if (plan_id === 'pro') {
+        name = "Plan Destacado";
+        unit_amount = interval === 'year' ? 9900 : 999; // €99.00 o €9.99
+      } else if (plan_id === 'elite') {
+        name = "Plan Premium";
+        unit_amount = interval === 'year' ? 19900 : 1999; // €199.00 o €19.99
+      }
+    } else if (currency === 'usd') {
+      if (plan_id === 'pro') {
+        name = "Plan Destacado";
+        unit_amount = interval === 'year' ? 9900 : 999; // $99.00 o $9.99
+      } else if (plan_id === 'elite') {
+        name = "Plan Premium";
+        unit_amount = interval === 'year' ? 19900 : 1999; // $199.00 o $19.99
+      }
     } else {
-      return res.status(400).json({ error: 'Plan no válido' });
+      // Default: MXN
+      if (plan_id === 'pro') {
+        name = "Plan Destacado";
+        unit_amount = interval === 'year' ? 149000 : 14900; // $1,490 MXN o $149 MXN
+      } else if (plan_id === 'elite') {
+        name = "Plan Premium";
+        unit_amount = interval === 'year' ? 299000 : 29900; // $2,990 MXN o $299 MXN
+      }
+    }
+
+    if (unit_amount === 0) {
+      return res.status(400).json({ error: 'Plan o combinación no válidos' });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -41,7 +63,7 @@ export default async function handler(req, res) {
       line_items: [
         {
           price_data: {
-            currency: 'mxn',
+            currency: currency,
             product_data: {
               name: name + (interval === 'year' ? ' (Anual)' : ' (Mensual)'),
               description: 'Suscripción CityGuide para tu negocio',

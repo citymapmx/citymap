@@ -4,8 +4,60 @@ import Icon from "./ui/Icon.jsx";
 import CompactCard from "./cards/CompactCard.jsx";
 import DestacadoCard from "./cards/DestacadoCard.jsx";
 import FeaturedCard from "./cards/FeaturedCard.jsx";
+import { useUIStore } from "../store/useUIStore.js";
+import { useDataStore } from "../store/useDataStore.js";
+import { getCountryCode } from "../lib/domain.js";
 
 export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
+  const activeCity = useUIStore(s => s.activeCity);
+  const cities = useDataStore(s => s.cities);
+  const countryCode = getCountryCode(activeCity, cities);
+
+  const getPricing = () => {
+    if (countryCode === "es") {
+      return {
+        currency: "EUR",
+        symbol: "€",
+        proMonthly: "9.99€",
+        oldProMonthly: "19.99€",
+        proAnnual: "99€",
+        oldProAnnual: "199€",
+        eliteMonthly: "19.99€",
+        oldEliteMonthly: "39.99€",
+        eliteAnnual: "199€",
+        oldEliteAnnual: "399€",
+      };
+    } else if (countryCode === "us") {
+      return {
+        currency: "USD",
+        symbol: "$",
+        proMonthly: "$9.99",
+        oldProMonthly: "$19.99",
+        proAnnual: "$99",
+        oldProAnnual: "$199",
+        eliteMonthly: "$19.99",
+        oldEliteMonthly: "$39.99",
+        eliteAnnual: "$199",
+        oldEliteAnnual: "$399",
+      };
+    } else {
+      // Default: Mexico (MXN)
+      return {
+        currency: "MXN",
+        symbol: "$",
+        proMonthly: "$149",
+        oldProMonthly: "$299",
+        proAnnual: "$1,490",
+        oldProAnnual: "$2,990",
+        eliteMonthly: "$299",
+        oldEliteMonthly: "$599",
+        eliteAnnual: "$2,990",
+        oldEliteAnnual: "$5,990",
+      };
+    }
+  };
+
+  const pricing = getPricing();
   useEffect(() => { window.scrollTo(0, 0); }, []);
   const [billing, setBilling] = useState("monthly"); // "monthly" | "annual"
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -48,8 +100,8 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
     { 
       key: "free", 
       name: "Gratuito", 
-      priceMonthly: "$0", 
-      priceAnnual: "$0", 
+      priceMonthly: `${pricing.symbol}0`, 
+      priceAnnual: `${pricing.symbol}0`, 
       desc: "Ideal para que cualquier negocio tenga presencia básica.",
       color: dark ? "#9CA3AF" : "#6B7280", 
       icon: "user", 
@@ -58,10 +110,10 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
     { 
       key: "pro", 
       name: "Destacado", 
-      priceMonthly: "$149", 
-      oldPriceMonthly: "$299",
-      priceAnnual: "$1,490", 
-      oldPriceAnnual: "$2,990",
+      priceMonthly: pricing.proMonthly, 
+      oldPriceMonthly: pricing.oldProMonthly,
+      priceAnnual: pricing.proAnnual, 
+      oldPriceAnnual: pricing.oldProAnnual,
       desc: "Ideal para negocios que buscan captar clientes y mayor visibilidad.",
       color: dark ? "#E2E8F0" : "#0F172A", 
       icon: "star", 
@@ -75,10 +127,10 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
     { 
       key: "elite", 
       name: "Premium", 
-      priceMonthly: "$299", 
-      oldPriceMonthly: "$599",
-      priceAnnual: "$2,990", 
-      oldPriceAnnual: "$5,990",
+      priceMonthly: pricing.eliteMonthly, 
+      oldPriceMonthly: pricing.oldEliteMonthly,
+      priceAnnual: pricing.eliteAnnual, 
+      oldPriceAnnual: pricing.oldEliteAnnual,
       desc: "Ideal para negocios líderes que buscan dominar su mercado.",
       color: dark ? "#E2E8F0" : "#0F172A", 
       icon: "award", 
@@ -186,7 +238,7 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
                     {billing === "monthly" ? p.priceMonthly : p.priceAnnual}
                   </span>
                   <span style={{ fontSize: 14, color: T.sub, fontWeight: 500 }}>
-                    MXN / {billing === "monthly" ? "mes" : "año"}
+                    {pricing.currency} / {billing === "monthly" ? "mes" : "año"}
                   </span>
                 </div>
               </div>
@@ -341,7 +393,7 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
               <div style={{ background: dark ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderRadius: 14, padding: "16px", marginBottom: 20, marginTop: 16 }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
                   <span style={{ fontSize: 36, fontWeight: 800, color: selectedPlan.plan.color, letterSpacing: -0.5 }}>{selectedPlan.billing === "monthly" ? selectedPlan.plan.priceMonthly : selectedPlan.plan.priceAnnual}</span>
-                  <span style={{ fontSize: 16, color: T.sub, fontWeight: 500 }}>MXN/{selectedPlan.billing === "monthly" ? "mes" : "año"}</span>
+                  <span style={{ fontSize: 16, color: T.sub, fontWeight: 500 }}>{pricing.currency}/{selectedPlan.billing === "monthly" ? "mes" : "año"}</span>
                 </div>
                 <p style={{ fontSize: 12, color: T.sub, margin: 0 }}>Facturación {selectedPlan.billing === "monthly" ? "mensual" : "anual"} · Cancela cuando quieras</p>
               </div>
@@ -363,7 +415,8 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
                         biz_id: biz_id,
                         plan_id: selectedPlan.plan.key, // 'pro' o 'elite'
                         interval: selectedPlan.billing === "monthly" ? "month" : "year",
-                        host_url: 'https://citymap.mx'
+                        host_url: 'https://citymap.mx',
+                        currency: pricing.currency
                       })
                     });
                     
