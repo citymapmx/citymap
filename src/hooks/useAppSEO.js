@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUIStore } from '../store/useUIStore.js';
 import { useDataStore } from '../store/useDataStore.js';
+import { IS_WORLD, buildCityPath, getCountryCode } from '../lib/domain.js';
 
 export function useAppSEO({ city }) {
   const location = useLocation();
@@ -12,6 +13,7 @@ export function useAppSEO({ city }) {
   const mapPins = useDataStore(s => s.mapPins);
   const reviews = useDataStore(s => s.reviews);
   const setReviews = useDataStore(s => s.setReviews);
+  const cities = useDataStore(s => s.cities);
 
   useEffect(() => {
     const CAT_SEO = {
@@ -29,11 +31,15 @@ export function useAppSEO({ city }) {
     const cityName = city || activeCity || "tu ciudad";
     const cityCapitalized = cityName.charAt(0).toUpperCase() + cityName.slice(1);
     
+    const domain = IS_WORLD ? "citymap.world" : "citymap.mx";
+    const origin = typeof window !== 'undefined' ? window.location.origin : `https://${domain}`;
+    const BASE_URL = origin;
+    
     let title = `CityMap ${cityCapitalized} — Restaurantes, Cafés y Negocios Locales`;
     let desc = `Descubre los mejores restaurantes, cafés, eventos y negocios en ${cityCapitalized}. Horarios actualizados, ubicaciones exactas, reseñas y cupones exclusivos.`;
-    let image = "https://citymap.mx/og-image.jpg";
+    let image = `${BASE_URL}/og-image.jpg`;
     let schemaJson = "";
-    let canonical = `https://citymap.mx/${activeCity || ""}`;
+    let canonical = BASE_URL + buildCityPath(activeCity, cities);
 
     if (selected?.id) {
       if (!selected._fullFetched) {
@@ -52,19 +58,22 @@ export function useAppSEO({ city }) {
       if (selected.photos?.[0]?.url) image = selected.photos[0].url;
       
       const slug = selected.slug || "";
-      canonical = `https://citymap.mx/${bizCity}/${slug.startsWith(bizCity + "-") ? slug.slice(bizCity.length + 1) : slug}`;
+      const cleanedSlug = slug.startsWith(bizCity + "-") ? slug.slice(bizCity.length + 1) : slug;
+      canonical = BASE_URL + buildCityPath(bizCity, cities) + "/" + cleanedSlug;
       
+      const countryCode = getCountryCode(bizCity, cities).toUpperCase();
       const regionMap = {
         "puerto-vallarta": "Jalisco",
         "guadalajara": "Jalisco",
         "tepic": "Nayarit",
         "cancun": "Quintana Roo",
-        "monterrey": "Nuevo León"
+        "monterrey": "Nuevo León",
+        "madrid": "Comunidad de Madrid"
       };
-      const bizRegion = regionMap[bizCity] || "México";
+      const bizRegion = regionMap[bizCity] || (countryCode === "ES" ? "España" : "México");
 
       const businessImages = selected.photos?.map(p => p.url);
-      const schemaImages = (businessImages && businessImages.length > 0) ? businessImages : ["https://citymap.mx/og-image.jpg"];
+      const schemaImages = (businessImages && businessImages.length > 0) ? businessImages : [`${BASE_URL}/og-image.jpg`];
 
       const businessSchema = {
         "@context": "https://schema.org",
@@ -79,7 +88,7 @@ export function useAppSEO({ city }) {
           "streetAddress": selected.address || "", 
           "addressLocality": bizCityName, 
           "addressRegion": bizRegion,
-          "addressCountry": "MX" 
+          "addressCountry": countryCode 
         },
         "geo": selected.lat ? { "@type": "GeoCoordinates", "latitude": parseFloat(selected.lat), "longitude": parseFloat(selected.lng) } : undefined,
         "priceRange": "$$"
@@ -124,15 +133,16 @@ export function useAppSEO({ city }) {
         ? selectedEvent.description.slice(0, 155) + (selectedEvent.description.length > 155 ? "…" : "")
         : `No te pierdas ${selectedEvent.title} en ${cityCapitalized}. Fecha, ubicación, precios y todos los detalles en CityMap.`;
       if (selectedEvent.image) image = selectedEvent.image;
-      canonical = `https://citymap.mx/evento/${selectedEvent.slug || selectedEvent.id}`;
+      canonical = `${BASE_URL}/evento/${selectedEvent.slug || selectedEvent.id}`;
       
+      const countryCode = getCountryCode(selectedEvent.city_slug || activeCity, cities).toUpperCase();
       schemaJson = JSON.stringify({
         "@context": "https://schema.org",
         "@type": "Event",
         "name": selectedEvent.title,
         "startDate": selectedEvent.date_start,
         "endDate": selectedEvent.date_end || selectedEvent.date_start,
-        "location": { "@type": "Place", "name": selectedEvent.venue_name || selectedEvent.location || cityCapitalized, "address": { "@type": "PostalAddress", "addressLocality": cityCapitalized, "addressCountry": "MX" } },
+        "location": { "@type": "Place", "name": selectedEvent.venue_name || selectedEvent.location || cityCapitalized, "address": { "@type": "PostalAddress", "addressLocality": cityCapitalized, "addressCountry": countryCode } },
         "image": selectedEvent.image ? [selectedEvent.image] : [],
         "description": selectedEvent.description || "",
         "eventStatus": "https://schema.org/EventScheduled",
@@ -151,15 +161,15 @@ export function useAppSEO({ city }) {
           title = `Los Mejores ${catLabel} en ${cityCapitalized} — Horarios y Reseñas | CityMap`;
           desc = `Descubre las mejores opciones de ${catLabel.toLowerCase()} en ${cityCapitalized}. Consulta ubicaciones, horarios, detalles y reseñas de la comunidad en CityMap.`;
         }
-        canonical = `https://citymap.mx/${activeCity}/${activeCat}`;
+        canonical = BASE_URL + buildCityPath(activeCity, cities) + "/" + activeCat;
         
         const catBiz = (mapPins || []).filter(b => b.category === activeCat).slice(0, 10);
         const breadcrumbCat = {
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
           "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://citymap.mx" },
-            { "@type": "ListItem", "position": 2, "name": cityCapitalized, "item": `https://citymap.mx/${activeCity}` },
+            { "@type": "ListItem", "position": 1, "name": "Inicio", "item": `${BASE_URL}` },
+            { "@type": "ListItem", "position": 2, "name": cityCapitalized, "item": `${BASE_URL}${buildCityPath(activeCity, cities)}` },
             { "@type": "ListItem", "position": 3, "name": catLabel, "item": canonical }
           ]
         };
@@ -170,12 +180,17 @@ export function useAppSEO({ city }) {
               "@type": "ItemList",
               "name": `${catLabel} en ${cityCapitalized}`,
               "numberOfItems": catBiz.length,
-              "itemListElement": catBiz.map((b, i) => ({
-                "@type": "ListItem",
-                "position": i + 1,
-                "name": b.name,
-                "url": `https://citymap.mx/${b.city_slug || activeCity}/${(b.slug || "").replace(new RegExp("^" + (b.city_slug || activeCity) + "-"), "")}`
-              }))
+              "itemListElement": catBiz.map((b, i) => {
+                const bSlug = b.slug || b.id;
+                const bCity = b.city_slug || activeCity;
+                const bCleaned = bSlug.startsWith(bCity + "-") ? bSlug.slice(bCity.length + 1) : bSlug;
+                return {
+                  "@type": "ListItem",
+                  "position": i + 1,
+                  "name": b.name,
+                  "url": `${BASE_URL}${buildCityPath(bCity, cities)}/${bCleaned}`
+                };
+              })
             },
             breadcrumbCat
           ]);
@@ -185,15 +200,15 @@ export function useAppSEO({ city }) {
       } else if (location.pathname.startsWith("/eventos")) {
         title = `Eventos y Conciertos en ${cityCapitalized} — Cartelera Actualizada | CityMap`;
         desc = `Descubre los próximos eventos, conciertos, festivales y actividades en ${cityCapitalized}. Fechas, precios y ubicaciones en CityMap.`;
-        canonical = "https://citymap.mx/eventos";
+        canonical = `${BASE_URL}/eventos`;
       } else if (location.pathname.startsWith("/mapa")) {
         title = `Mapa de Negocios en ${cityCapitalized} — Encuentra Lugares Cercanos | CityMap`;
         desc = `Explora el mapa interactivo de ${cityCapitalized}. Encuentra restaurantes, cafés y negocios cercanos a ti con horarios y reseñas.`;
-        canonical = "https://citymap.mx/mapa";
+        canonical = `${BASE_URL}/mapa`;
       } else if (location.pathname.startsWith("/mis-planes") || location.pathname.startsWith("/experiencias") || location.pathname.startsWith("/planes")) {
         title = `Qué hacer en ${cityCapitalized} — Mejores Tours y Actividades | CityMap`;
         desc = `Descubre qué hacer en ${cityCapitalized}. Encuentra los mejores tours, actividades, planes de fin de semana y experiencias inolvidables. Reserva ahora con CityMap.`;
-        canonical = `https://citymap.mx/experiencias/${activeCity || ""}`;
+        canonical = `${BASE_URL}/experiencias/${activeCity || ""}`;
         schemaJson = JSON.stringify([
           {
             "@context": "https://schema.org",
@@ -207,8 +222,8 @@ export function useAppSEO({ city }) {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://citymap.mx" },
-              { "@type": "ListItem", "position": 2, "name": cityCapitalized, "item": `https://citymap.mx/${activeCity}` },
+              { "@type": "ListItem", "position": 1, "name": "Inicio", "item": `${BASE_URL}` },
+              { "@type": "ListItem", "position": 2, "name": cityCapitalized, "item": `${BASE_URL}${buildCityPath(activeCity, cities)}` },
               { "@type": "ListItem", "position": 3, "name": "Qué hacer", "item": canonical }
             ]
           }
@@ -216,19 +231,19 @@ export function useAppSEO({ city }) {
       } else if (location.pathname.startsWith("/cuenta")) {
         title = `Mi Cuenta — CityMap`;
         desc = `Gestiona tu perfil, favoritos y reseñas en CityMap.`;
-        canonical = "https://citymap.mx/cuenta";
+        canonical = `${BASE_URL}/cuenta`;
       } else {
-        canonical = `https://citymap.mx/${activeCity || ""}`;
+        canonical = BASE_URL + buildCityPath(activeCity, cities);
         schemaJson = JSON.stringify([
           {
             "@context": "https://schema.org",
             "@type": "WebSite",
             "name": "CityMap",
-            "url": "https://citymap.mx/",
+            "url": `${BASE_URL}/`,
             "description": desc,
             "potentialAction": {
               "@type": "SearchAction",
-              "target": "https://citymap.mx/?buscar={search_term_string}",
+              "target": `${BASE_URL}/?buscar={search_term_string}`,
               "query-input": "required name=search_term_string"
             }
           },
@@ -236,8 +251,8 @@ export function useAppSEO({ city }) {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://citymap.mx" },
-              ...(activeCity ? [{ "@type": "ListItem", "position": 2, "name": cityCapitalized, "item": `https://citymap.mx/${activeCity}` }] : [])
+              { "@type": "ListItem", "position": 1, "name": "Inicio", "item": `${BASE_URL}` },
+              ...(activeCity ? [{ "@type": "ListItem", "position": 2, "name": cityCapitalized, "item": `${BASE_URL}${buildCityPath(activeCity, cities)}` }] : [])
             ]
           }
         ]);
@@ -275,5 +290,5 @@ export function useAppSEO({ city }) {
       document.head.appendChild(script); 
     }
     script.innerText = schemaJson;
-  }, [selected, selectedEvent, city, location.pathname, activeCat, activeCity, mapPins]);
+  }, [selected, selectedEvent, city, location.pathname, activeCat, activeCity, mapPins, cities]);
 }
