@@ -3,7 +3,7 @@
   src: url('/Coolvetica Rg.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
-  font-display: block;
+  font-display: swap;
 }
 
 @font-face {
