@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { m } from "framer-motion";
 import * as dbService from "../../services/dbService.js";
 import { useDataStore } from "../../store/useDataStore.js";
-import { cloudUpload } from "../../lib/supabase.js";
+import { cloudUpload, cloudDelete } from "../../lib/supabase.js";
 import useGMaps from "../map/useGMaps.js";
 
 export default function ItinerarySettingsModal({ T, itinerary, onClose, onSave }) {
@@ -108,6 +108,12 @@ export default function ItinerarySettingsModal({ T, itinerary, onClose, onSave }
       };
 
       await dbService.updateItinerary(itinerary.id, updatedData);
+      
+      if (itinerary?.cover_image && itinerary.cover_image !== coverImage) {
+        await cloudDelete(itinerary.cover_image).catch(err => {
+          console.warn("Could not delete old cover image:", err);
+        });
+      }
       
       const newItinerary = { ...itinerary, ...updatedData };
       

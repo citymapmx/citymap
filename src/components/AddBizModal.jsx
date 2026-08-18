@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Icon from './ui/Icon.jsx';
 import Uploader from './Uploader.jsx';
 import MenuManager from './MenuManager.jsx';
-import { sb } from '../lib/supabase.js';
+import { sb, cloudDelete } from '../lib/supabase.js';
 
 export default function AddBizModal({
   showAddBiz,
@@ -59,7 +59,15 @@ export default function AddBizModal({
                   <div key={i} style={{ position: "relative", width: 100, height: 100, flexShrink: 0 }}>
                     <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10 }} loading="lazy" />
                     {!isFreeOwner && (
-                      <button onClick={() => setAddBizForm(f => ({ ...f, photos: f.photos.filter((_, idx) => idx !== i) }))} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="x" size={14} color="#fff" /></button>
+                      <button 
+                        onClick={async () => {
+                          await cloudDelete(url).catch(err => console.warn("Could not delete photo:", err));
+                          setAddBizForm(f => ({ ...f, photos: f.photos.filter((_, idx) => idx !== i) }));
+                        }} 
+                        style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                      >
+                        <Icon name="x" size={14} color="#fff" />
+                      </button>
                     )}
                   </div>
                 ))}

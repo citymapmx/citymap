@@ -1,4 +1,4 @@
-import { sb } from '../lib/supabase';
+import { sb, cloudDelete } from '../lib/supabase';
 
 // ── Analytics ─────────────────────────────────────────────────────────────
 export const trackAnalyticsEvent = async (bizId, type, citySlug) => {
@@ -155,6 +155,19 @@ export const updateItineraryItemOrder = async (itemId, newOrder) => {
 };
 
 export const deleteItinerary = async (itineraryId) => {
+  try {
+    const data = await sb.get("user_itineraries", `?id=eq.${itineraryId}`).catch(() => []);
+    if (data && data.length > 0) {
+      const itin = data[0];
+      if (itin.cover_image) {
+        await cloudDelete(itin.cover_image).catch(err => {
+          console.warn("Could not delete itinerary cover image:", err);
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("Error fetching itinerary cover image for deletion:", e);
+  }
   return await sb.del("user_itineraries", itineraryId);
 };
 
