@@ -45,6 +45,21 @@ export default defineConfig({
                 statuses: [0, 200]
               }
             }
+          },
+          {
+            // CDN Images & photos: CacheFirst (logos, business cards, itineraries, event posters)
+            urlPattern: /^https:\/\/(?:dpkjxhjkzdlkvyotoeai\.supabase\.co\/storage\/v1\/object\/public\/media\/|res\.cloudinary\.com\/).*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cdn-cache',
+              expiration: {
+                maxEntries: 150,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // Cache for 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
           }
         ]
       },
