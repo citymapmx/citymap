@@ -172,7 +172,7 @@ export default function DetailView() {
   const { dbReady, promos, coupons, events, wallet, setWallet, claimedCoupons, setClaimedCoupons, reviews, setReviews, globalFavCounts, raffles, setRaffles } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, promos: s.promos, coupons: s.coupons, events: s.events, wallet: s.wallet, setWallet: s.setWallet, claimedCoupons: s.claimedCoupons, setClaimedCoupons: s.setClaimedCoupons, reviews: s.reviews, setReviews: s.setReviews, globalFavCounts: s.globalFavCounts, raffles: s.raffles, setRaffles: s.setRaffles })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   
-  const { viewStyle, selected, setView, setFade, navigate, T, favIds, toggleFav, goWhatsApp, goDir, doShare, getEventStatus, setReviewStar, setReviewText, setShowReview, biz, userCoords, getKm, showGallery, setShowGallery, FONT_BIZ, isOpen, callPhone, setMapPin, setShowMenuGallery, goWeb, trackEvent, setSelectedEvent, createSlug, showReview, reviewStar, reviewText, postReview, isAdmin, setBiz, setSelected, toggleLikeReview, setClaimBiz, reviewImgFile, setReviewImgFile, reviewImgLoading } = ctx;
+  const { viewStyle, selected, setView, setFade, navigate, T, favIds, toggleFav, goWhatsApp, goDir, doShare, getEventStatus, setReviewStar, setReviewText, setShowReview, biz, userCoords, getKm, showGallery, setShowGallery, FONT_BIZ, isOpen, callPhone, setMapPin, setShowMenuGallery, goWeb, trackEvent, setSelectedEvent, handleEventTap, createSlug, showReview, reviewStar, reviewText, postReview, isAdmin, setBiz, setSelected, toggleLikeReview, setClaimBiz, reviewImgFile, setReviewImgFile, reviewImgLoading } = ctx;
   const now = useTimeStore(s => s.now);
 
   const mapsOk = useGMaps();
@@ -896,7 +896,7 @@ export default function DetailView() {
                 <div className="text-base" style={{ fontWeight: 800, color: dText }}>Evento destacado</div>
                 <div onClick={() => navigate("events")} style={{ fontSize: 13, fontWeight: 700, color: T.green, cursor: "pointer" }}>Ver todos</div>
               </div>
-              <div className="press" onClick={() => { setSelectedEvent(ev); }} style={{ display: "flex", gap: 12, border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, borderRadius: 16, padding: 12, alignItems: "center", cursor: "pointer" }}>
+              <div className="press" onClick={() => { handleEventTap(ev); }} style={{ display: "flex", gap: 12, border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, borderRadius: 16, padding: 12, alignItems: "center", cursor: "pointer" }}>
                 <div style={{ width: 80, height: 60, borderRadius: 8, background: dBg, overflow: "hidden", flexShrink: 0 }}>
                   <img src={getThumbUrl(ev.img_url || ev.img || "", 200, 200)} alt={`Cartel del evento ${ev.title}`} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
                 </div>

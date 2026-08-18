@@ -4,9 +4,11 @@ import { useUIStore } from '../../store/useUIStore';
 import { getT, FONT_BIZ } from '../../lib/constants';
 import { createSlug, cleanCityPrefix } from '../../lib/utils';
 import Icon from '../ui/Icon';
+import { useAppContext } from '../../context/AppContext';
 
 export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
   const { selectedEvent, setSelectedEvent, activeCity, dark, toast$ } = useUIStore();
+  const { navigate } = useAppContext();
   const T = getT(dark);
 
   return (
@@ -51,12 +53,12 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
                 )}
                 
                 {/* Floating Back Button */}
-                <button onClick={(e) => { e.stopPropagation(); setSelectedEvent(null); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 44, height: 44, borderRadius: 22, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+                <button onClick={(e) => { e.stopPropagation(); navigate("home"); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 44, height: 44, borderRadius: 22, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
                   <Icon name="chevron" size={22} color="#fff" style={{ transform: "rotate(180deg)", marginLeft: -2 }} />
                 </button>
                 
                 {/* Floating Share Button */}
-                <button onClick={(e) => { e.stopPropagation(); const evUrl = `https://citymap.mx/evento/${createSlug(ev.title)}_${ev.id}`; if (navigator.share) navigator.share({ title: ev.title, text: evShareMsg, url: evUrl }); else { navigator.clipboard?.writeText(evUrl); toast$("Enlace copiado"); } }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 44, height: 44, borderRadius: 22, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+                <button onClick={(e) => { e.stopPropagation(); const evUrl = `${window.location.origin}/evento/${createSlug(ev.title)}_${ev.id}`; if (navigator.share) navigator.share({ title: ev.title, text: evShareMsg, url: evUrl }); else { navigator.clipboard?.writeText(evUrl); toast$("Enlace copiado"); } }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 44, height: 44, borderRadius: 22, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
                   <Icon name="share" size={20} color="#fff" style={{ marginRight: 2 }} />
                 </button>
               </div>

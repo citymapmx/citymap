@@ -203,6 +203,14 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://citymap.mx/madrid/diverxo</loc>
+    <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787080797171_oawrg.jpeg</image:loc></image:image>
+    <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787080808429_3rb54.jpeg</image:loc></image:image>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://citymap.mx/tepic/estadio-el-coloso-del-pacifico</loc>
     <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785484604421_0g3poj.webp</image:loc></image:image>
     <lastmod>2026-06-09</lastmod>
@@ -889,16 +897,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://citymap.mx/guadalajara/vulcanos-chapalita</loc>
-    <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787044272919_sr5wl.jpeg</image:loc></image:image>
-    <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787044286672_sc2r2.jpeg</image:loc></image:image>
-    <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787044356713_b4ue1p.jpeg</image:loc></image:image>
-    <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787044356707_e3keh.jpeg</image:loc></image:image>
-    <lastmod>2026-08-18</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://citymap.mx/Zapopan/campomar-andares</loc>
     <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785484632666_gwzfic.webp</image:loc></image:image>
     <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785484636599_m5atxf.webp</image:loc></image:image>
@@ -919,6 +917,16 @@
     <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1784797480573_czhcsm.jpg</image:loc></image:image>
     <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1784797480577_hffrc7.jpg</image:loc></image:image>
     <lastmod>2026-06-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/guadalajara/vulcanos-chapalita</loc>
+    <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787044272919_sr5wl.jpeg</image:loc></image:image>
+    <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787044286672_sc2r2.jpeg</image:loc></image:image>
+    <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787044356713_b4ue1p.jpeg</image:loc></image:image>
+    <image:image><image:loc>https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787044356707_e3keh.jpeg</image:loc></image:image>
+    <lastmod>2026-08-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -2095,6 +2103,90 @@
   </url>
   <url>
     <loc>https://citymap.mx/Zapopan/antros-y-bares</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/mapa/madrid</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/experiencias/madrid</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid/restaurantes</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid/cafe</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid/salud</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid/belleza</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid/fitness</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid/compras</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid/tech</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid/ocio</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid/hoteles</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid/educacion</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/madrid/antros-y-bares</loc>
     <lastmod>2026-08-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>

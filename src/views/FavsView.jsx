@@ -11,7 +11,7 @@ export default function FavsView({ hideHeader }) {
   const ctx = useAppContext();
   const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
   const { mapPins, events } = useDataStore(useShallow(s => ({ mapPins: s.mapPins, events: s.events })));
-  const { viewStyle, T, favIds, toggleFav, biz, navigate, setSelected, trackEvent, userCoords, getKm, collections, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, createCollection, updateCollection, deleteCollection, city, savedEventIds, setCollections, FONT_BIZ, goDir, setMovingBiz, setSelectedEvent, movingBiz } = ctx;
+  const { viewStyle, T, favIds, toggleFav, biz, navigate, setSelected, trackEvent, userCoords, getKm, collections, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, createCollection, updateCollection, deleteCollection, city, savedEventIds, setCollections, FONT_BIZ, goDir, setMovingBiz, setSelectedEvent, handleEventTap, movingBiz } = ctx;
 
   return (
     <div style={hideHeader ? { paddingBottom: 20 } : { paddingBottom: 84, ...viewStyle, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
@@ -146,7 +146,7 @@ export default function FavsView({ hideHeader }) {
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12 }}>Eventos Guardados</h3>
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {savedEv.map(e => (
-                      <div key={e.id} className="press" onClick={() => setSelectedEvent(e)} style={{ display: "flex", background: T.bg, borderRadius: 16, overflow: "hidden", position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+                      <div key={e.id} className="press" onClick={() => handleEventTap(e)} style={{ display: "flex", background: T.bg, borderRadius: 16, overflow: "hidden", position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
                         <div style={{ width: 100, height: 100, background: T.border, flexShrink: 0, position: "relative" }}>
                           {e.img_url ? (
                             <img src={getThumbUrl(e.img_url, 300, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} loading="lazy" />

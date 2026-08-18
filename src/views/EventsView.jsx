@@ -18,7 +18,7 @@ export default function EventsView() {
   const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
   const { user } = useAuthStore(useShallow(s => ({ user: s.user })));
   const now = useTimeStore(s => s.now);
-  const { viewStyle, T, favIds, toggleFav, navigate, setSelected, trackEvent, userCoords, getKm, EVENT_CATS, getEventStatus, goDir, savedEventIds, toggleSaveEvent, selectedEvent, setSelectedEvent, FONT_BIZ, doShare, AutoSliderEv, city, setShowCreateEvent, createSlug, setSavedEventIds, cleanCityPrefix, events } = ctx;
+  const { viewStyle, T, favIds, toggleFav, navigate, setSelected, trackEvent, userCoords, getKm, EVENT_CATS, getEventStatus, goDir, savedEventIds, toggleSaveEvent, selectedEvent, setSelectedEvent, handleEventTap, FONT_BIZ, doShare, AutoSliderEv, city, setShowCreateEvent, createSlug, setSavedEventIds, cleanCityPrefix, events } = ctx;
 
   return (
     <div style={{ paddingBottom: 84, ...viewStyle }}>
@@ -139,7 +139,7 @@ export default function EventsView() {
                       const imgSrc = ev.img_url || ev.img;
                       const dateLbl = fmtCardDate(ev);
                       return (
-                        <div key={ev.id} className="press" onClick={() => { setSelectedEvent(ev); }} style={{ background: T.card, borderRadius: 20, border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`, boxShadow: dark ? '0 4px 12px rgba(0,0,0,0.5)' : '0 8px 20px rgba(0,0,0,0.06)', position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                        <div key={ev.id} className="press" onClick={() => { handleEventTap(ev); }} style={{ background: T.card, borderRadius: 20, border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`, boxShadow: dark ? '0 4px 12px rgba(0,0,0,0.5)' : '0 8px 20px rgba(0,0,0,0.06)', position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
                           <div style={{ width: "100%", aspectRatio: "5/7", background: imgSrc ? `${dark ? "#1F2937" : "#F3F4F6"} url('${getThumbUrl(imgSrc, 400, 560)}') center/cover` : (dark ? "#1F2937" : "#F3F4F6"), position: "relative" }}>
                             {!imgSrc && (
                               <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: dark ? "#374151" : "#E5E7EB" }}>
