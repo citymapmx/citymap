@@ -53,24 +53,24 @@ export default async function handler(req, res) {
         
         // Obtenemos los metadatos que mandamos al crear el checkout
         const biz_id = session.client_reference_id;
-        const plan_tier = session.metadata?.plan_tier;
+        const plan_val = session.metadata?.plan_tier;
         const customer_id = session.customer;
         const subscription_id = session.subscription;
 
-        if (biz_id && plan_tier) {
+        if (biz_id && plan_val) {
           // Actualizar el negocio en Supabase
           const { error } = await supabase
             .from('businesses')
             .update({
               stripe_customer_id: customer_id,
               stripe_subscription_id: subscription_id,
-              plan_tier: plan_tier,
+              plan: plan_val,
               plan_status: 'active'
             })
             .eq('id', biz_id);
             
           if (error) throw error;
-          console.log(`Plan ${plan_tier} activado para el negocio ${biz_id}`);
+          console.log(`Plan ${plan_val} activado para el negocio ${biz_id}`);
         }
         break;
       }
