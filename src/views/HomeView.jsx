@@ -19,10 +19,31 @@ import CompactCard from "../components/cards/CompactCard.jsx";
 import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import { Virtuoso } from "react-virtuoso";
 import { Helmet } from "react-helmet-async";
+import HomeEvents from "../components/home/HomeEvents.jsx";
+import HomeTopGrids from "../components/home/HomeTopGrids.jsx";
+import HomeHero from "../components/home/HomeHero.jsx";
 
-const SESSION_SEED = Math.random();
+// Seed determinista que rota cada 6 horas (0-5, 6-11, 12-17, 18-23)
+const CURRENT_SEED = (() => {
+  const d = new Date();
+  const period = Math.floor(d.getHours() / 6);
+  return d.getFullYear() * 100000 + (d.getMonth() + 1) * 1000 + d.getDate() * 10 + period;
+})();
 
+// Seeded pseudo-random: deterministic per (id, seed) pair so order is stable
+function seededRand(id, seed) {
+  let h = seed ^ 0xdeadbeef;
+  const s = String(id || "");
+  for (let i = 0; i < s.length; i++) {
+    h = Math.imul(h ^ s.charCodeAt(i), 0x9e3779b9);
+    h ^= h >>> 16;
+  }
+  return (h >>> 0) / 0xffffffff;
+}
 
+// Caché de spotlight a nivel de módulo: persiste entre re-mounts y múltiples
+// actualizaciones de mapPins. Clave: "CURRENT_SEED:city_slug" → biz.id
+const SPOTLIGHT_CACHE = {};
 
 import DebouncedSearchBar from "../components/home/DebouncedSearchBar.jsx";
 
@@ -82,7 +103,7 @@ export default function HomeView({ isBackground }) {
 
   const localizedPlaceholders = React.useMemo(() => {
     return placeholdersKeys.map(k => t(k));
-  }, [lang, t, placeholdersKeys]);
+  }, [t, placeholdersKeys]);
 
   const getCategoryDesc = React.useCallback((catId, catLabel, cityLabel) => {
     const desc = getCategoryDescription(catId, catLabel, cityLabel);
@@ -138,7 +159,7 @@ export default function HomeView({ isBackground }) {
     if (h >= 17 || h < 4) {
       listTitle = "Para cerrar el día";
       timeList = mapPins.filter(b => {
-        if (b.city_slug !== activeCity) return false;
+        if (!isNear(b, userCoords, activeCity)) return false;
         const isNight = ["bar", "antros", "club", "cerveceria"].includes(b.category) || 
                         (b.tags && Array.isArray(b.tags) && b.tags.some(t => typeof t === 'string' && t.toLowerCase() === 'cenas'));
         if (!isNight && b.category !== "restaurante") return false;
@@ -147,7 +168,7 @@ export default function HomeView({ isBackground }) {
     } else if (h >= 12 && h < 17) {
       listTitle = "Hora de comer";
       timeList = mapPins.filter(b => {
-        if (b.city_slug !== activeCity) return false;
+        if (!isNear(b, userCoords, activeCity)) return false;
         const isFood = ["restaurantes", "restaurante", "comida rapida", "mariscos", "tacos", "pizzeria"].includes(b.category) || 
                        (b.tags && Array.isArray(b.tags) && b.tags.some(t => typeof t === 'string' && t.toLowerCase() === 'comidas'));
         if (!isFood) return false;
@@ -156,7 +177,7 @@ export default function HomeView({ isBackground }) {
     } else {
       listTitle = "Para iniciar el día";
       timeList = mapPins.filter(b => {
-        if (b.city_slug !== activeCity) return false;
+        if (!isNear(b, userCoords, activeCity)) return false;
         const isCafe = b.category === "cafe";
         const isFood = ["restaurantes", "restaurante", "comida rapida", "mariscos", "tacos", "pizzeria", "comida"].includes(b.category);
         const hasDesayunosTag = b.tags && Array.isArray(b.tags) && b.tags.some(t => typeof t === 'string' && t.toLowerCase() === 'desayunos');
@@ -169,28 +190,62 @@ export default function HomeView({ isBackground }) {
        timeList = mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "restaurantes" || b.category === "restaurante") && getMinutesToClose(b) > 0);
     }
 
+    // Sort by plan tier first, then stable daily seed within same tier — no flicker on GPS load
     timeList = timeList.sort((a, b) => {
-      if (userCoords) {
-        const distA = getKm(userCoords.lat, userCoords.lng, a.lat, a.lng);
-        const distB = getKm(userCoords.lat, userCoords.lng, b.lat, b.lng);
-        return distA - distB;
-      }
-      return b.plan - a.plan;
+      const planDiff = (b.plan || 0) - (a.plan || 0);
+      if (planDiff !== 0) return planDiff;
+      return seededRand(a.id, CURRENT_SEED) - seededRand(b.id, CURRENT_SEED);
     }).slice(0, 8);
-    
+
     const sportsList = mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "fitness" || b.category === "unidad deportiva")).sort((a, b) => {
-      if (userCoords) {
-        const distA = getKm(userCoords.lat, userCoords.lng, a.lat, a.lng);
-        const distB = getKm(userCoords.lat, userCoords.lng, b.lat, b.lng);
-        return distA - distB;
-      }
-      return b.plan - a.plan;
+      const planDiff = (b.plan || 0) - (a.plan || 0);
+      if (planDiff !== 0) return planDiff;
+      return seededRand(a.id, CURRENT_SEED) - seededRand(b.id, CURRENT_SEED);
     }).slice(0, 8);
-    
+
     const showActiva = h >= 6 && h < 18;
 
     return { listTitle, timeList, sportsList, showActiva };
-  }, [mapPins, activeCity, userCoords, getKm]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapPins, activeCity]);
+
+  const spotlightBiz = React.useMemo(() => {
+    if (!mapPins || mapPins.length === 0) return null;
+
+    const cacheKey = `${CURRENT_SEED}:${activeCity}`;
+
+    // Si ya teníamos uno guardado para hoy+ciudad y sigue en mapPins → devuélvelo sin recalcular
+    const cachedId = SPOTLIGHT_CACHE[cacheKey];
+    if (cachedId) {
+      const found = mapPins.find(b => b.id === cachedId);
+      if (found) return found;
+      // Si no lo encontramos (mapPins parcial), esperamos a que llegue
+      // devolvemos null en vez de recalcular con datos incompletos
+      return null;
+    }
+
+    // Primera vez para hoy+ciudad: calculamos y guardamos en el caché de módulo
+    const nearPins = mapPins.filter(b => isNear(b, null, activeCity));
+    if (nearPins.length === 0) return null;
+    
+    // Le damos un "bonus" al plan destacado (+0.7) y al pro (+0.3)
+    // De esta forma tienen mucha más probabilidad de aparecer, pero no monopolizan
+    // la recomendación si hay pocos, permitiendo que otros negocios con buena "suerte" (semilla alta) aparezcan.
+    const sorted = [...nearPins].sort((a, b) => {
+      const getScore = (biz) => {
+        let base = seededRand(biz.id, CURRENT_SEED);
+        if (biz.plan === "destacado") base += 0.7;
+        else if (biz.plan === "pro") base += 0.3;
+        const hasPhoto = (biz.photos && biz.photos.length > 0) || biz.img1 || biz.img_url || biz.img2 || biz.img3;
+        if (!hasPhoto) base -= 1.5;
+        return base;
+      };
+      return getScore(b) - getScore(a);
+    });
+    
+    if (sorted[0]) SPOTLIGHT_CACHE[cacheKey] = sorted[0].id;
+    return sorted[0] || null;
+  }, [mapPins, activeCity]);
 
   const activeBannersMemo = React.useMemo(() => {
     const today = now.toISOString().split("T")[0];
@@ -198,7 +253,7 @@ export default function HomeView({ isBackground }) {
     return banners.filter(bn => {
       if (!bn) return false;
       if (!bn.active) return false;
-      if (bn.city_slug !== "all" && bn.city_slug !== activeCity) return false;
+      if (!isNear(bn, userCoords, activeCity)) return false;
       if (bn.repeat_yearly) {
         const startMD = bn.start_date ? bn.start_date.slice(5) : "01-01";
         const endMD = bn.end_date ? bn.end_date.slice(5) : "12-31";
@@ -209,7 +264,7 @@ export default function HomeView({ isBackground }) {
       if (!bn.img_url) return false;
       return true;
     });
-  }, [banners, activeCity, now]);
+  }, [banners, activeCity, now, userCoords]);
 
   let currentTitle = "CityMap - Tu Guía Local Inteligente";
   let currentDesc = "Descubre los mejores lugares en tu ciudad con CityMap.";
@@ -233,153 +288,7 @@ export default function HomeView({ isBackground }) {
       )}
 
           {/* ── HERO HEADER ── */}
-          <div style={{ position: "relative", padding: "8px 20px 0px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "transparent" }}>
-
-            {/* Contenido Header (Por encima del fondo) */}
-            <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", flex: 1 }}>
-              
-
-
-              {/* ── Fila 2: Título Hero ── */}
-              {!search && (() => {
-                const cityName = detectedTown || (city || "").split(",")[0] || "tu ciudad";
-                return (
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 10, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
-                    <div className="hero-title-anim" style={{ marginBottom: 4 }}>
-                      <img 
-                        src="/citymap.mx.png" 
-                        alt="CityMap" 
-                        style={{ height: 56, objectFit: "contain", filter: dark ? "none" : "invert(1)" }} 
-                      />
-                    </div>
-                    <style>{`
-                      @keyframes heroGradientFlow {
-                        0% { background-position: 100% center; }
-                        100% { background-position: 0% center; }
-                      }
-                      @keyframes premiumFadeUp {
-                        0% { opacity: 0; transform: translateY(15px); filter: blur(8px); }
-                        100% { opacity: 1; transform: translateY(0); filter: blur(0); }
-                      }
-                      .animated-city {
-                        display: inline-block;
-                        font-family: 'Montserrat', sans-serif;
-                        font-size: 1.1em;
-                        font-weight: 800;
-                        line-height: 1;
-                        letter-spacing: normal;
-                        padding-right: 8px;
-                        background: linear-gradient(90deg, #34D399 0%, #38BDF8 25%, #818CF8 50%, #38BDF8 75%, #34D399 100%);
-                        background-size: 200% auto;
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
-                        animation: heroGradientFlow 4s linear infinite;
-                      }
-                      .hero-title-anim {
-                        color: #ffffff;
-                        animation: premiumFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                        filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6));
-                      }
-                    `}</style>
-                    <h1 className="hero-title-anim" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(24px, 6vw, 36px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: dark ? "#fff" : T.text }}>
-                      {t("descubre_lo_mejor", "Descubre lo mejor de")} <br/><span className="animated-city">{cityName}</span>
-                    </h1>
-                  </div>
-                );
-              })()}
-
-              {/* ── Fila 3: Search Bar ── */}
-              <div style={{ position: "relative", width: "100%", marginTop: search ? 76 : 16, zIndex: 10 }}>
-                  <style>{`
-                    @keyframes magicBorderSpin {
-                      100% { transform: rotate(1turn); }
-                    }
-                    .hero-search-magic-container {
-                      position: absolute;
-                      top: 0; left: 0; right: 0; bottom: 0;
-                      border-radius: 100px;
-                      overflow: hidden;
-                      z-index: 1;
-                      pointer-events: none;
-                    }
-                    .hero-search-magic-container::before {
-                      display: none;
-                    }
-                    .hero-search-magic-inner {
-                      position: absolute;
-                      top: 0; left: 0; right: 0; bottom: 0;
-                      border-radius: 100px;
-                      background: rgba(15, 23, 42, 0.8);
-                      backdrop-filter: blur(24px);
-                      -webkit-backdrop-filter: blur(24px);
-                      box-shadow: inset 0 1px 1px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.1);
-                      z-index: 2;
-                    }
-                    .hero-search-input {
-                      position: relative;
-                      z-index: 3;
-                      -webkit-appearance: none !important;
-                      appearance: none !important;
-                      background: transparent !important;
-                    }
-                    .hero-search-input::placeholder {
-                      color: rgba(255, 255, 255, 0.85) !important;
-                      -webkit-text-fill-color: rgba(255, 255, 255, 0.85) !important;
-                      opacity: 1;
-                      letter-spacing: 0.2px;
-                    }
-                    .hero-search-input:focus {
-                      box-shadow: none !important;
-                    }
-                  `}</style>
-                  <div className="hero-search-magic-container">
-                    <div className="hero-search-magic-inner"></div>
-                  </div>
-                  <DebouncedSearchBar initialValue={search} onSearch={setSearch} placeholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} />
-              </div>
-
-              {/* Fila 4: Categorías Iconos (Ocultos en Inicio) */}
-              {!search && <div style={{ margin: "12px -20px 0" }}>
-                <style>{`
-                  @keyframes catHeartbeat {
-                    0% { transform: translateY(-4px) scale(1.1); }
-                    50% { transform: translateY(-4px) scale(1.25); }
-                    100% { transform: translateY(-4px) scale(1.1); }
-                  }
-                `}</style>
-                <div style={{ display: "flex", alignItems: "flex-start", overflowX: "auto", paddingTop: 8, paddingBottom: 8, paddingLeft: 20, paddingRight: 20, gap: 20, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-                  {!dbReady ? [1, 2, 3, 4, 5].map(i => <Sk key={i} w={56} h={56} r={28} dark={true} style={{ flexShrink: 0 }} />)
-                    : [{id: "explorar", label: t("explorar", "Explorar")}, ...cats.map(c => ({ ...c, label: t(c.label, c.label) }))].map((c) => {
-                      const isActive = activeCat === c.id
-                      const catSlug = (c.id || "").replace(/\s+/g, '-').toLowerCase();
-                      const catUrl = `/${(activeCity || city || "").split(",")[0]}${c.id === "explorar" ? "" : "/" + catSlug}`;
-                      
-                      let emojiVal = c.id === "explorar" ? "🌎" : (c.icon === "❤️" ? "🤍" : (c.emoji || c.icon || "✨"));
-                      let cleanEmoji = typeof emojiVal === 'string' ? emojiVal.trim() : emojiVal;
-                      let isImage = typeof cleanEmoji === 'string' && (cleanEmoji.toLowerCase().endsWith('.svg') || cleanEmoji.toLowerCase().endsWith('.png'));
-
-                      return (
-                        <a href={catUrl} key={c.id} onClick={(e) => { e.preventDefault(); haptic("light"); setActiveCat(c.id); window.history.pushState(null, "", catUrl); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0, width: 64 }}>
-                          <div style={{ width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", transition: isActive ? "none" : "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", transform: isActive ? "translateY(-4px) scale(1.1)" : "none", animation: isActive ? "catHeartbeat 2s ease-in-out infinite" : "none" }}>
-                            {isImage ? (
-                              <img src={`/${cleanEmoji}`} alt={c.label} style={{ width: 32, height: 32, objectFit: "contain" }} />
-                            ) : (
-                              <span style={{ fontSize: 32, lineHeight: 1 }}>{cleanEmoji}</span>
-                            )}
-                          </div>
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? T.text : T.sub, textAlign: "center", lineHeight: 1.15, transition: "color 0.3s" }}>{c.label}</span>
-                            {isActive && <div style={{ width: 4, height: 4, borderRadius: "50%", background: T.text }} />}
-                          </div>
-                        </a>
-                      );
-                    })}
-                </div>
-              </div>}
-
-            </div>
-          </div>
-
+          <HomeHero dark={dark} T={T} t={t} search={search} setSearch={setSearch} localizedPlaceholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dbReady={dbReady} cats={cats} activeCat={activeCat} setActiveCat={setActiveCat} activeCity={activeCity} city={city} cities={cities} haptic={haptic} detectedTown={detectedTown} />
           {/* ── EMPTY CITY STATE ── */}
           {!search && dbReady && mapPins.filter(b => isNear(b, userCoords, activeCity)).length === 0 && (
             <CityEmptyState 
@@ -399,10 +308,7 @@ export default function HomeView({ isBackground }) {
             const query = search.toLowerCase();
             const qWords = query.split(/\s+/).filter(Boolean);
             const matchingEvents = (events || []).filter(ev => {
-              if (ev.city_slug !== "all" && ev.city_slug) {
-                const cities = ev.city_slug.split(",");
-                if (!cities.includes(activeCity)) return false;
-              }
+              if (!isNear(ev, userCoords, activeCity)) return false;
               const text = [ev.title, ev.description, ev.location, ev.venue_name, ev.category].join(" ").toLowerCase();
               return qWords.every(w => text.includes(w));
             });
@@ -621,84 +527,53 @@ export default function HomeView({ isBackground }) {
             );
           })()}
 
-          {/* ── AGENDA LOCAL (EVENTOS DE HOY/PRÓXIMOS) ── */}
-          {!search && activeCat === "explorar" && (() => {
-            const now2 = new Date();
-            const upcomingEvents = (events || []).filter(ev => {
-              if (ev.status !== "approved") return false;
-              if (ev.city_slug !== "all" && ev.city_slug) {
-                const cities = ev.city_slug.split(",");
-                if (!cities.includes(activeCity)) return false;
-              }
-              if (ev.date) {
-                const endDateStr = ev.end_date || ev.date;
-                const evDT = ev.time ? new Date(`${endDateStr}T${ev.time}:00`) : new Date(`${endDateStr}T23:59:00`);
-                if ((now2 - evDT) > 86400000) return false;
-              }
-              return true;
-            }).filter(ev => ev && ev.date).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-            if (!dbReady) return (
-              <div style={{ padding: "24px 0 0 20px" }}>
-                <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 18, color: T.text, margin: "0 0 12px 0", letterSpacing: "-0.5px" }}>{t("agenda_local", "Agenda Local")}</h2>
-                <EventSk dark={dark} />
-              </div>
-            );
-            if (upcomingEvents.length === 0) return null;
-            
-            const now = new Date();
-            const tz = window.CITY_TZ || 'America/Mazatlan';
-            const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-            const tomorrow = new Date(now.getTime() + 86400000);
-            const tomorrowStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(tomorrow);
+          
+          {/* ── LUGAR DEL DÍA ── */}
+          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} cityImg={cityImg} handleEventTap={handleEventTap} T={T} city={city} />}
 
-            const isEventToday = ev => ev.date === todayStr || (ev.end_date && ev.date <= todayStr && ev.end_date >= todayStr);
-            const isEventTomorrow = ev => ev.date === tomorrowStr || (ev.end_date && ev.date <= tomorrowStr && ev.end_date >= tomorrowStr);
-            
-            return (
-              <div style={{ padding: "24px 0 0 0" }}>
-                <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: "0 0 16px 0" }}>{t("agenda_local", "Agenda Local")}</h2>
-                
-                {upcomingEvents.length > 0 && (
-                  <div style={{ display: "flex", gap: 14, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 16, paddingLeft: 20, paddingRight: 20 }}>
-                    {upcomingEvents.map(ev => {
-                      const posterUrl = getThumbUrl(ev.img_url || cityImg, 600, 800);
-                      const isToday = isEventToday(ev);
-                      const isTomorrow = isEventTomorrow(ev);
+          {!search && activeCat === "explorar" && spotlightBiz && (
+            <div style={{ padding: "16px 20px 0 20px" }}>
+              <h2 style={{ fontFamily: "var(--heading)", fontWeight: 800, fontSize: 20, color: T.text, letterSpacing: "-0.5px", margin: "0 0 16px 0", textAlign: "center" }}>
+                Recomendación del día
+              </h2>
+              <div 
+                className="press"
+                onClick={() => handleCardTap(spotlightBiz)}
+                style={{ 
+                  borderRadius: 18, 
+                  background: T.bg, 
+                  border: `1px solid ${T.border}`,
+                  overflow: "hidden", 
+                  cursor: "pointer", 
+                  boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
+                  display: "flex",
+                  flexDirection: "column"
+                }}
+              >
+                <div style={{ position: "relative", width: "100%", height: 180, background: "linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {(() => {
+                    const src = (spotlightBiz.photos && spotlightBiz.photos[0]?.url) || spotlightBiz.img1 || spotlightBiz.img2 || spotlightBiz.img3 || spotlightBiz.img_url || cityImg;
+                    if (src) {
                       return (
-                        <div key={ev.id} className="press" onClick={() => { handleEventTap(ev); }} style={{ width: 150, height: 210, borderRadius: 18, background: `url(${posterUrl}) center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: "0 8px 20px rgba(0,0,0,0.15)", position: "relative", overflow: "hidden" }}>
-                          {(isToday || isTomorrow) && (
-                            <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", color: "#fff", padding: "4px 8px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", fontWeight: 800, fontSize: 10, letterSpacing: 0.5, animation: isToday ? "pulse 2s infinite" : "none", display: "flex", alignItems: "center", gap: 4, zIndex: 2 }}>
-                              {isToday ? t("es_hoy", "🤩 ES HOY") : t("manana", "⏳ MAÑANA")}
-                            </div>
-                          )}
-                          {ev.date && (() => {
-                            const d = new Date(ev.date + "T12:00:00");
-                            const m = d.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
-                            let dayTxt = d.getDate();
-                            let moTxt = m;
-                            if (ev.end_date && ev.end_date !== ev.date) {
-                                const d2 = new Date(ev.end_date + "T12:00:00");
-                                dayTxt = `${d.getDate()}-${d2.getDate()}`;
-                                if (d.getMonth() !== d2.getMonth()) {
-                                    const m2 = d2.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
-                                    moTxt = `${m}/${m2}`;
-                                }
-                            }
-                            return (
-                              <div style={{ position: "absolute", bottom: 10, left: 10, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", padding: "6px 10px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.2)", display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
-                                <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginBottom: 2, whiteSpace: "nowrap" }}>{dayTxt}</span>
-                                <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", whiteSpace: "nowrap" }}>{moTxt}</span>
-                              </div>
-                            );
-                          })()}
-                        </div>
+                        <OptimizedImage 
+                          src={src} 
+                          alt={spotlightBiz.name}
+                          widthRequest={800} heightRequest={600}
+                          style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                        />
                       );
-                    })}
-                  </div>
-                )}
+                    }
+                    // Placeholder fallback if no image exists
+                    return <Icon name="image" size={48} color="#94A3B8" />;
+                  })()}
+                </div>
+                <div style={{ padding: "12px 16px", textAlign: "center" }}>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: T.text, lineHeight: 1.2 }}>{spotlightBiz.name}</h3>
+                </div>
               </div>
-            );
-          })()}
+            </div>
+          )}
+
 
           {/* ── BENTO CATEGORIES (REMOVED) ── */}          {!search && activeCat === "explorar" && <div id="explorar-section">
             {/* ── BANNERS ── */}
@@ -721,85 +596,8 @@ export default function HomeView({ isBackground }) {
           </div>}
 
           {/* ── FAVORITOS DE LA CIUDAD ── */}
-          {!search && activeCat === "explorar" && (() => {
-              const topFavs = topFavsMemo;
-              if (topFavs.length === 0) return null;
-              
-              const visibleFavs = topFavs.slice(0, showMoreTopFavs ? 10 : 5);
+          {!search && activeCat === "explorar" && <HomeTopGrids topFavs={topFavsMemo} showMoreTopFavs={showMoreTopFavs} setShowMoreTopFavs={setShowMoreTopFavs} topRated={topRatedMemo} showMoreTopRated={showMoreTopRated} setShowMoreTopRated={setShowMoreTopRated} userCoords={userCoords} getKm={getKm} dark={dark} T={T} favIds={favIds} toggleFav={toggleFav} handleCardTap={handleCardTap} globalFavCounts={globalFavCounts} t={t} />}
 
-              return <div style={{ margin: "24px 20px" }}>
-                <div style={{ textAlign: "center", marginBottom: 16 }}>
-                  <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                    <div style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))", display: "flex" }}><Icon name="heart_overlay_f" size={22} color="none" /></div>
-                    {t("favoritos_ciudad", "Favoritos de la ciudad")}
-                    <div style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))", display: "flex" }}><Icon name="heart_overlay_f" size={22} color="none" /></div>
-                  </h2>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {visibleFavs.map((b, index) => {
-                    const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
-                    const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : null;
-                    
-                    const numColor = dark ? "#fff" : "#4B5563";
-                    const pillBg = dark ? "#333" : "#F3F4F6";
-
-                    return (
-                      <div key={b.id} style={{ position: "relative", paddingBottom: 0 }}>
-                        <div style={{ position: "absolute", top: index < 3 ? -2 : -2, left: index < 3 ? -2 : -2, width: index < 3 ? 38 : 34, height: index < 3 ? 38 : 34, borderRadius: "50%", background: index < 3 ? "transparent" : pillBg, color: numColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: index < 3 ? 32 : 15, fontWeight: 900, boxShadow: index < 3 ? "none" : "0 4px 10px rgba(0,0,0,0.15)", zIndex: 10, border: index < 3 ? "none" : `2.5px solid ${dark ? "#111" : "#f4f4f5"}`, filter: index < 3 ? "drop-shadow(0 4px 6px rgba(0,0,0,0.2))" : "none" }}>
-                          {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
-                        </div>
-                        <CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} hideReviews={true} hideSchedule={true} />
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {topFavs.length > 5 && (
-                  <button onClick={() => setShowMoreTopFavs(v => !v)} className="press" style={{ width: "100%", padding: "12px", background: "none", border: `1px solid ${T.border}`, borderRadius: 12, marginTop: 12, fontSize: 13, fontWeight: 700, color: T.green, cursor: "pointer", fontFamily: "inherit" }}>
-                    {showMoreTopFavs ? t("ver_menos", "Ver menos") : t("ver_mas", "Ver 5 más")}
-                  </button>
-                )}
-              </div>;
-            })()}
-
-            {!search && activeCat === "explorar" && (() => {
-              const topRated = topRatedMemo;
-              if (topRated.length === 0) return null;
-              
-              const visibleRated = topRated.slice(0, showMoreTopRated ? 10 : 5);
-
-              return <div style={{ margin: "24px 20px" }}>
-                <div style={{ textAlign: "center", marginBottom: 16 }}>
-                  <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0 }}>⭐ {t("los_mas_valorados", "Los más valorados")} ⭐</h2>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {visibleRated.map((b, index) => {
-                    const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
-                    const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : null;
-                    
-                    const numColor = dark ? "#fff" : "#4B5563";
-                    const pillBg = dark ? "#333" : "#F3F4F6";
-
-                    return (
-                      <div key={b.id} style={{ position: "relative", paddingBottom: 0 }}>
-                        <div style={{ position: "absolute", top: index < 3 ? -2 : -2, left: index < 3 ? -2 : -2, width: index < 3 ? 38 : 34, height: index < 3 ? 38 : 34, borderRadius: "50%", background: index < 3 ? "transparent" : pillBg, color: numColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: index < 3 ? 32 : 15, fontWeight: 900, boxShadow: index < 3 ? "none" : "0 4px 10px rgba(0,0,0,0.15)", zIndex: 10, border: index < 3 ? "none" : `2.5px solid ${dark ? "#111" : "#f4f4f5"}`, filter: index < 3 ? "drop-shadow(0 4px 6px rgba(0,0,0,0.2))" : "none" }}>
-                          {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
-                        </div>
-                        <CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} hideFavs={true} hideSchedule={true} />
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {topRated.length > 5 && (
-                  <button onClick={() => setShowMoreTopRated(v => !v)} className="press" style={{ width: "100%", padding: "12px", background: "none", border: `1px solid ${T.border}`, borderRadius: 12, marginTop: 12, fontSize: 13, fontWeight: 700, color: T.green, cursor: "pointer", fontFamily: "inherit" }}>
-                    {showMoreTopRated ? t("ver_menos", "Ver menos") : t("ver_mas", "Ver 5 más")}
-                  </button>
-                )}
-              </div>;
-            })()}
 
 
 

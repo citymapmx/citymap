@@ -25,7 +25,6 @@ const CAT_SEO = {
   "educacion":    { title: "Escuelas y Educación en {city} — Colegios, Cursos y Más", desc: "Escuelas, universidades, academias y cursos en {city}. Encuentra opciones educativas con horarios e información de contacto.", label: "Educación" }
 };
 
-
 async function getReviews(bizId) {
   try {
     const r = await fetch(
@@ -39,12 +38,29 @@ async function getReviews(bizId) {
   }
 }
 
+async function getCityData(citySlug) {
+  if (!citySlug) return { country_code: "mx", bg_image: null };
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/cities?slug=eq.${citySlug}&select=country_code,bg_image`,
+      { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
+    );
+    if (!r.ok) return { country_code: "mx", bg_image: null };
+    const d = await r.json();
+    return {
+      country_code: d?.[0]?.country_code || "mx",
+      bg_image: d?.[0]?.bg_image || null
+    };
+  } catch {
+    return { country_code: "mx", bg_image: null };
+  }
+}
+
 async function getBiz(id, city) {
   try {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     let q = isUUID ? `id=eq.${id}` : `slug=in.(${id},${city ? `${city}-${id}` : id})`;
     
-    // If it's not a UUID, check if there's a numeric ID at the end of the slug (e.g. "mi-negocio_123")
     if (!isUUID && id.includes('_')) {
       const parts = id.split('_');
       const possibleId = parts.pop();
@@ -78,12 +94,10 @@ async function getEv(id, city) {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     let q = isUUID ? `id=eq.${id}` : `slug=in.(${id},${city ? `${city}-${id}` : id})`;
     
-    // If it's not a UUID, check if there's a numeric ID at the end of the slug (e.g. "mi-evento_123")
     if (!isUUID && id.includes('_')) {
       const parts = id.split('_');
       const possibleId = parts.pop();
       if (/^\d+$/.test(possibleId) || /^[0-9a-f]{8}-/.test(possibleId)) {
-        // Also support uuid after underscore just in case
         q = `id=eq.${possibleId}`;
       }
     }
@@ -112,7 +126,6 @@ async function getExp(id, city) {
   try {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     
-    // If UUID, query directly
     if (isUUID) {
       const r = await fetch(
         `${SUPABASE_URL}/rest/v1/experiences?id=eq.${id}&select=id,title,description,gallery,city_slug,activity_type`,
@@ -123,8 +136,6 @@ async function getExp(id, city) {
       return d?.[0] || null;
     }
     
-    // Slug lookup: DB slugs may have city prefix and case issues, so use ilike
-    // e.g. id="chichen-itza-tour-guiado", DB slug="merida-Merida-chichen-itza-tour-guiado"
     let r = await fetch(
       `${SUPABASE_URL}/rest/v1/experiences?slug=ilike.*${encodeURIComponent(id)}*&select=id,title,description,gallery,city_slug,activity_type&limit=1`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
@@ -134,7 +145,6 @@ async function getExp(id, city) {
       if (d?.[0]) return d[0];
     }
     
-    // Fallback: search by title using the slug words
     const searchName = id.replace(/-/g, '%25');
     r = await fetch(
       `${SUPABASE_URL}/rest/v1/experiences?title=ilike.*${searchName}*&select=id,title,description,gallery,city_slug,activity_type&limit=1`,
@@ -150,7 +160,6 @@ async function getExp(id, city) {
   }
 }
 
-
 export default async function handler(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("b");
@@ -160,26 +169,85 @@ export default async function handler(req) {
   const city = searchParams.get("city");
   const ua = req.headers.get("user-agent") || "";
 
-  // No ID → redirect to home
+  const host = req.headers.get("host") || "";
+  const isWorld = host.endsWith("citymap.world");
+  const BASE_URL = isWorld ? "https://citymap.world" : "https://citymap.mx";
+  const SITE_NAME = isWorld ? "CityMap" : "CityMap México";
+  
+  // Dynamic country extraction to set appropriate locales and paths
+  const targetCitySlug = city || "";
+  const { country_code: countryCode, bg_image: cityBgImage } = await getCityData(targetCitySlug);
+  const cityPath = isWorld && targetCitySlug ? `/${countryCode}/${targetCitySlug}` : `/${targetCitySlug}`;
+  
+  // Set locale based on target country
+  let locale = "es_MX";
+  if (isWorld) {
+    if (countryCode === "es") locale = "es_ES";
+    else if (countryCode === "fr") locale = "fr_FR";
+    else if (countryCode === "gb") locale = "en_GB";
+    else if (countryCode === "ca") locale = "en_CA";
+    else if (countryCode === "us") locale = "en_US";
+    else locale = "es";
+  }
+
+  // No ID and no other parameters -> Serve Home page HTML to bots
   if (!id && !evId && !expId && !vista && !city) {
-    return new Response(null, {
-      status: 302,
-      headers: { Location: "https://citymap.mx" },
+    const title = `${SITE_NAME} — Descubre tu ciudad`;
+    const desc = "Explora negocios locales, lugares de interés y eventos exclusivos. Encuentra lo mejor cerca de ti en un solo lugar.";
+    const img = `${BASE_URL}/og-image.png`;
+
+    const html = `<!doctype html>
+<html lang="es" prefix="og: https://ogp.me/ns#">
+<head>
+<meta charset="UTF-8"/>
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}"/>
+<link rel="canonical" href="${BASE_URL}"/>
+
+<!-- Open Graph -->
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="${BASE_URL}"/>
+<meta property="og:title" content="${esc(title)}"/>
+<meta property="og:description" content="${esc(desc)}"/>
+<meta property="og:image" content="${esc(img)}"/>
+<meta property="og:site_name" content="${esc(SITE_NAME)}"/>
+<meta property="og:locale" content="${esc(locale)}"/>
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="${esc(title)}"/>
+<meta name="twitter:description" content="${esc(desc)}"/>
+<meta name="twitter:image" content="${esc(img)}"/>
+</head>
+<body>
+<h1>${esc(title)}</h1>
+<img src="${esc(img)}" alt="${esc(title)}" style="max-width: 100%; height: auto;" />
+<p>${esc(desc)}</p>
+<a href="${BASE_URL}">Abrir ${esc(SITE_NAME)}</a>
+</body>
+</html>`;
+
+    return new Response(html, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      },
     });
   }
 
   // Real user (not a bot) → redirect to SPA with deep-link param
   if (!isBot(ua)) {
-    let loc = "https://citymap.mx";
+    let loc = BASE_URL;
     const isMenu = searchParams.get("menu") === "true";
     if (id) {
-       if (isMenu && city) loc = `https://citymap.mx/${city}/${id}/menu`;
+       if (isMenu && city) loc = `${BASE_URL}${cityPath}/${id}/menu`;
        else loc += `?lugar=${id}`;
     }
     else if (evId) loc += `?evento=${evId}`;
-    else if (expId) loc = `https://citymap.mx/experiencias/${city || 'todas'}/${expId}`;
+    else if (expId) loc = `${BASE_URL}/experiencias/${city || 'todas'}/${expId}`;
     else if (vista) loc += `?vista=${vista}`;
-    else if (city) loc += `/${city}`;
+    else if (city) loc = `${BASE_URL}${cityPath}`;
     
     return new Response(null, {
       status: 302,
@@ -190,9 +258,9 @@ export default async function handler(req) {
   // --- RESPUESTA PARA CIUDAD ---
   if (city && !id && !evId && !expId) {
     const cityName = city.charAt(0).toUpperCase() + city.slice(1).replace("-", " ");
-    const title = `CityMap ${cityName} — La guía de tu ciudad`;
+    const title = `${SITE_NAME} ${cityName} — La guía de tu ciudad`;
     const desc = `Encuentra los mejores restaurantes, servicios y eventos en ${cityName}. Explora lugares increíbles cerca de ti.`;
-    const img = "https://citymap.mx/og-image.jpg";
+    const img = cityBgImage || `${BASE_URL}/og-image.png`;
     
     const html = `<!doctype html>
 <html lang="es" prefix="og: https://ogp.me/ns#">
@@ -200,16 +268,16 @@ export default async function handler(req) {
 <meta charset="UTF-8"/>
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}"/>
-<link rel="canonical" href="https://citymap.mx/${esc(city)}"/>
+<link rel="canonical" href="${BASE_URL}${cityPath}"/>
 
 <!-- Open Graph -->
 <meta property="og:type" content="website"/>
-<meta property="og:url" content="https://citymap.mx/${esc(city)}"/>
+<meta property="og:url" content="${BASE_URL}${cityPath}"/>
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(desc)}"/>
 <meta property="og:image" content="${esc(img)}"/>
-<meta property="og:site_name" content="CityMap México"/>
-<meta property="og:locale" content="es_MX"/>
+<meta property="og:site_name" content="${esc(SITE_NAME)}"/>
+<meta property="og:locale" content="${esc(locale)}"/>
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image"/>
@@ -219,8 +287,9 @@ export default async function handler(req) {
 </head>
 <body>
 <h1>${esc(title)}</h1>
+<img src="${esc(img)}" alt="${esc(title)}" style="max-width: 100%; height: auto;" />
 <p>${esc(desc)}</p>
-<a href="https://citymap.mx/${esc(city)}">Abrir CityMap en ${esc(cityName)}</a>
+<a href="${BASE_URL}${cityPath}">Abrir ${esc(SITE_NAME)} en ${esc(cityName)}</a>
 </body>
 </html>`;
 
@@ -235,15 +304,15 @@ export default async function handler(req) {
 
   // --- RESPUESTA PARA TABS ---
   if (vista) {
-    let title = "CityMap México";
+    let title = SITE_NAME;
     let desc = "Descubre tu ciudad.";
-    const img = "https://citymap.mx/og-image.png";
+    const img = `${BASE_URL}/og-image.png`;
 
     if (vista === "eventos") {
-      title = "Cartelera de Eventos — CityMap México";
+      title = `Cartelera de Eventos — ${SITE_NAME}`;
       desc = "Descubre los mejores eventos, conciertos y actividades en tu ciudad.";
     } else if (vista === "mapa") {
-      title = "Mapa Interactivo de Negocios — CityMap México";
+      title = `Mapa Interactivo de Negocios — ${SITE_NAME}`;
       desc = "Explora todos los negocios y lugares de interés cercanos a ti en nuestro mapa interactivo.";
     }
 
@@ -256,12 +325,12 @@ export default async function handler(req) {
 
 <!-- Open Graph -->
 <meta property="og:type" content="website"/>
-<meta property="og:url" content="https://citymap.mx/?vista=${esc(vista)}"/>
+<meta property="og:url" content="${BASE_URL}/?vista=${esc(vista)}"/>
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(desc)}"/>
 <meta property="og:image" content="${esc(img)}"/>
-<meta property="og:site_name" content="CityMap México"/>
-<meta property="og:locale" content="es_MX"/>
+<meta property="og:site_name" content="${esc(SITE_NAME)}"/>
+<meta property="og:locale" content="${esc(locale)}"/>
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image"/>
@@ -271,8 +340,9 @@ export default async function handler(req) {
 </head>
 <body>
 <h1>${esc(title)}</h1>
+<img src="${esc(img)}" alt="${esc(title)}" style="max-width: 100%; height: auto;" />
 <p>${esc(desc)}</p>
-<a href="https://citymap.mx/?vista=${esc(vista)}">Abrir en CityMap México</a>
+<a href="${BASE_URL}/?vista=${esc(vista)}">Abrir en ${esc(SITE_NAME)}</a>
 </body>
 </html>`;
 
@@ -285,17 +355,20 @@ export default async function handler(req) {
     });
   }
 
-  let name = "", desc = "", img = "", url = "", category = "", fullDesc = "", linkHref = "", canonicalUrl = "";
+  let name = "", desc = "", img = "", url = "", category = "", fullDesc = "", linkHref = "", canonicalUrl = "", cityNameFormat = "";
   let bizData = null, evData = null, expData = null;
 
   if (id) {
     if (CAT_SEO[id]) {
       const cityName = (city || "tu ciudad").charAt(0).toUpperCase() + (city || "tu ciudad").slice(1).replace("-", " ");
       const catInfo = CAT_SEO[id];
-      const title = catInfo.title.replace(/\{city\}/g, cityName) + " | CityMap";
+      const title = catInfo.title.replace(/\{city\}/g, cityName) + ` | ${SITE_NAME}`;
       const desc = catInfo.desc.replace(/\{city\}/g, cityName);
-      const canonicalUrl = `https://citymap.mx/${esc(city || "")}/${esc(id)}`;
-      const img = "https://citymap.mx/og-image.jpg";
+      
+      const { country_code: cityCountry, bg_image: cityBgImage } = await getCityData(city);
+      const specificCityPath = isWorld && city ? `/${cityCountry}/${city}` : `/${city || ""}`;
+      const canonicalUrl = `${BASE_URL}${specificCityPath}/${esc(id)}`;
+      const img = cityBgImage || `${BASE_URL}/og-image.png`;
       
       const html = `<!doctype html>
 <html lang="es" prefix="og: https://ogp.me/ns#">
@@ -311,8 +384,8 @@ export default async function handler(req) {
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(desc)}"/>
 <meta property="og:image" content="${esc(img)}"/>
-<meta property="og:site_name" content="CityMap México"/>
-<meta property="og:locale" content="es_MX"/>
+<meta property="og:site_name" content="${esc(SITE_NAME)}"/>
+<meta property="og:locale" content="${esc(locale)}"/>
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image"/>
@@ -322,8 +395,9 @@ export default async function handler(req) {
 </head>
 <body>
 <h1>${esc(catInfo.label)} en ${esc(cityName)}</h1>
+<img src="${esc(img)}" alt="${esc(catInfo.label)} en ${esc(cityName)}" style="max-width: 100%; height: auto;" />
 <p>${esc(desc)}</p>
-<a href="${canonicalUrl}">Ver ${esc(catInfo.label)} en CityMap México</a>
+<a href="${canonicalUrl}">Ver ${esc(catInfo.label)} en ${esc(SITE_NAME)}</a>
 </body>
 </html>`;
 
@@ -338,24 +412,24 @@ export default async function handler(req) {
 
     const biz = await getBiz(id, city);
     if (!biz) {
-      return new Response(null, { status: 302, headers: { Location: "https://citymap.mx" } });
+      return new Response(null, { status: 302, headers: { Location: BASE_URL } });
     }
     bizData = biz;
     const isMenu = searchParams.get("menu") === "true";
     const bizCity = biz.city_slug || city || "";
-    const cityNameFormat = bizCity ? (bizCity.charAt(0).toUpperCase() + bizCity.slice(1).replace("-", " ")) : "";
+    cityNameFormat = bizCity ? (bizCity.charAt(0).toUpperCase() + bizCity.slice(1).replace("-", " ")) : "";
     
     const isFood = biz.category === "restaurantes" || biz.category === "cafe";
     name = isMenu 
-      ? `Menú de ${esc(biz.name)} en ${esc(cityNameFormat)} - Precios y Pedidos | CityMap` 
-      : `${esc(biz.name)} en ${esc(cityNameFormat)}: ${isFood ? "Menú, " : ""}Horarios y Reseñas | CityMap`;
+      ? `Menú de ${esc(biz.name)} en ${esc(cityNameFormat)} - Precios y Pedidos | ${SITE_NAME}` 
+      : `${esc(biz.name)} en ${esc(cityNameFormat)}: ${isFood ? "Menú, " : ""}Horarios y Reseñas | ${SITE_NAME}`;
       
     desc = isMenu 
       ? `Descubre el menú completo de ${esc(biz.name)} en ${esc(cityNameFormat)}. Conoce sus platillos, precios y haz tu pedido fácilmente.` 
-      : esc(biz.tagline || biz.description?.slice(0, 160) || `Descubre ${biz.name} en CityMap México`);
+      : esc(biz.tagline || biz.description?.slice(0, 160) || `Descubre ${biz.name} en ${SITE_NAME}`);
       
     const rawImg = biz.photos?.[0]?.url || "";
-    img = esc(rawImg || "https://citymap.mx/og-image.png");
+    img = esc(rawImg || `${BASE_URL}/og-image.png`);
     category = esc(biz.category || "");
     const stars = biz.rating ? `⭐ ${biz.rating} · ` : "";
     const reviewInfo = biz.review_count ? `${biz.review_count} reseñas` : "";
@@ -368,41 +442,44 @@ export default async function handler(req) {
     if (bizCity && bizSlug.startsWith(`${bizCity}-`)) {
       bizSlug = bizSlug.substring(bizCity.length + 1);
     }
-    canonicalUrl = bizCity ? `https://citymap.mx/${esc(bizCity)}/${esc(bizSlug)}` : `https://citymap.mx`;
+    
+    const { country_code: bizCountry } = await getCityData(bizCity);
+    const specificCityPath = isWorld ? `/${bizCountry}/${bizCity}` : `/${bizCity}`;
+    canonicalUrl = bizCity ? `${BASE_URL}${specificCityPath}/${esc(bizSlug)}` : BASE_URL;
     url = canonicalUrl;
     linkHref = canonicalUrl;
   } else if (evId) {
     const ev = await getEv(evId, city);
     if (!ev) {
-      return new Response(null, { status: 302, headers: { Location: "https://citymap.mx" } });
+      return new Response(null, { status: 302, headers: { Location: BASE_URL } });
     }
     evData = ev;
     name = esc(ev.title);
-    desc = esc(ev.description?.slice(0, 160) || `Evento en CityMap México`);
-    img = esc(ev.img_url || ev.img || "https://citymap.mx/og-image.png");
+    desc = esc(ev.description?.slice(0, 160) || `Evento en ${SITE_NAME}`);
+    img = esc(ev.img_url || ev.img || `${BASE_URL}/og-image.png`);
     category = esc(ev.event_category || "");
     let dStr = "";
     if (ev.date) {
       try { dStr = `📅 ${new Date(ev.date).toLocaleDateString("es-MX")}`; } catch(e) {}
     }
     fullDesc = [desc, dStr, ev.venue_name ? esc(`📍 ${ev.venue_name}`) : ""].filter(Boolean).join(" — ");
-    canonicalUrl = `https://citymap.mx/evento/${esc(evId)}`;
+    canonicalUrl = `${BASE_URL}/evento/${esc(evId)}`;
     url = canonicalUrl;
     linkHref = canonicalUrl;
   } else if (expId) {
     const exp = await getExp(expId, city);
     if (!exp) {
-      return new Response(null, { status: 302, headers: { Location: "https://citymap.mx" } });
+      return new Response(null, { status: 302, headers: { Location: BASE_URL } });
     }
     expData = exp;
     name = esc(exp.title);
-    desc = esc(exp.description?.slice(0, 160) || `Experiencia en CityMap México`);
+    desc = esc(exp.description?.slice(0, 160) || `Experiencia en ${SITE_NAME}`);
     const gallery = Array.isArray(exp.gallery) ? exp.gallery : [];
-    img = esc(gallery[0] || "https://citymap.mx/og-image.png");
+    img = esc(gallery[0] || `${BASE_URL}/og-image.png`);
     category = esc(exp.activity_type || "Experiencia");
     
     fullDesc = desc;
-    canonicalUrl = `https://citymap.mx/experiencias/${esc(city || 'todas')}/${esc(expId)}`;
+    canonicalUrl = `${BASE_URL}/experiencias/${esc(city || 'todas')}/${esc(expId)}`;
     url = canonicalUrl;
     linkHref = canonicalUrl;
   }
@@ -440,7 +517,6 @@ export default async function handler(req) {
       }
       if (hours.length > 0) schema.openingHours = hours;
     }
-    // Fetch and attach individual reviews for rich snippets
     const bizReviews = await getReviews(bizData.id);
     if (bizReviews.length > 0) {
       schema.review = bizReviews.map(r => ({
@@ -450,7 +526,7 @@ export default async function handler(req) {
           "ratingValue": String(r.rating || 5),
           "bestRating": "5"
         },
-        "author": { "@type": "Person", "name": esc(r.user_name || "Usuario CityMap") },
+        "author": { "@type": "Person", "name": esc(r.user_name || `Usuario ${SITE_NAME}`) },
         "reviewBody": esc(r.text || r.comment || ""),
         "datePublished": r.created_at ? r.created_at.split("T")[0] : undefined
       }));
@@ -482,8 +558,8 @@ export default async function handler(req) {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://citymap.mx" },
-          { "@type": "ListItem", "position": 2, "name": "Experiencias", "item": `https://citymap.mx/experiencias/${city || ''}` },
+          { "@type": "ListItem", "position": 1, "name": "Inicio", "item": BASE_URL },
+          { "@type": "ListItem", "position": 2, "name": "Experiencias", "item": `${BASE_URL}/experiencias/${city || ''}` },
           { "@type": "ListItem", "position": 3, "name": expData.title, "item": canonicalUrl }
         ]
       }
@@ -493,7 +569,22 @@ export default async function handler(req) {
 
   // --- Build rich body for crawlers ---
   let bodyContent = `<h1>${name}</h1>`;
+
+  // Incluir siempre la imagen principal (og:image) para Google Image Search
+  if (img && img !== `${BASE_URL}/og-image.png`) {
+    bodyContent += `<img src="${img}" alt="${name}" style="max-width: 100%; height: auto;" />`;
+  }
+
   if (bizData) {
+    // Si hay más fotos en la galería del negocio, incluirlas
+    if (bizData.photos && Array.isArray(bizData.photos)) {
+      bizData.photos.forEach(p => {
+        if (p.url && p.url !== img) {
+          bodyContent += `<img src="${esc(p.url)}" alt="Foto de ${name}" style="max-width: 100%; height: auto; margin-top: 10px;" />`;
+        }
+      });
+    }
+
     if (bizData.category) bodyContent += `<p><strong>Categoría:</strong> ${esc(bizData.category)}</p>`;
     if (bizData.address) bodyContent += `<p><strong>Dirección:</strong> ${esc(bizData.address)}</p>`;
     if (bizData.rating) bodyContent += `<p><strong>Calificación:</strong> ${bizData.rating}/5${bizData.review_count ? ` (${bizData.review_count} reseñas)` : ""}</p>`;
@@ -502,22 +593,32 @@ export default async function handler(req) {
       const cityName = bizData.city_slug.charAt(0).toUpperCase() + bizData.city_slug.slice(1).replace("-", " ");
       bodyContent += `<p><strong>Ciudad:</strong> ${esc(cityName)}</p>`;
     }
-    bodyContent += `<a href="${linkHref}">Ver ${name} en CityMap México</a>`;
-    // Navigation links for crawlers
+    bodyContent += `<a href="${linkHref}">Ver ${name} en ${SITE_NAME}</a>`;
+    const { country_code: cc } = await getCityData(bizData.city_slug);
+    const cp = isWorld && bizData.city_slug ? `/${cc}/${bizData.city_slug}` : `/${bizData.city_slug || ""}`;
     bodyContent += `<nav><h2>Explorar más</h2><ul>`;
-    bodyContent += `<li><a href="https://citymap.mx/${esc(bizData.city_slug || "")}">Todos los negocios en ${esc(bizData.city_slug || "tu ciudad")}</a></li>`;
-    bodyContent += `<li><a href="https://citymap.mx">CityMap México — Inicio</a></li>`;
+    bodyContent += `<li><a href="${BASE_URL}${cp}">Todos los negocios en ${esc(cityNameFormat || "tu ciudad")}</a></li>`;
+    bodyContent += `<li><a href="${BASE_URL}">${SITE_NAME} — Inicio</a></li>`;
     bodyContent += `</ul></nav>`;
   } else if (evData) {
     if (evData.date) bodyContent += `<p><strong>Fecha:</strong> ${new Date(evData.date).toLocaleDateString("es-MX", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>`;
     if (evData.venue_name) bodyContent += `<p><strong>Lugar:</strong> ${esc(evData.venue_name)}</p>`;
     if (evData.event_category) bodyContent += `<p><strong>Categoría:</strong> ${esc(evData.event_category)}</p>`;
     if (evData.description) bodyContent += `<p>${esc(evData.description)}</p>`;
-    bodyContent += `<a href="${linkHref}">Ver evento en CityMap México</a>`;
+    bodyContent += `<a href="${linkHref}">Ver evento en ${SITE_NAME}</a>`;
   } else if (expData) {
+    // Si hay galería en la experiencia, incluirlas
+    if (expData.gallery && Array.isArray(expData.gallery)) {
+      expData.gallery.forEach(urlImg => {
+        if (urlImg && urlImg !== img) {
+          bodyContent += `<img src="${esc(urlImg)}" alt="Foto de la experiencia ${name}" style="max-width: 100%; height: auto; margin-top: 10px;" />`;
+        }
+      });
+    }
+
     if (expData.activity_type) bodyContent += `<p><strong>Categoría:</strong> ${esc(expData.activity_type)}</p>`;
     if (expData.description) bodyContent += `<p>${esc(expData.description)}</p>`;
-    bodyContent += `<a href="${linkHref}">Ver experiencia en CityMap México</a>`;
+    bodyContent += `<a href="${linkHref}">Ver experiencia en ${SITE_NAME}</a>`;
   }
 
   const html = `<!doctype html>
@@ -525,7 +626,7 @@ export default async function handler(req) {
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>${name.includes("CityMap") ? name : `${name} — CityMap México`}</title>
+<title>${name.includes("CityMap") ? name : `${name} — ${SITE_NAME}`}</title>
 <meta name="description" content="${fullDesc}"/>
 <link rel="canonical" href="${canonicalUrl}"/>
 
@@ -540,8 +641,8 @@ export default async function handler(req) {
 <meta property="og:image:type" content="image/jpeg"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
-<meta property="og:site_name" content="CityMap México"/>
-<meta property="og:locale" content="es_MX"/>
+<meta property="og:site_name" content="${esc(SITE_NAME)}"/>
+<meta property="og:locale" content="${esc(locale)}"/>
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image"/>

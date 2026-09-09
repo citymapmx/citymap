@@ -7,6 +7,147 @@ import { CAT_EMOJI, isOpenNow, getScheduleStatus, getThumbUrl, haptic } from "..
 import ProgressiveImage from "../ProgressiveImage.jsx";
 import { useTranslation } from "../../hooks/useTranslation.js";
 
+// Funciones de renderizado directo para evitar sobrecarga de instanciación de componentes en el Virtual DOM
+const renderFavoriteButton = (isFav, onClick, showPlus, overlay = false, T) => {
+  return (
+    <div style={{ position: "relative" }}>
+      <m.button 
+        whileTap={{ scale: 0.7 }} 
+        onClick={onClick} 
+        style={{ 
+          width: 44, 
+          height: 44, 
+          background: "transparent", 
+          border: "none", 
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "center", 
+          cursor: "pointer", 
+          outline: "none",
+          filter: overlay ? "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" : "none"
+        }}
+      >
+        <Icon 
+          name={overlay ? (isFav ? "heart_overlay_f" : "heart_overlay") : (isFav ? "heart_f" : "heart")} 
+          size={overlay ? 26 : 16} 
+          color={overlay ? "none" : (isFav ? "#F07060" : T.sub)} 
+        />
+      </m.button>
+      <AnimatePresence>
+        {showPlus && (
+          <m.div 
+            initial={{ opacity: 0, y: 0, scale: 0.5 }} 
+            animate={{ opacity: 1, y: -30, scale: 1.2 }} 
+            exit={{ opacity: 0 }} 
+            transition={{ duration: 0.6, ease: "easeOut" }} 
+            style={{ 
+              position: "absolute", 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              pointerEvents: "none", 
+              display: "flex", 
+              justifyContent: "center", 
+              color: "#FFFFFF", 
+              fontWeight: 900, 
+              fontSize: overlay ? 18 : 16, 
+              textShadow: "0 2px 4px rgba(0,0,0,0.5)" 
+            }}
+          >
+            +1
+          </m.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const renderRatingRow = (b, realFavs, hideReviews, hideFavs, T, starStyle = {}, textStyle = {}) => {
+  if (hideReviews) return null;
+  
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+      {b.review_count > 0 ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+          <img 
+            src="/estrella.svg" 
+            alt="star" 
+            width={14} 
+            height={14} 
+            loading="lazy" 
+            style={{ width: 14, height: 14, marginTop: -2, ...starStyle }} 
+          />
+          <span style={{ fontSize: 12, fontWeight: 700, color: T.text, ...textStyle }}>
+            {b.rating && !isNaN(parseFloat(String(b.rating).replace(',', '.'))) 
+              ? parseFloat(String(b.rating).replace(',', '.')).toFixed(1) 
+              : "N/A"}
+          </span>
+          <span style={{ fontSize: 12, color: T.sub, fontWeight: 700, ...textStyle }}>({b.review_count})</span>
+          {!hideFavs && realFavs > 0 && (
+            <>
+              <span style={{ fontSize: 10, color: T.border, margin: "0 2px" }}>·</span>
+              <Icon name="heart" size={11} color={T.sub} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: T.sub, marginLeft: 2, ...textStyle }}>{realFavs}</span>
+            </>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {[1,2,3,4,5].map(i => <Icon key={i} name="star" size={11} color={T.border} />)}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const renderScheduleRow = (b, T, t) => {
+  const status = getScheduleStatus(b, isOpenNow(b), true);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      <span className={status.dot} style={{ width: 4, height: 4 }} />
+      <span style={{ fontSize: 11, color: status.color, fontWeight: 600 }}>{t(status.text)}</span>
+    </div>
+  );
+};
+
+const renderNotesBlock = (stayTimeStr, note, onEditNote, T, t) => {
+  if (!note && !stayTimeStr) return null;
+  
+  return (
+    <div style={{ padding: "12px 14px", borderTop: `1px dashed ${T.border}`, background: "transparent", position: "relative", textAlign: "left", display: "flex", flexDirection: "column", gap: 10 }}>
+      {stayTimeStr && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 14 }}>🕒</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
+            {t("estancia", "Estancia")}: <span style={{ fontWeight: 500, color: T.sub }}>{stayTimeStr}</span>
+          </span>
+        </div>
+      )}
+      {note && (
+        <div style={{ position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+            <span style={{ fontSize: 14 }}>📝</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              {t("nota", "Nota")}
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5, whiteSpace: "pre-wrap", paddingRight: onEditNote ? 24 : 0 }}>
+            {note}
+          </p>
+          {onEditNote && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onEditNote(); }}
+              style={{ position: "absolute", top: 0, right: 0, background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
+            >
+              <Icon name="edit" size={14} color={T.sub} />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default memo(function BusinessCard({
   variant = "compact", // "compact" | "destacado" | "featured"
   b,
@@ -28,7 +169,7 @@ export default memo(function BusinessCard({
   goWhatsApp,
   showStars = true
 }) {
-  const thumb = b.photos?.[0];
+  const thumb = b.photos?.[0] || (b.banner_url ? { url: b.banner_url } : null) || (b.logo_url ? { url: b.logo_url } : null);
   const [showPlus, setShowPlus] = useState(false);
   const { t } = useTranslation();
 
@@ -76,33 +217,7 @@ export default memo(function BusinessCard({
             {t("abrir_maps", "Abrir ubicación en Maps")}
           </button>
         )}
-        {(note || stayTimeStr) && (
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px dashed ${T.border}`, width: "100%", position: "relative", textAlign: "left", display: "flex", flexDirection: "column", gap: 10 }}>
-            {stayTimeStr && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 14 }}>🕒</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{t("estancia", "Estancia")}: <span style={{ fontWeight: 500, color: T.sub }}>{stayTimeStr}</span></span>
-              </div>
-            )}
-            {note && (
-              <div style={{ position: "relative" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span style={{ fontSize: 14 }}>📝</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("nota", "Nota")}</span>
-                </div>
-                <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5, whiteSpace: "pre-wrap", paddingRight: onEditNote ? 24 : 0 }}>{note}</p>
-                {onEditNote && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onEditNote(); }}
-                    style={{ position: "absolute", top: 0, right: 0, background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-                  >
-                    <Icon name="edit" size={14} color={T.sub} />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        {renderNotesBlock(stayTimeStr, note, onEditNote, T, t)}
       </div>
     );
   }
@@ -125,7 +240,9 @@ export default memo(function BusinessCard({
           position: "relative", 
           border: `1px solid ${T.border}`, 
           minHeight: 100, 
-          cursor: onTap ? "pointer" : "default" 
+          cursor: onTap ? "pointer" : "default",
+          contentVisibility: "auto",
+          containIntrinsicSize: "0 100px"
         }} 
         variants={{ hover: { y: -3, boxShadow: "0 12px 30px rgba(0, 0, 0, 0.1)" } }} 
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -134,7 +251,7 @@ export default memo(function BusinessCard({
           {distStr && <div style={{ position: "absolute", top: 12, right: 12, fontSize: 10, fontWeight: 700, color: T.sub, padding: "2px 6px", zIndex: 2 }}>{distStr}</div>}
           
           {/* Thumbnail */}
-          <div style={{ width: 130, flexShrink: 0, position: "relative", background: T.border }}>
+          <div style={{ width: 140, flexShrink: 0, position: "relative", background: T.border }}>
             {thumb?.url
               ? <ProgressiveImage 
                   variants={{ hover: { scale: 1.08 } }} 
@@ -158,39 +275,13 @@ export default memo(function BusinessCard({
             </h3>
             
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
-              {!hideReviews && (
-                b.review_count > 0 ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                    <img src="/estrella.svg" alt="star" width={14} height={14} loading="lazy" style={{ width: 14, height: 14, marginTop: -2 }} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{b.rating && !isNaN(parseFloat(String(b.rating).replace(',', '.'))) ? parseFloat(String(b.rating).replace(',', '.')).toFixed(1) : "N/A"}</span>
-                    <span style={{ fontSize: 12, color: T.sub, fontWeight: 700 }}>({b.review_count})</span>
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    {[1,2,3,4,5].map(i => <Icon key={i} name="star" size={11} color={T.border} />)}
-                  </div>
-                )
-              )}
-
-              {!hideReviews && !hideFavs && realFavs > 0 && <span style={{ fontSize: 10, color: T.border, margin: "0 -2px" }}>·</span>}
-
-              {!hideFavs && realFavs > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                  <Icon name="heart" size={13} color={T.sub} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: T.sub }}>{realFavs}</span>
-                </div>
-              )}
+              {renderRatingRow(b, realFavs, hideReviews, hideFavs, T)}
 
               {!hideSchedule && (!hideReviews || (!hideFavs && realFavs > 0)) && (
                 <div style={{ width: 4, height: 4, borderRadius: "50%", background: T.border }} />
               )}
 
-              {!hideSchedule && (
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span className={getScheduleStatus(b, isOpenNow(b), true).dot} style={{ width: 4, height: 4 }} />
-                  <span style={{ fontSize: 11, color: getScheduleStatus(b, isOpenNow(b), true).color, fontWeight: 600 }}>{t(getScheduleStatus(b, isOpenNow(b), true).text)}</span>
-                </div>
-              )}
+              {!hideSchedule && renderScheduleRow(b, T, t)}
             </div>
 
             {showDirections && (
@@ -209,47 +300,12 @@ export default memo(function BusinessCard({
           </div>
         </div>
 
-        {(note || stayTimeStr) && (
-          <div style={{ padding: "12px 14px", borderTop: `1px dashed ${T.border}`, background: "transparent", position: "relative", textAlign: "left", display: "flex", flexDirection: "column", gap: 10 }}>
-            {stayTimeStr && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 14 }}>🕒</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{t("estancia", "Estancia")}: <span style={{ fontWeight: 500, color: T.sub }}>{stayTimeStr}</span></span>
-              </div>
-            )}
-            {note && (
-              <div style={{ position: "relative" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span style={{ fontSize: 14 }}>📝</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("nota", "Nota")}</span>
-                </div>
-                <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5, whiteSpace: "pre-wrap", paddingRight: onEditNote ? 24 : 0 }}>{note}</p>
-                {onEditNote && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onEditNote(); }}
-                    style={{ position: "absolute", top: 0, right: 0, background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-                  >
-                    <Icon name="edit" size={14} color={T.sub} />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        {renderNotesBlock(stayTimeStr, note, onEditNote, T, t)}
 
         {/* Fav button */}
         {!hideFavs && (
           <div style={{ position: "absolute", bottom: -2, right: 4, zIndex: 10 }}>
-            <m.button whileTap={{ scale: 0.7 }} aria-label={isFav ? t("quitar_fav", "Quitar de favoritos") : t("anadir_fav", "Añadir a favoritos")} onClick={handleFav} style={{ width: 44, height: 44, background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", outline: "none" }}>
-              <Icon name={isFav ? "heart_f" : "heart"} size={16} color={isFav ? "#F07060" : T.sub} />
-            </m.button>
-            <AnimatePresence>
-              {showPlus && (
-                <m.div initial={{ opacity: 0, y: 0, scale: 0.5 }} animate={{ opacity: 1, y: -30, scale: 1.2 }} exit={{ opacity: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} style={{ position: "absolute", top: 0, left: 0, right: 0, pointerEvents: "none", display: "flex", justifyContent: "center", color: "#FFFFFF", fontWeight: 900, fontSize: 16, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
-                  +1
-                </m.div>
-              )}
-            </AnimatePresence>
+            {renderFavoriteButton(isFav, handleFav, showPlus, false, T)}
           </div>
         )}
       </m.div>
@@ -272,7 +328,9 @@ export default memo(function BusinessCard({
           display: "flex", 
           flexDirection: "column", 
           position: "relative", 
-          border: `1.5px solid ${T.green}40` 
+          border: `1.5px solid ${T.green}40`,
+          contentVisibility: "auto",
+          containIntrinsicSize: "0 180px"
         }} 
         variants={{ hover: { y: -4, boxShadow: "0 16px 40px rgba(0, 0, 0, 0.12)" } }} 
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -293,16 +351,7 @@ export default memo(function BusinessCard({
           
           {/* Heart overlaid on top banner */}
           <div style={{ position: "absolute", top: 10, right: 10, zIndex: 10 }}>
-            <m.button whileTap={{ scale: 0.7 }} aria-label={isFav ? t("quitar_fav", "Quitar de favoritos") : t("anadir_fav", "Añadir a favoritos")} onClick={handleFav} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}>
-              <Icon name={isFav ? "heart_overlay_f" : "heart_overlay"} size={26} color="none" />
-            </m.button>
-            <AnimatePresence>
-              {showPlus && (
-                <m.div initial={{ opacity: 0, y: 0, scale: 0.5 }} animate={{ opacity: 1, y: -30, scale: 1.2 }} exit={{ opacity: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} style={{ position: "absolute", top: 0, left: 0, right: 0, pointerEvents: "none", display: "flex", justifyContent: "center", color: "#FFFFFF", fontWeight: 900, fontSize: 18, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
-                  +1
-                </m.div>
-              )}
-            </AnimatePresence>
+            {renderFavoriteButton(isFav, handleFav, showPlus, true, T)}
           </div>
         </div>
 
@@ -317,23 +366,10 @@ export default memo(function BusinessCard({
           
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {b.review_count > 0 ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                  <img src="/estrella.svg" alt="star" width={16} height={16} loading="lazy" style={{ width: 16, height: 16, marginTop: -2 }} />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{b.rating && !isNaN(parseFloat(String(b.rating).replace(',', '.'))) ? parseFloat(String(b.rating).replace(',', '.')).toFixed(1) : "N/A"}</span>
-                  <span style={{ fontSize: 12, color: T.sub, fontWeight: 500 }}>({b.review_count})</span>
-                  {realFavs > 0 && <><span style={{ fontSize: 10, color: T.border, margin: "0 2px" }}>·</span><Icon name="heart" size={11} color={T.sub} /><span style={{ fontSize: 11, fontWeight: 700, color: T.sub, marginLeft: 2 }}>{realFavs}</span></>}
-                </div>
-              ) : (
-                 <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
-                   {[1,2,3,4,5].map(i => <Icon key={i} name="star" size={12} color={T.border} />)}
-                 </div>
-              )}
+              {renderRatingRow(b, realFavs, hideReviews, hideFavs, T, { width: 16, height: 16 }, { fontSize: 13 })}
+              
               <span style={{ fontSize: 10, color: T.border }}>·</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span className={getScheduleStatus(b, isOpenNow(b), true).dot} style={{ width: 6, height: 6 }} />
-                <span style={{ fontSize: 12, color: getScheduleStatus(b, isOpenNow(b), true).color, fontWeight: 600 }}>{t(getScheduleStatus(b, isOpenNow(b), true).text)}</span>
-              </div>
+              {renderScheduleRow(b, T, t)}
             </div>
             
             {distStr && <div style={{ fontSize: 11, fontWeight: 600, color: T.sub }}>{distStr}</div>}
@@ -359,7 +395,9 @@ export default memo(function BusinessCard({
           display: "flex", 
           flexDirection: "column", 
           border: `1.5px solid ${T.border}`, 
-          boxShadow: T.shadow 
+          boxShadow: T.shadow,
+          contentVisibility: "auto",
+          containIntrinsicSize: "0 250px"
         }} 
         variants={{ hover: { y: -4, boxShadow: T.shadowLg } }} 
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -388,23 +426,14 @@ export default memo(function BusinessCard({
 
           {/* Premium Logo (Top Left) */}
           {b.logo_url && (b.plan === "premium" || b.plan === "pro" || b.plan === "destacado") && (
-            <div style={{ position: "absolute", top: 12, left: rank ? 56 : 12, width: 76, height: 76, borderRadius: "50%", background: "#fff", border: "1px solid rgba(255,255,255,0.8)", zIndex: 10, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", boxSizing: "border-box", overflow: "hidden" }}>
-              <OptimizedImage src={b.logo_url} widthRequest={200} heightRequest={200} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%", display: "block" }} alt="logo" />
+            <div style={{ position: "absolute", top: 12, left: rank ? 56 : 12, width: 76, height: 76, borderRadius: "50%", background: dark ? "rgba(15, 23, 42, 0.4)" : "rgba(255, 255, 255, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: `1px solid ${dark ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.8)'}`, zIndex: 10, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", boxSizing: "border-box", overflow: "hidden" }}>
+              <OptimizedImage src={b.logo_url} widthRequest={200} heightRequest={200} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%", display: "block", backgroundColor: "transparent" }} alt="logo" />
             </div>
           )}
 
           {/* Top right actions (Fav only) */}
           <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10 }}>
-            <m.button whileTap={{ scale: 0.7 }} aria-label={isFav ? t("quitar_fav", "Quitar de favoritos") : t("anadir_fav", "Añadir a favoritos")} onClick={handleFav} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}>
-              <Icon name={isFav ? "heart_overlay_f" : "heart_overlay"} size={26} color="none" />
-            </m.button>
-            <AnimatePresence>
-              {showPlus && (
-                <m.div initial={{ opacity: 0, y: 0, scale: 0.5 }} animate={{ opacity: 1, y: -30, scale: 1.2 }} exit={{ opacity: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} style={{ position: "absolute", top: 0, left: 0, right: 0, pointerEvents: "none", display: "flex", justifyContent: "center", color: "#FFFFFF", fontWeight: 900, fontSize: 18, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
-                  +1
-                </m.div>
-              )}
-            </AnimatePresence>
+            {renderFavoriteButton(isFav, handleFav, showPlus, true, T)}
           </div>
 
           {/* Text overlay bottom */}
@@ -420,17 +449,14 @@ export default memo(function BusinessCard({
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {showStars ? (
-                  b.review_count > 0 ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(0,0,0,0.04)", padding: "4px 8px", borderRadius: 20 }}>
-                      <img src="/estrella.svg" alt="star" width={14} height={14} loading="lazy" style={{ width: 14, height: 14, marginTop: -2, filter: "brightness(0) invert(1) drop-shadow(0px 1px 2px rgba(0,0,0,0.5))" }} />
-                      <span style={{ fontSize: 13, fontWeight: 800, color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{b.rating && !isNaN(parseFloat(String(b.rating).replace(',', '.'))) ? parseFloat(String(b.rating).replace(',', '.')).toFixed(1) : "N/A"}</span>
-                      <span style={{ fontSize: 12, color: "rgba(255,255,255,.9)", fontWeight: 500, marginLeft: 2, textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>({b.review_count})</span>
-                      {realFavs > 0 && <><span style={{ fontSize: 10, color: "rgba(255,255,255,.4)", margin: "0 2px" }}>·</span><Icon name="heart" size={11} color="rgba(255,255,255,.9)" /><span style={{ fontSize: 11, color: "rgba(255,255,255,.9)", fontWeight: 600, marginLeft: 2, textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{realFavs}</span></>}
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
-                       {[1,2,3,4,5].map(i => <Icon key={i} name="star" size={11} color="rgba(255,255,255,0.3)" />)}
-                    </div>
+                  renderRatingRow(
+                    b, 
+                    realFavs, 
+                    hideReviews, 
+                    hideFavs, 
+                    T, 
+                    { filter: "brightness(0) invert(1) drop-shadow(0px 1px 2px rgba(0,0,0,0.5))" }, 
+                    { color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.8)" }
                   )
                 ) : (
                   realFavs > 0 ? (
@@ -447,11 +473,7 @@ export default memo(function BusinessCard({
                 )}
 
                 <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>·</span>
-                
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <span className={getScheduleStatus(b, isOpenNow(b), true).dot} style={{ width: 4, height: 4, boxShadow: "0 0 4px rgba(0,0,0,0.5)" }} />
-                  <span style={{ fontSize: 11, color: getScheduleStatus(b, isOpenNow(b), true).color, fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>{t(getScheduleStatus(b, isOpenNow(b), true).text)}</span>
-                </div>
+                {renderScheduleRow(b, T, t)}
               </div>
               
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}>

@@ -30,8 +30,33 @@ export default async function handler(req, res) {
   try {
     const { title, body, deepLink, secret, user_id, type = 'system', target_city } = req.body;
 
-    // Proteger el endpoint
-    if (secret !== process.env.ADMIN_SECRET) {
+    // Proteger el endpoint — acepta ADMIN_SECRET o JWT de usuario autenticado
+    const authHeader = req.headers['authorization'];
+    const jwtToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+    let isAuthorized = false;
+
+    if (secret && secret === process.env.ADMIN_SECRET) {
+      // Autenticación clásica con secret (retro-compatible)
+      isAuthorized = true;
+    } else if (jwtToken) {
+      // Autenticación moderna: verificar JWT con Supabase
+      try {
+        const supabaseUrl = process.env.VITE_SUPABASE_URL;
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: { 'apikey': serviceRoleKey, 'Authorization': `Bearer ${jwtToken}` }
+        });
+        const userData = await userRes.json();
+        // Solo admins (email en lista o rol admin en metadata)
+        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
+        if (userRes.ok && userData?.email && (adminEmails.includes(userData.email) || userData?.user_metadata?.isAdmin)) {
+          isAuthorized = true;
+        }
+      } catch { /* JWT inválido */ }
+    }
+
+    if (!isAuthorized) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 

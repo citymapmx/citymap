@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import useGMaps from '../map/useGMaps.js';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useDataStore } from '../../store/useDataStore';
 import { useUIStore } from '../../store/useUIStore';
@@ -15,11 +16,55 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
   
   const T = getT(dark);
 
+  
+  const mapsOk = useGMaps();
+  const venueRef = useRef(null);
+  
+  useEffect(() => {
+    console.log("CreateEventModal hook:", {mapsOk, venueRef: !!venueRef.current, showCreateEvent}); if (!mapsOk || !venueRef.current || !showCreateEvent) return;
+
+    let styleEl = document.getElementById("pac-z-fix-events-modal");
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "pac-z-fix-events-modal";
+      styleEl.textContent = `.pac-container { z-index: 9999999 !important; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; margin-top: 4px; border: none; }`;
+      document.head.appendChild(styleEl);
+    }
+
+    let ac;
+    const init = () => {
+      if (!venueRef.current) return;
+      try {
+        ac = new window.google.maps.places.Autocomplete(venueRef.current, {
+          fields: ["name", "formatted_address", "geometry"],
+        });
+        ac.addListener("place_changed", () => {
+          const place = ac.getPlace();
+          if (place && place.name) {
+            setCreateEvForm(prev => ({ 
+              ...prev, 
+              venue_name: place.name,
+              venue_address: place.formatted_address || place.name,
+              lat: place.geometry?.location?.lat() || null,
+              lng: place.geometry?.location?.lng() || null 
+            }));
+          }
+        });
+      } catch (e) {
+        console.warn("Google Maps Autocomplete error:", e);
+      }
+    };
+    
+    const timer = setTimeout(init, 100);
+    return () => clearTimeout(timer);
+  }, [mapsOk, showCreateEvent]);
+
+  const [showManualAddr, setShowManualAddr] = useState(false);
   const [createEvForm, setCreateEvForm] = useState({ 
     title: "", description: "", date: "", time: "", 
     end_date: "", end_time: "", price_type: "gratis", price: "", 
     event_category: "", venue_name: "", venue_address: "", 
-    whatsapp: "", website: "", img_url: "" 
+    whatsapp: "", website: "", img_url: "", lat: null, lng: null 
   });
 
   if (!showCreateEvent) return null;
@@ -58,8 +103,50 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
           <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Categoría</div>
             <input className="inp" placeholder="Ej: Concierto" value={createEvForm.event_category || ""} onChange={e => setCreateEvForm(f => ({ ...f, event_category: e.target.value }))} />
           </div>
-          <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Nombre del lugar</div><input className="inp" placeholder="Club 24, Tepic Centro..." value={createEvForm.venue_name} onChange={e => setCreateEvForm(f => ({ ...f, venue_name: e.target.value }))} /></div>
-          <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Dirección</div><input className="inp" placeholder="Av. México 123..." value={createEvForm.venue_address} onChange={e => setCreateEvForm(f => ({ ...f, venue_address: e.target.value }))} /></div>
+<div>
+            <div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                Lugar del Evento {mapsOk && <img src="/googlelogo.svg" style={{height: 12}} alt="Google" />}
+              </div>
+              {!showManualAddr && (
+                <button 
+                  onClick={(e) => { e.preventDefault(); setShowManualAddr(true); }}
+                  style={{ background: "transparent", border: "none", color: "#1A7A5E", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
+                >
+                  ¿Ingresar manual?
+                </button>
+              )}
+            </div>
+            <input 
+              ref={venueRef}
+              className="inp" 
+              placeholder="Ej: Auditorio Telmex (Buscar con Google)..." 
+              value={createEvForm.venue_name || ""} 
+              onChange={e => {
+                 setCreateEvForm(f => ({ ...f, venue_name: e.target.value }));
+                 if (!showManualAddr) setCreateEvForm(f => ({ ...f, venue_address: e.target.value }));
+              }} 
+            />
+          </div>
+          {showManualAddr && (
+            <div style={{ animation: "fadeIn 0.3s ease" }}>
+              <div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+                Dirección Manual
+                <button 
+                  onClick={(e) => { e.preventDefault(); setShowManualAddr(false); setCreateEvForm(f => ({...f, venue_address: f.venue_name})); }}
+                  style={{ background: "transparent", border: "none", color: "#D94F3D", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
+                >
+                  Ocultar
+                </button>
+              </div>
+              <input 
+                className="inp" 
+                placeholder="Av. México 123, Colonia Centro..." 
+                value={createEvForm.venue_address} 
+                onChange={e => setCreateEvForm(f => ({ ...f, venue_address: e.target.value }))} 
+              />
+            </div>
+          )}
           <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>WhatsApp de contacto</div><input className="inp" placeholder="3111234567" value={createEvForm.whatsapp} onChange={e => setCreateEvForm(f => ({ ...f, whatsapp: e.target.value }))} /></div>
           <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Sitio web / Boletos <span className="text-micro" style={{ opacity: 0.6 }}>(Opcional)</span></div><input className="inp" placeholder="https://..." value={createEvForm.website || ""} onChange={e => setCreateEvForm(f => ({ ...f, website: e.target.value }))} /></div>
           <button onClick={async () => { 
@@ -74,7 +161,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
               await sb.post("events", { ...createEvForm, slug: newSlug, city_slug: activeCity, user_id: user.id, status: "pending", active: false }); 
               toast$("Evento enviado para revisión"); 
               setShowCreateEvent(false); 
-              setCreateEvForm({ title: "", description: "", date: "", time: "", end_date: "", end_time: "", price_type: "gratis", price: "", event_category: "", venue_name: "", venue_address: "", whatsapp: "", website: "", img_url: "" }); 
+              setCreateEvForm({ title: "", description: "", date: "", time: "", end_date: "", end_time: "", price_type: "gratis", price: "", event_category: "", venue_name: "", venue_address: "", whatsapp: "", website: "", img_url: "", lat: null, lng: null }); 
             } catch(e) { 
               toast$("Error: " + e.message); 
             } 

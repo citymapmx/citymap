@@ -100,6 +100,7 @@ const GalleryLayout = ({ photos, T, setShowGallery, bizName }) => {
 }
 
 import useGMaps from '../components/map/useGMaps.js';
+import { sb } from '../lib/supabase.js';
 
 const GoogleReviewItem = ({ r, isElite, dText, dSub, T, isLast }) => {
   const [expanded, setExpanded] = useState(false);
@@ -168,11 +169,36 @@ const TikTokBlock = ({ url, videoId }) => {
 
 export default function DetailView() {
   const ctx = useAppContext();
-  const { dark, activeCity, toast$, setShowItineraryModal, setItineraryTargetBiz } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$, setShowItineraryModal: s.setShowItineraryModal, setItineraryTargetBiz: s.setItineraryTargetBiz })));
+  const { dark, activeCity, toast$, setShowItineraryModal, setItineraryTargetBiz, openedFromMap, setOpenedFromMap } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$, setShowItineraryModal: s.setShowItineraryModal, setItineraryTargetBiz: s.setItineraryTargetBiz, openedFromMap: s.openedFromMap, setOpenedFromMap: s.setOpenedFromMap })));
   const { dbReady, promos, coupons, events, wallet, setWallet, claimedCoupons, setClaimedCoupons, reviews, setReviews, globalFavCounts, raffles, setRaffles } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, promos: s.promos, coupons: s.coupons, events: s.events, wallet: s.wallet, setWallet: s.setWallet, claimedCoupons: s.claimedCoupons, setClaimedCoupons: s.setClaimedCoupons, reviews: s.reviews, setReviews: s.setReviews, globalFavCounts: s.globalFavCounts, raffles: s.raffles, setRaffles: s.setRaffles })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   
   const { viewStyle, selected, setView, setFade, navigate, T, favIds, toggleFav, goWhatsApp, goDir, doShare, getEventStatus, setReviewStar, setReviewText, setShowReview, biz, userCoords, getKm, showGallery, setShowGallery, FONT_BIZ, isOpen, callPhone, setMapPin, setShowMenuGallery, goWeb, trackEvent, setSelectedEvent, handleEventTap, createSlug, showReview, reviewStar, reviewText, postReview, isAdmin, setBiz, setSelected, toggleLikeReview, setClaimBiz, reviewImgFile, setReviewImgFile, reviewImgLoading } = ctx;
+  
+  const [hasLoyalty, setHasLoyalty] = useState(false);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(true);
+  useEffect(() => {
+    if (selected?.id) {
+      setLoyaltyLoading(true);
+      sb.get("loyalty_cards", `?biz_id=eq.${selected.id}&active=eq.true&limit=1`)
+        .then(res => setHasLoyalty(!!res?.[0]))
+        .catch(() => {})
+        .finally(() => setLoyaltyLoading(false));
+    } else {
+      setLoyaltyLoading(false);
+    }
+  }, [selected?.id]);
+
+  const [hasMenu, setHasMenu] = useState(false);
+  useEffect(() => {
+    if (selected?.id && selected?.plan === "premium") {
+      sb.get("store_categories", `?business_id=eq.${selected.id}&limit=1&select=id`)
+        .then(res => setHasMenu(!!(res && res.length > 0)))
+        .catch(() => setHasMenu(false));
+    } else {
+      setHasMenu(false);
+    }
+  }, [selected?.id, selected?.plan]);
   const now = useTimeStore(s => s.now);
 
   const mapsOk = useGMaps();
@@ -239,6 +265,7 @@ export default function DetailView() {
         }
       }).catch(err => console.error("Error cargando detalles extra:", err));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
 
   useEffect(() => {
@@ -337,7 +364,14 @@ export default function DetailView() {
   return (
     <div 
       style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, background: T.bg, display: "flex", flexDirection: "column", alignItems: "center" }}
-      onClick={() => navigate("home")}
+      onClick={() => {
+                  if (openedFromMap) {
+                    setOpenedFromMap(false);
+                    navigate("map");
+                  } else {
+                    navigate("home");
+                  }
+                }}
     >
       <Helmet>
         <title>{selected.name} en CityMap</title>
@@ -355,11 +389,18 @@ export default function DetailView() {
         style={{ width: "100%", maxWidth: 600, height: "100%", overflowY: "auto", overflowX: "hidden", background: T.bg, position: "relative", boxShadow: "0 0 40px rgba(0,0,0,0.1)" }}
       >
         {/* Header Image Full Bleed */}
-            <div style={{ height: isElite ? "45vh" : 280, position: "relative", background: "#111", overflow: "hidden", flexShrink: 0 }}>
-              <img src={selected.photos?.[0]?.url ? getThumbUrl(selected.photos[0].url, 1200, 900) : ""} alt={`Foto de ${selected.name}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ height: isElite ? "40vh" : 220, position: "relative", background: "#111", overflow: "hidden", flexShrink: 0 }}>
+              <img src={selected.banner_url ? getThumbUrl(selected.banner_url, 1200, 900) : (selected.photos?.[0]?.url ? getThumbUrl(selected.photos[0].url, 1200, 900) : (selected.logo_url ? getThumbUrl(selected.logo_url, 1200, 900) : ""))} alt={`Foto de ${selected.name}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               {isElite && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(to top, #111111 0%, rgba(17,17,17,0) 100%)" }} />}
               <div style={{ position: "absolute", top: 16, left: 16, right: 16, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 20 }}>
-                <button aria-label="Volver" className="press" onClick={() => navigate("home")} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button aria-label="Volver" className="press" onClick={() => {
+                  if (openedFromMap) {
+                    setOpenedFromMap(false);
+                    navigate("map");
+                  } else {
+                    navigate("home");
+                  }
+                }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="chevron" size={26} color="#fff" style={{ transform: "rotate(180deg)", filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                 </button>
                 <div style={{ display: "flex", gap: 0 }}>
@@ -426,7 +467,9 @@ export default function DetailView() {
                           <>
                             <span style={{ width: 6, height: 6, borderRadius: "50%", background: smartSt.color, display: "inline-block" }} />
                             <span className="text-sm" style={{ color: smartSt.color, fontWeight: 700 }}>{smartSt.text}</span>
-                            <span className="text-sm" style={{ color: dSub, display: "flex", alignItems: "center", gap: 4 }}>· {selected.hours}</span>
+                            {selected.hours && (
+                              <span className="text-sm" style={{ color: dSub, display: "flex", alignItems: "center", gap: 4 }}>· {selected.hours}</span>
+                            )}
                           </>
                         );
                       })()}
@@ -467,125 +510,137 @@ export default function DetailView() {
 
             {/* Quick Actions Pills */}
             <div style={{ display: "flex", gap: 8, padding: "0 20px" }}>
-              {(selected.phone) && <button className="press" onClick={() => callPhone(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", borderRadius: 24, background: "transparent", border: `1px solid ${T.border}`, cursor: "pointer", fontFamily: "inherit" }}>
+              {(selected.phone) && <button className="press" onClick={() => callPhone(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 4px", borderRadius: 24, background: dark ? "#1F2937" : "#FFFFFF", border: `1px solid ${dark ? "#374151" : "#E5E7EB"}`, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
                 <img src="/telefono.svg" alt="Teléfono" style={{ width: 18, height: 18, objectFit: "contain" }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Llamar</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: dark ? "#fff" : "#111" }}>Llamar</span>
               </button>}
               
-              {(selected.whatsapp) && <button className="press" onClick={() => goWhatsApp(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", borderRadius: 24, background: "transparent", border: `1px solid ${T.border}`, cursor: "pointer", fontFamily: "inherit" }}>
+              {(selected.whatsapp) && <button className="press" onClick={() => goWhatsApp(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 4px", borderRadius: 24, background: dark ? "#1F2937" : "#FFFFFF", border: `1px solid ${dark ? "#374151" : "#E5E7EB"}`, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
                 <img src="/whatsapp.svg" alt="WhatsApp" style={{ width: 18, height: 18, objectFit: "contain" }} />
-                <span className="text-sm" style={{ fontWeight: 700, color: T.text }}>WhatsApp</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: dark ? "#fff" : "#111" }}>WhatsApp</span>
               </button>}
-              {!selected.hide_location && <button className="press" onClick={() => goDir(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", borderRadius: 24, background: "transparent", border: `1px solid ${T.border}`, cursor: "pointer", fontFamily: "inherit" }}>
+              {!selected.hide_location && <button className="press" onClick={() => goDir(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 4px", borderRadius: 24, background: dark ? "#1F2937" : "#FFFFFF", border: `1px solid ${dark ? "#374151" : "#E5E7EB"}`, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
                 <img src="/mapa.svg" alt="Mapa" style={{ width: 18, height: 18, objectFit: "contain" }} />
-                <span className="text-sm" style={{ fontWeight: 700, color: T.text }}>Mapa</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: dark ? "#fff" : "#111" }}>Ubicación</span>
               </button>}
             </div>
 
-            {selected.booking_config?.enabled && (
+            <div style={{ display: "flex", gap: 8, padding: "0 20px", marginTop: 12, opacity: loyaltyLoading ? 0 : 1, transition: "opacity 0.3s ease", pointerEvents: loyaltyLoading ? "none" : "auto" }}>
+              {/* LOYALTY PILL */}
+              {hasLoyalty && (
+                <button 
+                  className="press" 
+                  onClick={() => { const cleanSlug = ctx.cleanCityPrefix ? ctx.cleanCityPrefix(selected.slug || selected.id, selected.city_slug || activeCity) : (selected.slug || selected.id); navigate(`/lealtad/${cleanSlug}?from=biz`); }} 
+                  style={{ 
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    padding: "12px 10px", borderRadius: 14, 
+                    background: dark ? "#000000" : "#111827", 
+                    color: "#FACC15", border: "none", cursor: "pointer", fontFamily: "inherit",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.2 }}>Tarjeta Lealtad</span>
+                </button>
+              )}
+
+              {/* BOOKING/MENU PILL (EXTERNAL OR NATIVE) */}
+              {selected.booking_config?.enabled && (!selected.booking_config.type || selected.booking_config.type !== "external" || !selected.booking_config.externalLinks || selected.booking_config.externalLinks.length === 0) ? (
+                <button className="press" onClick={() => { 
+                  if (selected.booking_config?.type === "external" && selected.booking_config?.externalUrl) {
+                    let url = selected.booking_config.externalUrl;
+                    if (!url.startsWith('http') && !url.startsWith('wa.me')) url = 'https://' + url;
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                    return;
+                  }
+                  setShowBooking(true); 
+                }} style={{ flex: 1, background: "#FACC15", border: "none", borderRadius: 14, padding: "12px 10px", color: "#111827", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{selected.booking_config.label || "Reservar"}</span>
+                </button>
+              ) : selected.plan === "premium" && hasMenu && (
+                <button className="press" onClick={() => { const cleanSlug = ctx.cleanCityPrefix ? ctx.cleanCityPrefix(selected.slug || selected.id, selected.city_slug || activeCity) : (selected.slug || selected.id); navigate(`/${selected.city_slug || activeCity}/${cleanSlug}/menu`); }} style={{ flex: 1, background: "#FACC15", border: "none", borderRadius: 14, padding: "12px 10px", color: "#111827", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>Ver menú interactivo</span>
+                </button>
+              )}
+            </div>
+
+            {/* EXTERNAL LINKS LIST (IF ANY) */}
+            {selected.booking_config?.enabled && selected.booking_config.type === "external" && selected.booking_config.externalLinks?.length > 0 && (
               <div style={{ marginTop: 16, marginBottom: 16 }}>
-                {selected.booking_config.type === "external" && selected.booking_config.externalLinks?.length > 0 ? (
-                  (() => {
-                    const links = selected.booking_config.externalLinks;
-                    const PLATFORM_STYLES = {
-                      airbnb: { color: "#FF5A5F", label: "Airbnb", img: "/airbnb.svg" },
-                      booking: { color: "#003580", label: "Booking.com", img: "/booking.png" },
-                      tiqets: { color: "#4bc2c5", label: "Comprar entradas", img: "/tiqets.png" },
-                      tripadvisor: { color: "#000000", label: "TripAdvisor", img: "/tripadvisor.png" },
-                      expedia: { color: "#00005C", label: "Expedia.com", img: "/expedia.png" },
-                      hoteles: { color: "#D11013", label: "Hoteles.com", img: "/hoteles.com.png" },
-                      getyourguide: { color: "#FF5B00", label: "GetYourGuide", img: "/getyourguide.png" },
-                      renta_auto: { color: "#E11D48", label: "Rentar Auto", icon: "🚗" },
-                      opentable: { color: "#DA3743", label: "OpenTable", icon: "🍽️" },
-                      ubereats: { color: "#06C167", label: "Uber Eats", icon: "🍔" },
-                      rappi: { color: "#FF4500", label: "Rappi", icon: "🛵" },
-                      didifood: { color: "#F76B1C", label: "DiDi Food", icon: "🥡" },
-                      whatsapp: { color: "#25D366", label: "WhatsApp", icon: "💬" },
-                      comprar_entradas: { color: "#111827", label: "Comprar Entradas", icon: "🎟️" },
-                      otro: { color: "#1877F2", label: "Sitio Web", icon: "🔗" }
-                    };
-                    
-                    const renderIcon = (s, size = 16) => {
-                      if (s.img) return <img src={s.img} alt={s.label} style={{ height: size * 1.4, width: "auto", display: "block", filter: s.invertImg ? "invert(1) brightness(2)" : "none" }} />;
-                      return <span style={{ fontSize: size }}>{s.icon}</span>;
-                    };
+                {(() => {
+                  const links = selected.booking_config.externalLinks;
+                  const PLATFORM_STYLES = {
+                    airbnb: { color: "#FF5A5F", label: "Airbnb", img: "/airbnb.svg" },
+                    booking: { color: "#003580", label: "Booking.com", img: "/booking.png" },
+                    tiqets: { color: "#4bc2c5", label: "Comprar entradas", img: "/tiqets.png" },
+                    tripadvisor: { color: "#000000", label: "TripAdvisor", img: "/tripadvisor.png" },
+                    expedia: { color: "#00005C", label: "Expedia.com", img: "/expedia.png" },
+                    hoteles: { color: "#D11013", label: "Hoteles.com", img: "/hoteles.com.png" },
+                    getyourguide: { color: "#FF5B00", label: "GetYourGuide", img: "/getyourguide.png" },
+                    renta_auto: { color: "#E11D48", label: "Rentar Auto", icon: "🚗" },
+                    opentable: { color: "#DA3743", label: "OpenTable", icon: "🍽️" },
+                    ubereats: { color: "#06C167", label: "Uber Eats", icon: "🍔" },
+                    rappi: { color: "#FF4500", label: "Rappi", icon: "🛵" },
+                    didifood: { color: "#F76B1C", label: "DiDi Food", icon: "🥡" },
+                    whatsapp: { color: "#25D366", label: "WhatsApp", icon: "💬" },
+                    comprar_entradas: { color: "#111827", label: "Comprar Entradas", icon: "🎟️" },
+                    otro: { color: "#1877F2", label: "Sitio Web", icon: "🔗" }
+                  };
+                  
+                  const renderIcon = (s, size = 16) => {
+                    if (s.img) return <img src={s.img} alt={s.label} style={{ height: size * 1.4, width: "auto", display: "block", filter: s.invertImg ? "invert(1) brightness(2)" : "none" }} />;
+                    return <span style={{ fontSize: size }}>{s.icon}</span>;
+                  };
 
-                    const openLink = (url) => {
-                      let finalUrl = url;
-                      if (!finalUrl.startsWith('http') && !finalUrl.startsWith('wa.me')) finalUrl = 'https://' + finalUrl;
-                      window.open(finalUrl, '_blank', 'noopener,noreferrer');
-                    };
+                  const openLink = (url) => {
+                    let finalUrl = url;
+                    if (!finalUrl.startsWith('http') && !finalUrl.startsWith('wa.me')) finalUrl = 'https://' + finalUrl;
+                    window.open(finalUrl, '_blank', 'noopener,noreferrer');
+                  };
 
-                    const getPrefix = (platform) => {
-                      if (platform === 'tiqets') return '';
-                      if (['ubereats', 'rappi', 'didifood'].includes(platform)) return 'Haz tu pedido en';
-                      if (['whatsapp', 'otro'].includes(platform)) return 'Ir a';
-                      return 'Reservar en';
-                    };
+                  const getPrefix = (platform) => {
+                    if (platform === 'tiqets') return '';
+                    if (['ubereats', 'rappi', 'didifood'].includes(platform)) return 'Haz tu pedido en';
+                    if (['whatsapp', 'otro'].includes(platform)) return 'Ir a';
+                    return 'Reservar en';
+                  };
 
-                    if (links.length === 1) {
-                      const l = links[0];
-                      const s = PLATFORM_STYLES[l.platform] || PLATFORM_STYLES.otro;
-                      const prefix = getPrefix(l.platform);
-                      return (
-                        <div style={{ display: "flex", justifyContent: "center", padding: "0 20px" }}>
-                          <button className="press" onClick={() => openLink(l.url)} style={{ width: "100%", background: dark ? "#222" : "#ffffff", border: `1px solid ${dark ? "#333" : "#E5E7EB"}`, borderRadius: 16, padding: "14px", color: dark ? "#fff" : "#111827", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, boxShadow: dark ? "none" : "0 2px 12px rgba(0,0,0,0.04)" }}>
-                            {renderIcon(s, 22)} {prefix ? prefix + ' ' : ''}{s.label}
-                          </button>
-                        </div>
-                      );
-                    }
-                    
-                    if (links.length === 2) {
-                      return (
-                        <div style={{ display: "flex", gap: 10, justifyContent: "center", padding: "0 20px" }}>
-                          {links.map((l, i) => {
-                            const s = PLATFORM_STYLES[l.platform] || PLATFORM_STYLES.otro;
-                            const prefix = getPrefix(l.platform);
-                            return (
-                              <button key={i} className="press" onClick={() => openLink(l.url)} style={{ flex: 1, background: dark ? "#222" : "#ffffff", border: `1px solid ${dark ? "#333" : "#E5E7EB"}`, borderRadius: 16, padding: "12px", color: dark ? "#fff" : "#111827", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, boxShadow: dark ? "none" : "0 2px 12px rgba(0,0,0,0.04)" }}>
-                                {renderIcon(s, 22)} 
-                                <span style={{ textAlign: "center", lineHeight: 1.2 }}>{prefix ? prefix + ' ' : ''}{s.label}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      );
-                    }
-                    
+                  if (links.length === 1) {
+                    const l = links[0];
+                    const s = PLATFORM_STYLES[l.platform] || PLATFORM_STYLES.otro;
+                    const prefix = getPrefix(l.platform);
                     return (
-                      <div style={{ padding: "0 20px" }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: dSub, marginBottom: 8, textAlign: "center", textTransform: "uppercase", letterSpacing: 0.5 }}>Opciones disponibles:</div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                          {links.map((l, i) => {
-                            const s = PLATFORM_STYLES[l.platform] || PLATFORM_STYLES.otro;
-                            const prefix = getPrefix(l.platform);
-                            return (
-                              <button key={i} className="press" onClick={() => openLink(l.url)} style={{ background: dark ? "#222" : "#ffffff", border: `1px solid ${dark ? "#333" : "#E5E7EB"}`, borderRadius: 16, padding: "10px", color: dark ? "#fff" : "#111827", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, boxShadow: dark ? "none" : "0 2px 12px rgba(0,0,0,0.04)", textAlign: "center" }}>
-                                {renderIcon(s, 18)} 
-                                <span style={{ lineHeight: 1.2 }}>{prefix ? prefix + ' ' : ''}{s.label}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                      <div style={{ display: "flex", justifyContent: "center", padding: "0 20px" }}>
+                        <button className="press" onClick={() => openLink(l.url)} style={{ width: "100%", background: dark ? "#222" : "#ffffff", border: `1px solid ${dark ? "#333" : "#E5E7EB"}`, borderRadius: 16, padding: "14px", color: dark ? "#fff" : "#111827", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, boxShadow: dark ? "none" : "0 2px 12px rgba(0,0,0,0.04)" }}>
+                          {renderIcon(s, 22)} {prefix ? prefix + ' ' : ''}{s.label}
+                        </button>
                       </div>
                     );
-                  })()
-                ) : (
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <button className="press" onClick={() => { 
-                      if (selected.booking_config?.type === "external" && selected.booking_config?.externalUrl) {
-                        let url = selected.booking_config.externalUrl;
-                        if (!url.startsWith('http') && !url.startsWith('wa.me')) url = 'https://' + url;
-                        window.open(url, '_blank', 'noopener,noreferrer');
-                        return;
-                      }
-                      setShowBooking(true); 
-                    }} style={{ background: dark ? "#ffffff" : "#111827", border: "none", borderRadius: 24, padding: "12px 24px", color: dark ? "#111827" : "#ffffff", fontSize: 14, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s", letterSpacing: 0.3, boxShadow: dark ? "0 4px 16px rgba(255,255,255,0.15)" : "0 4px 16px rgba(0,0,0,0.2)" }}>
-                      <Icon name="calendar" size={16} color={dark ? "#111827" : "#ffffff"} /> {selected.booking_config.label || "Reservar"}
-                    </button>
-                  </div>
-                )}
+                  }
+
+                  return (
+                    <div style={{ padding: "0 20px" }}>
+                      <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                        {links.map((link, i) => {
+                          const platformStyle = PLATFORM_STYLES[link.platform] || PLATFORM_STYLES.otro;
+                          const s = { ...platformStyle, label: link.custom_title || platformStyle.label };
+                          let url = link.url;
+                          if (url && !url.startsWith('http') && !url.startsWith('wa.me')) url = 'https://' + url;
+                          const prefix = getPrefix(link.platform);
+                          
+                          return (
+                            <button key={i} className="press" onClick={() => window.open(url, '_blank', 'noopener,noreferrer')} style={{ flex: "1 1 45%", background: dark ? "#222" : "#ffffff", border: `1px solid ${dark ? "#333" : "#E5E7EB"}`, borderRadius: 14, padding: "10px 12px", color: dark ? "#fff" : "#111827", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, boxShadow: dark ? "none" : "0 2px 8px rgba(0,0,0,0.03)" }}>
+                              {renderIcon(s, 18)} 
+                              <span style={{ lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{prefix ? prefix + ' ' : ''}{s.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -594,7 +649,7 @@ export default function DetailView() {
           {asyncEmbedUrl && (() => {
             let embedData = { type: 'iframe', url: asyncEmbedUrl };
             if (asyncEmbedUrl.startsWith("{")) {
-              try { embedData = JSON.parse(asyncEmbedUrl); } catch(e){}
+              try { embedData = JSON.parse(asyncEmbedUrl); } catch(e){ /* ignore */ }
             }
             return (
               <div style={{ padding: "20px 20px 0" }}>
@@ -681,40 +736,69 @@ export default function DetailView() {
                  uniqueCode = c.code + "-" + claimedAt.toString().slice(-4);
               }
 
-              return <div key={c.id} style={{ background: isElite ? dCard : "#F5F3FF", borderRadius: 16, padding: "14px 16px", marginBottom: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
-                  <Icon name="coupon" size={24} color="#7C3AED" />
-                  <div style={{ flex: 1 }}>
-                    <div className="text-sm" style={{ fontWeight: 800, color: dText }}>{c.title} · {c.discount_pct}%</div>
-                    <div className="text-xs" style={{ color: dSub, marginTop: 2 }}>{c.description}</div>
+              let rewardTitle;
+              if (c.discount_type === "fixed") rewardTitle = `-$${c.discount_amount}`;
+              else if (c.discount_type === "promo") rewardTitle = "Promoción";
+              else rewardTitle = `-${c.discount_pct}%`;
+
+              return <div key={c.id} style={{ position: "relative", background: isElite ? dCard : (dark ? "#1E293B" : "#fff"), borderRadius: 16, border: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`, overflow: "hidden", marginBottom: 16, boxShadow: dark ? "none" : "0 4px 12px rgba(0,0,0,0.04)" }}>
+                
+                {/* Top Part */}
+                <div style={{ display: "flex", padding: 16, gap: 14 }}>
+                  {/* Left Badges */}
+                  <div style={{ width: 64, height: 64, borderRadius: 12, background: "#F5F3FF", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#7C3AED" }}>
+                     <Icon name="coupon" size={24} color="#7C3AED" />
+                     <div style={{ fontSize: 12, fontWeight: 900, marginTop: 4 }}>{rewardTitle}</div>
+                  </div>
+                  
+                  {/* Content */}
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                    <div className="text-sm" style={{ fontWeight: 800, color: dText, lineHeight: 1.2 }}>{c.title}</div>
+                    {(c.description || c.terms_conditions) && <div className="text-xs" style={{ color: dSub, marginTop: 4, lineHeight: 1.3 }}>{c.description} {c.terms_conditions}</div>}
+                    {c.min_purchase > 0 && <div className="text-xs" style={{ color: dSub, marginTop: 2, fontWeight: 600 }}>Compra mínima: ${c.min_purchase}</div>}
                     {c.expires_at && <div className="text-xs" style={{ color: "#D94F3D", marginTop: 4, fontWeight: 700 }}>Vence: {new Date(c.expires_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</div>}
                   </div>
+                </div>
+
+                {/* Divider with Cutouts */}
+                <div style={{ position: "relative", height: 20, display: "flex", alignItems: "center" }}>
+                  <div style={{ position: "absolute", left: -10, width: 20, height: 20, borderRadius: "50%", background: dBg, borderRight: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}` }} />
+                  <div style={{ flex: 1, borderTop: `2px dashed ${dark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`, margin: "0 14px" }} />
+                  <div style={{ position: "absolute", right: -10, width: 20, height: 20, borderRadius: "50%", background: dBg, borderLeft: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}` }} />
+                </div>
+
+                {/* Bottom Part (Code or Claim Button) */}
+                <div style={{ padding: "12px 16px", background: dark ? "rgba(255,255,255,0.02)" : "#F9FAFB", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   {claimedAt ? (
-                    <div className="text-sm" style={{ padding: "6px 8px", background: "#fff", border: "1.5px dashed #7C3AED", borderRadius: 8, fontWeight: 900, color: "#7C3AED", letterSpacing: 1, textAlign: "center", flexShrink: 0 }}>
-                      <div className="text-micro" style={{ color: "#5A6872", letterSpacing: 0, marginBottom: 2 }}>TU CÓDIGO</div>
-                      {uniqueCode}
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", overflow: "hidden" }}>
+                       <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="text-micro" style={{ color: dSub, letterSpacing: 0, marginBottom: 2 }}>TU CÓDIGO DE CANJE</div>
+                          <div style={{ fontSize: 16, fontWeight: 900, color: "#7C3AED", letterSpacing: 1.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{uniqueCode}</div>
+                       </div>
+                       <button disabled style={{ padding: "8px 12px", borderRadius: 8, border: "none", background: isExpired ? "#9CA3AF" : "#16A34A", color: "#fff", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                         {isExpired ? "Expirado" : <><Icon name="clock" size={14} color="#fff" /> {timeLeftStr}</>}
+                       </button>
                     </div>
                   ) : (
-                    <div className="text-2xl" style={{ fontWeight: 900, color: "#D1D5DB", letterSpacing: 2, flexShrink: 0 }}>••••••</div>
+                    <button onClick={(e) => {
+                      e.stopPropagation();
+                      if (!user) { setShowAuth(true); toast$("Inicia sesión para reclamar"); return; }
+                      if (!claimedAt) {
+                        const newClaimed = { ...claimedCoupons, [c.id]: Date.now() };
+                        setClaimedCoupons(newClaimed);
+                        localStorage.setItem("citymap_claims", JSON.stringify(newClaimed));
+                        if (!saved) {
+                           const valid = [...wallet, c.id];
+                           setWallet(valid);
+                           localStorage.setItem("citymap_wallet", JSON.stringify(valid));
+                        }
+                        toast$("¡Cupón activado por 24 horas!");
+                      }
+                    }} style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: "#7C3AED", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      Reclamar Cupón
+                    </button>
                   )}
                 </div>
-                <button onClick={(e) => {
-                  e.stopPropagation();
-                  if (!user) { setShowAuth(true); toast$("Inicia sesión para reclamar"); return; }
-                  if (!claimedAt) {
-                    const newClaimed = { ...claimedCoupons, [c.id]: Date.now() };
-                    setClaimedCoupons(newClaimed);
-                    localStorage.setItem("citymap_claims", JSON.stringify(newClaimed));
-                    if (!saved) {
-                       const valid = [...wallet, c.id];
-                       setWallet(valid);
-                       localStorage.setItem("citymap_wallet", JSON.stringify(valid));
-                    }
-                    toast$("¡Cupón activado por 24 horas!");
-                  }
-                }} disabled={isExpired || !!claimedAt} style={{ width: "100%", padding: "10px", borderRadius: 10, border: "none", background: isExpired ? "#9CA3AF" : (claimedAt ? "#16A34A" : "#7C3AED"), color: "#fff", fontWeight: 700, fontSize: 13, cursor: (isExpired || claimedAt) ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                  {isExpired ? "Cupón expirado" : (claimedAt ? <><Icon name="clock" size={14} color="#fff" /> {timeLeftStr}</> : <><Icon name="coupon" size={14} color="#fff" /> Reclamar Cupón</>)}
-                </button>
               </div>;
             })}
           </div>}
@@ -792,8 +876,8 @@ export default function DetailView() {
           <MercadoLibreShowcase nickname={selected.mercado_libre_nickname} bizName={selected.name} dText={dText} dSub={dSub} T={T} />
 
           {/* Redes Sociales */}
-          {((selected.instagram || selected.social_links?.instagram) || (selected.facebook || selected.social_links?.facebook) || (selected.tiktok || selected.social_links?.tiktok) || (selected.website || selected.social_links?.website)) && <div style={{ padding: "20px 20px 0" }}>
-            <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 16, textAlign: "center" }}>Redes sociales</div>
+          {((selected.instagram || selected.social_links?.instagram) || (selected.facebook || selected.social_links?.facebook) || (selected.tiktok || selected.social_links?.tiktok) || (selected.website || selected.social_links?.website)) && <div style={{ padding: "4px 20px 0" }}>
+            <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 12, textAlign: "center" }}>Redes sociales</div>
             <div style={{ display: "flex", justifyContent: "center", gap: 14, overflowX: "auto", paddingBottom: 4 }}>
               {(selected.instagram || selected.social_links?.instagram) && <div onClick={() => window.open(`https://instagram.com/${(selected.instagram || selected.social_links?.instagram)?.replace("@","")}`, "_blank")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
                 <div style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>

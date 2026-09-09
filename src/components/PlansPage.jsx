@@ -13,6 +13,11 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
   const cities = useDataStore(s => s.cities);
   const countryCode = getCountryCode(activeCity, cities);
 
+  // Map the 'plan' DB field to the plan key used in this component
+  // DB values: free, pro, elite, premium (premium = elite)
+  const rawPlan = myBizList?.[0]?.plan || "free";
+  const currentPlanKey = rawPlan === "premium" ? "elite" : rawPlan === "pro" ? "pro" : rawPlan === "elite" ? "elite" : "free";
+
   const getPricing = () => {
     if (countryCode === "es") {
       return {
@@ -45,14 +50,14 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
       return {
         currency: "MXN",
         symbol: "$",
-        proMonthly: "$149",
-        oldProMonthly: "$299",
-        proAnnual: "$1,490",
-        oldProAnnual: "$2,990",
-        eliteMonthly: "$299",
-        oldEliteMonthly: "$599",
-        eliteAnnual: "$2,990",
-        oldEliteAnnual: "$5,990",
+        proMonthly: "$99",
+        oldProMonthly: "$199",
+        proAnnual: "$990",
+        oldProAnnual: "$1,990",
+        eliteMonthly: "$249",
+        oldEliteMonthly: "$499",
+        eliteAnnual: "$2,490",
+        oldEliteAnnual: "$4,990",
       };
     }
   };
@@ -61,6 +66,8 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
   useEffect(() => { window.scrollTo(0, 0); }, []);
   const [billing, setBilling] = useState("monthly"); // "monthly" | "annual"
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
+  const [touchStartX, setTouchStartX] = useState(null);
 
   const mockFree = {
     id: "mock_free",
@@ -105,7 +112,7 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
       desc: "Ideal para que cualquier negocio tenga presencia básica.",
       color: dark ? "#9CA3AF" : "#6B7280", 
       icon: "user", 
-      features: ["Portada e Información del negocio", "Teléfono y Dirección", "Horarios", "Banner estándar"], 
+      features: ["Presencia básica en Google", "Portada e Información del negocio", "Teléfono y Dirección", "Horarios", "Banner estándar"], 
     },
     { 
       key: "pro", 
@@ -118,11 +125,7 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
       color: dark ? "#E2E8F0" : "#0F172A", 
       icon: "star", 
       badge: "Más popular",
-      features: ["Todo lo del plan gratuito, más:", "Banner destacado", "Galería de fotos", "Enlace a WhatsApp y redes sociales", "Menú Digital", "Panel de administrador"], 
-      screenshots: [
-        { url: "/plans/menu-digital.png", label: "Menú Digital" },
-        { url: "/plans/galeria.png", label: "Galería de Fotos" }
-      ]
+      features: ["Todo lo del plan gratuito, más:", "Posicionamiento SEO en Google", "Banner destacado", "Galería de fotos", "Enlace a WhatsApp y redes sociales", "Menú QR (Para Local)", "Panel de administrador"], 
     },
     { 
       key: "elite", 
@@ -131,27 +134,45 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
       oldPriceMonthly: pricing.oldEliteMonthly,
       priceAnnual: pricing.eliteAnnual, 
       oldPriceAnnual: pricing.oldEliteAnnual,
-      desc: "Ideal para negocios líderes que buscan dominar su mercado.",
+      desc: "Todas las herramientas para dominar tu presencia digital y vender más.",
       color: dark ? "#E2E8F0" : "#0F172A", 
       icon: "award", 
       badge: "Lo mejor",
-      features: ["Todo lo del plan Destacado, más:", "Banner premium y Logotipo en mapa", "Vídeos", "Menú interactivo con carrito enlazado a WhatsApp", "Galería de fotos ilimitada", "Gestión de Eventos y Reservas", "Reseñas de Google Maps", "Estadísticas y Soporte prioritario"], 
+      features: [
+        "Todo lo del plan Destacado, más:", 
+        "Menú interactivo indexado en Google",
+        "Banner premium y Logotipo en mapa", 
+        "Vídeos", 
+        "Carrito enlazado a WhatsApp", 
+        "Amplia galería de fotos", 
+        "Gestión de Eventos y Reservas", 
+        "Reseñas de Google Maps", 
+        "Estadísticas y Soporte prioritario",
+        "Tarjetas de lealtad",
+        "Integración de cupones",
+        "Próximamente más herramientas..."
+      ], 
       screenshots: [
         { url: "/plans/menu-interactivo.png", label: "Menú Interactivo y Carrito" },
+        { url: "/plans/estadisticas.png", label: "Panel de Estadísticas" },
         { url: "/plans/reservas.png", label: "Gestión de Reservas" }
       ]
     },
   ];
 
   const stats = [
-    { num: "111+", label: "Negocios registrados", icon: "pin" },
-    { num: "10K+", label: "Visitas mensuales", icon: "eye" },
-    { num: "166", label: "Páginas en Google", icon: "globe" },
+    { num: "500+", label: "Negocios registrados", icon: "pin" },
+    { num: "20K+", label: "Visitas mensuales", icon: "eye" },
+    { num: "2,500+", label: "Páginas en Google", icon: "globe" },
+    { num: "30+", label: "Ciudades activas", icon: "map" },
   ];
 
   const testimonials = [
-    { name: "Roberto M.", biz: "Tacos el Patron", text: "Desde que me registré en CityMap, recibo más llamadas de clientes nuevos cada semana.", stars: 5 },
-    { name: "Eduardo F.", biz: "Eduardo Barber", text: "El plan Destacado me ayudó a estar arriba en las búsquedas. ¡Muy recomendado!", stars: 5 },
+    { name: "Roberto M.", biz: "Tacos el Patrón", text: "Desde que me registré en CityMap, recibo más llamadas de clientes nuevos cada semana.", stars: 5 },
+    { name: "Eduardo F.", biz: "Eduardo Barber", text: "El plan Destacado me ayudó a estar arriba en las búsquedas locales. ¡Muy recomendado!", stars: 5 },
+    { name: "Mariana L.", biz: "Café de la Esquina", text: "El menú QR nos ahorró la impresión de cartas, y los clientes adoran poder ver las fotos de los platillos antes de pedir.", stars: 5 },
+    { name: "Carlos T.", biz: "Ferretería El Sol", text: "Al principio tenía dudas, pero la visibilidad que nos dio el plan Premium atrajo gente de colonias vecinas que no nos conocía.", stars: 5 },
+    { name: "Sofía R.", biz: "Nails & Spa", text: "La gestión de reservas integrada me facilitó muchísimo la organización de mi agenda. Mis clientas lo ven súper profesional.", stars: 5 },
   ];
 
   return (
@@ -182,11 +203,11 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
         </div>
 
         {/* Stats Row */}
-        <div style={{ display: "flex", gap: 12, marginBottom: 40 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px 12px", marginBottom: 40 }}>
           {stats.map(s => (
-            <div key={s.label} style={{ flex: 1, borderTop: `1px solid ${T.border}`, paddingTop: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: T.text }}>{s.num}</div>
-              <div style={{ fontSize: 11, color: T.sub, fontWeight: 500, marginTop: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</div>
+            <div key={s.label} style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: T.text, letterSpacing: '-0.5px' }}>{s.num}</div>
+              <div style={{ fontSize: 11, color: T.sub, fontWeight: 600, marginTop: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -266,11 +287,14 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
                 {p.screenshots && p.screenshots.length > 0 && (
                   <div style={{ marginTop: 20, padding: "0 16px" }}>
                     <p style={{ fontSize: 11, color: T.sub, marginBottom: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>Características incluidas</p>
-                    <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 12, scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                    <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 12, scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
                       {p.screenshots.map((shot, sIdx) => (
-                        <div key={sIdx} style={{ flex: "0 0 160px", display: "flex", flexDirection: "column", gap: 8 }}>
-                          <div style={{ width: 160, height: 240, borderRadius: 12, overflow: "hidden", background: T.bg, border: `1px solid ${T.border}` }}>
-                            <img src={shot.url} alt={shot.label} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+                        <div key={sIdx} style={{ flex: "0 0 144px", display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div 
+                            onClick={() => setLightbox({ items: p.screenshots, index: sIdx })}
+                            style={{ width: 144, height: 256, display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-in" }}
+                          >
+                            <img src={shot.url} alt={shot.label} style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", filter: "drop-shadow(0px 8px 16px rgba(0,0,0,0.12))" }} loading="lazy" />
                           </div>
                           <span style={{ fontSize: 12, fontWeight: 600, color: T.text, textAlign: "center", lineHeight: 1.3 }}>{shot.label}</span>
                         </div>
@@ -283,24 +307,29 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
               {/* CTA Button */}
               <button 
                 className="press"
-                onClick={p.key !== "free" ? () => {
+                onClick={p.key === currentPlanKey ? undefined : p.key !== "free" ? () => {
                   setSelectedPlan({ plan: p, billing });
                 } : (!myBizList || myBizList.length === 0) ? onAddBiz : undefined} 
                 style={{ 
                   width: "100%", 
                   padding: "14px", 
-                  background: p.key === "free" ? "transparent" : p.key === "elite" ? "linear-gradient(to right, #34D399, #3B82F6, #8B5CF6, #34D399, #3B82F6)" : p.color, 
+                  background: p.key === currentPlanKey ? "transparent" : p.key === "elite" ? "linear-gradient(to right, #34D399, #3B82F6, #8B5CF6, #34D399, #3B82F6)" : p.key === "free" ? "transparent" : p.color, 
                   backgroundSize: p.key === "elite" ? "400% 100%" : "auto",
-                  animation: p.key === "elite" ? "gradient-pan 4s linear infinite" : "none",
-                  border: p.key === "free" ? `1px solid ${T.border}` : "none", 
+                  animation: p.key === "elite" && p.key !== currentPlanKey ? "gradient-pan 4s linear infinite" : "none",
+                  border: (p.key === currentPlanKey || p.key === "free") ? `1px solid ${T.border}` : "none", 
                   borderRadius: 12, 
                   fontWeight: 600, 
                   fontSize: 15, 
-                  color: p.key === "free" ? T.text : (p.key === "pro" && dark ? "#0F172A" : "#fff"), 
-                  cursor: p.key === "free" && myBizList?.length > 0 ? "default" : "pointer", 
+                  color: (p.key === currentPlanKey || p.key === "free") ? T.text : (p.key === "pro" && dark ? "#0F172A" : "#fff"), 
+                  cursor: p.key === currentPlanKey ? "default" : "pointer", 
+                  opacity: p.key === currentPlanKey ? 0.7 : 1,
                 }}
               >
-                {p.key === "free" ? ((!myBizList || myBizList.length === 0) ? "Registrarse gratis" : "Plan actual") : `Activar ${p.name}`}
+                {p.key === currentPlanKey 
+                  ? "Plan actual ✓" 
+                  : p.key === "free" 
+                    ? ((!myBizList || myBizList.length === 0) ? "Registrarse gratis" : "Cambiar a gratuito")
+                    : `Activar ${p.name}`}
               </button>
             </m.div>
           ))}
@@ -314,7 +343,7 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
               <div key={i} style={{ background: T.white, borderRadius: 16, padding: "16px", border: `1px solid ${T.border}` }}>
                 <div style={{ display: "flex", gap: 3, marginBottom: 8 }}>
                   {[1,2,3,4,5].map(s => (
-                    <Icon key={s} name="star" size={14} color={s <= t.stars ? "#F59E0B" : T.border} />
+                    <Icon key={s} name={s <= t.stars ? "star_f" : "star"} size={14} color={s <= t.stars ? (dark ? "#ffffff" : "#000000") : T.border} />
                   ))}
                 </div>
                 <p style={{ fontSize: 14, color: T.text, lineHeight: 1.5, marginBottom: 10, fontStyle: "italic" }}>"{t.text}"</p>
@@ -401,8 +430,14 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
               <button 
                 onClick={async () => {
                   try {
-                    const biz_id = myBizList?.[0]?.id; // Asume el primer negocio del usuario. En el futuro, si tienen varios, podrías agregar un selector.
-                    if (!biz_id) return alert("Crea un negocio primero antes de suscribirte.");
+                    const biz_id = myBizList?.[0]?.id;
+                    if (!biz_id) {
+                      if (window.confirm("Para activar un plan, primero debes crear tu negocio en la plataforma. ¿Te gustaría chatear con un asesor por WhatsApp para ayudarte a registrar tu negocio y activar tu plan de inmediato?")) {
+                        const planName = selectedPlan?.plan?.name || "";
+                        window.open(`https://wa.me/523223792428?text=Hola, me interesa adquirir el Plan ${planName} para mi negocio y necesito ayuda para registrarlo.`, "_blank");
+                      }
+                      return;
+                    }
                     
                     const apiUrl = window.location.origin.includes('localhost') || window.location.origin.includes('capacitor') 
                       ? 'https://citymap.mx/api/stripe-checkout' 
@@ -445,6 +480,51 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
           </m.div>
         )}
       </AnimatePresence>
+      
+      {/* Lightbox for Enlarged Image */}
+      {lightbox && (
+        <div 
+          style={{ position: "fixed", inset: 0, zIndex: 999999, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(4px)" }}
+        >
+          {/* Close Button */}
+          <button onClick={() => setLightbox(null)} style={{ position: "absolute", top: 20, right: 20, background: "rgba(0,0,0,0.5)", color: "#fff", width: 44, height: 44, borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", zIndex: 10 }}>
+            <Icon name="x" size={24} color="#fff" />
+          </button>
+          
+          {/* Prev Button */}
+          {lightbox.index > 0 && (
+            <button onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: lightbox.index - 1 }); }} style={{ position: "absolute", left: 16, background: "rgba(0,0,0,0.5)", color: "#fff", width: 44, height: 44, borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", zIndex: 10 }}>
+              <Icon name="arrow_left" size={24} color="#fff" />
+            </button>
+          )}
+
+          <div 
+            style={{ position: "relative", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }} 
+            onClick={() => setLightbox(null)}
+            onTouchStart={(e) => setTouchStartX(e.targetTouches[0].clientX)}
+            onTouchEnd={(e) => {
+              if (touchStartX === null) return;
+              const touchEndX = e.changedTouches[0].clientX;
+              const diff = touchStartX - touchEndX;
+              if (diff > 50 && lightbox.index < lightbox.items.length - 1) {
+                setLightbox({ ...lightbox, index: lightbox.index + 1 });
+              } else if (diff < -50 && lightbox.index > 0) {
+                setLightbox({ ...lightbox, index: lightbox.index - 1 });
+              }
+              setTouchStartX(null);
+            }}
+          >
+            <img src={lightbox.items[lightbox.index].url} alt={lightbox.items[lightbox.index].label} onClick={e => e.stopPropagation()} style={{ maxWidth: "100%", maxHeight: "90vh", objectFit: "contain", filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.4))" }} />
+          </div>
+
+          {/* Next Button */}
+          {lightbox.index < lightbox.items.length - 1 && (
+            <button onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: lightbox.index + 1 }); }} style={{ position: "absolute", right: 16, background: "rgba(0,0,0,0.5)", color: "#fff", width: 44, height: 44, borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", zIndex: 10 }}>
+              <Icon name="arrow_right" size={24} color="#fff" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

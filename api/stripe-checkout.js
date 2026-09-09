@@ -47,10 +47,10 @@ export default async function handler(req, res) {
       // Default: MXN
       if (plan_id === 'pro') {
         name = "Plan Destacado";
-        unit_amount = interval === 'year' ? 149000 : 14900; // $1,490 MXN o $149 MXN
+        unit_amount = interval === 'year' ? 99000 : 9900; // $990 MXN o $99 MXN
       } else if (plan_id === 'elite') {
         name = "Plan Premium";
-        unit_amount = interval === 'year' ? 299000 : 29900; // $2,990 MXN o $299 MXN
+        unit_amount = interval === 'year' ? 199000 : 19900; // $1,990 MXN o $199 MXN
       }
     }
 
@@ -60,13 +60,14 @@ export default async function handler(req, res) {
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
+      allow_promotion_codes: true,
       line_items: [
         {
           price_data: {
             currency: currency,
             product_data: {
               name: name + (interval === 'year' ? ' (Anual)' : ' (Mensual)'),
-              description: 'Suscripción CityGuide para tu negocio',
+              description: 'Suscripción CityMap para tu negocio',
             },
             unit_amount: unit_amount,
             recurring: {

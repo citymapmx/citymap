@@ -23,7 +23,7 @@ export default async function handler(req) {
     let allBiz = [];
     let offset = 0;
     while (true) {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/businesses?status=eq.approved&select=slug,id,city_slug,category,updated_at&limit=1000&offset=${offset}`, { headers });
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/businesses?status=eq.approved&select=slug,id,city_slug,category,updated_at,logo_url,photos&limit=1000&offset=${offset}`, { headers });
       const chunk = res.ok ? await res.json() : [];
       allBiz = allBiz.concat(chunk);
       if (chunk.length < 1000) break;
@@ -31,7 +31,7 @@ export default async function handler(req) {
     }
 
     // Fetch all approved events
-    const eRes = await fetch(`${SUPABASE_URL}/rest/v1/events?status=eq.approved&select=slug,id,city_slug,updated_at`, { headers });
+    const eRes = await fetch(`${SUPABASE_URL}/rest/v1/events?status=eq.approved&select=slug,id,city_slug,updated_at,img_url,img`, { headers });
     const events = eRes.ok ? await eRes.json() : [];
 
     // Fetch all cities with country_code
@@ -39,7 +39,7 @@ export default async function handler(req) {
     const cities = cRes.ok ? await cRes.json() : [];
 
     // Fetch all experiences
-    const expRes = await fetch(`${SUPABASE_URL}/rest/v1/experiences?select=slug,id,city_slug,updated_at`, { headers });
+    const expRes = await fetch(`${SUPABASE_URL}/rest/v1/experiences?select=slug,id,city_slug,updated_at,gallery`, { headers });
     const experiences = expRes.ok ? await expRes.json() : [];
 
     const CATEGORIES = ["restaurantes", "cafe", "salud", "belleza", "fitness", "compras", "tech", "ocio", "hoteles", "educacion"];
@@ -108,11 +108,20 @@ export default async function handler(req) {
       if (!cleanedSlug) continue;
       const cityPath = buildCityPath(city);
       
+      let imgXml = "";
+      if (b.logo_url) imgXml += `\n    <image:image><image:loc>${esc(b.logo_url)}</image:loc></image:image>`;
+      if (b.photos && Array.isArray(b.photos)) {
+        b.photos.slice(0, 3).forEach(p => {
+          if (p.url) imgXml += `\n    <image:image><image:loc>${esc(p.url)}</image:loc></image:image>`;
+        });
+      }
+
       urls.push({
         loc: `${BASE_URL}${cityPath}/${esc(cleanedSlug)}`,
         freq: "weekly",
         priority: "0.7",
-        lastmod: b.updated_at ? b.updated_at.split('T')[0] : undefined
+        lastmod: b.updated_at ? b.updated_at.split('T')[0] : undefined,
+        imgXml
       });
 
       // Add /menu endpoint for food businesses
@@ -130,11 +139,17 @@ export default async function handler(req) {
     for (const e of filteredEvents) {
       const evSlug = e.slug || e.id;
       if (!evSlug) continue;
+
+      let imgXml = "";
+      const img = e.img_url || e.img;
+      if (img) imgXml += `\n    <image:image><image:loc>${esc(img)}</image:loc></image:image>`;
+
       urls.push({
         loc: `${BASE_URL}/evento/${esc(evSlug)}`,
         freq: "daily",
         priority: "0.7",
-        lastmod: e.updated_at ? e.updated_at.split('T')[0] : undefined
+        lastmod: e.updated_at ? e.updated_at.split('T')[0] : undefined,
+        imgXml
       });
     }
 
@@ -143,18 +158,27 @@ export default async function handler(req) {
       const expSlug = exp.slug || exp.id;
       const city = exp.city_slug || "tepic";
       if (!expSlug) continue;
+
+      let imgXml = "";
+      if (exp.gallery && Array.isArray(exp.gallery)) {
+        exp.gallery.slice(0, 3).forEach(g => {
+          if (g) imgXml += `\n    <image:image><image:loc>${esc(g)}</image:loc></image:image>`;
+        });
+      }
+
       urls.push({
         loc: `${BASE_URL}/experiencias/${esc(city)}/${esc(expSlug)}`,
         freq: "weekly",
         priority: "0.8",
-        lastmod: exp.updated_at ? exp.updated_at.split('T')[0] : undefined
+        lastmod: exp.updated_at ? exp.updated_at.split('T')[0] : undefined,
+        imgXml
       });
     }
 
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${urls.map(u => `  <url>
-    <loc>${u.loc}</loc>${u.lastmod ? `
+    <loc>${u.loc}</loc>${u.imgXml || ""}${u.lastmod ? `
     <lastmod>${u.lastmod}</lastmod>` : ''}
     <changefreq>${u.freq}</changefreq>
     <priority>${u.priority}</priority>

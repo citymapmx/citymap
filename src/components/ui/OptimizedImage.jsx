@@ -42,10 +42,10 @@ const OptimizedImage = memo(({
       fetchpriority={priority ? "high" : "auto"}
       className={className}
       style={{
-        ...style,
         opacity: loaded ? 1 : 0,
         transition: "opacity 0.4s ease-out",
-        backgroundColor: "#F1F5F9"
+        backgroundColor: "#F1F5F9",
+        ...style
       }}
       onLoad={() => setLoaded(true)}
       onError={() => setLoaded(true)} // Prevents being stuck invisible on error
