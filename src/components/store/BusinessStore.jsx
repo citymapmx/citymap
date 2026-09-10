@@ -14,7 +14,7 @@ import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix } from '.
 import { FONT_BIZ } from '../../lib/constants.js';
 import { Helmet } from 'react-helmet-async';
 
-export default function BusinessStore({ business, T, isElite, inline = false, onBack }) {
+export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +33,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   const activeTabIdRef = useRef(activeTabId);
   useEffect(() => { activeTabIdRef.current = activeTabId; }, [activeTabId]);
   const [showMenuModal, setShowMenuModal] = useState(false);
-  const [menuIntent, setMenuIntent] = useState(null);
+  const [menuIntent, setMenuIntent] = useState(initialIntent);
   const { dark } = useUIStore();
   const { globalFavCounts } = useDataStore();
   const { items, setIsOpen, addItem, removeItem, updateQuantity, clearCart } = useCart();

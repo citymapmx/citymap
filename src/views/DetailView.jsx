@@ -206,6 +206,7 @@ export default function DetailView() {
   const [asyncEmbedUrl, setAsyncEmbedUrl] = useState(null);
   const [showBooking, setShowBooking] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [showIntentModal, setShowIntentModal] = useState(false);
 
   const getEmbedUrl = (url) => {
     if (!url) return null;
@@ -562,10 +563,10 @@ export default function DetailView() {
                   <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{selected.booking_config.label || "Reservar"}</span>
                 </button>
               ) : selected.plan === "premium" && hasMenu && (
-                <button className="press" onClick={() => { const cleanSlug = ctx.cleanCityPrefix ? ctx.cleanCityPrefix(selected.slug || selected.id, selected.city_slug || activeCity) : (selected.slug || selected.id); navigate(`/${selected.city_slug || activeCity}/${cleanSlug}/menu`); }} style={{ flex: 1, background: "#FACC15", border: "none", borderRadius: 14, padding: "12px 10px", color: "#111827", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+                <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => setShowIntentModal(true)} style={{ flex: 1, background: "#FACC15", border: "none", borderRadius: 14, padding: "12px 10px", color: "#111827", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>
                   <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>Ver menú interactivo</span>
-                </button>
+                </m.button>
               )}
             </div>
 
@@ -1137,6 +1138,63 @@ export default function DetailView() {
               <BookingModal biz={selected} onClose={() => setShowBooking(false)} />
             </Suspense>
           </ErrorBoundary>
+        )}
+        
+        {showIntentModal && (
+          <div onClick={() => setShowIntentModal(false)} style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <m.div 
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              style={{ background: dark ? '#1E293B' : '#FFFFFF', width: '100%', maxWidth: 320, borderRadius: 24, padding: '32px 24px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}
+            >
+              <div style={{ width: 80, height: 80, borderRadius: '50%', background: dark ? '#0F172A' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#1E293B' : '#FFFFFF'}` }}>
+                {(selected.logo_url || selected.logo) ? (
+                  <img 
+                    src={selected.logo_url || selected.logo} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    alt={selected.name} 
+                  />
+                ) : (
+                  <img src="/pedido.png" alt="Pedido" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                )}
+              </div>
+              <h2 style={{ margin: '0 0 12px 0', fontSize: 22, fontWeight: 800, color: dark ? '#FFF' : '#111', fontFamily: 'Brunson, sans-serif', letterSpacing: '-0.5px' }}>
+                ¿Cómo nos visitas hoy?
+              </h2>
+              <p style={{ margin: '0 0 28px 0', fontSize: 14, color: dark ? '#94A3B8' : '#64748B', lineHeight: 1.5 }}>
+                Elige una opción para mostrarte el menú adecuado.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <button 
+                  onClick={() => {
+                    setShowIntentModal(false);
+                    const cleanSlug = ctx.cleanCityPrefix ? ctx.cleanCityPrefix(selected.slug || selected.id, selected.city_slug || activeCity) : (selected.slug || selected.id);
+                    navigate(`/${selected.city_slug || activeCity}/${cleanSlug}/menu`, { state: { intent: 'local' } });
+                  }}
+                  className="press"
+                  style={{ width: '100%', padding: '16px', background: dark ? '#0F172A' : '#F8FAFC', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 16, color: dark ? '#F8FAFC' : '#0F172A', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                >
+                  <span style={{ fontSize: 24 }}>🍽️</span>
+                  Estoy en el local
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    setShowIntentModal(false);
+                    const cleanSlug = ctx.cleanCityPrefix ? ctx.cleanCityPrefix(selected.slug || selected.id, selected.city_slug || activeCity) : (selected.slug || selected.id);
+                    navigate(`/${selected.city_slug || activeCity}/${cleanSlug}/menu`, { state: { intent: 'delivery' } });
+                  }}
+                  className="press"
+                  style={{ width: '100%', padding: '16px', background: dark ? '#0F172A' : '#F8FAFC', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 16, color: dark ? '#F8FAFC' : '#0F172A', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                >
+                  <img src="/pedido.png" alt="Para llevar" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+                  Para llevar / Domicilio
+                </button>
+              </div>
+            </m.div>
+          </div>
         )}
     </m.div>
   );

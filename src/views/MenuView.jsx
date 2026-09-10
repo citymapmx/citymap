@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import Icon from '../components/ui/Icon.jsx';
 import BusinessStore from '../components/store/BusinessStore.jsx';
@@ -11,7 +11,9 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
   const { city, slug } = useParams();
   const setSelected = useUIStore(s => s.setSelected);
   const routerNavigate = useNavigate();
+  const location = useLocation();
   const navigate = propNavigate || routerNavigate;
+  const initialIntent = location.state?.intent || null;
   const [biz, setBiz] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -81,7 +83,7 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
       </Helmet>
 
       <div style={{ flex: 1, position: 'relative' }}>
-        <BusinessStore business={biz} T={T} isElite={isElite} inline={true} onBack={() => {
+        <BusinessStore business={biz} T={T} isElite={isElite} inline={true} initialIntent={initialIntent} onBack={() => {
           setSelected(biz);
           const navCity = biz.city_slug || city;
           const navSlug = cleanCityPrefix(biz.slug || '', navCity) || slug;
