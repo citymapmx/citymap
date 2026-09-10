@@ -362,7 +362,11 @@ export default function DetailView() {
   const canonicalUrl = baseSchema.url;
 
   return (
-    <div 
+    <m.div 
+      initial={{ x: "100%", opacity: 0.5 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0.5 }}
+      transition={{ type: "spring", damping: 26, stiffness: 220 }}
       style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, background: T.bg, display: "flex", flexDirection: "column", alignItems: "center" }}
       onClick={() => {
                   if (openedFromMap) {
@@ -1135,7 +1139,7 @@ export default function DetailView() {
             </Suspense>
           </ErrorBoundary>
         )}
-    </div>
+    </m.div>
   );
 }
 
