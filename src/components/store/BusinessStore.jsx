@@ -216,7 +216,10 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   return (
     <div style={{ marginTop: inline ? 0 : 24, paddingBottom: (cartCount > 0 && (showMenuModal || inline)) ? 80 : 0 }}>
       {inline && menuIntent === null && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <m.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <m.div 
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -260,7 +263,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               </button>
             </div>
           </m.div>
-        </div>
+        </m.div>
       )}
       {!showMenuModal && !inline ? (
         <div style={{ margin: '0 16px', marginBottom: 24 }}>

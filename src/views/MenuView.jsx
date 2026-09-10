@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import Icon from '../components/ui/Icon.jsx';
-import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import BusinessStore from '../components/store/BusinessStore.jsx';
-import { FONT_BIZ } from '../lib/constants.js';
-import { isOpenNow, getThumbUrl, cleanCityPrefix } from '../lib/utils.js';
+import { isOpenNow, cleanCityPrefix } from '../lib/utils.js';
 import { Helmet } from 'react-helmet-async';
 import { useUIStore } from '../store/useUIStore.js';
 
@@ -46,12 +44,12 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
   }, [city, slug]);
 
   if (loading) {
-    return <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Helmet>
-        <title>Menú - CityMap</title>
-      </Helmet>
-      <div style={{ width: 30, height: 30, border: `3px solid ${dark ? '#1E293B' : '#E2E8F0'}`, borderTop: `3px solid ${dark ? '#3B82F6' : '#2563EB'}`, borderRadius: '50%', animation: 'spin .8s linear infinite' }} />
-    </div>;
+    return (
+      <>
+        <Helmet><title>Cargando menú... - CityMap</title></Helmet>
+        <SkeletonMenu dark={dark} />
+      </>
+    );
   }
 
   if (error || !biz) {
@@ -90,6 +88,77 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
           navigate(`/${navCity}/${navSlug}`);
         }} />
       </div>
+    </div>
+  );
+}
+
+function RedirectToProfile({ navCity, navSlug, navigate, dark }) {
+  useEffect(() => {
+    navigate(`/${navCity}/${navSlug}`, { replace: true });
+  }, [navCity, navSlug, navigate]);
+
+  return (
+    <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Helmet>
+        <title>Redirigiendo... | CityMap</title>
+      </Helmet>
+      <div style={{ width: 30, height: 30, border: `3px solid ${dark ? '#1E293B' : '#E2E8F0'}`, borderTop: `3px solid ${dark ? '#3B82F6' : '#2563EB'}`, borderRadius: '50%', animation: 'spin .8s linear infinite' }} />
+    </div>
+  );
+}
+
+
+function SkeletonMenu({ dark }) {
+  const bg = dark ? '#1E293B' : '#E2E8F0';
+  const shimmer = `linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)`;
+  
+  return (
+    <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#FFFFFF', display: 'flex', flexDirection: 'column' }}>
+      {/* Banner */}
+      <div style={{ height: 200, width: '100%', background: bg, position: 'relative', overflow: 'hidden' }}>
+        <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
+      </div>
+      
+      <div style={{ padding: '0 16px', position: 'relative', top: -30 }}>
+        {/* Logo */}
+        <div style={{ width: 80, height: 80, borderRadius: '50%', background: bg, border: `4px solid ${dark ? '#0F172A' : '#FFFFFF'}`, overflow: 'hidden', position: 'relative' }}>
+          <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
+        </div>
+        
+        {/* Name & Subtitle */}
+        <div style={{ width: '60%', height: 24, background: bg, borderRadius: 8, marginTop: 12, overflow: 'hidden', position: 'relative' }}>
+           <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
+        </div>
+        <div style={{ width: '40%', height: 16, background: bg, borderRadius: 8, marginTop: 8, overflow: 'hidden', position: 'relative' }}>
+           <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
+        </div>
+      </div>
+      
+      {/* List items */}
+      <div style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} style={{ display: 'flex', gap: 16 }}>
+             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+               <div style={{ width: '80%', height: 18, background: bg, borderRadius: 4, overflow: 'hidden', position: 'relative' }}><div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} /></div>
+               <div style={{ width: '100%', height: 14, background: bg, borderRadius: 4, overflow: 'hidden', position: 'relative' }}><div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} /></div>
+               <div style={{ width: '60%', height: 14, background: bg, borderRadius: 4, overflow: 'hidden', position: 'relative' }}><div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} /></div>
+             </div>
+             <div style={{ width: 80, height: 80, background: bg, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+               <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
+             </div>
+          </div>
+        ))}
+      </div>
+      
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .skeleton-shimmer {
+          animation: shimmer 1.5s infinite linear;
+        }
+      `}</style>
     </div>
   );
 }
