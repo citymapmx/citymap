@@ -1159,7 +1159,7 @@ export default function DetailView() {
                   <img src="/pedido.png" alt="Pedido" style={{ width: 40, height: 40, objectFit: 'contain' }} />
                 )}
               </div>
-              <h2 style={{ margin: '0 0 12px 0', fontSize: 22, fontWeight: 800, color: dark ? '#FFF' : '#111', fontFamily: 'Brunson, sans-serif', letterSpacing: '-0.5px' }}>
+              <h2 style={{ margin: '0 0 12px 0', fontSize: 22, fontWeight: 800, color: dark ? '#FFF' : '#111', fontFamily: 'system-ui, -apple-system, sans-serif', letterSpacing: '-0.3px' }}>
                 ¿Cómo nos visitas hoy?
               </h2>
               <p style={{ margin: '0 0 28px 0', fontSize: 14, color: dark ? '#94A3B8' : '#64748B', lineHeight: 1.5 }}>
