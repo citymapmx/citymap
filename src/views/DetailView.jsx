@@ -363,10 +363,10 @@ export default function DetailView() {
 
   return (
     <m.div 
-      initial={{ x: "100%", opacity: 0.5 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: "100%", opacity: 0.5 }}
-      transition={{ type: "spring", damping: 26, stiffness: 220 }}
+      initial={{ scale: 0.96, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.96, opacity: 0 }}
+      transition={{ type: "spring", damping: 25, stiffness: 350 }}
       style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, background: T.bg, display: "flex", flexDirection: "column", alignItems: "center" }}
       onClick={() => {
                   if (openedFromMap) {
@@ -385,10 +385,7 @@ export default function DetailView() {
       
       {/* Schema.org Injection */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrgJSONLD).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') }} />
-      <m.div 
-        initial={{ scale: 0.95, opacity: 0 }} 
-        animate={{ scale: 1, opacity: 1 }} 
-        transition={{ duration: 0.2, ease: "easeOut" }} 
+      <div 
         onClick={e => e.stopPropagation()}
         style={{ width: "100%", maxWidth: 600, height: "100%", overflowY: "auto", overflowX: "hidden", background: T.bg, position: "relative", boxShadow: "0 0 40px rgba(0,0,0,0.1)" }}
       >
@@ -1126,7 +1123,7 @@ export default function DetailView() {
               </div>
             )}
           </div>
-        </m.div>
+        </div>
         
         {showBooking && (
           <ErrorBoundary>
