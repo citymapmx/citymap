@@ -186,7 +186,11 @@ export default memo(function BusinessCard({
   // 1. CUSTOM PLACE CARD (Only applicable for compact view / itinerary popup)
   if (b._isCustom) {
     return (
-      <div 
+      <m.div 
+        initial={{ opacity: 0, y: 15 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-10px" }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
         className={onTap ? "press" : ""} 
         onClick={onTap ? () => { haptic("light"); onTap(b); } : undefined} 
         style={{ 
@@ -218,7 +222,7 @@ export default memo(function BusinessCard({
           </button>
         )}
         {renderNotesBlock(stayTimeStr, note, onEditNote, T, t)}
-      </div>
+      </m.div>
     );
   }
 
@@ -226,6 +230,10 @@ export default memo(function BusinessCard({
   if (variant === "compact") {
     return (
       <m.div 
+        initial={{ opacity: 0, y: 15 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-10px" }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
         whileHover={onTap ? "hover" : undefined} 
         whileTap={onTap ? { scale: 0.96 } : undefined} 
         className={onTap ? "press" : ""} 
@@ -316,6 +324,10 @@ export default memo(function BusinessCard({
   if (variant === "destacado") {
     return (
       <m.div 
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-10px" }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
         whileHover="hover" 
         whileTap={{ scale: 0.96 }} 
         className="press" 
@@ -383,6 +395,10 @@ export default memo(function BusinessCard({
   if (variant === "featured") {
     return (
       <m.div 
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-10px" }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
         whileHover="hover" 
         whileTap={{ scale: 0.96 }} 
         className="press" 

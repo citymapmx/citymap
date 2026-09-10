@@ -506,9 +506,14 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
         const hasMore = availableProducts.length > 6;
 
         return (
-          <div key={cat.id} data-catid={cat.id} ref={el => categoryRefs.current[cat.id] = el} style={{ marginBottom: 24, scrollMarginTop: '130px' }}>
+          <m.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-10px" }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            key={cat.id} data-catid={cat.id} ref={el => categoryRefs.current[cat.id] = el} style={{ marginBottom: 24, scrollMarginTop: '130px' }}>
             <div style={{ margin: '0 16px 12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: 19, fontWeight: 800, color: dark ? '#FFFFFF' : '#111111', margin: 0, letterSpacing: '-0.5px', textTransform: 'uppercase' }}>{cat.name}</h3>
+              <h3 style={{ fontSize: 19, fontWeight: 800, color: dark ? '#F87171' : '#EF4444', margin: 0, letterSpacing: '-0.5px', textTransform: 'uppercase' }}>{cat.name}</h3>
             </div>
             
             <div style={
@@ -763,7 +768,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 <Icon name="chevron" size={16} color={dark ? '#94A3B8' : '#64748B'} style={{ transform: isExpanded ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.3s ease' }} />
               </button>
             )}
-          </div>
+          </m.div>
         );
       })}
         {filteredCategories.length > 0 && (
