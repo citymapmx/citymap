@@ -1,4 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
+import { useQuery } from "@tanstack/react-query";
+
 import { useNavigate } from "react-router-dom";
 
 import { m, AnimatePresence } from "framer-motion";
@@ -179,30 +181,23 @@ export default function DetailView() {
   
   const { viewStyle, selected, setView, setFade, navigate, T, favIds, toggleFav, goWhatsApp, goDir, doShare, getEventStatus, setReviewStar, setReviewText, setShowReview, biz, userCoords, getKm, showGallery, setShowGallery, FONT_BIZ, isOpen, callPhone, setMapPin, setShowMenuGallery, goWeb, trackEvent, setSelectedEvent, handleEventTap, createSlug, showReview, reviewStar, reviewText, postReview, isAdmin, setBiz, setSelected, toggleLikeReview, setClaimBiz, reviewImgFile, setReviewImgFile, reviewImgLoading } = ctx;
   
-  const [hasLoyalty, setHasLoyalty] = useState(false);
-  const [loyaltyLoading, setLoyaltyLoading] = useState(true);
-  useEffect(() => {
-    if (selected?.id) {
-      setLoyaltyLoading(true);
-      sb.get("loyalty_cards", `?biz_id=eq.${selected.id}&active=eq.true&limit=1`)
-        .then(res => setHasLoyalty(!!res?.[0]))
-        .catch(() => {})
-        .finally(() => setLoyaltyLoading(false));
-    } else {
-      setLoyaltyLoading(false);
-    }
-  }, [selected?.id]);
+  const { data: hasLoyalty = false, isLoading: loyaltyLoading } = useQuery({
+    queryKey: ['loyalty', selected?.id],
+    queryFn: async () => {
+      const res = await sb.get("loyalty_cards", `?biz_id=eq.${selected.id}&active=eq.true&limit=1`);
+      return !!res?.[0];
+    },
+    enabled: !!selected?.id
+  });
 
-  const [hasMenu, setHasMenu] = useState(false);
-  useEffect(() => {
-    if (selected?.id && selected?.plan === "premium") {
-      sb.get("store_categories", `?business_id=eq.${selected.id}&limit=1&select=id`)
-        .then(res => setHasMenu(!!(res && res.length > 0)))
-        .catch(() => setHasMenu(false));
-    } else {
-      setHasMenu(false);
-    }
-  }, [selected?.id, selected?.plan]);
+  const { data: hasMenu = false } = useQuery({
+    queryKey: ['hasMenu', selected?.id],
+    queryFn: async () => {
+      const res = await sb.get("store_categories", `?business_id=eq.${selected.id}&limit=1&select=id`);
+      return !!(res && res.length > 0);
+    },
+    enabled: !!selected?.id && selected?.plan === "premium"
+  });
   const now = useTimeStore(s => s.now);
 
   const mapsOk = useGMaps();
@@ -251,27 +246,26 @@ export default function DetailView() {
     }
   }, [mapsOk, selected?.social_links?.google_place_id]);
 
-  useEffect(() => {
-    if (selected && selected.id) {
-      dbService.fetchFullBusiness(selected.id).then(res => {
-        if (res && res.length > 0) {
-          const fullData = { 
-            ...selected, 
-            ...res[0], 
-            _fullFetched: true 
-          };
-          if (fullData.reviews) {
-            const revs = [...fullData.reviews];
-            revs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            setReviews(revs);
-            delete fullData.reviews;
-          }
-          setSelected(fullData);
+  useQuery({
+    queryKey: ['fullBusiness', selected?.id],
+    queryFn: async () => {
+      const res = await dbService.fetchFullBusiness(selected.id);
+      if (res && res.length > 0) {
+        const fullData = { ...selected, ...res[0], _fullFetched: true };
+        if (fullData.reviews) {
+          const revs = [...fullData.reviews];
+          revs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          setReviews(revs);
+          delete fullData.reviews;
         }
-      }).catch(err => console.error("Error cargando detalles extra:", err));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected?.id]);
+        setSelected(fullData);
+        return fullData;
+      }
+      return null;
+    },
+    enabled: !!selected?.id && !selected?._fullFetched,
+    staleTime: 5 * 60 * 1000
+  });
 
   useEffect(() => {
     setAsyncEmbedUrl(null);

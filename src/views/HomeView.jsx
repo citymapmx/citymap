@@ -1,4 +1,7 @@
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { sb } from "../lib/supabase.js";
+import { getCityFilterEq } from "../lib/utils.js";
 import ReactDOM from "react-dom";
 import { m, AnimatePresence } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
@@ -87,7 +90,28 @@ const placeholders = [
 export default function HomeView({ isBackground }) {
   const ctx = useAppContext();
   const { dark, activeCity, showCityPicker, setShowCityPicker, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, showCityPicker: s.showCityPicker, setShowCityPicker: s.setShowCityPicker, toast$: s.toast$ })));
-  const { dbReady, cats, banners, mapPins, globalFavCounts, coupons, events, raffles, cities, experiences } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, cats: s.cats, banners: s.banners, mapPins: s.mapPins, globalFavCounts: s.globalFavCounts, coupons: s.coupons, events: s.events, raffles: s.raffles, cities: s.cities, experiences: s.experiences })));
+  const { dbReady, cats, banners, globalFavCounts, coupons, events, raffles, cities, experiences, setMapPins } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, cats: s.cats, banners: s.banners, globalFavCounts: s.globalFavCounts, coupons: s.coupons, events: s.events, raffles: s.raffles, cities: s.cities, experiences: s.experiences, setMapPins: s.setMapPins })));
+  
+  const { data: mapPins = [] } = useQuery({
+    queryKey: ['home-businesses', activeCity],
+    queryFn: async () => {
+      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url";
+      const batch = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(activeCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=50`);
+      
+      const processBatch = (arr) => arr ? arr.map(b => ({
+        ...b,
+        category: b.category?.toLowerCase(),
+        rating: b.rating || 0,
+        photos: typeof b.photos === 'string' ? JSON.parse(b.photos || '[]') : (b.photos || [])
+      })) : [];
+      
+      const processed = processBatch(batch);
+      setTimeout(() => setMapPins(processed), 0);
+      return processed;
+    },
+    enabled: !!activeCity,
+    staleTime: 5 * 60 * 1000
+  });
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   const now = useTimeStore(s => s.now);
   

@@ -12,6 +12,7 @@ export function getEventStatus(ev) {
   if (ev.date === today && (!ev.end_date || ev.end_date === ev.date)) return { lbl: "Hoy", color: "#16A34A", bg: "#DCFCE7" };
   if (ev.date <= today && endDateStr >= today) return { lbl: "Activo", color: "#16A34A", bg: "#DCFCE7" };
   return { lbl: "Próximamente", color: "#3B82F6", bg: "#EFF6FF" };
+ 
 }
 
 export function getKm(lat1, lon1, lat2, lon2) {
@@ -22,12 +23,28 @@ export function getKm(lat1, lon1, lat2, lon2) {
   return 12742 * Math.asin(Math.sqrt(a));
 }
 
-export const METRO_ZONES = {
-  "xalisco": ["tepic", "xalisco"],
-  "tepic": ["tepic", "xalisco"]
+export const METRO_ZONES = {};
+
+export const updateMetroZones = (citiesList) => {
+  if (!citiesList || !Array.isArray(citiesList)) return;
+  Object.keys(METRO_ZONES).forEach(k => delete METRO_ZONES[k]);
+  citiesList.forEach(c => {
+    let metro = c.metro_zone;
+    if (c.state && c.state.includes(";")) {
+      metro = c.state.split(";")[1];
+    }
+    
+    if (metro) {
+      if (!METRO_ZONES[c.slug]) METRO_ZONES[c.slug] = [c.slug, metro];
+      else if (!METRO_ZONES[c.slug].includes(metro)) METRO_ZONES[c.slug].push(metro);
+      
+      if (!METRO_ZONES[metro]) METRO_ZONES[metro] = [metro];
+      if (!METRO_ZONES[metro].includes(c.slug)) METRO_ZONES[metro].push(c.slug);
+    }
+  });
 };
 
-export function isNear(item, userCoords, activeCity, maxKm = 40) {
+export function isNear(item, userCoords, activeCity, maxKm = 20) {
   if (!item) return false;
   
   // Siempre incluir negocios que pertenezcan explícitamente a la ciudad seleccionada o su zona metropolitana
@@ -67,9 +84,10 @@ export function isOpenNow(b, tz, now) {
     const h = parseInt(get("hour"));
     const min = parseInt(get("minute"));
     const dayMap = { Sun: "dom", Mon: "lun", Tue: "mar", Wed: "mie", Thu: "jue", Fri: "vie", Sat: "sab" };
-    const txt = sch[dayMap[get("weekday")] || ""];
-    if (!txt) return false;
-    if (/cerrado/i.test(txt)) return false;
+    // Previous day map for overnight shifts
+    const prevDayMap = { Sun: "sab", Mon: "dom", Tue: "lun", Wed: "mar", Thu: "mie", Fri: "jue", Sat: "vie" };
+    const weekday = get("weekday");
+    const txt = sch[dayMap[weekday] || ""];
     
     const toMin = s => {
       const m = s.trim().match(/(\d{1,2})(?:\s*:\s*(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
@@ -84,17 +102,39 @@ export function isOpenNow(b, tz, now) {
     
     const cur = (h === 24 ? 0 : h) * 60 + min;
     
-    const shifts = txt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
-    for (const shift of shifts) {
-      const segs = shift.split(/\s*[–\-]\s*|\s+a\s+/i).map(s => s.trim());
-      if (segs.length < 2) continue;
-      const open = toMin(segs[0]);
-      const close = toMin(segs[1]);
-      if (open === null || close === null) continue;
-      
-      const isOpenInShift = close <= open ? (cur >= open || cur < close) : (cur >= open && cur < close);
-      if (isOpenInShift) return true;
+    // Check today's schedule
+    if (txt && !/cerrado/i.test(txt)) {
+      const shifts = txt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
+      for (const shift of shifts) {
+          const segs = shift.split(/\s*[-–]\s*|\s+a\s+/i).map(s => s.trim());
+        if (segs.length < 2) continue;
+        const open = toMin(segs[0]);
+        const close = toMin(segs[1]);
+        if (open === null || close === null) continue;
+        
+        const isOpenInShift = close <= open ? (cur >= open || cur < close) : (cur >= open && cur < close);
+        if (isOpenInShift) return true;
+      }
     }
+    
+    // Check previous day's schedule for overnight shifts (e.g. 10:30 PM - 3:00 AM)
+    // Only relevant if current time is before 8 AM (i.e., we could be in a late-night shift from yesterday)
+    if (cur < 8 * 60) {
+      const prevTxt = sch[prevDayMap[weekday] || ""];
+      if (prevTxt && !/cerrado/i.test(prevTxt)) {
+        const shifts = prevTxt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
+        for (const shift of shifts) {
+          const segs = shift.split(/\s*[-–]\s*|\s+a\s+/i).map(s => s.trim());
+          if (segs.length < 2) continue;
+          const open = toMin(segs[0]);
+          const close = toMin(segs[1]);
+          if (open === null || close === null) continue;
+          // Only consider overnight shifts where close < open (crosses midnight)
+          if (close < open && cur < close) return true;
+        }
+      }
+    }
+    
     return false;
   } catch { return !!b.open; }
 }
@@ -115,8 +155,9 @@ export function getMinutesToClose(b, tz, now) {
     const h = parseInt(get("hour"));
     const min = parseInt(get("minute"));
     const dayMap = { Sun: "dom", Mon: "lun", Tue: "mar", Wed: "mie", Thu: "jue", Fri: "vie", Sat: "sab" };
-    const txt = sch[dayMap[get("weekday")] || ""];
-    if (!txt || /cerrado/i.test(txt)) return -1;
+    const prevDayMap = { Sun: "sab", Mon: "dom", Tue: "lun", Wed: "mar", Thu: "mie", Fri: "jue", Sat: "vie" };
+    const weekday = get("weekday");
+    const txt = sch[dayMap[weekday] || ""];
 
     const toMin = s => {
       const m = s.trim().match(/(\d{1,2})(?:\s*:\s*(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
@@ -130,19 +171,42 @@ export function getMinutesToClose(b, tz, now) {
     };
 
     const cur = (h === 24 ? 0 : h) * 60 + min;
-    const shifts = txt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
-    for (const shift of shifts) {
-      const segs = shift.split(/\s*[–\-]\s*|\s+a\s+/i).map(s => s.trim());
-      if (segs.length < 2) continue;
-      const open = toMin(segs[0]);
-      const close = toMin(segs[1]);
-      if (open === null || close === null) continue;
-      const isOpenInShift = close <= open ? (cur >= open || cur < close) : (cur >= open && cur < close);
-      if (isOpenInShift) {
-        // minutes until close; handle overnight
-        return close <= open && cur >= open ? (24 * 60 - cur + close) : (close - cur);
+
+    // Check today's shifts
+    if (txt && !/cerrado/i.test(txt)) {
+      const shifts = txt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
+      for (const shift of shifts) {
+          const segs = shift.split(/\s*[-–]\s*|\s+a\s+/i).map(s => s.trim());
+        if (segs.length < 2) continue;
+        const open = toMin(segs[0]);
+        const close = toMin(segs[1]);
+        if (open === null || close === null) continue;
+        const isOpenInShift = close <= open ? (cur >= open || cur < close) : (cur >= open && cur < close);
+        if (isOpenInShift) {
+          // minutes until close; handle overnight
+          return close <= open && cur >= open ? (24 * 60 - cur + close) : (close - cur);
+        }
       }
     }
+
+    // Check previous day's overnight shifts
+    if (cur < 8 * 60) {
+      const prevTxt = sch[prevDayMap[weekday] || ""];
+      if (prevTxt && !/cerrado/i.test(prevTxt)) {
+        const shifts = prevTxt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
+        for (const shift of shifts) {
+          const segs = shift.split(/\s*[-–]\s*|\s+a\s+/i).map(s => s.trim());
+          if (segs.length < 2) continue;
+          const open = toMin(segs[0]);
+          const close = toMin(segs[1]);
+          if (open === null || close === null) continue;
+          if (close < open && cur < close) {
+            return close - cur;
+          }
+        }
+      }
+    }
+
     return -1;
   } catch { return Infinity; }
 }
@@ -206,7 +270,7 @@ export function getSmartScheduleInfo(b, tz, now) {
     if (txt && !/cerrado/i.test(txt)) {
       const shifts = txt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
       for (const shift of shifts) {
-        const segs = shift.split(/\s*[–\-]\s*|\s+a\s+/i).map(s => s.trim());
+          const segs = shift.split(/\s*[-–]\s*|\s+a\s+/i).map(s => s.trim());
         if (segs.length < 2) continue;
         const open = toMin(segs[0]);
         const close = toMin(segs[1]);
@@ -230,6 +294,28 @@ export function getSmartScheduleInfo(b, tz, now) {
       }
     }
 
+    // Check previous day's overnight shifts
+    if (!isCurrentlyOpen && cur < 8 * 60) {
+      const prevDayIdx = (currentDayIdx - 1 + 7) % 7;
+      const prevTxt = sch[daysOrder[prevDayIdx]];
+      if (prevTxt && !/cerrado/i.test(prevTxt)) {
+        const shifts = prevTxt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
+        for (const shift of shifts) {
+          const segs = shift.split(/\s*[-–]\s*|\s+a\s+/i).map(s => s.trim());
+          if (segs.length < 2) continue;
+          const open = toMin(segs[0]);
+          const close = toMin(segs[1]);
+          if (open === null || close === null) continue;
+          
+          if (close < open && cur < close) {
+             isCurrentlyOpen = true;
+             let m = close - cur;
+             if (m < minUntilClose) minUntilClose = m;
+          }
+        }
+      }
+    }
+
     if (isCurrentlyOpen) {
       if (minUntilClose <= 60) return { text: [`Cierra pronto (${minUntilClose}m)`, deliverySuffix], color: "#F59E0B" };
       return { text: ["Abierto ahora", deliverySuffix], color: "#16A34A" };
@@ -244,7 +330,7 @@ export function getSmartScheduleInfo(b, tz, now) {
         if (dayTxt && !/cerrado/i.test(dayTxt)) {
           const shifts2 = dayTxt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
           for (const shift2 of shifts2) {
-            const segs2 = shift2.split(/\s*[–\-]\s*|\s+a\s+/i).map(s => s.trim());
+            const segs2 = shift2.split(/\s*[-–]\s*|\s+a\s+/i).map(s => s.trim());
             if (segs2.length < 2) continue;
             const open2 = toMin(segs2[0]);
             if (open2 !== null) {
@@ -254,12 +340,13 @@ export function getSmartScheduleInfo(b, tz, now) {
               const mStr = (open2 % 60).toString().padStart(2, '0');
               const ampm = Math.floor(open2 / 60) >= 12 ? 'pm' : 'am';
               const timeStr = `${h12}:${mStr}${ampm}`;
+              const prepStr = h12 === 1 ? "la" : "las";
               
-              if (i === 0) nextOpenStr = `abre hoy a las ${timeStr}`;
-              else if (i === 1) nextOpenStr = `abre mañana a las ${timeStr}`;
+              if (i === 0) nextOpenStr = `abre hoy a ${prepStr} ${timeStr}`;
+              else if (i === 1) nextOpenStr = `abre mañana a ${prepStr} ${timeStr}`;
               else {
                 const dayNames = {dom:"el domingo", lun:"el lunes", mar:"el martes", mie:"el miércoles", jue:"el jueves", vie:"el viernes", sab:"el sábado"};
-                nextOpenStr = `abre ${dayNames[daysOrder[checkIdx]]} a las ${timeStr}`;
+                nextOpenStr = `abre ${dayNames[daysOrder[checkIdx]]} a ${prepStr} ${timeStr}`;
               }
               break;
             }
@@ -317,7 +404,8 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
   };
   
   const targetW = bucketWidth(w);
-  const targetH = h ? bucketWidth(h) : null;
+  const aspect = (w && h) ? (h / w) : null;
+  const targetH = aspect ? Math.round(targetW * aspect) : null;
 
   if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
     // Limpiamos transformaciones viejas para que no se acumulen
@@ -328,9 +416,9 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
        cleanUrl = base + "/upload/" + vMatch[1];
     }
     
-    let transform = targetH ? `c_fill,w_${targetW},h_${targetH},q_auto,f_auto` : `c_limit,w_${targetW},q_auto,f_auto`;
+    let transform = targetH ? `c_fill,w_${targetW},h_${targetH},q_auto:eco,f_auto` : `c_limit,w_${targetW},q_auto:eco,f_auto`;
     if (fit === "contain" && targetH) {
-       transform = `c_pad,w_${targetW},h_${targetH},q_auto,f_auto`;
+       transform = `c_pad,w_${targetW},h_${targetH},q_auto:eco,f_auto`;
     }
     return cleanUrl.replace("/upload/", `/upload/${transform}/`);
   }
@@ -342,7 +430,7 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
       const pathParts = url.split('/public/');
       if (pathParts.length > 1) {
         const path = pathParts[1];
-        let bunnyQuery = `?width=${targetW}`;
+        let bunnyQuery = `?width=${targetW}&quality=75`; // Optimizado para velocidad
         if (targetH) {
           bunnyQuery += `&aspect_ratio=${w}:${h}`;
           if (fit === "cover") bunnyQuery += "&crop=true";
@@ -353,7 +441,7 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
     
     // Fallback a Supabase Render API
     const joinChar = url.includes("?") ? "&" : "?";
-    let renderQuery = `width=${targetW}&quality=80&format=webp`;
+    let renderQuery = `width=${targetW}&quality=75&format=webp`; // Bajamos calidad a 75 para cargar más rápido
     if (targetH) renderQuery += `&height=${targetH}&resize=${fit}`;
     return url.replace("/object/public/", "/render/image/public/") + joinChar + renderQuery;
   }
@@ -515,3 +603,8 @@ export function shouldShowLocationModal() {
   if (!navigator.geolocation) return false;
   return true;
 }
+
+export const getCityFilterEq = (city) => {
+  const zone = METRO_ZONES[city];
+  return zone ? `city_slug=in.(${zone.join(',')})` : `city_slug=eq.${city}`;
+};

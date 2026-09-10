@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import Icon from '../components/ui/Icon.jsx';
@@ -6,44 +6,37 @@ import BusinessStore from '../components/store/BusinessStore.jsx';
 import { isOpenNow, cleanCityPrefix } from '../lib/utils.js';
 import { Helmet } from 'react-helmet-async';
 import { useUIStore } from '../store/useUIStore.js';
+import { useQuery } from '@tanstack/react-query';
 
 export default function MenuView({ T, dark, navigate: propNavigate }) {
   const { city, slug } = useParams();
   const setSelected = useUIStore(s => s.setSelected);
   const routerNavigate = useNavigate();
   const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
   const navigate = propNavigate || routerNavigate;
-  const initialIntent = location.state?.intent || null;
-  const [biz, setBiz] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const initialIntent = location.state?.intent || searchParams.get('intent') || null;
 
-  useEffect(() => {
-    async function loadBiz() {
-      try {
-        setLoading(true);
-        const dataList = await sb.get('businesses', `?select=*&or=(slug.eq.${slug},slug.eq.${city}-${slug})&limit=1`);
-        if (!dataList || dataList.length === 0) throw new Error("Not found");
-        
-        let businessData = dataList[0];
-        if (typeof businessData.schedule === 'string') {
-          try {
-            businessData.schedule = JSON.parse(businessData.schedule);
-          } catch(e) {
-            businessData.schedule = {};
-          }
+  const { data: biz, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['business-menu', slug],
+    queryFn: async () => {
+      const dataList = await sb.get('businesses', `?select=*&or=(slug.eq.${slug},slug.eq.${city}-${slug})&limit=1`);
+      if (!dataList || dataList.length === 0) throw new Error("Not found");
+      
+      let businessData = dataList[0];
+      if (typeof businessData.schedule === 'string') {
+        try {
+          businessData.schedule = JSON.parse(businessData.schedule);
+        } catch(e) {
+          businessData.schedule = {};
         }
-        
-        setBiz(businessData);
-      } catch (err) {
-        console.error("Error loading biz for menu:", err);
-        setError("Negocio no encontrado");
-      } finally {
-        setLoading(false);
       }
-    }
-    loadBiz();
-  }, [city, slug]);
+      return businessData;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const error = queryError ? "Negocio no encontrado" : null;
 
   if (loading) {
     return (
@@ -65,7 +58,6 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
     </div>;
   }
 
-  const isOpen = isOpenNow(biz, biz.timezone);
   const isElite = biz.plan === 'destacado' || biz.plan === 'premium';
   
   // Try to use a cover photo or first photo
@@ -93,22 +85,6 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
     </div>
   );
 }
-
-function RedirectToProfile({ navCity, navSlug, navigate, dark }) {
-  useEffect(() => {
-    navigate(`/${navCity}/${navSlug}`, { replace: true });
-  }, [navCity, navSlug, navigate]);
-
-  return (
-    <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Helmet>
-        <title>Redirigiendo... | CityMap</title>
-      </Helmet>
-      <div style={{ width: 30, height: 30, border: `3px solid ${dark ? '#1E293B' : '#E2E8F0'}`, borderTop: `3px solid ${dark ? '#3B82F6' : '#2563EB'}`, borderRadius: '50%', animation: 'spin .8s linear infinite' }} />
-    </div>
-  );
-}
-
 
 function SkeletonMenu({ dark }) {
   const bg = dark ? '#1E293B' : '#E2E8F0';
