@@ -512,19 +512,19 @@ export default function DetailView() {
 
             {/* Quick Actions Pills */}
             <div style={{ display: "flex", gap: 8, padding: "0 20px" }}>
-              {(selected.phone) && <button className="press" onClick={() => callPhone(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 4px", borderRadius: 24, background: dark ? "#1F2937" : "#FFFFFF", border: `1px solid ${dark ? "#374151" : "#E5E7EB"}`, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+              {(selected.phone) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => callPhone(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 4px", borderRadius: 24, background: dark ? "#334155" : "#F1F5F9", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                 <img src="/telefono.svg" alt="Teléfono" style={{ width: 18, height: 18, objectFit: "contain" }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: dark ? "#fff" : "#111" }}>Llamar</span>
-              </button>}
+              </m.button>}
               
-              {(selected.whatsapp) && <button className="press" onClick={() => goWhatsApp(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 4px", borderRadius: 24, background: dark ? "#1F2937" : "#FFFFFF", border: `1px solid ${dark ? "#374151" : "#E5E7EB"}`, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+              {(selected.whatsapp) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goWhatsApp(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 4px", borderRadius: 24, background: dark ? "#334155" : "#F1F5F9", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                 <img src="/whatsapp.svg" alt="WhatsApp" style={{ width: 18, height: 18, objectFit: "contain" }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: dark ? "#fff" : "#111" }}>WhatsApp</span>
-              </button>}
-              {!selected.hide_location && <button className="press" onClick={() => goDir(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 4px", borderRadius: 24, background: dark ? "#1F2937" : "#FFFFFF", border: `1px solid ${dark ? "#374151" : "#E5E7EB"}`, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+              </m.button>}
+              {!selected.hide_location && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goDir(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 4px", borderRadius: 24, background: dark ? "#334155" : "#F1F5F9", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                 <img src="/mapa.svg" alt="Mapa" style={{ width: 18, height: 18, objectFit: "contain" }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: dark ? "#fff" : "#111" }}>Ubicación</span>
-              </button>}
+              </m.button>}
             </div>
 
             <div style={{ display: "flex", gap: 8, padding: "0 20px", marginTop: 12, opacity: loyaltyLoading ? 0 : 1, transition: "opacity 0.3s ease", pointerEvents: loyaltyLoading ? "none" : "auto" }}>
