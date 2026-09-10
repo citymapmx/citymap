@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @font-face {
   font-family: 'Coolvetica';
   src: url('/Coolvetica Rg.otf') format('opentype');
@@ -280,3 +284,7 @@ input[type=range].sleek-slider::-webkit-slider-runnable-track {
 .dark input[type=range].sleek-slider::-webkit-slider-runnable-track {
   background: rgba(255,255,255,0.2);
 }
+@keyframes party-blink { 0% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.15); filter: brightness(1.2); } 100% { transform: scale(1); filter: brightness(1); } }
+.party-pin { animation: party-blink 1s infinite ease-in-out; }
+
+* { -webkit-tap-highlight-color: transparent; }
