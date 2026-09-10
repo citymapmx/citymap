@@ -33,7 +33,9 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   const activeTabIdRef = useRef(activeTabId);
   useEffect(() => { activeTabIdRef.current = activeTabId; }, [activeTabId]);
   const [showMenuModal, setShowMenuModal] = useState(false);
-  const [menuIntent, setMenuIntent] = useState(initialIntent);
+  const [menuIntent, setMenuIntent] = useState(() => {
+    return initialIntent || localStorage.getItem(`intent_${business?.id}`) || null;
+  });
   const { dark } = useUIStore();
   const { globalFavCounts } = useDataStore();
   const { items, setIsOpen, addItem, removeItem, updateQuantity, clearCart } = useCart();
@@ -245,7 +247,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <button 
-                onClick={() => setMenuIntent('local')}
+                onClick={() => { setMenuIntent('local'); localStorage.setItem(`intent_${business?.id}`, 'local'); }}
                 className="press"
                 style={{ width: '100%', padding: '16px', background: dark ? '#0F172A' : '#F8FAFC', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 16, color: dark ? '#F8FAFC' : '#0F172A', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
               >
@@ -254,7 +256,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               </button>
               
               <button 
-                onClick={() => setMenuIntent('delivery')}
+                onClick={() => { setMenuIntent('delivery'); localStorage.setItem(`intent_${business?.id}`, 'delivery'); }}
                 className="press"
                 style={{ width: '100%', padding: '16px', background: dark ? '#0F172A' : '#F8FAFC', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 16, color: dark ? '#F8FAFC' : '#0F172A', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
               >

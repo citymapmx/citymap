@@ -1,4 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
+import { useNavigate } from "react-router-dom";
+
 import { m, AnimatePresence } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
@@ -169,6 +171,8 @@ const TikTokBlock = ({ url, videoId }) => {
 
 export default function DetailView() {
   const ctx = useAppContext();
+  const routerNavigate = useNavigate();
+
   const { dark, activeCity, toast$, setShowItineraryModal, setItineraryTargetBiz, openedFromMap, setOpenedFromMap } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$, setShowItineraryModal: s.setShowItineraryModal, setItineraryTargetBiz: s.setItineraryTargetBiz, openedFromMap: s.openedFromMap, setOpenedFromMap: s.setOpenedFromMap })));
   const { dbReady, promos, coupons, events, wallet, setWallet, claimedCoupons, setClaimedCoupons, reviews, setReviews, globalFavCounts, raffles, setRaffles } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, promos: s.promos, coupons: s.coupons, events: s.events, wallet: s.wallet, setWallet: s.setWallet, claimedCoupons: s.claimedCoupons, setClaimedCoupons: s.setClaimedCoupons, reviews: s.reviews, setReviews: s.setReviews, globalFavCounts: s.globalFavCounts, raffles: s.raffles, setRaffles: s.setRaffles })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
@@ -1171,7 +1175,7 @@ export default function DetailView() {
                   onClick={() => {
                     setShowIntentModal(false);
                     const cleanSlug = ctx.cleanCityPrefix ? ctx.cleanCityPrefix(selected.slug || selected.id, selected.city_slug || activeCity) : (selected.slug || selected.id);
-                    navigate(`/${selected.city_slug || activeCity}/${cleanSlug}/menu`, { state: { intent: 'local' } });
+                    localStorage.setItem(`intent_${selected.id}`, 'local'); navigate(`/${selected.city_slug || activeCity}/${cleanSlug}/menu`);
                   }}
                   className="press"
                   style={{ width: '100%', padding: '16px', background: dark ? '#0F172A' : '#F8FAFC', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 16, color: dark ? '#F8FAFC' : '#0F172A', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
@@ -1184,7 +1188,7 @@ export default function DetailView() {
                   onClick={() => {
                     setShowIntentModal(false);
                     const cleanSlug = ctx.cleanCityPrefix ? ctx.cleanCityPrefix(selected.slug || selected.id, selected.city_slug || activeCity) : (selected.slug || selected.id);
-                    navigate(`/${selected.city_slug || activeCity}/${cleanSlug}/menu`, { state: { intent: 'delivery' } });
+                    localStorage.setItem(`intent_${selected.id}`, 'delivery'); navigate(`/${selected.city_slug || activeCity}/${cleanSlug}/menu`);
                   }}
                   className="press"
                   style={{ width: '100%', padding: '16px', background: dark ? '#0F172A' : '#F8FAFC', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 16, color: dark ? '#F8FAFC' : '#0F172A', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
