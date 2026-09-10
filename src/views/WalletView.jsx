@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import Icon from '../components/ui/Icon.jsx';
 import LoyaltyCardModal from './LoyaltyCardModal.jsx';
+import { useUIStore } from '../store/useUIStore.js';
 
 const STAMPS = Array.from({ length: 10 });
 
@@ -94,6 +95,7 @@ function LoyaltyCard({ member, card, biz, dark, T, onCardClick }) {
 
 export default function WalletView({ T, dark, user, setShowAuth }) {
   const navigate = useNavigate();
+  const activeCity = useUIStore(s => s.activeCity);
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
@@ -148,7 +150,9 @@ export default function WalletView({ T, dark, user, setShowAuth }) {
         
         const mapped = sugCards.map(c => {
           const b = sugBiz.find(b => b.id === c.biz_id);
-          return b ? { card: c, biz: b } : null;
+          if (!b) return null;
+          if (activeCity && activeCity !== 'todas' && b.city_slug !== activeCity) return null;
+          return { card: c, biz: b };
         }).filter(Boolean);
         
         setSuggestions(mapped);
@@ -180,7 +184,7 @@ export default function WalletView({ T, dark, user, setShowAuth }) {
       console.error(e);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, activeCity]);
 
   useEffect(() => { load(); }, [load]);
 
