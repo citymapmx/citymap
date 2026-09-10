@@ -665,7 +665,8 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                               : { display: 'flex', alignItems: 'center', justifyContent: 'center' }
                           }>
                             {totalInCart === 0 ? (
-                              <button 
+                              <m.button 
+                                whileTap={{ scale: 0.75 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (hasOptions) {
@@ -674,10 +675,10 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                                     handleAddWithToast(productWithCategory, [], "", 1, business.id);
                                   }
                                 }}
-                                style={{ width: 32, height: 32, borderRadius: '50%', background: '#374151', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                                style={{ width: 32, height: 32, borderRadius: '50%', background: '#374151', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, outline: 'none' }}
                               >
                                 <Icon name="plus" size={16} color="#FFF" />
-                              </button>
+                              </m.button>
                             ) : (
                               <div 
                                 onClick={(e) => { 
@@ -689,7 +690,8 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                                 }} 
                                 style={{ display: 'flex', alignItems: 'center', background: dark ? '#1E293B' : '#FFFFFF', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 24, padding: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
                               >
-                                <button 
+                                <m.button 
+                                  whileTap={{ scale: 0.8 }}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (hasOptions) {
@@ -702,12 +704,13 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                                        else updateQuantity(cartItem.id, cartItem.quantity - 1);
                                     }
                                   }}
-                                  style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                ><Icon name="minus" size={16} color="#374151" /></button>
+                                  style={{ width: 28, height: 28, borderRadius: '50%', background: dark ? '#334155' : '#F1F5F9', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', outline: 'none' }}
+                                ><Icon name="minus" size={16} color="#374151" /></m.button>
                                 
                                 <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', minWidth: 24, textAlign: 'center' }}>{totalInCart}</div>
                                 
-                                <button 
+                                <m.button 
+                                  whileTap={{ scale: 0.8 }}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (hasOptions) {
@@ -716,8 +719,8 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                                        handleAddWithToast(productWithCategory, [], "", 1, business.id);
                                     }
                                   }}
-                                  style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                ><Icon name="plus" size={16} color="#374151" /></button>
+                                  style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', outline: 'none' }}
+                                ><Icon name="plus" size={16} color="#374151" /></m.button>
                               </div>
                             )}
                           </div>

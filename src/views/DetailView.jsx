@@ -405,15 +405,17 @@ export default function DetailView() {
                   <Icon name="chevron" size={26} color="#fff" style={{ transform: "rotate(180deg)", filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                 </button>
                 <div style={{ display: "flex", gap: 0 }}>
-                  <button aria-label="Añadir a plan" className="press" onClick={e => { e.stopPropagation(); haptic("light"); setItineraryTargetBiz(selected); setShowItineraryModal(true); }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <m.button whileTap={{ scale: 0.85 }} aria-label="Añadir a plan" className="press" onClick={e => { e.stopPropagation(); haptic("light"); setItineraryTargetBiz(selected); setShowItineraryModal(true); }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon name="plus" size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
-                  </button>
-                  <button aria-label={favIds.includes(selected.id) ? "Quitar de favoritos" : "Añadir a favoritos"} className="press" onClick={e => { haptic("light"); toggleFav(selected.id, e); }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Icon name={favIds.includes(selected.id) ? "heart_overlay_f" : "heart_overlay"} size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
-                  </button>
-                  <button aria-label="Compartir" className="press" onClick={e => doShare(selected, e)} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  </m.button>
+                  <m.button whileTap={{ scale: 0.85 }} aria-label={favIds.includes(selected.id) ? "Quitar de favoritos" : "Añadir a favoritos"} className="press" onClick={e => { haptic("light"); toggleFav(selected.id, e); }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <m.div key={favIds.includes(selected.id) ? 'fav' : 'unfav'} initial={{ scale: 0.5 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 15 }}>
+                      <Icon name={favIds.includes(selected.id) ? "heart_overlay_f" : "heart_overlay"} size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
+                    </m.div>
+                  </m.button>
+                  <m.button whileTap={{ scale: 0.85 }} aria-label="Compartir" className="press" onClick={e => doShare(selected, e)} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon name="share" size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
-                  </button>
+                  </m.button>
                 </div>
               </div>
               {/* Pill distance if available */}
@@ -1119,7 +1121,7 @@ export default function DetailView() {
             {!selected.user_id && (
               <div style={{ marginTop: 24, paddingTop: 24, borderTop: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, textAlign: "center" }}>
                 <div className="text-sm" style={{ color: dSub, marginBottom: 12 }}>¿Eres el dueño o administrador de {selected.name}?</div>
-                <button className="press" onClick={() => { if(!user){ setShowAuth(true); toast$("Inicia sesión para reclamar este negocio"); return; } setClaimBiz(selected); }} style={{ padding: "10px 20px", background: isElite ? dCard : T.white, border: `1.5px solid ${isElite ? "rgba(255,255,255,0.2)" : T.border}`, borderRadius: 20, fontSize: 13, fontWeight: 700, color: dText, cursor: "pointer", fontFamily: "inherit", boxShadow: isElite ? "none" : T.shadow }}>Reclamar este negocio</button>
+                <m.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="press" onClick={() => { if(!user){ setShowAuth(true); toast$("Inicia sesión para reclamar este negocio"); return; } setClaimBiz(selected); }} style={{ padding: "10px 20px", background: isElite ? dCard : T.white, border: `1.5px solid ${isElite ? "rgba(255,255,255,0.2)" : T.border}`, borderRadius: 20, fontSize: 13, fontWeight: 700, color: dText, cursor: "pointer", fontFamily: "inherit", boxShadow: isElite ? "none" : T.shadow, outline: 'none' }}>Reclamar este negocio</m.button>
               </div>
             )}
           </div>
