@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useNavigationType } from "react-router-dom";
 
 import { m, AnimatePresence } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
@@ -172,6 +172,8 @@ const TikTokBlock = ({ url, videoId }) => {
 };
 
 export default function DetailView() {
+  const navType = useNavigationType();
+  const isPop = navType === "POP";
   const ctx = useAppContext();
   const routerNavigate = useNavigate();
 
@@ -362,7 +364,7 @@ export default function DetailView() {
 
   return (
     <m.div 
-      initial={{ scale: 0.96, opacity: 0 }}
+      initial={isPop ? false : { scale: 0.96, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.96, opacity: 0 }}
       transition={{ type: "spring", damping: 25, stiffness: 350 }}
