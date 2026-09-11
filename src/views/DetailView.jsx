@@ -299,69 +299,6 @@ export default function DetailView() {
           const dCard = T.white;
           const dIconBg = T.iconBg;
           
-  const baseSchema = {
-    "@type": "LocalBusiness",
-    "name": selected.name,
-    "image": selected.photos?.[0]?.url || selected.logo_url || "https://citymap.mx/og-image.png",
-    "description": selected.description || selected.tagline || `Descubre ${selected.name} en CityMap.`,
-    "@id": `https://citymap.mx/${selected.city_slug || activeCity}/${ctx.cleanCityPrefix ? ctx.cleanCityPrefix(selected.slug || createSlug(selected.name), selected.city_slug || activeCity) : createSlug(selected.name)}`,
-    "url": `https://citymap.mx/${selected.city_slug || activeCity}/${ctx.cleanCityPrefix ? ctx.cleanCityPrefix(selected.slug || createSlug(selected.name), selected.city_slug || activeCity) : createSlug(selected.name)}`,
-    "telephone": selected.phone || selected.whatsapp || "",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": selected.address || "",
-      "addressLocality": (selected.city_slug || activeCity).split(',')[0],
-      "addressRegion": "MX",
-      "addressCountry": "MX"
-    },
-    ...(selected.lat && selected.lng && {
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": selected.lat,
-        "longitude": selected.lng
-      }
-    }),
-    ...(selected.rating && selected.review_count && {
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": selected.rating,
-        "reviewCount": selected.review_count
-      }
-    })
-  };
-
-  const schemaOrgJSONLD = {
-    "@context": "https://schema.org",
-    "@graph": [
-      baseSchema,
-      {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "CityMap",
-            "item": "https://citymap.mx"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": ((selected.city_slug || activeCity).split(',')[0] || "Tepic").replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            "item": `https://citymap.mx/${selected.city_slug || activeCity}`
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
-            "name": selected.name,
-            "item": baseSchema.url
-          }
-        ]
-      }
-    ]
-  };
-
-  const canonicalUrl = baseSchema.url;
-
   return (
     <m.div 
       initial={isPop ? false : { scale: 0.96, opacity: 0 }}
@@ -378,14 +315,6 @@ export default function DetailView() {
                   }
                 }}
     >
-      <Helmet>
-        <title>{selected.name} en CityMap</title>
-        <meta name="description" content={baseSchema.description} />
-        <link rel="canonical" href={canonicalUrl} />
-      </Helmet>
-      
-      {/* Schema.org Injection */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrgJSONLD).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') }} />
       <div 
         onClick={e => e.stopPropagation()}
         style={{ width: "100%", maxWidth: 600, height: "100%", overflowY: "auto", overflowX: "hidden", background: T.bg, position: "relative", boxShadow: "0 0 40px rgba(0,0,0,0.1)" }}
