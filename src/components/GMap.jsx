@@ -1,32 +1,66 @@
 import React, { useState, useEffect, useRef } from "react";
+import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { GMAPS_KEY } from "../lib/supabase.js";
 import { CAT_EMOJI, getThumbUrl } from "../lib/utils.js";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGMaps() {
   const [ok, setOk] = useState(!!window.google?.maps);
   useEffect(() => { 
-    if (window.google?.maps) return; 
+    if (window.google?.maps) {
+      setOk(true);
+      return; 
+    }
     const s = document.getElementById("gms") || (() => { 
       const el = document.createElement("script"); 
       el.id = "gms"; 
-      el.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&libraries=places,marker`; 
+      el.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&libraries=places`; 
       el.async = true; 
-      el.onload = () => setOk(true); 
       document.head.appendChild(el); 
       return el; 
     })(); 
-    if (!ok) s.onload = () => setOk(true); 
-  }, [ok]);
+    
+    const onLoad = () => setOk(true);
+    s.addEventListener("load", onLoad);
+    if (window.google?.maps) setOk(true);
+    
+    return () => s.removeEventListener("load", onLoad);
+  }, []);
   return ok;
 }
 
-const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocation, onRequestLocation, categories = [], radiusKm, onBoundsChanged }) {
+function flyToLocation(mapInstance, lat, lng, targetZoom = 15) {
+  if (!mapInstance) return;
+  
+  // Iniciar el paneo suave
+  mapInstance.panTo({ lat, lng });
+  
+  const currentZoom = mapInstance.getZoom();
+  if (currentZoom === targetZoom) return;
+
+  // Zoom suave directo hacia el objetivo sin "rebotar" hacia atrás
+  const smoothZoom = (targetZ, currentZ) => {
+    if (currentZ === targetZ) return;
+    const step = currentZ < targetZ ? 1 : -1;
+    const nextZoom = currentZ + step;
+    mapInstance.setZoom(nextZoom);
+    setTimeout(() => smoothZoom(targetZ, nextZoom), 80);
+  };
+
+  // Esperar un poco para que el paneo inicie y luego ajustar el zoom suavemente
+  setTimeout(() => smoothZoom(targetZoom, currentZoom), 200);
+}
+
+const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin, userLocation, onRequestLocation, categories = [], radiusKm, utilityFilter, onBoundsChanged, showRoute = false }) {
   const ref = useRef(); 
   const map = useRef(); 
   const pins = useRef([]); 
+  const markerCache = useRef(new Map());
+  const clusterer = useRef(null);
   const infoWin = useRef(null); 
   const userPin = useRef(null);
   const radiusCircle = useRef(null);
+  const utilityPins = useRef([]);
   const ok = useGMaps();
 
   // Trigger Google Maps resize whenever the container changes size (e.g. flex animations)
@@ -42,6 +76,41 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
   }, [ok]);
 
   useEffect(() => {
+    if (!ok || !map.current) return;
+    
+    // Clear old utility pins
+     
+    utilityPins.current.forEach(m => m.setMap(null));
+    utilityPins.current = [];
+
+    if (!utilityFilter) return;
+
+    const service = new window.google.maps.places.PlacesService(map.current);
+    const request = {
+      location: map.current.getCenter(),
+      radius: 5000,
+      type: [utilityFilter]
+    };
+
+    service.nearbySearch(request, (results, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+        results.forEach(place => {
+          if (!place.geometry || !place.geometry.location) return;
+          const iconStr = utilityFilter === 'gas_station' ? '⛽' : utilityFilter === 'atm' ? '🏧' : '💊';
+          const marker = new window.google.maps.Marker({
+            map: map.current,
+            position: place.geometry.location,
+            title: place.name,
+            label: { text: iconStr, fontSize: "20px" },
+            icon: { path: window.google.maps.SymbolPath.CIRCLE, scale: 0 }
+          });
+          utilityPins.current.push(marker);
+        });
+      }
+    });
+  }, [ok, utilityFilter]);
+
+  useEffect(() => {
     if (!ok || !ref.current) return;
 
     // Init map once
@@ -52,6 +121,9 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
         disableDefaultUI: true,
         zoomControl: false,
         gestureHandling: "greedy",
+        tilt: 0,
+        maxZoom: 18,
+        minZoom: 10,
         styles: [
           { featureType: "poi", stylers: [{ visibility: "off" }] },
           { featureType: "poi.business", stylers: [{ visibility: "off" }] },
@@ -87,11 +159,17 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
     }
 
     // Clear old business markers
+    if (clusterer.current) {
+      clusterer.current.clearMarkers();
+    }
+     
     pins.current.forEach(m => m.setMap(null));
     pins.current = [];
 
     // ── User location marker & Radius ──
+     
     if (userPin.current) { userPin.current.setMap(null); userPin.current = null; }
+     
     if (radiusCircle.current) { radiusCircle.current.setMap(null); radiusCircle.current = null; }
 
     if (userLocation?.lat && userLocation?.lng) {
@@ -129,12 +207,14 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
       }
 
       // Center map on user if no business is selected
-      if (!selected) {
+      if (!selected && !map.current._hasCentered) {
+        map.current._hasCentered = true;
         if (radiusCircle.current) {
           // Fit bounds to circle if it exists
           map.current.fitBounds(radiusCircle.current.getBounds(), { top: 60, bottom: 60, left: 20, right: 20 });
         } else {
           map.current.panTo({ lat: userLocation.lat, lng: userLocation.lng });
+           
           map.current.setZoom(14);
         }
       }
@@ -146,18 +226,18 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
         super();
         this.position = position;
         this.content = content;
+        this.onMarkerClick = onClick;
         this.div = document.createElement("div");
         this.div.style.position = "absolute";
         this.div.style.cursor = "pointer";
         this.div.title = title;
         this.div.style.zIndex = zIndex;
+        
         this.div.appendChild(this.content);
-        if (onClick) {
-          this.div.addEventListener("click", (e) => {
-            e.stopPropagation();
-            onClick();
-          });
-        }
+        this.div.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (this.onMarkerClick) this.onMarkerClick();
+        });
       }
       onAdd() {
         this.getPanes().overlayMouseTarget.appendChild(this.div);
@@ -167,108 +247,274 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
         if (pos) {
           this.div.style.left = pos.x + "px";
           this.div.style.top = pos.y + "px";
-          this.div.style.transform = "translate(-50%, -50%)"; // anchor center
+          
+          if (this.lastClusterPosition) {
+            const oldPos = this.getProjection().fromLatLngToDivPixel(this.lastClusterPosition);
+            if (oldPos) {
+              const dx = oldPos.x - pos.x;
+              const dy = oldPos.y - pos.y;
+              // Reset transition and apply offset transform
+              this.div.style.transition = "none";
+              this.div.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+              
+              // Force reflow
+              void this.div.offsetWidth;
+              
+              // Animate to origin
+              this.div.style.transition = "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)";
+              this.div.style.transform = "translate(-50%, -50%)";
+            } else {
+              this.div.style.transform = "translate(-50%, -50%)";
+            }
+            this.lastClusterPosition = null;
+          } else if (!this.div.style.transition) {
+            this.div.style.transform = "translate(-50%, -50%)";
+          }
         }
       }
       onRemove() {
         if (this.div.parentNode) this.div.parentNode.removeChild(this.div);
       }
+      getPosition() { return this.position; }
+      getVisible() { return true; }
     }
+
+    const newPins = [];
 
     businesses.forEach(biz => {
       if (!biz.lat || !biz.lng) return;
       const sel = selected?.id === biz.id;
-      const emoji = biz.emoji || categories.find(c => c.id === biz.category)?.icon || CAT_EMOJI[biz.category] || "📍";
+      const cacheKey = "pin_" + biz.id;
 
-      // Dispersión Automática (Jittering) basada en el ID para evitar empalmes perfectos
-      const strId = String(biz.id);
-      const hash = (strId.charCodeAt(0) || 0) + (strId.charCodeAt(strId.length - 1) || 0) + strId.length;
-      const offsetLat = ((hash % 10) - 5) * 0.00004; // ~4 metros max offset
-      const offsetLng = (((hash * 3) % 10) - 5) * 0.00004;
+      let m = markerCache.current.get(cacheKey);
 
-      const isPremiumLogo = (biz.plan === "premium" || biz.plan === "destacado" || biz.plan === "pro") && biz.logo_url;
-      const size = isPremiumLogo ? (sel ? 38 : 30) : (sel ? 44 : 36);
-      const content = document.createElement("div");
-      content.style.width = `${size}px`;
-      content.style.height = `${size}px`;
-      content.style.display = "flex";
-      content.style.alignItems = "center";
-      content.style.justifyContent = "center";
-      content.style.transition = "all 0.2s ease";
+      if (!m) {
+        const emoji = biz.emoji || categories.find(c => c.id === biz.category)?.icon || CAT_EMOJI[biz.category] || "📍";
 
-      if (isPremiumLogo) {
-        content.style.borderRadius = "50%";
-        content.style.boxShadow = "0 3px 6px rgba(0,0,0,0.4)";
-        content.style.background = "#fff";
-        content.style.border = sel ? "2px solid #3B82F6" : "1px solid #e5e7eb";
-        content.style.position = "relative";
-        
-        const spinner = document.createElement("div");
-        spinner.style.position = "absolute";
-        spinner.style.inset = "0";
-        spinner.style.display = "flex";
-        spinner.style.alignItems = "center";
-        spinner.style.justifyContent = "center";
-        spinner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>`;
-        content.appendChild(spinner);
-        
-        const img = document.createElement("img");
-        img.src = getThumbUrl(biz.logo_url, 100, 100);
-        img.style.width = "100%";
-        img.style.height = "100%";
-        img.style.objectFit = "cover";
-        img.style.borderRadius = "50%";
-        img.style.padding = "1px";
-        img.style.boxSizing = "border-box";
-        img.style.opacity = "0"; // oculto hasta que cargue
-        img.style.transition = "opacity 0.2s";
-        
-        img.onload = () => {
-          if (spinner.parentNode) spinner.parentNode.removeChild(spinner);
-          img.style.opacity = "1";
-        };
-        
-        img.onerror = () => {
-          if (spinner.parentNode) spinner.parentNode.removeChild(spinner);
-          img.style.display = "none";
-          const fallback = document.createElement("div");
-          fallback.innerText = "📍";
-          fallback.style.fontSize = "16px";
-          fallback.style.lineHeight = "1";
-          content.appendChild(fallback);
-        };
-        
-        content.appendChild(img);
-      } else {
-        const emojiVal = biz.emoji || categories.find(c => c.id === biz.category)?.icon || CAT_EMOJI[biz.category] || "📍";
-        const cleanEmoji = typeof emojiVal === 'string' ? emojiVal.trim() : emojiVal;
-        const isImg = typeof cleanEmoji === 'string' && (cleanEmoji.toLowerCase().endsWith('.svg') || cleanEmoji.toLowerCase().endsWith('.png'));
+        // Dispersión Automática (Jittering) basada en el ID para evitar empalmes perfectos
+        const strId = String(biz.id);
+        const hash = (strId.charCodeAt(0) || 0) + (strId.charCodeAt(strId.length - 1) || 0) + strId.length;
+        const offsetLat = ((hash % 10) - 5) * 0.00004; // ~4 metros max offset
+        const offsetLng = (((hash * 3) % 10) - 5) * 0.00004;
 
-        if (isImg) {
+        const isPremiumLogo = (biz.plan === "premium" || biz.plan === "destacado" || biz.plan === "pro") && biz.logo_url;
+        const size = isPremiumLogo ? (sel ? 38 : 30) : (sel ? 44 : 36);
+        const content = document.createElement("div");
+        content.style.width = `${size}px`;
+        content.style.height = `${size}px`;
+        content.style.display = "flex";
+        content.style.alignItems = "center";
+        content.style.justifyContent = "center";
+        content.style.transition = "all 0.2s ease";
+
+        if (isPremiumLogo) {
+          content.style.borderRadius = "50%";
+          content.style.boxShadow = "0 3px 6px rgba(0,0,0,0.4)";
+          content.style.background = "#fff";
+          content.style.border = sel ? "2px solid #3B82F6" : "1px solid #e5e7eb";
+          content.style.position = "relative";
+          
+          const spinner = document.createElement("div");
+          spinner.style.position = "absolute";
+          spinner.style.inset = "0";
+          spinner.style.display = "flex";
+          spinner.style.alignItems = "center";
+          spinner.style.justifyContent = "center";
+          spinner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>`;
+          content.appendChild(spinner);
+          
           const img = document.createElement("img");
-          img.src = `/${cleanEmoji}`;
-          img.style.width = `${sel ? 28 : 22}px`;
-          img.style.height = `${sel ? 28 : 22}px`;
-          img.style.objectFit = "contain";
-          img.style.filter = "drop-shadow(0 3px 6px rgba(0,0,0,0.4))";
+          img.src = getThumbUrl(biz.logo_url, 100, 100);
+          img.style.width = "100%";
+          img.style.height = "100%";
+          img.style.objectFit = "cover";
+          img.style.borderRadius = "50%";
+          img.style.padding = "1px";
+          img.style.boxSizing = "border-box";
+          img.style.opacity = "0"; // oculto hasta que cargue
+          img.style.transition = "opacity 0.2s";
+          
+          img.onload = () => {
+            if (spinner.parentNode) spinner.parentNode.removeChild(spinner);
+            img.style.opacity = "1";
+          };
+          
+          img.onerror = () => {
+            if (spinner.parentNode) spinner.parentNode.removeChild(spinner);
+            img.style.display = "none";
+            const fallback = document.createElement("div");
+            fallback.innerText = "📍";
+            fallback.style.fontSize = "16px";
+            fallback.style.lineHeight = "1";
+            content.appendChild(fallback);
+          };
+          
           content.appendChild(img);
         } else {
-          content.innerText = cleanEmoji;
-          content.style.fontSize = `${sel ? 28 : 22}px`;
-          content.style.textShadow = "0 3px 6px rgba(0,0,0,0.4)";
-        }
-      }
+          const emojiVal = biz.emoji || categories.find(c => c.id === biz.category)?.icon || CAT_EMOJI[biz.category] || "📍";
+          const cleanEmoji = typeof emojiVal === 'string' ? emojiVal.trim() : emojiVal;
+          const isImg = typeof cleanEmoji === 'string' && (cleanEmoji.toLowerCase().endsWith('.svg') || cleanEmoji.toLowerCase().endsWith('.png'));
 
-      const m = new HTMLMarker(
-        new window.google.maps.LatLng(parseFloat(biz.lat) + offsetLat, parseFloat(biz.lng) + offsetLng),
-        content,
-        biz.name,
-        sel ? 999 : 1,
-        () => onPin(biz)
-      );
-      m.setMap(map.current);
-      pins.current.push(m);
+          if (isImg) {
+            const img = document.createElement("img");
+            img.src = `/${cleanEmoji}`;
+            img.style.width = `${sel ? 28 : 22}px`;
+            img.style.height = `${sel ? 28 : 22}px`;
+            img.style.objectFit = "contain";
+            img.style.filter = "drop-shadow(0 3px 6px rgba(0,0,0,0.4))";
+            content.appendChild(img);
+          } else {
+            content.innerText = cleanEmoji;
+            content.style.fontSize = `${sel ? 28 : 22}px`;
+            content.style.textShadow = "0 3px 6px rgba(0,0,0,0.4)";
+          }
+        }
+
+        // 2. Animación de rebote (pulse) para los eventos del día
+        const isEvent = biz.type === 'event' || biz.category === 'eventos' || biz.event_category;
+        if (isEvent && biz.date) {
+          try {
+            const nowStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            if (biz.date === nowStr || biz.date <= nowStr && (biz.end_date && biz.end_date >= nowStr)) {
+              content.classList.add("gmap-event-pulse");
+            }
+          } catch (e) { console.error(e); }
+        }
+
+        m = new HTMLMarker(
+          new window.google.maps.LatLng(parseFloat(biz.lat) + offsetLat, parseFloat(biz.lng) + offsetLng),
+          content,
+          biz.name,
+          sel ? 999 : 1,
+          () => onPin(biz)
+        );
+        markerCache.current.set(cacheKey, m);
+      } else {
+        // Asegurar que el zIndex se mantiene correcto aunque reciclemos
+        m.div.style.zIndex = sel ? 999 : 1;
+        // Solo para estar seguros de llamar a la última función onPin
+        m.onMarkerClick = () => onPin(biz);
+        m.div.onclick = null; // Clean up old double-firing listener if any
+      }
+      
+      newPins.push(m);
     });
+
+    // RENDER EVENTS (UP TO 3 DAYS IN ADVANCE)
+    const todayObj = new Date();
+    todayObj.setHours(0,0,0,0);
+    
+    events.forEach(ev => {
+      if (!ev.lat || !ev.lng || !ev.date) return;
+      
+      const evDate = new Date(ev.date + "T00:00:00");
+      const diffTime = evDate - todayObj;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Only show if it is today, or up to 4 days in the future
+      if (diffDays < 0 || diffDays > 4) return;
+      const cacheKey = "event_" + ev.id;
+      let m = markerCache.current.get(cacheKey);
+
+      if (!m) {
+        const size = 46;
+        const content = document.createElement("div");
+        content.style.width = `${size}px`;
+        content.style.height = `${size}px`;
+        content.style.display = "flex";
+        content.style.alignItems = "center";
+        content.style.justifyContent = "center";
+        content.style.transition = "all 0.2s ease";
+        content.style.borderRadius = "50%";
+        content.style.boxShadow = "0 4px 16px rgba(0, 0, 0, 0.6)";
+        content.style.background = "#000";
+        content.style.border = "3px solid #fff";
+        content.style.position = "relative";
+        content.style.zIndex = "999";
+        content.className = "party-pin";
+        
+        // El emoji de fiesta
+        const eDiv = document.createElement("div");
+        eDiv.textContent = "🎉";
+        eDiv.style.fontSize = "22px";
+        eDiv.style.lineHeight = "1";
+        eDiv.style.transform = "translateY(-1px)";
+        content.appendChild(eDiv);
+
+        content.addEventListener("click", () => {
+          if (onPin) onPin({ ...ev, _isEvent: true });
+        });
+
+        m = new HTMLMarker(new window.google.maps.LatLng(ev.lat, ev.lng), content);
+        markerCache.current.set(cacheKey, m);
+      }
+      
+      // Update active state based on selected
+      const sel = selected?.id === ev.id;
+      m.content.style.border = sel ? "4px solid #FCD34D" : "3px solid #fff";
+      m.content.style.transform = sel ? "scale(1.15)" : "scale(1)";
+
+      if (m.getMap() !== map.current) m.setMap(map.current);
+      newPins.push(m);
+    });
+    
+    const oldPinsSet = new Set(pins.current || []);
+    const newPinsSet = new Set(newPins);
+    
+    const pinsToAdd = newPins.filter(p => !oldPinsSet.has(p));
+    const pinsToRemove = (pins.current || []).filter(p => !newPinsSet.has(p));
+
+    pins.current = newPins;
+
+    // 3. Inicializar el MarkerClusterer oficial
+    const renderer = {
+      render: (cluster, stats, map) => {
+        if (cluster.markers) {
+          cluster.markers.forEach(m => {
+            m.lastClusterPosition = cluster.position;
+          });
+        }
+        
+        const content = document.createElement("div");
+        content.style.width = "30px";
+        content.style.height = "30px";
+        content.style.backgroundColor = "rgba(15, 23, 42, 0.85)"; 
+        content.style.color = "#fff";
+        content.style.borderRadius = "50%";
+        content.style.display = "flex";
+        content.style.alignItems = "center";
+        content.style.justifyContent = "center";
+        content.style.fontSize = "13px";
+        content.style.fontWeight = "800";
+        content.style.border = "none";
+        content.style.backdropFilter = "blur(4px)";
+        content.style.WebkitBackdropFilter = "blur(4px)";
+        content.style.boxShadow = "0 4px 12px rgba(0,0,0,0.25)";
+        content.innerText = String(cluster.count);
+
+        return new HTMLMarker(cluster.position, content, `${cluster.count} lugares`, 100, () => {
+          if (cluster.bounds) map.fitBounds(cluster.bounds, { padding: 50 });
+        });
+      }
+    };
+
+    if (clusterer.current) {
+      clusterer.current.renderer = renderer;
+      if (pinsToRemove.length > 0) {
+        clusterer.current.removeMarkers(pinsToRemove, true);
+      }
+      if (pinsToAdd.length > 0) {
+        clusterer.current.addMarkers(pinsToAdd, false);
+      } else if (pinsToRemove.length > 0) {
+        clusterer.current.render();
+      }
+    } else {
+      clusterer.current = new MarkerClusterer({
+        map: map.current,
+        markers: pins.current,
+        renderer: renderer
+      });
+    }
 
     // Clear previous route
     if (map.current._activeRoute) {
@@ -279,60 +525,43 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
     // Handle pin selection and route drawing
     if (selected?.lat && selected?.lng) {
       const dest = { lat: parseFloat(selected.lat), lng: parseFloat(selected.lng) };
-      
-      // Draw route if user location is available
-      if (userLocation?.lat && userLocation?.lng) {
-        const origin = { lat: userLocation.lat, lng: userLocation.lng };
-        
-        // Zoom to fit the route
-        const bounds = new window.google.maps.LatLngBounds();
-        bounds.extend(origin);
-        bounds.extend(dest);
-        
-        // Padding para que no quede pegado a los bordes
-        map.current.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
 
-        const reqId = Date.now();
-        map.current._routeRequestId = reqId;
+      if (showRoute && userLocation?.lat && userLocation?.lng && window.google?.maps) {
+        // Draw a driving route in fullscreen mode
+        const directionsService = new window.google.maps.DirectionsService();
+        const directionsRenderer = new window.google.maps.DirectionsRenderer({
+          suppressMarkers: true,
+          polylineOptions: {
+            strokeColor: "#6366F1",
+            strokeWeight: 5,
+            strokeOpacity: 0.85,
+          },
+        });
+        directionsRenderer.setMap(map.current);
+        map.current._activeRoute = directionsRenderer;
 
-        try {
-          const ds = new window.google.maps.DirectionsService();
-          const dr = new window.google.maps.DirectionsRenderer({
-            map: map.current,
-            suppressMarkers: true,
-            preserveViewport: true // We manually call fitBounds
-          });
-          
-          ds.route({ origin, destination: dest, travelMode: 'DRIVING' }, (res, status) => {
-            // Check if selection changed while fetching route (avoid closure capture bugs)
-            if (map.current._routeRequestId !== reqId) {
-              dr.setMap(null);
-              return;
-            }
-            
-            if (status === 'OK') {
-              dr.setDirections(res);
-              map.current._activeRoute = dr;
+        directionsService.route(
+          {
+            origin: { lat: userLocation.lat, lng: userLocation.lng },
+            destination: dest,
+            travelMode: window.google.maps.TravelMode.DRIVING,
+          },
+          (result, status) => {
+            if (status === "OK") {
+              directionsRenderer.setDirections(result);
             } else {
-              // Fallback to straight line with Google Maps blue style
-              map.current._activeRoute = new window.google.maps.Polyline({
-                path: [origin, dest], strokeColor: "#3B82F6", strokeOpacity: 0.9, strokeWeight: 6, map: map.current
-              });
+              // Fallback: just pan if route fails
+              flyToLocation(map.current, dest.lat, dest.lng, 15);
             }
-          });
-        } catch(e) {
-          if (map.current._routeRequestId !== reqId) return;
-          map.current._activeRoute = new window.google.maps.Polyline({
-            path: [origin, dest], strokeColor: "#1A73E8", strokeOpacity: 0.9, strokeWeight: 6, map: map.current
-          });
-        }
+          }
+        );
       } else {
-        // If no user location, just pan to the pin
-        map.current.panTo(dest);
-        map.current.setZoom(15);
+        // Mini map mode: just pan to the pin without drawing a route
+        flyToLocation(map.current, dest.lat, dest.lng, 15);
       }
     }
-  }, [ok, businesses, selected, userLocation]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ok, businesses, selected, userLocation, showRoute]);
 
   if (!ok) return (
     <div style={{ width: "100%", height: "100%", background: "#F2F4F2", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
@@ -343,6 +572,15 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
   
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <style>{`
+        @keyframes gmapBounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .gmap-event-pulse {
+          animation: gmapBounce 1s infinite ease-in-out;
+        }
+      `}</style>
       <div ref={ref} style={{ width: "100%", height: "100%" }} />
       <div style={{
         position: "absolute",
@@ -361,8 +599,7 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
             e.stopPropagation();
             if (onRequestLocation) onRequestLocation();
             if (userLocation?.lat && userLocation?.lng && map.current) {
-              map.current.panTo({ lat: userLocation.lat, lng: userLocation.lng });
-              map.current.setZoom(15);
+              flyToLocation(map.current, userLocation.lat, userLocation.lng, 15);
             }
           }}
           style={{
@@ -427,7 +664,8 @@ const GMap = React.memo(function GMap({ businesses, selected, onPin, userLocatio
     prev.selected?.id === next.selected?.id &&
     prev.userLocation?.lat === next.userLocation?.lat &&
     prev.userLocation?.lng === next.userLocation?.lng &&
-    prev.categories === next.categories
+    prev.categories === next.categories &&
+    prev.utilityFilter === next.utilityFilter
   );
 });
 

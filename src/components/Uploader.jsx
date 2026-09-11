@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from "react";
 import { cloudUpload, cloudUploadPDF } from "../lib/supabase.js";
-import imageCompression from 'browser-image-compression';
 import Icon from "./ui/Icon.jsx";
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from "../lib/cropImage.js";
@@ -81,6 +80,7 @@ export default function Uploader({ onDone, label = "Subir foto", accept = "image
             fileType: 'image/webp'
           };
           try {
+            const imageCompression = (await import('browser-image-compression')).default;
             const compressed = await imageCompression(file, options);
             const newName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
             fileToUpload = new File([compressed], newName, { type: 'image/webp' });

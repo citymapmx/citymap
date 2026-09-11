@@ -48,7 +48,7 @@ export class GlobalErrorBoundary extends React.Component {
               try {
                 const regs = await navigator.serviceWorker.getRegistrations();
                 for (let r of regs) await r.unregister();
-              } catch(e) {}
+              } catch (e) { console.error(e); }
             }
             window.location.reload(); 
           }} style={{ padding: '12px 24px', background: '#1A7A5E', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>

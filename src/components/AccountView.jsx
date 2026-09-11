@@ -1,15 +1,16 @@
-import { lazy, Suspense, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from './ui/Icon.jsx';
 import Uploader from './Uploader.jsx';
 import { sb } from '../lib/supabase.js';
-import { FONT_BIZ } from '../lib/constants.js';
 import { isOpenNow, createSlug, cleanCityPrefix } from '../lib/utils.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { useDataStore } from '../store/useDataStore.js';
 import { useAppContext } from '../context/AppContext';
-import { getThumbUrl } from '../lib/utils.js';
 import Footer from './Footer.jsx';
+import LoyaltyDesigner from './loyalty/LoyaltyDesigner.jsx';
+import { useTranslation } from '../hooks/useTranslation.js';
 export default function AccountView({
   user, profile, isAdmin, T, dark, favIds, reviews,
   wallet, coupons, claimedCoupons, biz, myBizList,
@@ -18,6 +19,7 @@ export default function AccountView({
   doSignOut, toast$, viewStyle, setUser, authChecked,
   setShowAdmin, setShowPlans, setDark, setStoreAdminBiz
 }) {
+  const { t, lang } = useTranslation();
   const isOpen = isOpenNow;
   const { installPromptEvent, setInstallPromptEvent } = useUIStore();
   const { events } = useDataStore();
@@ -31,11 +33,13 @@ export default function AccountView({
   const [editPhoto, setEditPhoto] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [qrModalBiz, setQrModalBiz] = useState(null);
+  const [loyaltyDesignerBiz, setLoyaltyDesignerBiz] = useState(null);
 
   const [myClaims, setMyClaims] = useState([]);
   useEffect(() => {
     if (!user) return;
     sb.get("business_claims", `?user_id=eq.${user.id}`).then(res => {
+       
       if (Array.isArray(res)) setMyClaims(res);
     });
   }, [user]);
@@ -59,7 +63,7 @@ export default function AccountView({
         if (authSt.profile) authSt.setProfile({ ...authSt.profile, name: editName, avatar_url: editPhoto });
       }
       setIsEditingProfile(false);
-      toast$("Perfil actualizado ✓");
+      toast$(t("perfil_actualizado", "Perfil actualizado ✓"));
     } catch (e) {
       toast$(e.message);
     } finally {
@@ -69,46 +73,47 @@ export default function AccountView({
 
   const menuGroups = [
     {
-      title: "Cuenta",
+      title: t("cuenta", "Cuenta"),
       items: [
-        { label: "Mis Favoritos", icon: "heart", act: "favs" },
-        { label: "Mis Planes (Itinerarios)", icon: "map", act: "itineraries" },
-        { label: "Editar perfil", icon: "user", act: "edit_profile" },
-        { label: "Notificaciones", icon: "bell", act: "notif" },
+        { label: t("mis_favoritos", "Mis Favoritos"), icon: "heart", act: "favs" },
+        { label: t("mis_planes_itin", "Mis Planes (Itinerarios)"), icon: "map", act: "itineraries" },
+        { label: t("editar_perfil", "Editar perfil"), icon: "user", act: "edit_profile" },
+        { label: t("notificaciones", "Notificaciones"), icon: "bell", act: "user_notifs" },
+        ...(isAdmin ? [{ label: "Notificaciones de Admin", icon: "shield", act: "admin_notifs" }] : [])
       ]
     },
     {
       title: myBizList.filter(b => b.status === "approved").length === 1 
-        ? `Mi Negocio (${myBizList.filter(b => b.status === "approved")[0].name})` 
-        : "Mi Negocio",
+        ? `${t("mi_negocio", "Mi Negocio")} (${myBizList.filter(b => b.status === "approved")[0].name})` 
+        : t("mi_negocio", "Mi Negocio"),
       items: [
         ...myBizList.filter(b => b.status === "approved").flatMap(b => {
           const items = [];
-          if (b.plan && b.plan !== "free") {
-            items.push({ label: "Reservaciones", icon: "calendar", act: `owner_res_${b.id}` });
+          if (b.plan && b.plan !== "free" && b.plan !== "gratis") {
+            items.push(
+              { label: t("reservaciones", "Reservaciones"), icon: "calendar", act: `owner_res_${b.id}` },
+              { label: "Estadísticas", icon: "trending", act: `owner_stats_${b.id}` },
+              { label: "Tarjetas de Lealtad (Wallet)", icon: "award", act: `owner_loyalty_${b.id}` },
+              { label: t("descargar_qr", "Descargar Códigos QR"), icon: "grid", act: `owner_qr_${b.id}` }
+            );
+          }
+          if (b.plan === "premium" || b.plan === "elite" || b.plan === "pro") {
+            items.push({ label: t("editar_menu_cat", "Editar menú o catálogo"), icon: "list", act: `owner_menu_${b.id}` });
           }
           items.push(
-            { label: "Editar menú o catálogo", icon: "list", act: `owner_menu_${b.id}` },
-            { label: "Editar negocio", icon: "edit", act: `owner_edit_${b.id}` },
-            { label: "Descargar Códigos QR", icon: "grid", act: `owner_qr_${b.id}` }
+            { label: t("editar_negocio", "Editar negocio"), icon: "edit", act: `owner_edit_${b.id}` }
           );
           return items;
         }),
-        ...(!isAdmin ? [{ label: "Agregar mi negocio", icon: "plus", act: "add_biz" }] : []),
-        { label: "Planes y precios", icon: "award", act: "plans" },
+        ...(!isAdmin ? [{ label: t("agregar_negocio", "Agregar mi negocio"), icon: "plus", act: "add_biz" }] : []),
+        { label: t("planes_precios", "Planes y precios"), icon: "award", act: "plans" },
       ]
     },
     {
-      title: "Preferencias",
+      title: t("app", "App"),
       items: [
-        { label: "Modo Oscuro", icon: dark ? "moon" : "sun", act: "toggle_dark" },
-      ]
-    },
-    {
-      title: "App",
-      items: [
-        { label: "Sobre CityMap", icon: "info", act: "about" },
-        ...(!isStandalone && (installPromptEvent || isIOS) ? [{ label: "Instalar App", icon: "download", act: "install_pwa" }] : []),
+        { label: t("sobre_citymap", "Sobre CityMap"), icon: "info", act: "about" },
+        ...(!isStandalone && (installPromptEvent || isIOS) ? [{ label: t("instalar_app", "Instalar App"), icon: "download", act: "install_pwa" }] : []),
       ]
     }
   ];
@@ -119,18 +124,23 @@ export default function AccountView({
     if (act === "toggle_dark") setDark(!dark);
     if (act === "install_pwa") {
       if (installPromptEvent) { installPromptEvent.prompt(); installPromptEvent.userChoice.then(r => { if (r.outcome === 'accepted') setInstallPromptEvent(null); }); }
-      else if (isIOS) toast$("Toca 'Compartir' ⬆ y luego 'Agregar a Inicio' 📱");
+      else if (isIOS) toast$(t("instruccion_ios", "Toca 'Compartir' ⬆ y luego 'Agregar a Inicio' 📱"));
     } else if (act === "edit_profile") startEditProfile();
     else if (act === "favs") navigate("favs");
     else if (act === "itineraries") navigate("itineraries");
     else if (act === "plans") setShowPlans(true);
     else if (act === "add_biz") { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); }
     else if (act === "about") navigate("about");
-    else if (act === "notif") { if (isAdmin) navigate("admin_notifs"); else navigate("user_notifs"); }
+    else if (act === "user_notifs") navigate("user_notifs");
+    else if (act === "admin_notifs") navigate("admin_notifs");
     else if (act === "clear_cache") { if ('serviceWorker' in navigator) { caches.keys().then(n => Promise.all(n.map(c => caches.delete(c)))); } window.location.reload(true); }
     else if (act.startsWith("owner_menu_")) {
       const b = myBizList.find(x => x.id === act.replace("owner_menu_", ""));
       if (b) { setStoreAdminBiz(b); }
+    }
+    else if (act.startsWith("owner_loyalty_")) {
+      const b = myBizList.find(x => x.id === act.replace("owner_loyalty_", ""));
+      if (b) { setLoyaltyDesignerBiz(b); }
     }
     else if (act.startsWith("owner_edit_")) {
       const b = myBizList.find(x => x.id === act.replace("owner_edit_", ""));
@@ -144,7 +154,14 @@ export default function AccountView({
       const b = myBizList.find(x => x.id === act.replace("owner_res_", ""));
       if (b) {
         setOwnerView(b);
-        navigate("manage/" + (b.slug || b.id));
+        navigate("/manage/" + (b.slug || b.id));
+      }
+    }
+    else if (act.startsWith("owner_stats_")) {
+      const b = myBizList.find(x => x.id === act.replace("owner_stats_", ""));
+      if (b) {
+        setOwnerView(b);
+        navigate("/stats/" + (b.slug || b.id));
       }
     }
     else if (act.startsWith("owner_qr_")) {
@@ -158,10 +175,10 @@ export default function AccountView({
       {user ? (<>
 
         {/* ── EDIT PROFILE MODAL ── */}
-        {isEditingProfile && (
+        {isEditingProfile && createPortal(
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px 20px" }} onClick={() => setIsEditingProfile(false)}>
             <div style={{ width: "100%", maxWidth: 420, background: T.white, borderRadius: 24, padding: "28px 24px 28px", animation: "fadeUp .35s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
-              <div style={{ fontWeight: 800, fontSize: 17, color: T.text, marginBottom: 20, textAlign: "center" }}>Editar Perfil</div>
+              <div style={{ fontWeight: 800, fontSize: 17, color: T.text, marginBottom: 20, textAlign: "center" }}>{t("editar_perfil_title", "Editar Perfil")}</div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 20 }}>
                 {editPhoto ? (
                   <div style={{ position: "relative" }}>
@@ -170,34 +187,34 @@ export default function AccountView({
                   </div>
                 ) : (
                   <div style={{ width: 80, height: 80, borderRadius: "50%", background: T.bg, border: `1.5px dashed ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                    <Uploader avatarMode={true} onDone={url => setEditPhoto(url)} label="Foto" aspect={1} />
+                    <Uploader avatarMode={true} onDone={url => setEditPhoto(url)} label={t("foto", "Foto")} aspect={1} />
                   </div>
                 )}
               </div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6, display: "block" }}>Nombre</label>
-              <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Tu nombre" style={{ width: "100%", padding: "12px 14px", border: `1.5px solid ${T.border}`, background: "transparent", borderRadius: 12, fontSize: 15, color: T.text, fontFamily: "inherit", marginBottom: 20 }} />
+              <label style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6, display: "block" }}>{t("nombre", "Nombre")}</label>
+              <input value={editName} onChange={e => setEditName(e.target.value)} placeholder={t("tu_nombre", "Tu nombre")} style={{ width: "100%", padding: "12px 14px", border: `1.5px solid ${T.border}`, background: "transparent", borderRadius: 12, fontSize: 15, color: T.text, fontFamily: "inherit", marginBottom: 20 }} />
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => setIsEditingProfile(false)} style={{ flex: 1, padding: "12px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
-                <button onClick={saveProfile} disabled={savingProfile} style={{ flex: 1, padding: "12px 0", background: T.green, border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#fff", cursor: "pointer", fontFamily: "inherit", opacity: savingProfile ? 0.7 : 1 }}>{savingProfile ? "Guardando..." : "Guardar"}</button>
+                <button onClick={() => setIsEditingProfile(false)} style={{ flex: 1, padding: "12px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>{t("cancelar", "Cancelar")}</button>
+                <button onClick={saveProfile} disabled={savingProfile} style={{ flex: 1, padding: "12px 0", background: T.green, border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#fff", cursor: "pointer", fontFamily: "inherit", opacity: savingProfile ? 0.7 : 1 }}>{savingProfile ? t("guardando", "Guardando...") : t("guardar", "Guardar")}</button>
               </div>
             </div>
           </div>
-        )}
+        , document.body)}
 
         {/* ── QR CODES MODAL ── */}
-        {qrModalBiz && (
+        {qrModalBiz && createPortal(
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => setQrModalBiz(null)}>
-            <div style={{ width: "100%", maxWidth: 420, background: T.white, borderRadius: 24, padding: "32px 24px", animation: "fadeUp .35s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: "100%", maxWidth: 420, background: T.white, borderRadius: 24, padding: "32px 24px", animation: "scaleFadeIn .25s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
               
               <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: 20, position: "relative" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 20, color: T.text }}>
-                  <Icon name="grid" size={22} /> Códigos QR
+                  <Icon name="grid" size={22} /> {t("codigos_qr", "Códigos QR")}
                 </div>
                 <button onClick={() => setQrModalBiz(null)} style={{ position: "absolute", right: 0, background: T.bg, color: T.text, border: "none", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="x" size={14} /></button>
               </div>
               
               <p style={{ fontSize: 14, color: T.sub, margin: "0 0 28px 0", lineHeight: 1.5, textAlign: "center" }}>
-                Descarga los códigos QR de <strong>{qrModalBiz.name}</strong>. Nunca caducan y están listos para imprimir.
+                {t("descarga_qr_desc", "Descarga los códigos QR de")} <strong>{qrModalBiz.name}</strong>{t("descarga_qr_desc_2", ". Nunca caducan y están listos para imprimir.")}
               </p>
               
               <div style={{ display: "flex", gap: 12 }}>
@@ -213,7 +230,7 @@ export default function AccountView({
                       a.href = URL.createObjectURL(blob);
                       a.download = `QR_Perfil_${qrModalBiz.name.replace(/\s+/g, '_')}.png`;
                       a.click();
-                    } catch(e) { toast$("Error al generar QR"); }
+                    } catch(e) { toast$(t("error_qr", "Error al generar QR")); }
                   }} 
                   style={{ flex: 1, padding: "20px 14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, color: T.text, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
                 >
@@ -221,8 +238,8 @@ export default function AccountView({
                     <Icon name="user" size={28} color={T.text} />
                   </div>
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontWeight: 800, fontSize: 14 }}>Perfil</div>
-                    <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>Página principal</div>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>{t("perfil", "Perfil")}</div>
+                    <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>{t("pagina_principal", "Página principal")}</div>
                   </div>
                 </button>
                 <button 
@@ -237,7 +254,7 @@ export default function AccountView({
                       a.href = URL.createObjectURL(blob);
                       a.download = `QR_Menu_${qrModalBiz.name.replace(/\s+/g, '_')}.png`;
                       a.click();
-                    } catch(e) { toast$("Error al generar QR"); }
+                    } catch(e) { toast$(t("error_qr", "Error al generar QR")); }
                   }} 
                   style={{ flex: 1, padding: "20px 14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, color: T.text, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
                 >
@@ -245,14 +262,14 @@ export default function AccountView({
                     <Icon name="list" size={28} color={T.text} />
                   </div>
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontWeight: 800, fontSize: 14 }}>Menú</div>
-                    <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>Abre tu menú</div>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>{t("menu", "Menú")}</div>
+                    <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>{t("abre_tu_menu", "Abre tu menú")}</div>
                   </div>
                 </button>
               </div>
             </div>
           </div>
-        )}
+        , document.body)}
 
         {/* ── PROFILE HEADER ── */}
         <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 24px) 16px 16px", background: "transparent", borderBottom: `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}` }}>
@@ -287,7 +304,7 @@ export default function AccountView({
         {/* ── WALLET ── */}
         {wallet.length > 0 && (
           <div style={{ padding: "16px 16px 0", marginBottom: 8 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>Mi Billetera</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("mi_billetera", "Mi Billetera")}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {wallet.map(wId => {
                 const c = coupons.find(x => x.id === wId);
@@ -297,7 +314,7 @@ export default function AccountView({
                 let timeLeftStr = ""; let isExpired = false; let uniqueCode = c.code;
                 if (claimedAt) {
                   const diff = 86400000 - (Date.now() - claimedAt);
-                  if (diff <= 0) { isExpired = true; timeLeftStr = "Expirado"; }
+                  if (diff <= 0) { isExpired = true; timeLeftStr = t("expirado", "Expirado"); }
                   else { const h = Math.floor(diff / 3600000); const m = Math.floor((diff % 3600000) / 60000); timeLeftStr = `${h}h ${m}m`; }
                   uniqueCode = c.code + "-" + claimedAt.toString().slice(-4);
                 }
@@ -309,7 +326,7 @@ export default function AccountView({
                       <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{b?.name}</div>
                       <div style={{ fontSize: 13, fontWeight: 900, color: isExpired ? T.sub : "#7C3AED", letterSpacing: 2, marginTop: 4 }}>{claimedAt ? uniqueCode : c.code}</div>
                     </div>
-                    {claimedAt && <div style={{ fontSize: 10, fontWeight: 800, color: isExpired ? "#DC2626" : "#16A34A", flexShrink: 0 }}>{isExpired ? "Expirado" : timeLeftStr}</div>}
+                    {claimedAt && <div style={{ fontSize: 10, fontWeight: 800, color: isExpired ? "#DC2626" : "#16A34A", flexShrink: 0 }}>{isExpired ? t("expirado", "Expirado") : timeLeftStr}</div>}
                   </div>
                 );
               })}
@@ -324,22 +341,8 @@ export default function AccountView({
               <div style={{ fontSize: 20, fontWeight: 800, color: T.text, marginBottom: 16, marginLeft: 8, letterSpacing: "-0.5px", textAlign: "left" }}>{group.title}</div>
               <div style={{ background: "transparent", borderRadius: 16, overflow: "hidden" }}>
                 {group.items.map(({ label, icon, act }, i, arr) => {
-                  if (act.startsWith("owner_res_")) {
-                    return (
-                      <div key={label} onClick={() => handleMenuAction(act)} className="press" style={{ background: "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)", margin: "8px", borderRadius: 12, display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", cursor: "pointer", boxShadow: "0 4px 12px rgba(109,40,217,0.25)" }}>
-                        <div style={{ background: "rgba(255,255,255,0.2)", width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <Icon name="calendar" size={18} color="#fff" />
-                        </div>
-                        <span style={{ fontSize: 16, fontWeight: 800, color: "#fff", flex: 1, letterSpacing: 0.2 }}>{label}</span>
-                        <div style={{ background: "#fff", color: "#6D28D9", fontSize: 11, fontWeight: 800, padding: "4px 8px", borderRadius: 12 }}>Panel</div>
-                      </div>
-                    );
-                  }
-                  
-                  const isNextRes = i < arr.length - 1 && arr[i+1].act.startsWith("owner_res_");
-                  
                   return (
-                    <div key={label} onClick={() => handleMenuAction(act)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 16px", borderBottom: i < arr.length - 1 && !isNextRes ? `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"}` : "none", cursor: "pointer", background: "transparent", transition: "background .15s" }}
+                    <div key={label} onClick={() => handleMenuAction(act)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"}` : "none", cursor: "pointer", background: "transparent", transition: "background .15s" }}
                       onMouseEnter={e => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       <Icon name={icon} size={20} color={T.sub} sw={1.5} />
@@ -362,9 +365,9 @@ export default function AccountView({
         {/* ── NEGOCIOS PENDIENTES ── */}
         {(myBizList.filter(b => b.status === "pending" || b.status === "needs_changes").length > 0 || myClaims.filter(c => c.status === "pending").length > 0) && (
           <div style={{ padding: "16px 16px 0" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Mis solicitudes</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("mis_solicitudes", "Mis solicitudes")}</div>
             {myBizList.filter(b => b.status === "pending" || b.status === "needs_changes").map(b => {
-              const stMap = { pending: { lbl: "En revisión" }, needs_changes: { lbl: "Requiere cambios" } };
+              const stMap = { pending: { lbl: t("en_revision", "En revisión") }, needs_changes: { lbl: t("requiere_cambios", "Requiere cambios") } };
               const st = stMap[b.status] || stMap.pending;
               return (
                 <div key={b.id} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", marginBottom: 8, border: `1px solid ${T.border}` }}>
@@ -376,7 +379,7 @@ export default function AccountView({
                     <span style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{st.lbl}</span>
                   </div>
                   {b.admin_notes && <div style={{ background: T.bg, borderRadius: 8, padding: "8px 10px", fontSize: 12, color: T.sub, borderLeft: `3px solid ${T.border}`, marginBottom: 8 }}>{b.admin_notes}</div>}
-                  {b.status === "needs_changes" && <button onClick={() => { setEditBizId(b.id); setAddBizForm({ name: b.name || "", category: b.category || b.type || "", emoji: b.emoji || "", description: b.description || "", address: b.address || "", city: b.city_slug || "", phone: b.phone || "", whatsapp: b.whatsapp || "", website: b.website || "", lat: b.lat || "", lng: b.lng || "", photos: b.photos?.map(p => p.url) || [], facebook: b.facebook || "", instagram: b.instagram || "", tiktok: b.tiktok || "", schedule: b.schedule || {}, owner_id: b.owner_id, user_id: b.user_id, plan: b.plan, status: b.status, video_url: b.video_url || "", logo_url: b.logo_url || "", menu_pdf_url: b.menu_pdf_url || "", booking_config: b.booking_config || null }); setShowAddBiz(true); }} style={{ width: "100%", padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>Editar y reenviar</button>}
+                  {b.status === "needs_changes" && <button onClick={() => { setEditBizId(b.id); setAddBizForm({ name: b.name || "", category: b.category || b.type || "", emoji: b.emoji || "", description: b.description || "", address: b.address || "", city: b.city_slug || "", phone: b.phone || "", whatsapp: b.whatsapp || "", website: b.website || "", lat: b.lat || "", lng: b.lng || "", photos: b.photos?.map(p => p.url) || [], facebook: b.facebook || "", instagram: b.instagram || "", tiktok: b.tiktok || "", schedule: b.schedule || {}, owner_id: b.owner_id, user_id: b.user_id, plan: b.plan, status: b.status, video_url: b.video_url || "", logo_url: b.logo_url || "", menu_pdf_url: b.menu_pdf_url || "", booking_config: b.booking_config || null }); setShowAddBiz(true); }} style={{ width: "100%", padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>{t("editar_reenviar", "Editar y reenviar")}</button>}
                 </div>
               );
             })}
@@ -391,7 +394,7 @@ export default function AccountView({
                       <div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{b.name}</div>
                       <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{b.type || b.category}</div>
                     </div>
-                    <span style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>Reclamo en revisión</span>
+                    <span style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{t("reclamo_revision", "Reclamo en revisión")}</span>
                   </div>
                 </div>
               );
@@ -403,39 +406,39 @@ export default function AccountView({
           <div className="press" onClick={() => toast$("Próximamente en App Store")} style={{ flex: 1, background: "#000", color: "#fff", borderRadius: 12, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", border: "1px solid #333" }}>
             <svg viewBox="0 0 384 512" style={{ width: 22, height: 22, fill: "#fff" }}><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
             <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 9, opacity: 0.8, lineHeight: 1.2 }}>Consíguelo en el</div>
+              <div style={{ fontSize: 9, opacity: 0.8, lineHeight: 1.2 }}>{t("consiguelo_en", "Consíguelo en el")}</div>
               <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>App Store</div>
             </div>
           </div>
           <div className="press" onClick={() => toast$("Próximamente en Google Play")} style={{ flex: 1, background: "#000", color: "#fff", borderRadius: 12, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", border: "1px solid #333" }}>
             <svg viewBox="0 0 512 512" style={{ width: 22, height: 22, fill: "#fff" }}><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg>
             <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 9, opacity: 0.8, lineHeight: 1.2 }}>DISPONIBLE EN</div>
+              <div style={{ fontSize: 9, opacity: 0.8, lineHeight: 1.2 }}>{t("disponible_en", "DISPONIBLE EN")}</div>
               <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>Google Play</div>
             </div>
           </div>
         </div>
 
         {/* ── CERRAR SESIÓN ── */}
-        <button onClick={doSignOut} style={{ width: "calc(100% - 32px)", margin: "16px 16px 0", padding: "13px 0", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 14, fontSize: 15, fontWeight: 700, color: T.red, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-          <Icon name="log-out" size={17} color={T.red} /> Cerrar sesión
+        <button onClick={doSignOut} style={{ width: "calc(100% - 32px)", margin: "16px 16px 0", padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: T.sub, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <Icon name="log-out" size={16} color={T.sub} /> {t("cerrar_sesion", "Cerrar sesión")}
         </button>
 
       </>) : !authChecked ? (
         <div style={{ padding: "88px 26px 0", textAlign: "center", opacity: 0.6 }}>
           <div style={{ width: 68, height: 68, borderRadius: 18, background: T.border, margin: "0 auto 18px", animation: "pulse 1.5s infinite" }} />
-          <div style={{ width: 140, height: 28, borderRadius: 8, background: T.border, margin: "0 auto 16px", animation: "pulse 1.5s infinite" }} />
+          <div style={{ width: 140, height: 28, borderRadius: 8, background: T.border, margin: "0 auto" }} />
         </div>
       ) : (
         <div style={{ padding: "88px 26px 0", textAlign: "center" }}>
           <div style={{ width: 68, height: 68, borderRadius: 18, background: T.greenL, margin: "0 auto 18px", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="user" size={30} color={T.green} /></div>
-          <h2 style={{ fontFamily: "var(--heading)", fontSize: 24, color: T.text, marginBottom: 9 }}>Tu cuenta</h2>
-          <p style={{ color: T.sub, fontSize: 15, lineHeight: 1.65, marginBottom: 28 }}>Inicia sesión para guardar favoritos, escribir reseñas y acceder desde cualquier dispositivo.</p>
-          <button className="btn-g press" onClick={() => setShowAuth(true)}>Iniciar sesión</button>
-          <button className="btn-s press" style={{ marginTop: 11 }} onClick={() => { setAuthMode("register"); setShowAuth(true); }}>Crear cuenta gratis</button>
-          <div onClick={() => toast$("¡Crea una cuenta gratis y registra tu negocio para ver los planes! 🏢")} style={{ marginTop: 18, padding: "12px 16px", background: T.greenL, borderRadius: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+          <h2 style={{ fontFamily: "var(--heading)", fontSize: 24, color: T.text, marginBottom: 9 }}>{t("tu_cuenta", "Tu cuenta")}</h2>
+          <p style={{ color: T.sub, fontSize: 15, lineHeight: 1.65, marginBottom: 28 }}>{t("tu_cuenta_desc", "Inicia sesión para guardar favoritos, escribir reseñas y acceder desde cualquier dispositivo.")}</p>
+          <button className="btn-g press" onClick={() => setShowAuth(true)}>{t("iniciar_sesion", "Iniciar sesión")}</button>
+          <button className="btn-s press" style={{ marginTop: 11 }} onClick={() => { setAuthMode("register"); setShowAuth(true); }}>{t("crear_cuenta_gratis", "Crear cuenta gratis")}</button>
+          <div onClick={() => toast$(t("toast_planes_negocio", "¡Crea una cuenta gratis y registra tu negocio para ver los planes! 🏢"))} style={{ marginTop: 18, padding: "12px 16px", background: T.greenL, borderRadius: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
             <Icon name="award" size={20} color={T.green} />
-            <div style={{ flex: 1, textAlign: "left" }}><div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>Ver planes para tu negocio</div><div style={{ fontSize: 12, color: T.sub, marginTop: 1 }}>Gratuito, Destacado y Premium</div></div>
+            <div style={{ flex: 1, textAlign: "left" }}><div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{t("ver_planes_negocio", "Ver planes para tu negocio")}</div><div style={{ fontSize: 12, color: T.sub, marginTop: 1 }}>{t("planes_tipos", "Gratuito, Destacado y Premium")}</div></div>
             <Icon name="chevron" size={16} color={T.sub} />
           </div>
         </div>
@@ -443,6 +446,15 @@ export default function AccountView({
 
       {/* ── FOOTER ── */}
       <Footer />
+
+      {/* ── LOYALTY DESIGNER MODAL ── */}
+      {loyaltyDesignerBiz && (
+        <LoyaltyDesigner 
+          business={loyaltyDesignerBiz} 
+          onClose={() => setLoyaltyDesignerBiz(null)} 
+          T={T} 
+        />
+      )}
     </div>
   );
 }

@@ -1,13 +1,13 @@
-import React from "react";
-import { m, AnimatePresence } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import Icon from "../components/ui/Icon.jsx";
 import { useShallow } from 'zustand/react/shallow';
-import { getThumbUrl } from "../lib/utils.js";
+import { getThumbUrl, isNear } from "../lib/utils.js";
+import { useTranslation } from "../hooks/useTranslation.js";
 
 export default function FavsView({ hideHeader }) {
+  const { t, lang } = useTranslation();
   const ctx = useAppContext();
   const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
   const { mapPins, events } = useDataStore(useShallow(s => ({ mapPins: s.mapPins, events: s.events })));
@@ -21,18 +21,17 @@ export default function FavsView({ hideHeader }) {
             <button onClick={() => window.history.length > 2 ? window.history.back() : navigate("account")} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <Icon name="arrow_left" size={24} color={T.text} />
             </button>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.5px" }}>Mis Favoritos</h1>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.5px" }}>{t("mis_favoritos", "Mis Favoritos")}</h1>
           </div>
         </div>
       )}
       <div style={{ padding: "20px", flex: 1 }}>
         {(() => {
-              const allSavedBiz = mapPins.filter(b => favIds.includes(b.id) && b.city_slug && b.city_slug.split(",").includes(activeCity));
+              const allSavedBiz = mapPins.filter(b => favIds.includes(b.id) && isNear(b, userCoords, activeCity));
               const unsortedBiz = allSavedBiz.filter(b => !collections.some(c => c.items.includes(b.id)));
               const savedEv = events.filter(e => {
                 if (!savedEventIds.includes(e.id)) return false;
-                if (!e.city_slug || e.city_slug === "all") return true;
-                return e.city_slug.split(",").includes(activeCity);
+                return isNear(e, userCoords, activeCity);
               });
               const hasFavs = allSavedBiz.length > 0 || savedEv.length > 0;
 
@@ -43,10 +42,10 @@ export default function FavsView({ hideHeader }) {
                     <button className="press" onClick={() => setActiveCollection(null)} style={{ width: 40, height: 40, borderRadius: "50%", background: T.white, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: T.shadow }}><Icon name="arrow_left" size={20} color={T.text} /></button>
                     <div style={{ flex: 1 }}>
                       <h3 style={{ fontSize: 20, fontWeight: 800, color: T.text, margin: 0 }}>{activeCollection.emoji} {activeCollection.name}</h3>
-                      <div style={{ fontSize: 13, color: T.sub }}>{colItems.length} lugares</div>
+                      <div style={{ fontSize: 13, color: T.sub }}>{colItems.length} {lang === 'en' ? 'places' : 'lugares'}</div>
                     </div>
                     <button className="press" onClick={() => {
-                      if(window.confirm("¿Estás seguro de eliminar esta colección? Los lugares no se borrarán, solo volverán a la sección 'Sin organizar'.")) {
+                      if(window.confirm(t("confirm_delete_col", "¿Estás seguro de eliminar esta colección? Los lugares no se borrarán, solo volverán a la sección 'Sin organizar'."))) {
                         deleteCollection(activeCollection.id);
                         setActiveCollection(null);
                       }
@@ -54,7 +53,7 @@ export default function FavsView({ hideHeader }) {
                   </div>
                   {colItems.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                      <p style={{ color: T.sub }}>Esta colección está vacía.<br/>Guarda lugares para que aparezcan aquí.</p>
+                      <p style={{ color: T.sub }}>{t("col_vacia_1", "Esta colección está vacía.")}<br/>{t("col_vacia_2", "Guarda lugares para que aparezcan aquí.")}</p>
                     </div>
                   ) : (
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -66,8 +65,8 @@ export default function FavsView({ hideHeader }) {
                           </div>
                           <div style={{ padding: "10px 12px" }}>
                             <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 13, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</div>
-                            <div style={{ fontSize: 11, color: T.sub, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.type}</div>
-                            <button onClick={e => { e.stopPropagation(); goDir(b, null); }} style={{ marginTop: 8, width: "100%", background: T.greenL, border: "none", borderRadius: 8, padding: "6px 0", fontSize: 11, fontWeight: 700, color: T.green, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><Icon name="nav" size={10} color={T.green} />Cómo llegar</button>
+                            <div style={{ fontSize: 11, color: T.sub, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t(b.type, b.type)}</div>
+                            <button onClick={e => { e.stopPropagation(); goDir(b, null); }} style={{ marginTop: 8, width: "100%", background: T.greenL, border: "none", borderRadius: 8, padding: "6px 0", fontSize: 11, fontWeight: 700, color: T.green, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><Icon name="nav" size={10} color={T.green} />{t("como_llegar", "Cómo llegar")}</button>
                           </div>
                         </div>
                       ))}
@@ -94,14 +93,14 @@ export default function FavsView({ hideHeader }) {
                           if (bizId) {
                             const updatedCol = { ...col, items: [...new Set([...col.items, bizId])] };
                             updateCollection(updatedCol);
-                            toast$(`Agregado a ${col.name}`);
+                            toast$(t("agregado_a", "Agregado a ") + col.name);
                           }
                         }}
                         style={{ background: T.white, borderRadius: 24, padding: "20px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, transition: "all .2s ease", cursor: "pointer", boxShadow: T.shadow }}>
                         <div style={{ fontSize: 36, filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.1))" }}>{col.emoji}</div>
                         <div style={{ textAlign: "center" }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>{col.name}</div>
-                          <div style={{ fontSize: 11, color: T.sub, marginTop: 4 }}>{validItems.length} {validItems.length === 1 ? "lugar" : "lugares"}</div>
+                          <div style={{ fontSize: 11, color: T.sub, marginTop: 4 }}>{validItems.length} {validItems.length === 1 ? t("lugar", "lugar") : t("lugares", "lugares")}</div>
                         </div>
                       </div>
                     );
@@ -110,7 +109,7 @@ export default function FavsView({ hideHeader }) {
                     <div className="press" onClick={() => setNewColModal(true)} style={{ background: T.bg, borderRadius: 24, padding: "20px 16px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, cursor: "pointer", border: `2px dashed ${T.border}` }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, padding: "24px 0" }}>
                         <div style={{ width: 44, height: 44, borderRadius: "50%", background: T.white, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px rgba(0,0,0,0.1)" }}><Icon name="plus" size={20} color={T.green} /></div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>Crear Colección</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{t("crear_coleccion", "Crear Colección")}</div>
                       </div>
                     </div>
                   )}
@@ -118,13 +117,13 @@ export default function FavsView({ hideHeader }) {
 
                 {!hasFavs && <div style={{ textAlign: "center", padding: "60px 20px" }}>
                   <div style={{ width: 80, height: 80, borderRadius: 24, background: T.greenL, margin: "0 auto 20px", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="heart" size={36} color={T.green} /></div>
-                  <h3 style={{ fontFamily: "var(--heading)", fontSize: 20, color: T.text, marginBottom: 8 }}>Aún no hay favoritos</h3>
-                  <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.5, marginBottom: 24 }}>Explora la ciudad y guarda los lugares o eventos que más te gusten para tenerlos a la mano.</p>
-                  <button className="btn-g press" onClick={() => navigate("home")}>Explorar ciudad</button>
-        </div>}
+                  <h3 style={{ fontFamily: "var(--heading)", fontSize: 20, color: T.text, marginBottom: 8 }}>{t("sin_favoritos", "Aún no hay favoritos")}</h3>
+                  <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.5, marginBottom: 24 }}>{t("sin_favoritos_desc", "Tu próximo Match está a unas calles. Explora la ciudad y guarda los lugares que más te gusten.")}</p>
+                  <button className="btn-g press" onClick={() => navigate("home")}>{t("explorar_ciudad", "Explorar ciudad")}</button>
+                </div>}
 
                 {unsortedBiz.length > 0 && <div style={{ marginBottom: 24 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12 }}>Sin organizar</h3>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12 }}>{t("sin_organizar", "Sin organizar")}</h3>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     {unsortedBiz.map(b => (
                       <div key={b.id} className="press" draggable={true} onDragStart={e => { e.dataTransfer.setData("bizId", b.id); e.currentTarget.style.opacity = "0.5"; }} onDragEnd={e => { e.currentTarget.style.opacity = "1"; }} onClick={() => setMovingBiz(b)} style={{ background: T.bg, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", position: "relative", cursor: "grab" }}>
@@ -134,16 +133,16 @@ export default function FavsView({ hideHeader }) {
                         </div>
                         <div style={{ padding: "10px 12px" }}>
                           <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 13, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</div>
-                          <div style={{ fontSize: 11, color: T.sub, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.type}</div>
-                          <button onClick={e => { e.stopPropagation(); goDir(b, null); }} style={{ marginTop: 8, width: "100%", background: T.greenL, border: "none", borderRadius: 8, padding: "6px 0", fontSize: 11, fontWeight: 700, color: T.green, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><Icon name="nav" size={10} color={T.green} />Cómo llegar</button>
+                          <div style={{ fontSize: 11, color: T.sub, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t(b.type, b.type)}</div>
+                          <button onClick={e => { e.stopPropagation(); goDir(b, null); }} style={{ marginTop: 8, width: "100%", background: T.greenL, border: "none", borderRadius: 8, padding: "6px 0", fontSize: 11, fontWeight: 700, color: T.green, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><Icon name="nav" size={10} color={T.green} />{t("como_llegar", "Cómo llegar")}</button>
                         </div>
                       </div>
                     ))}
                   </div>
-        </div>}
+                </div>}
 
                 {savedEv.length > 0 && <div style={{ marginBottom: 24 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12 }}>Eventos Guardados</h3>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12 }}>{t("eventos_guardados", "Eventos Guardados")}</h3>
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {savedEv.map(e => (
                       <div key={e.id} className="press" onClick={() => handleEventTap(e)} style={{ display: "flex", background: T.bg, borderRadius: 16, overflow: "hidden", position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
@@ -153,14 +152,14 @@ export default function FavsView({ hideHeader }) {
                           ) : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar" size={24} color={T.sub} /></div>}
                         </div>
                         <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", justifyContent: "center", flex: 1 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: T.green, textTransform: "uppercase", letterSpacing: .6, marginBottom: 4 }}>{e.date && new Date(e.date + "T00:00:00").toLocaleDateString("es", { day: "numeric", month: "short" })}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: T.green, textTransform: "uppercase", letterSpacing: .6, marginBottom: 4 }}>{e.date && new Date(e.date + "T00:00:00").toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', { day: "numeric", month: "short" })}</div>
                           <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 14, color: T.text, lineHeight: 1.2, marginBottom: 4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{e.title}</div>
                           {e.venue_name && <div style={{ fontSize: 12, color: T.sub }}><Icon name="pin" size={10} color={T.sub} /> {e.venue_name}</div>}
                         </div>
                       </div>
                     ))}
                   </div>
-        </div>}
+                </div>}
 
                 {/* ACTION SHEET PARA MOVER BIZ */}
                 {movingBiz && <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", flexDirection: "column", justifyContent: "flex-start" }}>
@@ -172,36 +171,36 @@ export default function FavsView({ hideHeader }) {
                       </div>
                       <div>
                         <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, margin: "0 0 4px" }}>{movingBiz.name}</h3>
-                        <p style={{ fontSize: 13, color: T.sub, margin: 0 }}>¿Qué deseas hacer?</p>
+                        <p style={{ fontSize: 13, color: T.sub, margin: 0 }}>{t("que_deseas_hacer", "¿Qué deseas hacer?")}</p>
                       </div>
                     </div>
                     
-                    <button className="press" onClick={() => { setMovingBiz(null); setSelected(movingBiz); navigate(`/${movingBiz.city}/${movingBiz.slug}`); }} style={{ width: "100%", background: T.bg, border: "none", borderRadius: 16, padding: "16px", fontSize: 16, fontWeight: 700, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}><div style={{ width: 32, height: 32, borderRadius: "50%", background: T.white, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="nav" size={16} color={T.text} /></div> Ver detalles del lugar</button>
+                    <button className="press" onClick={() => { setMovingBiz(null); setSelected(movingBiz); navigate(`/${movingBiz.city}/${movingBiz.slug}`); }} style={{ width: "100%", background: T.bg, border: "none", borderRadius: 16, padding: "16px", fontSize: 16, fontWeight: 700, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}><div style={{ width: 32, height: 32, borderRadius: "50%", background: T.white, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="nav" size={16} color={T.text} /></div> {t("ver_detalles_lugar", "Ver detalles del lugar")}</button>
 
-                    <div style={{ margin: "24px 0 12px", fontSize: 13, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: 1 }}>Mover a colección</div>
+                    <div style={{ margin: "24px 0 12px", fontSize: 13, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: 1 }}>{t("mover_a_coleccion", "Mover a colección")}</div>
                     
                     {collections.map(col => (
                       <button key={col.id} className="press" onClick={() => {
                         const updatedCol = { ...col, items: [...new Set([...col.items, movingBiz.id])] };
                         updateCollection(updatedCol);
                         setMovingBiz(null);
-                        toast$(`Agregado a ${col.name}`);
+                        toast$(t("agregado_a", "Agregado a ") + col.name);
                       }} style={{ width: "100%", background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, padding: "16px", fontSize: 16, fontWeight: 700, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, marginBottom: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}><div style={{ fontSize: 24 }}>{col.emoji}</div> <div style={{ flex: 1, textAlign: "left" }}>{col.name}</div></button>
                     ))}
                   </div>
-        </div>}
+                </div>}
                 {/* NEW COLLECTION MODAL */}
                 {newColModal && <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "80px 20px 20px" }}>
                   <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} onClick={() => setNewColModal(false)} />
                   <div style={{ background: T.white, borderRadius: 24, padding: 24, width: "100%", maxWidth: 360, position: "relative", animation: "popIn .3s cubic-bezier(0.1, 1, 0.2, 1)", boxShadow: "0 12px 40px rgba(0,0,0,0.2)" }}>
-                    <h3 style={{ fontSize: 20, fontWeight: 800, color: T.text, margin: "0 0 20px", textAlign: "center" }}>Nueva Colección</h3>
+                    <h3 style={{ fontSize: 20, fontWeight: 800, color: T.text, margin: "0 0 20px", textAlign: "center" }}>{t("nueva_coleccion", "Nueva Colección")}</h3>
                     <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Nombre</div>
-                        <input type="text" value={newColForm.name} onChange={e => setNewColForm(f => ({...f, name: e.target.value}))} placeholder="Ej. Mis lugares favoritos..." style={{ width: "100%", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 16px", fontSize: 16, color: T.text, outline: "none", fontFamily: "inherit" }} />
+                        <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{t("nombre", "Nombre")}</div>
+                        <input type="text" value={newColForm.name} onChange={e => setNewColForm(f => ({...f, name: e.target.value}))} placeholder={t("ej_favoritos", "Ej. Mis lugares favoritos...")} style={{ width: "100%", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 16px", fontSize: 16, color: T.text, outline: "none", fontFamily: "inherit" }} />
                       </div>
                       <div style={{ width: 80 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Emoji</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{t("emoji", "Emoji")}</div>
                         <div style={{ position: "relative" }}>
                           <select value={newColForm.emoji} onChange={e => setNewColForm(f => ({...f, emoji: e.target.value}))} style={{ width: "100%", height: 50, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, fontSize: 24, outline: "none", cursor: "pointer", appearance: "none", textAlign: "center", padding: 0 }}>
                             {["🌟","📌","🍔","🍻","☕","🌳","💖","🌮","🍣","🍕","👗","👟","🎉"].map(em => <option key={em} value={em}>{em}</option>)}
@@ -210,17 +209,17 @@ export default function FavsView({ hideHeader }) {
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 12 }}>
-                      <button className="press" onClick={() => setNewColModal(false)} style={{ flex: 1, background: T.bg, border: "none", borderRadius: 16, padding: "14px", fontSize: 15, fontWeight: 700, color: T.sub, cursor: "pointer" }}>Cancelar</button>
+                      <button className="press" onClick={() => setNewColModal(false)} style={{ flex: 1, background: T.bg, border: "none", borderRadius: 16, padding: "14px", fontSize: 15, fontWeight: 700, color: T.sub, cursor: "pointer" }}>{t("cancelar", "Cancelar")}</button>
                       <button className="press" onClick={() => {
-                        if (!newColForm.name.trim()) return toast$("Ingresa un nombre válido");
+                        if (!newColForm.name.trim()) return toast$(t("ingresa_nombre_valido", "Ingresa un nombre válido"));
                         createCollection(newColForm.name.trim(), newColForm.emoji);
                         setNewColModal(false);
                         setNewColForm({ name: "", emoji: "🌟" });
-                        toast$("Colección creada");
-                      }} style={{ flex: 1, background: T.greenL, border: "none", borderRadius: 16, padding: "14px", fontSize: 15, fontWeight: 700, color: T.green, cursor: "pointer" }}>Crear</button>
+                        toast$(t("coleccion_creada", "Colección creada"));
+                      }} style={{ flex: 1, background: T.greenL, border: "none", borderRadius: 16, padding: "14px", fontSize: 15, fontWeight: 700, color: T.green, cursor: "pointer" }}>{t("crear", "Crear")}</button>
                     </div>
                   </div>
-        </div>}
+                </div>}
 
               </>;
             })()}

@@ -1,4 +1,3 @@
-import React from 'react';
 
 export default function FI({ label, field, src, set, type = "text", rows, ph = "" }) {
   const handleChange = e => {

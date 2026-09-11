@@ -1,10 +1,9 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { useCart } from '../../hooks/useCart.js';
 import { useUIStore } from '../../store/useUIStore.js';
 import { buildWhatsAppMessage } from '../../lib/storeUtils.js';
-import { getThumbUrl } from '../../lib/utils.js';
 import { sb } from '../../lib/supabase.js';
 
 export default function CartDrawer({ business, T }) {
@@ -69,7 +68,7 @@ export default function CartDrawer({ business, T }) {
     
     // Vaciar el carrito y cerrar el modal tras enviar el pedido
     clearCart();
-    if (onClose) onClose();
+    setIsOpen(false);
   };
 
   // Shared input style
@@ -121,8 +120,11 @@ export default function CartDrawer({ business, T }) {
 
                 {/* Item Details & Controls */}
                 <div style={{ flex: 1, minWidth: 0 }}>
+                  {item.product.cat_name && (
+                    <div style={{ fontSize: 11, fontWeight: 800, color: dark ? '#94A3B8' : '#64748B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>{item.product.cat_name}</div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', paddingRight: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product.name}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', paddingRight: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{item.product.name}</div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', flexShrink: 0 }}>${(Number(item.product.price) * item.quantity).toFixed(2)}</div>
                   </div>
                   
@@ -134,6 +136,7 @@ export default function CartDrawer({ business, T }) {
                         const labels = values.map(v => v.label).join(', ');
                         
                         let displayText = labels;
+                        // eslint-disable-next-line no-useless-assignment
                         let extraPriceSum = 0;
                         if (labels.toLowerCase() === 'sí') {
                           const v = values[0];
@@ -216,23 +219,10 @@ export default function CartDrawer({ business, T }) {
 
           {/* Order Details */}
           <div style={{ padding: '24px 20px', background: dark ? '#0F172A' : '#FFFFFF' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', marginBottom: 20, letterSpacing: '-0.3px' }}>Detalles de entrega</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', marginBottom: 24, letterSpacing: '-0.3px' }}>Datos del pedido</div>
             
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: dark ? '#94A3B8' : '#64748B', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Tu nombre *</div>
-              <input 
-                ref={nameRef}
-                type="text"
-                value={customerName}
-                onChange={e => { setCustomerName(e.target.value); if (errors.name) setErrors({...errors, name: null}); }}
-                placeholder="Ej. Juan Pérez"
-                style={{ ...inputStyle, border: errors.name ? '1.5px solid #EF4444' : inputStyle.border }}
-              />
-              {errors.name && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 6, fontWeight: 700 }}>{errors.name}</div>}
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: dark ? '#94A3B8' : '#64748B', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Método de entrega *</div>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E2E8F0' : '#1E293B', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Método de entrega *</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <button onClick={() => setOrderType('pickup')} style={{ background: orderType === 'pickup' ? (dark ? '#1E293B' : '#FFFFFF') : 'transparent', border: `2px solid ${orderType === 'pickup' ? (dark ? '#94A3B8' : '#0F172A') : (dark ? '#334155' : '#E2E8F0')}`, padding: '16px 8px', borderRadius: 16, color: orderType === 'pickup' ? (dark ? '#F8FAFC' : '#0F172A') : (dark ? '#94A3B8' : '#64748B'), fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontSize: 15, boxShadow: orderType === 'pickup' ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
                   <img src="/pedido.png" alt="Recoger" style={{ width: 44, height: 44, objectFit: 'contain', filter: orderType === 'pickup' ? 'none' : 'grayscale(100%) opacity(40%)', transition: 'all 0.2s' }} />
@@ -245,29 +235,46 @@ export default function CartDrawer({ business, T }) {
               </div>
             </div>
 
-            {orderType === 'delivery' && (
-              <div style={{ marginBottom: 20, animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: dark ? '#94A3B8' : '#64748B', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Dirección de envío *</div>
-                <textarea 
-                  value={address}
-                  onChange={e => { setAddress(e.target.value); if (errors.address) setErrors({...errors, address: null}); }}
-                  placeholder="Calle, número exterior/interior, colonia..."
-                  style={{ ...inputStyle, resize: 'vertical', minHeight: 60, border: errors.address ? '1.5px solid #EF4444' : inputStyle.border }}
-                />
-                {errors.address && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 6, fontWeight: 700 }}>{errors.address}</div>}
-                
-                <div style={{ fontSize: 12, fontWeight: 800, color: dark ? '#94A3B8' : '#64748B', marginTop: 12, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Referencias de tu dirección (Opcional)</div>
-                <textarea 
-                  value={references}
-                  onChange={e => setReferences(e.target.value)}
-                  placeholder="Ej. Casa blanca con portón negro, frente al parque..."
-                  style={{ ...inputStyle, resize: 'vertical', minHeight: 50 }}
-                />
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E2E8F0' : '#1E293B', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Tu nombre *</div>
+              <input 
+                ref={nameRef}
+                type="text"
+                value={customerName}
+                onChange={e => { setCustomerName(e.target.value); if (errors.name) setErrors({...errors, name: null}); }}
+                placeholder="Ej. Daniel García"
+                style={{ ...inputStyle, border: errors.name ? '1.5px solid #EF4444' : inputStyle.border }}
+              />
+              {errors.name && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 6, fontWeight: 700 }}>{errors.name}</div>}
+            </div>
 
-                <div style={{ marginTop: 16, padding: '14px 16px', background: dark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderRadius: 12, border: `1px dashed ${dark ? '#475569' : '#CBD5E1'}`, textAlign: 'center' }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', marginBottom: 4, letterSpacing: 0.5 }}>IMPORTANTE</div>
-                  <div style={{ fontSize: 13, color: dark ? '#E2E8F0' : '#334155', lineHeight: 1.5, fontWeight: 500 }}>
-                    El costo de envío puede variar según el negocio y la distancia. Consulta directamente al hacer tu pedido.
+            {orderType === 'delivery' && (
+              <div style={{ marginBottom: 24, animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                <div style={{ padding: 16, background: dark ? '#0F172A' : '#FFFFFF', borderRadius: 16, border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E2E8F0' : '#1E293B', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Dirección de envío *</div>
+                  <textarea 
+                    value={address}
+                    onChange={e => { setAddress(e.target.value); if (errors.address) setErrors({...errors, address: null}); }}
+                    placeholder="Calle, número exterior/interior, colonia..."
+                    style={{ ...inputStyle, resize: 'vertical', minHeight: 60, border: errors.address ? '1.5px solid #EF4444' : inputStyle.border }}
+                  />
+                  {errors.address && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 6, fontWeight: 700 }}>{errors.address}</div>}
+                  
+                  <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E2E8F0' : '#1E293B', marginTop: 16, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Referencias de tu dirección (Opcional)</div>
+                  <textarea 
+                    value={references}
+                    onChange={e => setReferences(e.target.value)}
+                    placeholder="Ej. Casa blanca con portón negro, frente al parque..."
+                    style={{ ...inputStyle, resize: 'vertical', minHeight: 50 }}
+                  />
+
+                  <div style={{ marginTop: 16, padding: '10px 12px', background: dark ? 'rgba(239, 68, 68, 0.1)' : '#FEF2F2', borderRadius: 8, border: `1px solid ${dark ? 'rgba(239, 68, 68, 0.2)' : '#FECACA'}`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: dark ? '#FCA5A5' : '#DC2626', marginBottom: 2, letterSpacing: 0.5, textTransform: 'uppercase' }}>Importante</div>
+                      <div style={{ fontSize: 12, color: dark ? '#FECACA' : '#B91C1C', lineHeight: 1.4, fontWeight: 500 }}>
+                        El costo de envío puede variar según el negocio y la distancia. Consulta directamente al hacer tu pedido.
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -275,7 +282,7 @@ export default function CartDrawer({ business, T }) {
 
             {/* General Notes */}
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: dark ? '#94A3B8' : '#64748B', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notas para el negocio</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E2E8F0' : '#1E293B', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notas para el negocio</div>
               <textarea 
                 value={generalNotes}
                 onChange={e => setGeneralNotes(e.target.value)}
@@ -283,6 +290,7 @@ export default function CartDrawer({ business, T }) {
                 style={{ ...inputStyle, resize: 'vertical', minHeight: 60, fontSize: 14 }}
               />
             </div>
+
           </div>
 
           <div style={{ padding: '16px 16px' }}>

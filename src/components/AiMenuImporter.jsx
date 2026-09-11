@@ -1,6 +1,5 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Icon from './ui/Icon.jsx';
-import imageCompression from 'browser-image-compression';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -45,6 +44,7 @@ export default function AiMenuImporter({ onImport, bizType, adminSecret }) {
         useWebWorker: true,
       };
       
+      const imageCompression = (await import('browser-image-compression')).default;
       const compressedFile = await imageCompression(file, options);
       const base64 = await fileToBase64(compressedFile);
       

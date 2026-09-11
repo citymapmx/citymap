@@ -21,7 +21,16 @@ export function usePushNotifications() {
 
       try {
         const u = useAuthStore.getState().user;
-        if (!u?.id) return; // Si no hay sesión, terminamos aquí. El login lo enviará luego.
+        if (!u?.id) {
+          // Si no hay sesión, nos aseguramos de que el backend no tenga este token 
+          // asociado a un usuario anterior en este dispositivo
+          await fetch(`https://citymap.mx/api/unregister-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token.value })
+          }).catch(() => null);
+          return;
+        }
 
         // Registrar el token de forma segura en el backend
         await fetch(`https://citymap.mx/api/register-token`, {

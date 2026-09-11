@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import { memo } from "react";
 import Icon from "../ui/Icon.jsx";
 import { getThumbUrl, getScheduleStatus, isOpenNow } from "../../lib/utils.js";
 

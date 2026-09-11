@@ -1,4 +1,3 @@
-import React from 'react';
 import Icon from './ui/Icon.jsx';
 import { useUIStore } from '../store/useUIStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
@@ -31,24 +30,45 @@ export default function CityEmptyState({ activeCity, userCoords, cities, T, dark
   const cityName = (activeCity || "").replace(/-/g, " ");
 
   return (
-    <div style={{ margin: "24px 20px 10px", padding: "30px 24px", background: dark ? "#111" : "#ffffff", borderRadius: 24, boxShadow: dark ? "0 12px 32px rgba(0,0,0,0.5)" : "0 8px 32px rgba(0,0,0,0.06)", border: `1px solid ${T.border}`, textAlign: "center", position: "relative" }}>
-      <div style={{ display: "inline-flex", padding: "6px 12px", background: T.bg, borderRadius: 20, fontSize: 11, fontWeight: 800, color: T.text, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16, border: `1px solid ${T.border}` }}>Aún no llegamos aquí</div>
-      <h2 style={{ fontFamily: "var(--heading)", letterSpacing: 0.5, fontSize: 26, color: T.text, margin: "0 0 14px", lineHeight: 1.15, textTransform: "capitalize" }}>¡Ups! {cityName} está vacía</h2>
-      <p style={{ fontSize: 15, color: T.sub, margin: "0 0 24px", lineHeight: 1.5 }}>Actualmente no tenemos lugares registrados en esta ciudad. Explora lugares increíbles cambiando a una ciudad cercana.</p>
+    <div style={{ margin: "24px 20px 10px", padding: 30, paddingLeft: 24, paddingRight: 24, borderRadius: 24, textAlign: "center", position: "relative", background: dark ? '#111' : '#fff', boxShadow: dark ? '0 12px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.06)', border: `1px solid ${T.border}` }}>
+      
+      <div style={{ display: "inline-flex", padding: "6px 12px", borderRadius: 100, fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16, border: `1px solid ${T.border}`, background: T.bg, color: T.text }}>
+        Aún no llegamos aquí
+      </div>
+      
+      <h2 style={{ fontFamily: "var(--heading)", letterSpacing: 0.5, fontSize: 26, margin: "0 0 14px", lineHeight: 1.15, textTransform: "capitalize", color: T.text, fontWeight: 800 }}>
+        ¡Ups! {cityName} está vacía
+      </h2>
+      
+      <p style={{ fontSize: 15, margin: "0 0 24px", lineHeight: 1.5, color: T.sub }}>
+        Aún no hay lugares registrados aquí para hacer Match contigo. Explora una ciudad cercana y encuentra tu próxima gran experiencia.
+      </p>
       
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {nearest && (
-          <button className="press" onClick={() => { setActiveCity(nearest.slug); window.history.pushState(null, "", `/${nearest.slug}`); }} style={{ width: "100%", padding: "16px", background: dark ? "#ffffff" : "#000000", color: dark ? "#000000" : "#ffffff", border: "none", borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "transform 0.2s" }}>
+          <button 
+            className="press"
+            style={{ width: "100%", padding: 16, borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: dark ? '#fff' : '#000', color: dark ? '#000' : '#fff', border: "none" }}
+            onClick={() => { setActiveCity(nearest.slug); window.history.pushState(null, "", `/${nearest.slug}`); }}
+          >
             <Icon name="pin" size={16} color={dark ? "#000" : "#fff"} /> Explorar {nearest.name}
           </button>
         )}
-        <button className="press" onClick={() => setShowCountryPicker(true)} style={{ width: "100%", padding: "16px", background: nearest ? T.bg : (dark ? "#ffffff" : "#000000"), color: nearest ? T.text : (dark ? "#000000" : "#ffffff"), border: nearest ? `1px solid ${T.border}` : "none", borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "transform 0.2s" }}>
+        <button 
+          className="press"
+          style={{ width: "100%", padding: 16, borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: nearest ? T.bg : (dark ? '#fff' : '#000'), color: nearest ? T.text : (dark ? '#000' : '#fff'), border: nearest ? `1px solid ${T.border}` : "none" }}
+          onClick={() => setShowCountryPicker(true)}
+        >
           <Icon name="search" size={16} color={nearest ? T.text : (dark ? "#000" : "#fff")} /> Cambiar de ciudad
         </button>
       </div>
       
       <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
-        <button className="press" onClick={() => { if (!user) { setShowAuth(true); toast$("Inicia sesión para registrar un negocio"); } else { setShowAddBiz(true); } }} style={{ background: "transparent", border: "none", cursor: "pointer", color: T.sub, fontSize: 13, fontWeight: 600, textDecoration: "underline", fontFamily: "inherit" }}>
+        <button 
+          className="press"
+          style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, textDecoration: "underline", fontFamily: "inherit", color: T.sub }}
+          onClick={() => { if (!user) { setShowAuth(true); toast$("Inicia sesión para registrar un negocio"); } else { setShowAddBiz(true); } }}
+        >
           ¿Quieres registrar un negocio aquí?
         </button>
       </div>

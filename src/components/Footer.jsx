@@ -1,4 +1,3 @@
-import Icon from './ui/Icon.jsx';
 import { useAppContext } from '../context/AppContext';
 
 export default function Footer() {

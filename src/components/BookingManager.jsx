@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Icon from './ui/Icon.jsx';
 
 export default function BookingManager({ bookingConfig, onChange, T }) {

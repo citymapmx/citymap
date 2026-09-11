@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import Icon from './ui/Icon.jsx';
 
 export default function Terms({ T, onBack }) {

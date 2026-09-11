@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { m } from "framer-motion";
 
 import Icon from "./ui/Icon.jsx";
@@ -63,7 +63,7 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
   const handleTimeChange = (dayKey, type, val) => {
     const current = schedule[dayKey] || "09:00 - 18:00";
     if (/cerrado/i.test(current)) return;
-    const parts = current.split(/\s*[–\-]\s*|\s+a\s+/i);
+    const parts = current.split(/\s*[-–]\s*|\s+a\s+/i);
     const open = parts[0] || "09:00";
     const close = parts[1] || "18:00";
     if (type === "open") setSchedule(prev => ({ ...prev, [dayKey]: `${val} - ${close}` }));
@@ -116,7 +116,7 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
       closeStr = hours.close;
     } else if (typeof hours === 'string') {
       if (/cerrado/i.test(hours)) return [];
-      const segs = hours.split(/\s*[–\-]\s*|\s+a\s+/i);
+      const segs = hours.split(/\s*[-–]\s*|\s+a\s+/i);
       if (segs.length < 2) return [];
       openStr = segs[0];
       closeStr = segs[1];
@@ -157,6 +157,7 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
     }
 
     return slots;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, schedule]);
 
   const isBlocked = (time) => blockedSlots.some(b => b.date === date && b.time === time);
@@ -297,7 +298,7 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
                   let open = "09:00";
                   let close = "18:00";
                   if (!isClosed) {
-                    const parts = val.split(/\s*[–\-]\s*|\s+a\s+/i);
+                    const parts = val.split(/\s*[-–]\s*|\s+a\s+/i);
                     if (parts.length > 0) open = parts[0].trim().replace(/[^\d:]/g, '');
                     if (parts.length > 1) close = parts[1].trim().replace(/[^\d:]/g, '');
                     // Format to HH:MM so input type="time" accepts it

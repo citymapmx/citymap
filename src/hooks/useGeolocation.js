@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { sb } from '../lib/supabase.js';
 
 export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
   const [city, setCity] = useState(() => localStorage.getItem("cg_city_name") || "Tepic, Nayarit");
@@ -7,7 +8,7 @@ export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
     try {
       const saved = localStorage.getItem("cg_coords");
       if (saved) return JSON.parse(saved);
-    } catch(e) {}
+    } catch (e) { console.error(e); }
     return null;
   });
   const [detectedTown, setDetectedTown] = useState(null);
@@ -57,6 +58,18 @@ export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
             // Nearest City Logic: if detected city isn't supported, find closest supported city slug for backward compatibility
             // but keep the displayName as the ACTUAL town name.
             const isSupported = cities && cities.some(c => c.slug === slug);
+            
+            const handleCityUpdate = (finalSlug) => {
+              setCity(displayName);
+              const currentSlug = localStorage.getItem("cg_city_slug");
+              if (setActiveCity && finalSlug !== currentSlug) setActiveCity(finalSlug);
+              localStorage.setItem("cg_city_slug", finalSlug);
+              localStorage.setItem("cg_city_name", displayName);
+              if (showToast && toast$) toast$(name);
+              onDone?.(finalSlug);
+              setLocating(false);
+            };
+
             if (!isSupported && mapPins && mapPins.length > 0) {
               let closestBiz = null;
               let minD = Infinity;
@@ -67,26 +80,34 @@ export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
               }
               if (closestBiz && minD < 60) {
                  const cityObj = cities.find(c => c.slug === closestBiz.city_slug);
-                 if (cityObj) {
-                     slug = cityObj.slug;
-                     // We intentionally do NOT overwrite displayName anymore.
-                 }
+                 if (cityObj) slug = cityObj.slug;
               }
+              handleCityUpdate(slug);
+            } else if (!isSupported) {
+              // Si no hay mapPins cargados (porque apenas abrió la app), buscamos el negocio más cercano en BD
+              const bounds = { minLat: lat - 0.5, maxLat: lat + 0.5, minLng: lng - 0.5, maxLng: lng + 0.5 };
+              sb.get("businesses", `?select=city_slug,lat,lng&lat=gte.${bounds.minLat}&lat=lte.${bounds.maxLat}&lng=gte.${bounds.minLng}&lng=lte.${bounds.maxLng}&status=eq.approved&limit=50`)
+                .then(nearby => {
+                  let closestSlug = slug;
+                  if (nearby && nearby.length > 0) {
+                    let minD = Infinity;
+                    for (const b of nearby) {
+                      const dist = getKm(lat, lng, parseFloat(b.lat), parseFloat(b.lng));
+                      if (dist < minD) { minD = dist; closestSlug = b.city_slug; }
+                    }
+                  }
+                  handleCityUpdate(closestSlug);
+                })
+                .catch(() => handleCityUpdate(slug));
+            } else {
+              handleCityUpdate(slug);
             }
-
-            setCity(displayName);
-            const currentSlug = localStorage.getItem("cg_city_slug");
-            if (setActiveCity && slug !== currentSlug) setActiveCity(slug);
-            localStorage.setItem("cg_city_slug", slug);
-            localStorage.setItem("cg_city_name", displayName);
-            if (showToast && toast$) toast$(name);
-            onDone?.(slug);
           })
           .catch(() => { 
             if (showToast && toast$) toast$("No se pudo obtener la ciudad"); 
             onError?.();
-          })
-          .finally(() => setLocating(false));
+            setLocating(false);
+          });
       },
       () => { 
         clearTimeout(fallbackTimer);
@@ -109,7 +130,7 @@ export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
       localStorage.setItem("cg_city_slug", c.slug);
       localStorage.setItem("cg_city_name", displayName);
       localStorage.setItem("cg_manual_city", "true");
-    } catch (e) {}
+    } catch (e) { console.error(e); }
     if (toast$) toast$(`📍 ${c.name}`);
   }, [setActiveCity, toast$]);
 

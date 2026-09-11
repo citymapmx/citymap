@@ -1,17 +1,13 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { sb, cloudDeleteBatch, cloudListAllFiles } from "../lib/supabase.js";
-import { PLAN_META, EVENT_CATS } from "../lib/constants.js";
-import { getEventStatus, createSlug, getThumbUrl } from "../lib/utils.js";
+import { PLAN_META } from "../lib/constants.js";
+import { getThumbUrl } from "../lib/utils.js";
 import Icon from "./ui/Icon.jsx";
 import Uploader from "./Uploader.jsx";
-import MenuManager from "./MenuManager.jsx";
-import BookingManager from "./BookingManager.jsx";
 import { useGMaps } from "./GMap.jsx";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 
 // ─── ANALYTICS MINI CARD ──────────────────────────────────────────────────────
-import FI from './admin/FI.jsx';
 
 function MetricCard({ label, value, icon, color, T }) {
   return <div style={{ background: T.white, borderRadius: 14, padding: "14px 16px", boxShadow: T.shadow, flex: 1, minWidth: 0 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}><span className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6 }}>{label}</span><div style={{ width: 30, height: 30, borderRadius: 8, background: color + "22", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={icon} size={14} color={color} /></div></div><div className="text-2xl" style={{ fontWeight: 800, color: T.text }}>{value}</div></div>;
@@ -34,9 +30,11 @@ const AdminBannersTab = lazy(() => import('./admin/AdminBannersTab.jsx'));
 const AdminCitiesTab = lazy(() => import('./admin/AdminCitiesTab.jsx'));
 const AdminCategoriesTab = lazy(() => import('./admin/AdminCategoriesTab.jsx'));
 const AdminReservationsTab = lazy(() => import('./admin/AdminReservationsTab.jsx'));
+const AdminActivityTab = lazy(() => import('./admin/AdminActivityTab.jsx'));
+const AdminWelcomeTab = lazy(() => import('./admin/AdminWelcomeTab.jsx'));
 
 function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab] = useState("welcome");
   const [data, setData] = useState({ biz: [], events: [], experiences: [], promos: [], coupons: [], raffles: [], banners: [], cities: [], categories: [], city_categories: [], analytics: [], reservations: [], claims: [] });
   const [loading, setLoading] = useState(true);
   const [dashCityFilter, setDashCityFilter] = useState("all");
@@ -56,7 +54,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
       const [b, e, ex, p, c, bn, ci, ca, cc, an, rv, cl, rf, ml] = await Promise.all([
         (async () => {
           const [allLite, pendingFull] = await Promise.all([
-            sb.get("businesses", "?select=id,name,status,city_slug,plan,photos,menu_pdf_url,logo_url,owner_id,slug,booking_config,social_links,schedule,blocked_slots"),
+            sb.get("businesses", "?select=id,name,status,city_slug,plan,photos,menu_pdf_url,logo_url,banner_url,owner_id,slug,booking_config,social_links,schedule,blocked_slots"),
             sb.get("businesses", "?status=in.(pending,needs_changes)")
           ]);
           const pendingMap = {};
@@ -103,7 +101,9 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
     } finally { 
       setLoading(false); 
     } 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
 
   // ─ Dashboard stats ─
@@ -112,7 +112,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
   const dashAn = dashCityFilter === "all" ? data.analytics : data.analytics.filter(a => a.city_slug === "all" || (a.city_slug && a.city_slug.split(",").includes(dashCityFilter)));
   const stats = { total: dashBiz.filter(b => b.status !== "pending" && b.status !== "needs_changes").length, approved: dashBiz.filter(b => b.status === "approved").length, pending: dashBiz.filter(b => b.status === "pending" || b.status === "needs_changes").length + dashEv.filter(ev => ev.status === "pending").length, views: dashAn.filter(a => a.event_type === "view").length, whatsapp: dashAn.filter(a => a.event_type === "whatsapp").length, phone: dashAn.filter(a => a.event_type === "phone").length, website: dashAn.filter(a => a.event_type === "website").length, maps: dashAn.filter(a => a.event_type === "maps").length };
 
-  const TABS = [["dashboard", "Panel"], ["biz", "Negocios"], ["pending", "Pendientes"], ["media", "Multimedia"], ["events", "Eventos"], ["experiences", "Experiencias"], ["promos", "Promos"], ["coupons", "Cupones"], ["raffles", "Sorteos"], ["banners", "Banners"], ["cities", "Ciudades"], ["categories", "Categorías"], ["reservations", "Reservas"], ["push", "Push"]];
+  const TABS = [["welcome", "🏠 Inicio"], ["dashboard", "Panel"], ["biz", "Negocios"], ["pending", "Pendientes"], ["media", "Multimedia"], ["events", "Eventos"], ["experiences", "Experiencias"], ["promos", "Promos"], ["coupons", "Cupones"], ["raffles", "Sorteos"], ["banners", "Banners"], ["cities", "Ciudades"], ["categories", "Categorías"], ["reservations", "Reservas"], ["activity", "📊 Actividad"], ["push", "Push"]];
 
 
 
@@ -149,6 +149,13 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
     <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px 80px" }}>
       {loading && <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{[1, 2, 3].map(i => <div key={i} style={{ background: "#fff", borderRadius: 12, height: 70, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }} />)}</div>}
       {!loading && <>
+
+        {/* ─ WELCOME ─ */}
+        {tab === "welcome" && (
+          <Suspense fallback={null}>
+            <AdminWelcomeTab setTab={setTab} T={T} />
+          </Suspense>
+        )}
 
         {/* ─ DASHBOARD ─ */}
         {tab === "dashboard" && (
@@ -229,7 +236,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <button onClick={() => approveBiz(b.id)} style={{ flex: 1, padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>
               <button onClick={() => rejectBiz(b.id)} style={{ flex: 1, padding: "9px 0", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 800, fontSize: 12, color: T.sub, cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
-              <button onClick={() => setBizForm({ ...b, tags: Array.isArray(b.tags) ? b.tags.join(", ") : b.tags, social_links: b.social_links || {} })} style={{ padding: "9px 12px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, cursor: "pointer" }}><Icon name="edit" size={13} color={T.text} /></button>
+              <button onClick={() => setTab("biz")} style={{ padding: "9px 12px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, cursor: "pointer" }}><Icon name="edit" size={13} color={T.text} /></button>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <input className="text-xs" placeholder="Comentario para el propietario..." style={{ flex: 1, padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: 10, color: T.text, background: "transparent", fontFamily: "inherit" }} id={`note-${b.id}`} defaultValue={b.admin_notes || ""} />
@@ -260,7 +267,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                   await load(); 
                 }} style={{ flex: 1, padding: "9px 0", background: "#DCFCE7", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, color: "#16A34A", cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>
                 <button onClick={async () => { if (!window.confirm("¿Rechazar y eliminar este evento por completo?")) return; await sb.del("events", ev.id); onToast("Evento eliminado"); await load(); }} style={{ flex: 1, padding: "9px 0", background: "#FEE2E2", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
-                <button onClick={() => { setTab("events"); setEvForm({ ...ev }); }} style={{ padding: "9px 12px", background: "#EAF4F0", border: "none", borderRadius: 10, cursor: "pointer" }}><Icon name="edit" size={13} color="#1A7A5E" /></button>
+                <button onClick={() => { setTab("events");  }} style={{ padding: "9px 12px", background: "#EAF4F0", border: "none", borderRadius: 10, cursor: "pointer" }}><Icon name="edit" size={13} color="#1A7A5E" /></button>
               </div>
              </div>;
           })}
@@ -299,7 +306,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
               {/* PDF Menu */}
               <div style={{ marginTop: 16, background: "#fff", borderRadius: 12, padding: 14 }}>
                 <div className="text-sm" style={{ fontWeight: 700, color: "#0F1A14", marginBottom: 10 }}>Menú PDF</div>
-                {b?.menu_pdf_url ? (<div style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 12px", background: "#EAF4F0", borderRadius: 10 }}><Icon name="file" size={18} color="#1A7A5E" /><button onClick={() => window.open(b.menu_pdf_url, '_blank')} style={{ fontSize: 13, color: "#1A7A5E", fontWeight: 600, flex: 1, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>Ver menú</button><button onClick={() => uploadPDF(null, b.id)} style={{ background: "none", border: "none", cursor: "pointer" }}><Icon name="trash" size={14} color="#D94F3D" /></button></div>) : (<>{(b?.plan === "destacado" || b?.plan === "premium") ? <Uploader label="Subir menú (PDF/Imagen)" accept="image/*,.pdf,application/pdf" onDone={url => uploadPDF(url, b.id)} /> : <div className="text-sm" style={{ padding: "12px", background: "#FEF3C7", borderRadius: 10, color: "#92400E", fontWeight: 600 }}>Requiere plan Destacado o Premium</div>}</>)}
+                {b?.menu_pdf_url ? (<div style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 12px", background: "#EAF4F0", borderRadius: 10 }}><Icon name="file" size={18} color="#1A7A5E" /><button onClick={() => window.open(b.menu_pdf_url, '_blank')} style={{ fontSize: 13, color: "#1A7A5E", fontWeight: 600, flex: 1, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>Ver menú</button><button onClick={() => uploadPDF(null, b.id)} style={{ background: "none", border: "none", cursor: "pointer" }}><Icon name="trash" size={14} color="#D94F3D" /></button></div>) : (<>{(b?.plan === "destacado" || b?.plan === "premium" || b?.plan === "menu") ? <Uploader label="Subir menú (PDF/Imagen)" accept="image/*,.pdf,application/pdf" onDone={url => uploadPDF(url, b.id)} /> : <div className="text-sm" style={{ padding: "12px", background: "#FEF3C7", borderRadius: 10, color: "#92400E", fontWeight: 600 }}>Requiere plan Destacado, Premium o Solo Menú</div>}</>)}
               </div>
             </div>;
           })()}
@@ -378,7 +385,14 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
           </Suspense>
         )}
 
-        {/* ─ ANALYTICS ─ */}
+        {/* ─ ACTIVITY ─ */}
+        {tab === "activity" && (
+          <Suspense fallback={null}>
+            <AdminActivityTab data={data} sb={sb} load={load} onToast={onToast} T={T} />
+          </Suspense>
+        )}
+
+        {/* ─ PUSH ─ */}
         {tab === "push" && <PushTab T={T} onToast={onToast} />}
 
         {tab === "analytics" && analyticsTarget && (() => {
@@ -498,17 +512,22 @@ function PushTab({ T, onToast }) {
   useEffect(() => {
     if (deepLinkType === "biz") {
       sb.get("businesses", "?select=id,name,slug,city_slug&status=eq.approved&limit=500")
+         
         .then(data => setAllBiz(data || []));
     } else if (deepLinkType === "event") {
       sb.get("events", "?select=id,title&limit=200")
+         
         .then(data => setAllEvents(data || []));
     }
+     
     setSelectedItem(null);
+     
     setSearch("");
   }, [deepLinkType]);
 
   // Load cities for target filter
   useEffect(() => {
+     
     sb.get("cities", "?select=slug,name&order=name.asc").then(data => setCities(data || []));
   }, []);
 

@@ -59,7 +59,7 @@ export function useFavorites({ sb, user, setShowAuth, toast$ }) {
               setCollections(inserted);
             }
           }
-        } catch(e) {}
+        } catch (e) { console.error(e); }
       }
     } catch { 
       setFavIds([]); 

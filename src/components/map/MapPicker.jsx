@@ -19,6 +19,7 @@ export default function MapPicker({ onPick, onClose, initLat, initLng }) {
       else marker.current = new window.google.maps.Marker({ position: { lat: lt, lng: ln }, map: map.current });
       onPick(lt.toFixed(6), ln.toFixed(6));
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ok]);
   return <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", flexDirection: "column" }}>
     <div style={{ padding: "14px 16px", background: "rgba(0,0,0,.8)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>

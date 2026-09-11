@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { m } from "framer-motion";
 import Icon from "../components/ui/Icon.jsx";
 import { useDataStore } from "../store/useDataStore.js";

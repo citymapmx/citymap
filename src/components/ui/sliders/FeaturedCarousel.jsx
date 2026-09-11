@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import FeaturedCard from "../../cards/FeaturedCard.jsx";
 
 export default function FeaturedCarousel({ items, T, dark, favIds, toggleFav, onTap, goWhatsApp, goDir, doShare, globalFavCounts }) {

@@ -1,18 +1,18 @@
 import React, { useState } from "react";
-import { m, AnimatePresence } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
-import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
-import { Sk } from "../components/ui/Skeleton.jsx";
 import { getThumbUrl } from "../lib/utils";
 import useTimeStore from "../store/useTimeStore.js";
 import { Helmet } from "react-helmet-async";
 
+import { useTranslation } from "../hooks/useTranslation.js";
+
 export default function EventsView() {
+  const { t, lang } = useTranslation();
   const [activeIdx, setActiveIdx] = useState(0);
   const ctx = useAppContext();
   const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
@@ -22,10 +22,6 @@ export default function EventsView() {
 
   return (
     <div style={{ paddingBottom: 84, ...viewStyle }}>
-      <Helmet>
-        <title>Eventos en {(city || activeCity || "tu ciudad").split(",")[0]} - CityMap</title>
-        <link rel="canonical" href="https://citymap.mx/eventos" />
-      </Helmet>
       <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 16px", background: T.white, textAlign: "center" }}>
             <style>{`
               @keyframes evGradientFlow {
@@ -49,10 +45,10 @@ export default function EventsView() {
               style={{ height: 44, objectFit: "contain", filter: dark ? "none" : "brightness(0)", display: "block", margin: "0 auto 10px" }}
             />
             <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: T.text, lineHeight: 1.25, fontFamily: "var(--heading)" }}>
-              Eventos que no te puedes perder en
+              {t("eventos_no_perder", "Eventos que no te puedes perder en")}
             </p>
             <p style={{ margin: "2px 0 0 0", fontSize: 22, lineHeight: 1.2, fontFamily: "var(--heading)" }}>
-              <span className="ev-city-anim">{(city || activeCity || "tu ciudad").split(",")[0]}</span>
+              <span className="ev-city-anim">{(city || activeCity || t("tu_ciudad", "tu ciudad")).split(",")[0]}</span>
             </p>
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", padding: "8px 20px 4px" }}>
@@ -68,7 +64,7 @@ export default function EventsView() {
                   onClick={() => setShowCreateEvent(true)} 
                   style={{ color: "#fff", border: "none", borderRadius: 20, padding: "8px 16px", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}
                 >
-                  <Icon name="plus" size={14} color="#fff" /> Crear Evento
+                  <Icon name="plus" size={14} color="#fff" /> {t("crear_evento", "Crear Evento")}
                 </button>
               </>
             )}
@@ -94,38 +90,48 @@ export default function EventsView() {
             const todayLocal = `${now2.getFullYear()}-${pad(now2.getMonth()+1)}-${pad(now2.getDate())}`;
             const tmrDt = new Date(now2.getFullYear(), now2.getMonth(), now2.getDate() + 1);
             const tomorrowLocal = `${tmrDt.getFullYear()}-${pad(tmrDt.getMonth()+1)}-${pad(tmrDt.getDate())}`;
-            const fmtCardDate = ev => {
+             const fmtCardDate = ev => {
               if (!ev.date) return "";
               const d = ev.date;
               if (!ev.end_date || ev.end_date === d) {
-                if (d === todayLocal) return "HOY";
-                if (d === tomorrowLocal) return "MAÑANA";
+                if (d === todayLocal) return t("hoy_caps", "HOY");
+                if (d === tomorrowLocal) return t("manana_caps", "MAÑANA");
                 const [y, m, day] = d.split("-").map(Number);
-                const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-                return `${day} DE ${months[m - 1]} DEL ${y}`;
+                const months = lang === 'en'
+                  ? ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"]
+                  : ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+                return lang === 'en'
+                  ? `${months[m - 1]} ${day}, ${y}`
+                  : `${day} DE ${months[m - 1]} DEL ${y}`;
               } else {
                 const [y1, m1, day1] = d.split("-").map(Number);
                 const [y2, m2, day2] = ev.end_date.split("-").map(Number);
-                const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+                const months = lang === 'en'
+                  ? ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"]
+                  : ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
                 if (m1 === m2 && y1 === y2) {
-                  return `DEL ${day1} AL ${day2} DE ${months[m1 - 1]}`;
+                  return lang === 'en'
+                    ? `FROM ${months[m1 - 1]} ${day1} TO ${day2}`
+                    : `DEL ${day1} AL ${day2} DE ${months[m1 - 1]}`;
                 }
-                return `DEL ${day1} DE ${months[m1 - 1]} AL ${day2} DE ${months[m2 - 1]}`;
+                return lang === 'en'
+                  ? `FROM ${months[m1 - 1]} ${day1} TO ${months[m2 - 1]} ${day2}`
+                  : `DEL ${day1} DE ${months[m1 - 1]} AL ${day2} DE ${months[m2 - 1]}`;
               }
             };
-            const formatTimeAMPM = (timeStr) => {
+             const formatTimeAMPM = (timeStr) => {
               if (!timeStr) return "";
               const [h, m] = timeStr.split(":");
               let hh = parseInt(h);
-              const ampm = hh >= 12 ? "p.m." : "a.m.";
+              const ampm = hh >= 12 ? (lang === 'en' ? "PM" : "p.m.") : (lang === 'en' ? "AM" : "a.m.");
               if (hh === 0) hh = 12;
               if (hh > 12) hh -= 12;
               return `${hh}:${m} ${ampm}`;
             };
-            if (visible.length === 0) return <div style={{ textAlign: "center", padding: "60px 20px" }}>
+             if (visible.length === 0) return <div style={{ textAlign: "center", padding: "60px 20px" }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: T.text }}>Sin eventos por ahora</div>
-              <div style={{ fontSize: 13, color: T.sub, marginTop: 6 }}>Pronto habrá novedades en tu ciudad</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: T.text }}>{t("sin_eventos", "Sin eventos por ahora")}</div>
+              <div style={{ fontSize: 13, color: T.sub, marginTop: 6 }}>{t("sin_eventos_desc", "Pronto habrá novedades en tu ciudad")}</div>
             </div>;
 
             return (
@@ -134,12 +140,13 @@ export default function EventsView() {
                 {/* Grid Section */}
                 {visible.length > 0 && (
                   <div style={{ padding: "0 20px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
-                    {visible.map(ev => {
+                    {visible.map((ev, evIdx) => {
                       const isSaved = savedEventIds.includes(ev.id);
                       const imgSrc = ev.img_url || ev.img;
                       const dateLbl = fmtCardDate(ev);
                       return (
-                        <div key={ev.id} className="press" onClick={() => { handleEventTap(ev); }} style={{ background: T.card, borderRadius: 20, border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`, boxShadow: dark ? '0 4px 12px rgba(0,0,0,0.5)' : '0 8px 20px rgba(0,0,0,0.06)', position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                        <React.Fragment key={ev.id}>
+                          <div className="press" onClick={() => { handleEventTap(ev); }} style={{ background: T.card, borderRadius: 20, border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`, boxShadow: dark ? '0 4px 12px rgba(0,0,0,0.5)' : '0 8px 20px rgba(0,0,0,0.06)', position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
                           <div style={{ width: "100%", aspectRatio: "5/7", background: imgSrc ? `${dark ? "#1F2937" : "#F3F4F6"} url('${getThumbUrl(imgSrc, 400, 560)}') center/cover` : (dark ? "#1F2937" : "#F3F4F6"), position: "relative" }}>
                             {!imgSrc && (
                               <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: dark ? "#374151" : "#E5E7EB" }}>
@@ -152,17 +159,17 @@ export default function EventsView() {
                             </button>
                             {ev.date && (() => {
                               const d = new Date(ev.date + "T12:00:00");
-                              const m = d.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
-                              let dayTxt = d.getDate();
-                              let moTxt = m;
+                               const m = d.toLocaleString(lang === 'en' ? 'en-US' : 'es-MX', { month: 'short' }).replace('.', '');
+                               let dayTxt = d.getDate();
+                               let moTxt = m;
                               if (ev.end_date && ev.end_date !== ev.date) {
                                   const d2 = new Date(ev.end_date + "T12:00:00");
-                                  dayTxt = `${d.getDate()}-${d2.getDate()}`;
-                                  if (d.getMonth() !== d2.getMonth()) {
-                                      const m2 = d2.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
-                                      moTxt = `${m}/${m2}`;
-                                  }
-                              }
+                                    dayTxt = `${d.getDate()}-${d2.getDate()}`;
+                                    if (d.getMonth() !== d2.getMonth()) {
+                                        const m2 = d2.toLocaleString(lang === 'en' ? 'en-US' : 'es-MX', { month: 'short' }).replace('.', '');
+                                        moTxt = `${m}/${m2}`;
+                                    }
+                                }
                               return (
                                 <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", padding: "8px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.2)", display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1, zIndex: 10 }}>
                                   <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", marginBottom: 2, whiteSpace: "nowrap" }}>{dayTxt}</span>
@@ -171,8 +178,8 @@ export default function EventsView() {
                               );
                             })()}
                           </div>
-
-                        </div>
+                          </div>
+                        </React.Fragment>
                       );
                     })}
                   </div>

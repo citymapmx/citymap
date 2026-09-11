@@ -1,5 +1,3 @@
-import { useState, useEffect } from 'react';
-import Icon from './ui/Icon.jsx';
 
 
 // ─── SPLASH SCREEN ────────────────────────────────────────────────────────────

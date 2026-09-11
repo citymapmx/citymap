@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy, useEffect } from 'react';
+import { useState, Suspense, lazy, useEffect } from 'react';
 import { m, AnimatePresence } from "framer-motion";
 import { Helmet } from 'react-helmet-async';
 import Icon from './ui/Icon';
@@ -6,8 +6,9 @@ import StarRow from './ui/StarRow';
 import { useAppContext } from '../context/AppContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
+import { useDataStore } from '../store/useDataStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getThumbUrl } from '../lib/utils';
+import { getThumbUrl, createSlug } from '../lib/utils';
 
 const Gallery = lazy(() => import('./Gallery').catch(() => {
   window.location.reload();
@@ -119,15 +120,18 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const [fullGalleryIdx, setFullGalleryIdx] = useState(null);
   const [showAllReviews, setShowAllReviews] = useState(false);
   
-  const { reviews, loadExperienceReviews, postExperienceReview, showReview, setShowReview, reviewStar, setReviewStar, reviewText, setReviewText, reviewImgFile, setReviewImgFile, reviewImgLoading, toggleLikeReview, sb, isAdmin, toast$ } = useAppContext();
+  const { handleCardTap, reviews, loadExperienceReviews, postExperienceReview, showReview, setShowReview, reviewStar, setReviewStar, reviewText, setReviewText, reviewImgFile, setReviewImgFile, reviewImgLoading, toggleLikeReview, sb, isAdmin, toast$ } = useAppContext();
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
-  const { setShowItineraryModal, setItineraryTargetBiz } = useUIStore(useShallow(s => ({ setShowItineraryModal: s.setShowItineraryModal, setItineraryTargetBiz: s.setItineraryTargetBiz })));
+  const { setShowItineraryModal, setItineraryTargetBiz, setSelected } = useUIStore(useShallow(s => ({ setShowItineraryModal: s.setShowItineraryModal, setItineraryTargetBiz: s.setItineraryTargetBiz, setSelected: s.setSelected })));
+  const mapPins = useDataStore(s => s.mapPins);
+
 
   useEffect(() => {
     if (exp?.id) loadExperienceReviews(exp.id);
   }, [exp?.id, loadExperienceReviews]);
   
   if (!exp) return null;
+  const associatedBiz = exp.biz_id ? mapPins.find(b => b.id === exp.biz_id) : null;
 
   const gallery = Array.isArray(exp.gallery) ? exp.gallery : [];
   const cover = gallery.length > 0 ? gallery[0] : null;
@@ -288,6 +292,35 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
             )}
           </div>
         )}
+        
+        {associatedBiz && (
+          <div 
+            onClick={() => {
+              onClose();
+              setTimeout(() => handleCardTap(associatedBiz), 300);
+            }}
+            className="press"
+            style={{ 
+              display: "flex", alignItems: "center", gap: 16, padding: "24px 0", 
+              borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, 
+              margin: "16px 0 24px 0", cursor: "pointer"
+            }}
+          >
+            {associatedBiz.logo_url || associatedBiz.photos?.[0]?.url ? (
+              <img src={getThumbUrl(associatedBiz.logo_url || associatedBiz.photos[0].url, 200)} alt={associatedBiz.name} style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", backgroundColor: "#fff", border: `1px solid ${T.border}` }} />
+            ) : (
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: T.border, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="store" size={24} color={T.sub} />
+              </div>
+            )}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>Ofrecido por {associatedBiz.name}</div>
+              <div style={{ fontSize: 13, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>
+                Ver perfil del negocio <Icon name="chevron_right" size={14} color={T.sub} />
+              </div>
+            </div>
+          </div>
+        )}
 
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 16 }}>
           <span style={{ fontSize: priceFormatted === 'Gratis' ? 14 : 22, fontWeight: 900, color: T.text, textTransform: priceFormatted === 'Gratis' ? "uppercase" : "none", letterSpacing: priceFormatted === 'Gratis' ? 0.5 : 0 }}>{priceFormatted}</span>
@@ -440,21 +473,34 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {(exp.includes?.length > 0 || exp.not_includes?.length > 0) && (
           <div style={{ marginBottom: 32 }}>
             <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "0 0 28px 0" }} />
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>¿Qué esperar?</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
-              {exp.includes?.map((inc, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <Icon name="check-circle" size={18} color="#10B981" style={{ marginTop: 2 }} />
-                  <span style={{ fontSize: 15, color: T.text, lineHeight: 1.4 }}>{inc}</span>
+            
+            {exp.includes?.length > 0 && (
+              <>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>¿Qué incluye?</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12, marginBottom: exp.not_includes?.length > 0 ? 24 : 0 }}>
+                  {exp.includes.map((inc, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      <Icon name="check" size={18} color="#10B981" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span style={{ fontSize: 15, color: T.text, lineHeight: 1.4 }}>{inc}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-              {exp.not_includes?.map((ninc, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <Icon name="x-circle" size={18} color="#EF4444" style={{ marginTop: 2 }} />
-                  <span style={{ fontSize: 15, color: T.sub, lineHeight: 1.4, textDecoration: "line-through" }}>{ninc}</span>
+              </>
+            )}
+
+            {exp.not_includes?.length > 0 && (
+              <>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>¿Qué no incluye?</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+                  {exp.not_includes.map((ninc, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      <Icon name="x" size={18} color="#EF4444" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span style={{ fontSize: 15, color: T.sub, lineHeight: 1.4 }}>{ninc}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </div>
         )}
 
@@ -602,7 +648,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
               </div>
             )}
             <div style={{ display: "flex", gap: 10 }}>
-              <button className="press" onClick={() => user ? handleLikeReview(r) : setShowAuth(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", border: `1px solid ${r.liked_by?.includes(user?.id) ? "#000" : T.border}`, borderRadius: 16, background: r.liked_by?.includes(user?.id) ? "#000" : "transparent", fontSize: 13, fontWeight: 700, color: r.liked_by?.includes(user?.id) ? "#fff" : T.sub, cursor: "pointer", fontFamily: "inherit" }}>
+              <button className="press" onClick={() => user ? toggleLikeReview(r) : setShowAuth(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", border: `1px solid ${r.liked_by?.includes(user?.id) ? "#000" : T.border}`, borderRadius: 16, background: r.liked_by?.includes(user?.id) ? "#000" : "transparent", fontSize: 13, fontWeight: 700, color: r.liked_by?.includes(user?.id) ? "#fff" : T.sub, cursor: "pointer", fontFamily: "inherit" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill={r.liked_by?.includes(user?.id) ? "#fff" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg> Útil ({r.liked_by?.length || 0})
               </button>
             </div>

@@ -1,26 +1,7 @@
 import { create } from 'zustand';
 import { sb } from '../lib/supabase.js';
 
-export const METRO_ZONES = {};
-
-const updateMetroZones = (citiesList) => {
-  if (!citiesList || !Array.isArray(citiesList)) return;
-  Object.keys(METRO_ZONES).forEach(k => delete METRO_ZONES[k]);
-  citiesList.forEach(c => {
-    let metro = c.metro_zone;
-    if (c.state && c.state.includes(";")) {
-      metro = c.state.split(";")[1];
-    }
-    
-    if (metro) {
-      if (!METRO_ZONES[c.slug]) METRO_ZONES[c.slug] = [c.slug, metro];
-      else if (!METRO_ZONES[c.slug].includes(metro)) METRO_ZONES[c.slug].push(metro);
-      
-      if (!METRO_ZONES[metro]) METRO_ZONES[metro] = [metro];
-      if (!METRO_ZONES[metro].includes(c.slug)) METRO_ZONES[metro].push(c.slug);
-    }
-  });
-};
+import { METRO_ZONES, updateMetroZones } from '../lib/utils.js';
 
 const getCityFilterEq = (city) => {
   const zone = METRO_ZONES[city];
@@ -70,10 +51,10 @@ export const useDataStore = create((set, get) => ({
         try {
           const parsedCache = JSON.parse(cached);
           set({ mapPins: parsedCache });
-        } catch (e) { }
+        } catch (e) { console.error(e); }
       }
 
-      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge";
+      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url";
       
       const processBatch = (batch) => Array.isArray(batch) ? batch.map(b => ({
         ...b,
@@ -82,17 +63,16 @@ export const useDataStore = create((set, get) => ({
         photos: get().parseJSON(b.photos)
       })) : [];
 
-      // Fast-first loading: Carga inicial de 30 lugares para TTI ultra rápido
-      let firstBatch = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&${getCityFilterEq(targetCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=30`);
+      // Fast-first loading: Carga inicial de 12 lugares para TTI ultra rápido
+      let firstBatch = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=12`);
       const initialPins = processBatch(firstBatch);
       set({ mapPins: initialPins });
       
-      // Background loading: Trae el resto para no romper la búsqueda y el mapa local
-      sb.get("businesses", `?select=${selectCols}&status=eq.approved&${getCityFilterEq(targetCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=1000&offset=30`)
+      // Background loading: Trae unos cuantos más para poblar el mapa inicial sin ahogar la memoria
+      sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=40&offset=12`)
         .then(restBatch => {
           if (restBatch && restBatch.length > 0) {
             const restPins = processBatch(restBatch);
-            // Deduplicate to avoid any pagination overlap artifacts
             const allPinsMap = new Map();
             initialPins.forEach(p => allPinsMap.set(p.id, p));
             restPins.forEach(p => allPinsMap.set(p.id, p));
@@ -100,8 +80,6 @@ export const useDataStore = create((set, get) => ({
             
             set({ mapPins: uniquePins });
             localStorage.setItem(cacheKey, JSON.stringify(uniquePins));
-          } else {
-            localStorage.setItem(cacheKey, JSON.stringify(initialPins));
           }
         })
         .catch(e => console.warn("Error background fetch pins", e));
@@ -111,10 +89,55 @@ export const useDataStore = create((set, get) => ({
     }
   },
 
+  fetchMoreBiz: async ({ targetCity, query, category, offset = 0, limit = 20 }) => {
+    try {
+      if (!targetCity) return 0;
+      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url";
+      
+      let filters = `status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}`;
+      
+      if (category && category !== "todas" && category !== "explorar") {
+        // Simple match on category column for remote fetch
+        filters += `&category=ilike.*${category}*`;
+      }
+      
+      if (query) {
+        // Search in name or tags or type
+        filters += `&or=(name.ilike.*${query}*,type.ilike.*${query}*,category.ilike.*${query}*)`;
+      }
+      
+      const batch = await sb.get("businesses", `?select=${selectCols}&${filters}&order=plan.desc,rating.desc.nullslast,id.desc&limit=${limit}&offset=${offset}`);
+      
+      if (!batch || batch.length === 0) return 0;
+      
+      const processBatch = (bArray) => Array.isArray(bArray) ? bArray.map(b => ({
+        ...b,
+        schedule: get().parseJSON(b.schedule),
+        social_links: get().parseJSON(b.social_links),
+        photos: get().parseJSON(b.photos)
+      })) : [];
+      
+      const processed = processBatch(batch);
+      
+      // Merge with existing mapPins
+      const currentPins = get().mapPins;
+      const allPinsMap = new Map();
+      currentPins.forEach(p => allPinsMap.set(p.id, p));
+      processed.forEach(p => allPinsMap.set(p.id, p));
+      
+      set({ mapPins: Array.from(allPinsMap.values()) });
+      
+      return processed.length;
+    } catch (e) {
+      console.error("Error fetching paginated biz:", e);
+      return 0;
+    }
+  },
+
   loadMapPinsByBounds: async (targetCity, bounds) => {
     try {
       if (!bounds || !bounds.minLat || !bounds.maxLat || !bounds.minLng || !bounds.maxLng) return;
-      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge";
+      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,banner_url";
       
       const processBatch = (batch) => Array.isArray(batch) ? batch.map(b => ({
         ...b,
@@ -124,7 +147,7 @@ export const useDataStore = create((set, get) => ({
       })) : [];
 
       // Fetch businesses within bounds using Supabase filters
-      const page = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&${getCityFilterEq(targetCity)}&lat=gte.${bounds.minLat}&lat=lte.${bounds.maxLat}&lng=gte.${bounds.minLng}&lng=lte.${bounds.maxLng}&limit=200`);
+      const page = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&lat=gte.${bounds.minLat}&lat=lte.${bounds.maxLat}&lng=gte.${bounds.minLng}&lng=lte.${bounds.maxLng}&limit=200`);
       if (!Array.isArray(page) || page.length === 0) return;
       
       const processedPage = processBatch(page);
@@ -164,7 +187,7 @@ export const useDataStore = create((set, get) => ({
 
       // Reset city-specific arrays immediately so we never render stale data from another city
       if (cityOverride) {
-        set({ events: [], experiences: [], banners: [], promos: [], coupons: [], mapPins: [] });
+        set({ dbReady: false, events: [], experiences: [], banners: [], promos: [], coupons: [], mapPins: [] });
       }
       
       const cached = localStorage.getItem(cacheKey);
@@ -202,17 +225,20 @@ export const useDataStore = create((set, get) => ({
             c.globalFavs.filter(Boolean).forEach(f => { counts[f.biz_id] = parseInt(f.fav_count, 10); });
             set({ globalFavCounts: counts });
           }
-          set({ dbReady: true });
-        } catch (e) { }
+          
+          if (localStorage.getItem(`cg_mapPins_${targetCity}`)) {
+            set({ dbReady: true });
+          }
+        } catch (e) { console.error(e); }
       }
 
-      get().loadMapPins(targetCity);
+      const pPins = get().loadMapPins(targetCity);
       
       const pEvents = sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => []);
       const pExperiences = sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => []);
-      const pPromos = sb.get("promos").catch(() => []);
-      const pRaffles = sb.get("raffles").catch(() => []);
-      const pCoupons = sb.get("coupons").catch(() => []);
+      const pPromos = sb.get("promos", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => []);
+      const pRaffles = sb.get("raffles", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => []);
+      const pCoupons = sb.get("coupons", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => []);
       
       const bannerCities = ["all", ...(METRO_ZONES[targetCity] || [targetCity])];
       const pBanners = sb.get("banners", `?active=eq.true&city_slug=in.(${bannerCities.join(',')})`).catch(() => []);
@@ -221,7 +247,7 @@ export const useDataStore = create((set, get) => ({
       const pCities = currentCities && currentCities.length > 0 ? Promise.resolve(currentCities) : sb.get("cities", "?order=name.asc").catch(() => []);
       const pFavs = sb.rpc("get_global_favs").catch(() => sb.get("favorites")).catch(() => []);
 
-      const [e, ex, r, p, c, bn, ca, cc, ci, globalFavs] = await Promise.all([pEvents, pExperiences, pRaffles, pPromos, pCoupons, pBanners, pCats, pCityCats, pCities, pFavs]);
+      const [e, ex, r, p, c, bn, ca, cc, ci, globalFavs] = await Promise.all([pEvents, pExperiences, pRaffles, pPromos, pCoupons, pBanners, pCats, pCityCats, pCities, pFavs, pPins]);
       
       if (ci && Array.isArray(ci)) {
         updateMetroZones(ci);
@@ -241,7 +267,7 @@ export const useDataStore = create((set, get) => ({
           try {
             booking_config = JSON.parse(website);
             website = null;
-          } catch(err) {}
+          } catch (err) { console.error(err); }
         } else if (website) {
           booking_config = { enabled: true, type: "external", externalLinks: [{ platform: "otro", url: website, label: "Sitio Web / Boletos" }] };
         }
@@ -298,7 +324,7 @@ export const useDataStore = create((set, get) => ({
           ci: Array.isArray(ci) ? ci : [],
           globalFavs: Array.isArray(globalFavs) ? globalFavs : []
         }));
-      } catch (e) { }
+      } catch (e) { console.error(e); }
 
       set({ dbReady: true, dbError: false });
     } catch (err) {

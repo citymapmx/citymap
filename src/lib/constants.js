@@ -3,6 +3,7 @@ const PLAN_META = {
   free: { label: "Gratuito", color: "#6B7280", bg: "#F3F4F6", max_photos: 3 },
   destacado: { label: "Destacado", color: "#3B82F6", bg: "#EFF6FF", max_photos: 7 },
   premium: { label: "Premium", color: "#C9A84C", bg: "#FFFBEB", max_photos: 15 },
+  menu: { label: "Solo Menú (QR Privado)", color: "#10B981", bg: "#ECFDF5", max_photos: 15 },
 };
 
 // ─── TIMEZONE POR CIUDAD ──────────────────────────────────────────────────────

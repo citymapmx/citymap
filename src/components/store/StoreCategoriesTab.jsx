@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { sb } from '../../lib/supabase.js';
 import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
@@ -14,7 +14,8 @@ export default function StoreCategoriesTab({
   setView, 
   inpH, 
   T,
-  setLoading
+  setLoading,
+  isAdmin
 }) {
   const [catName, setCatName] = useState('');
   const [editingCatId, setEditingCatId] = useState(null);
@@ -116,13 +117,15 @@ export default function StoreCategoriesTab({
           <button onClick={saveCategory} style={{ background: '#0F172A', color: "#fff", border: "none", borderRadius: 12, padding: "0 20px", fontWeight: 800, cursor: "pointer", fontSize: 14, flexShrink: 0 }}>Agregar</button>
         </div>
         
-        <div style={{ marginBottom: 24 }}>
-          <AiMenuImporter 
-            onImport={handleAiImport} 
-            bizType={isCatalog ? "catálogo" : "menú"} 
-            adminSecret={import.meta.env.VITE_ADMIN_SECRET} 
-          />
-        </div>
+        {isAdmin && (
+          <div style={{ marginBottom: 24 }}>
+            <AiMenuImporter 
+              onImport={handleAiImport} 
+              bizType={isCatalog ? "catálogo" : "menú"} 
+              adminSecret={import.meta.env.VITE_ADMIN_SECRET} 
+            />
+          </div>
+        )}
         
         {categories.length === 0 ? (
           <div style={{ textAlign: "center", color: T.sub, padding: "40px 20px" }}>

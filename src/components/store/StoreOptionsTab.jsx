@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { sb } from '../../lib/supabase.js';
 import Icon from '../ui/Icon.jsx';
 
@@ -19,10 +19,12 @@ export default function StoreOptionsTab({
     let finalRequired = optForm.is_required;
     let finalValues = [...(optForm.values || [])];
 
+     
     if (optForm.template === 'toggle_omit') {
       finalType = 'multiple';
       finalRequired = false;
       finalValues = [{ label: 'Sí', extra_price: 0 }];
+     
     } else if (optForm.template === 'toggle_add') {
       finalType = 'multiple';
       finalRequired = false;
@@ -95,7 +97,7 @@ export default function StoreOptionsTab({
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={() => { 
-                      let template = 'multiple';
+                      let template;
                       const vals = opt.store_option_values || [];
                       if (vals.length <= 1) {
                         const val = vals[0];

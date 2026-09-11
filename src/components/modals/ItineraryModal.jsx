@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import Icon from "../ui/Icon.jsx";
 import { useUIStore } from "../../store/useUIStore.js";

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from './ui/Icon.jsx';
 import { sb } from '../lib/supabase.js';
 
@@ -11,8 +11,10 @@ export default function UserNotifs({ T, onBack, user }) {
     if (user) {
       loadNotifs();
     } else {
+       
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadNotifs = async () => {

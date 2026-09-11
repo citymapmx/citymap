@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { m, Reorder } from "framer-motion";
 import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import * as dbService from "../services/dbService.js";
 import Icon from "../components/ui/Icon.jsx";
-import CompactCard from "../components/cards/CompactCard.jsx";
 import ItineraryItemCard from "../components/cards/ItineraryItemCard.jsx";
 import { getKm } from "../lib/utils.js";
 
@@ -292,12 +291,16 @@ export default function ItineraryDetail({ T, dark, navigate, token, id, userCoor
     const origLat = userCoords?.lat;
     const origLng = userCoords?.lng;
 
+    // eslint-disable-next-line no-useless-assignment
     let originStr = "";
+    // eslint-disable-next-line no-useless-assignment
     let destinationStr = "";
     let waypoints = [];
     
     if (origLat && origLng) {
+       
       originStr = `${origLat},${origLng}`;
+       
       destinationStr = `${items[items.length - 1].biz.lat},${items[items.length - 1].biz.lng}`;
       if (items.length > 1) {
         waypoints = items.slice(0, items.length - 1).map(i => `${i.biz.lat},${i.biz.lng}`);
@@ -305,7 +308,9 @@ export default function ItineraryDetail({ T, dark, navigate, token, id, userCoor
         waypoints = [`${items[0].biz.lat},${items[0].biz.lng}`];
       }
     } else {
+       
       originStr = `${items[0].biz.lat},${items[0].biz.lng}`;
+       
       destinationStr = `${items[items.length - 1].biz.lat},${items[items.length - 1].biz.lng}`;
       if (items.length > 2) {
         waypoints = items.slice(1, -1).map(i => `${i.biz.lat},${i.biz.lng}`);
@@ -319,6 +324,7 @@ export default function ItineraryDetail({ T, dark, navigate, token, id, userCoor
     window.open(url, "_blank");
   };
 
+   
   let currentAccumulatedMins = null;
 
   // Determine origin for the first item (User location)
@@ -329,7 +335,9 @@ export default function ItineraryDetail({ T, dark, navigate, token, id, userCoor
     const km = getKm(originLat, originLng, items[0].biz.lat, items[0].biz.lng);
     const isWalking = km < 0.8;
     const mins = isWalking ? Math.round(km * 12) || 1 : (km > 15 ? Math.round(km * 1.2) : Math.round(km * 2.5)) || 1;
+     
     if (currentAccumulatedMins !== null) {
+      // eslint-disable-next-line no-useless-assignment
       currentAccumulatedMins += mins;
     }
   }

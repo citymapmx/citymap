@@ -1,4 +1,3 @@
-import React from 'react';
 import { useUIStore } from '../../store/useUIStore';
 import { getT, FONT_BIZ } from '../../lib/constants';
 import Icon from '../ui/Icon';

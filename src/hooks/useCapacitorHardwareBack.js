@@ -44,7 +44,7 @@ export function useCapacitorHardwareBack() {
         try {
           const { Browser } = await import('@capacitor/browser');
           await Browser.close();
-        } catch (e) {}
+        } catch (e) { console.error(e); }
         const success = await sb.setSessionFromUrl(event.url);
         if (success) {
           // Force reload user session

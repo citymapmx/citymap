@@ -303,14 +303,6 @@ export default function HomeView({ isBackground }) {
 
   return (
     <div style={{ paddingBottom: 84, position: "relative", ...viewStyle }}>
-      {!isBackground && (
-        <Helmet>
-          <title>{currentTitle}</title>
-          <meta name="description" content={currentDesc} />
-          <link rel="canonical" href={canonicalUrl} />
-        </Helmet>
-      )}
-
           {/* ── HERO HEADER ── */}
           <HomeHero dark={dark} T={T} t={t} search={search} setSearch={setSearch} localizedPlaceholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dbReady={dbReady} cats={cats} activeCat={activeCat} setActiveCat={setActiveCat} activeCity={activeCity} city={city} cities={cities} haptic={haptic} detectedTown={detectedTown} />
           {/* ── EMPTY CITY STATE ── */}

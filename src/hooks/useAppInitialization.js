@@ -12,8 +12,12 @@ export function useAppInitialization() {
     if (p.startsWith("/cuenta")) return "account";
     if (p.startsWith("/admin_notifs")) return "admin_notifs";
     if (p.startsWith("/admin")) return "admin";
+    if (p.startsWith("/lealtad")) return "lealtad";
+    if (p.startsWith("/wallet")) return "wallet";
+    if (p.startsWith("/scan")) return "scan";
     if (p.startsWith("/manage/")) return "owner_dashboard";
     if (p.startsWith("/planes")) return "plans";
+    if (p.startsWith("/precios")) return "plans";
     if (p.startsWith("/itinerarios")) return "itineraries";
     if (p.startsWith("/itinerario/")) return "itinerary_detail_" + p.split('/')[2];
     if (p.startsWith("/plan/")) return "plan_" + p.split('/')[2];
@@ -42,7 +46,9 @@ export function useAppInitialization() {
     let expSlug = null;
     let storedCity = localStorage.getItem("cg_city_slug");
     
-    if (storedCity && (["favoritos", "itinerarios", "experiencias", "manage", "itinerario", "plan"].includes(storedCity) || storedCity.includes("/"))) {
+    const SYSTEM_ROUTES = ["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "itinerarios", "experiencias", "manage", "stats", "itinerario", "plan", "evento", "precios", "lealtad", "wallet", "scan"];
+
+    if (storedCity && (SYSTEM_ROUTES.includes(storedCity) || storedCity.includes("/"))) {
       localStorage.removeItem("cg_city_slug");
       storedCity = "";
     }
@@ -55,12 +61,18 @@ export function useAppInitialization() {
         if (!isUUID && ev && currentCity && !ev.startsWith(currentCity + "-")) ev = currentCity + "-" + ev;
       } else if (segments[0] === "mapa") {
         vista = "map";
-        currentCity = segments[1].toLowerCase();
-        localStorage.setItem("cg_city_slug", currentCity);
+        const cSlug = segments[1].toLowerCase();
+        if (!SYSTEM_ROUTES.includes(cSlug)) {
+          currentCity = cSlug;
+          localStorage.setItem("cg_city_slug", currentCity);
+        }
       } else if (segments[0] === "experiencias") {
         vista = "mis-planes";
-        currentCity = segments[1].toLowerCase();
-        localStorage.setItem("cg_city_slug", currentCity);
+        const cSlug = segments[1].toLowerCase();
+        if (!SYSTEM_ROUTES.includes(cSlug)) {
+          currentCity = cSlug;
+          localStorage.setItem("cg_city_slug", currentCity);
+        }
       } else if (segments[0] === "plan") {
         vista = "plan_" + segments[1];
       } else if (segments[0] === "itinerario") {
@@ -69,34 +81,48 @@ export function useAppInitialization() {
         vista = segments[1];
       } else if (segments[0] === "manage") {
         manage = segments[1];
+      } else if (SYSTEM_ROUTES.includes(segments[0].toLowerCase())) {
+        vista = segments[0].toLowerCase();
       } else {
-        currentCity = segments[0].toLowerCase();
-        localStorage.setItem("cg_city_slug", currentCity);
-        const validCats = ["restaurantes", "cafe", "salud", "belleza", "fitness", "compras", "tech", "ocio", "hoteles", "educacion", "antros-y-bares", "servicios", "mascotas"];
-        if (validCats.includes(segments[1])) {
-          cat = segments[1].replace(/-/g, ' ');
-        } else {
-          b = getIdFromSlug(segments[1]);
-          if (b && currentCity && !b.startsWith(currentCity + "-")) b = currentCity + "-" + b;
+        const potentialCity = segments[0].toLowerCase();
+        if (!SYSTEM_ROUTES.includes(potentialCity)) {
+          currentCity = potentialCity;
+          localStorage.setItem("cg_city_slug", currentCity);
+          const validCats = ["restaurantes", "cafe", "salud", "belleza", "fitness", "compras", "tech", "ocio", "hoteles", "educacion", "antros-y-bares", "servicios", "mascotas"];
+          if (validCats.includes(segments[1])) {
+            cat = segments[1].replace(/-/g, ' ');
+          } else {
+            b = getIdFromSlug(segments[1]);
+            if (b && currentCity && !b.startsWith(currentCity + "-")) b = currentCity + "-" + b;
+          }
         }
       }
     } else if (segments.length === 3 && segments[2] === "menu") {
       vista = "menu_direct";
-      currentCity = segments[0].toLowerCase();
-      localStorage.setItem("cg_city_slug", currentCity);
+      const cSlug = segments[0].toLowerCase();
+      if (!SYSTEM_ROUTES.includes(cSlug)) {
+        currentCity = cSlug;
+        localStorage.setItem("cg_city_slug", currentCity);
+      }
     } else if (segments.length >= 3 && segments[0] === "experiencias") {
       vista = "mis-planes";
-      currentCity = segments[1].toLowerCase();
-      localStorage.setItem("cg_city_slug", currentCity);
+      const cSlug = segments[1].toLowerCase();
+      if (!SYSTEM_ROUTES.includes(cSlug)) {
+        currentCity = cSlug;
+        localStorage.setItem("cg_city_slug", currentCity);
+      }
       expSlug = segments[2];
     } else if (segments.length >= 3 && segments[1] === "plan") {
       planId = segments[2];
       vista = "mis-planes";
     } else if (segments.length === 1) {
-      if (["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "itinerarios", "experiencias", "manage", "itinerario", "plan"].includes(segments[0])) {
+      if (SYSTEM_ROUTES.includes(segments[0])) {
         vista = segments[0];
       } else {
-        localStorage.setItem("cg_city_slug", segments[0].toLowerCase());
+        const potentialCity = segments[0].toLowerCase();
+        if (!SYSTEM_ROUTES.includes(potentialCity)) {
+          localStorage.setItem("cg_city_slug", potentialCity);
+        }
       }
     }
     

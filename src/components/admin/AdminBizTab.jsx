@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from '../ui/Icon';
 import Uploader from '../Uploader';
 import OptimizedImage from '../ui/OptimizedImage';
@@ -32,7 +32,7 @@ export default function AdminBizTab({
     setSaving(true);
     try {
       const tags = typeof bizForm.tags === "string" ? bizForm.tags.split(",").map(t => t.trim()).filter(Boolean) : bizForm.tags;
-      const cty = bizForm.city_slug || (data.cities && data.cities.length > 0 ? data.cities[0].slug : "");
+      const cty = (bizForm.city_slug || (data.cities && data.cities.length > 0 ? data.cities[0].slug : "")).toLowerCase();
       const cleanName = createSlug(bizForm.name);
       let baseSlug = `${cty}-${cleanName}`;
       let newSlug = baseSlug;
@@ -48,12 +48,13 @@ export default function AdminBizTab({
       const payload = {
         category: bizForm.category, name: bizForm.name, slug: newSlug, emoji: bizForm.emoji || null,
         type: bizForm.type, tagline: bizForm.tagline, schedule: bizForm.schedule || {}, address: bizForm.address,
-        city_slug: bizForm.city_slug || (data.cities && data.cities.length > 0 ? data.cities[0].slug : ""), lat: bizForm.lat, lng: bizForm.lng, phone: bizForm.phone,
+        city_slug: cty, lat: bizForm.lat, lng: bizForm.lng, phone: bizForm.phone,
         whatsapp: bizForm.whatsapp, website: bizForm.website, video_url: bizForm.video_url || null,
         logo_url: bizForm.logo_url || null, hours: bizForm.hours, tags, description: bizForm.description,
         open: bizForm.open, badge: bizForm.badge || null, plan: bizForm.plan || "free",
         status: bizForm.status || "pending", photos: bizForm.photos || [], social_links: bizForm.social_links || {},
         menu_pdf_url: bizForm.menu_pdf_url || null, hide_location: bizForm.hide_location || false,
+        banner_url: bizForm.banner_url || null,
         mercado_libre_nickname: bizForm.mercado_libre_nickname || null,
         booking_config: bizForm.booking_config || null
       };
@@ -74,7 +75,7 @@ export default function AdminBizTab({
     if (!window.confirm("¿Eliminar?")) return; 
     const b = localBiz.find(x => x.id === id); 
     if (b) { 
-      const paths = [b.logo_url, b.menu_pdf_url, ...(b.photos || []).map(p => p.url)].filter(Boolean); 
+      const paths = [b.banner_url, b.logo_url, b.menu_pdf_url, ...(b.photos || []).map(p => p.url)].filter(Boolean); 
       await cloudDeleteBatch(paths); 
     } 
     await sb.del("businesses", id); 
@@ -131,6 +132,7 @@ export default function AdminBizTab({
       fetchBiz(0, false);
     }, 400);
     return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bizSearch, bizCityFilter, bizTypeFilter]);
 
   return (
@@ -215,12 +217,13 @@ export default function AdminBizTab({
             <div style={{ flex: 1 }}><FI label="Nombre *" field="name" src={bizForm} set={setBizForm} /></div>
             <div style={{ width: 80 }}><FI label="Emoji" field="emoji" src={bizForm} set={setBizForm} ph="Ej: 🌮" /></div>
           </div>
-          <FI label="Tipo" field="type" src={bizForm} set={setBizForm} ph="Restaurante · Cocina de Autor" />
+          <FI label="Tipo" field="type" src={bizForm} set={setBizForm} ph="Ej: Cocina de Autor" />
+          <FI label="Eslogan" field="tagline" src={bizForm} set={setBizForm} ph="Ej: El mejor sabor de la ciudad" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Categoría</label><select value={bizForm.category || (data.categories.length > 0 ? data.categories[0].slug : "restaurantes")} onChange={e => setBizForm(f => ({ ...f, category: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{(() => { const cityCatSlugs = (data.city_categories || []).map(cc => cc.category_slug); return data.categories.filter(c => !cityCatSlugs.includes(c.slug) || (data.city_categories || []).some(cc => cc.category_slug === c.slug && cc.city_slug === (bizForm.city_slug || ""))).map(c => <option key={c.slug} value={c.slug}>{c.name}</option>); })()}</select></div>
             <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Plan</label><select value={bizForm.plan || "free"} onChange={e => setBizForm(f => ({ ...f, plan: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{Object.entries(PLAN_META).map(([k, m]) => <option key={k} value={k}>{m.label}</option>)}</select></div>
             <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Estado</label><select value={bizForm.status || "pending"} onChange={e => setBizForm(f => ({ ...f, status: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{["pending", "approved", "rejected"].map(s => <option key={s}>{s}</option>)}</select></div>
-            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Ciudad</label><select value={bizForm.city_slug || (data.cities && data.cities.length > 0 ? data.cities[0].slug : "")} onChange={e => setBizForm(f => ({ ...f, city_slug: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{data.cities.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select></div>
+            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Ciudad</label><select value={(bizForm.city_slug || "").toLowerCase() || (data.cities && data.cities.length > 0 ? data.cities[0].slug : "")} onChange={e => setBizForm(f => ({ ...f, city_slug: e.target.value.toLowerCase() }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{data.cities.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select></div>
             <>
               <FI label="Teléfono" field="phone" src={bizForm} set={setBizForm} />
               <FI label="WhatsApp" field="whatsapp" src={bizForm} set={setBizForm} />
@@ -275,7 +278,7 @@ export default function AdminBizTab({
                   <button type="button" onClick={() => closed ? updateDayStr(isAdv ? "09:00 a.m. - 02:00 p.m.\n04:00 p.m. - 08:00 p.m." : "09:00 a.m. - 10:00 p.m.") : updateDayStr("Cerrado")} style={{ padding: "6px 10px", border: `1.5px solid ${closed ? "#E4E8E4" : "#1A7A5E"}`, borderRadius: 8, fontSize: 11, fontWeight: 700, background: closed ? "#F3F4F6" : "#EAF4F0", color: closed ? "#9CA3AF" : "#1A7A5E", cursor: "pointer", fontFamily: "inherit", flexShrink: 0, transition: "all .15s", marginTop: isAdv && !closed ? 3 : 0 }}>{closed ? "Cerrado" : "Abierto"}</button>
                   
                   {!closed && !isAdv && (() => {
-                    const segs = (linesArr[0] || "09:00 a.m. - 10:00 p.m.").split(/\s*[–\-]\s*|\s+a\s+/i);
+                    const segs = (linesArr[0] || "09:00 a.m. - 10:00 p.m.").split(/\s*[–-]\s*|\s+a\s+/i);
                     return (
                       <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1 }}>
                         <input type="time" value={toT24(segs[0]) || "09:00"} onChange={e => updateRegular(e.target.value, toT24(segs[1]) || "22:00")} style={{ flex: 1, padding: "6px 4px", border: "1.5px solid #E4E8E4", borderRadius: 8, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }} />
@@ -287,7 +290,7 @@ export default function AdminBizTab({
                   
                   {!closed && isAdv && <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
                     {linesArr.map((line, idx) => {
-                      const segs = line.split(/\s*[–\-]\s*|\s+a\s+/i);
+                      const segs = line.split(/\s*[–-]\s*|\s+a\s+/i);
                       const o = toT24(segs[0]) || "09:00";
                       const c = toT24(segs[1]) || "14:00";
                       return (
@@ -420,6 +423,24 @@ export default function AdminBizTab({
         </div>
       </div>
       
+      {/* Banner / Portada */}
+      <div style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
+        <div className="text-sm" style={{ fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>Foto de Portada (Opcional)</div>
+        <div className="text-xs" style={{ color: "#5A6872", marginBottom: 12 }}>Formato panorámico (ideal 800x340px). Si no se agrega, se usará la foto 1 de la galería.</div>
+        {bizForm.banner_url ? (
+          <div style={{ position: "relative", marginBottom: 10 }}>
+            <div style={{ width: "100%", height: 120, borderRadius: 10, overflow: "hidden", border: "1.5px solid #E4E8E4", background: "#F8FAFC" }}>
+              <OptimizedImage src={bizForm.banner_url} widthRequest={800} alt="Portada" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </div>
+            <button onClick={() => setBizForm(f => ({ ...f, banner_url: null }))} style={{ position: "absolute", top: -8, right: -8, width: 24, height: 24, borderRadius: "50%", background: "#D94F3D", color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.2)" }}>
+              <Icon name="x" size={12} color="#fff" />
+            </button>
+          </div>
+        ) : (
+          <Uploader multiple={false} onDone={url => setBizForm(f => ({ ...f, banner_url: url }))} />
+        )}
+      </div>
+
       {/* Photos in form */}
       <div style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
         <div className="text-sm" style={{ fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>Fotos ({(bizForm.photos || []).length}/{PLAN_META[bizForm.plan || "free"].max_photos})</div>
@@ -428,7 +449,7 @@ export default function AdminBizTab({
       </div>
       
       {/* PDF Menu */}
-      {(bizForm.plan === "destacado" || bizForm.plan === "premium") && <div style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
+      {(bizForm.plan === "destacado" || bizForm.plan === "premium" || bizForm.plan === "menu") && <div style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
         <div className="text-sm" style={{ fontWeight: 700, color: "#5A6872", marginBottom: 6 }}>Menú Digital (Imágenes o PDF)</div>
         <MenuManager 
           menuPdfUrl={bizForm.menu_pdf_url} 
@@ -449,7 +470,7 @@ export default function AdminBizTab({
             <div className="text-sm" style={{ fontWeight: 800, color: "#991B1B" }}>Acceso de Dueño Activo</div>
             <div className="text-xs" style={{ color: "#991B1B", opacity: 0.8 }}>Este negocio está administrado por un usuario externo.</div>
           </div>
-          <button onClick={async () => { if(window.confirm("¿Seguro que quieres quitarle el acceso al dueño actual?")){ await sb.patch("businesses", bizForm.id, { owner_id: null }); setBizForm(f => ({ ...f, owner_id: null })); onToast("Acceso revocado"); await load(); } }} style={{ padding: "8px 14px", background: "#EF4444", border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>Revocar acceso</button>
+          <button onClick={async () => { if(window.confirm("¿Seguro que quieres quitarle el acceso al dueño actual?")){ await sb.patch("businesses", bizForm.id, { owner_id: null }); setBizForm(f => ({ ...f, owner_id: null })); onToast("Acceso revocado"); } }} style={{ padding: "8px 14px", background: "#EF4444", border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>Revocar acceso</button>
         </div>
       )}
       

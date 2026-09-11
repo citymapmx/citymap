@@ -1,4 +1,3 @@
-import React from 'react';
 import Icon from '../ui/Icon';
 
 export default function AdminReservationsTab({

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { useCart, calculateItemTotal } from '../../hooks/useCart.js';
-import { getThumbUrl } from '../../lib/utils.js';
 
-export default function ProductModal({ product, businessId, onClose, T }) {
+export default function ProductModal({ product, businessId, onClose, T, menuIntent }) {
   const [selectedOptions, setSelectedOptions] = useState({});
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -130,7 +129,7 @@ export default function ProductModal({ product, businessId, onClose, T }) {
               {product.cat_name}
             </div>
           )}
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 8px 0' }}>{product.name}</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 8px 0', textTransform: 'uppercase' }}>{product.name}</h2>
           <div style={{ fontSize: 18, fontWeight: 700, color: T.green }}>
             {isFromPrice && <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginRight: 6 }}>Desde</span>}
             ${Number(calculatedPrice).toFixed(calculatedPrice % 1 === 0 ? 0 : 2)}
@@ -140,7 +139,9 @@ export default function ProductModal({ product, businessId, onClose, T }) {
           )}
         </div>
 
-        <div style={{ height: 8, background: T.border }} />
+        {(product.store_product_options?.length > 0 || menuIntent !== 'local') && (
+          <div style={{ height: 8, background: T.border }} />
+        )}
 
         {/* Options */}
         {product.store_product_options && [...product.store_product_options].sort((a, b) => {
@@ -239,6 +240,7 @@ export default function ProductModal({ product, businessId, onClose, T }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     {extraPrice > 0 && <div style={{ fontSize: 14, color: T.sub }}>+${extraPrice.toFixed(2)}</div>}
                     {opt.is_required && <div style={{ fontSize: 10, fontWeight: 700, color: T.red, textTransform: 'uppercase', background: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: 4 }}>Obligatorio</div>}
+                  // eslint-disable-next-line preserve-caught-error
                   </div>
                 </label>
               </div>
@@ -283,51 +285,72 @@ export default function ProductModal({ product, businessId, onClose, T }) {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 15, color: T.text, fontWeight: isSelected ? 700 : 500 }}>{val.label}</div>
                       </div>
-                      {Number(val.extra_price) > 0 && <div style={{ fontSize: 13, fontWeight: 700, color: T.green }}>+${Number(val.extra_price).toFixed(2)}</div>}
+                      {(() => {
+                        const isSize = opt.name.toLowerCase().includes('tamaño') || opt.name.toLowerCase().includes('size');
+                        const ext = Number(val.extra_price) || 0;
+                        const base = Number(product.price) || 0;
+                        const showAbsolute = isSize || base === 0;
+
+                        if (showAbsolute) {
+                           const total = base + ext;
+                           return <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>${total.toFixed(2)}</div>;
+                        } else if (ext > 0) {
+                           return <div style={{ fontSize: 13, fontWeight: 700, color: T.green }}>+${ext.toFixed(2)}</div>;
+                        }
+                        return null;
+                      })()}
                     </label>
                   );
                 })}
               </div>
-              <div style={{ height: 8, background: T.border }} />
+              {(menuIntent !== 'local' || index < arr.length - 1) && (
+                <div style={{ height: 8, background: T.border }} />
+              )}
             </div>
           );
         })}
 
         {/* Special Instructions */}
-        <div style={{ padding: '16px' }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 8 }}>Indicaciones especiales</div>
-          <textarea 
-            value={specialInstructions}
-            onChange={e => setSpecialInstructions(e.target.value)}
-            placeholder="Ej. sin cebolla, aderezo aparte..."
-            style={{ width: '100%', padding: 12, borderRadius: 12, border: `1.5px solid ${T.border}`, background: T.bg, color: T.text, fontSize: 15, fontFamily: 'inherit', resize: 'vertical', minHeight: 80, boxSizing: 'border-box' }}
-          />
-        </div>
+        {menuIntent !== 'local' && (
+          <div style={{ padding: '16px' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 8 }}>Indicaciones especiales</div>
+            <textarea 
+              value={specialInstructions}
+              onChange={e => setSpecialInstructions(e.target.value)}
+              placeholder="Ej. sin cebolla, aderezo aparte..."
+              style={{ width: '100%', padding: 12, borderRadius: 12, border: `1.5px solid ${T.border}`, background: T.bg, color: T.text, fontSize: 15, fontFamily: 'inherit', resize: 'vertical', minHeight: 80, boxSizing: 'border-box' }}
+            />
+          </div>
+        )}
         
         {/* Quantity */}
-        <div style={{ padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#5A6872', letterSpacing: 0.5 }}>CANTIDAD</div>
-          <div style={{ display: 'flex', alignItems: 'center', background: '#F5F6F8', borderRadius: 20, padding: 4 }}>
-            <button onClick={() => setQuantity(Math.max(1, quantity - 1))} style={{ width: 40, height: 40, borderRadius: 16, background: '#FFFFFF', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}><Icon name="minus" size={18} color="#334155" /></button>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#1E293B', minWidth: 44, textAlign: 'center' }}>{quantity}</div>
-            <button onClick={() => setQuantity(quantity + 1)} style={{ width: 40, height: 40, borderRadius: 16, background: '#FFFFFF', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}><Icon name="plus" size={18} color="#334155" /></button>
+        {menuIntent !== 'local' && (
+          <div style={{ padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#5A6872', letterSpacing: 0.5 }}>CANTIDAD</div>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#F5F6F8', borderRadius: 20, padding: 4 }}>
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} style={{ width: 40, height: 40, borderRadius: 16, background: '#FFFFFF', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}><Icon name="minus" size={18} color="#334155" /></button>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#1E293B', minWidth: 44, textAlign: 'center' }}>{quantity}</div>
+              <button onClick={() => setQuantity(quantity + 1)} style={{ width: 40, height: 40, borderRadius: 16, background: '#FFFFFF', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}><Icon name="plus" size={18} color="#334155" /></button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Footer Add Button */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 24px', background: T.bg, paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
-        <button onClick={handleAdd} style={{ width: '100%', background: '#0F172A', color: '#fff', border: 'none', borderRadius: 20, padding: 18, fontSize: 16, fontWeight: 700, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(15, 23, 42, 0.4)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="shopping-cart" size={18} color="#fff" />
-            <span>Agregar al carrito</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>${finalTotal.toFixed(2)}</span>
-            <Icon name="chevron" size={18} color="#fff" style={{ transform: 'rotate(-90deg)' }} />
-          </div>
-        </button>
-      </div>
+      {menuIntent !== 'local' && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 24px', background: T.bg, paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+          <button onClick={handleAdd} style={{ width: '100%', background: '#0F172A', color: '#fff', border: 'none', borderRadius: 20, padding: 18, fontSize: 16, fontWeight: 700, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(15, 23, 42, 0.4)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="shopping-cart" size={18} color="#fff" />
+              <span>Agregar al carrito</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>${finalTotal.toFixed(2)}</span>
+              <Icon name="chevron" size={18} color="#fff" style={{ transform: 'rotate(-90deg)' }} />
+            </div>
+          </button>
+        </div>
+      )}
 
       <style>{`
         @keyframes slideUp {

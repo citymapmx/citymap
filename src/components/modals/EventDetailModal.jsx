@@ -1,20 +1,23 @@
-import React from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useUIStore } from '../../store/useUIStore';
 import { getT, FONT_BIZ } from '../../lib/constants';
-import { createSlug, cleanCityPrefix } from '../../lib/utils';
+import { createSlug, getThumbUrl } from '../../lib/utils';
 import Icon from '../ui/Icon';
+
 import { useAppContext } from '../../context/AppContext';
+import { useDataStore } from '../../store/useDataStore';
 
 export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
   const { selectedEvent, setSelectedEvent, activeCity, dark, toast$ } = useUIStore();
-  const { navigate } = useAppContext();
+  const { navigate, handleCardTap } = useAppContext();
+  const mapPins = useDataStore(s => s.mapPins);
   const T = getT(dark);
 
   return (
     <AnimatePresence>
       {selectedEvent && (() => {
         const ev = selectedEvent;
+        const associatedBiz = ev.biz_id ? mapPins.find(b => b.id === ev.biz_id) : null;
         const imgSrc = ev.img_url || ev.img;
         const isSaved = savedEventIds.includes(ev.id);
         const evContactMsg = `Hola, me interesa asistir al evento "${ev.title}".`;
@@ -53,7 +56,7 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
                 )}
                 
                 {/* Floating Back Button */}
-                <button onClick={(e) => { e.stopPropagation(); navigate("home"); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 44, height: 44, borderRadius: 22, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+                <button onClick={(e) => { e.stopPropagation(); setSelectedEvent(null); window.history.back(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 44, height: 44, borderRadius: 22, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
                   <Icon name="chevron" size={22} color="#fff" style={{ transform: "rotate(180deg)", marginLeft: -2 }} />
                 </button>
                 
@@ -76,6 +79,36 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
                     <Icon name="calendar" size={16} color={T.text} /> Agendar en calendario
                   </button>
                 </div>
+                
+                {/* --- ASOCIADO CON --- */}
+                {associatedBiz && (
+                  <div 
+                    onClick={() => {
+                      setSelectedEvent(null);
+                      setTimeout(() => handleCardTap(associatedBiz), 300);
+                    }}
+                    className="press"
+                    style={{ 
+                      display: "flex", alignItems: "center", gap: 16, padding: "24px 0", 
+                      borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, 
+                      margin: "0 0 24px 0", cursor: "pointer"
+                    }}
+                  >
+                    {associatedBiz.logo_url || associatedBiz.photos?.[0]?.url ? (
+                      <img src={getThumbUrl(associatedBiz.logo_url || associatedBiz.photos[0].url, 200)} alt={associatedBiz.name} style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", backgroundColor: "#fff", border: `1px solid ${T.border}` }} />
+                    ) : (
+                      <div style={{ width: 56, height: 56, borderRadius: "50%", background: T.border, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Icon name="store" size={24} color={T.sub} />
+                      </div>
+                    )}
+                    <div style={{ flex: 1, textAlign: "left" }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>Ofrecido por {associatedBiz.name}</div>
+                      <div style={{ fontSize: 13, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>
+                        Ver perfil del negocio <Icon name="chevron_right" size={14} color={T.sub} />
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 {/* --- INFO SUMMARY (Article Style) --- */}
                 <div style={{ display: "flex", flexDirection: "column", marginBottom: 32 }}>
@@ -227,6 +260,9 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
                     <Icon name={isSaved ? "heart_f" : "heart"} size={16} color={isSaved ? "#D94F3D" : T.text} />
                     {isSaved ? "Guardado en tus planes" : "Guardar en mis planes"}
                   </button>
+
+
+
                 </div>
               </div>
             </div>

@@ -15,6 +15,7 @@ export default function StoreMonetizationTab({ business, T, inpH, profile }) {
       mercado_libre_url: mlForm.url,
       affiliate_products: mlForm.products
     });
+     
     business.mercado_libre_url = mlForm.url;
     business.affiliate_products = mlForm.products;
     setLoading(false);

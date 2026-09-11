@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Icon from './ui/Icon.jsx';
 import Uploader from './Uploader.jsx';
 import MenuManager from './MenuManager.jsx';
@@ -198,7 +198,7 @@ export default function AddBizModal({
                           <span style={{ fontSize: 12, fontWeight: 700, color: T.text, width: 76, flexShrink: 0, marginTop: isAdv && !closed ? 8 : 0 }}>{label}</span>
                           <button type="button" onClick={() => closed ? updateDay(isAdv ? "09:00 a.m. - 02:00 p.m.\n04:00 p.m. - 08:00 p.m." : "09:00 a.m. - 10:00 p.m.") : updateDay("Cerrado")} style={{ padding: "5px 8px", border: `1.5px solid ${closed ? T.border : T.green}`, borderRadius: 8, fontSize: 10, fontWeight: 700, background: closed ? T.bg : T.greenL, color: closed ? T.sub : T.green, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, marginTop: isAdv && !closed ? 3 : 0 }}>{closed ? "Cerrado" : "Abierto"}</button>
                           {!closed && !isAdv && (() => {
-                            const segs = (lines[0] || "09:00 a.m. - 10:00 p.m.").split(/\s*[–\-]\s*|\s+a\s+/i);
+                            const segs = (lines[0] || "09:00 a.m. - 10:00 p.m.").split(/\s*[–-]\s*|\s+a\s+/i);
                             return (
                               <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1 }}>
                                 <input type="time" value={toT24(segs[0]) || "09:00"} onChange={e => updateRegular(e.target.value, toT24(segs[1]) || "22:00")} style={{ flex: 1, padding: "5px 4px", border: `1.5px solid ${T.border}`, borderRadius: 8, fontSize: 12, color: T.text, background: T.white, fontFamily: "inherit" }} />
@@ -209,7 +209,7 @@ export default function AddBizModal({
                           })()}
                           {!closed && isAdv && <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
                             {lines.map((line, idx) => {
-                              const segs = line.split(/\s*[–\-]\s*|\s+a\s+/i);
+                              const segs = line.split(/\s*[–-]\s*|\s+a\s+/i);
                               const o = toT24(segs[0]) || "09:00";
                               const c = toT24(segs[1]) || "14:00";
                               return (
@@ -318,6 +318,9 @@ export default function AddBizModal({
                   newStatus = "approved"; // Si ya estaba aprobado, se queda aprobado (ej. dueños editando su perfil)
                 }
               }
+              let finalCitySlug = addBizForm.city || activeCity;
+              finalCitySlug = finalCitySlug ? finalCitySlug.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') : "zapopan";
+
               const payload = { 
                 name: addBizForm.name, 
                 type: addBizForm.category, 
@@ -325,7 +328,7 @@ export default function AddBizModal({
                 emoji: null, 
                 description: addBizForm.description, 
                 address: addBizForm.address, 
-                city_slug: addBizForm.city ? addBizForm.city.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') : activeCity, 
+                city_slug: finalCitySlug, 
                 phone: addBizForm.phone, 
                 whatsapp: addBizForm.whatsapp, 
                 website: addBizForm.website, 

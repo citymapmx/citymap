@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "../ui/Icon.jsx";
 import useGMaps from "../map/useGMaps.js";
 
@@ -17,6 +17,7 @@ export default function SearchPlacesModal({ T, mapPins, experiences, onClose, on
   // Filter registered places
   useEffect(() => {
     if (!searchQuery.trim()) {
+       
       setSearchResults([]);
       return;
     }
@@ -28,6 +29,7 @@ export default function SearchPlacesModal({ T, mapPins, experiences, onClose, on
       const tag = normalizeText(b.tagline);
       return name.includes(q) || cat.includes(q) || tag.includes(q);
     }).slice(0, 10);
+     
     setSearchResults(results);
   }, [searchQuery, mapPins, experiences]);
 
@@ -54,6 +56,7 @@ export default function SearchPlacesModal({ T, mapPins, experiences, onClose, on
           const place = ac.getPlace();
           if (place && place.geometry) {
             const addr = place.formatted_address || place.name || "";
+             
             setSelectedGPlace({
               name: place.name || "",
               address: addr,
@@ -61,7 +64,9 @@ export default function SearchPlacesModal({ T, mapPins, experiences, onClose, on
               lng: place.geometry.location.lng(),
               place_id: place.place_id || ""
             });
+             
             setCustomAddress(addr);
+             
             if (!customName.trim()) setCustomName(place.name || "");
           }
         });
@@ -72,8 +77,10 @@ export default function SearchPlacesModal({ T, mapPins, experiences, onClose, on
     };
 
     // Small delay to ensure input is fully mounted in the DOM
+     
     const timer = setTimeout(init, 100);
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapsOk]);
 
   const canAddCustom = customName.trim() && (selectedGPlace || customAddress.trim());

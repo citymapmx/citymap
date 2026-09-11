@@ -130,7 +130,25 @@ export const TRANSLATIONS = {
     
     // Footer / Menu
     "mapa": "Mapa",
-    "favoritos": "Favoritos"
+    "favoritos": "Favoritos",
+
+    // Map View
+    "tu_ciudad": "tu ciudad",
+    "encuentra_mejores_lugares": "Encuentra los mejores lugares en ",
+    "todos_category": "Todos",
+    "que_hay_cerca": "¿Qué hay cerca?",
+    "activa_ubicacion_desc": "Activa tu ubicación para explorar lugares a tu alrededor.",
+    "activar_gps": "Activar GPS",
+    "toca_pin_detalles": "Toca un pin para detalles",
+    "ver_detalles": "Ver detalles",
+    "cerca_de_ti_suffix": "cerca de ti",
+    "solo_abiertos": "Solo abiertos",
+    "toca_ver_negocios_cerca": "Toca para ver negocios cerca de ti",
+    "primero_descubrir_zona": "¡Sé el primero en descubrir esta zona! 🗺️",
+    "primero_descubrir_desc": "Amplía tu radio de búsqueda o sugiere una joya oculta",
+    "inicia_sesion_sugerir": "Inicia sesión para sugerir un lugar",
+    "sugerir_lugar": "Sugerir lugar",
+    "Lugar": "Lugar"
   },
   en: {
     // Hero & Search
@@ -263,6 +281,24 @@ export const TRANSLATIONS = {
     
     // Footer / Menu
     "mapa": "Map",
-    "favoritos": "Favorites"
+    "favoritos": "Favorites",
+
+    // Map View
+    "tu_ciudad": "your city",
+    "encuentra_mejores_lugares": "Discover the best places in ",
+    "todos_category": "All",
+    "que_hay_cerca": "What's nearby?",
+    "activa_ubicacion_desc": "Enable your location to explore places around you.",
+    "activar_gps": "Enable GPS",
+    "toca_pin_detalles": "Tap a pin for details",
+    "ver_detalles": "View details",
+    "cerca_de_ti_suffix": "near you",
+    "solo_abiertos": "Open only",
+    "toca_ver_negocios_cerca": "Tap to see businesses near you",
+    "primero_descubrir_zona": "Be the first to discover this area! 🗺️",
+    "primero_descubrir_desc": "Expand your search radius or suggest a hidden gem",
+    "inicia_sesion_sugerir": "Log in to suggest a place",
+    "sugerir_lugar": "Suggest a place",
+    "Lugar": "Place"
   }
 };

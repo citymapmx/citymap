@@ -78,12 +78,20 @@ export default function AdminDashboardTab({ data, dashCityFilter, setDashCityFil
       (data.categories || []).forEach(c => {
         if (c.img_url) validPaths.add(getPath(c.img_url));
       });
-      // Reviews images
-      (data.biz || []).forEach(b => {
-        (b.reviews || []).forEach(r => {
+      (data.promos || []).forEach(p => {
+        if (p.img_url) validPaths.add(getPath(p.img_url));
+      });
+      
+      // Fetch reviews explicitly since AdminPanel doesn't load them
+      try {
+        const reviewsData = await sb.get("reviews", "?select=img_url");
+        (reviewsData || []).forEach(r => {
           if (r.img_url) validPaths.add(getPath(r.img_url));
         });
-      });
+      } catch (e) {
+        console.warn("Could not fetch reviews for cleanup:", e);
+      }
+      
       // Clean nulls from set
       validPaths.delete(null);
       validPaths.delete(undefined);

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Icon from "./ui/Icon.jsx";
 import ScheduleManagerModal from "./ScheduleManagerModal.jsx";
 import { getLocalIsoDate } from "../lib/utils.js";
@@ -103,35 +103,35 @@ export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes })
     const dateText = `${FULL_DIRS[d.getDay()]} ${d.getDate()} de ${FULL_MONTHS[d.getMonth()]}`;
 
     return (
-      <div style={{ background: "rgba(255, 251, 240, 0.8)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(253, 230, 138, 0.6)", borderRadius: 18, marginBottom: 12, overflow: "hidden", boxShadow: "0 6px 16px rgba(245, 158, 11, 0.08), 0 1px 2px rgba(0,0,0,0.02)", transition: "all 0.3s ease" }}>
+      <div style={{ background: "#1877F2", border: "1px solid #166FE5", borderRadius: 18, marginBottom: 12, overflow: "hidden", boxShadow: "0 6px 16px rgba(24, 119, 242, 0.2), 0 1px 2px rgba(0,0,0,0.05)", transition: "all 0.3s ease", color: "#fff" }}>
         <div onClick={() => setExpanded(!expanded)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px", cursor: "pointer" }}>
-          <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#F59E0B", flexShrink: 0, boxShadow: "0 0 10px rgba(245,158,11,0.6)" }} />
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#fff", flexShrink: 0, boxShadow: "0 0 10px rgba(255,255,255,0.6)" }} />
           <div style={{ minWidth: 70, flexShrink: 0, letterSpacing: "-0.5px" }}>
-             <div style={{ fontWeight: 900, fontSize: 16, color: T.text }}>{formatTimeAMPM(r.time)}</div>
-             <div style={{ fontSize: 11, color: T.sub, fontWeight: 700, marginBottom: 4 }}>{d.getDate()}/{d.getMonth()+1}</div>
-             <div style={{ fontSize: 10, fontWeight: 800, color: "#D97706", display: "inline-block", textTransform: "uppercase", letterSpacing: 0.5 }}>Pendiente</div>
+             <div style={{ fontWeight: 900, fontSize: 16, color: "#fff" }}>{formatTimeAMPM(r.time)}</div>
+             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", fontWeight: 700, marginBottom: 4 }}>{d.getDate()}/{d.getMonth()+1}</div>
+             <div style={{ fontSize: 10, fontWeight: 800, color: "#1877F2", background: "#fff", display: "inline-block", textTransform: "uppercase", letterSpacing: 0.5, padding: "2px 6px", borderRadius: 8 }}>Pendiente</div>
           </div>
-          <div style={{ flex: 1, minWidth: 0, borderLeft: `1px solid rgba(245, 158, 11, 0.2)`, paddingLeft: 12, textAlign: "left" }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.client_name}</div>
+          <div style={{ flex: 1, minWidth: 0, borderLeft: `1px solid rgba(255,255,255,0.25)`, paddingLeft: 12, textAlign: "left" }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.client_name}</div>
             {r.service && (
-              <div style={{ fontSize: 13, color: T.text, display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                <Icon name="tag" size={12} color={T.sub} style={{ flexShrink: 0 }} /> {r.service}
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <Icon name="tag" size={12} color="rgba(255,255,255,0.7)" style={{ flexShrink: 0 }} /> {r.service}
               </div>
             )}
             {r.client_phone && (
-              <div style={{ fontSize: 13, color: T.text, display: "flex", alignItems: "center", gap: 6, marginTop: 2, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                <Icon name="phone" size={12} color={T.sub} style={{ flexShrink: 0 }} /> {r.client_phone}
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", gap: 6, marginTop: 2, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <Icon name="phone" size={12} color="rgba(255,255,255,0.7)" style={{ flexShrink: 0 }} /> {r.client_phone}
               </div>
             )}
           </div>
         </div>
           {expanded && (
             <div style={{ padding: "0 16px 16px 16px" }}>
-              <div style={{ height: 1, background: "rgba(245, 158, 11, 0.1)", margin: "0 0 12px 0", borderTop: "1px dashed rgba(245, 158, 11, 0.3)" }}></div>
-              {r.notes && <div style={{ fontSize: 13, color: "#92400E", background: "rgba(245, 158, 11, 0.05)", padding: "10px 12px", borderRadius: 12, marginBottom: 12, fontStyle: "italic", border: "1px solid rgba(245, 158, 11, 0.1)" }}>"{r.notes}"</div>}
+              <div style={{ height: 1, background: "rgba(255, 255, 255, 0.1)", margin: "0 0 12px 0", borderTop: "1px dashed rgba(255, 255, 255, 0.3)" }}></div>
+              {r.notes && <div style={{ fontSize: 13, color: "#fff", background: "rgba(0,0,0,0.1)", padding: "10px 12px", borderRadius: 12, marginBottom: 12, fontStyle: "italic", border: "1px solid rgba(255,255,255,0.15)" }}>"{r.notes}"</div>}
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={(e) => { e.stopPropagation(); if(waLinkConfirm) window.open(waLinkConfirm, "_blank"); updateStatus(r.id, "confirmed"); }} style={{ flex: 1, padding: "12px 0", background: "#10B981", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: "#fff", cursor: "pointer", fontFamily: "inherit", display: "flex", justifyContent: "center", alignItems: "center", gap: 6, boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)" }} className="press"><Icon name="check" size={16} color="#fff" /> Confirmar</button>
-                <button onClick={(e) => { e.stopPropagation(); if(waLinkCancel) window.open(waLinkCancel, "_blank"); updateStatus(r.id, "cancelled"); }} style={{ flex: 1, padding: "12px 0", background: "rgba(255,255,255,0.5)", border: `1px solid rgba(0,0,0,0.08)`, borderRadius: 14, fontSize: 14, fontWeight: 800, color: T.sub, cursor: "pointer", fontFamily: "inherit" }} className="press">Rechazar</button>
+                <button onClick={(e) => { e.stopPropagation(); if(waLinkConfirm) window.open(waLinkConfirm, "_blank"); updateStatus(r.id, "confirmed"); }} style={{ flex: 1, padding: "12px 0", background: "#fff", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: "#1877F2", cursor: "pointer", fontFamily: "inherit", display: "flex", justifyContent: "center", alignItems: "center", gap: 6, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} className="press"><Icon name="check" size={16} color="#1877F2" /> Confirmar</button>
+                <button onClick={(e) => { e.stopPropagation(); if(waLinkCancel) window.open(waLinkCancel, "_blank"); updateStatus(r.id, "cancelled"); }} style={{ flex: 1, padding: "12px 0", background: "rgba(0,0,0,0.15)", border: `1px solid rgba(255,255,255,0.3)`, borderRadius: 14, fontSize: 14, fontWeight: 800, color: "#fff", cursor: "pointer", fontFamily: "inherit" }} className="press">Rechazar</button>
               </div>
             </div>
           )}
@@ -220,19 +220,12 @@ export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes })
 
   return (
     <div style={{ marginBottom: 24 }}>
-      {/* Top Actions */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, padding: "0 4px", justifyContent: "flex-end" }}>
-        <button onClick={() => setShowConfig(true)} style={{ background: T.white, border: `1px solid ${T.border}`, padding: "12px", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, fontWeight: 700, color: T.text, cursor: "pointer", boxShadow: T.shadow }} className="press">
-          <Icon name="settings" size={16} color={T.sub} /> Configurar Agenda
-        </button>
-      </div>
-
       {allPending.length > 0 && (
         <div style={{ background: T.white, borderRadius: 20, padding: "20px 16px", boxShadow: "0 8px 30px rgba(0,0,0,0.04)", border: `1px solid ${T.border}`, marginBottom: 24 }}>
           <div style={{ textAlign: "center", marginBottom: 20 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: T.text, lineHeight: 1.2, display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
               Reservas Pendientes
-              <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", color: "#D97706", padding: "2px 8px", borderRadius: 20, fontSize: 12, fontWeight: 900 }}>
+              <div style={{ background: "#1877F2", border: "1px solid #166FE5", color: "#fff", padding: "2px 8px", borderRadius: 20, fontSize: 12, fontWeight: 900 }}>
                 {allPending.length}
               </div>
             </div>
@@ -246,9 +239,14 @@ export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes })
 
       {/* Main Agenda Card */}
       <div style={{ background: T.white, borderRadius: 20, padding: "20px 16px", boxShadow: "0 8px 30px rgba(0,0,0,0.04)", border: `1px solid ${T.border}` }}>
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: T.text, lineHeight: 1.2 }}>Agenda General</div>
-          <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>Todas tus reservas confirmadas</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 24 }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: T.text, lineHeight: 1.2 }}>Tus Reservaciones</div>
+            <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>Todas tus reservas confirmadas</div>
+          </div>
+          <button onClick={() => setShowConfig(true)} style={{ background: T.white, border: `1px solid ${T.border}`, padding: "8px 12px", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 700, color: T.text, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", flexShrink: 0 }} className="press">
+            <Icon name="settings" size={14} color={T.sub} /> Configurar
+          </button>
         </div>
 
         <div>

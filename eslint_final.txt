@@ -1,0 +1,7 @@
+
+/Users/danielarana/Desktop/cityguide/src/views/WalletView.jsx
+  109:15  error    Empty block statement                                                     no-empty
+  252:21  warning  The value assigned to 'rewardTitle' is not used in subsequent statements  no-useless-assignment
+
+✖ 2 problems (1 error, 1 warning)
+

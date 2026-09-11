@@ -574,6 +574,7 @@ export default function AdminExperiencesTab({
                 gallery: expForm.gallery || [],
                 booking_config: expForm.booking_config || null,
                 author_name: expForm.author_name || null,
+                biz_id: expForm.biz_id || null,
                 city_slug: expForm.city_slug || "all", 
                 status: "approved", 
                 active: true 

@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import { sb } from '../../lib/supabase.js';
 import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
@@ -20,13 +20,13 @@ export default function StoreProductsTab({
   const [prodForm, setProdForm] = useState(null); // { id?, name, price, description, image_url, is_available }
 
   const saveProduct = async () => {
-    if (!prodForm.name.trim() || !prodForm.price) return alert("Nombre y precio obligatorios");
+    if (!prodForm.name.trim()) return alert("Nombre del platillo obligatorio");
     const payload = {
       business_id: business.id,
       category_id: currentCat.id,
       name: prodForm.name,
       description: prodForm.description,
-      price: prodForm.price,
+      price: Number(prodForm.price) || 0,
       image_url: prodForm.image_url,
       is_available: prodForm.is_available
     };
@@ -43,6 +43,13 @@ export default function StoreProductsTab({
   const deleteProduct = async (id) => {
     if (!window.confirm("¿Eliminar este producto?")) return;
     await sb.del('store_products', id);
+    await loadData();
+  };
+
+  const toggleAvailable = async (p) => {
+    // UI feedback can be slow because loadData fetches everything, 
+    // but a patch is fast enough for now
+    await sb.patch('store_products', p.id, { is_available: !p.is_available });
     await loadData();
   };
 
@@ -63,9 +70,20 @@ export default function StoreProductsTab({
                   {p.image_url ? <OptimizedImage src={p.image_url} widthRequest={200} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="image" size={20} color={T.sub} /></div>}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 800, color: T.text, fontSize: 15 }}>{p.name} {!p.is_available && <span style={{ color: T.red, fontSize: 10, fontWeight: 700, padding: "2px 6px", background: "rgba(239, 68, 68, 0.1)", borderRadius: 4 }}>Agotado</span>}</div>
+                  <div style={{ fontWeight: 800, color: T.text, fontSize: 15, marginBottom: 2 }}>{p.name}</div>
                   <div style={{ color: T.green, fontWeight: 700, fontSize: 14 }}>${Number(p.price).toFixed(2)}</div>
-                  <div style={{ color: T.sub, fontSize: 11, marginTop: 4 }}>{(p.store_product_options || []).length} opciones de personalización</div>
+                  <div style={{ color: T.sub, fontSize: 11, marginTop: 4, marginBottom: 6 }}>{(p.store_product_options || []).length} opciones de personalización</div>
+                  
+                  <div 
+                    onClick={() => toggleAvailable(p)}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", userSelect: "none" }}
+                  >
+                    <span style={{ fontSize: 10, fontWeight: 700, color: !p.is_available ? T.red : T.sub, transition: "0.2s" }}>Agotado</span>
+                    <div style={{ width: 32, height: 18, borderRadius: 12, background: p.is_available ? T.green : T.border, position: "relative", transition: "0.2s" }}>
+                      <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: p.is_available ? 16 : 2, transition: "0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: p.is_available ? T.green : T.sub, transition: "0.2s" }}>Disponible</span>
+                  </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, justifyContent: "center" }}>
                   <button onClick={() => { setProdForm(p); setView('prodForm'); }} style={{ background: T.bg, border: "none", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="edit" size={14} color={T.text} /></button>

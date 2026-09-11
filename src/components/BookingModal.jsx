@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { m } from "framer-motion";
 
 import Icon from "./ui/Icon.jsx";
-import { getThumbUrl } from "../lib/utils.js";
 
 const toLocalYYYYMMDD = (d) => {
   const y = d.getFullYear();
@@ -43,10 +42,13 @@ export default function BookingModal({ biz, onClose }) {
     const today = new Date();
     for(let i = 0; i < 21; i++) { // 3 weeks
       const d = new Date();
+       
       d.setDate(today.getDate() + i);
       arr.push(d);
     }
+     
     setDaysStrip(arr);
+     
     if (!date) setDate(toLocalYYYYMMDD(today));
   }, []); // eslint-disable-line
 
@@ -91,16 +93,22 @@ export default function BookingModal({ biz, onClose }) {
   // Fetch reservations for the selected date to check capacity
   useEffect(() => {
     if (date && biz.id) {
+       
       setFetchingSlots(true);
+       
       setTime(""); // reset time when date changes
       sb.get("reservations", `?biz_id=eq.${biz.id}&date=eq.${date}`)
+         
         .then(res => setExistingRes(res || []))
+         
         .catch(() => setExistingRes([]))
+         
         .finally(() => setFetchingSlots(false));
     } else {
+       
       setExistingRes([]);
     }
-  }, [date, biz.id, sb]);
+  }, [date, biz.id]);
 
   const availableSlots = useMemo(() => {
     if (!date || !selectedService || !biz.schedule) return [];
@@ -126,7 +134,7 @@ export default function BookingModal({ biz, onClose }) {
       if (!hours || /cerrado/i.test(hours)) return []; // Closed today
 
       // Parse "09:00 - 18:00"
-      const segs = String(hours).split(/\s*[–\-]\s*|\s+a\s+/i);
+      const segs = String(hours).split(/\s*[-–]\s*|\s+a\s+/i);
       if (segs.length < 2) return [];
 
       const toMinutes = (timeStr) => {
@@ -152,7 +160,7 @@ export default function BookingModal({ biz, onClose }) {
 
       // Restrict by service time range if available
       if (selectedService.timeRange) {
-        const svcSegs = String(selectedService.timeRange).split(/\s*[–\-]\s*|\s+a\s+/i);
+        const svcSegs = String(selectedService.timeRange).split(/\s*[-–]\s*|\s+a\s+/i);
         if (svcSegs.length >= 2) {
           const svcOpen = toMinutes(svcSegs[0]);
           const svcClose = toMinutes(svcSegs[1]);
@@ -229,15 +237,18 @@ export default function BookingModal({ biz, onClose }) {
       console.error("Error calculating availableSlots:", err);
       return [];
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, selectedService, biz.schedule, existingRes, config.maxPerSlot, biz.booking_config?.blocked_slots]);
 
   useEffect(() => {
     if (isAllDay && availableSlots?.length > 0) {
+       
       setTime("00:00");
     } else if (!isAllDay && time === "00:00") {
+       
       setTime("");
     }
-  }, [isAllDay, availableSlots, date]);
+  }, [isAllDay, availableSlots, date, time]);
 
 
 
@@ -270,8 +281,9 @@ export default function BookingModal({ biz, onClose }) {
       if (result && result.success === false) {
         throw new Error(result.error || "El horario ya no está disponible.");
       }
-      if (biz.owner_id) {
-        await sb.notify(biz.owner_id, "Nueva solicitud de reservación", `${name} ha solicitado una reserva para el ${date}.`, "booking", `https://citymap.mx/manage/${biz.slug || biz.id}`);
+      const targetUserId = biz.owner_id || biz.user_id;
+      if (targetUserId) {
+        await sb.notify(targetUserId, "Nueva reservación pendiente", `${name} ha solicitado una reserva para el ${date}.`, "booking", `/manage/${biz.slug || biz.id}`);
       }
       setSuccess(true);
     } catch (err) {
@@ -388,25 +400,25 @@ ${notes ? `*Notas:* ${notes}` : ""}
                             onClick={() => setServiceId(s.id)}
                             style={{
                               width: "100%", textAlign: "left", padding: "18px", borderRadius: 20,
-                              border: isSelected ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(0,0,0,0.05)",
-                              background: isSelected ? "linear-gradient(135deg, rgba(240,253,244,0.9), rgba(220,252,231,0.6))" : "#ffffff",
+                              border: isSelected ? "1px solid #BFDBFE" : "1px solid rgba(0,0,0,0.05)",
+                              background: isSelected ? "#EFF6FF" : "#ffffff",
                               backdropFilter: "blur(10px)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
                               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                              boxShadow: isSelected ? "0 8px 24px rgba(16, 185, 129, 0.15), inset 0 2px 4px rgba(255,255,255,0.8)" : "0 4px 12px rgba(0,0,0,0.03), inset 0 2px 4px rgba(255,255,255,0.8)",
+                              boxShadow: isSelected ? "none" : "0 4px 12px rgba(0,0,0,0.03), inset 0 2px 4px rgba(255,255,255,0.8)",
                               transform: isSelected ? "scale(1.02)" : "scale(1)"
                             }}
                           >
                             <div>
-                              <div style={{ fontSize: 16, fontWeight: 800, color: isSelected ? "#064E3B" : "#0F1A14", marginBottom: 6 }}>{s.name}</div>
-                              <div style={{ fontSize: 13, color: isSelected ? "#047857" : "#64748B", display: "flex", gap: 12, fontWeight: 600 }}>
-                                {s.durationMin && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="clock" size={14} color={isSelected ? "#047857" : "#94A3B8"} />{formatDuration(s.durationMin)}</span>}
-                                {s.price && s.price !== "0" && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="credit-card" size={14} color={isSelected ? "#047857" : "#94A3B8"} />${s.price}</span>}
+                              <div style={{ fontSize: 16, fontWeight: 800, color: isSelected ? "#1E3A8A" : "#0F1A14", marginBottom: 6 }}>{s.name}</div>
+                              <div style={{ fontSize: 13, color: isSelected ? "#2563EB" : "#64748B", display: "flex", gap: 12, fontWeight: 600 }}>
+                                {s.durationMin && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="clock" size={14} color={isSelected ? "#2563EB" : "#94A3B8"} />{formatDuration(s.durationMin)}</span>}
+                                {s.price && s.price !== "0" && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="credit-card" size={14} color={isSelected ? "#2563EB" : "#94A3B8"} />${s.price}</span>}
                               </div>
                             </div>
                             <div style={{
                               width: 28, height: 28, borderRadius: "50%",
                               border: isSelected ? "none" : "2px solid rgba(15,26,20,0.15)",
-                              background: isSelected ? "linear-gradient(135deg, #34D399, #10B981)" : "rgba(255,255,255,0.5)",
+                              background: isSelected ? "#5CA4FF" : "rgba(255,255,255,0.5)",
                               display: "flex", alignItems: "center", justifyContent: "center",
                               boxShadow: "none",
                               transition: "all 0.3s"
@@ -488,12 +500,12 @@ ${notes ? `*Notas:* ${notes}` : ""}
                     </div>
                   ) : availableSlots.length > 0 ? (
                     isAllDay ? (
-                      <div style={{ textAlign: "center", padding: "24px", background: "linear-gradient(135deg, rgba(240,253,244,0.9), rgba(220,252,231,0.6))", border: "1px solid rgba(16, 185, 129, 0.4)", borderRadius: 20, backdropFilter: "blur(10px)", boxShadow: "0 8px 24px rgba(16, 185, 129, 0.1)" }}>
-                        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #34D399, #10B981)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", boxShadow: "0 4px 10px rgba(16,185,129,0.3)" }}>
+                      <div style={{ textAlign: "center", padding: "24px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 20 }}>
+                        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#5CA4FF", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
                           <Icon name="check" size={24} color="#FFF" />
                         </div>
-                        <div style={{ fontWeight: 900, color: "#064E3B", fontSize: 18, marginTop: 8 }}>Evento de Todo el Día</div>
-                        <div style={{ fontSize: 14, color: "#047857", marginTop: 6, fontWeight: 600, lineHeight: 1.4 }}>Esta reservación asegurará tu lugar para todo el turno de la fecha seleccionada.</div>
+                        <div style={{ fontWeight: 900, color: "#1E3A8A", fontSize: 18, marginTop: 8 }}>Evento de Todo el Día</div>
+                        <div style={{ fontSize: 14, color: "#2563EB", marginTop: 6, fontWeight: 600, lineHeight: 1.4 }}>Esta reservación asegurará tu lugar para todo el turno de la fecha seleccionada.</div>
                       </div>
                     ) : (
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
@@ -585,7 +597,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
               
               <div style={{ display: "flex", gap: 6 }}>
                 {[1, 2, 3].map(i => (
-                  <div key={i} style={{ width: i === step ? 24 : 8, height: 8, borderRadius: 4, background: i === step ? "#10B981" : "rgba(0,0,0,0.1)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }} />
+                  <div key={i} style={{ width: i === step ? 24 : 8, height: 8, borderRadius: 4, background: i === step ? "#5CA4FF" : "rgba(0,0,0,0.1)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }} />
                 ))}
               </div>
 
@@ -602,7 +614,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
                 <button 
                   type="submit" 
                   disabled={loading || !date || !time || !name || !phone || !serviceId}
-                  style={{ padding: "12px 24px", background: loading || !name || !phone ? "rgba(0,0,0,0.05)" : "linear-gradient(135deg, #10B981, #059669)", border: "none", borderRadius: 20, fontSize: 14, fontWeight: 800, color: loading || !name || !phone ? "#9CA3AF" : "#fff", cursor: loading || !name || !phone ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: loading || !name || !phone ? "none" : "0 8px 20px rgba(16,185,129,0.3)", transition: "all 0.2s" }}
+                  style={{ padding: "12px 24px", background: loading || !name || !phone ? "rgba(0,0,0,0.05)" : "#1877F2", border: "none", borderRadius: 20, fontSize: 14, fontWeight: 800, color: loading || !name || !phone ? "#9CA3AF" : "#fff", cursor: loading || !name || !phone ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "none", transition: "all 0.2s" }}
                 >
                   {loading ? "Enviando..." : config.autoApprove ? "Confirmar" : "Solicitar"}
                 </button>

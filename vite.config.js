@@ -95,9 +95,6 @@ export default defineConfig({
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
             return 'react'
           }
-          if (id.includes('node_modules/framer-motion')) {
-            return 'motion'
-          }
         }
       }
     }

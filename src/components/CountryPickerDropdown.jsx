@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Icon from './ui/Icon.jsx';
 import { COUNTRY_NAMES, COUNTRY_FLAGS } from '../lib/domain.js';
 
@@ -9,6 +9,7 @@ const FLAG_MAP = Object.fromEntries(
 export default function CountryPickerDropdown({ cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark, isWelcome }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCountry, setExpandedCountry] = useState(null);
+  const [expandedStates, setExpandedStates] = useState({});
   const [showAllCities, setShowAllCities] = useState(false);
   const [cityCounts, setCityCounts] = useState({});
   const ref = useRef(null);
@@ -23,11 +24,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  useEffect(() => {
-    if (isWelcome && !expandedCountry) {
-      setExpandedCountry("México");
-    }
-  }, [isWelcome]);
+  // Auto-expand removed per user request
 
   useEffect(() => {
     import('../lib/supabase.js').then(({ sb }) => {
@@ -63,7 +60,13 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
     activeCountriesMap[country].push(city);
   });
 
-  const activeCountryNames = Object.keys(activeCountriesMap);
+  const activeCountryNames = Object.keys(activeCountriesMap).sort((a, b) => {
+    const order = { "México": 1, "España": 2, "Estados Unidos": 3 };
+    const orderA = order[a] || 99;
+    const orderB = order[b] || 99;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.localeCompare(b);
+  });
   const comingSoonCountries = [];
 
   const currentCityObj = sortedCities.find(c => c.slug === activeCity);
@@ -120,7 +123,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
             <h1 style={{ fontSize: 32, fontWeight: 900, color: dark ? "#fff" : "#0f172a", lineHeight: 1.1, margin: '0 0 16px 0', letterSpacing: '-1px' }}>
               ¡Bienvenido a <br/>
               <span style={{ 
-                background: 'linear-gradient(90deg, #3B82F6, #60A5FA)',
+                background: 'linear-gradient(90deg, #3B82F6, #06B6D4)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}>
@@ -259,7 +262,8 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
           marginTop: 8
         }}>
         {activeCountryNames.map(country => {
-          const isExpanded = expandedCountry === country || (!expandedCountry && currentCountry === country && activeCountryNames.length === 1);
+          const isSearching = searchQuery.trim().length > 0;
+          const isExpanded = isSearching || expandedCountry === country || (!expandedCountry && currentCountry === country && activeCountryNames.length === 1);
           const countryCities = activeCountriesMap[country] || [];
           
           return (
@@ -295,78 +299,100 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
               </button>
 
               {isExpanded && (() => {
-                const visibleCities = showAllCities ? countryCities : countryCities.slice(0, 5);
+                const statesMap = {};
+                countryCities.forEach(city => {
+                  const s = city.state ? city.state.split(";")[0].trim() : "Otros";
+                  if (!statesMap[s]) statesMap[s] = { state: s, cities: [], count: 0 };
+                  statesMap[s].cities.push(city);
+                  statesMap[s].count += city.count || 0;
+                });
+                
+                const sortedStates = Object.values(statesMap).sort((a, b) => b.count - a.count);
+
                 return (
-                <div style={{ padding: "4px 0", display: "flex", flexDirection: "column" }}>
-                  {visibleCities.map((city, index) => {
-                    const isSelected = city.slug === activeCity;
-                    const isLast = index === visibleCities.length - 1;
+                <div style={{ padding: "4px 0 4px 12px", display: "flex", flexDirection: "column" }}>
+                  {sortedStates.map((st, stIdx) => {
+                    const stateKey = `${country}_${st.state}`;
+                    const isStateExpanded = isSearching || expandedStates[stateKey];
+                    const isLastState = stIdx === sortedStates.length - 1;
                     return (
+                    <div key={st.state} style={{ display: "flex", flexDirection: "column", borderBottom: isLastState ? "none" : `1px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}` }}>
                       <button
-                        key={city.slug}
-                        onClick={() => {
-                          onSelectCity(city);
-                          onClose();
-                        }}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "12px 14px",
-                          background: isSelected ? "#0f172a" : "transparent",
+                        onClick={() => setExpandedStates(prev => ({ ...prev, [stateKey]: !prev[stateKey] }))}
+                        style={{ 
+                          padding: "10px 12px", 
+                          fontSize: 14, 
+                          fontWeight: 600, 
+                          color: dark ? "#cbd5e1" : "#475569", 
+                          background: "transparent",
                           border: "none",
-                          borderBottom: isSelected || isLast ? "none" : `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}`,
-                          borderRadius: isSelected ? 10 : 0,
+                          borderRadius: 0,
                           cursor: "pointer",
-                          color: isSelected ? "#ffffff" : (dark ? "#f8fafc" : "#1e293b"),
-                          fontSize: 15,
-                          fontWeight: isSelected ? 700 : 600,
-                          textAlign: "left",
-                          transition: "all 0.2s",
-                          width: "100%"
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          width: "100%",
+                          transition: "background 0.2s"
                         }}
-                        onMouseOver={(e) => {
-                          if (!isSelected) e.currentTarget.style.background = dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)";
-                        }}
-                        onMouseOut={(e) => {
-                          if (!isSelected) e.currentTarget.style.background = "transparent";
-                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)"}
+                        onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
                       >
-                        <span style={{ 
-                          flex: 1, 
-                          textAlign: "left", 
-                          whiteSpace: "nowrap", 
-                          overflow: "hidden", 
-                          textOverflow: "ellipsis",
-                          paddingRight: 8
-                        }}>
-                          {city.name}
+                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 16 }}>📍</span>
+                          {st.state}
                         </span>
-                        <Icon name="chevron" size={15} color={isSelected ? "#ffffff" : (dark ? "#64748b" : "#94a3b8")} />
+                        <Icon name="chevron" size={15} color={dark ? "#64748b" : "#94a3b8"} />
                       </button>
-                    )
-                  })}
-                  {!showAllCities && countryCities.length > 5 && (
-                    <button
-                      onClick={() => setShowAllCities(true)}
-                      style={{
-                        padding: "10px 12px",
-                        background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
-                        border: "none",
-                        borderRadius: 8,
-                        cursor: "pointer",
-                        color: dark ? "#94a3b8" : "#64748b",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        marginTop: 4,
-                        transition: "background 0.2s"
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}
-                      onMouseOut={(e) => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"}
-                    >
-                      Ver {countryCities.length - 5} ciudades más...
-                    </button>
-                  )}
+                      {isStateExpanded && st.cities.map((city, index) => {
+                        const isSelected = city.slug === activeCity;
+                        const isLast = index === st.cities.length - 1;
+                        return (
+                          <button
+                            key={city.slug}
+                            onClick={() => {
+                              onSelectCity(city);
+                              onClose();
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              padding: "12px 14px",
+                              background: isSelected ? "#0f172a" : "transparent",
+                              border: "none",
+                              borderBottom: isSelected || isLast ? "none" : `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}`,
+                              borderRadius: isSelected ? 10 : 0,
+                              cursor: "pointer",
+                              color: isSelected ? "#ffffff" : (dark ? "#f8fafc" : "#1e293b"),
+                              fontSize: 15,
+                              fontWeight: isSelected ? 700 : 600,
+                              textAlign: "left",
+                              transition: "all 0.2s",
+                              width: "100%"
+                            }}
+                            onMouseOver={(e) => {
+                              if (!isSelected) e.currentTarget.style.background = dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)";
+                            }}
+                            onMouseOut={(e) => {
+                              if (!isSelected) e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            <span style={{ 
+                              flex: 1, 
+                              textAlign: "left", 
+                              whiteSpace: "nowrap", 
+                              overflow: "hidden", 
+                              textOverflow: "ellipsis",
+                              paddingRight: 8
+                            }}>
+                              {city.name}
+                            </span>
+                            <Icon name="chevron" size={15} color={isSelected ? "#ffffff" : (dark ? "#64748b" : "#94a3b8")} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )})}
                 </div>
                 );
               })()}

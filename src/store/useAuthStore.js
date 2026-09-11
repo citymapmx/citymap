@@ -48,7 +48,11 @@ export const useAuthStore = create((set, get) => ({
       const fcm = localStorage.getItem('cg_push_token');
       const u = get().user;
       if (fcm && u?.id) {
-        await sb.delWhere2('push_tokens', 'token', fcm, 'user_id', u.id).catch(() => null);
+        await fetch('https://citymap.mx/api/unregister-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: fcm })
+        }).catch(() => null);
         localStorage.removeItem('cg_push_token');
       }
     } catch (e) { console.error("Error clearing push token:", e); }

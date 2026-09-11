@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabase.js';
 import Icon from '../ui/Icon.jsx';
-import OptimizedImage from '../ui/OptimizedImage.jsx';
-import { getThumbUrl, cleanCityPrefix, createSlug } from '../../lib/utils.js';
-import { lazy, Suspense } from "react";
+import { cleanCityPrefix, createSlug } from '../../lib/utils.js';
+import { lazy } from "react";
 import { useAuthStore } from "../../store/useAuthStore.js";
-import AiMenuImporter from '../AiMenuImporter.jsx';
 
 const Uploader = lazy(() => import('../Uploader.jsx'));
 import StoreMonetizationTab from './StoreMonetizationTab.jsx';
@@ -60,6 +58,7 @@ export default function StoreAdminPanel({ business, onClose, T }) {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadData(); }, [business.id]);
 
   
@@ -107,6 +106,7 @@ export default function StoreAdminPanel({ business, onClose, T }) {
               loadData={loadData}
               isCatalog={isCatalog}
               handleToggleType={handleToggleType}
+              isAdmin={profile?.role === 'admin'}
               setActiveCat={setActiveCat}
               setView={setView}
               inpH={inpH}

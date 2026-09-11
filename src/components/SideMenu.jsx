@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import Icon from './ui/Icon.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { haptic } from '../lib/utils.js';
@@ -18,7 +18,7 @@ export default function SideMenu({ isOpen, onClose, T, dark, routerNavigate, use
       {isOpen && (
         <>
           {/* Overlay */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -33,7 +33,7 @@ export default function SideMenu({ isOpen, onClose, T, dark, routerNavigate, use
           />
 
           {/* Drawer */}
-          <motion.div
+          <m.div
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
@@ -89,12 +89,12 @@ export default function SideMenu({ isOpen, onClose, T, dark, routerNavigate, use
 
               <div style={{ height: 16 }} />
               <div style={{ padding: '0 20px', fontSize: 12, fontWeight: 700, color: dark ? '#94A3B8' : '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{t("legal", "Legal")}</div>
-              <MenuItem icon="file" label={t("acerca_de", "Acerca de")} onClick={() => { routerNavigate('/about'); onClose(); }} T={T} dark={dark} />
-              <MenuItem icon="file" label={t("privacidad", "Privacidad")} onClick={() => { routerNavigate('/privacy'); onClose(); }} T={T} dark={dark} />
-              <MenuItem icon="file" label={t("terminos", "Términos")} onClick={() => { routerNavigate('/terms'); onClose(); }} T={T} dark={dark} />
+              <MenuItem icon="info" label={t("acerca_de", "Acerca de")} onClick={() => { routerNavigate('/about'); onClose(); }} T={T} dark={dark} />
+              <MenuItem icon="shield" label={t("privacidad", "Privacidad")} onClick={() => { routerNavigate('/privacy'); onClose(); }} T={T} dark={dark} />
+              <MenuItem icon="file-text" label={t("terminos", "Términos")} onClick={() => { routerNavigate('/terms'); onClose(); }} T={T} dark={dark} />
             </div>
 
-            {/* Language Selector Selector de Idioma */}
+            {/* Language Selector Selector de Idioma 
             <div style={{ padding: '16px 20px', borderTop: `1px solid ${dark ? '#1E293B' : '#F1F5F9'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: dark ? '#94A3B8' : '#6B7280' }}>
                 {t("idioma", "Idioma")}
@@ -138,11 +138,12 @@ export default function SideMenu({ isOpen, onClose, T, dark, routerNavigate, use
                 </button>
               </div>
             </div>
+            */}
 
             <div style={{ padding: '10px 20px 20px', textAlign: 'center', fontSize: 11, color: dark ? '#64748B' : '#9CA3AF', borderTop: `1px solid ${dark ? '#1E293B' : '#F1F5F9'}` }}>
               &copy; {new Date().getFullYear()} CityMap. {t("derechos_reservados", "Todos los derechos reservados.")}
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>,

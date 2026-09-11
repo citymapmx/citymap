@@ -26,11 +26,11 @@ export const useUIStore = create((set) => ({
         const navLang = navigator.language || navigator.userLanguage;
         if (navLang && !navLang.startsWith("es")) return "en";
       }
-    } catch {}
+    } catch (e) { console.error(e); }
     return "es";
   })(),
   setLang: (lang) => {
-    try { localStorage.setItem("cg_lang", lang); } catch {}
+    try { localStorage.setItem("cg_lang", lang); } catch (e) { console.error(e); }
     set({ lang });
   },
   
@@ -59,7 +59,12 @@ export const useUIStore = create((set) => ({
   setSelectedExpSlug: (val) => set(s => ({ selectedExpSlug: typeof val === 'function' ? val(s.selectedExpSlug) : val })),
 
   mapPin: null,
+  openedFromMap: false,
+  setOpenedFromMap: (val) => set({ openedFromMap: val }),
   setMapPin: (val) => set(s => ({ mapPin: typeof val === 'function' ? val(s.mapPin) : val })),
+
+  mapFullScreen: false,
+  setMapFullScreen: (val) => set(s => ({ mapFullScreen: typeof val === 'function' ? val(s.mapFullScreen) : val })),
 
   showAdmin: false,
   setShowAdmin: (val) => set(s => ({ showAdmin: typeof val === 'function' ? val(s.showAdmin) : val })),

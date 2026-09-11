@@ -12,6 +12,7 @@ const T = {
   border: "#E2E8F0",
   green: "#10B981",
   greenL: "#D1FAE5",
+   
   red: "#EF4444",
   shadow: "0 2px 12px rgba(0,0,0,0.06)",
 };

@@ -37,7 +37,7 @@ export function useInAppNotifications() {
             playNote(1318.5, ctx.currentTime,        0.18); // E6
             playNote(1567.9, ctx.currentTime + 0.12, 0.18); // G6
             playNote(2093.0, ctx.currentTime + 0.24, 0.32); // C7
-          } catch(e) {}
+          } catch (e) { console.error(e); }
           
           // Show toast for the most recent one
           const latest = notifs[0];

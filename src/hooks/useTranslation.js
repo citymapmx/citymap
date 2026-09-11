@@ -1,10 +1,11 @@
+import { useCallback } from "react";
 import { useUIStore } from "../store/useUIStore.js";
 import { TRANSLATIONS } from "../lib/i18n.js";
 
 export function useTranslation() {
   const lang = useUIStore(s => s.lang);
   
-  const t = (key, fallback) => {
+  const t = useCallback((key, fallback) => {
     if (!key) return "";
     
     // Handle array case (like [statusText, suffixElement] from schedule utils)
@@ -32,7 +33,7 @@ export function useTranslation() {
     
     // Fallback if not found in dictionary
     return fallback !== undefined ? fallback : key;
-  };
+  }, [lang]);
   
   return {
     t,

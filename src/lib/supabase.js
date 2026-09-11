@@ -1,17 +1,17 @@
 import { Capacitor } from '@capacitor/core';
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-// Base project URL — NO trailing slash, NO /rest/v1
-const SUPABASE_URL = "https://dpkjxhjkzdlkvyotoeai.supabase.co";
-// Publishable (anon) key
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
-const CLOUDINARY_CLOUD = "da6g5pt5x";
-const CLOUDINARY_PRESET = "cityguide_unsigned";
-const GMAPS_KEY = "AIzaSyD_fPxRqRJe6r9BiBsTZBj2K_KZnrhIf4M";
+// Credenciales leídas desde variables de entorno (.env.local / Vercel)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co";
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
+const CLOUDINARY_CLOUD = import.meta.env.VITE_CLOUDINARY_CLOUD || "da6g5pt5x";
+const CLOUDINARY_PRESET = import.meta.env.VITE_CLOUDINARY_PRESET || "cityguide_unsigned";
+const GMAPS_KEY = import.meta.env.VITE_GMAPS_KEY || "AIzaSyD_fPxRqRJe6r9BiBsTZBj2K_KZnrhIf4M";
 
 const _SB_BASE = SUPABASE_URL.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 const _REST = `${_SB_BASE}/rest/v1`;
 const _AUTH = `${_SB_BASE}/auth/v1`;
+  
 
 // ── Detect key type ──────────────────────────────────────────────────────────
 // sb_publishable_ keys are NOT JWTs. PostgREST requires a JWT in Authorization.
@@ -117,17 +117,18 @@ const sb = {
   async notify(user_id, title, body, type = 'system', deepLink = null) {
     if (!user_id) return;
     try {
-      // Send request to Vercel API. The API will securely fetch tokens and insert the DB notification.
+      // Usa el JWT de sesión del admin como autenticación — no expone secretos en el frontend
+      const headers = { 'Content-Type': 'application/json' };
+      if (sb._token) headers['Authorization'] = `Bearer ${sb._token}`;
       await fetch('https://citymap.mx/api/send-notification', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           title,
           body,
           type,
           user_id,
           deepLink,
-          secret: import.meta.env.VITE_ADMIN_SECRET
         })
       });
     } catch (err) {
@@ -174,7 +175,7 @@ const sb = {
     return d;
   },
   async signOut() {
-    try { await fetch(`${_AUTH}/logout`, { method: "POST", headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${sb._token}` } }); } catch { }
+    try { await fetch(`${_AUTH}/logout`, { method: "POST", headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${sb._token}` } }); } catch (e) { console.error(e); }
     sb._token = null;
     localStorage.removeItem("cg_t");
     localStorage.removeItem("cg_r");
@@ -240,7 +241,7 @@ const sb = {
         }
       }
     } catch (err) {
-      throw new Error(err.message);
+      throw new Error(err.message, { cause: err });
     }
   },
   async setSessionFromUrl(url) {
@@ -257,7 +258,7 @@ const sb = {
       try {
         const { Browser } = await import('@capacitor/browser');
         await Browser.close();
-      } catch (e) {}
+      } catch (e) { console.error(e); }
       return true;
     }
     return false;

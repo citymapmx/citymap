@@ -1,20 +1,20 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import Icon from '../ui/Icon.jsx';
 
 const SLIDES = [
   {
     id: 1,
-    title: "Descubre lo mejor de",
-    highlight: "tu ciudad",
-    desc: "La mejor selección de negocios, gastronomía y servicios locales.",
+    title: "Tu ciudad está llena de",
+    highlight: "cosas por descubrir.",
+    desc: "Restaurantes, negocios, productos y servicios que quizá todavía no conoces.",
     img: "/onboarding_1.jpg"
   },
   {
     id: 2,
-    title: "Vive",
-    highlight: "experiencias inolvidables",
-    desc: "Conciertos, festivales, tours y actividades en un solo lugar.",
+    title: "Encuentra algo que vaya",
+    highlight: "contigo.",
+    desc: "Eventos, experiencias, lugares y actividades para cada momento.",
     img: "/onboarding_2.jpg"
   }
 ];
@@ -42,7 +42,7 @@ export default function OnboardingModal({ onComplete, T }) {
       display: 'flex', flexDirection: 'column'
     }}>
       <AnimatePresence mode="wait">
-        <motion.div
+        <m.div
           key={step}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -58,10 +58,9 @@ export default function OnboardingModal({ onComplete, T }) {
           {/* Texts */}
           <div style={{ textAlign: 'center', padding: '0 32px', marginBottom: 24 }}>
             <h1 style={{ fontSize: 32, fontWeight: 900, color: T.text, lineHeight: 1.1, margin: '0 0 16px 0', letterSpacing: '-1px' }}>
-              {currentSlide.title} <br/>
+              {currentSlide.title}{' '}
               <span style={{ 
-                background: step === 0 ? 'linear-gradient(90deg, #3B82F6, #60A5FA)' : 
-                            'linear-gradient(90deg, #3B82F6, #06B6D4)',
+                background: 'linear-gradient(90deg, #3B82F6, #06B6D4)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}>
@@ -75,7 +74,7 @@ export default function OnboardingModal({ onComplete, T }) {
 
           {/* 3D Image */}
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '0 20px' }}>
-            <motion.img 
+            <m.img 
               initial={{ y: 10 }}
               animate={{ y: [10, -10, 10] }}
               transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
@@ -89,7 +88,7 @@ export default function OnboardingModal({ onComplete, T }) {
               }} 
             />
           </div>
-        </motion.div>
+        </m.div>
       </AnimatePresence>
 
       {/* Bottom Controls */}

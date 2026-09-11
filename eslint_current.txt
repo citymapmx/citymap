@@ -1,0 +1,26 @@
+
+/Users/danielarana/Desktop/cityguide/src/components/admin/AdminEventsTab.jsx
+  108:3  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+/Users/danielarana/Desktop/cityguide/src/components/loyalty/LoyaltyDesigner.jsx
+  76:6  warning  React Hook useEffect has missing dependencies: 'business.img1' and 'business.logo_url'. Either include them or remove the dependency array. If 'setConfig' needs the current value of 'business.logo_url', you can also switch to useReducer instead of useState and read 'business.logo_url' in the reducer  react-hooks/exhaustive-deps
+
+/Users/danielarana/Desktop/cityguide/src/components/modals/CreateEventModal.jsx
+  60:3  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+/Users/danielarana/Desktop/cityguide/src/views/DetailView.jsx
+  268:6   warning  React Hook useEffect has missing dependencies: 'selected', 'setReviews', and 'setSelected'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  651:70  error    Empty block statement                                                                                                                           no-empty
+  738:19  warning  The value assigned to 'rewardTitle' is not used in subsequent statements                                                                        no-useless-assignment
+
+/Users/danielarana/Desktop/cityguide/src/views/HomeView.jsx
+  248:3  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+/Users/danielarana/Desktop/cityguide/src/views/WalletView.jsx
+  109:15   error    Empty block statement                                                     no-empty
+  162:100  error    Empty block statement                                                     no-empty
+  252:21   warning  The value assigned to 'rewardTitle' is not used in subsequent statements  no-useless-assignment
+
+✖ 10 problems (3 errors, 7 warnings)
+  0 errors and 3 warnings potentially fixable with the `--fix` option.
+

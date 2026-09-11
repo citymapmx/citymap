@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Icon from '../ui/Icon';
 import FI from './FI';
 import OptimizedImage from '../ui/OptimizedImage';

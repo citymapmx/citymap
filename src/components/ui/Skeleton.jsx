@@ -1,4 +1,3 @@
-import React from 'react';
 
 export function Sk({ w, h, r, dark, style }) {
   const bg = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
