@@ -42,6 +42,12 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
 
   const error = queryError ? "Negocio no encontrado" : null;
 
+  useEffect(() => {
+    if (biz && (!selected || selected.id !== biz.id)) {
+      setSelected(biz);
+    }
+  }, [biz, selected, setSelected]);
+
   if (loading) {
     return (
       <>
@@ -63,12 +69,6 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
   }
 
   const isElite = biz.plan === 'destacado' || biz.plan === 'premium';
-  
-  useEffect(() => {
-    if (biz && (!selected || selected.id !== biz.id)) {
-      setSelected(biz);
-    }
-  }, [biz, selected, setSelected]);
 
   return (
     <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#FFFFFF', display: 'flex', flexDirection: 'column' }}>
