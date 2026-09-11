@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node generate-sitemap.js && vite build",
     "build:android": "npm run build && npx cap sync android",
     "lint": "eslint .",
     "preview": "vite preview",
