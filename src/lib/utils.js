@@ -424,7 +424,8 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
   }
   
   if (url.includes("supabase.co") && url.includes("/object/public/")) {
-    const bunnyUrl = import.meta.env.VITE_BUNNY_CDN_URL;
+    // TEMPORAL: Bypassing Bunny.net porque se acabaron los créditos
+    const bunnyUrl = null; // import.meta.env.VITE_BUNNY_CDN_URL;
     if (bunnyUrl) {
       // Usar BunnyCDN si está configurado
       const pathParts = url.split('/public/');
