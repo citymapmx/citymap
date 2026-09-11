@@ -11,14 +11,18 @@ import { useQuery } from '@tanstack/react-query';
 export default function MenuView({ T, dark, navigate: propNavigate }) {
   const { city, slug } = useParams();
   const setSelected = useUIStore(s => s.setSelected);
+  const selected = useUIStore(s => s.selected);
   const routerNavigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const navigate = propNavigate || routerNavigate;
   const initialIntent = location.state?.intent || searchParams.get('intent') || null;
 
+  const isMatch = selected && (selected.slug === slug || selected.id === slug || selected.slug === `${city}-${slug}`);
+
   const { data: biz, isLoading: loading, error: queryError } = useQuery({
     queryKey: ['business-menu', slug],
+    initialData: isMatch ? selected : undefined,
     queryFn: async () => {
       const dataList = await sb.get('businesses', `?select=*&or=(slug.eq.${slug},slug.eq.${city}-${slug})&limit=1`);
       if (!dataList || dataList.length === 0) throw new Error("Not found");
