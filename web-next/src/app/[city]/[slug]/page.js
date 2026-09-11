@@ -4,6 +4,8 @@ import Image from 'next/image';
 import StarRow from '../../../components/ui/StarRow';
 import Icon from '../../../components/ui/Icon';
 import MapButton from '../../../components/MapButton';
+import ActionButtons from '../../../components/ActionButtons';
+import BackButton from '../../../components/BackButton';
 
 async function getBusiness(city, slug) {
   let q = `slug=eq.${slug}`;
@@ -26,8 +28,42 @@ export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const { city, slug } = resolvedParams;
   const biz = await getBusiness(city, slug);
-  if (!biz) return { title: 'Negocio no encontrado' };
-  return { title: `${biz.name} en ${city} - CityMap`, openGraph: { images: [biz.logo_url] } }
+  if (!biz) return { title: 'Negocio no encontrado | CityMap' };
+
+  const cityCapitalized = city.charAt(0).toUpperCase() + city.slice(1);
+  const catLabel = biz.category ? biz.category.charAt(0).toUpperCase() + biz.category.slice(1) : "Negocio";
+  
+  const title = `${biz.name} — ${catLabel} en ${cityCapitalized} | Horarios y Reseñas`;
+  const desc = biz.description 
+    ? biz.description.slice(0, 155) + (biz.description.length > 155 ? "…" : "")
+    : `Encuentra toda la información sobre ${biz.name} en ${cityCapitalized}. Conoce sus horarios, ubicación, fotos y lee reseñas de otros usuarios en CityMap.`;
+  
+  const img = biz.banner_url || biz.logo_url || "https://citymap.mx/og-image.png";
+
+  return {
+    title,
+    description: desc,
+    openGraph: {
+      title,
+      description: desc,
+      url: `https://citymap.mx/${city}/${slug}`,
+      siteName: 'CityMap',
+      images: [
+        {
+          url: img,
+          width: 1200,
+          height: 630,
+        },
+      ],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: desc,
+      images: [img],
+    }
+  };
 }
 
 export default async function BusinessProfile({ params }) {
@@ -65,13 +101,52 @@ export default async function BusinessProfile({ params }) {
       return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
+    // Build JSON-LD for Google
+    const cityCapitalized = city.charAt(0).toUpperCase() + city.slice(1);
+    const bizUrl = `https://citymap.mx/${city}/${slug}`;
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": biz.name,
+      "description": biz.description || '',
+      "url": bizUrl,
+      "image": biz.banner_url || biz.logo_url || '',
+      "telephone": biz.phone || undefined,
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": biz.address || '',
+        "addressLocality": cityCapitalized,
+        "addressCountry": "MX"
+      },
+      ...(biz.lat && biz.lng ? {
+        "geo": { "@type": "GeoCoordinates", "latitude": biz.lat, "longitude": biz.lng }
+      } : {}),
+      ...(biz.rating ? {
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": biz.rating,
+          "reviewCount": biz.reviews_count || reviews.length || 1
+        }
+      } : {})
+    };
+
     return (
       <div className="max-w-[1126px] mx-auto min-h-screen bg-[#fafafa]">
+        {/* JSON-LD para Google */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+
+        {/* Botón de regreso */}
+        <BackButton citySlug={city} />
+
+        {/* Banner */}
         <div className="relative w-full h-[250px] bg-gray-200">
           {(biz.banner_url || biz.logo_url) && <Image src={biz.banner_url || biz.logo_url} alt={biz.name} fill className="object-cover rounded-b-[32px]" sizes="100vw" priority />}
         </div>
         <div className="px-5 pt-5 pb-20 max-w-2xl mx-auto">
-          <div className="mb-6">
+          <div className="mb-2">
             <h1 className="text-[28px] font-black tracking-tight leading-tight text-gray-900 flex items-center gap-2">
               {biz.name}
             </h1>
@@ -92,8 +167,30 @@ export default async function BusinessProfile({ params }) {
               </div>
             </div>
           </div>
-          
-          <MapButton lat={biz.lat} lng={biz.lng} />
+
+          {/* Botones de acción rápida */}
+          <ActionButtons
+            phone={biz.phone}
+            whatsapp={biz.whatsapp}
+            lat={biz.lat}
+            lng={biz.lng}
+            name={biz.name}
+            url={bizUrl}
+          />
+
+          {/* Menú digital */}
+          {biz.plan === 'menu' && (
+            <a
+              href={`/${city}/${slug}/menu`}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                background: '#0F172A', color: '#fff', borderRadius: 16, padding: '14px 20px',
+                textDecoration: 'none', fontWeight: 700, fontSize: 16, marginBottom: 16,
+              }}
+            >
+              <span>🍽</span> Ver Menú Digital
+            </a>
+          )}
 
           {/* GALERÍA */}
           {photos && photos.length > 0 && (
