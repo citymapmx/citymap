@@ -64,20 +64,14 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
 
   const isElite = biz.plan === 'destacado' || biz.plan === 'premium';
   
-  // Try to use a cover photo or first photo
-  const coverPhoto = biz.banner_url || biz.logo_url || (biz.photos && biz.photos[0] ? biz.photos[0].url : null);
+  useEffect(() => {
+    if (biz && (!selected || selected.id !== biz.id)) {
+      setSelected(biz);
+    }
+  }, [biz, selected, setSelected]);
 
   return (
     <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#FFFFFF', display: 'flex', flexDirection: 'column' }}>
-      <Helmet>
-        <title>Menú de {biz.name} — {biz.type || (biz.category ? biz.category.charAt(0).toUpperCase() + biz.category.slice(1) : "Negocio")} en {city.charAt(0).toUpperCase() + city.slice(1)} | CityMap</title>
-        <meta name="description" content={`Descubre el menú completo de ${biz.name} en ${city.charAt(0).toUpperCase() + city.slice(1)}. Conoce sus platillos, precios y haz tu pedido fácilmente.`} />
-        <meta property="og:title" content={`Menú de ${biz.name} — ${biz.type || (biz.category ? biz.category.charAt(0).toUpperCase() + biz.category.slice(1) : "Negocio")} en ${city.charAt(0).toUpperCase() + city.slice(1)} | CityMap`} />
-        <meta property="og:description" content={`Descubre el menú completo de ${biz.name} en ${city.charAt(0).toUpperCase() + city.slice(1)}. Conoce sus platillos, precios y haz tu pedido fácilmente.`} />
-        {coverPhoto && <meta property="og:image" content={coverPhoto} />}
-        <meta name="theme-color" content={dark ? '#0F172A' : '#FFFFFF'} />
-      </Helmet>
-
       <div style={{ flex: 1, position: 'relative' }}>
         <BusinessStore business={biz} T={T} isElite={isElite} inline={true} initialIntent={initialIntent} onBack={() => {
           setSelected(biz);
