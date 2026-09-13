@@ -237,7 +237,9 @@ export default async function handler(req) {
   }
 
   // Real user (not a bot) → redirect to SPA with deep-link param
-  if (!isBot(ua)) {
+  // _bot=1 allows middleware to call og.js internally without triggering this redirect
+  const forcedBot = searchParams.get("_bot") === "1";
+  if (!isBot(ua) && !forcedBot) {
     let loc = BASE_URL;
     const isMenu = searchParams.get("menu") === "true";
     if (id) {

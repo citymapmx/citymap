@@ -83,6 +83,8 @@ export default async function middleware(request) {
   }
 
   if (ogUrl) {
+    // Add _bot=1 escape hatch to force og.js to return HTML instead of a 302 redirect
+    ogUrl.searchParams.set('_bot', '1');
     // Llamar internamente a /api/og y devolver su HTML directo al bot
     // (sin redirect para evitar loops con la detección de bots en og.js)
     const ogRes = await fetch(ogUrl.toString(), {
