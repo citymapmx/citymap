@@ -1,4 +1,18 @@
 User-agent: *
 Allow: /
 
+# Block private/admin routes
+Disallow: /manage/
+Disallow: /manage
+Disallow: /stats/
+Disallow: /cuenta
+Disallow: /favoritos
+Disallow: /wallet
+Disallow: /scan/
+Disallow: /native-auth.html
+Disallow: /api/
+Disallow: /*?buscar=*
+
+# Sitemaps
+Sitemap: https://citymap.mx/sitemap.xml
 Sitemap: https://citymap.world/sitemap.xml

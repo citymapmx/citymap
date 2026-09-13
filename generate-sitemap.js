@@ -63,12 +63,17 @@ async function generateSitemap() {
     }
 
     // Businesses
+    const FOOD_CATS = ['restaurantes', 'restaurante', 'cafe', 'cafeteria', 'cafetería', 'comida', 'mariscos', 'sushi', 'pizza', 'tacos', 'hamburgesas', 'panaderia', 'pasteleria', 'heladeria', 'antros y bares', 'bares', 'bar', 'antro'];
     for (const biz of businesses) {
       if (!biz.slug) continue;
       const cSlug = biz.city_slug || 'tepic';
       const bCleaned = biz.slug.startsWith(`${cSlug}-`) ? biz.slug.slice(cSlug.length + 1) : biz.slug;
       urls.push({ loc: `${BASE_URL}/${cSlug}/${bCleaned}`, priority: 0.8 });
-      urls.push({ loc: `${BASE_URL}/${cSlug}/${bCleaned}/menu`, priority: 0.7 });
+      // Only add /menu for food businesses
+      const cat = (biz.category || '').toLowerCase();
+      if (FOOD_CATS.some(fc => cat.includes(fc))) {
+        urls.push({ loc: `${BASE_URL}/${cSlug}/${bCleaned}/menu`, priority: 0.7 });
+      }
     }
 
     // Events
