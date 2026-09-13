@@ -40,7 +40,14 @@ export async function generateMetadata({ params }) {
       description: `${bizCount}+ negocios locales en ${cityName} con reseñas y horarios.`,
       images: city.bg_image ? [city.bg_image] : [],
     },
-    alternates: { canonical: `https://citymap.mx/${citySlug}` },
+    alternates: { 
+      canonical: `https://citymap.mx/${citySlug}`,
+      languages: {
+        "es-MX": `https://citymap.mx/${citySlug}`,
+        "es": `https://citymap.world/${citySlug}`,
+        "x-default": `https://citymap.world/${citySlug}`,
+      }
+    },
   };
 }
 

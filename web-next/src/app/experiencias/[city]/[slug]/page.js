@@ -31,7 +31,14 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description: desc,
-    alternates: { canonical: `https://citymap.mx/experiencias/${city}/${slug}` },
+    alternates: { 
+      canonical: `https://citymap.mx/experiencias/${city}/${slug}`,
+      languages: {
+        "es-MX": `https://citymap.mx/experiencias/${city}/${slug}`,
+        "es": `https://citymap.world/experiencias/${city}/${slug}`,
+        "x-default": `https://citymap.world/experiencias/${city}/${slug}`,
+      }
+    },
     openGraph: {
       title,
       description: desc,

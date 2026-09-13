@@ -31,7 +31,14 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description: desc,
-    alternates: { canonical: `https://citymap.mx/evento/${slug}` },
+    alternates: { 
+      canonical: `https://citymap.mx/evento/${slug}`,
+      languages: {
+        "es-MX": `https://citymap.mx/evento/${slug}`,
+        "es": `https://citymap.world/evento/${slug}`,
+        "x-default": `https://citymap.world/evento/${slug}`,
+      }
+    },
     openGraph: {
       title,
       description: desc,

@@ -209,7 +209,14 @@ export async function generateMetadata({ params }) {
     const title = `${catInfo.emoji} ${catInfo.label} en ${cityName} — ${businesses.length}+ lugares | CityMap`;
     return {
       title, description: desc,
-      alternates: { canonical: `https://citymap.mx/${city}/${slug}` },
+      alternates: { 
+        canonical: `https://citymap.mx/${city}/${slug}`,
+        languages: {
+          "es-MX": `https://citymap.mx/${city}/${slug}`,
+          "es": `https://citymap.world/${city}/${slug}`,
+          "x-default": `https://citymap.world/${city}/${slug}`,
+        }
+      },
       openGraph: { title, description: desc, url: `https://citymap.mx/${city}/${slug}`, siteName: 'CityMap', images: [{ url: img, width: 1200, height: 630 }], type: 'website' },
       twitter: { card: 'summary_large_image', title, description: desc, images: [img] },
     };
@@ -231,6 +238,14 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description: desc,
+    alternates: { 
+      canonical: `https://citymap.mx/${city}/${slug}`,
+      languages: {
+        "es-MX": `https://citymap.mx/${city}/${slug}`,
+        "es": `https://citymap.world/${city}/${slug}`,
+        "x-default": `https://citymap.world/${city}/${slug}`,
+      }
+    },
     openGraph: {
       title,
       description: desc,

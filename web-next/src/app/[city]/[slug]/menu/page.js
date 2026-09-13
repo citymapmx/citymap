@@ -46,6 +46,14 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description: desc,
+    alternates: { 
+      canonical: `https://citymap.mx/${city}/${slug}/menu`,
+      languages: {
+        "es-MX": `https://citymap.mx/${city}/${slug}/menu`,
+        "es": `https://citymap.world/${city}/${slug}/menu`,
+        "x-default": `https://citymap.world/${city}/${slug}/menu`,
+      }
+    },
     openGraph: {
       title,
       description: desc,

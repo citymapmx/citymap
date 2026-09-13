@@ -9,6 +9,11 @@ export const metadata = {
   metadataBase: new URL("https://citymap.mx"),
   alternates: {
     canonical: "https://citymap.mx",
+    languages: {
+      "es-MX": "https://citymap.mx",
+      "es": "https://citymap.world",
+      "x-default": "https://citymap.world",
+    },
   },
   robots: {
     index: true,
