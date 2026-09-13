@@ -22,13 +22,6 @@
     },
     {
       "source": "/",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Googlebot|bingbot|TelegramBot|Applebot|Discordbot|Slackbot|vkShare|Pinterest|w3c_validator|curl|python-requests|Discord|Skype|Viber).*|.*(bot|Bot|spider|Spider|crawler|Crawler|whatsapp|WhatsApp|Telegram|Discord).*"
-        }
-      ],
       "destination": "/web-next/"
     },
     {
@@ -44,11 +37,11 @@
       "destination": "/web-next/experiencias/:city"
     },
     {
-      "source": "/:city",
+      "source": "/:city(?!mapa|favoritos|cuenta|lealtad|wallet|mis-planes|planes|precios|admin|manage|stats|itinerarios|about|privacy|terms)",
       "destination": "/web-next/:city"
     },
     {
-      "source": "/:country([a-z]{2})/:city",
+      "source": "/:country([a-z]{2})/:city(?!mapa|favoritos|cuenta|lealtad|wallet|mis-planes|planes|precios|admin|manage|stats|itinerarios|about|privacy|terms)",
       "destination": "/web-next/:city"
     },
     {
