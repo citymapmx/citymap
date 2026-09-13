@@ -7,8 +7,8 @@ import MapButton from '../../../components/MapButton';
 import ActionButtons from '../../../components/ActionButtons';
 import BackButton from '../../../components/BackButton';
 
-const SB_URL = process.env.VITE_SUPABASE_URL;
-const SB_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+const SB_URL = (process.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co");
+const SB_KEY = (process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE");
 const H = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
 
 // ─── CATEGORY DEFINITIONS ───────────────────────────────────────────────────
@@ -180,15 +180,15 @@ async function CategoryPage({ city: citySlug, slug: category }) {
 
 async function getBusiness(city, slug) {
   let q = `slug=eq.${slug}`;
-  let res = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/businesses?${q}&city_slug=eq.${city}&select=*`, {
-    headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${process.env.VITE_SUPABASE_ANON_KEY}` }
+  let res = await fetch(`${(process.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co")}/rest/v1/businesses?${q}&city_slug=eq.${city}&select=*`, {
+    headers: { apikey: (process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE"), Authorization: `Bearer ${(process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE")}` }
   });
   let data = await res.json();
   
   if (!data || data.length === 0) {
     const searchName = slug.split("-").join("%25");
-    res = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/businesses?name=ilike.*${searchName}*&city_slug=eq.${city}&select=*`, {
-      headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${process.env.VITE_SUPABASE_ANON_KEY}` }
+    res = await fetch(`${(process.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co")}/rest/v1/businesses?name=ilike.*${searchName}*&city_slug=eq.${city}&select=*`, {
+      headers: { apikey: (process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE"), Authorization: `Bearer ${(process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE")}` }
     });
     data = await res.json();
   }
@@ -286,13 +286,13 @@ export default async function BusinessProfile({ params }) {
       return <div className="p-10 text-center text-2xl font-bold">Negocio no encontrado</div>;
     }
 
-    const eventsRes = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/events?biz_id=eq.${biz.id}&status=eq.approved&select=*`, {
-      headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${process.env.VITE_SUPABASE_ANON_KEY}` }
+    const eventsRes = await fetch(`${(process.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co")}/rest/v1/events?biz_id=eq.${biz.id}&status=eq.approved&select=*`, {
+      headers: { apikey: (process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE"), Authorization: `Bearer ${(process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE")}` }
     });
     const events = await eventsRes.json();
 
-    const reviewsRes = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/reviews?biz_id=eq.${biz.id}&select=*&order=created_at.desc`, {
-      headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${process.env.VITE_SUPABASE_ANON_KEY}` }
+    const reviewsRes = await fetch(`${(process.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co")}/rest/v1/reviews?biz_id=eq.${biz.id}&select=*&order=created_at.desc`, {
+      headers: { apikey: (process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE"), Authorization: `Bearer ${(process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE")}` }
     });
     const reviews = await reviewsRes.json();
 
