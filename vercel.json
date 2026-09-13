@@ -40,7 +40,7 @@
           "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Googlebot|bingbot|TelegramBot|Applebot|Discordbot|Slackbot|vkShare|Pinterest|w3c_validator|curl|python-requests|Discord|Skype|Viber).*|.*(bot|Bot|spider|Spider|crawler|Crawler|whatsapp|WhatsApp|Telegram|Discord).*"
         }
       ],
-      "destination": "/api/og?ev=:slug"
+      "destination": "/web-next/evento/:slug"
     },
     {
       "source": "/experiencias/:city/:slug",
@@ -51,7 +51,7 @@
           "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Googlebot|bingbot|TelegramBot|Applebot|Discordbot|Slackbot|vkShare|Pinterest|w3c_validator|curl|python-requests|Discord|Skype|Viber).*|.*(bot|Bot|spider|Spider|crawler|Crawler|whatsapp|WhatsApp|Telegram|Discord).*"
         }
       ],
-      "destination": "/api/og?exp=:slug&city=:city"
+      "destination": "/web-next/experiencias/:city/:slug"
     },
     {
       "source": "/experiencias/:city",
@@ -62,7 +62,7 @@
           "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Googlebot|bingbot|TelegramBot|Applebot|Discordbot|Slackbot|vkShare|Pinterest|w3c_validator|curl|python-requests|Discord|Skype|Viber).*|.*(bot|Bot|spider|Spider|crawler|Crawler|whatsapp|WhatsApp|Telegram|Discord).*"
         }
       ],
-      "destination": "/api/og?city=:city"
+      "destination": "/web-next/experiencias/:city"
     },
     {
       "source": "/:city",
