@@ -7,6 +7,177 @@ import MapButton from '../../../components/MapButton';
 import ActionButtons from '../../../components/ActionButtons';
 import BackButton from '../../../components/BackButton';
 
+const SB_URL = process.env.VITE_SUPABASE_URL;
+const SB_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+const H = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
+
+// ─── CATEGORY DEFINITIONS ───────────────────────────────────────────────────
+const CATS = {
+  restaurantes:  { label: 'Restaurantes',     emoji: '🍽️', color: '#EF4444' },
+  cafe:          { label: 'Cafeterías',        emoji: '☕',  color: '#92400E' },
+  cafeteria:     { label: 'Cafeterías',        emoji: '☕',  color: '#92400E' },
+  cafeterias:    { label: 'Cafeterías',        emoji: '☕',  color: '#92400E' },
+  salud:         { label: 'Salud',             emoji: '🏥',  color: '#059669' },
+  belleza:       { label: 'Belleza y Spa',     emoji: '💅',  color: '#EC4899' },
+  fitness:       { label: 'Fitness',           emoji: '💪',  color: '#F97316' },
+  gimnasios:     { label: 'Gimnasios',         emoji: '💪',  color: '#F97316' },
+  compras:       { label: 'Compras',           emoji: '🛍️', color: '#8B5CF6' },
+  tiendas:       { label: 'Tiendas',           emoji: '🛍️', color: '#8B5CF6' },
+  tech:          { label: 'Tecnología',        emoji: '💻',  color: '#3B82F6' },
+  ocio:          { label: 'Entretenimiento',   emoji: '🎭',  color: '#F59E0B' },
+  hoteles:       { label: 'Hoteles',           emoji: '🏨',  color: '#0EA5E9' },
+  hospedaje:     { label: 'Hospedaje',         emoji: '🏨',  color: '#0EA5E9' },
+  educacion:     { label: 'Educación',         emoji: '📚',  color: '#6366F1' },
+  bares:         { label: 'Bares',             emoji: '🍻',  color: '#7C3AED' },
+  servicios:     { label: 'Servicios',         emoji: '🔧',  color: '#6B7280' },
+};
+
+function getCatDesc(catId, cityName) {
+  const city = cityName || 'tu ciudad';
+  const id = catId.toLowerCase();
+  if (id === 'salud') return `Encuentra la mejor atención médica en ${city}. Especialistas, clínicas y hospitales de confianza con servicios y horarios verificados.`;
+  if (id === 'educacion') return `Impulsa tu futuro en las mejores escuelas y academias de ${city}. Encuentra la institución ideal para tu desarrollo y aprendizaje.`;
+  if (id === 'restaurantes') return `Deléitate con los mejores restaurantes en ${city}. Desde joyas locales hasta alta cocina con menús, horarios y reseñas.`;
+  if (id === 'cafe' || id === 'cafeteria' || id === 'cafeterias') return `Disfruta del mejor café y repostería en ${city}. Cafeterías acogedoras perfectas para trabajar, estudiar o charlar.`;
+  if (id === 'hoteles' || id === 'hospedaje') return `Planea tu estancia perfecta en los mejores hoteles de ${city}. Boutique hasta lujo con todas las comodidades.`;
+  if (id === 'bares') return `Vive la vida nocturna en los mejores bares de ${city}. Dónde salir por unas copas o a bailar con amigos.`;
+  if (id === 'belleza') return `Consiéntete en los mejores salones, spas y barberías de ${city}. Lugares increíbles para relajarte y cuidar tu imagen.`;
+  if (id === 'fitness' || id === 'gimnasios') return `Actívate en los mejores gimnasios y centros deportivos en ${city}. Encuentra la disciplina perfecta para tu rutina.`;
+  if (id === 'compras' || id === 'tiendas') return `Vete de shopping por ${city}. Desde plazas comerciales hasta boutiques locales.`;
+  if (id === 'tech') return `Actualízate con las mejores tiendas de tecnología en ${city}. Smartphones, accesorios y expertos en reparaciones.`;
+  if (id === 'ocio') return `Rompe la rutina con el mejor entretenimiento en ${city}. Cines, parques y actividades para toda la familia.`;
+  return `Descubre los mejores lugares de ${id} en ${city}. Horarios, reseñas y cómo llegar.`;
+}
+
+async function getCategoryData(citySlug, category) {
+  const [cityRes, bizRes] = await Promise.all([
+    fetch(`${SB_URL}/rest/v1/cities?slug=eq.${citySlug}&select=id,name,state,country,bg_image&limit=1`, { headers: H }),
+    fetch(`${SB_URL}/rest/v1/businesses?city_slug=eq.${citySlug}&category=ilike.*${encodeURIComponent(category)}*&status=eq.approved&plan=neq.menu&select=id,name,slug,category,rating,review_count,logo_url,banner_url,plan,description&order=plan.desc,rating.desc.nullslast&limit=120`, { headers: H }),
+  ]);
+  const cities = await cityRes.json();
+  const businesses = await bizRes.json();
+  return { city: cities?.[0] || null, businesses: Array.isArray(businesses) ? businesses : [] };
+}
+
+// ─── CATEGORY PAGE RENDERER ──────────────────────────────────────────────────
+async function CategoryPage({ city: citySlug, slug: category }) {
+  const catKey = category.toLowerCase();
+  const catInfo = CATS[catKey];
+  const { city, businesses } = await getCategoryData(citySlug, category);
+  const cityName = city?.name || citySlug.charAt(0).toUpperCase() + citySlug.slice(1);
+  const desc = getCatDesc(category, cityName);
+  const coverImg = city?.bg_image;
+
+  const schema = {
+    '@context': 'https://schema.org', '@type': 'ItemList',
+    name: `${catInfo.label} en ${cityName}`, description: desc,
+    url: `https://citymap.mx/${citySlug}/${category}`,
+    numberOfItems: businesses.length,
+    itemListElement: businesses.slice(0, 20).map((b, i) => ({
+      '@type': 'ListItem', position: i + 1,
+      item: {
+        '@type': 'LocalBusiness', name: b.name,
+        url: `https://citymap.mx/${citySlug}/${b.slug}`,
+        image: b.logo_url || b.banner_url || undefined,
+        ...(b.rating && b.review_count > 0 ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: b.rating, reviewCount: b.review_count } } : {}),
+      },
+    })),
+  };
+  const breadcrumb = {
+    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'CityMap', item: 'https://citymap.mx' },
+      { '@type': 'ListItem', position: 2, name: cityName, item: `https://citymap.mx/${citySlug}` },
+      { '@type': 'ListItem', position: 3, name: catInfo.label, item: `https://citymap.mx/${citySlug}/${category}` },
+    ],
+  };
+
+  return (
+    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', background: '#fafafa', minHeight: '100vh' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      <BackButton citySlug={citySlug} />
+
+      {/* Hero */}
+      <div style={{ position: 'relative', width: '100%', height: 180, background: catInfo.color, overflow: 'hidden' }}>
+        {coverImg && <Image src={coverImg} alt={cityName} fill style={{ objectFit: 'cover', opacity: 0.35 }} priority sizes="100vw" />}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.65))' }} />
+        <div style={{ position: 'relative', zIndex: 1, padding: '44px 20px 20px', color: '#fff' }}>
+          <nav style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
+            <a href="https://citymap.mx" style={{ color: 'inherit', textDecoration: 'none' }}>CityMap</a>{' › '}
+            <a href={`https://citymap.mx/${citySlug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{cityName}</a>{' › '}
+            <span>{catInfo.label}</span>
+          </nav>
+          <h1 style={{ fontSize: 28, fontWeight: 900, margin: 0, letterSpacing: '-0.5px', lineHeight: 1.2 }}>
+            {catInfo.emoji} {catInfo.label} en {cityName}
+          </h1>
+          <p style={{ margin: '6px 0 0', fontSize: 13, opacity: 0.9 }}>{businesses.length} lugares encontrados</p>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 80px' }}>
+        <p style={{ fontSize: 14, color: '#4B5563', lineHeight: 1.7, marginBottom: 24, padding: '14px 16px', background: '#fff', borderRadius: 14, border: '1px solid #F1F5F9' }}>{desc}</p>
+
+        {businesses.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94A3B8' }}>
+            <p style={{ fontSize: 40 }}>{catInfo.emoji}</p>
+            <p style={{ fontWeight: 700, marginTop: 12 }}>Aún no hay negocios en esta categoría</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {businesses.map((b) => {
+              const imgSrc = b.logo_url || b.banner_url;
+              const bizSlug = b.slug?.startsWith(`${citySlug}-`) ? b.slug.slice(citySlug.length + 1) : b.slug;
+              return (
+                <a key={b.id} href={`https://citymap.mx/${citySlug}/${bizSlug}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', background: '#fff', borderRadius: 16, border: '1px solid #F1F5F9', textDecoration: 'none', color: '#111', boxShadow: '0 1px 6px rgba(0,0,0,0.05)' }}>
+                  <div style={{ width: 64, height: 64, borderRadius: 14, background: '#F1F5F9', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                    {imgSrc
+                      ? <Image src={imgSrc} alt={b.name} fill style={{ objectFit: 'cover' }} sizes="64px" unoptimized={imgSrc.startsWith('data:')} />
+                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>{catInfo.emoji}</div>}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</div>
+                    {b.description && <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{b.description}</div>}
+                    {b.review_count > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                        <span style={{ fontSize: 11 }}>⭐</span>
+                        <span style={{ fontSize: 12, fontWeight: 700 }}>{Number(b.rating).toFixed(1)}</span>
+                        <span style={{ fontSize: 11, color: '#9CA3AF' }}>({b.review_count})</span>
+                      </div>
+                    )}
+                  </div>
+                  <span style={{ color: '#CBD5E1', fontSize: 20 }}>›</span>
+                </a>
+              );
+            })}
+          </div>
+        )}
+
+        {businesses.length > 0 && (
+          <a href={`https://citymap.mx/${citySlug}?cat=${category}`}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 24, padding: '16px', background: '#0F172A', color: '#fff', borderRadius: 16, fontWeight: 800, fontSize: 15, textDecoration: 'none' }}>
+            {catInfo.emoji} Abrir en la app de CityMap →
+          </a>
+        )}
+
+        {/* Internal linking to other categories */}
+        <div style={{ marginTop: 32, padding: '16px', background: '#fff', borderRadius: 16, border: '1px solid #F1F5F9' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 12px', color: '#374151' }}>Más categorías en {cityName}</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {Object.entries(CATS).filter(([k]) => k !== catKey && !['cafeteria','cafeterias','gimnasios','tiendas','hospedaje'].includes(k)).map(([k, v]) => (
+              <a key={k} href={`https://citymap.mx/${citySlug}/${k}`}
+                style={{ padding: '7px 12px', borderRadius: 999, background: '#F8FAFC', border: '1px solid #E2E8F0', fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none' }}>
+                {v.emoji} {v.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 async function getBusiness(city, slug) {
   let q = `slug=eq.${slug}`;
   let res = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/businesses?${q}&city_slug=eq.${city}&select=*`, {
@@ -27,6 +198,23 @@ async function getBusiness(city, slug) {
 export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const { city, slug } = resolvedParams;
+
+  // If slug is a known category, return category metadata
+  const catInfo = CATS[slug.toLowerCase()];
+  if (catInfo) {
+    const { city: cityData, businesses } = await getCategoryData(city, slug);
+    const cityName = cityData?.name || city.charAt(0).toUpperCase() + city.slice(1);
+    const desc = getCatDesc(slug, cityName);
+    const img = cityData?.bg_image || 'https://citymap.mx/og-image.png';
+    const title = `${catInfo.emoji} ${catInfo.label} en ${cityName} — ${businesses.length}+ lugares | CityMap`;
+    return {
+      title, description: desc,
+      alternates: { canonical: `https://citymap.mx/${city}/${slug}` },
+      openGraph: { title, description: desc, url: `https://citymap.mx/${city}/${slug}`, siteName: 'CityMap', images: [{ url: img, width: 1200, height: 630 }], type: 'website' },
+      twitter: { card: 'summary_large_image', title, description: desc, images: [img] },
+    };
+  }
+
   const biz = await getBusiness(city, slug);
   if (!biz) return { title: 'Negocio no encontrado | CityMap' };
 
@@ -69,6 +257,12 @@ export async function generateMetadata({ params }) {
 export default async function BusinessProfile({ params }) {
   const resolvedParams = await params;
   const { city, slug } = resolvedParams;
+
+  // If slug is a known category, render category page
+  if (CATS[slug.toLowerCase()]) {
+    return CategoryPage({ city, slug });
+  }
+
 
   try {
     const biz = await getBusiness(city, slug);
