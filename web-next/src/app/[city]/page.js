@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import Image from 'next/image';
+import SearchBar from '../../components/home/SearchBar';
 
 const SB_URL = process.env.VITE_SUPABASE_URL;
 const SB_KEY = process.env.VITE_SUPABASE_ANON_KEY;
@@ -79,21 +80,26 @@ export default async function CityPage({ params }) {
   return (
     <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', background: '#fafafa', minHeight: '100vh' }}>
       {/* Hero */}
-      <div style={{ position: 'relative', width: '100%', height: 200, background: '#1A7A5E', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: '100%', height: 260, background: '#1A7A5E', overflow: 'hidden' }}>
         {city.bg_image && (
           <Image src={city.bg_image} alt={city.name} fill style={{ objectFit: 'cover', opacity: 0.5 }} priority />
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7))' }} />
-        <div style={{ position: 'relative', zIndex: 1, padding: '40px 24px 24px', color: '#fff' }}>
-          <a href="https://citymap.mx" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none', marginBottom: 12, display: 'inline-block' }}>← CityMap</a>
-          <h1 style={{ fontSize: 32, fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>{city.name}</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 14, opacity: 0.85 }}>
-            {city.state}{city.country && ` · ${city.country}`} · {businesses.length} negocios
-          </p>
+        <div style={{ position: 'relative', zIndex: 1, padding: '40px 24px 24px', color: '#fff', maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'flex-end' }}>
+          <div>
+            <a href="https://citymap.mx" style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, textDecoration: 'none', marginBottom: 8, display: 'inline-block', fontWeight: 600 }}>← CityMap</a>
+            <h1 style={{ fontSize: 36, fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>{city.name}</h1>
+            <p style={{ margin: '4px 0 16px', fontSize: 14, opacity: 0.9 }}>
+              {city.state}{city.country && ` · ${city.country}`} · {businesses.length} negocios
+            </p>
+          </div>
+          <div style={{ transform: 'translateY(16px)' }}>
+            <SearchBar citySlug={citySlug} placeholders={[`Buscar en ${city.name}...`, "Restaurantes, cafés...", "Buscar por nombre..."]} />
+          </div>
         </div>
       </div>
 
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 20px 60px' }}>
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '32px 20px 80px' }}>
         {/* Categories */}
         {categories.length > 0 && (
           <div style={{ marginBottom: 32 }}>

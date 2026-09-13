@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import Image from 'next/image';
+import SearchBar from '../components/home/SearchBar';
 
 const SB_URL = process.env.VITE_SUPABASE_URL;
 const SB_KEY = process.env.VITE_SUPABASE_ANON_KEY;
@@ -33,17 +34,15 @@ export default async function HomePage() {
   return (
     <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', background: '#fafafa', minHeight: '100vh' }}>
       {/* Hero */}
-      <div style={{ background: 'linear-gradient(135deg, #0f4c35 0%, #1A7A5E 60%, #22a876 100%)', padding: '60px 24px 48px', textAlign: 'center', color: '#fff' }}>
+      <div style={{ background: 'linear-gradient(135deg, #0f4c35 0%, #1A7A5E 60%, #22a876 100%)', padding: '60px 24px 60px', textAlign: 'center', color: '#fff' }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🗺️</div>
         <h1 style={{ fontSize: 32, fontWeight: 900, margin: '0 0 12px', letterSpacing: '-0.5px', lineHeight: 1.2 }}>
           Descubre los mejores<br />negocios de tu ciudad
         </h1>
-        <p style={{ fontSize: 16, opacity: 0.85, margin: '0 0 28px', maxWidth: 400, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 16, opacity: 0.85, margin: '0 0 32px', maxWidth: 400, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>
           Directorio local con reseñas, horarios en tiempo real y mapa interactivo.
         </p>
-        <a href="https://citymap.mx" style={{ display: 'inline-block', background: '#fff', color: '#1A7A5E', padding: '14px 28px', borderRadius: 999, fontWeight: 800, fontSize: 15, textDecoration: 'none' }}>
-          Abrir la app →
-        </a>
+        <SearchBar citySlug="tepic" placeholders={["¿Qué estás buscando?", "Restaurantes, cafés...", "Buscar lugares..."]} />
       </div>
 
       {/* Cities */}
