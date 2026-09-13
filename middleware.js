@@ -16,8 +16,14 @@ export default async function middleware(request) {
   const url = new URL(request.url);
   const { pathname, searchParams } = url;
   const ua = request.headers.get("user-agent") || "";
+  // ── 1. Archivos estáticos y API: pasar de largo siempre ──────────────────
+  if (pathname.startsWith('/api/') || pathname.startsWith('/assets/') ||
+      pathname.startsWith('/_next/') || pathname.startsWith('/web-next/') ||
+      pathname.includes('.')) {
+    return;
+  }
 
-  // ── 1. Legado: redirecciones de query params (old deep links) ─────────────
+  // ── 2. Legado: redirecciones de query params (old deep links) ─────────────
   const bParam = searchParams.get('b');
   const evParam = searchParams.get('ev');
   const lugarParam = searchParams.get('lugar');
@@ -32,13 +38,6 @@ export default async function middleware(request) {
   if (evParam || eventoParam) {
     const finalId = evParam || eventoParam.split('_').pop();
     return Response.redirect(new URL('/api/og?ev=' + finalId, request.url), 302);
-  }
-
-  // ── 2. Archivos estáticos y API: pasar de largo siempre ──────────────────
-  if (pathname.startsWith('/api/') || pathname.startsWith('/assets/') ||
-      pathname.startsWith('/_next/') || pathname.startsWith('/web-next/') ||
-      pathname.includes('.')) {
-    return;
   }
 
   // ── 3. Solo actuar si es bot social ──────────────────────────────────────
