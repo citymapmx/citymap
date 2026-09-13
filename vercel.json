@@ -37,11 +37,11 @@
       "destination": "/web-next/experiencias/:city"
     },
     {
-      "source": "/:vite_route(mapa|favoritos|cuenta|lealtad|wallet|mis-planes|planes|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento)",
+      "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|planes|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento)",
       "destination": "/index.html"
     },
     {
-      "source": "/:vite_route(mapa|favoritos|cuenta|lealtad|wallet|mis-planes|planes|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento)/(.*)",
+      "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|planes|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento)/(.*)",
       "destination": "/index.html"
     },
     {
