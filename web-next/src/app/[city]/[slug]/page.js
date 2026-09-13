@@ -379,6 +379,8 @@ export default async function BusinessProfile({ params }) {
 
           {/* Botones de acción rápida */}
           <ActionButtons
+            id={biz.id}
+            citySlug={city}
             phone={biz.phone}
             whatsapp={biz.whatsapp}
             lat={biz.lat}

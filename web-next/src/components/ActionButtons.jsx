@@ -1,11 +1,37 @@
 'use client';
 
-export default function ActionButtons({ phone, whatsapp, lat, lng, name, url }) {
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co";
+const SB_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
+
+export default function ActionButtons({ id, citySlug, phone, whatsapp, lat, lng, name, url }) {
+  
+  async function trackEvent(type) {
+    if (!id || !citySlug || !SB_URL || !SB_KEY) return;
+    try {
+      await fetch(`${SB_URL}/rest/v1/analytics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SB_KEY,
+          'Authorization': `Bearer ${SB_KEY}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ biz_id: id, event_type: type, city_slug: citySlug })
+      });
+    } catch (e) {
+      console.warn("Analytics error:", e);
+    }
+  }
+
   function handleCall() {
-    if (phone) window.location.href = `tel:${phone}`;
+    if (phone) {
+      trackEvent('call');
+      window.location.href = `tel:${phone}`;
+    }
   }
 
   function handleWhatsApp() {
+    trackEvent('whatsapp');
     const num = whatsapp.replace(/\D/g, '');
     const msg = encodeURIComponent(`Hola, vi tu negocio "${name}" en CityMap y quiero más información.`);
     window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
@@ -13,11 +39,13 @@ export default function ActionButtons({ phone, whatsapp, lat, lng, name, url }) 
 
   function handleDir() {
     if (lat && lng) {
+      trackEvent('map');
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
     }
   }
 
   async function handleShare() {
+    trackEvent('share');
     const shareUrl = url || window.location.href;
     if (navigator.share) {
       try { await navigator.share({ title: name, url: shareUrl }); } catch (_) {}
