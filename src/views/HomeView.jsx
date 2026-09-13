@@ -92,7 +92,7 @@ export default function HomeView({ isBackground }) {
   const { dark, activeCity, showCityPicker, setShowCityPicker, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, showCityPicker: s.showCityPicker, setShowCityPicker: s.setShowCityPicker, toast$: s.toast$ })));
   const { dbReady, cats, banners, globalFavCounts, coupons, events, raffles, cities, experiences, setMapPins } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, cats: s.cats, banners: s.banners, globalFavCounts: s.globalFavCounts, coupons: s.coupons, events: s.events, raffles: s.raffles, cities: s.cities, experiences: s.experiences, setMapPins: s.setMapPins })));
   
-  const { data: mapPins = [] } = useQuery({
+  const { data: mapPins = [], isLoading: pinsLoading } = useQuery({
     queryKey: ['home-businesses', activeCity],
     queryFn: async () => {
       const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url";
@@ -306,7 +306,7 @@ export default function HomeView({ isBackground }) {
           {/* ── HERO HEADER ── */}
           <HomeHero dark={dark} T={T} t={t} search={search} setSearch={setSearch} localizedPlaceholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dbReady={dbReady} cats={cats} activeCat={activeCat} setActiveCat={setActiveCat} activeCity={activeCity} city={city} cities={cities} haptic={haptic} detectedTown={detectedTown} />
           {/* ── EMPTY CITY STATE ── */}
-          {!search && dbReady && mapPins.filter(b => isNear(b, userCoords, activeCity)).length === 0 && (
+          {!search && dbReady && !pinsLoading && mapPins.filter(b => isNear(b, userCoords, activeCity)).length === 0 && (
             <CityEmptyState 
               activeCity={activeCity} 
               userCoords={userCoords} 
