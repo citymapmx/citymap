@@ -1,4 +1,5 @@
 import "./globals.css";
+import BottomNav from "../components/layout/BottomNav";
 
 export const metadata = {
   title: {
@@ -60,6 +61,7 @@ export default function RootLayout({ children }) {
     <html lang="es" className="antialiased">
       <body className="flex flex-col min-h-screen">
         {children}
+        <BottomNav />
       </body>
     </html>
   );
