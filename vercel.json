@@ -87,7 +87,7 @@
       "destination": "/api/og?city=:city"
     },
     {
-      "source": "/:city/(restaurantes|cafeterias|cafe|cafeteria|salud|belleza|fitness|gimnasios|compras|tiendas|tech|ocio|hoteles|hospedaje|educacion|servicios|bares|antros-y-bares)",
+      "source": "/:city/:category(restaurantes|cafeterias|cafe|cafeteria|salud|belleza|fitness|gimnasios|compras|tiendas|tech|ocio|hoteles|hospedaje|educacion|servicios|bares|antros-y-bares)",
       "has": [
         {
           "type": "header",
@@ -95,7 +95,7 @@
           "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Googlebot|bingbot|TelegramBot|Applebot|Discordbot|Slackbot|vkShare|Pinterest|w3c_validator|curl|python-requests|Discord|Skype|Viber).*|.*(bot|Bot|spider|Spider|crawler|Crawler|whatsapp|WhatsApp|Telegram|Discord).*"
         }
       ],
-      "destination": "/web-next/:city/:1"
+      "destination": "/web-next/:city/:category"
     },
     {
       "source": "/:city/:slug",
