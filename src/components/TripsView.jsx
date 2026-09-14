@@ -227,11 +227,11 @@ function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark }) 
   const photos = Array.isArray(exp.gallery) ? exp.gallery : [];
   const priceFormatted = exp.price > 0 ? `$${exp.price} MXN` : t("gratis", "Gratis");
 
-  const showGrid = photos.length >= 2;
+  const showGrid = photos.length >= 3;
 
   return (
     <a href={href} onClick={(e) => { e.preventDefault(); onClick(); }} className="press" style={{ display: "block", textDecoration: "none", background: dark ? "rgba(255,255,255,0.03)" : "#fff", borderRadius: 20, overflow: "hidden", cursor: "pointer", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: `1px solid ${T.border}`, position: "relative" }}>
-      <div style={{ display: showGrid ? "grid" : "block", gridTemplateColumns: showGrid ? "1.5fr 1fr" : "none", gridTemplateRows: showGrid ? "1fr 1fr" : "none", aspectRatio: "21/9", width: "100%", gap: 3, position: "relative" }}>
+      <div style={{ display: showGrid ? "grid" : "block", gridTemplateColumns: showGrid ? "1.5fr 1fr" : "none", gridTemplateRows: showGrid ? "1fr 1fr" : "none", aspectRatio: "16/9", width: "100%", gap: 3, position: "relative" }}>
         <div style={{ gridRow: showGrid ? "1 / 3" : "auto", height: showGrid ? "auto" : "100%", background: dark ? "#222" : "#E5E7EB", position: "relative", overflow: "hidden" }}>
           {photos[0] && <img src={getThumbUrl(photos[0], 600)} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
         </div>
