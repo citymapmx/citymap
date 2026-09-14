@@ -73,12 +73,6 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
                 
                 {ev.event_category && <div style={{ fontSize: 13, fontWeight: 800, color: T.text, textTransform: "uppercase", letterSpacing: 1, marginBottom: 24, textAlign: "left" }}>{ev.event_category}</div>}
 
-                {/* --- BOTONES AGENDAR --- */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 24 }}>
-                  <button className="press" onClick={() => { const startStr = ev.date.replace(/-/g, '') + (ev.time ? `T${ev.time.replace(':', '')}00` : ''); const endStr = ev.end_date ? ev.end_date.replace(/-/g, '') + (ev.end_time ? `T${ev.end_time.replace(':', '')}00` : '') : (ev.time ? startStr : startStr + '/' + startStr); const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(ev.description || '')}&location=${encodeURIComponent(ev.venue_address || ev.venue_name || '')}`; window.open(calUrl, "_blank"); }} style={{ padding: "10px 20px", background: dark ? "rgba(255,255,255,0.05)" : "#F3F4F6", border: `1px solid ${T.border}`, borderRadius: 24, fontSize: 13, fontWeight: 800, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-                    <Icon name="calendar" size={16} color={T.text} /> Agendar en calendario
-                  </button>
-                </div>
                 
                 {/* --- ASOCIADO CON --- */}
                 {associatedBiz && (
@@ -256,10 +250,15 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
                   )}
 
 
-                  <button onClick={() => { const nw = isSaved ? savedEventIds.filter(x => x !== ev.id) : [...savedEventIds, ev.id]; setSavedEventIds(nw); localStorage.setItem("cg_saved_ev", JSON.stringify(nw)); }} style={{ width: "100%", padding: "16px 0", background: isSaved ? "#FEE2E2" : T.bg, border: `1px solid ${isSaved ? "#FCA5A5" : T.border}`, borderRadius: 16, fontSize: 14, fontWeight: 700, color: isSaved ? "#D94F3D" : T.text, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                    <Icon name={isSaved ? "heart_f" : "heart"} size={16} color={isSaved ? "#D94F3D" : T.text} />
-                    {isSaved ? "Guardado en tus planes" : "Guardar en mis planes"}
-                  </button>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button className="press" onClick={() => { const startStr = ev.date.replace(/-/g, '') + (ev.time ? `T${ev.time.replace(':', '')}00` : ''); const endStr = ev.end_date ? ev.end_date.replace(/-/g, '') + (ev.end_time ? `T${ev.end_time.replace(':', '')}00` : '') : (ev.time ? startStr : startStr + '/' + startStr); const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(ev.description || '')}&location=${encodeURIComponent(ev.venue_address || ev.venue_name || '')}`; window.open(calUrl, "_blank"); }} style={{ flex: 1, padding: "16px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, fontSize: 14, fontWeight: 700, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                      <Icon name="calendar" size={16} color={T.text} /> Agendar
+                    </button>
+                    <button className="press" onClick={() => { const nw = isSaved ? savedEventIds.filter(x => x !== ev.id) : [...savedEventIds, ev.id]; setSavedEventIds(nw); localStorage.setItem("cg_saved_ev", JSON.stringify(nw)); }} style={{ flex: 1, padding: "16px 0", background: isSaved ? "#FEE2E2" : T.bg, border: `1px solid ${isSaved ? "#FCA5A5" : T.border}`, borderRadius: 16, fontSize: 14, fontWeight: 700, color: isSaved ? "#D94F3D" : T.text, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                      <Icon name={isSaved ? "heart_f" : "heart"} size={16} color={isSaved ? "#D94F3D" : T.text} />
+                      {isSaved ? "Guardado" : "Guardar"}
+                    </button>
+                  </div>
 
 
 
