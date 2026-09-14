@@ -213,9 +213,23 @@ export default function WalletView({ T, dark, user, setShowAuth }) {
             <div style={{ width: 28, height: 28, border: '3px solid rgba(0,0,0,0.1)', borderTop: `3px solid ${text}`, borderRadius: '50%', animation: 'spin .8s linear infinite' }} />
           </div>
         ) : entries.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}>
-            {entries.map(({ member, card, biz }) => (
-              <LoyaltyCard key={member.id} member={member} card={card} biz={biz} dark={dark} T={T} onCardClick={setSelectedCard} />
+          <div style={{ position: 'relative', minHeight: entries.length > 0 ? (entries.length * 70) + 200 : 'auto', marginBottom: 32 }}>
+            {entries.map(({ member, card, biz }, i) => (
+              <div 
+                key={member.id} 
+                style={{ 
+                  position: 'absolute', 
+                  top: i * 70, 
+                  left: 0, 
+                  right: 0, 
+                  zIndex: i,
+                  transform: `scale(${1 - ((entries.length - 1 - i) * 0.05)}) translateY(${-(entries.length - 1 - i) * 10}px)`,
+                  transformOrigin: 'top center',
+                  transition: 'all 0.3s cubic-bezier(0.34, 1.1, 0.64, 1)'
+                }}
+              >
+                <LoyaltyCard member={member} card={card} biz={biz} dark={dark} T={T} onCardClick={setSelectedCard} />
+              </div>
             ))}
           </div>
         ) : null}

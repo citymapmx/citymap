@@ -32,6 +32,7 @@ export default function AccountView({
   const [editName, setEditName] = useState("");
   const [editPhoto, setEditPhoto] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [showUserQR, setShowUserQR] = useState(false);
   const [qrModalBiz, setQrModalBiz] = useState(null);
   const [loyaltyDesignerBiz, setLoyaltyDesignerBiz] = useState(null);
 
@@ -201,6 +202,30 @@ export default function AccountView({
           </div>
         , document.body)}
 
+        {/* ── USER QR MODAL ── */}
+        {showUserQR && createPortal(
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => setShowUserQR(false)}>
+            <div style={{ width: "100%", maxWidth: 320, background: T.white, borderRadius: 32, padding: "32px 24px", animation: "scaleFadeIn .25s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+                <div style={{ width: 64, height: 64, borderRadius: "50%", background: T.greenL, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="grid" size={32} color={T.green} />
+                </div>
+              </div>
+              <h2 style={{ textAlign: "center", fontSize: 20, fontWeight: 900, color: T.text, margin: "0 0 8px 0" }}>Mi Identificador</h2>
+              <p style={{ textAlign: "center", fontSize: 14, color: T.sub, margin: "0 0 24px 0", lineHeight: 1.4 }}>
+                Muestra este código al establecimiento para acumular sellos, puntos y canjear tus recompensas.
+              </p>
+              
+              <div style={{ background: "#fff", padding: 16, borderRadius: 24, border: "2px solid #E2E8F0", display: "flex", justifyContent: "center", marginBottom: 24 }}>
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`https://citymap.mx/scan/${user.id}`)}`} alt="User QR" style={{ width: 180, height: 180 }} />
+              </div>
+
+              <button onClick={() => setShowUserQR(false)} style={{ width: "100%", padding: "14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, fontSize: 15, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        , document.body)}
         {/* ── QR CODES MODAL ── */}
         {qrModalBiz && createPortal(
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => setQrModalBiz(null)}>
@@ -271,36 +296,50 @@ export default function AccountView({
           </div>
         , document.body)}
 
-        {/* ── PROFILE HEADER ── */}
-        <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 24px) 16px 16px", background: "transparent", borderBottom: `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        {/* ── HEADER USER INFO ── */}
+        <div style={{ padding: "24px 20px 24px", background: T.white, borderBottom: `1px solid ${T.border}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             {(() => {
               const avatarUrl = user?.user_metadata?.avatar_url || profile?.avatar_url;
               const initials = (user?.user_metadata?.name || profile?.name || user.email || "U").slice(0, 2).toUpperCase();
               return avatarUrl ? (
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <img src={avatarUrl} alt="" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: `2px solid ${T.border}` }} />
+                  <img src={avatarUrl} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: `2px solid ${T.border}` }} />
                 </div>
               ) : (
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: T.greenL, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 800, color: T.green, border: `2px solid ${T.border}` }}>{initials}</div>
+                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: T.greenL, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 800, color: T.green, border: `2px solid ${T.border}` }}>{initials}</div>
                 </div>
               );
             })()}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 800, fontSize: 18, color: T.text, marginBottom: 2 }}>{user?.user_metadata?.name || profile?.name || user.email?.split("@")[0]}</div>
-              <div style={{ fontSize: 13, color: T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
+              <div style={{ fontWeight: 900, fontSize: 20, color: T.text, marginBottom: 2 }}>{user?.user_metadata?.name || profile?.name || user.email?.split("@")[0]}</div>
+              <div style={{ fontSize: 13, color: T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 12 }}>{user.email}</div>
+              {isAdmin && (
+                <button onClick={() => setShowAdmin(true)} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 10px", fontSize: 11, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Icon name="db" size={12} color={T.text} /> Admin
+                </button>
+              )}
             </div>
-            {isAdmin && (
-              <button onClick={() => setShowAdmin(true)} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 12px", fontSize: 12, fontWeight: 700, color: T.text, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-                <Icon name="db" size={13} color={T.text} /> Admin
-              </button>
-            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+            <div onClick={() => navigate("favs")} className="press" style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px", display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
+              <Icon name="heart_overlay_f" size={20} color={T.green} />
+              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginTop: 6 }}>{favIds?.length || 0}</div>
+              <div style={{ fontSize: 10, color: T.sub, fontWeight: 700, textTransform: "uppercase" }}>Favs</div>
+            </div>
+            <div onClick={() => navigate("itineraries")} className="press" style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px", display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
+              <Icon name="map" size={20} color="#3B82F6" />
+              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginTop: 6 }}>{ctx.collections?.length || 0}</div>
+              <div style={{ fontSize: 10, color: T.sub, fontWeight: 700, textTransform: "uppercase" }}>Listas</div>
+            </div>
+            <div onClick={() => setShowUserQR(true)} className="press" style={{ flex: 1, background: "#0F172A", border: `1px solid #0F172A`, borderRadius: 14, padding: "12px", display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
+              <Icon name="grid" size={20} color="#fff" />
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#fff", marginTop: 8, textAlign: "center", lineHeight: 1.2 }}>Mi<br/>Código</div>
+            </div>
           </div>
         </div>
-
-
-
         {/* ── WALLET ── */}
         {wallet.length > 0 && (
           <div style={{ padding: "16px 16px 0", marginBottom: 8 }}>
