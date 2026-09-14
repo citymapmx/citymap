@@ -967,7 +967,7 @@ export default function DetailView() {
                 </div>
                 <div className="text-sm" style={{ color: dSub, lineHeight: 1.5, paddingLeft: 34 }}>{reviews.length > 0 ? "Comparte tu experiencia" : "Sé el primero en dejar reseña"}</div>
               </div>
-              <button className="press" onClick={() => { if (!user) { setShowAuth(true); return; } setShowReview(v => !v); }} style={{ width: 44, height: 44, borderRadius: "50%", background: isElite ? "rgba(255,255,255,0.1)" : "#F3F4F6", border: "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
+              <button className="press" onClick={() => { if (!user) { setShowAuth(true); return; } setShowReview(v => !v); }} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
                 <Icon name="edit" size={20} color={dText} />
               </button>
             </div>

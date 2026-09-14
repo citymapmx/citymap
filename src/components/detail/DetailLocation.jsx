@@ -26,7 +26,7 @@ export default function DetailLocation({ selected, isElite, dText, dSub, T, goDi
             </div>
             <div className="text-sm" style={{ color: dSub, lineHeight: 1.5, paddingLeft: 26 }}>{selected.address}</div>
           </div>
-          <button onClick={(e) => goDir(selected, e)} style={{ width: 44, height: 44, borderRadius: "50%", background: isElite ? "rgba(255,255,255,0.1)" : "#F3F4F6", border: "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
+          <button onClick={(e) => goDir(selected, e)} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
             <Icon name="nav" size={20} color={dText} />
           </button>
         </div>
