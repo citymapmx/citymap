@@ -1,30 +1,53 @@
-export const dynamic = 'force-dynamic';
-
+import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import SearchBar from '../../components/home/SearchBar';
 
-const SB_URL = (process.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co");
-const SB_KEY = (process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE");
+import HomeClient from '../../components/home/HomeClient';
 
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SB_HEADERS = {
-  apikey: SB_KEY,
-  Authorization: `Bearer ${SB_KEY}`,
+  apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+  "Content-Type": "application/json"
 };
 
 const CAT_LABEL = {
-  restaurantes: 'Restaurantes', cafeterias: 'Cafeterías', bares: 'Bares', hoteles: 'Hoteles',
-  salud: 'Salud', belleza: 'Belleza', deportes: 'Deportes', entretenimiento: 'Entretenimiento',
-  Servicios: 'Servicios', tiendas: 'Tiendas', educacion: 'Educación',
+  restaurantes: "Restaurantes",
+  cafeterias: "Cafeterías",
+  "antros-y-bares": "Vida Nocturna",
+  salud: "Salud y Belleza",
+  shopping: "Compras",
+  hospedaje: "Hoteles",
+  eventos: "Eventos",
+  otros: "Otros"
+};
+
+const CAT_EMOJI = {
+  restaurantes: "🍽️",
+  cafeterias: "☕",
+  "antros-y-bares": "🍸",
+  salud: "💅",
+  shopping: "🛍️",
+  hospedaje: "🏨",
+  eventos: "🎟️",
+  otros: "📍"
 };
 
 async function getCityData(citySlug) {
-  const [cityRes, bizRes] = await Promise.all([
+  const [cityRes, bizRes, bannerRes] = await Promise.all([
     fetch(`${SB_URL}/rest/v1/cities?slug=eq.${citySlug}&select=*&limit=1`, { headers: SB_HEADERS }),
     fetch(`${SB_URL}/rest/v1/businesses?city_slug=eq.${citySlug}&select=id,name,slug,category,rating,review_count,logo_url,banner_url,plan&order=plan.desc,rating.desc&limit=100`, { headers: SB_HEADERS }),
+    fetch(`${SB_URL}/rest/v1/banners?city_slug=eq.${citySlug}&status=eq.active&order=sort_order.asc`, { headers: SB_HEADERS })
   ]);
+  
   const cities = await cityRes.json();
   const businesses = await bizRes.json();
-  return { city: cities?.[0] || null, businesses: Array.isArray(businesses) ? businesses : [] };
+  const banners = await bannerRes.json();
+  
+  return { 
+    city: cities?.[0] || null, 
+    businesses: Array.isArray(businesses) ? businesses : [],
+    banners: Array.isArray(banners) ? banners : []
+  };
 }
 
 export async function generateMetadata({ params }) {
@@ -44,9 +67,7 @@ export async function generateMetadata({ params }) {
     alternates: { 
       canonical: `https://citymap.mx/${citySlug}`,
       languages: {
-        "es-MX": `https://citymap.mx/${citySlug}`,
-        "es": `https://citymap.world/${citySlug}`,
-        "x-default": `https://citymap.world/${citySlug}`,
+        "es-MX": `https://citymap.mx/${citySlug}`
       }
     },
   };
@@ -54,7 +75,7 @@ export async function generateMetadata({ params }) {
 
 export default async function CityPage({ params }) {
   const { city: citySlug } = await params;
-  const { city, businesses } = await getCityData(citySlug);
+  const { city, businesses, banners } = await getCityData(citySlug);
 
   if (!city) {
     return (
@@ -67,6 +88,7 @@ export default async function CityPage({ params }) {
     );
   }
 
+  // Infer categories from businesses
   const byCategory = businesses.reduce((acc, b) => {
     const cat = b.category || 'otros';
     if (!acc[cat]) acc[cat] = [];
@@ -74,95 +96,22 @@ export default async function CityPage({ params }) {
     return acc;
   }, {});
 
-  const topBiz = businesses.slice(0, 12);
-  const categories = Object.entries(byCategory).sort((a, b) => b[1].length - a[1].length);
+  const categories = Object.entries(byCategory)
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([cat, items]) => ({
+      id: cat,
+      name: CAT_LABEL[cat] || cat,
+      emoji: CAT_EMOJI[cat] || "📍",
+      count: items.length
+    }));
 
   return (
-    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', background: '#fafafa', minHeight: '100vh' }}>
-      {/* Hero */}
-      <div style={{ position: 'relative', width: '100%', height: 260, background: '#1A7A5E', overflow: 'hidden' }}>
-        {city.bg_image && (
-          <Image src={city.bg_image} alt={city.name} fill style={{ objectFit: 'cover', opacity: 0.5 }} priority />
-        )}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7))' }} />
-        <div style={{ position: 'relative', zIndex: 1, padding: '40px 24px 24px', color: '#fff', maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'flex-end' }}>
-          <div>
-            <a href="https://citymap.mx" style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, textDecoration: 'none', marginBottom: 8, display: 'inline-block', fontWeight: 600 }}>← CityMap</a>
-            <h1 style={{ fontSize: 36, fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>{city.name}</h1>
-            <p style={{ margin: '4px 0 16px', fontSize: 14, opacity: 0.9 }}>
-              {city.state}{city.country && ` · ${city.country}`} · {businesses.length} negocios
-            </p>
-          </div>
-          <div style={{ transform: 'translateY(16px)' }}>
-            <SearchBar citySlug={citySlug} placeholders={[`Buscar en ${city.name}...`, "Restaurantes, cafés...", "Buscar por nombre..."]} />
-          </div>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '32px 20px 80px' }}>
-        {/* Categories */}
-        {categories.length > 0 && (
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 14px', color: '#111' }}>Categorías</h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {categories.map(([cat, items]) => (
-                <a key={cat} href={`https://citymap.mx/${citySlug}?cat=${cat}`}
-                  style={{ padding: '8px 14px', borderRadius: 999, background: '#fff', border: '1px solid #e5e7eb', fontSize: 13, fontWeight: 700, color: '#111', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  {CAT_LABEL[cat] || cat}
-                  <span style={{ background: '#f3f4f6', borderRadius: 999, padding: '1px 7px', fontSize: 11, color: '#6b7280' }}>{items.length}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Top businesses */}
-        <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 14px', color: '#111' }}>Negocios destacados</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {topBiz.map((b) => {
-            const imgSrc = b.logo_url || b.banner_url;
-            return (
-              <a key={b.id} href={`https://citymap.mx/${citySlug}/${b.slug}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', textDecoration: 'none', color: '#111', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ width: 60, height: 60, borderRadius: 12, background: '#f3f4f6', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
-                  {imgSrc
-                    ? <Image src={imgSrc} alt={b.name} fill style={{ objectFit: 'cover' }} />
-                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🏪</div>
-                  }
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</div>
-                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{CAT_LABEL[b.category] || b.category}</div>
-                  {b.review_count > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                      <span style={{ fontSize: 12 }}>⭐</span>
-                      <span style={{ fontSize: 12, fontWeight: 700 }}>{Number(b.rating).toFixed(1)}</span>
-                      <span style={{ fontSize: 11, color: '#9ca3af' }}>({b.review_count})</span>
-                    </div>
-                  )}
-                </div>
-                <span style={{ color: '#9ca3af', fontSize: 18 }}>›</span>
-              </a>
-            );
-          })}
-        </div>
-
-        {businesses.length > 12 && (
-          <a href={`https://citymap.mx/${citySlug}`}
-            style={{ display: 'block', textAlign: 'center', marginTop: 20, padding: '14px', background: '#1A7A5E', color: '#fff', borderRadius: 14, fontWeight: 800, fontSize: 15, textDecoration: 'none' }}>
-            Ver los {businesses.length} negocios en la app →
-          </a>
-        )}
-
-        {/* SEO text */}
-        <div style={{ marginTop: 40, padding: '20px', background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb' }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 8px' }}>Directorio de negocios en {city.name}</h2>
-          <p style={{ fontSize: 14, color: '#4b5563', lineHeight: 1.6, margin: 0 }}>
-            Encuentra los mejores restaurantes, cafeterías, bares, hoteles y negocios locales en {city.name}
-            {city.state ? `, ${city.state}` : ''}. CityMap te muestra horarios, reseñas, ubicación en mapa y formas de contacto de cada negocio.
-          </p>
-        </div>
-      </div>
+    <div className="bg-[#f8fafc] min-h-screen font-sans">
+      <HomeClient 
+        city={city} 
+        citySlug={citySlug} 
+        data={{ categories, banners, businesses, events: [] }} 
+      />
     </div>
   );
 }

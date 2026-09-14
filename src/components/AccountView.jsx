@@ -32,6 +32,7 @@ export default function AccountView({
   const [editName, setEditName] = useState("");
   const [editPhoto, setEditPhoto] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [showUserQR, setShowUserQR] = useState(false);
   const [qrModalBiz, setQrModalBiz] = useState(null);
   const [loyaltyDesignerBiz, setLoyaltyDesignerBiz] = useState(null);
 
@@ -201,3 +202,298 @@ export default function AccountView({
           </div>
         , document.body)}
 
+        {/* ── USER QR MODAL ── */}
+        {showUserQR && createPortal(
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => setShowUserQR(false)}>
+            <div style={{ width: "100%", maxWidth: 320, background: T.white, borderRadius: 32, padding: "32px 24px", animation: "scaleFadeIn .25s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+                <div style={{ width: 64, height: 64, borderRadius: "50%", background: T.greenL, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="grid" size={32} color={T.green} />
+                </div>
+              </div>
+              <h2 style={{ textAlign: "center", fontSize: 20, fontWeight: 900, color: T.text, margin: "0 0 8px 0" }}>Mi Identificador</h2>
+              <p style={{ textAlign: "center", fontSize: 14, color: T.sub, margin: "0 0 24px 0", lineHeight: 1.4 }}>
+                Muestra este código al establecimiento para acumular sellos, puntos y canjear tus recompensas.
+              </p>
+              
+              <div style={{ background: "#fff", padding: 16, borderRadius: 24, border: "2px solid #E2E8F0", display: "flex", justifyContent: "center", marginBottom: 24 }}>
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`https://citymap.mx/scan/${user.id}`)}`} alt="User QR" style={{ width: 180, height: 180 }} />
+              </div>
+
+              <button onClick={() => setShowUserQR(false)} style={{ width: "100%", padding: "14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, fontSize: 15, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        , document.body)}
+        {/* ── QR CODES MODAL ── */}
+        {qrModalBiz && createPortal(
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => setQrModalBiz(null)}>
+            <div style={{ width: "100%", maxWidth: 420, background: T.white, borderRadius: 24, padding: "32px 24px", animation: "scaleFadeIn .25s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+              
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: 20, position: "relative" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 20, color: T.text }}>
+                  <Icon name="grid" size={22} /> {t("codigos_qr", "Códigos QR")}
+                </div>
+                <button onClick={() => setQrModalBiz(null)} style={{ position: "absolute", right: 0, background: T.bg, color: T.text, border: "none", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="x" size={14} /></button>
+              </div>
+              
+              <p style={{ fontSize: 14, color: T.sub, margin: "0 0 28px 0", lineHeight: 1.5, textAlign: "center" }}>
+                {t("descarga_qr_desc", "Descarga los códigos QR de")} <strong>{qrModalBiz.name}</strong>{t("descarga_qr_desc_2", ". Nunca caducan y están listos para imprimir.")}
+              </p>
+              
+              <div style={{ display: "flex", gap: 12 }}>
+                <button 
+                  onClick={async () => {
+                    const city = qrModalBiz.city_slug || 'merida';
+                    const slug = cleanCityPrefix(qrModalBiz.slug || createSlug(qrModalBiz.name || ''), city);
+                    const url = `https://citymap.mx/${city}/${slug}`;
+                    try {
+                      const res = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=1024x1024&data=${encodeURIComponent(url)}`);
+                      const blob = await res.blob();
+                      const a = document.createElement("a");
+                      a.href = URL.createObjectURL(blob);
+                      a.download = `QR_Perfil_${qrModalBiz.name.replace(/\s+/g, '_')}.png`;
+                      a.click();
+                    } catch(e) { toast$(t("error_qr", "Error al generar QR")); }
+                  }} 
+                  style={{ flex: 1, padding: "20px 14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, color: T.text, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
+                >
+                  <div style={{ background: T.white, padding: 12, borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+                    <Icon name="user" size={28} color={T.text} />
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>{t("perfil", "Perfil")}</div>
+                    <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>{t("pagina_principal", "Página principal")}</div>
+                  </div>
+                </button>
+                <button 
+                  onClick={async () => {
+                    const city = qrModalBiz.city_slug || 'merida';
+                    const slug = cleanCityPrefix(qrModalBiz.slug || createSlug(qrModalBiz.name || ''), city);
+                    const url = `https://citymap.mx/${city}/${slug}/menu`;
+                    try {
+                      const res = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=1024x1024&data=${encodeURIComponent(url)}`);
+                      const blob = await res.blob();
+                      const a = document.createElement("a");
+                      a.href = URL.createObjectURL(blob);
+                      a.download = `QR_Menu_${qrModalBiz.name.replace(/\s+/g, '_')}.png`;
+                      a.click();
+                    } catch(e) { toast$(t("error_qr", "Error al generar QR")); }
+                  }} 
+                  style={{ flex: 1, padding: "20px 14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, color: T.text, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
+                >
+                  <div style={{ background: T.white, padding: 12, borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+                    <Icon name="list" size={28} color={T.text} />
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>{t("menu", "Menú")}</div>
+                    <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>{t("abre_tu_menu", "Abre tu menú")}</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        , document.body)}
+
+        {/* ── HEADER USER INFO ── */}
+        <div style={{ padding: "24px 20px 24px", background: T.white, borderBottom: `1px solid ${T.border}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            {(() => {
+              const avatarUrl = user?.user_metadata?.avatar_url || profile?.avatar_url;
+              const initials = (user?.user_metadata?.name || profile?.name || user.email || "U").slice(0, 2).toUpperCase();
+              return avatarUrl ? (
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <img src={avatarUrl} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: `2px solid ${T.border}` }} />
+                </div>
+              ) : (
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: T.greenL, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 800, color: T.green, border: `2px solid ${T.border}` }}>{initials}</div>
+                </div>
+              );
+            })()}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 900, fontSize: 20, color: T.text, marginBottom: 2 }}>{user?.user_metadata?.name || profile?.name || user.email?.split("@")[0]}</div>
+              <div style={{ fontSize: 13, color: T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 12 }}>{user.email}</div>
+              {isAdmin && (
+                <button onClick={() => setShowAdmin(true)} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 10px", fontSize: 11, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Icon name="db" size={12} color={T.text} /> Admin
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+            <div onClick={() => navigate("favs")} className="press" style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px", display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
+              <Icon name="heart_overlay_f" size={20} color={T.green} />
+              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginTop: 6 }}>{favIds?.length || 0}</div>
+              <div style={{ fontSize: 10, color: T.sub, fontWeight: 700, textTransform: "uppercase" }}>Favs</div>
+            </div>
+            <div onClick={() => navigate("itineraries")} className="press" style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px", display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
+              <Icon name="map" size={20} color="#3B82F6" />
+              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginTop: 6 }}>{ctx.collections?.length || 0}</div>
+              <div style={{ fontSize: 10, color: T.sub, fontWeight: 700, textTransform: "uppercase" }}>Listas</div>
+            </div>
+            <div onClick={() => setShowUserQR(true)} className="press" style={{ flex: 1, background: "#0F172A", border: `1px solid #0F172A`, borderRadius: 14, padding: "12px", display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
+              <Icon name="grid" size={20} color="#fff" />
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#fff", marginTop: 8, textAlign: "center", lineHeight: 1.2 }}>Mi<br/>Código</div>
+            </div>
+          </div>
+        </div>
+        {/* ── WALLET ── */}
+        {wallet.length > 0 && (
+          <div style={{ padding: "16px 16px 0", marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("mi_billetera", "Mi Billetera")}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {wallet.map(wId => {
+                const c = coupons.find(x => x.id === wId);
+                if (!c) return null;
+                const b = biz.find(x => x.id === c.biz_id);
+                const claimedAt = claimedCoupons ? claimedCoupons[wId] : null;
+                let timeLeftStr = ""; let isExpired = false; let uniqueCode = c.code;
+                if (claimedAt) {
+                  const diff = 86400000 - (Date.now() - claimedAt);
+                  if (diff <= 0) { isExpired = true; timeLeftStr = t("expirado", "Expirado"); }
+                  else { const h = Math.floor(diff / 3600000); const m = Math.floor((diff % 3600000) / 60000); timeLeftStr = `${h}h ${m}m`; }
+                  uniqueCode = c.code + "-" + claimedAt.toString().slice(-4);
+                }
+                return (
+                  <div key={c.id} style={{ background: isExpired ? T.bg : "#F5F3FF", opacity: isExpired ? 0.7 : 1, borderRadius: 14, padding: "14px", border: `1.5px dashed ${isExpired ? T.border : "#7C3AED"}`, display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 10, background: isExpired ? T.border : "#7C3AED", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 14, flexShrink: 0 }}>{c.discount_pct}%</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: T.text, textDecoration: isExpired ? "line-through" : "none" }}>{c.title}</div>
+                      <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{b?.name}</div>
+                      <div style={{ fontSize: 13, fontWeight: 900, color: isExpired ? T.sub : "#7C3AED", letterSpacing: 2, marginTop: 4 }}>{claimedAt ? uniqueCode : c.code}</div>
+                    </div>
+                    {claimedAt && <div style={{ fontSize: 10, fontWeight: 800, color: isExpired ? "#DC2626" : "#16A34A", flexShrink: 0 }}>{isExpired ? t("expirado", "Expirado") : timeLeftStr}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── MENU GROUPS ── */}
+        <div style={{ padding: "8px 16px 0", textAlign: "left" }}>
+          {menuGroups.map((group, gIdx) => (
+            <div key={group.title} style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: T.text, marginBottom: 16, marginLeft: 8, letterSpacing: "-0.5px", textAlign: "left" }}>{group.title}</div>
+              <div style={{ background: "transparent", borderRadius: 16, overflow: "hidden" }}>
+                {group.items.map(({ label, icon, act }, i, arr) => {
+                  return (
+                    <div key={label} onClick={() => handleMenuAction(act)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"}` : "none", cursor: "pointer", background: "transparent", transition: "background .15s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <Icon name={icon} size={20} color={T.sub} sw={1.5} />
+                      <span style={{ fontSize: 15, fontWeight: 500, color: T.text, flex: 1 }}>{label}</span>
+                      {act === "toggle_dark" ? (
+                        <div style={{ width: 44, height: 26, borderRadius: 13, background: dark ? T.green : "#D1D5DB", transition: "background 0.25s", position: "relative", flexShrink: 0 }}>
+                          <div style={{ position: "absolute", top: 3, left: dark ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.25)", transition: "left 0.25s cubic-bezier(0.34,1.56,0.64,1)" }} />
+                        </div>
+                      ) : (
+                        <Icon name="chevron" size={16} color={T.border} sw={2} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── NEGOCIOS PENDIENTES ── */}
+        {(myBizList.filter(b => b.status === "pending" || b.status === "needs_changes").length > 0 || myClaims.filter(c => c.status === "pending").length > 0) && (
+          <div style={{ padding: "16px 16px 0" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("mis_solicitudes", "Mis solicitudes")}</div>
+            {myBizList.filter(b => b.status === "pending" || b.status === "needs_changes").map(b => {
+              const stMap = { pending: { lbl: t("en_revision", "En revisión") }, needs_changes: { lbl: t("requiere_cambios", "Requiere cambios") } };
+              const st = stMap[b.status] || stMap.pending;
+              return (
+                <div key={b.id} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", marginBottom: 8, border: `1px solid ${T.border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{b.name}</div>
+                      <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{b.type || b.category}</div>
+                    </div>
+                    <span style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{st.lbl}</span>
+                  </div>
+                  {b.admin_notes && <div style={{ background: T.bg, borderRadius: 8, padding: "8px 10px", fontSize: 12, color: T.sub, borderLeft: `3px solid ${T.border}`, marginBottom: 8 }}>{b.admin_notes}</div>}
+                  {b.status === "needs_changes" && <button onClick={() => { setEditBizId(b.id); setAddBizForm({ name: b.name || "", category: b.category || b.type || "", emoji: b.emoji || "", description: b.description || "", address: b.address || "", city: b.city_slug || "", phone: b.phone || "", whatsapp: b.whatsapp || "", website: b.website || "", lat: b.lat || "", lng: b.lng || "", photos: b.photos?.map(p => p.url) || [], facebook: b.facebook || "", instagram: b.instagram || "", tiktok: b.tiktok || "", schedule: b.schedule || {}, owner_id: b.owner_id, user_id: b.user_id, plan: b.plan, status: b.status, video_url: b.video_url || "", logo_url: b.logo_url || "", menu_pdf_url: b.menu_pdf_url || "", booking_config: b.booking_config || null }); setShowAddBiz(true); }} style={{ width: "100%", padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>{t("editar_reenviar", "Editar y reenviar")}</button>}
+                </div>
+              );
+            })}
+            
+            {myClaims.filter(c => c.status === "pending").map(claim => {
+              const b = biz?.find(x => x.id === claim.business_id);
+              if (!b) return null;
+              return (
+                <div key={claim.id} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", marginBottom: 8, border: `1px solid ${T.border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{b.name}</div>
+                      <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{b.type || b.category}</div>
+                    </div>
+                    <span style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{t("reclamo_revision", "Reclamo en revisión")}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {/* ── APP STORES ── */}
+        <div style={{ margin: "24px 16px 0", display: "flex", gap: 12, justifyContent: "center" }}>
+          <div className="press" onClick={() => toast$("Próximamente en App Store")} style={{ flex: 1, background: "#000", color: "#fff", borderRadius: 12, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", border: "1px solid #333" }}>
+            <svg viewBox="0 0 384 512" style={{ width: 22, height: 22, fill: "#fff" }}><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 9, opacity: 0.8, lineHeight: 1.2 }}>{t("consiguelo_en", "Consíguelo en el")}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>App Store</div>
+            </div>
+          </div>
+          <div className="press" onClick={() => toast$("Próximamente en Google Play")} style={{ flex: 1, background: "#000", color: "#fff", borderRadius: 12, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", border: "1px solid #333" }}>
+            <svg viewBox="0 0 512 512" style={{ width: 22, height: 22, fill: "#fff" }}><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 9, opacity: 0.8, lineHeight: 1.2 }}>{t("disponible_en", "DISPONIBLE EN")}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>Google Play</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── CERRAR SESIÓN ── */}
+        <button onClick={doSignOut} style={{ width: "calc(100% - 32px)", margin: "16px 16px 0", padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: T.sub, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <Icon name="log-out" size={16} color={T.sub} /> {t("cerrar_sesion", "Cerrar sesión")}
+        </button>
+
+      </>) : !authChecked ? (
+        <div style={{ padding: "88px 26px 0", textAlign: "center", opacity: 0.6 }}>
+          <div style={{ width: 68, height: 68, borderRadius: 18, background: T.border, margin: "0 auto 18px", animation: "pulse 1.5s infinite" }} />
+          <div style={{ width: 140, height: 28, borderRadius: 8, background: T.border, margin: "0 auto" }} />
+        </div>
+      ) : (
+        <div style={{ padding: "88px 26px 0", textAlign: "center" }}>
+          <div style={{ width: 68, height: 68, borderRadius: 18, background: T.greenL, margin: "0 auto 18px", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="user" size={30} color={T.green} /></div>
+          <h2 style={{ fontFamily: "var(--heading)", fontSize: 24, color: T.text, marginBottom: 9 }}>{t("tu_cuenta", "Tu cuenta")}</h2>
+          <p style={{ color: T.sub, fontSize: 15, lineHeight: 1.65, marginBottom: 28 }}>{t("tu_cuenta_desc", "Inicia sesión para guardar favoritos, escribir reseñas y acceder desde cualquier dispositivo.")}</p>
+          <button className="btn-g press" onClick={() => setShowAuth(true)}>{t("iniciar_sesion", "Iniciar sesión")}</button>
+          <button className="btn-s press" style={{ marginTop: 11 }} onClick={() => { setAuthMode("register"); setShowAuth(true); }}>{t("crear_cuenta_gratis", "Crear cuenta gratis")}</button>
+          <div onClick={() => toast$(t("toast_planes_negocio", "¡Crea una cuenta gratis y registra tu negocio para ver los planes! 🏢"))} style={{ marginTop: 18, padding: "12px 16px", background: T.greenL, borderRadius: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+            <Icon name="award" size={20} color={T.green} />
+            <div style={{ flex: 1, textAlign: "left" }}><div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{t("ver_planes_negocio", "Ver planes para tu negocio")}</div><div style={{ fontSize: 12, color: T.sub, marginTop: 1 }}>{t("planes_tipos", "Gratuito, Destacado y Premium")}</div></div>
+            <Icon name="chevron" size={16} color={T.sub} />
+          </div>
+        </div>
+      )}
+
+      {/* ── FOOTER ── */}
+      <Footer />
+
+      {/* ── LOYALTY DESIGNER MODAL ── */}
+      {loyaltyDesignerBiz && (
+        <LoyaltyDesigner 
+          business={loyaltyDesignerBiz} 
+          onClose={() => setLoyaltyDesignerBiz(null)} 
+          T={T} 
+        />
+      )}
+    </div>
+  );
+}
