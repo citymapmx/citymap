@@ -48,7 +48,8 @@ async function getCityEvents(citySlug) {
 }
 
 export async function generateMetadata({ params }) {
-  const { city: citySlug } = await params;
+  const resolvedParams = await params;
+  const { city: citySlug } = resolvedParams;
   const { city, events } = await getCityEvents(citySlug);
   if (!city) return { title: 'CityMap' };
   
@@ -63,26 +64,60 @@ export async function generateMetadata({ params }) {
     },
     alternates: { 
       canonical: `https://citymap.mx/${citySlug}/eventos`,
+      languages: {
+        "es-MX": `https://citymap.mx/${citySlug}/eventos`
+      }
     },
   };
 }
 
 export default async function EventsPage({ params }) {
-  const { city: citySlug } = await params;
+  const resolvedParams = await params;
+  const { city: citySlug } = resolvedParams;
   const { city, events } = await getCityEvents(citySlug);
 
   if (!city) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }}>
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontSize: 24, fontWeight: 800 }}>Ciudad no encontrada</h1>
-          <a href="https://citymap.mx" style={{ color: '#1A7A5E', marginTop: 12, display: 'block' }}>← Ir a CityMap</a>
-        </div>
-      </div>
-    );
+    return <div className="p-10 text-center font-bold">Ciudad no encontrada</div>;
   }
 
+  const cityName = city.name;
+  
+  const breadcrumb = {
+    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'CityMap', item: 'https://citymap.mx' },
+      { '@type': 'ListItem', position: 2, name: cityName, item: `https://citymap.mx/${citySlug}` },
+      { '@type': 'ListItem', position: 3, name: 'Eventos', item: `https://citymap.mx/${citySlug}/eventos` },
+    ],
+  };
+
+  const schema = {
+    '@context': 'https://schema.org', '@type': 'ItemList',
+    name: `Eventos en ${cityName}`, description: `Eventos próximos en ${cityName}`,
+    url: `https://citymap.mx/${citySlug}/eventos`,
+    numberOfItems: events.length,
+    itemListElement: events.slice(0, 20).map((ev, i) => ({
+      '@type': 'ListItem', position: i + 1,
+      item: {
+        '@type': 'Event', name: ev.title,
+        url: `https://citymap.mx/${citySlug}/eventos`,
+        startDate: ev.date ? `${ev.date}${ev.time ? 'T'+ev.time : ''}` : undefined,
+        endDate: ev.end_date ? `${ev.end_date}${ev.end_time ? 'T'+ev.end_time : ''}` : undefined,
+        location: {
+          '@type': 'Place', name: ev.venue_name || ev.location_text || cityName,
+          address: { '@type': 'PostalAddress', addressLocality: cityName, addressCountry: 'MX' }
+        },
+        image: ev.img_url || ev.img || undefined,
+        description: ev.description || undefined,
+      },
+    })),
+  };
+
   return (
-    <EventsClient city={city} citySlug={citySlug} events={events} />
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      <EventsClient city={city} citySlug={citySlug} events={events} />
+    </>
   );
 }

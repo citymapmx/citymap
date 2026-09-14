@@ -105,8 +105,35 @@ export default async function CityPage({ params }) {
       count: items.length
     }));
 
+  const schema = {
+    '@context': 'https://schema.org', '@type': 'ItemList',
+    name: `Negocios locales en ${city.name}`, description: `Los mejores lugares en ${city.name}`,
+    url: `https://citymap.mx/${citySlug}`,
+    numberOfItems: businesses.length,
+    itemListElement: businesses.slice(0, 30).map((b, i) => ({
+      '@type': 'ListItem', position: i + 1,
+      item: {
+        '@type': 'LocalBusiness', name: b.name,
+        url: `https://citymap.mx/${citySlug}/${b.slug}`,
+        image: b.logo_url || b.banner_url || undefined,
+        address: { '@type': 'PostalAddress', addressLocality: city.name, addressCountry: 'MX' },
+        ...(b.rating && b.review_count > 0 ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: b.rating, reviewCount: b.review_count } } : {}),
+      },
+    })),
+  };
+
+  const breadcrumb = {
+    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'CityMap', item: 'https://citymap.mx' },
+      { '@type': 'ListItem', position: 2, name: city.name, item: `https://citymap.mx/${citySlug}` },
+    ],
+  };
+
   return (
     <div className="bg-[#f8fafc] min-h-screen font-sans">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <HomeClient 
         city={city} 
         citySlug={citySlug} 
