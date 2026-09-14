@@ -597,8 +597,13 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (onRequestLocation) onRequestLocation();
-            if (userLocation?.lat && userLocation?.lng && map.current) {
+            if (onRequestLocation) {
+              onRequestLocation((coords) => {
+                if (map.current && coords) {
+                  flyToLocation(map.current, coords.lat, coords.lng, 15);
+                }
+              });
+            } else if (userLocation?.lat && userLocation?.lng && map.current) {
               flyToLocation(map.current, userLocation.lat, userLocation.lng, 15);
             }
           }}

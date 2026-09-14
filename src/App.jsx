@@ -847,11 +847,12 @@ useEffect(() => {
   };
 
   const isAdmin = profile?.role === "admin" || user?.email === "soporte@citymap.mx" || user?.email === "mendozadaniel1999@gmail.com";
-  const requestLocation = () => { 
+  const requestLocation = (cb) => { 
     navigator.geolocation?.getCurrentPosition(pos => {
       const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       setUserCoords(coords);
       localStorage.setItem("cg_coords", JSON.stringify(coords));
+      if (typeof cb === 'function') cb(coords);
     }, () => { }, { enableHighAccuracy: true, timeout: 10000 }); 
   };
   useEffect(() => {
