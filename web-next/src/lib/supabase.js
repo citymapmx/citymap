@@ -1,0 +1,481 @@
+import { Capacitor } from '@capacitor/core';
+
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+// Credenciales leídas desde variables de entorno (.env.local / Vercel)
+const SUPABASE_URL = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_URL ? process.env.NEXT_PUBLIC_SUPABASE_URL : "https://dpkjxhjkzdlkvyotoeai.supabase.co";
+const SUPABASE_ANON = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
+const CLOUDINARY_CLOUD = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD ? process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD : "da6g5pt5x";
+const CLOUDINARY_PRESET = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_CLOUDINARY_PRESET ? process.env.NEXT_PUBLIC_CLOUDINARY_PRESET : "cityguide_unsigned";
+const GMAPS_KEY = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_GMAPS_KEY ? process.env.NEXT_PUBLIC_GMAPS_KEY : "AIzaSyD_fPxRqRJe6r9BiBsTZBj2K_KZnrhIf4M";
+
+const _SB_BASE = SUPABASE_URL.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+const _REST = `${_SB_BASE}/rest/v1`;
+const _AUTH = `${_SB_BASE}/auth/v1`;
+  
+
+// ── Detect key type ──────────────────────────────────────────────────────────
+// sb_publishable_ keys are NOT JWTs. PostgREST requires a JWT in Authorization.
+// For anon/public reads we omit the Bearer or send the key only as apikey.
+// Once a user logs in, their JWT is used as Bearer.
+const _KEY_IS_JWT = SUPABASE_ANON.startsWith("eyJ");
+
+const sb = {
+  _token: null,   // set after signIn — always a real JWT
+
+  restHeaders() {
+    const base = {
+      "apikey": SUPABASE_ANON,
+      "Content-Type": "application/json",
+      "Prefer": "return=representation",
+    };
+    // Use logged-in JWT when available; fall back to anon key only if it is a JWT
+    const bearer = this._token || (_KEY_IS_JWT ? SUPABASE_ANON : null);
+    if (bearer) base["Authorization"] = `Bearer ${bearer}`;
+    return base;
+  },
+  authHeaders() {
+    return { "apikey": SUPABASE_ANON, "Content-Type": "application/json" };
+  },
+
+  // ── Safe response parser ──
+  async _json(r) {
+    const text = await r.text();
+    if (!text) return null;
+    try { return JSON.parse(text); } catch { return { message: text }; }
+  },
+
+  async get(table, params = "") {
+    const r = await fetch(`${_REST}/${table}${params}`, { headers: sb.restHeaders() });
+    const d = await sb._json(r);
+    if (!r.ok) throw new Error(d?.message || d?.hint || d?.error || `HTTP ${r.status}`);
+    return d ?? [];
+  },
+  // Public get — sends only apikey without user JWT (for reading shared/private plans via link)
+  async getPublic(table, params = "") {
+    const headers = {
+      "apikey": SUPABASE_ANON,
+      "Content-Type": "application/json",
+    };
+    if (_KEY_IS_JWT) headers["Authorization"] = `Bearer ${SUPABASE_ANON}`;
+    const r = await fetch(`${_REST}/${table}${params}`, { headers });
+    const d = await sb._json(r);
+    if (!r.ok) throw new Error(d?.message || d?.hint || d?.error || `HTTP ${r.status}`);
+    return d ?? [];
+  },
+  async count(table, params = "") {
+    const headers = sb.restHeaders();
+    headers["Prefer"] = "count=exact";
+    const r = await fetch(`${_REST}/${table}${params}&limit=1`, { method: "HEAD", headers });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const range = r.headers.get("Content-Range");
+    if (!range) return 0;
+    return parseInt(range.split("/")[1], 10) || 0;
+  },
+  async post(table, body) {
+    const r = await fetch(`${_REST}/${table}`, {
+      method: "POST", headers: sb.restHeaders(), body: JSON.stringify(body),
+    });
+    const d = await sb._json(r);
+    if (!r.ok) throw new Error(d?.message || d?.hint || d?.error || `HTTP ${r.status}`);
+    return d ?? [];
+  },
+  async rpc(func, body = {}, params = "") {
+    const r = await fetch(`${_REST}/rpc/${func}${params}`, {
+      method: "POST", headers: sb.restHeaders(), body: JSON.stringify(body),
+    });
+    const d = await sb._json(r);
+    if (!r.ok) throw new Error(d?.message || d?.hint || d?.error || `HTTP ${r.status}`);
+    return d ?? [];
+  },
+  async patch(table, id, body) {
+    const r = await fetch(`${_REST}/${table}?id=eq.${id}`, {
+      method: "PATCH", headers: sb.restHeaders(), body: JSON.stringify(body),
+    });
+    const d = await sb._json(r);
+    if (!r.ok) throw new Error(d?.message || d?.hint || `HTTP ${r.status}`);
+    return d ?? [];
+  },
+  async del(table, id) {
+    const r = await fetch(`${_REST}/${table}?id=eq.${id}`, {
+      method: "DELETE", headers: sb.restHeaders(),
+    });
+    if (!r.ok) { const d = await sb._json(r); throw new Error(d?.message || `HTTP ${r.status}`); }
+    return true;
+  },
+  async delWhere(table, col, val) {
+    const r = await fetch(`${_REST}/${table}?${col}=eq.${val}`, {
+      method: "DELETE", headers: sb.restHeaders(),
+    });
+    return r.ok;
+  },
+  async delWhere2(table, col1, val1, col2, val2) {
+    const r = await fetch(`${_REST}/${table}?${col1}=eq.${val1}&${col2}=eq.${val2}`, {
+      method: "DELETE", headers: sb.restHeaders(),
+    });
+    return r.ok;
+  },
+  async notify(user_id, title, body, type = 'system', deepLink = null) {
+    if (!user_id) return;
+    try {
+      // Usa el JWT de sesión del admin como autenticación — no expone secretos en el frontend
+      const headers = { 'Content-Type': 'application/json' };
+      if (sb._token) headers['Authorization'] = `Bearer ${sb._token}`;
+      await fetch('https://citymap.mx/api/send-notification', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          title,
+          body,
+          type,
+          user_id,
+          deepLink,
+        })
+      });
+    } catch (err) {
+      console.warn("Error enviando push notification:", err);
+    }
+  },
+
+
+  // ── Auth ──
+  async signUp(email, password, name) {
+    const r = await fetch(`${_AUTH}/signup`, {
+      method: "POST", headers: sb.authHeaders(),
+      body: JSON.stringify({ email, password, data: { name } }),
+    });
+    const d = await sb._json(r);
+    if (d?.error) throw new Error(d.error?.message || d.error || "Error al registrarse");
+    const token = d?.access_token || d?.session?.access_token;
+    const rt = d?.refresh_token || d?.session?.refresh_token;
+    if (token) {
+      sb._token = token;
+      localStorage.setItem("cg_t", token);
+      if (rt) localStorage.setItem("cg_r", rt);
+    } else if (d?.user && !token) {
+      throw new Error("Revisa tu email para confirmar la cuenta antes de entrar");
+    }
+    return d;
+  },
+  async signIn(email, password) {
+    const r = await fetch(`${_AUTH}/token?grant_type=password`, {
+      method: "POST", headers: sb.authHeaders(),
+      body: JSON.stringify({ email, password }),
+    });
+    const d = await sb._json(r);
+    if (d?.error || d?.error_description) {
+      const msg = (d.error_description || d.error || "").toLowerCase();
+      if (msg.includes("not confirmed") || msg.includes("email not confirmed")) throw new Error("Confirma tu email antes de iniciar sesión");
+      if (msg.includes("invalid login") || msg.includes("invalid credentials")) throw new Error("Email o contraseña incorrectos");
+      throw new Error(d.error_description || d.error || "Error al iniciar sesión");
+    }
+    if (!d?.access_token) throw new Error("No se pudo iniciar sesión, intenta de nuevo");
+    sb._token = d.access_token;
+    localStorage.setItem("cg_t", d.access_token);
+    if (d.refresh_token) localStorage.setItem("cg_r", d.refresh_token);
+    return d;
+  },
+  async signOut() {
+    try { await fetch(`${_AUTH}/logout`, { method: "POST", headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${sb._token}` } }); } catch (e) { console.error(e); }
+    sb._token = null;
+    localStorage.removeItem("cg_t");
+    localStorage.removeItem("cg_r");
+  },
+  async signInWithOAuth(provider) {
+    try {
+      if (!navigator.onLine) {
+        alert("Necesitas conexión a internet para iniciar sesión.");
+        return;
+      }
+
+      const isNative = Capacitor.isNativePlatform();
+      
+      if (isNative) {
+        // Usar App Link nativo con esquema personalizado para evitar errores de intercepción en Android
+        const redirectTo = encodeURIComponent('mx.citymap.app://login');
+        const url = `${_AUTH}/authorize?provider=${provider}&redirect_to=${redirectTo}`;
+        const { Browser } = await import('@capacitor/browser');
+        // Listen for browser close as a fallback
+        const closeListener = await Browser.addListener('browserFinished', async () => {
+          closeListener.remove();
+          setTimeout(async () => {
+            const tok = localStorage.getItem("cg_t");
+            if (tok) window.location.reload();
+          }, 500);
+        });
+        await Browser.open({ url, presentationStyle: 'popover' });
+      } else {
+        const redirectTo = encodeURIComponent(window.location.origin);
+        const url = `${_AUTH}/authorize?provider=${provider}&redirect_to=${redirectTo}`;
+        
+        // Detect if we are in iOS PWA Standalone mode (specifically iOS, not Mac desktop)
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isIOSPWA = isIOS && (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches);
+
+        if (isIOSPWA) {
+          // Use popup ONLY for PWA to avoid iOS Safari kicking out of standalone mode
+          const width = 500;
+          const height = 600;
+          const left = window.screenX + (window.outerWidth - width) / 2;
+          const top = window.screenY + (window.outerHeight - height) / 2;
+          const popup = window.open(url, 'oauth', `width=${width},height=${height},left=${left},top=${top}`);
+          
+          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            window.location.href = url;
+            return;
+          }
+
+          const checkInterval = setInterval(() => {
+            if (localStorage.getItem("cg_t")) {
+              clearInterval(checkInterval);
+              if (!popup.closed) popup.close();
+              window.location.reload();
+            }
+            if (popup.closed) {
+              clearInterval(checkInterval);
+            }
+          }, 1000);
+        } else {
+          // Normal web browser (Mac, PC, Android Chrome, etc) - ALWAYS redirect directly
+          // This prevents popup blockers from silently eating the login request!
+          window.location.href = url;
+        }
+      }
+    } catch (err) {
+      throw new Error(err.message, { cause: err });
+    }
+  },
+  async setSessionFromUrl(url) {
+    if (!url || !url.includes("access_token=")) return false;
+    const hash = url.split('#')[1];
+    if (!hash) return false;
+    const params = new URLSearchParams(hash);
+    const token = params.get("access_token");
+    const rt = params.get("refresh_token");
+    if (token) {
+      sb._token = token;
+      localStorage.setItem("cg_t", token);
+      if (rt) localStorage.setItem("cg_r", rt);
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.close();
+      } catch (e) { console.error(e); }
+      return true;
+    }
+    return false;
+  },
+  parseOAuthHash() {
+    if (!window.location.hash || !window.location.hash.includes("access_token=")) return false;
+    const params = new URLSearchParams(window.location.hash.substring(1));
+    const token = params.get("access_token");
+    const rt = params.get("refresh_token");
+    if (token) {
+      sb._token = token;
+      localStorage.setItem("cg_t", token);
+      if (rt) localStorage.setItem("cg_r", rt);
+      // Limpiar hash de la URL
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      
+      // If we are in a popup (from PWA OAuth), close it
+      if (window.opener && window.opener !== window) {
+        window.close();
+      }
+      return true;
+    }
+    return false;
+  },
+  async refresh() {
+    const rt = localStorage.getItem("cg_r");
+    if (!rt) return null;
+    try {
+      const r = await fetch(`${_AUTH}/token?grant_type=refresh_token`, {
+        method: "POST", headers: sb.authHeaders(), body: JSON.stringify({ refresh_token: rt }),
+      });
+      const d = await sb._json(r);
+      if (!d?.access_token) { localStorage.removeItem("cg_t"); localStorage.removeItem("cg_r"); return null; }
+      sb._token = d.access_token;
+      localStorage.setItem("cg_t", d.access_token);
+      if (d.refresh_token) localStorage.setItem("cg_r", d.refresh_token);
+      return d;
+    } catch (e) {
+      console.warn("Refresh failed (offline?):", e);
+      throw e;
+    }
+  },
+  async updateUser(data) {
+    const tok = sb._token || localStorage.getItem("cg_t");
+    if (!tok) throw new Error("No hay sesión activa");
+    const r = await fetch(`${_AUTH}/user`, {
+      method: "PUT", headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const d = await sb._json(r);
+    if (!r.ok) throw new Error(d?.message || d?.error_description || d?.error || "Error actualizando perfil");
+    return d;
+  },
+  async getUser() {
+    const tok = sb._token || localStorage.getItem("cg_t");
+    if (!tok) return null;
+
+    try {
+      const p = JSON.parse(atob(tok.split('.')[1]));
+      
+      if (p.exp * 1000 < Date.now()) {
+        const d = await sb.refresh();
+        return d?.user || null;
+      }
+
+      sb._token = tok;
+      
+      // Token is valid! Return the user instantly without a network request.
+      // This prevents the user from being "logged out" due to slow/no network on app start.
+      return {
+        id: p.sub,
+        email: p.email,
+        user_metadata: p.user_metadata || {},
+        app_metadata: p.app_metadata || {}
+      };
+    } catch (e) {
+      console.warn("JWT parse error, falling back to server", e);
+    }
+
+    sb._token = tok;
+    try {
+      const r = await fetch(`${_AUTH}/user`, { headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${tok}` } });
+      if (r.status === 401) return await sb.refresh().then(d => d?.user || null);
+      if (!r.ok) return null;
+      return sb._json(r);
+    } catch { return null; }
+  },
+};
+
+// ─── CLOUDINARY ───────────────────────────────────────────────────────────────
+async function cloudUpload(file, onPct = () => {}, folder = "cityguide") {
+  const ext = file.name.split('.').pop();
+  const path = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/media/${path}`;
+  
+  const token = sb._token || SUPABASE_ANON;
+  
+  return new Promise((res, rej) => {
+    const x = new XMLHttpRequest();
+    x.open("POST", endpoint);
+    x.setRequestHeader("Authorization", `Bearer ${token}`);
+    x.setRequestHeader("apikey", SUPABASE_ANON);
+    x.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    
+    x.upload.onprogress = e => e.lengthComputable && onPct(Math.round(e.loaded / e.total * 100));
+    x.onload = () => {
+      if (x.status >= 200 && x.status < 300) {
+        // Devolvemos la URL pública
+        res(`${SUPABASE_URL}/storage/v1/object/public/media/${path}`);
+      } else {
+        rej(new Error(`Error al subir a Supabase Storage: ${x.responseText}`));
+      }
+    };
+    x.onerror = () => rej(new Error("Error de red al subir a Supabase"));
+    x.send(file);
+  });
+}
+
+async function cloudUploadPDF(file, onPct = () => {}) {
+  // Los PDFs van a la misma bóveda pero en una subcarpeta
+  return cloudUpload(file, onPct, "cityguide/menus");
+}
+
+async function cloudDelete(url) {
+  if (!url || typeof url !== "string" || !url.includes("supabase.co") || !url.includes("/object/public/media/")) return false;
+  const path = url.split("/object/public/media/")[1];
+  if (!path) return false;
+  
+  const token = sb._token || SUPABASE_ANON;
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/media/${path}`;
+  
+  try {
+    const res = await fetch(endpoint, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}`, "apikey": SUPABASE_ANON }
+    });
+    return res.ok;
+  } catch (e) {
+    console.error("Error deleting from Supabase", e);
+    return false;
+  }
+}
+
+async function cloudDeleteBatch(paths) {
+  if (!paths || !Array.isArray(paths) || paths.length === 0) return true;
+  
+  const token = sb._token || SUPABASE_ANON;
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/media`;
+  
+  try {
+    const res = await fetch(endpoint, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "apikey": SUPABASE_ANON,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ prefixes: paths })
+    });
+    return res.ok;
+  } catch (e) {
+    console.error("Error batch deleting from Supabase", e);
+    return false;
+  }
+}
+
+async function cloudListAllFiles(folderPath = "") {
+  const token = sb._token || SUPABASE_ANON;
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/list/media`;
+  
+  let allFiles = [];
+  let limit = 1000;
+  let offset = 0;
+  let hasMore = true;
+  
+  while (hasMore) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "apikey": SUPABASE_ANON,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prefix: folderPath,
+          limit: limit,
+          offset: offset,
+          sortBy: { column: "name", order: "asc" }
+        })
+      });
+      if (!res.ok) throw new Error("Error listing files");
+      const data = await res.json();
+      if (!data || data.length === 0) {
+        hasMore = false;
+      } else {
+        for (const f of data) {
+          if (!f.name || f.name === ".emptyFolderPlaceholder") continue;
+          const fullPath = folderPath ? `${folderPath}/${f.name}` : f.name;
+          if (f.id) {
+            // It's a file
+            allFiles.push(fullPath);
+          } else {
+            // It's a folder — recurse into it
+            const subFiles = await cloudListAllFiles(fullPath);
+            allFiles.push(...subFiles);
+          }
+        }
+        if (data.length < limit) hasMore = false;
+        else offset += limit;
+      }
+    } catch (e) {
+      console.error("Error listing files in Supabase:", folderPath, e);
+      hasMore = false;
+    }
+  }
+  return allFiles;
+}
+
+export { sb, cloudUpload, cloudUploadPDF, cloudDelete, cloudDeleteBatch, cloudListAllFiles, SUPABASE_URL, SUPABASE_ANON, CLOUDINARY_CLOUD, CLOUDINARY_PRESET, GMAPS_KEY };

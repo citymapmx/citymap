@@ -6,6 +6,9 @@ import Icon from '../../../components/ui/Icon';
 import MapButton from '../../../components/MapButton';
 import ActionButtons from '../../../components/ActionButtons';
 import BackButton from '../../../components/BackButton';
+import FavButton from '../../../components/biz/FavButton';
+import ReviewSection from '../../../components/biz/ReviewSection';
+import AuthClient from '../../../components/auth/AuthClient';
 
 const SB_URL = (process.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co");
 const SB_KEY = (process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE");
@@ -347,8 +350,11 @@ export default async function BusinessProfile({ params }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
 
-        {/* Botón de regreso */}
+        <AuthClient />
+
+        {/* Botones Flotantes Superiores */}
         <BackButton citySlug={city} />
+        <FavButton bizId={biz.id} />
 
         {/* Banner */}
         <div className="relative w-full h-[250px] bg-gray-200">
@@ -436,6 +442,7 @@ export default async function BusinessProfile({ params }) {
           )}
 
           {/* RESEÑAS */}
+          <ReviewSection bizId={biz.id} initialReviews={reviews || []} />
           {reviews && reviews.length > 0 && (
             <div className="mb-8">
               <h3 className="text-[17px] font-extrabold text-gray-900 mb-4">Reseñas de la comunidad</h3>
