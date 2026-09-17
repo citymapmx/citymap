@@ -146,30 +146,30 @@ export default function AdminExperiencesTab({
                     <option value="🗺️ Tours">🗺️ Tours</option>
                     <option value="🌿 Naturaleza">🌿 Naturaleza</option>
                     <option value="🏛️ Cultura">🏛️ Cultura</option>
-                    <option value="🎢 Entretenimiento">🎢 Entretenimiento</option>
-                    <option value="🍽️ Gastronomía">🍽️ Gastronomía</option>
-                    <option value="🧗 Aventura">🧗 Aventura</option>
-                    <option value="🏖️ Playas">🏖️ Playas</option>
+                    <option value="🏃 Deportes">🏃 Deportes</option>
+                    <option value="🥳 Entretenimiento">🥳 Entretenimiento</option>
+                    <option value="🎟️ Boleto">🎟️ Boleto</option>
+                    <option value="📝 Blog / Guía">📝 Blog / Guía</option>
                   </select>
-                  <Icon name="chevron" size={14} color="#94A3B8" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%) rotate(90deg)", pointerEvents: "none" }} />
+                  <Icon name="chevron-down" size={14} color="#94A3B8" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
                 </div>
               </div>
               <FI label="Nombre (Ej. Tour a Islas Marietas)" field="title" src={expForm} set={setExpForm} />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginTop: 10, marginBottom: 10 }}>
-              <FI label="Escrito por (Ej. Daniel Arana)" field="author_name" src={expForm} set={setExpForm} ph="Opcional. Nombre del autor." />
+            <div>
+              <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Autor / Organización</label>
+              <input type="text" placeholder="Ej. CityMap Tepic" value={expForm.author_name || ""} onChange={e => setExpForm(f => ({ ...f, author_name: e.target.value }))} style={{ width: "100%", padding: "9px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", outline: "none", background: "#fff", fontFamily: "inherit" }} />
             </div>
 
-            <div style={{ position: "relative" }}>
-              <FI label="Descripción" field="description" src={expForm} set={setExpForm} rows={10} />
-              <button 
-                type="button"
-                onClick={async () => {
-                  if (!expForm.title) return onToast("Error: Escribe el nombre primero");
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 6 }}>
+                <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8 }}>Descripción {expForm.activity_type === "📝 Blog / Guía" ? "(Contenido del Blog)" : ""}</label>
+                <button type="button" onClick={async () => {
+                  if(!expForm.title) return onToast("Primero escribe un título");
                   setExpForm(f => ({ ...f, _generating: true }));
                   try {
-                    const res = await fetch("https://citymap.mx/api/ai-plan", {
+                    const res = await fetch("https://hook.us1.make.com/w8q3945v43u05z2eox54t1953255p8n1", {
                       method: "POST",
                       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${import.meta.env.VITE_ADMIN_SECRET}` },
                       body: JSON.stringify({ title: expForm.title, planType: expForm.activity_type || "experiencia" })
@@ -179,28 +179,23 @@ export default function AdminExperiencesTab({
                     setExpForm(f => ({ ...f, description: d.description, _generating: false }));
                     onToast("Descripción generada ✨");
                   } catch(e) {
-                    onToast("Error: " + e.message);
+                    console.error(e);
                     setExpForm(f => ({ ...f, _generating: false }));
+                    onToast("Error al generar: " + e.message);
                   }
-                }}
-                disabled={expForm._generating || !expForm.title}
-                style={{ position: "absolute", top: 0, right: 0, background: "linear-gradient(135deg, #7C3AED, #4F46E5)", border: "none", borderRadius: 8, padding: "4px 8px", fontSize: 10, fontWeight: 800, color: "#fff", cursor: (expForm._generating || !expForm.title) ? "not-allowed" : "pointer", opacity: (expForm._generating || !expForm.title) ? 0.5 : 1, display: "flex", alignItems: "center", gap: 4 }}
-              >
-                <Icon name="sparkles" size={10} color="#fff" />
-                {expForm._generating ? "Generando..." : "IA"}
-              </button>
+                }} style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)", color: "#fff", border: "none", borderRadius: 6, padding: "4px 8px", fontSize: 10, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>{expForm._generating ? "Generando..." : "✨ Autocompletar con IA"}</button>
+              </div>
+              <textarea placeholder={expForm.activity_type === "📝 Blog / Guía" ? "Escribe aquí tu artículo completo..." : "Describe la experiencia en detalle..."} value={expForm.description || ""} onChange={e => setExpForm(f => ({ ...f, description: e.target.value }))} style={{ width: "100%", padding: "12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", outline: "none", background: "#fff", fontFamily: "inherit", minHeight: expForm.activity_type === "📝 Blog / Guía" ? 300 : 120, resize: "vertical" }} />
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8 }}>Negocio Asociado (Opcional)</label>
-              <input type="text" placeholder="🔎 Buscar negocio..." value={bizSearch} onChange={e => setBizSearch(e.target.value)} style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E4E8E4", borderRadius: "10px 10px 0 0", fontSize: 13, background: "#fff", fontFamily: "inherit", borderBottom: "none" }} />
-              <div style={{ position: "relative" }}>
-                <select value={expForm.biz_id || ""} onChange={(e) => setExpForm(f => ({ ...f, biz_id: e.target.value }))} style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E4E8E4", borderRadius: "0 0 10px 10px", fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit", appearance: "none" }}>
-                  <option value="">Ninguno (Independiente)</option>
-                  {(data.biz || []).filter(b => b.name.toLowerCase().includes(bizSearch.toLowerCase())).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-                <Icon name="chevron" size={14} color="#94A3B8" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%) rotate(90deg)", pointerEvents: "none" }} />
-              </div>
+            <div>
+              <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Negocio Vinculado (Opcional)</label>
+              <select value={expForm.biz_id || ""} onChange={e => setExpForm(f => ({ ...f, biz_id: e.target.value || null }))} style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>
+                <option value="">Ninguno</option>
+                {(data.businesses || []).filter(b => b.status === "approved" && (expForm.city_slug === "all" || b.city === expForm.city_slug)).sort((a,b) => a.name.localeCompare(b.name)).map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -217,9 +212,11 @@ export default function AdminExperiencesTab({
             </div>
           </div>
 
-          {/* Tarjeta 2: LOGÍSTICA */}
-          <div style={{ border: "1px solid #E4E8E4", borderRadius: 12, padding: 16, background: "#F9FAFB", display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#0F1A14", textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>⏱️ Logística y Detalles</div>
+          {/* Tarjeta 2: LOGÍSTICA (Oculta para Blog/Guía) */}
+          {expForm.activity_type !== "📝 Blog / Guía" && (
+            <>
+            <div style={{ border: "1px solid #E4E8E4", borderRadius: 12, padding: 16, background: "#F9FAFB", display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#0F1A14", textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>⏱️ Logística y Detalles</div>
             
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div>
@@ -541,7 +538,8 @@ export default function AdminExperiencesTab({
               }} style={{ background: "#F9FAFB", border: "1px solid #E4E8E4", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, color: "#0F1A14", cursor: "pointer" }}>+ Añadir producto afiliado</button>
             </div>
           </div>
-        </div>
+          </>
+        )}
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => setExpForm(null)} style={{ flex: 1, padding: 14, background: "#fff", border: "1.5px solid #E4E8E4", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
           <button onClick={async () => { 
@@ -591,6 +589,7 @@ export default function AdminExperiencesTab({
             } 
           }} disabled={saving || !expForm.title} style={{ flex: 2, padding: 14, background: saving || !expForm.title ? "#9CA3AF" : "#1A7A5E", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>{saving ? "Guardando..." : expForm._new ? "Crear Experiencia" : "Guardar Cambios"}</button>
         </div>
+      </div>
       </div>}
     </>
   );
