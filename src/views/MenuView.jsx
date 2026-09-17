@@ -68,7 +68,24 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
     </div>;
   }
 
-  const isElite = biz.plan === 'destacado' || biz.plan === 'premium';
+  const isElite = biz.plan === 'destacado' || biz.plan === 'premium' || biz.plan === 'pro';
+
+  if (!isElite) {
+    return (
+      <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#F8FAFC', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: dark ? '#F8FAFC' : '#0F172A' }}>
+        <Helmet>
+          <title>Menú no disponible - CityMap</title>
+        </Helmet>
+        <Icon name="lock" size={48} color={dark ? '#334155' : '#CBD5E1'} />
+        <h3 style={{ marginTop: 16, textAlign: 'center', padding: '0 20px' }}>Esta función es exclusiva para Negocios Premium</h3>
+        <button onClick={() => {
+          const navCity = biz.city_slug || city;
+          const navSlug = cleanCityPrefix(biz.slug || '', navCity) || slug;
+          navigate(`/${navCity}/${navSlug}`);
+        }} style={{ marginTop: 16, padding: '10px 20px', background: T.green, color: '#fff', border: 'none', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}>Volver al negocio</button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#FFFFFF', display: 'flex', flexDirection: 'column' }}>

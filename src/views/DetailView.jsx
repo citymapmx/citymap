@@ -448,7 +448,7 @@ export default function DetailView() {
                 <span style={{ fontSize: 14, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>Llamar</span>
               </m.button>}
               
-              {(selected.whatsapp) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goWhatsApp(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+              {(selected.whatsapp && ['premium', 'pro', 'destacado'].includes(selected.plan)) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goWhatsApp(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                 <img src="/whatsapp.svg" alt="WhatsApp" style={{ width: 20, height: 20, objectFit: "contain" }} />
                 <span style={{ fontSize: 14, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>WhatsApp</span>
               </m.button>}
