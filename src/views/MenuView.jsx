@@ -72,17 +72,22 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
 
   if (!isElite) {
     return (
-      <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#F8FAFC', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: dark ? '#F8FAFC' : '#0F172A' }}>
+      <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#F8FAFC', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: dark ? '#F8FAFC' : '#0F172A', textAlign: 'center', padding: '0 32px' }}>
         <Helmet>
           <title>Menú no disponible - CityMap</title>
         </Helmet>
-        <Icon name="lock" size={48} color={dark ? '#334155' : '#CBD5E1'} />
-        <h3 style={{ marginTop: 16, textAlign: 'center', padding: '0 20px' }}>Esta función es exclusiva para Negocios Premium</h3>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: dark ? '#1E293B' : '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <Icon name="store" size={32} color={dark ? '#475569' : '#94A3B8'} />
+        </div>
+        <h2 style={{ fontWeight: 800, fontSize: 20, margin: '0 0 10px', color: dark ? '#F8FAFC' : '#0F172A' }}>Menú no disponible</h2>
+        <p style={{ fontSize: 14, color: dark ? '#94A3B8' : '#64748B', lineHeight: 1.6, margin: '0 0 24px' }}>
+          Parece que <strong style={{ color: dark ? '#F8FAFC' : '#0F172A' }}>{biz.name}</strong> aún no ha publicado su menú digital o lo ha desactivado temporalmente.
+        </p>
         <button onClick={() => {
           const navCity = biz.city_slug || city;
           const navSlug = cleanCityPrefix(biz.slug || '', navCity) || slug;
           navigate(`/${navCity}/${navSlug}`);
-        }} style={{ marginTop: 16, padding: '10px 20px', background: T.green, color: '#fff', border: 'none', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}>Volver al negocio</button>
+        }} style={{ padding: '12px 28px', background: dark ? '#F8FAFC' : '#0F172A', color: dark ? '#0F172A' : '#fff', border: 'none', borderRadius: 24, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Ver perfil del negocio</button>
       </div>
     );
   }
