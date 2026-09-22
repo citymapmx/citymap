@@ -76,7 +76,7 @@ export default function HomeHero({
         })()}
 
         {/* ── Fila 3: Search Bar ── */}
-        <div style={{ position: "relative", width: "100%", marginTop: search ? 76 : 8, zIndex: 10 }}>
+        <div style={{ position: "relative", width: "100%", marginTop: search ? 76 : 20, zIndex: 10 }}>
             <style>{`
               @keyframes magicBorderSpin {
                 100% { transform: rotate(1turn); }
