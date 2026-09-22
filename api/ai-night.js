@@ -29,7 +29,7 @@ Responde SOLO con este esquema JSON estricto y NADA MÁS:
 {"titulo":"nombre creativo 4-5 palabras","emoji":"emoji del plan","paradas":[{"nombre":"Nombre Exacto","tipo":"tipo de parada","descripcion":"por qué es perfecta (1-2 oraciones)","tip":"tip local corto"}],"resumen":"frase motivadora final max 15 palabras"}`;
 
   const apiKey = process.env.GEMINI_API_KEY.replace(/['"]/g, '').trim();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
   const response = await fetch(url, {
     method: 'POST',
