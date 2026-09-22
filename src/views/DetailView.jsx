@@ -555,18 +555,17 @@ export default function DetailView() {
 
                   return (
                     <div style={{ padding: "0 20px" }}>
-                      <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                         {links.map((link, i) => {
                           const platformStyle = PLATFORM_STYLES[link.platform] || PLATFORM_STYLES.otro;
                           const s = { ...platformStyle, label: link.custom_title || platformStyle.label };
                           let url = link.url;
                           if (url && !url.startsWith('http') && !url.startsWith('wa.me')) url = 'https://' + url;
-                          const prefix = getPrefix(link.platform);
                           
                           return (
-                            <button key={i} className="press" onClick={() => window.open(url, '_blank', 'noopener,noreferrer')} style={{ flex: "1 1 45%", background: dark ? "#222" : "#ffffff", border: `1px solid ${dark ? "#333" : "#E5E7EB"}`, borderRadius: 14, padding: "10px 12px", color: dark ? "#fff" : "#111827", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, boxShadow: dark ? "none" : "0 2px 8px rgba(0,0,0,0.03)" }}>
+                            <button key={i} className="press" onClick={() => window.open(url, '_blank', 'noopener,noreferrer')} style={{ background: dark ? "#222" : "#ffffff", border: `1px solid ${dark ? "#333" : "#E5E7EB"}`, borderRadius: 14, padding: "12px 10px", color: dark ? "#fff" : "#111827", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, boxShadow: dark ? "none" : "0 2px 8px rgba(0,0,0,0.03)" }}>
                               {renderIcon(s, 18)} 
-                              <span style={{ lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{prefix ? prefix + ' ' : ''}{s.label}</span>
+                              <span style={{ lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</span>
                             </button>
                           );
                         })}
