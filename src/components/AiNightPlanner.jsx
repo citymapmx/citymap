@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getThumbUrl } from '../lib/utils';
 
 const VIBES = [
   { id: 'romantico', label: '💑 Romántico', emoji: '💑' },
@@ -65,21 +66,18 @@ export default function AiNightPlanner({ open, onClose, businesses, city, isOpen
   if (!open) return null;
 
   return ReactDOM.createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       {/* Backdrop */}
       <div onClick={handleClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
 
-      {/* Sheet */}
+      {/* Modal */}
       <motion.div
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        style={{ position: 'relative', width: '100%', maxWidth: 480, background: dBg, borderRadius: '24px 24px 0 0', padding: '0 0 40px', maxHeight: '90dvh', overflowY: 'auto', zIndex: 1 }}
+        style={{ position: 'relative', width: '100%', maxWidth: 420, background: dBg, borderRadius: 24, padding: '24px 0 32px', maxHeight: '85dvh', overflowY: 'auto', zIndex: 1, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
       >
-        {/* Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 0' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: dBorder }} />
-        </div>
-
         <AnimatePresence mode="wait">
 
           {/* STEP 0 — Vibe */}
@@ -158,23 +156,53 @@ export default function AiNightPlanner({ open, onClose, businesses, city, isOpen
                 <p style={{ fontSize: 13, color: dSub, margin: 0 }}>{plan.paradas?.length} paradas · {city}</p>
               </div>
 
-              {/* Stops */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+              {/* Stops - Premium Timeline Layout */}
+              <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 24, padding: '0 8px' }}>
                 {plan.paradas?.map((parada, i) => {
                   const biz = findBiz(parada.nombre);
+                  const isLast = i === plan.paradas.length - 1;
+                  const photo = biz ? (biz.logo_url || (biz.photos && biz.photos[0]) || biz.banner_url) : null;
+                  
                   return (
-                    <div key={i} onClick={() => biz && (handleCardTap(biz), handleClose())}
-                      style={{ border: `1px solid ${dBorder}`, borderRadius: 16, padding: 14, background: dCard, cursor: biz ? 'pointer' : 'default', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #7C3AED, #EC4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 14, flexShrink: 0 }}>{i + 1}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: dText, lineHeight: 1.2 }}>{parada.nombre}</div>
-                          {biz && <div style={{ fontSize: 10, fontWeight: 700, color: '#7C3AED', background: 'rgba(124,58,237,0.1)', borderRadius: 6, padding: '2px 6px', flexShrink: 0 }}>Ver →</div>}
+                    <div key={i} onClick={() => biz && (handleCardTap(biz), handleClose())} style={{ display: 'flex', gap: 16, position: 'relative', paddingBottom: isLast ? 0 : 28, cursor: biz ? 'pointer' : 'default' }}>
+                      
+                      {/* Timeline Column */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        {/* Step Node */}
+                        <div style={{ width: 26, height: 26, borderRadius: '50%', background: dark ? '#fff' : '#111827', color: dark ? '#000' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, flexShrink: 0, zIndex: 2 }}>
+                          {i + 1}
                         </div>
-                        <div style={{ fontSize: 11, color: '#7C3AED', fontWeight: 700, marginTop: 2, marginBottom: 6 }}>{parada.tipo}</div>
-                        <div style={{ fontSize: 13, color: dSub, lineHeight: 1.4 }}>{parada.descripcion}</div>
-                        {parada.tip && <div style={{ fontSize: 12, color: T.green, fontWeight: 600, marginTop: 6 }}>💡 {parada.tip}</div>}
+                        {/* Connecting Line */}
+                        {!isLast && <div style={{ flex: 1, width: 2, background: dark ? '#333' : '#E5E7EB', margin: '4px 0', borderRadius: 1 }} />}
                       </div>
+                      
+                      {/* Content Column */}
+                      <div style={{ flex: 1, minWidth: 0, paddingBottom: 4 }}>
+                        <div style={{ display: 'flex', gap: 14 }}>
+                          {photo && (
+                            <img src={getThumbUrl(photo, 120, 120)} alt="" style={{ width: 48, height: 48, borderRadius: 14, objectFit: 'cover', flexShrink: 0, border: `1px solid ${dBorder}` }} />
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 10, fontWeight: 800, color: dark ? '#A1A1AA' : '#6B7280', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 4 }}>
+                              {parada.tipo}
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                              <div style={{ fontSize: 17, fontWeight: 900, color: dText, lineHeight: 1.15, letterSpacing: '-0.3px' }}>{parada.nombre}</div>
+                              {biz && <div style={{ fontSize: 11, fontWeight: 800, color: '#111827', background: '#F3F4F6', borderRadius: 20, padding: '4px 10px', flexShrink: 0 }}>Ver <span style={{fontSize: 10}}>→</span></div>}
+                            </div>
+                            <div style={{ fontSize: 13, color: dSub, lineHeight: 1.45, marginTop: 6, fontWeight: 500 }}>
+                              {parada.descripcion}
+                            </div>
+                            {parada.tip && (
+                              <div style={{ marginTop: 10, padding: '10px 12px', background: dark ? '#27272A' : '#F9FAFB', borderRadius: 12, fontSize: 12, color: dark ? '#D4D4D8' : '#374151', display: 'flex', gap: 8, alignItems: 'flex-start', border: `1px solid ${dBorder}` }}>
+                                <span style={{ fontSize: 14 }}>✨</span> 
+                                <span style={{ flex: 1, lineHeight: 1.35, fontWeight: 600 }}>{parada.tip}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
                   );
                 })}
