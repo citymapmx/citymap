@@ -722,8 +722,8 @@ export default function HomeView({ isBackground }) {
             document.body
           )}
 
-          {/* AI Night Planner FAB (Shows after 5 PM and before 4 AM) */}
-          {!search && (new Date().getHours() >= 17 || new Date().getHours() < 4) && (
+          {/* AI Night Planner FAB (Shows after 5 PM and before 4 AM) - OCULTO TEMPORALMENTE */}
+          {false && !search && (new Date().getHours() >= 17 || new Date().getHours() < 4) && (
             <div style={{ position: "fixed", bottom: 84, left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 90 }}>
               <button
                 onClick={() => setShowAiPlanner(true)}
