@@ -904,25 +904,28 @@ export default function DetailView() {
             </div>}
           </div>
 
-          {/* Evento Destacado */}
+          {/* Eventos del Negocio */}
           {(() => {
-            const ev = events.find(e => e.biz_id === selected.id && e.status === "approved" && e.active !== false);
-            if (!ev) return null;
+            const bizEvents = events.filter(e => e.biz_id === selected.id && e.status === "approved" && e.active !== false);
+            if (bizEvents.length === 0) return null;
             return <div style={{ padding: "20px 20px 0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <div className="text-base" style={{ fontWeight: 800, color: dText }}>Evento destacado</div>
-                <div onClick={() => navigate("events")} style={{ fontSize: 13, fontWeight: 700, color: T.green, cursor: "pointer" }}>Ver todos</div>
+                <div className="text-base" style={{ fontWeight: 800, color: dText }}>{bizEvents.length === 1 ? "Evento destacado" : `Eventos (${bizEvents.length})`}</div>
               </div>
-              <div className="press" onClick={() => { handleEventTap(ev); }} style={{ display: "flex", gap: 12, border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, borderRadius: 16, padding: 12, alignItems: "center", cursor: "pointer" }}>
-                <div style={{ width: 80, height: 60, borderRadius: 8, background: dBg, overflow: "hidden", flexShrink: 0 }}>
-                  <img src={getThumbUrl(ev.img_url || ev.img || "", 200, 200)} alt={`Cartel del evento ${ev.title}`} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div className="text-sm" style={{ fontWeight: 800, color: dText }}>{ev.title}</div>
-                  <div className="text-xs" style={{ color: dSub, marginTop: 2 }}>{ev.date} · {ev.time}</div>
-                  <div className="text-xs" style={{ color: T.green, fontWeight: 700, marginTop: 4 }}>No te lo pierdas 🎉</div>
-                </div>
-                <Icon name="chevron" size={16} color={dSub} style={{ transform: "rotate(-90deg)" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {bizEvents.map(ev => (
+                  <div key={ev.id} className="press" onClick={() => { handleEventTap(ev); }} style={{ display: "flex", gap: 12, border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, borderRadius: 16, padding: 12, alignItems: "center", cursor: "pointer" }}>
+                    <div style={{ width: 80, height: 60, borderRadius: 8, background: dBg, overflow: "hidden", flexShrink: 0 }}>
+                      <img src={getThumbUrl(ev.img_url || ev.img || "", 200, 200)} alt={`Cartel del evento ${ev.title}`} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div className="text-sm" style={{ fontWeight: 800, color: dText }}>{ev.title}</div>
+                      <div className="text-xs" style={{ color: dSub, marginTop: 2 }}>{ev.date} · {ev.time}</div>
+                      <div className="text-xs" style={{ color: T.green, fontWeight: 700, marginTop: 4 }}>No te lo pierdas 🎉</div>
+                    </div>
+                    <Icon name="chevron" size={16} color={dSub} style={{ transform: "rotate(-90deg)" }} />
+                  </div>
+                ))}
               </div>
             </div>;
           })()}
