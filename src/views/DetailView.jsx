@@ -921,7 +921,7 @@ export default function DetailView() {
             };
             return <div style={{ paddingTop: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingLeft: 20, paddingRight: 20 }}>
-                <div className="text-base" style={{ fontWeight: 800, color: dText }}>🎭 Cartelera</div>
+                <div className="text-base" style={{ fontWeight: 800, color: dText }}>Agenda</div>
                 <div className="text-xs" style={{ color: dSub, fontWeight: 600 }}>{bizEvents.length} {bizEvents.length === 1 ? "evento" : "eventos"}</div>
               </div>
               <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingLeft: 20, paddingRight: 20, paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
