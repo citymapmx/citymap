@@ -908,27 +908,51 @@ export default function DetailView() {
           {(() => {
             const bizEvents = events.filter(e => e.biz_id === selected.id && e.status === "approved" && e.active !== false);
             if (bizEvents.length === 0) return null;
-            return <div style={{ padding: "20px 20px 0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <div className="text-base" style={{ fontWeight: 800, color: dText }}>{bizEvents.length === 1 ? "Evento destacado" : `Eventos (${bizEvents.length})`}</div>
+            const fmtDate = d => {
+              if (!d) return "";
+              const [y, m, day] = d.split("-").map(Number);
+              const months = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+              return { day, month: months[m - 1] };
+            };
+            const fmtTime = t => {
+              if (!t) return "";
+              const [h, mn] = t.split(":").map(Number);
+              return `${h % 12 || 12}:${String(mn).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+            };
+            return <div style={{ paddingTop: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingLeft: 20, paddingRight: 20 }}>
+                <div className="text-base" style={{ fontWeight: 800, color: dText }}>🎭 Cartelera</div>
+                <div className="text-xs" style={{ color: dSub, fontWeight: 600 }}>{bizEvents.length} {bizEvents.length === 1 ? "evento" : "eventos"}</div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {bizEvents.map(ev => (
-                  <div key={ev.id} className="press" onClick={() => { handleEventTap(ev); }} style={{ display: "flex", gap: 12, border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, borderRadius: 16, padding: 12, alignItems: "center", cursor: "pointer" }}>
-                    <div style={{ width: 80, height: 60, borderRadius: 8, background: dBg, overflow: "hidden", flexShrink: 0 }}>
-                      <img src={getThumbUrl(ev.img_url || ev.img || "", 200, 200)} alt={`Cartel del evento ${ev.title}`} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingLeft: 20, paddingRight: 20, paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+                {bizEvents.map(ev => {
+                  const d = fmtDate(ev.date);
+                  return (
+                    <div key={ev.id} className="press" onClick={() => handleEventTap(ev)}
+                      style={{ position: "relative", flexShrink: 0, width: 140, height: 210, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: dBg, boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}>
+                      {(ev.img_url || ev.img)
+                        ? <img src={getThumbUrl(ev.img_url || ev.img || "", 300, 420)} alt={ev.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                        : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>🎭</div>
+                      }
+                      {/* Gradient overlay */}
+                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.25) 55%, transparent 100%)" }} />
+                      {/* Date chip top-right */}
+                      {d.day && <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 10, padding: "4px 8px", textAlign: "center" }}>
+                        <div style={{ fontSize: 14, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{d.day}</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.8)", lineHeight: 1.2 }}>{d.month}</div>
+                      </div>}
+                      {/* Bottom info */}
+                      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "10px 10px 12px" }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: "#fff", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", marginBottom: 4 }}>{ev.title}</div>
+                        {ev.time && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>🕐 {fmtTime(ev.time)}</div>}
+                      </div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div className="text-sm" style={{ fontWeight: 800, color: dText }}>{ev.title}</div>
-                      <div className="text-xs" style={{ color: dSub, marginTop: 2 }}>{ev.date} · {ev.time}</div>
-                      <div className="text-xs" style={{ color: T.green, fontWeight: 700, marginTop: 4 }}>No te lo pierdas 🎉</div>
-                    </div>
-                    <Icon name="chevron" size={16} color={dSub} style={{ transform: "rotate(-90deg)" }} />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>;
           })()}
+
 
           {/* Reseñas de Google Maps */}
           {selected.social_links?.google_place_id && googleData && googleData.reviews && googleData.reviews.length > 0 && (
