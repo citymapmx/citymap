@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const VIBES = [
@@ -42,7 +43,7 @@ export default function AiNightPlanner({ open, onClose, businesses, city, isOpen
       const openBiz = businesses.filter(b => isOpen(b));
       const allBiz = [...openBiz, ...businesses.filter(b => !isOpen(b))].slice(0, 40);
 
-      const apiUrl = window.location.hostname === 'localhost' ? '/api/ai-night' : 'https://citymap.mx/api/ai-night';
+      const apiUrl = '/api/ai-night';
       const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -63,8 +64,8 @@ export default function AiNightPlanner({ open, onClose, businesses, city, isOpen
 
   if (!open) return null;
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+  return ReactDOM.createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       {/* Backdrop */}
       <div onClick={handleClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
 
@@ -200,6 +201,7 @@ export default function AiNightPlanner({ open, onClose, businesses, city, isOpen
 
         </AnimatePresence>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }
