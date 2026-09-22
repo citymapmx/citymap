@@ -831,7 +831,7 @@ export default function DetailView() {
                 <span className="text-sm" style={{ fontWeight: 600, color: dText }}>TikTok</span>
               </div>}
               {(selected.website || selected.social_links?.website) && <div onClick={() => goWeb(selected, null)} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: dIconBg, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="globe" size={18} color="#0EA5E9" /></div>
+                 <Icon name="globe" size={22} color="#0EA5E9" />
                 <span className="text-sm" style={{ fontWeight: 600, color: dText }}>Sitio web</span>
               </div>}
             </div>
