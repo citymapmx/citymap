@@ -931,21 +931,9 @@ export default function DetailView() {
                     <div key={ev.id} className="press" onClick={() => handleEventTap(ev)}
                       style={{ position: "relative", flexShrink: 0, width: 140, height: 210, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: dBg, boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}>
                       {(ev.img_url || ev.img)
-                        ? <img src={getThumbUrl(ev.img_url || ev.img || "", 300, 420)} alt={ev.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
-                        : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>🎭</div>
+                        ? <img src={getThumbUrl(ev.img_url || ev.img || "", 300, 420)} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>🎭</div>
                       }
-                      {/* Gradient overlay */}
-                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.25) 55%, transparent 100%)" }} />
-                      {/* Date chip top-right */}
-                      {d.day && <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 10, padding: "4px 8px", textAlign: "center" }}>
-                        <div style={{ fontSize: 14, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{d.day}</div>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.8)", lineHeight: 1.2 }}>{d.month}</div>
-                      </div>}
-                      {/* Bottom info */}
-                      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "10px 10px 12px" }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: "#fff", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", marginBottom: 4 }}>{ev.title}</div>
-                        {ev.time && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>🕐 {fmtTime(ev.time)}</div>}
-                      </div>
                     </div>
                   );
                 })}
