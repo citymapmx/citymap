@@ -385,63 +385,63 @@ export default function HomeView({ isBackground }) {
                   {dbReady && displayList.length === 0 && !isEventQuery && matchingEvents.length > 0 && <EventosBlock />}
                   
                   {dbReady && displayList.length === 0 && matchingEvents.length === 0 && (() => {
-                    const q = search.toLowerCase();
-                    const isVuelos = /vuelo|flight|avion|avión|aero/.test(q);
-                    const isRenta = /renta|auto|carro|car|rent/.test(q);
-                    const isHotel = /hotel|hostal|hospedaje|alojamiento|stay/.test(q);
-                    const isTours = /tour|ticket|actividad|excursion|excursión/.test(q);
-                    const isTravel = isVuelos || isRenta || isHotel || isTours;
-
-                    const travelOptions = [
-                      { label: t("vuelos_baratos", "Vuelos Baratos"), emoji: "✈️", url: "https://expedia.com/affiliate/G4ETQnX", match: isVuelos },
-                      { label: t("hospedaje_ideal", "Hospedaje Ideal"), emoji: "🏨", url: "https://booking.stay22.com/citymapmx/MQbyFZdMFZ", match: isHotel },
-                      { label: t("renta_autos", "Renta de Autos"), emoji: "🚗", url: "https://expedia.com/affiliate/DTtL3D8", match: isRenta },
-                      { label: t("tours_tickets", "Tours y Tickets"), emoji: "🎟️", url: "https://getyourguide.stay22.com/citymapmx/594Wk5DWwJ", match: isTours },
+                    const quickLinks = [
+                      { label: "Restaurantes", emoji: "🍽️", action: () => { setSearch(""); setActiveCat("restaurantes"); } },
+                      { label: "Próximos Eventos", emoji: "🎉", action: () => { setSearch(""); setTimeout(() => document.getElementById("explorar-section")?.scrollIntoView({behavior: "smooth"}), 100); } },
+                      { label: "Mapa de la ciudad", emoji: "🗺️", action: () => { setSearch(""); navigate(`/${activeCity}/mapa`); } },
+                      { label: "Mejor Calificados", emoji: "⭐", action: () => { setSearch(""); setActiveCat("explorar"); setTimeout(() => document.getElementById("explorar-section")?.scrollIntoView({behavior: "smooth"}), 100); } }
                     ];
 
                     return (
-                      <div style={{ padding: "8px 0 20px" }}>
-                        {isTravel ? (
-                          <>
-                            <div style={{ fontSize: 14, color: T.sub, marginBottom: 16, textAlign: "center" }}>
-                              {t("no_encontramos_negocios", "No encontramos negocios para")} <strong style={{ color: T.text }}>"{search}"</strong>, {t("pero_reservar", "pero puedes reservar aquí:")}
-                            </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                              {travelOptions.map(opt => (
-                                <a
-                                  key={opt.label}
-                                  href={opt.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 10,
-                                    padding: "14px 12px",
-                                    borderRadius: 16,
-                                    background: opt.match
-                                      ? (dark ? "rgba(74,222,128,0.15)" : "rgba(22,163,74,0.08)")
-                                      : (dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"),
-                                    border: opt.match
-                                      ? `1.5px solid ${dark ? "rgba(74,222,128,0.4)" : "rgba(22,163,74,0.3)"}`
-                                      : `1px solid ${dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"}`,
-                                    textDecoration: "none",
-                                    transition: "transform 0.15s ease",
-                                  }}
-                                >
-                                  <span style={{ fontSize: 22 }}>{opt.emoji}</span>
-                                  <span style={{ fontSize: 13, fontWeight: 700, color: T.text, lineHeight: 1.3 }}>{opt.label}</span>
-                                </a>
-                              ))}
-                            </div>
-                          </>
-                        ) : (
-                          <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                            <Icon name="search" size={32} color={T.border} />
-                            <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginTop: 12 }}>{t("no_resultados", "No encontramos resultados")}</div>
-                            <div style={{ fontSize: 14, color: T.sub, marginTop: 4 }}>{t("intenta_otro", "Intenta con otras palabras o busca en otra ciudad.")}</div>
-                          </div>
-                        )}
+                      <div style={{ padding: "10px 0 30px" }}>
+                        <div style={{ fontSize: 15, color: T.sub, marginBottom: 20, textAlign: "center", padding: "0 10px", lineHeight: 1.4 }}>
+                          No encontramos resultados para <strong style={{ color: T.text }}>"{search}"</strong>. <br/>Explora la ciudad:
+                        </div>
+                        
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+                          {quickLinks.map(opt => (
+                            <button
+                              key={opt.label}
+                              className="press"
+                              onClick={opt.action}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "14px 12px",
+                                borderRadius: 16,
+                                background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+                                border: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`,
+                                cursor: "pointer",
+                                textAlign: "left",
+                                width: "100%",
+                                color: T.text,
+                                fontFamily: "inherit"
+                              }}
+                            >
+                              <span style={{ fontSize: 22 }}>{opt.emoji}</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{opt.label}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        <div style={{ textAlign: "center", padding: "20px", background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)", borderRadius: 20, border: `1px dashed ${T.border}` }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>¿Conoces este lugar?</div>
+                          <div style={{ fontSize: 13, color: T.sub, marginBottom: 16, opacity: 0.8 }}>Ayúdanos a agregarlo al mapa de la ciudad.</div>
+                          <button 
+                            className="press" 
+                            onClick={() => { 
+                               if (!user) { 
+                                 setShowAuth(true); 
+                               } else { 
+                                 setShowAddBiz(true); 
+                               }
+                            }} 
+                            style={{ background: "#0ea5e9", color: "#fff", border: "none", borderRadius: 20, padding: "12px 24px", fontSize: 14, fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 12px rgba(14, 165, 233, 0.3)", display: "inline-block", fontFamily: "inherit" }}
+                          >
+                            + Sugerir Lugar
+                          </button>
+                        </div>
                       </div>
                     );
                   })()}
