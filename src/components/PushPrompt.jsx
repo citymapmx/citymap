@@ -26,59 +26,63 @@ export default function PushPrompt({ citySlug, dark }) {
   return (
     <div style={{
       margin: '16px 20px',
-      background: dark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF',
-      border: `1px solid ${dark ? 'rgba(59, 130, 246, 0.2)' : '#BFDBFE'}`,
-      borderRadius: 16,
-      padding: 16,
+      background: dark ? '#1E293B' : '#FFFFFF',
+      border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`,
+      borderRadius: 20,
+      padding: '24px 20px',
       display: 'flex',
-      alignItems: 'flex-start',
-      gap: 12,
+      flexDirection: 'column',
+      alignItems: 'center',
+      textAlign: 'center',
       position: 'relative',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+      boxShadow: dark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.06)'
     }}>
       <button 
         onClick={() => {
           localStorage.setItem('cg_push_prompt_dismissed', '1');
           setShow(false);
         }}
-        style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: dark ? '#60A5FA' : '#3B82F6' }}
+        style={{ position: 'absolute', top: 12, right: 12, background: dark ? 'rgba(255,255,255,0.05)' : '#F1F5F9', borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 6, color: dark ? '#94A3B8' : '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}
       >
         <Icon name="x" size={16} />
       </button>
 
-      <div style={{ padding: 4, background: dark ? 'rgba(59,130,246,0.2)' : '#DBEAFE', borderRadius: 12, color: dark ? '#60A5FA' : '#2563EB' }}>
-        <Icon name="bell" size={24} />
+      <div style={{ fontSize: 36, marginBottom: 12, lineHeight: 1 }}>
+        🔔
       </div>
 
-      <div style={{ flex: 1 }}>
-        <h4 style={{ margin: '0 0 4px 0', fontSize: 15, fontWeight: 700, color: dark ? '#E2E8F0' : '#1E3A8A' }}>
-          Activa las notificaciones
-        </h4>
-        <p style={{ margin: '0 0 12px 0', fontSize: 13, color: dark ? '#94A3B8' : '#3B82F6', lineHeight: 1.4, paddingRight: 16 }}>
-          Entérate de los mejores eventos, aperturas de lugares y actualizaciones de tus reservas.
-        </p>
-        <button
-          onClick={async () => {
-            setShow(false);
-            const perm = await requestAndRegister();
-            if (perm !== 'granted') {
-              localStorage.setItem('cg_push_prompt_dismissed', '1');
-            }
-          }}
-          style={{
-            background: '#3B82F6',
-            color: '#fff',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: 8,
-            fontWeight: 600,
-            fontSize: 13,
-            cursor: 'pointer'
-          }}
-        >
-          Activar ahora
-        </button>
-      </div>
+      <h4 style={{ margin: '0 0 8px 0', fontSize: 17, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', letterSpacing: '-0.3px' }}>
+        Activa las notificaciones
+      </h4>
+      <p style={{ margin: '0 0 20px 0', fontSize: 14, color: dark ? '#94A3B8' : '#475569', lineHeight: 1.5, maxWidth: 280 }}>
+        Entérate antes que nadie de los mejores eventos, aperturas y actualizaciones de tus reservas.
+      </p>
+      
+      <button
+        className="press"
+        onClick={async () => {
+          setShow(false);
+          const perm = await requestAndRegister();
+          if (perm !== 'granted') {
+            localStorage.setItem('cg_push_prompt_dismissed', '1');
+          }
+        }}
+        style={{
+          background: dark ? '#F8FAFC' : '#0F172A',
+          color: dark ? '#0F172A' : '#FFFFFF',
+          border: 'none',
+          padding: '12px 24px',
+          borderRadius: 12,
+          fontWeight: 700,
+          fontSize: 14,
+          cursor: 'pointer',
+          width: '100%',
+          maxWidth: 240,
+          letterSpacing: '0.2px'
+        }}
+      >
+        Activar ahora
+      </button>
     </div>
   );
 }
