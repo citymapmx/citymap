@@ -48,7 +48,7 @@ export function buildWhatsAppMessage(cartItems, business, customerName = "", ord
       const itemTotal = item.unitTotal * item.quantity;
       catSubtotal += itemTotal;
 
-      let productLine = `*${item.quantity}x* ${item.product.name} — ${f(itemTotal)}`;
+      let productLine = `*${item.quantity}x* ${item.product.name}`;
       msg += productLine + `\n`;
       
       if (item.selectedOptions && item.selectedOptions.length > 0) {
