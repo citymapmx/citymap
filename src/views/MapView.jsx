@@ -359,38 +359,29 @@ export default function MapView() {
                   
                   const hour = new Date().getHours();
                   let msg = "";
-                  let accentColor = "";
-                  let bgColor = "";
                   
                   if (d < 0.4) {
                      msg = "¡Estás a unos pasos! (Caminando) 🚶";
-                     accentColor = "#10B981"; // Emerald
-                     bgColor = dark ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)";
                   } else {
                      const cat = (mapPin.category || "").toLowerCase();
                      const driveMins = Math.max(2, Math.round(d * 3.5));
                      if (hour < 11 && (cat.includes("cafe") || cat.includes("desayuno"))) {
                          msg = `Perfecto para desayunar • A ${driveMins} min ☕`;
-                         accentColor = "#F59E0B";
-                         bgColor = dark ? "rgba(245, 158, 11, 0.15)" : "rgba(245, 158, 11, 0.1)";
                      } else if (hour >= 13 && hour <= 17 && (cat.includes("restaurante") || cat.includes("comida") || cat.includes("mariscos") || cat.includes("taco"))) {
                          msg = `Excelente para comer ahora • A ${driveMins} min 🍽️`;
-                         accentColor = "#F43F5E";
-                         bgColor = dark ? "rgba(244, 63, 94, 0.15)" : "rgba(244, 63, 94, 0.1)";
                      } else if (hour >= 20 && (cat.includes("bar") || cat.includes("cerveza") || cat.includes("antro") || cat.includes("cena"))) {
                          msg = `Gran ambiente nocturno • A ${driveMins} min 🍻`;
-                         accentColor = "#8B5CF6";
-                         bgColor = dark ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)";
                      } else {
                          msg = `Estás a ${d < 1 ? Math.round(d*1000) + 'm' : d.toFixed(1) + 'km'} (${driveMins} min en auto) 🚗`;
-                         accentColor = "#3B82F6";
-                         bgColor = dark ? "rgba(59, 130, 246, 0.15)" : "rgba(59, 130, 246, 0.1)";
                      }
                   }
                   
+                  const bgColor = dark ? "rgba(255,255,255,0.06)" : "#F3F4F6";
+                  const borderColor = dark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
+                  
                   return (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 12px", borderRadius: 10, background: bgColor, border: `1px solid ${bgColor.replace('0.1', '0.25').replace('0.15', '0.3')}`, marginBottom: 4 }}>
-                       <span style={{ fontSize: 11.5, fontWeight: 800, color: accentColor, letterSpacing: "-0.2px", textAlign: "center" }}>{msg}</span>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 12px", borderRadius: 10, background: bgColor, border: `1px solid ${borderColor}`, marginBottom: 4 }}>
+                       <span style={{ fontSize: 11.5, fontWeight: 700, color: T.text, textAlign: "center" }}>{msg}</span>
                     </div>
                   );
                 })()}
