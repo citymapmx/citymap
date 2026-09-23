@@ -40,7 +40,7 @@ export function buildWhatsAppMessage(cartItems, business, customerName = "", ord
     msg += `[${catName.toUpperCase()}]\n`;
     
     groups[catName].forEach(item => {
-      let productLine = `${item.quantity}x ${item.product.name}`;
+      let productLine = `*${item.quantity}x* ${item.product.name}`;
       msg += productLine + `\n`;
       
       if (item.selectedOptions && item.selectedOptions.length > 0) {
