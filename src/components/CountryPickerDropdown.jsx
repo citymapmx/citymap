@@ -83,7 +83,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
         WebkitBackdropFilter: isWelcome ? "none" : "blur(4px)",
         display: "flex",
         alignItems: "center",
-        justifyContent: isWelcome ? "center" : "flex-start",
+        justifyContent: isWelcome ? "center" : "flex-end",
         padding: isWelcome ? 0 : 0
       }}
     >
@@ -95,7 +95,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
         height: "100vh",
         background: isWelcome ? "transparent" : (dark ? "#0f172a" : "#ffffff"),
         borderRadius: 0,
-        boxShadow: isWelcome ? "none" : (dark ? "4px 0 24px rgba(0,0,0,0.5)" : "4px 0 24px rgba(0,0,0,0.1)"),
+        boxShadow: isWelcome ? "none" : (dark ? "-4px 0 24px rgba(0,0,0,0.5)" : "-4px 0 24px rgba(0,0,0,0.1)"),
         border: "none",
         overflowY: "auto",
         maxHeight: "100vh",
@@ -103,15 +103,15 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
         flexDirection: "column",
         justifyContent: "flex-start",
         padding: isWelcome ? "20px 20px 100px 20px" : 0,
-        animation: isWelcome ? "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)" : "slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
+        animation: isWelcome ? "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)" : "slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
       }}>
         <style>{`
           @keyframes scaleIn {
             from { transform: scale(0.95); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
           }
-          @keyframes slideInLeft {
-            from { transform: translateX(-100%); opacity: 0; }
+          @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
           }
         `}</style>
@@ -295,7 +295,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
                           padding: "10px 12px", 
                           fontSize: 14, 
                           fontWeight: 600, 
-                          color: dark ? "#cbd5e1" : "#475569", 
+                          color: "#111827", 
                           background: "transparent",
                           border: "none",
                           borderRadius: 0,
@@ -309,10 +309,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
                         onMouseOver={(e) => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)"}
                         onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
                       >
-                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ fontSize: 16 }}>📍</span>
-                          {st.state}
-                        </span>
+                        <span>{st.state}</span>
                         <Icon name="chevron" size={15} color={dark ? "#64748b" : "#94a3b8"} />
                       </button>
                       {isStateExpanded && st.cities.map((city, index) => {
