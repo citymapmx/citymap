@@ -551,42 +551,64 @@ export default function HomeView({ isBackground }) {
 
           {!search && activeCat === "explorar" && spotlightBiz && (
             <div style={{ padding: "16px 20px 0 20px" }}>
-              <h2 style={{ fontFamily: "var(--heading)", fontWeight: 800, fontSize: 20, color: T.text, letterSpacing: "-0.5px", margin: "0 0 16px 0", textAlign: "center" }}>
-                Recomendación del día
-              </h2>
               <div 
                 className="press"
                 onClick={() => handleCardTap(spotlightBiz)}
                 style={{ 
-                  borderRadius: 18, 
+                  position: "relative",
+                  width: "100%",
+                  height: 240,
+                  borderRadius: 20, 
                   background: T.bg, 
-                  border: `1px solid ${T.border}`,
                   overflow: "hidden", 
                   cursor: "pointer", 
-                  boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
-                  display: "flex",
-                  flexDirection: "column"
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
                 }}
               >
-                <div style={{ position: "relative", width: "100%", height: 180, background: "linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {(() => {
-                    const src = (spotlightBiz.photos && spotlightBiz.photos[0]?.url) || spotlightBiz.img1 || spotlightBiz.img2 || spotlightBiz.img3 || spotlightBiz.img_url || cityImg;
-                    if (src) {
-                      return (
-                        <OptimizedImage 
-                          src={src} 
-                          alt={spotlightBiz.name}
-                          widthRequest={800} heightRequest={600}
-                          style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                      );
-                    }
-                    // Placeholder fallback if no image exists
-                    return <Icon name="image" size={48} color="#94A3B8" />;
-                  })()}
+                {(() => {
+                  const src = (spotlightBiz.photos && spotlightBiz.photos[0]?.url) || spotlightBiz.img1 || spotlightBiz.img2 || spotlightBiz.img3 || spotlightBiz.img_url || cityImg;
+                  if (src) {
+                    return (
+                      <OptimizedImage 
+                        src={src} 
+                        alt={spotlightBiz.name}
+                        widthRequest={800} heightRequest={600}
+                        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    );
+                  }
+                  return <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="image" size={48} color="#94A3B8" /></div>;
+                })()}
+
+                {/* Gradient Overlay for Text Readability */}
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%)" }} />
+
+                {/* Top Badge */}
+                <div style={{ position: "absolute", top: 16, left: 16, background: "rgba(255,255,255,0.25)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", padding: "6px 12px", borderRadius: 14, display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}>
+                   <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: "0.5px" }}>✨ Recomendación del día</span>
                 </div>
-                <div style={{ padding: "12px 16px", textAlign: "center" }}>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: T.text, lineHeight: 1.2 }}>{spotlightBiz.name}</h3>
+
+                {/* Bottom Text Content */}
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "24px 20px 20px", display: "flex", flexDirection: "column", gap: 6 }}>
+                    <h3 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 2px 8px rgba(0,0,0,0.5)", letterSpacing: "-0.5px" }}>{spotlightBiz.name}</h3>
+                    
+                    {spotlightBiz.tagline && (
+                       <p style={{ margin: 0, fontSize: 14, color: "rgba(255,255,255,0.95)", fontWeight: 500, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>{spotlightBiz.tagline}</p>
+                    )}
+                    
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                        {spotlightBiz.rating > 0 && (
+                          <span style={{ fontSize: 13, color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", gap: 4, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", padding: "4px 10px", borderRadius: 10 }}>
+                            <Icon name="star" size={14} color="#FBBF24" fill="#FBBF24" />
+                            {spotlightBiz.rating}
+                          </span>
+                        )}
+                        {spotlightBiz.category && (
+                          <span style={{ fontSize: 12, color: "#fff", fontWeight: 600, background: "rgba(255,255,255,0.2)", backdropFilter: "blur(4px)", padding: "4px 10px", borderRadius: 10, textTransform: "capitalize" }}>
+                            {spotlightBiz.category}
+                          </span>
+                        )}
+                    </div>
                 </div>
               </div>
             </div>
