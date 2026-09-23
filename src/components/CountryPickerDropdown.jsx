@@ -149,7 +149,6 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
       )}
 
       <div style={{ flex: 1, overflowY: "auto", padding: isWelcome ? 0 : "16px 0" }}>
-      
       <div style={{ padding: "0 16px 10px 16px" }}>
         <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
           <span style={{
@@ -397,6 +396,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
           </div>
         ))}
         </div>
+      </div>
       </div>
     </div>
     </div>
