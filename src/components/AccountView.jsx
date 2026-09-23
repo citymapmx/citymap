@@ -323,20 +323,28 @@ export default function AccountView({
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-            <div onClick={() => navigate("favs")} className="press" style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px", display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
-              <Icon name="heart_overlay_f" size={20} color={T.green} />
-              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginTop: 6 }}>{favIds?.length || 0}</div>
-              <div style={{ fontSize: 10, color: T.sub, fontWeight: 700, textTransform: "uppercase" }}>Favs</div>
+          <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+            <div onClick={() => navigate("favs")} className="press" style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 20, padding: "16px 8px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
+              <div style={{ background: "rgba(239,68,68,0.1)", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                 <Icon name="heart_overlay_f" size={22} color="#EF4444" />
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: T.text, lineHeight: 1 }}>{favIds?.length || 0}</div>
+              <div style={{ fontSize: 10, color: T.sub, fontWeight: 800, textTransform: "uppercase", marginTop: 4, letterSpacing: 0.5 }}>Favs</div>
             </div>
-            <div onClick={() => navigate("itineraries")} className="press" style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px", display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
-              <Icon name="map" size={20} color="#3B82F6" />
-              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginTop: 6 }}>{ctx.collections?.length || 0}</div>
-              <div style={{ fontSize: 10, color: T.sub, fontWeight: 700, textTransform: "uppercase" }}>Listas</div>
+
+            <div onClick={() => navigate("itineraries")} className="press" style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 20, padding: "16px 8px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
+              <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                 <Icon name="map" size={22} color="#3B82F6" />
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: T.text, lineHeight: 1 }}>{ctx.collections?.length || 0}</div>
+              <div style={{ fontSize: 10, color: T.sub, fontWeight: 800, textTransform: "uppercase", marginTop: 4, letterSpacing: 0.5 }}>Listas</div>
             </div>
-            <div onClick={() => setShowUserQR(true)} className="press" style={{ flex: 1, background: "#0F172A", border: `1px solid #0F172A`, borderRadius: 14, padding: "12px", display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
-              <Icon name="grid" size={20} color="#fff" />
-              <div style={{ fontSize: 11, fontWeight: 800, color: "#fff", marginTop: 8, textAlign: "center", lineHeight: 1.2 }}>Mi<br/>Código</div>
+
+            <div onClick={() => setShowUserQR(true)} className="press" style={{ flex: 1, background: "#0F172A", border: `1px solid #0F172A`, borderRadius: 20, padding: "16px 8px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 6px 16px rgba(15,23,42,0.15)" }}>
+              <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                 <Icon name="grid" size={22} color="#fff" />
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", textAlign: "center", lineHeight: 1.2 }}>Mi<br/>Código</div>
             </div>
           </div>
         </div>
