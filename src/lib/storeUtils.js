@@ -40,7 +40,7 @@ export function buildWhatsAppMessage(cartItems, business, customerName = "", ord
 
   // Construct grouped category list
   Object.keys(groups).forEach(catName => {
-    msg += `[${catName.toUpperCase()}]\n`;
+    msg += `*${catName.toUpperCase()}*\n`;
     
     let catSubtotal = 0;
 
