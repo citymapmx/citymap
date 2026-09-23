@@ -64,8 +64,8 @@ export async function POST(req) {
       });
     }
 
-    // 2. Fetch push tokens
-    let queryUrl = `${supabaseUrl}/rest/v1/push_tokens?select=token`;
+    // 2. Fetch push tokens and unique users
+    let queryUrl = `${supabaseUrl}/rest/v1/push_tokens?select=token,user_id`;
     if (user_id) queryUrl += `&user_id=eq.${user_id}`;
     else if (target_city) queryUrl += `&city_slug=eq.${target_city}`;
 
@@ -73,6 +73,21 @@ export async function POST(req) {
     if (!r.ok) throw new Error(`Supabase fetch tokens error: ${r.status}`);
     const tokensData = await r.json();
     const tokens = tokensData.map(t => t.token);
+
+    // Save notification to inbox for all users in the broadcast
+    if (!user_id && tokensData.length > 0) {
+      const uniqueUserIds = [...new Set(tokensData.map(t => t.user_id).filter(Boolean))];
+      if (uniqueUserIds.length > 0) {
+        const payload = uniqueUserIds.map(uid => ({
+          user_id: uid, title, body: msgBody, type, read: false
+        }));
+        await fetch(`${supabaseUrl}/rest/v1/notifications`, {
+          method: 'POST',
+          headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+    }
 
     if (!tokens.length) return Response.json({ message: 'No hay tokens registrados', successCount: 0, failureCount: 0 }, { headers: CORS });
 
