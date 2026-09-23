@@ -11,11 +11,15 @@ export default function GlobalAuthInit() {
 
     async function checkAuth() {
       try {
-        const { data: { session } } = await sb.auth.getSession();
-        if (session?.user) {
-          if (mounted) setUser(session.user);
-          const r = await sb.get("profiles", `?id=eq.${session.user.id}&limit=1`);
-          if (r?.[0] && mounted) setProfile(r[0]);
+        const user = await sb.getUser();
+        if (user) {
+          if (mounted) setUser(user);
+          try {
+            const r = await sb.get("profiles", `?id=eq.${user.id}&limit=1`);
+            if (r && r[0] && mounted) setProfile(r[0]);
+          } catch (e) {
+            console.warn("Failed to fetch profile", e);
+          }
         }
       } catch (err) {
         console.warn("Auth init error:", err);
@@ -26,22 +30,8 @@ export default function GlobalAuthInit() {
 
     checkAuth();
 
-    const { data: listener } = sb.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setProfile(null);
-      } else if (session?.user) {
-        setUser(session.user);
-        try {
-          const r = await sb.get("profiles", `?id=eq.${session.user.id}&limit=1`);
-          if (r?.[0]) setProfile(r[0]);
-        } catch {}
-      }
-    });
-
     return () => {
       mounted = false;
-      listener?.subscription?.unsubscribe();
     };
   }, [setUser, setProfile, setAuthChecked]);
 
