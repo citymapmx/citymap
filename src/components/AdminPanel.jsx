@@ -498,6 +498,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
 function PushTab({ T, onToast }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [imgUrl, setImgUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [deepLinkType, setDeepLinkType] = useState("none"); // "none" | "biz" | "event"
   const [search, setSearch] = useState("");
@@ -557,6 +558,7 @@ function PushTab({ T, onToast }) {
           title, 
           body, 
           deepLink, 
+          imageUrl: imgUrl,
           target_city: targetCity || null,
           secret: import.meta.env.VITE_ADMIN_SECRET 
         })
@@ -595,6 +597,12 @@ function PushTab({ T, onToast }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <label className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase" }}>Mensaje</label>
         <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Descubre los mejores tacos de pastor de la ciudad..." rows={3} style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid " + T.border, outline: "none", fontSize: 14, fontFamily: "inherit", background: T.white, color: T.text, resize: "none" }} />
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <label className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase" }}>Imagen Destacada (Opcional)</label>
+        <Uploader aspect={21/9} onDone={url => setImgUrl(url)} />
+        {imgUrl && <div style={{ marginTop: 8, height: 120, borderRadius: 10, overflow: "hidden" }}><img src={imgUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>}
       </div>
 
       {/* Deep Link Selector */}

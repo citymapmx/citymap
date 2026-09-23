@@ -24,7 +24,7 @@ export async function OPTIONS() {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { title, body: msgBody, deepLink, secret, user_id, type = 'system', target_city } = body;
+    const { title, body: msgBody, deepLink, imageUrl, secret, user_id, type = 'system', target_city } = body;
 
     const authHeader = req.headers.get('authorization');
     const jwtToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
@@ -81,9 +81,17 @@ export async function POST(req) {
     for (let i = 0; i < tokens.length; i += 500) {
       messages.push(getMessaging().sendEachForMulticast({
         tokens: tokens.slice(i, i + 500),
-        notification: { title, body: msgBody },
-        data: deepLink ? { deepLink } : {},
+        notification: { 
+          title, 
+          body: msgBody,
+          ...(imageUrl ? { imageUrl } : {})
+        },
+        data: {
+          ...(deepLink ? { deepLink } : {}),
+          ...(imageUrl ? { imageUrl } : {})
+        },
         android: { notification: { sound: 'default' } },
+        apns: { payload: { aps: { 'mutable-content': 1 } } }
       }));
     }
 
