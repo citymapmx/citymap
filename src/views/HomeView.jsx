@@ -546,9 +546,7 @@ export default function HomeView({ isBackground }) {
           })()}
 
           
-          {/* ── LUGAR DEL DÍA ── */}
-          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} cityImg={cityImg} handleEventTap={handleEventTap} T={T} city={city} />}
-
+          {/* ── LUGAR DEL DÍA (Recomendación) ── */}
           {!search && activeCat === "explorar" && spotlightBiz && (
             <div style={{ padding: "16px 20px 0 20px" }}>
               <div 
@@ -612,6 +610,10 @@ export default function HomeView({ isBackground }) {
               </div>
             </div>
           )}
+
+          {/* ── EVENTOS ── */}
+          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} cityImg={cityImg} handleEventTap={handleEventTap} T={T} city={city} />}
+
 
 
           {/* ── BENTO CATEGORIES (REMOVED) ── */}          {!search && activeCat === "explorar" && <div id="explorar-section">

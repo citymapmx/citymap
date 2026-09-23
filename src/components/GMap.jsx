@@ -529,6 +529,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         const directionsService = new window.google.maps.DirectionsService();
         const directionsRenderer = new window.google.maps.DirectionsRenderer({
           suppressMarkers: true,
+          preserveViewport: true,
           polylineOptions: {
             strokeColor: "#6366F1",
             strokeWeight: 5,
@@ -547,6 +548,16 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
           (result, status) => {
             if (status === "OK") {
               directionsRenderer.setDirections(result);
+              
+              // Automatically adjust camera but leave space for the top card (360px padding)
+              if (result.routes && result.routes.length > 0 && result.routes[0].bounds) {
+                map.current.fitBounds(result.routes[0].bounds, {
+                  top: 360,
+                  bottom: 60,
+                  left: 40,
+                  right: 40
+                });
+              }
             } else {
               // Fallback: just pan if route fails
               flyToLocation(map.current, dest.lat, dest.lng, 15);
