@@ -23,6 +23,7 @@ import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import { Virtuoso } from "react-virtuoso";
 import { Helmet } from "react-helmet-async";
 import HomeEvents from "../components/home/HomeEvents.jsx";
+import PushPrompt from "../components/PushPrompt.jsx";
 import HomeTopGrids from "../components/home/HomeTopGrids.jsx";
 import HomeHero from "../components/home/HomeHero.jsx";
 
@@ -307,6 +308,9 @@ export default function HomeView({ isBackground }) {
     <div style={{ paddingBottom: 84, position: "relative", ...viewStyle }}>
           {/* ── HERO HEADER ── */}
           <HomeHero dark={dark} T={T} t={t} search={search} setSearch={setSearch} localizedPlaceholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dbReady={dbReady} cats={cats} activeCat={activeCat} setActiveCat={setActiveCat} activeCity={activeCity} city={city} cities={cities} haptic={haptic} detectedTown={detectedTown} />
+          
+          <PushPrompt citySlug={activeCity} dark={dark} />
+
           {/* ── EMPTY CITY STATE ── */}
           {!search && dbReady && !pinsLoading && mapPins.filter(b => isNear(b, userCoords, activeCity)).length === 0 && (
             <CityEmptyState 
