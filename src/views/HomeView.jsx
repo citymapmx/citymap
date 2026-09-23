@@ -387,8 +387,8 @@ export default function HomeView({ isBackground }) {
                   {dbReady && displayList.length === 0 && matchingEvents.length === 0 && (() => {
                     const quickLinks = [
                       { label: "Restaurantes", emoji: "🍽️", action: () => { setSearch(""); setActiveCat("restaurantes"); } },
-                      { label: "Próximos Eventos", emoji: "🎉", action: () => { setSearch(""); setTimeout(() => document.getElementById("explorar-section")?.scrollIntoView({behavior: "smooth"}), 100); } },
-                      { label: "Mapa de la ciudad", emoji: "🗺️", action: () => { setSearch(""); navigate(`/${activeCity}/mapa`); } },
+                      { label: "Próximos Eventos", emoji: "🎉", action: () => { setSearch(""); setActiveCat("explorar"); setTimeout(() => window.scrollTo({top: 0, behavior: "smooth"}), 100); } },
+                      { label: "Mapa de la ciudad", emoji: "🗺️", action: () => { setSearch(""); navigate("map"); } },
                       { label: "Mejor Calificados", emoji: "⭐", action: () => { setSearch(""); setActiveCat("explorar"); setTimeout(() => document.getElementById("explorar-section")?.scrollIntoView({behavior: "smooth"}), 100); } }
                     ];
 
