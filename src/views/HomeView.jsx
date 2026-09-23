@@ -584,31 +584,28 @@ export default function HomeView({ isBackground }) {
                 <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%)" }} />
 
                 {/* Top Badge */}
-                <div style={{ position: "absolute", top: 16, left: 16, background: "rgba(255,255,255,0.25)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", padding: "6px 12px", borderRadius: 14, display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}>
-                   <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: "0.5px" }}>✨ Recomendación del día</span>
+                <div style={{ position: "absolute", top: 12, left: 12, background: "rgba(255,255,255,0.25)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", padding: "4px 10px", borderRadius: 8, display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}>
+                   <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: "0.5px" }}>✨ Recomendación del día</span>
                 </div>
 
                 {/* Bottom Text Content */}
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "24px 20px 20px", display: "flex", flexDirection: "column", gap: 6 }}>
-                    <h3 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 2px 8px rgba(0,0,0,0.5)", letterSpacing: "-0.5px" }}>{spotlightBiz.name}</h3>
-                    
-                    {spotlightBiz.tagline && (
-                       <p style={{ margin: 0, fontSize: 14, color: "rgba(255,255,255,0.95)", fontWeight: 500, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>{spotlightBiz.tagline}</p>
-                    )}
-                    
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "30px 16px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, width: "100%" }}>
+                        <h3 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 2px 8px rgba(0,0,0,0.5)", letterSpacing: "-0.5px", textAlign: "left", flex: 1 }}>{spotlightBiz.name}</h3>
+                        
                         {spotlightBiz.rating > 0 && (
-                          <span style={{ fontSize: 13, color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", gap: 4, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", padding: "4px 10px", borderRadius: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>
+                            <span style={{ fontSize: 14, color: "#fff", fontWeight: 800 }}>{spotlightBiz.rating}</span>
                             <Icon name="star" size={14} color="#FBBF24" fill="#FBBF24" />
-                            {spotlightBiz.rating}
-                          </span>
-                        )}
-                        {spotlightBiz.category && (
-                          <span style={{ fontSize: 12, color: "#fff", fontWeight: 600, background: "rgba(255,255,255,0.2)", backdropFilter: "blur(4px)", padding: "4px 10px", borderRadius: 10, textTransform: "capitalize" }}>
-                            {spotlightBiz.category}
-                          </span>
+                          </div>
                         )}
                     </div>
+                    
+                    {spotlightBiz.category && (
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", fontWeight: 600, textTransform: "capitalize", textShadow: "0 1px 4px rgba(0,0,0,0.4)", textAlign: "left" }}>
+                        {spotlightBiz.category}
+                      </span>
+                    )}
                 </div>
               </div>
             </div>
