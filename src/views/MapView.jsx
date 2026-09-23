@@ -321,20 +321,13 @@ export default function MapView() {
               </div>
 
               {/* Contenido compacto */}
-              <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={{ fontFamily: FONT_BIZ, fontWeight: 900, fontSize: 20, color: T.text, lineHeight: 1.1, marginBottom: 2 }}>{mapPin.name}</div>
+              <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 6, textAlign: "left" }}>
+                <div style={{ fontFamily: FONT_BIZ, fontWeight: 900, fontSize: 20, color: T.text, lineHeight: 1.1, marginBottom: 2, textAlign: "left" }}>{mapPin.name}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", minWidth: 0 }}>
                   <span style={{ fontSize: 11, color: getScheduleStatus(mapPin, isOpen(mapPin)).color, fontWeight: 700, whiteSpace: "nowrap" }}>{t(getScheduleStatus(mapPin, isOpen(mapPin)).text)}</span>
                   {mapPin.review_count > 0 && (<>
                     <span style={{ fontSize: 11, color: T.sub, opacity: 0.4 }}>•</span>
                     <span style={{ fontSize: 11, color: T.sub, fontWeight: 600, whiteSpace: "nowrap" }}>⭐ {mapPin.rating}</span>
-                  </>)}
-                  {userCoords && mapPin.lat && (<>
-                    <span style={{ fontSize: 11, color: T.sub, opacity: 0.4 }}>•</span>
-                    <span style={{ fontSize: 11, color: T.sub, fontWeight: 600, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 3 }}>
-                      <Icon name="nav" size={10} color={T.sub} />
-                      {(() => { const d = getKm(userCoords.lat, userCoords.lng, parseFloat(mapPin.lat), parseFloat(mapPin.lng)); return d < 1 ? `${Math.round(d * 1000)}m` : `${d.toFixed(1)}km`; })()}
-                    </span>
                   </>)}
                 </div>
 
