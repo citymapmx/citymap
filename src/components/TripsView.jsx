@@ -194,8 +194,8 @@ function TravelHub({ T, dark }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, width: "100%" }}>
         {links.map(l => (
           <div key={l.id} onClick={() => window.open(l.url, '_blank')} className="press" style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", background: dark ? "rgba(255,255,255,0.05)" : "#F3F4F6", borderRadius: 14 }}>
-              {l.img ? <img src={l.img} alt={l.title} style={{ width: 26, height: 26, objectFit: "contain", borderRadius: 4 }} /> : <span style={{ fontSize: 24, lineHeight: 1 }}>{l.emoji}</span>}
+            <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", background: dark ? "transparent" : "transparent", borderRadius: 14 }}>
+              {l.img ? <img src={l.img} alt={l.title} style={{ width: 28, height: 28, objectFit: "contain", borderRadius: 4 }} /> : <span style={{ fontSize: 26, lineHeight: 1 }}>{l.emoji}</span>}
             </div>
             <div style={{ fontWeight: 800, fontSize: 11, color: T.text, lineHeight: 1.2, width: "100%", padding: "0 2px" }}>{l.title}</div>
           </div>
