@@ -2,6 +2,10 @@
   "appId": "mx.citymap.app",
   "appName": "CityMap",
   "webDir": "dist",
+  "server": {
+    "url": "https://citymap.mx",
+    "cleartext": false
+  },
   "plugins": {
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]
