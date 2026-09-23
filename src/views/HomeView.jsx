@@ -590,22 +590,24 @@ export default function HomeView({ isBackground }) {
 
                 {/* Bottom Text Content */}
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "30px 16px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, width: "100%" }}>
-                        <h3 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 2px 8px rgba(0,0,0,0.5)", letterSpacing: "-0.5px", textAlign: "left", flex: 1 }}>{spotlightBiz.name}</h3>
-                        
-                        {spotlightBiz.rating > 0 && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 4, textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>
-                            <span style={{ fontSize: 14, color: "#fff", fontWeight: 800 }}>{spotlightBiz.rating}</span>
-                            <Icon name="star" size={14} color="#FBBF24" fill="#FBBF24" />
-                          </div>
-                        )}
-                    </div>
+                    <h3 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 2px 8px rgba(0,0,0,0.5)", letterSpacing: "-0.5px", textAlign: "left" }}>
+                      {spotlightBiz.name}
+                    </h3>
                     
-                    {spotlightBiz.category && (
-                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", fontWeight: 600, textTransform: "capitalize", textShadow: "0 1px 4px rgba(0,0,0,0.4)", textAlign: "left" }}>
-                        {spotlightBiz.category}
-                      </span>
-                    )}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginTop: 2 }}>
+                      {spotlightBiz.category ? (
+                        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", fontWeight: 600, textTransform: "capitalize", textShadow: "0 1px 4px rgba(0,0,0,0.4)", textAlign: "left" }}>
+                          {spotlightBiz.category}
+                        </span>
+                      ) : <span />}
+                      
+                      {spotlightBiz.rating > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>
+                          <span style={{ fontSize: 13, color: "#fff", fontWeight: 800 }}>{spotlightBiz.rating}</span>
+                          <span style={{ fontSize: 11 }}>⭐</span>
+                        </div>
+                      )}
+                    </div>
                 </div>
               </div>
             </div>
