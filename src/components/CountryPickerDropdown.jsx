@@ -83,32 +83,36 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
         WebkitBackdropFilter: isWelcome ? "none" : "blur(4px)",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
-        padding: isWelcome ? 0 : 20
+        justifyContent: isWelcome ? "center" : "flex-start",
+        padding: isWelcome ? 0 : 0
       }}
     >
       <div 
         ref={ref}
         style={{
-        width: "100%",
+        width: isWelcome ? "100%" : "85%",
         maxWidth: isWelcome ? 400 : 320,
-        height: isWelcome ? "100vh" : "auto",
-        background: isWelcome ? "transparent" : (dark ? "#1e293b" : "#ffffff"),
-        borderRadius: isWelcome ? 0 : 20,
-        boxShadow: isWelcome ? "none" : (dark ? "0 10px 40px rgba(0,0,0,0.5)" : "0 10px 40px rgba(0,0,0,0.1)"),
-        border: isWelcome ? "none" : `1px solid ${dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+        height: "100vh",
+        background: isWelcome ? "transparent" : (dark ? "#0f172a" : "#ffffff"),
+        borderRadius: 0,
+        boxShadow: isWelcome ? "none" : (dark ? "4px 0 24px rgba(0,0,0,0.5)" : "4px 0 24px rgba(0,0,0,0.1)"),
+        border: "none",
         overflowY: "auto",
-        maxHeight: isWelcome ? "100vh" : "85vh",
+        maxHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
         padding: isWelcome ? "20px 20px 100px 20px" : 0,
-        animation: "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+        animation: isWelcome ? "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)" : "slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
       }}>
         <style>{`
           @keyframes scaleIn {
             from { transform: scale(0.95); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
+          }
+          @keyframes slideInLeft {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
           }
         `}</style>
       {isWelcome ? (
@@ -136,48 +140,17 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
           </div>
         </div>
       ) : (
-        <div style={{
-          padding: "16px 16px 8px 16px",
-          display: "flex",
-          alignItems: "center",
-          position: "relative"
-        }}>
-          <button
-            onClick={onClose}
-            style={{
-              background: "transparent",
-              border: "none",
-              padding: 4,
-              cursor: "pointer",
-              color: dark ? "#94a3b8" : "#64748b",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "50%",
-              transition: "background 0.2s",
-              position: "absolute",
-              left: 12
-            }}
-            onMouseOver={(e) => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)"}
-            onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
-          >
-            <Icon name="x" size={16} />
+        <div style={{ padding: '24px 20px', borderBottom: `1px solid ${dark ? '#1E293B' : '#F1F5F9'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+          <img src="/citymap.mx.png" alt="CityMap" style={{ height: 32, filter: dark ? 'none' : 'invert(1)' }} />
+          <button onClick={onClose} style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: dark ? "#f8fafc" : "#0f172a" }}>
+            <Icon name="x" size={24} color={dark ? "#f8fafc" : "#0f172a"} />
           </button>
-          <span style={{
-            flex: 1,
-            textAlign: "center",
-            fontSize: 10,
-            fontWeight: 700,
-            color: dark ? "#94a3b8" : "#64748b",
-            letterSpacing: 1.2,
-            textTransform: "uppercase"
-          }}>
-            Cambiar Destino
-          </span>
         </div>
       )}
+
+      <div style={{ flex: 1, overflowY: "auto", padding: isWelcome ? 0 : "16px 0" }}>
       
-      <div style={{ padding: "0 12px 10px 12px" }}>
+      <div style={{ padding: "0 16px 10px 16px" }}>
         <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
           <span style={{
             position: "absolute",
