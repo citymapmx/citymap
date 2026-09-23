@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import GlobalAuthInit from '../components/GlobalAuthInit';
 
 /**
  * Global client-side providers for the Next.js unified app.
@@ -19,6 +20,7 @@ export function Providers({ children }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <GlobalAuthInit />
       {children}
     </QueryClientProvider>
   );

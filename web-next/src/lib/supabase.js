@@ -2,11 +2,11 @@ import { Capacitor } from '@capacitor/core';
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 // Credenciales leídas desde variables de entorno (.env.local / Vercel)
-const SUPABASE_URL = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_URL ? process.env.NEXT_PUBLIC_SUPABASE_URL : "https://dpkjxhjkzdlkvyotoeai.supabase.co";
-const SUPABASE_ANON = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
-const CLOUDINARY_CLOUD = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD ? process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD : "da6g5pt5x";
-const CLOUDINARY_PRESET = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_CLOUDINARY_PRESET ? process.env.NEXT_PUBLIC_CLOUDINARY_PRESET : "cityguide_unsigned";
-const GMAPS_KEY = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_GMAPS_KEY ? process.env.NEXT_PUBLIC_GMAPS_KEY : "AIzaSyD_fPxRqRJe6r9BiBsTZBj2K_KZnrhIf4M";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co";
+const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
+const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD || "da6g5pt5x";
+const CLOUDINARY_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_PRESET || "cityguide_unsigned";
+const GMAPS_KEY = process.env.NEXT_PUBLIC_GMAPS_KEY || "AIzaSyD_fPxRqRJe6r9BiBsTZBj2K_KZnrhIf4M";
 
 const _SB_BASE = SUPABASE_URL.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 const _REST = `${_SB_BASE}/rest/v1`;
