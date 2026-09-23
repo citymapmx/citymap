@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { sb } from '../lib/supabase.js';
 
 export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
@@ -14,7 +14,30 @@ export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
   const [detectedTown, setDetectedTown] = useState(null);
   const [detectedState, setDetectedState] = useState(null);
 
-  const getKm = useCallback((lat1, lng1, lat2, lng2) => { 
+  
+  // Iniciar seguimiento en tiempo real (watchPosition)
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    
+    // Si ya tenemos coordenadas o el usuario dio permiso, esto empezará a reportar los cambios
+    const watchId = navigator.geolocation.watchPosition(
+      pos => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserCoords(coords);
+        localStorage.setItem("cg_coords", JSON.stringify(coords));
+      },
+      (err) => {
+        console.warn("watchPosition error:", err);
+      },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, []);
+
+const getKm = useCallback((lat1, lng1, lat2, lng2) => { 
     const R = 6371; 
     const dLat = (lat2 - lat1) * Math.PI / 180; 
     const dLng = (lng2 - lng1) * Math.PI / 180; 

@@ -110,6 +110,52 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
     });
   }, [ok, utilityFilter]);
 
+  // Live Geolocation Tracking Effect
+  React.useEffect(() => {
+    if (!ok || !map.current || !userLocation?.lat || !userLocation?.lng) return;
+
+    if (!userPin.current) {
+      const svgUser = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+        <circle cx="22" cy="22" r="20" fill="rgba(59,130,246,0.12)"/>
+        <circle cx="22" cy="22" r="14" fill="rgba(59,130,246,0.20)"/>
+        <circle cx="22" cy="22" r="9" fill="#fff"/>
+        <circle cx="22" cy="22" r="6" fill="#3B82F6"/>
+        <circle cx="22" cy="22" r="9" fill="none" stroke="#3B82F6" stroke-width="1.5" opacity="0.6"/>
+      </svg>`;
+      userPin.current = new window.google.maps.Marker({
+        position: { lat: userLocation.lat, lng: userLocation.lng },
+        map: map.current,
+        title: "Tu ubicación",
+        icon: {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgUser)}`,
+          scaledSize: new window.google.maps.Size(44, 44),
+          anchor: new window.google.maps.Point(22, 22),
+        },
+        zIndex: 1000,
+      });
+    } else {
+      userPin.current.setPosition({ lat: userLocation.lat, lng: userLocation.lng });
+    }
+
+    if (radiusKm) {
+      if (!radiusCircle.current) {
+        radiusCircle.current = new window.google.maps.Circle({
+          strokeColor: "#3B82F6", strokeOpacity: 0.1, strokeWeight: 1,
+          fillColor: "#3B82F6", fillOpacity: 0.04,
+          map: map.current,
+          center: { lat: userLocation.lat, lng: userLocation.lng },
+          radius: radiusKm * 1000
+        });
+      } else {
+        radiusCircle.current.setCenter({ lat: userLocation.lat, lng: userLocation.lng });
+        radiusCircle.current.setRadius(radiusKm * 1000);
+      }
+    } else if (radiusCircle.current) {
+      radiusCircle.current.setMap(null);
+      radiusCircle.current = null;
+    }
+  }, [ok, userLocation, radiusKm]);
+
   useEffect(() => {
     if (!ok || !ref.current) return;
 
@@ -166,58 +212,10 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
     pins.current.forEach(m => m.setMap(null));
     pins.current = [];
 
-    // ── User location marker & Radius ──
-     
-    if (userPin.current) { userPin.current.setMap(null); userPin.current = null; }
-     
-    if (radiusCircle.current) { radiusCircle.current.setMap(null); radiusCircle.current = null; }
-
-    if (userLocation?.lat && userLocation?.lng) {
-      const svgUser = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
-        <circle cx="22" cy="22" r="20" fill="rgba(59,130,246,0.12)"/>
-        <circle cx="22" cy="22" r="14" fill="rgba(59,130,246,0.20)"/>
-        <circle cx="22" cy="22" r="9" fill="#fff"/>
-        <circle cx="22" cy="22" r="6" fill="#3B82F6"/>
-        <circle cx="22" cy="22" r="9" fill="none" stroke="#3B82F6" stroke-width="1.5" opacity="0.6"/>
-      </svg>`;
-      userPin.current = new window.google.maps.Marker({
-        position: { lat: userLocation.lat, lng: userLocation.lng },
-        map: map.current,
-        title: "Tu ubicación",
-        icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgUser)}`,
-          scaledSize: new window.google.maps.Size(44, 44),
-          anchor: new window.google.maps.Point(22, 22),
-        },
-        zIndex: 1000,
-      });
-
-      // Draw Radius Circle if provided and NO pin is selected
-      if (radiusKm && !selected) {
-        radiusCircle.current = new window.google.maps.Circle({
-          strokeColor: "#3B82F6",
-          strokeOpacity: 0.20,
-          strokeWeight: 1.5,
-          fillColor: "#3B82F6",
-          fillOpacity: 0.03,
-          map: map.current,
-          center: { lat: userLocation.lat, lng: userLocation.lng },
-          radius: radiusKm * 1000 // km to meters
-        });
-      }
-
-      // Center map on user if no business is selected
-      if (!selected && !map.current._hasCentered) {
-        map.current._hasCentered = true;
-        if (radiusCircle.current) {
-          // Fit bounds to circle if it exists
-          map.current.fitBounds(radiusCircle.current.getBounds(), { top: 60, bottom: 60, left: 20, right: 20 });
-        } else {
-          map.current.panTo({ lat: userLocation.lat, lng: userLocation.lng });
-           
-          map.current.setZoom(14);
-        }
-      }
+    if (!selected && !map.current._hasCentered && userLocation?.lat && userLocation?.lng) {
+      map.current._hasCentered = true;
+      map.current.panTo({ lat: userLocation.lat, lng: userLocation.lng });
+      map.current.setZoom(14);
     }
 
     // Custom HTML Marker class for rich markers without mapId
