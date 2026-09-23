@@ -396,6 +396,7 @@ export default function DetailView() {
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {!selected.is_place && (() => {
                         const smartSt = getSmartScheduleInfo(selected, window.CITY_TZ, now);
+                        if (smartSt.hidden) return null;
                         return (
                           <>
                             <span style={{ width: 6, height: 6, borderRadius: "50%", background: smartSt.color, display: "inline-block" }} />
@@ -840,7 +841,7 @@ export default function DetailView() {
           <div style={{ display: "flex", flexDirection: "column", padding: "0 20px" }}>
             
             {/* Horario Row */}
-            <div style={{ padding: "20px 0", borderBottom: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}` }}>
+            {selected.schedule?.type !== "none" && <div style={{ padding: "20px 0", borderBottom: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: Object.keys(selected.schedule || {}).length > 0 ? 12 : 4 }}>
                 <Icon name="clock" size={22} color={dText} />
                 <span className="text-base" style={{ fontWeight: 700, color: dText }}>Horario</span>
@@ -886,7 +887,7 @@ export default function DetailView() {
                   </div>
                 )}
               </div>
-            </div>
+            </div>}
 
             {/* Ubicación Row */}
             {!selected.hide_location && <div style={{ padding: "20px 0", borderBottom: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>

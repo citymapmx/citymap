@@ -526,8 +526,12 @@ export default function HomeView({ isBackground }) {
                             <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 13, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.1, marginBottom: 4 }}>{b.name}</div>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                                <div style={{ width: 5, height: 5, borderRadius: "50%", background: getScheduleStatus(b, isOpen(b)).color, flexShrink: 0 }} />
-                                <span style={{ fontSize: 9, color: getScheduleStatus(b, isOpen(b)).color, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.2 }}>{t(getScheduleStatus(b, isOpen(b)).text)}</span>
+                                {!getScheduleStatus(b, isOpen(b)).hidden && (
+                                  <>
+                                    <div style={{ width: 5, height: 5, borderRadius: "50%", background: getScheduleStatus(b, isOpen(b)).color, flexShrink: 0 }} />
+                                    <span style={{ fontSize: 9, color: getScheduleStatus(b, isOpen(b)).color, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.2 }}>{t(getScheduleStatus(b, isOpen(b)).text)}</span>
+                                  </>
+                                )}
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 1, color: T.sub, fontSize: 10, fontWeight: 600 }}>
                                 <Icon name="pin" size={9} color={T.sub} />

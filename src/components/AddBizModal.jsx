@@ -173,6 +173,7 @@ export default function AddBizModal({
                         <option value="always_open">Siempre Abierto (24/7)</option>
                         <option value="appointment">Previa Cita / Servicio (Sin horario fijo)</option>
                         <option value="delivery">Solo a Domicilio / Para Llevar (Dark Kitchen)</option>
+                        <option value="none">Sin Horario (Perfil Digital / Creador)</option>
                       </select>
                     </div>
 

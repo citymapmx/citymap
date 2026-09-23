@@ -102,6 +102,7 @@ const renderRatingRow = (b, realFavs, hideReviews, hideFavs, T, starStyle = {}, 
 
 const renderScheduleRow = (b, T, t) => {
   const status = getScheduleStatus(b, isOpenNow(b), true);
+  if (status.hidden) return null;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <span className={status.dot} style={{ width: 4, height: 4 }} />

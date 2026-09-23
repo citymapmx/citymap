@@ -324,7 +324,7 @@ export default function MapView() {
               <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 6, textAlign: "left" }}>
                 <div style={{ fontFamily: FONT_BIZ, fontWeight: 900, fontSize: 20, color: T.text, lineHeight: 1.1, marginBottom: 2, textAlign: "left" }}>{mapPin.name}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", minWidth: 0 }}>
-                  <span style={{ fontSize: 11, color: getScheduleStatus(mapPin, isOpen(mapPin)).color, fontWeight: 700, whiteSpace: "nowrap" }}>{t(getScheduleStatus(mapPin, isOpen(mapPin)).text)}</span>
+                  {!getScheduleStatus(mapPin, isOpen(mapPin)).hidden && <span style={{ fontSize: 11, color: getScheduleStatus(mapPin, isOpen(mapPin)).color, fontWeight: 700, whiteSpace: "nowrap" }}>{t(getScheduleStatus(mapPin, isOpen(mapPin)).text)}</span>}
                   {mapPin.review_count > 0 && (<>
                     <span style={{ fontSize: 11, color: T.sub, opacity: 0.4 }}>•</span>
                     <span style={{ fontSize: 11, color: T.sub, fontWeight: 600, whiteSpace: "nowrap" }}>⭐ {mapPin.rating}</span>
@@ -446,8 +446,12 @@ export default function MapView() {
                               <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 11, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.1 }}>{b.name}</div>
                               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                                  <div style={{ width: 4, height: 4, borderRadius: "50%", background: getScheduleStatus(b, isOpen(b)).color, flexShrink: 0 }} />
-                                  <span style={{ fontSize: 8, color: getScheduleStatus(b, isOpen(b)).color, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.2 }}>{t(getScheduleStatus(b, isOpen(b)).text)}</span>
+                                  {!getScheduleStatus(b, isOpen(b)).hidden && (
+                                    <>
+                                      <div style={{ width: 4, height: 4, borderRadius: "50%", background: getScheduleStatus(b, isOpen(b)).color, flexShrink: 0 }} />
+                                      <span style={{ fontSize: 8, color: getScheduleStatus(b, isOpen(b)).color, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.2 }}>{t(getScheduleStatus(b, isOpen(b)).text)}</span>
+                                    </>
+                                  )}
                                 </div>
                                 <div style={{ display: "flex", alignItems: "center", gap: 1, color: T.sub, fontSize: 9, fontWeight: 600 }}>
                                   <Icon name="pin" size={8} color={T.sub} />
