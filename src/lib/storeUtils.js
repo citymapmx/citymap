@@ -18,7 +18,7 @@ export function buildWhatsAppMessage(cartItems, business, customerName = "", ord
     msg += `Método: Pasar a recoger\n`;
   }
   
-  msg += `\n*DETALLE DEL PEDIDO*\n`;
+  msg += `\n*DETALLE DEL PEDIDO*\n\n`;
 
   // Group items by category name
   const groups = {};
