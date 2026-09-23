@@ -78,9 +78,9 @@ export default function HomeEvents({
                       }
                   }
                   return (
-                    <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(255, 255, 255, 0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", padding: "6px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.6)", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
-                      <span style={{ fontSize: 15, fontWeight: 900, color: "#111827", marginBottom: 2, whiteSpace: "nowrap", letterSpacing: "-0.5px" }}>{dayTxt}</span>
-                      <span style={{ fontSize: 9, fontWeight: 800, color: "rgba(17, 24, 39, 0.75)", textTransform: "uppercase", whiteSpace: "nowrap", letterSpacing: "0.5px" }}>{moTxt}</span>
+                    <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", padding: "4px 8px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: "#fff", marginBottom: 2, whiteSpace: "nowrap", letterSpacing: "-0.2px" }}>{dayTxt}</span>
+                      <span style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", whiteSpace: "nowrap", letterSpacing: "0.5px" }}>{moTxt}</span>
                     </div>
                   );
                 })()}

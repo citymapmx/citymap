@@ -143,6 +143,7 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
 import { useCapacitorHardwareBack } from './hooks/useCapacitorHardwareBack.js';
 import { usePushNotifications } from './hooks/usePushNotifications.js';
+import { useWebPush } from './hooks/useWebPush.js';
 import { useInAppNotifications } from './hooks/useInAppNotifications.js';
 import { useAppSEO } from './hooks/useAppSEO.js';
 import { useAppInitialization } from './hooks/useAppInitialization.js';
@@ -215,6 +216,7 @@ export default function CityGuide() {
   // --- NOTIFICATIONS ---
   usePushNotifications();
   useInAppNotifications();
+  useWebPush({ citySlug: activeCity, enabled: true });
 
 
   useEffect(() => {
