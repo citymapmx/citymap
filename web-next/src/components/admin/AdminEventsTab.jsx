@@ -1,0 +1,274 @@
+import React, { useState, useEffect, useRef } from 'react';
+import useGMaps from '../map/useGMaps.js';
+import Icon from '../ui/Icon';
+import Uploader from '../Uploader';
+import OptimizedImage from '../ui/OptimizedImage';
+import FI from './FI';
+import BookingManager from '../BookingManager';
+import { getEventStatus, createSlug, getThumbUrl } from '../../lib/utils.js';
+import { cloudDelete } from '../../lib/supabase.js';
+
+
+const BizSelector = ({ bizList, value, onChange }) => {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const selectedBiz = bizList.find(b => b.id === value);
+
+  const filtered = bizList.filter(b => b.name.toLowerCase().includes(search.toLowerCase())).slice(0, 50);
+
+  return (
+    <div style={{ position: "relative" }}>
+      <input 
+        value={open ? search : (selectedBiz ? selectedBiz.name : "-- Ninguno --")}
+        placeholder="Buscar negocio por nombre..."
+        onChange={e => { setSearch(e.target.value); setOpen(true); }}
+        onFocus={() => { setSearch(""); setOpen(true); }}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
+        style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}
+      />
+      {open && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #E4E8E4", borderRadius: 8, marginTop: 4, zIndex: 100, maxHeight: 250, overflowY: "auto", boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}>
+          <div 
+            onClick={() => { onChange(""); setOpen(false); }}
+            style={{ padding: "12px", cursor: "pointer", borderBottom: "1px solid #E4E8E4", color: "#D94F3D", fontWeight: 700, fontSize: 13 }}
+            onMouseOver={e => e.currentTarget.style.background = "#FFF5F5"}
+            onMouseOut={e => e.currentTarget.style.background = "transparent"}
+          >
+            -- Quitar selección --
+          </div>
+          {filtered.map(b => (
+            <div 
+              key={b.id} 
+              onClick={() => { onChange(b.id); setOpen(false); }}
+              style={{ padding: "12px", cursor: "pointer", borderBottom: "1px solid #E4E8E4", fontSize: 13, fontWeight: 500, color: "#0F1A14" }}
+              onMouseOver={e => e.currentTarget.style.background = "#F7F8F6"}
+              onMouseOut={e => e.currentTarget.style.background = "transparent"}
+            >
+              {b.name}
+            </div>
+          ))}
+          {filtered.length === 0 && <div style={{ padding: "12px", color: "#5A6872", fontSize: 13, textAlign: "center" }}>No se encontraron negocios</div>}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function AdminEventsTab({
+  data,
+  sb,
+  load,
+  onToast
+}) {
+  const [evForm, setEvForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const mapsOk = useGMaps();
+  const venueRef = useRef(null);
+  
+  const formKey = evForm ? (evForm.id || "new") : null;
+  useEffect(() => {
+    if (!mapsOk || !venueRef.current || !formKey) return;
+
+    let styleEl = document.getElementById("pac-z-fix-events");
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "pac-z-fix-events";
+      styleEl.textContent = `.pac-container { z-index: 99999 !important; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; margin-top: 4px; border: none; }`;
+      document.head.appendChild(styleEl);
+    }
+
+    let ac;
+    const init = () => {
+      if (!venueRef.current) return;
+      try {
+        ac = new window.google.maps.places.Autocomplete(venueRef.current, {
+          fields: ["name", "formatted_address", "geometry"],
+        });
+        ac.addListener("place_changed", () => {
+          const place = ac.getPlace();
+          if (place && place.name) {
+            setEvForm(prev => ({ 
+              ...prev, 
+              venue_name: place.name,
+              venue_address: place.formatted_address || place.name,
+              lat: place.geometry?.location?.lat() || null,
+              lng: place.geometry?.location?.lng() || null 
+            }));
+          }
+        });
+      } catch (e) {
+        console.warn("Google Maps Autocomplete error:", e);
+      }
+    };
+    
+    const timer = setTimeout(init, 100);
+    return () => clearTimeout(timer);
+  }, [mapsOk, formKey]);
+
+
+  return (
+    <>
+      {!evForm && <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>{data.events.filter(ev => ev.status !== "pending").length} eventos</span>
+          <button onClick={() => setEvForm({ _new: true, biz_id: "", title: "", description: "", date: "", time: "", price_type: "gratis", price: "", event_category: "", venue_name: "", venue_address: "", whatsapp: "", img_url: "", city_slug: "all", status: "approved", active: true })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo</button>
+        </div>
+        {data.events.filter(ev => ev.status !== "pending").map(ev => {
+          const st = getEventStatus(ev);
+          const isPending = ev.status === "pending" || !ev.active;
+          const thumb = ev.img_url || ev.img;
+          return <div key={ev.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 10, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
+            <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+              {/* Thumbnail pequeño */}
+              <div style={{ width: 52, height: 52, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#F7F8F6" }}>
+                {thumb
+                  ? <img src={getThumbUrl(thumb, 120, 120)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar" size={20} color="#5A6872" /></div>
+                }
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 2 }}>
+                  <div className="text-sm" style={{ fontWeight: 700, color: "#0F1A14" }}>{ev.title}</div>
+                  <span className="text-micro" style={{ background: st.bg, color: st.color, borderRadius: 20, padding: "3px 9px", fontWeight: 700, flexShrink: 0 }}>{st.lbl}</span>
+                </div>
+                <div className="text-xs" style={{ color: "#5A6872", marginTop: 2 }}>
+                  {ev.date}{ev.time && " · " + ev.time}
+                  {ev.event_category && " · " + ev.event_category}
+                  {ev.venue_name && " · " + ev.venue_name}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: "0 14px 10px", display: "flex", gap: 6 }}>
+                {isPending && <button onClick={async () => { 
+                  await sb.patch("events", ev.id, { status: "approved", active: true }); 
+                  if (ev.user_id) await sb.notify(ev.user_id, "Evento Aprobado", `Tu evento "${ev.title}" ya es público.`, "system");
+                  onToast("Evento aprobado"); 
+                  await load(); 
+                }} style={{ flex: 1, padding: "7px 0", background: "#DCFCE7", border: "none", borderRadius: 8, fontSize: 11, fontWeight: 700, color: "#16A34A", cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>}
+                {isPending && <button onClick={async () => { if (!window.confirm("¿Rechazar y eliminar este evento por completo?")) return; if (ev.img_url || ev.img) await cloudDelete(ev.img_url || ev.img); await sb.del("events", ev.id); onToast("Evento eliminado"); await load(); }} style={{ flex: 1, padding: "7px 0", background: "#FEE2E2", border: "none", borderRadius: 8, fontSize: 11, fontWeight: 700, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>}
+                {!isPending && <button onClick={() => setEvForm({ ...ev })} style={{ flex: 1, background: "#EAF4F0", border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontSize: 11, fontWeight: 700, color: "#1A7A5E", fontFamily: "inherit" }}>Editar</button>}
+                <button onClick={async () => { if (!window.confirm("Eliminar evento?")) return; if (ev.img_url || ev.img) await cloudDelete(ev.img_url || ev.img); await sb.del("events", ev.id); onToast("Eliminado"); await load(); }} style={{ background: "#FFF5F5", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer" }}><Icon name="trash" size={12} color="#D94F3D" /></button>
+            </div>
+          </div>;
+        })}
+      </div>}
+      
+      {evForm && <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)", display: "flex", flexDirection: "column", gap: 11 }}>
+          <div className="text-base" style={{ fontWeight: 800, color: "#0F1A14" }}>{evForm._new ? "Nuevo evento" : "Editar evento"}</div>
+          <div>
+            <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Negocio asociado (Opcional)</label>
+            <BizSelector 
+              bizList={data.biz || []} 
+              value={evForm.biz_id || ""} 
+              onChange={val => setEvForm(f => ({ ...f, biz_id: val }))} 
+            />
+          </div>
+          <FI label="Título" field="title" src={evForm} set={setEvForm} />
+          <FI label="Descripción" field="description" src={evForm} set={setEvForm} rows={3} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>1ra Fecha</label><input type="date" value={evForm.date || ""} onChange={e => setEvForm(f => ({ ...f, date: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }} /></div>
+            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Hora</label><input type="time" value={evForm.time || ""} onChange={e => setEvForm(f => ({ ...f, time: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }} /></div>
+            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>2da Fecha / Fin <span style={{ opacity: 0.6 }}>(Opc.)</span></label><input type="date" value={evForm.end_date || ""} onChange={e => setEvForm(f => ({ ...f, end_date: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }} /></div>
+            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Hora 2da Fecha <span style={{ opacity: 0.6 }}>(Opc.)</span></label><input type="time" value={evForm.end_time || ""} onChange={e => setEvForm(f => ({ ...f, end_time: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }} /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Precio</label><select value={evForm.price_type || "gratis"} onChange={e => setEvForm(f => ({ ...f, price_type: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}><option value="gratis">Gratis</option><option value="paid">De pago</option></select></div>
+            {evForm.price_type === "paid" && <FI label="Monto" field="price" src={evForm} set={setEvForm} ph="$200" />}
+          </div>
+          <FI label="Categoría" field="event_category" src={evForm} set={setEvForm} ph="Ej: Concierto, Comedia..." />
+<div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "flex", alignItems: "center", gap: 6 }}>
+                Lugar del Evento 
+                {mapsOk && <img src="/googlelogo.svg" style={{height: 12}} alt="Google" />}
+              </label>
+              {(evForm.venue_name === evForm.venue_address || !evForm.venue_address) && (
+                <button 
+                  onClick={(e) => { e.preventDefault(); setEvForm(prev => ({...prev, _manualAddr: true})); }}
+                  style={{ background: "transparent", border: "none", color: "#1A7A5E", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
+                >
+                  ¿Ingresar manual?
+                </button>
+              )}
+            </div>
+            <input 
+              ref={venueRef}
+              value={evForm.venue_name || ""} 
+              placeholder="Ej: Auditorio Telmex (Buscar con Google)..." 
+              onChange={e => {
+                setEvForm(prev => ({ 
+                  ...prev, 
+                  venue_name: e.target.value,
+                  venue_address: (prev._manualAddr || prev.venue_name !== prev.venue_address && prev.venue_address) ? prev.venue_address : e.target.value
+                }));
+              }} 
+              style={{ padding: "11px 14px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 16, color: "#0F1A14", background: "#fff", fontFamily: "inherit", width: "100%" }} 
+            />
+          </div>
+          {(evForm._manualAddr || (evForm.venue_address && evForm.venue_name !== evForm.venue_address)) && (
+            <div style={{ animation: "fadeIn 0.3s ease", display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8 }}>Dirección Manual</label>
+                <button 
+                  onClick={(e) => { e.preventDefault(); setEvForm(prev => ({...prev, _manualAddr: false, venue_address: prev.venue_name})); }}
+                  style={{ background: "transparent", border: "none", color: "#D94F3D", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
+                >
+                  Ocultar
+                </button>
+              </div>
+              <input 
+                value={evForm.venue_address || ""} 
+                placeholder="Av. México 123..." 
+                onChange={e => setEvForm(prev => ({ ...prev, venue_address: e.target.value }))} 
+                style={{ padding: "11px 14px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 16, color: "#0F1A14", background: "#fff", fontFamily: "inherit", width: "100%" }} 
+              />
+            </div>
+          )}
+          <FI label="WhatsApp contacto" field="whatsapp" src={evForm} set={setEvForm} ph="3111234567" />
+          {(() => {
+            let cfg = { enabled: false, type: "external", externalLinks: [] };
+            if (evForm.website && evForm.website.startsWith('{')) {
+              try { cfg = JSON.parse(evForm.website); } catch(e) { /* silent parse failure */ }
+            } else if (evForm.website) {
+              cfg = { enabled: true, type: "external", externalLinks: [{ platform: "otro", url: evForm.website, label: "Boletos / Sitio Web" }] };
+            }
+            return (
+              <BookingManager 
+                bookingConfig={cfg} 
+                onChange={(newCfg) => setEvForm(f => ({ ...f, website: JSON.stringify(newCfg) }))} 
+                T={{ bg: "#fff", text: "#0F1A14", sub: "#5A6872", border: "#E4E8E4", green: "#1A7A5E" }} 
+              />
+            );
+          })()}
+          <div>
+            <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Ciudades</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <button type="button" onClick={() => setEvForm(f => ({ ...f, city_slug: "all" }))} style={{ padding: "6px 12px", border: `1.5px solid ${evForm.city_slug === "all" || !evForm.city_slug ? "#1A7A5E" : "#E4E8E4"}`, borderRadius: 20, fontSize: 12, fontWeight: 700, background: evForm.city_slug === "all" || !evForm.city_slug ? "#EAF4F0" : "#fff", color: evForm.city_slug === "all" || !evForm.city_slug ? "#1A7A5E" : "#5A6872", cursor: "pointer" }}>Todas</button>
+              {data.cities.map(c => {
+                const isSelected = evForm.city_slug && evForm.city_slug !== "all" && evForm.city_slug.split(",").includes(c.slug);
+                return (
+                  <button key={c.slug} type="button" onClick={() => {
+                    setEvForm(f => {
+                      let current = (f.city_slug && f.city_slug !== "all") ? f.city_slug.split(",") : [];
+                      if (isSelected) current = current.filter(x => x !== c.slug);
+                      else current.push(c.slug);
+                      return { ...f, city_slug: current.length > 0 ? current.join(",") : "all" };
+                    });
+                  }} style={{ padding: "6px 12px", border: `1.5px solid ${isSelected ? "#1A7A5E" : "#E4E8E4"}`, borderRadius: 20, fontSize: 12, fontWeight: 700, background: isSelected ? "#EAF4F0" : "#fff", color: isSelected ? "#1A7A5E" : "#5A6872", cursor: "pointer" }}>{c.name}</button>
+                )
+              })}
+            </div>
+          </div>
+          <div><div className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, marginBottom: 6 }}>Imagen del evento</div><Uploader onDone={url => setEvForm(f => ({ ...f, img_url: url }))} />{(evForm.img_url || evForm.img) && <OptimizedImage src={evForm.img_url || evForm.img} widthRequest={400} alt="" style={{ width: "100%", height: 100, objectFit: "contain", borderRadius: 8, marginTop: 8 }} />}</div>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setEvForm(null)} style={{ flex: 1, padding: 14, background: "#fff", border: "1.5px solid #E4E8E4", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+          <button onClick={async () => { setSaving(true); try { const cty = evForm.city_slug && evForm.city_slug !== "all" ? evForm.city_slug : (data.cities && data.cities.length > 0 ? data.cities[0].slug : ""); let baseSlug = evForm.slug || createSlug(evForm.title); if (!baseSlug.startsWith(cty + "-")) baseSlug = `${cty}-${baseSlug}`; let newSlug = baseSlug; let counter = 1; while (data.events.some(e => e.slug === newSlug && e.id !== evForm.id)) { newSlug = `${baseSlug}-${counter++}`; } const p = { title: evForm.title, slug: newSlug, description: evForm.description, date: evForm.date, time: evForm.time, end_date: evForm.end_date, end_time: evForm.end_time, price_type: evForm.price_type, price: evForm.price, event_category: evForm.event_category, venue_name: evForm.venue_name, venue_address: evForm.venue_address, whatsapp: evForm.whatsapp, website: evForm.website, city_slug: evForm.city_slug || "all", img_url: evForm.img_url || evForm.img, biz_id: evForm.biz_id || null, lat: evForm.lat || null, lng: evForm.lng || null, status: "approved", active: true }; if (evForm._new) await sb.post("events", p); else await sb.patch("events", evForm.id, p); onToast("Guardado"); setEvForm(null); await load(); } catch(e) { onToast("Error: " + e.message); } finally { setSaving(false); } }} disabled={saving || !evForm.title} style={{ flex: 2, padding: 14, background: saving || !evForm.title ? "#9CA3AF" : "#1A7A5E", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>{saving ? "Guardando..." : evForm._new ? "Crear" : "Guardar"}</button>
+        </div>
+      </div>}
+    </>
+  );
+}

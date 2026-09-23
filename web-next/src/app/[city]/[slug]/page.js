@@ -8,6 +8,8 @@ import ActionButtons from '../../../components/ActionButtons';
 import BackButton from '../../../components/BackButton';
 import FavButton from '../../../components/biz/FavButton';
 import ReviewSection from '../../../components/biz/ReviewSection';
+import ReservationsBlock from '../../../components/biz/ReservationsBlock';
+import EventsAgenda from '../../../components/biz/EventsAgenda';
 import AuthClient from '../../../components/auth/AuthClient';
 
 const SB_URL = (process.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co");
@@ -423,23 +425,11 @@ export default async function BusinessProfile({ params }) {
             </div>
           )}
 
+          {/* RESERVAS */}
+          <ReservationsBlock linksStr={biz.reservation_urls} />
+
           {/* EVENTOS */}
-          {events && events.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-[17px] font-extrabold text-gray-900 mb-4">Eventos de este negocio</h3>
-              <div className="flex flex-col gap-3">
-                {events.map(ev => (
-                  <a key={ev.id} href={`/evento/${ev.id}`} className="flex items-center gap-3 p-3 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors">
-                    {(ev.img_url || ev.img) ? <Image src={ev.img_url || ev.img} width={60} height={60} className="w-[60px] h-[60px] rounded-[10px] object-cover bg-gray-100" alt={ev.title} unoptimized={(ev.img_url || ev.img).includes('data:image')} /> : <div className="w-[60px] h-[60px] rounded-[10px] bg-gray-100" />}
-                    <div className="flex-1">
-                      <div className="text-[15px] font-bold text-gray-900 leading-snug">{ev.title}</div>
-                      <div className="text-[13px] text-gray-500 mt-1 flex items-center gap-1"><span>📅</span> {ev.date}</div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+          <EventsAgenda events={events} citySlug={city} />
 
           {/* RESEÑAS */}
           <ReviewSection bizId={biz.id} initialReviews={reviews || []} />

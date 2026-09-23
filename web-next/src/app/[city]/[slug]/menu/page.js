@@ -87,6 +87,24 @@ export default async function MenuPage({ params }) {
     );
   }
 
+  // Si no tiene plan premium/menu, mostrar estado vacío amigable
+  if (biz.plan !== 'premium' && biz.plan !== 'menu') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, textAlign: 'center', backgroundColor: '#f8fafc' }}>
+        <div style={{ width: 80, height: 80, borderRadius: '50%', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, marginBottom: 20 }}>
+          🍽️
+        </div>
+        <h2 style={{ fontSize: 22, fontWeight: 900, color: '#0f172a', marginBottom: 8 }}>Menú no disponible</h2>
+        <p style={{ fontSize: 15, color: '#64748b', maxWidth: 300, lineHeight: 1.5, marginBottom: 24 }}>
+          {biz.name} aún no ha habilitado su menú digital en CityMap.
+        </p>
+        <a href={`/${city}/${slug}`} style={{ display: 'inline-block', padding: '14px 28px', background: '#0F172A', color: '#fff', borderRadius: 16, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>
+          Volver al negocio
+        </a>
+      </div>
+    );
+  }
+
   const rawCategories = await getMenuCategories(biz.id);
   // Filter out empty categories & unavailable products
   const categories = rawCategories
