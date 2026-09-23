@@ -809,7 +809,7 @@ export default function DetailView() {
           <MercadoLibreShowcase nickname={selected.mercado_libre_nickname} bizName={selected.name} dText={dText} dSub={dSub} T={T} />
 
           {/* Redes Sociales */}
-          {((selected.instagram || selected.social_links?.instagram) || (selected.facebook || selected.social_links?.facebook) || (selected.tiktok || selected.social_links?.tiktok) || (selected.website || selected.social_links?.website)) && <div style={{ padding: "4px 20px 0" }}>
+          {((selected.instagram || selected.social_links?.instagram) || (selected.facebook || selected.social_links?.facebook) || (selected.tiktok || selected.social_links?.tiktok) || (selected.social_links?.youtube) || (selected.website || selected.social_links?.website)) && <div style={{ padding: "4px 20px 0" }}>
             <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 12, textAlign: "center" }}>Redes sociales</div>
             <div style={{ display: "flex", justifyContent: "center", gap: 14, overflowX: "auto", paddingBottom: 4 }}>
               {(selected.instagram || selected.social_links?.instagram) && <div onClick={() => window.open(`https://instagram.com/${(selected.instagram || selected.social_links?.instagram)?.replace("@","")}`, "_blank")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
@@ -829,6 +829,12 @@ export default function DetailView() {
                   <img src="/tiktok.svg" alt="TikTok" style={{ width: "28px", height: "28px", objectFit: "contain" }} />
                 </div>
                 <span className="text-sm" style={{ fontWeight: 600, color: dText }}>TikTok</span>
+              </div>}
+              {selected.social_links?.youtube && <div onClick={() => window.open(`https://youtube.com/${selected.social_links?.youtube.startsWith('@') ? '' : '@'}${selected.social_links?.youtube}`, "_blank")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
+                <div style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <img src="/youtube.svg" alt="YouTube" style={{ width: "28px", height: "28px", objectFit: "contain" }} />
+                </div>
+                <span className="text-sm" style={{ fontWeight: 600, color: dText }}>YouTube</span>
               </div>}
               {(selected.website || selected.social_links?.website) && <div onClick={() => goWeb(selected, null)} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
                  <Icon name="globe" size={22} color="#0EA5E9" />

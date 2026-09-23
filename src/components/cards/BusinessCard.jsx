@@ -520,6 +520,15 @@ export default memo(function BusinessCard({
                     </svg>
                   </button>
                 )}
+                {b.social_links?.youtube && (
+                  <button aria-label="Ver YouTube" onClick={(e) => { 
+                    e.stopPropagation(); 
+                    const yt = b.social_links?.youtube;
+                    window.open(yt.includes("http") ? yt : `https://youtube.com/${yt.startsWith('@') ? '' : '@'}${yt}`, "_blank"); 
+                  }} style={{ width: 36, height: 36, borderRadius: "50%", background: "transparent", border: "none", padding: 6, cursor: "pointer", transition: "transform 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
+                    <img src="/youtube.svg" alt="YouTube" width={24} height={24} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }} />
+                  </button>
+                )}
               </div>
               
               {distStr && (
