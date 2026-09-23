@@ -1,10 +1,12 @@
 export function buildWhatsAppMessage(cartItems, business, customerName = "", orderType = "pickup", address = "", generalNotes = "") {
   // Format price
   const f = (val) => "$" + Number(val).toFixed(2);
+  const SEP = "─────────────────\n";
 
-  let msg = `*NUEVO PEDIDO VÍA CITYMAP*\n\n`;
+  let msg = `🛒 *NUEVO PEDIDO VÍA CITYMAP*\n\n`;
 
-  msg += `*DATOS DEL CLIENTE*\n`;
+  msg += `${SEP}`;
+  msg += `👤 *DATOS DEL CLIENTE*\n`;
   if (customerName.trim()) {
     msg += `Nombre: ${customerName}\n`;
   }
@@ -18,7 +20,8 @@ export function buildWhatsAppMessage(cartItems, business, customerName = "", ord
     msg += `Método: Pasar a recoger\n`;
   }
   
-  msg += `\n*DETALLE DEL PEDIDO*\n\n`;
+  msg += `\n${SEP}`;
+  msg += `🧾 *DETALLE DEL PEDIDO*\n\n`;
 
   // Group items by category name
   const groups = {};
@@ -39,8 +42,13 @@ export function buildWhatsAppMessage(cartItems, business, customerName = "", ord
   Object.keys(groups).forEach(catName => {
     msg += `[${catName.toUpperCase()}]\n`;
     
+    let catSubtotal = 0;
+
     groups[catName].forEach(item => {
-      let productLine = `*${item.quantity}x* ${item.product.name}`;
+      const itemTotal = item.unitTotal * item.quantity;
+      catSubtotal += itemTotal;
+
+      let productLine = `*${item.quantity}x* ${item.product.name} — ${f(itemTotal)}`;
       msg += productLine + `\n`;
       
       if (item.selectedOptions && item.selectedOptions.length > 0) {
@@ -66,17 +74,18 @@ export function buildWhatsAppMessage(cartItems, business, customerName = "", ord
       }
       
       if (item.specialInstructions && item.specialInstructions.trim()) {
-        msg += `  *Nota: ${item.specialInstructions.trim()}\n`;
+        msg += `  📝 Nota: ${item.specialInstructions.trim()}\n`;
       }
     });
-    
-    msg += `\n`;
+
+    msg += `Subtotal: ${f(catSubtotal)}\n\n`;
   });
 
-  msg += `*TOTAL A PAGAR: ${f(total)} MXN*\n`;
+  msg += `${SEP}`;
+  msg += `💰 *TOTAL A PAGAR: ${f(total)} MXN*\n`;
 
   if (generalNotes && generalNotes.trim()) {
-    msg += `\nNotas: ${generalNotes.trim()}\n`;
+    msg += `\n📝 Notas: ${generalNotes.trim()}\n`;
   }
 
   return msg;
