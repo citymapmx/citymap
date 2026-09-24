@@ -5,6 +5,8 @@ const supabase = createClient(
   process.env.VITE_SUPABASE_ANON_KEY
 );
 
+export const revalidate = 3600;
+
 export default async function sitemap() {
   const baseUrl = 'https://citymap.mx';
 
