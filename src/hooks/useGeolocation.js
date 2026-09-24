@@ -14,27 +14,41 @@ export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
   const [detectedTown, setDetectedTown] = useState(null);
   const [detectedState, setDetectedState] = useState(null);
 
-  
-  // Iniciar seguimiento en tiempo real (watchPosition)
+  // Read position once on mount (and again only if the user moved >50m).
+  // watchPosition with high accuracy fires every few seconds on Mac/Android
+  // causing cascading re-renders of all userCoords-dependent useMemos.
   useEffect(() => {
     if (!navigator.geolocation) return;
-    
-    // Si ya tenemos coordenadas o el usuario dio permiso, esto empezará a reportar los cambios
+
+    const MIN_DISTANCE_M = 50; // only update if user moved more than this
+
+    const haversineM = (a, b) => {
+      const R = 6371000;
+      const dLat = (b.lat - a.lat) * Math.PI / 180;
+      const dLng = (b.lng - a.lng) * Math.PI / 180;
+      const s = Math.sin(dLat / 2) ** 2 +
+        Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+    };
+
+    let lastCoords = null;
+
+    const onSuccess = (pos) => {
+      const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      if (lastCoords && haversineM(lastCoords, next) < MIN_DISTANCE_M) return; // ignore tiny drift
+      lastCoords = next;
+      setUserCoords(next);
+      localStorage.setItem("cg_coords", JSON.stringify(next));
+    };
+
     const watchId = navigator.geolocation.watchPosition(
-      pos => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserCoords(coords);
-        localStorage.setItem("cg_coords", JSON.stringify(coords));
-      },
-      (err) => {
-        console.warn("watchPosition error:", err);
-      },
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+      onSuccess,
+      (err) => { console.warn("watchPosition error:", err); },
+      { enableHighAccuracy: false, maximumAge: 300000, timeout: 15000 }
     );
 
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
-    };
+    return () => { navigator.geolocation.clearWatch(watchId); };
   }, []);
 
 const getKm = useCallback((lat1, lng1, lat2, lng2) => { 
