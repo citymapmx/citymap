@@ -83,6 +83,28 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
   // ── Pick a random business ─────────────────────────────────────────────────
   const normalize = (str) => (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
+  const isValidMatch = (b, moodId, cats) => {
+    const normCat = normalize(b.category);
+    const normName = normalize(b.name);
+
+    if (moodId === 'noche' || moodId === 'tomar') {
+      if (normCat.includes('cafe') || normCat.includes('cafeteria')) {
+        if (!normCat.includes('bar') && !normCat.includes('antro') && !normCat.includes('cantina')) return false;
+      }
+    }
+    
+    if (moodId === 'compras') {
+      if (normCat.includes('hotel') || normCat.includes('hospedaje') || normCat.includes('motel') || normName.includes('hotel')) {
+        return false;
+      }
+    }
+
+    return cats.some(c => {
+      const regex = new RegExp(`(^|\\s)${c}(s|es)?(\\s|$)`);
+      return regex.test(normCat) || regex.test(normName);
+    });
+  };
+
   const pickBusiness = (mood) => {
     if (mood.id === 'eventos') {
       const now = new Date();
@@ -106,27 +128,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
     const cats = mood.cats;
     let pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
     if (cats.length > 0) {
-      // Ampliamos búsqueda y quitamos acentos
-      pool = pool.filter(b => {
-        const normCat = normalize(b.category);
-        const normName = normalize(b.name);
-        
-        // Evitar falsos positivos: un 'café' que se llame 'brew bar' no debe salir en vida nocturna
-        if (mood.id === 'noche' || mood.id === 'tomar') {
-          if (normCat.includes('cafe') || normCat.includes('cafeteria')) {
-            if (!normCat.includes('bar') && !normCat.includes('antro') && !normCat.includes('cantina')) {
-              return false;
-            }
-          }
-        }
-        
-        // Evitar que 'antro' haga match con 'cilantro', y 'bar' con 'embarcadero' o 'barbacoa'
-        return cats.some(c => {
-          // Buscamos la palabra exacta o su plural
-          const regex = new RegExp(`(^|\\s)${c}(s|es)?(\\s|$)`);
-          return regex.test(normCat) || regex.test(normName);
-        });
-      });
+      pool = pool.filter(b => isValidMatch(b, mood.id, cats));
     }
     
     const openPool = pool.filter(b => isOpenNow(b, true));
@@ -177,25 +179,13 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
         const pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
         const openBiz = pool.filter(b => isOpenNow(b, true));
         
-        let filtered = openBiz.filter(b => {
-          const normCat = normalize(b.category);
-          const normName = normalize(b.name);
-          return vibe.cats.some(c => {
-            const regex = new RegExp(`(^|\\s)${c}(s|es)?(\\s|$)`);
-            return regex.test(normCat) || regex.test(normName);
-          });
-        });
+        let filtered = openBiz.filter(b => isValidMatch(b, vibe.id, vibe.cats));
         
         // Si no hay 3 abiertos de esas categorías, rellenar con cerrados
         if (filtered.length < 3) {
           const closedFiltered = pool.filter(b => {
             if (isOpenNow(b, true)) return false;
-            const normCat = normalize(b.category);
-            const normName = normalize(b.name);
-            return vibe.cats.some(c => {
-              const regex = new RegExp(`(^|\\s)${c}(s|es)?(\\s|$)`);
-              return regex.test(normCat) || regex.test(normName);
-            });
+            return isValidMatch(b, vibe.id, vibe.cats);
           });
           filtered = [...filtered, ...closedFiltered];
         }
