@@ -41,58 +41,62 @@ export default function BannerSlider({ activeBanners }) {
   }, [activeBanners]);
 
   if (!activeBanners || activeBanners.length === 0) return null;
-  const bn = activeBanners[idx];
-  const mediaType = getMediaType(bn.img_url);
-  const embedUrl = (mediaType === "youtube" || mediaType === "vimeo") ? getEmbedUrl(bn.img_url) : null;
-
-  const handleClick = () => {
-    if (bn.link_url && mediaType !== "youtube" && mediaType !== "vimeo") {
-      let url = bn.link_url.trim();
-      if (!url.match(/^https?:\/\//i) && !url.match(/^(mailto|tel|sms):/i)) url = "https://" + url;
-      window.open(url, "_blank");
-    }
-  };
 
   return (
     <>
-      <AnimatePresence mode="wait">
-        <m.div
-          key={bn.id}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          style={{ height: "100%", width: "100%", position: "absolute", top: 0, left: 0 }}
-          onClick={handleClick}
-        >
-          {mediaType === "video" ? (
-            <video
-              src={bn.img_url}
-              autoPlay
-              muted
-              loop
-              playsInline
-              style={{ width: "100%", height: "100%", objectFit: "cover", cursor: bn.link_url ? "pointer" : "default", display: "block" }}
-            />
-          ) : embedUrl ? (
-            <iframe
-              src={embedUrl}
-              title={bn.title || "Banner video"}
-              allow="autoplay; fullscreen"
-              style={{ width: "100%", height: "100%", border: "none", pointerEvents: "none" }}
-            />
-          ) : (
-            <OptimizedImage src={bn.img_url} widthRequest={1400} alt={bn.title || ""} style={{ width: "100%", height: "100%", objectFit: "cover", cursor: bn.link_url ? "pointer" : "default" }} />
-          )}
-        </m.div>
-      </AnimatePresence>
-      <div style={{ display: "none" }}>
-        {[1].map(offset => {
-          const nextBn = activeBanners[(idx + offset) % activeBanners.length];
-          const nextType = getMediaType(nextBn?.img_url);
-          return nextBn?.img_url && nextType === "image" ? <OptimizedImage key={"preload_" + nextBn.id} src={nextBn.img_url} widthRequest={1400} priority={true} /> : null;
-        })}
-      </div>
+      {activeBanners.map((bn, i) => {
+        const isActive = i === idx;
+        const mediaType = getMediaType(bn.img_url);
+        const embedUrl = (mediaType === "youtube" || mediaType === "vimeo") ? getEmbedUrl(bn.img_url) : null;
+
+        const handleClick = () => {
+          if (bn.link_url && mediaType !== "youtube" && mediaType !== "vimeo") {
+            let url = bn.link_url.trim();
+            if (!url.match(/^https?:\/\//i) && !url.match(/^(mailto|tel|sms):/i)) url = "https://" + url;
+            window.open(url, "_blank");
+          }
+        };
+
+        return (
+          <m.div
+            key={bn.id}
+            initial={false}
+            animate={{ opacity: isActive ? 1 : 0 }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
+            style={{ 
+              height: "100%", width: "100%", position: "absolute", top: 0, left: 0,
+              zIndex: isActive ? 10 : 1, pointerEvents: isActive ? "auto" : "none"
+            }}
+            onClick={isActive ? handleClick : undefined}
+          >
+            {mediaType === "video" ? (
+              isActive && <video
+                src={bn.img_url}
+                autoPlay
+                muted
+                loop
+                playsInline
+                style={{ width: "100%", height: "100%", objectFit: "cover", cursor: bn.link_url ? "pointer" : "default", display: "block" }}
+              />
+            ) : embedUrl ? (
+              isActive && <iframe
+                src={embedUrl}
+                title={bn.title || "Banner video"}
+                allow="autoplay; fullscreen"
+                style={{ width: "100%", height: "100%", border: "none", pointerEvents: "none" }}
+              />
+            ) : (
+              <OptimizedImage 
+                src={bn.img_url} 
+                widthRequest={1400} 
+                priority={true} 
+                alt={bn.title || ""} 
+                style={{ width: "100%", height: "100%", objectFit: "cover", cursor: bn.link_url ? "pointer" : "default" }} 
+              />
+            )}
+          </m.div>
+        );
+      })}
     </>
   );
 }
