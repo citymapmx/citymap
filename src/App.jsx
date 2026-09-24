@@ -158,7 +158,10 @@ function isHomePath(pathname) {
   return segments.length <= maxHomeSegments;
 }
 
+import useThirdPartyScripts from './hooks/useThirdPartyScripts.js';
+
 export default function CityGuide() {
+  useThirdPartyScripts();
   const location = useLocation();
   const routerNavigate = useNavigate();
   const [backgroundLocation, setBackgroundLocation] = useState(null);

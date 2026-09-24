@@ -45,6 +45,8 @@ const OptimizedImage = memo(({
         opacity: loaded ? 1 : 0,
         transition: "opacity 0.4s ease-out",
         backgroundColor: "#F1F5F9",
+        transform: "translateZ(0)",
+        willChange: "opacity",
         ...style
       }}
       onLoad={() => setLoaded(true)}
