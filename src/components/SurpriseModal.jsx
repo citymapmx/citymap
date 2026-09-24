@@ -4,25 +4,25 @@ import { getThumbUrl, isOpenNow } from '../lib/utils';
 
 // ── MOODS ──────────────────────────────────────────────────────────────────────
 const MOODS = [
-  { id: 'comer',     emoji: '🍽️', label: 'Comer algo rico',  cats: ['restaurantes', 'mariscos', 'tacos', 'pizza', 'sushi'] },
-  { id: 'cafe',      emoji: '☕', label: 'Un café',           cats: ['cafeterias', 'cafe', 'postres', 'helados'] },
-  { id: 'tomar',     emoji: '🍺', label: 'Tomar algo',        cats: ['bares', 'antros', 'cantinas', 'cocteles'] },
-  { id: 'noche',     emoji: '🪩', label: 'Planes nocturnos',  cats: ['antros', 'bares', 'botaneros'] },
-  { id: 'relax',     emoji: '💆', label: 'Relajarme',         cats: ['spa', 'salud', 'bienestar', 'belleza'] },
+  { id: 'comer',     emoji: '🍽️', label: 'Comer algo rico',  cats: ['restaurante', 'marisco', 'taco', 'pizza', 'sushi', 'hamburguesa', 'alitas', 'comida', 'cenaduria'] },
+  { id: 'cafe',      emoji: '☕', label: 'Un café',           cats: ['cafeteria', 'cafe', 'postre', 'helado', 'churro', 'crepa'] },
+  { id: 'tomar',     emoji: '🍺', label: 'Tomar algo',        cats: ['bar', 'antro', 'cantina', 'coctel', 'cerveza', 'cerveceria', 'michelada'] },
+  { id: 'noche',     emoji: '🪩', label: 'Planes nocturnos',  cats: ['antro', 'bar', 'botanero', 'club', 'disco', 'karaoke'] },
+  { id: 'relax',     emoji: '💆', label: 'Relajarme',         cats: ['spa', 'salud', 'bienestar', 'belleza', 'masaje', 'yoga', 'facial'] },
   { id: 'compras',   emoji: '🛍️', label: 'Comprar algo',      cats: ['compras', 'tienda', 'boutique', 'plaza', 'comercial', 'ropa', 'moda', 'zapateria', 'mall', 'departamental'] },
-  { id: 'deporte',   emoji: '🏋️', label: 'Fitness',           cats: ['fitness', 'gym', 'deportes'] },
+  { id: 'eventos',   emoji: '🎫', label: 'Eventos locales',   cats: ['evento'] }, // Se maneja especial en la lógica
   { id: 'sorpresa',  emoji: '🎲', label: 'Lo que sea',        cats: [] },
 ];
 
 const VIBES = [
-  { id: 'romantico', emoji: '💑', label: 'Romántico', cats: ['restaurantes', 'bares', 'cafe', 'postres'] },
-  { id: 'amigos',    emoji: '🎉', label: 'Con amigos', cats: ['bares', 'antros', 'botaneros', 'tacos', 'mariscos'] },
-  { id: 'familia',   emoji: '👨‍👩‍👧', label: 'Familia', cats: ['restaurantes', 'postres', 'helados', 'compras', 'cafeterias'] },
-  { id: 'casual',    emoji: '😎', label: 'Sin drama', cats: ['cafe', 'cafeterias', 'tacos', 'mariscos', 'pizza'] },
+  { id: 'romantico', emoji: '💑', label: 'Romántico', cats: ['restaurante', 'bar', 'cafe', 'postre', 'cena'] },
+  { id: 'amigos',    emoji: '🎉', label: 'Con amigos', cats: ['bar', 'antro', 'botanero', 'taco', 'marisco', 'cerveza', 'alitas'] },
+  { id: 'familia',   emoji: '👨‍👩‍👧', label: 'Familia', cats: ['restaurante', 'postre', 'helado', 'compras', 'cafeteria', 'comida', 'parque'] },
+  { id: 'casual',    emoji: '😎', label: 'Sin drama', cats: ['cafe', 'cafeteria', 'taco', 'marisco', 'pizza', 'hamburguesa', 'churro'] },
 ];
 
 // ── COMPONENT ──────────────────────────────────────────────────────────────────
-export default function SurpriseModal({ open, onClose, mapPins, activeCity, userCoords, isNear, dark, T, handleCardTap, city }) {
+export default function SurpriseModal({ open, onClose, mapPins, events = [], activeCity, userCoords, isNear, dark, T, handleCardTap, handleEventTap, city }) {
   const [step, setStep] = useState('mood');   // mood | spin | result | ai_vibe | ai_loading | ai_result
   const [selectedMood, setSelectedMood] = useState(null);
   const [spinning, setSpinning] = useState(false);
@@ -49,6 +49,25 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
   const normalize = (str) => (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
   const pickBusiness = (mood) => {
+    if (mood.id === 'eventos') {
+      const now = new Date();
+      let pool = events.filter(ev => {
+        if (ev.status !== 'approved' || !isNear(ev, userCoords, activeCity)) return false;
+        if (ev.date) {
+          const endStr = ev.end_date || ev.date;
+          const dt = ev.time ? new Date(`${endStr}T${ev.time}:00`) : new Date(`${endStr}T23:59:00`);
+          if (now - dt > 86400000) return false;
+        }
+        return true;
+      });
+      let unseen = pool.filter(e => !seenRef.current.has(e.id));
+      if (unseen.length === 0) { seenRef.current.clear(); unseen = pool; }
+      if (unseen.length === 0) return null;
+      const chosen = unseen[Math.floor(Math.random() * unseen.length)];
+      seenRef.current.add(chosen.id);
+      return { ...chosen, isEvent: true }; // Flag to render as event
+    }
+
     const cats = mood.cats;
     let pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
     if (cats.length > 0) {
@@ -206,25 +225,31 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
             <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>{selectedMood?.emoji} {selectedMood?.label}</p>
             <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 16px' }}>¡Lo encontramos!</h2>
 
-            {/* Business Card */}
-            <div onClick={() => { handleCardTap(pick); handleClose(); }} style={{
+            {/* Business/Event Card */}
+            <div onClick={() => { pick.isEvent ? handleEventTap(pick) : handleCardTap(pick); handleClose(); }} style={{
               borderRadius: 20, overflow: 'hidden', cursor: 'pointer', position: 'relative',
               height: 220, background: dCard, boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
             }}>
               {imgSrc
-                ? <img src={imgSrc} alt={pick.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#E2E8F0,#CBD5E1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>🏪</div>
+                ? <img src={imgSrc} alt={pick.name || pick.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#E2E8F0,#CBD5E1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>{pick.isEvent ? '🎫' : '🏪'}</div>
               }
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 16px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{pick.category}</div>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.1 }}>{pick.name}</div>
-                {pick.rating > 0 && <div style={{ fontSize: 13, color: '#fff', marginTop: 4 }}>⭐ {pick.rating}</div>}
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{pick.isEvent ? 'EVENTO' : pick.category}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.1 }}>{pick.title || pick.name}</div>
+                {pick.isEvent 
+                  ? (pick.location && <div style={{ fontSize: 13, color: '#fff', marginTop: 4 }}>📍 {pick.location}</div>)
+                  : (pick.rating > 0 && <div style={{ fontSize: 13, color: '#fff', marginTop: 4 }}>⭐ {pick.rating}</div>)
+                }
               </div>
-              {isOpenNow(pick, true)
-                ? <div style={{ position: 'absolute', top: 12, right: 12, background: '#10B981', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Abierto</div>
-                : <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Cerrado</div>
-              }
+              {pick.isEvent ? (
+                <div style={{ position: 'absolute', top: 12, right: 12, background: '#3B82F6', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Próximamente</div>
+              ) : (
+                isOpenNow(pick, true)
+                  ? <div style={{ position: 'absolute', top: 12, right: 12, background: '#10B981', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Abierto</div>
+                  : <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Cerrado</div>
+              )}
             </div>
 
             {/* Actions */}

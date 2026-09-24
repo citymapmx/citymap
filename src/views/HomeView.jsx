@@ -798,12 +798,14 @@ export default function HomeView({ isBackground }) {
             open={showSurprise}
             onClose={() => setShowSurprise(false)}
             mapPins={mapPins}
+            events={events}
             activeCity={activeCity}
             userCoords={userCoords}
             isNear={isNear}
             dark={dark}
             T={T}
             handleCardTap={handleCardTap}
+            handleEventTap={handleEventTap}
             city={city}
           />
         </div>
