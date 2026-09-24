@@ -308,6 +308,11 @@ export default function HomeView({ isBackground }) {
   // Track already-shown IDs so 🎲 never repeats until the full pool is exhausted
   const surpriseSeenRef = React.useRef(new Set());
 
+  const handleExperienceTap = (exp) => {
+    useUIStore.getState().setSelectedExpSlug(createSlug(exp.title));
+    navigate(`/experiencias/${activeCity}/${createSlug(exp.title)}`);
+  };
+
   return (
     <div style={{ paddingBottom: 84, position: "relative", ...viewStyle }}>
           {/* ── HERO HEADER ── */}
@@ -799,6 +804,7 @@ export default function HomeView({ isBackground }) {
             onClose={() => setShowSurprise(false)}
             mapPins={mapPins}
             events={events}
+            experiences={experiences}
             activeCity={activeCity}
             userCoords={userCoords}
             isNear={isNear}
@@ -806,6 +812,7 @@ export default function HomeView({ isBackground }) {
             T={T}
             handleCardTap={handleCardTap}
             handleEventTap={handleEventTap}
+            handleExperienceTap={handleExperienceTap}
             city={city}
           />
         </div>

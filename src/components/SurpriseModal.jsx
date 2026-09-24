@@ -8,7 +8,7 @@ const MOODS = [
   { id: 'cafe',      emoji: '☕', label: 'Un café',           cats: ['cafeteria', 'cafe', 'postre', 'helado', 'churro', 'crepa'] },
   { id: 'tomar',     emoji: '🍺', label: 'Tomar algo',        cats: ['bar', 'antro', 'cantina', 'coctel', 'cerveza', 'cerveceria', 'michelada', 'mezcaleria', 'pub'] },
   { id: 'noche',     emoji: '🪩', label: 'Planes nocturnos',  cats: ['antro', 'bar', 'botanero', 'club', 'disco', 'karaoke', 'cantina', 'cerveceria', 'coctel', 'pub', 'michelada'] },
-  { id: 'relax',     emoji: '💆', label: 'Relajarme',         cats: ['spa', 'salud', 'bienestar', 'belleza', 'masaje', 'yoga', 'facial'] },
+  { id: 'planes',    emoji: '🧭', label: 'Armar un plan',     cats: ['punto de interes', 'atraccion', 'turismo', 'parque', 'museo', 'senderismo', 'tour'] }, // Se nutre de experiences + mapPins
   { id: 'compras',   emoji: '🛍️', label: 'Comprar algo',      cats: ['compras', 'tienda', 'boutique', 'plaza', 'comercial', 'ropa', 'moda', 'zapateria', 'mall', 'departamental'] },
   { id: 'eventos',   emoji: '🎫', label: 'Eventos locales',   cats: ['evento'] }, // Se maneja especial en la lógica
   { id: 'sorpresa',  emoji: '🎲', label: 'Lo que sea',        cats: [] },
@@ -22,7 +22,7 @@ const VIBES = [
 ];
 
 // ── COMPONENT ──────────────────────────────────────────────────────────────────
-export default function SurpriseModal({ open, onClose, mapPins, events = [], activeCity, userCoords, isNear, dark, T, handleCardTap, handleEventTap, city }) {
+export default function SurpriseModal({ open, onClose, mapPins, events = [], experiences = [], activeCity, userCoords, isNear, dark, T, handleCardTap, handleEventTap, handleExperienceTap, city }) {
   const [step, setStep] = useState('mood');   // mood | spin | result | ai_vibe | ai_loading | ai_result
   const [selectedMood, setSelectedMood] = useState(null);
   const [spinning, setSpinning] = useState(false);
@@ -84,8 +84,11 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
   const normalize = (str) => (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
   const isValidMatch = (b, moodId, cats) => {
-    const normCat = normalize(b.category);
-    const normName = normalize(b.name);
+    // Experiencias siempre matchean si están en la categoría planes, pero también checamos sus campos
+    if (b.isExperience && moodId === 'planes') return true;
+    
+    const normCat = normalize(b.category || b.activity_type);
+    const normName = normalize(b.name || b.title);
 
     if (moodId === 'noche' || moodId === 'tomar') {
       if (normCat.includes('cafe') || normCat.includes('cafeteria')) {
@@ -123,6 +126,19 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
       const chosen = unseen[Math.floor(Math.random() * unseen.length)];
       seenRef.current.add(chosen.id);
       return { ...chosen, isEvent: true }; // Flag to render as event
+    }
+
+    if (mood.id === 'planes') {
+      const cats = mood.cats;
+      let mapPool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved' && isValidMatch(b, mood.id, cats));
+      let expPool = experiences.filter(e => isNear(e, userCoords, activeCity)).map(e => ({ ...e, isExperience: true }));
+      let pool = [...mapPool, ...expPool];
+      let unseen = pool.filter(e => !seenRef.current.has(e.id));
+      if (unseen.length === 0) { seenRef.current.clear(); unseen = pool; }
+      if (unseen.length === 0) return null;
+      const chosen = unseen[Math.floor(Math.random() * unseen.length)];
+      seenRef.current.add(chosen.id);
+      return chosen;
     }
 
     const cats = mood.cats;
@@ -176,15 +192,21 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
     
     setTimeout(() => {
       try {
-        const pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
-        const openBiz = pool.filter(b => isOpenNow(b, true));
+        let pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
+        
+        if (vibe.id === 'planes') {
+          const expPool = experiences.filter(e => isNear(e, userCoords, activeCity)).map(e => ({ ...e, isExperience: true }));
+          pool = [...pool, ...expPool];
+        }
+
+        const openBiz = pool.filter(b => b.isExperience || isOpenNow(b, true));
         
         let filtered = openBiz.filter(b => isValidMatch(b, vibe.id, vibe.cats));
         
         // Si no hay 3 abiertos de esas categorías, rellenar con cerrados
         if (filtered.length < 3) {
           const closedFiltered = pool.filter(b => {
-            if (isOpenNow(b, true)) return false;
+            if (b.isExperience || isOpenNow(b, true)) return false;
             return isValidMatch(b, vibe.id, vibe.cats);
           });
           filtered = [...filtered, ...closedFiltered];
@@ -276,26 +298,35 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
             <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>{selectedMood?.emoji} {selectedMood?.label}</p>
             <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 16px' }}>¡Lo encontramos!</h2>
 
-            {/* Business/Event Card */}
-            <div onClick={() => { pick.isEvent ? handleEventTap(pick) : handleCardTap(pick); handleClose(); }} style={{
+            {/* Business/Event/Experience Card */}
+            <div onClick={() => { 
+              if (pick.isEvent) handleEventTap(pick); 
+              else if (pick.isExperience) handleExperienceTap(pick);
+              else handleCardTap(pick); 
+              handleClose(); 
+            }} style={{
               borderRadius: 20, overflow: 'hidden', cursor: 'pointer', position: 'relative',
               height: 220, background: dCard, boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
             }}>
               {imgSrc
                 ? <img src={imgSrc} alt={pick.name || pick.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#E2E8F0,#CBD5E1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>{pick.isEvent ? '🎫' : '🏪'}</div>
+                : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#E2E8F0,#CBD5E1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>{pick.isEvent ? '🎫' : pick.isExperience ? '🧭' : '🏪'}</div>
               }
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 16px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{pick.isEvent ? 'EVENTO' : pick.category}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                  {pick.isEvent ? 'EVENTO' : pick.isExperience ? (pick.activity_type || 'EXPERIENCIA') : pick.category}
+                </div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.1 }}>{pick.title || pick.name}</div>
-                {pick.isEvent 
+                {pick.isEvent || pick.isExperience
                   ? (pick.location && <div style={{ fontSize: 13, color: '#fff', marginTop: 4 }}>📍 {pick.location}</div>)
                   : (pick.rating > 0 && <div style={{ fontSize: 13, color: '#fff', marginTop: 4 }}>⭐ {pick.rating}</div>)
                 }
               </div>
               {pick.isEvent ? (
                 <div style={{ position: 'absolute', top: 12, right: 12, background: '#3B82F6', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Próximamente</div>
+              ) : pick.isExperience ? (
+                <div style={{ position: 'absolute', top: 12, right: 12, background: '#F59E0B', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Plan</div>
               ) : (
                 isOpenNow(pick, true)
                   ? <div style={{ position: 'absolute', top: 12, right: 12, background: '#10B981', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Abierto</div>
@@ -385,16 +416,20 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
                 {aiResults.bizList.slice(0, 3).map((b, i) => {
                   const thumb = b.photos?.[0]?.url || b.img1 || b.img_url;
                   return (
-                    <div key={b.id} onClick={() => { handleCardTap(b); handleClose(); }} style={{
+                    <div key={b.id} onClick={() => { 
+                      if (b.isExperience) handleExperienceTap(b);
+                      else handleCardTap(b); 
+                      handleClose(); 
+                    }} style={{
                       display: 'flex', gap: 12, background: dCard, borderRadius: 16,
                       padding: 12, cursor: 'pointer', border: `1.5px solid ${dBorder}`, alignItems: 'center'
                     }}>
                       <div style={{ width: 56, height: 56, borderRadius: 12, overflow: 'hidden', flexShrink: 0, background: dBorder }}>
-                        {thumb ? <img src={thumb} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={b.name} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🏪</div>}
+                        {thumb ? <img src={thumb} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={b.title || b.name} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>{b.isExperience ? '🧭' : '🏪'}</div>}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: dText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</div>
-                        <div style={{ fontSize: 12, color: dSub, marginTop: 2 }}>{b.category} {b.rating > 0 ? `· ⭐ ${b.rating}` : ''}</div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: dText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title || b.name}</div>
+                        <div style={{ fontSize: 12, color: dSub, marginTop: 2 }}>{b.activity_type || b.category} {b.rating > 0 ? `· ⭐ ${b.rating}` : ''}</div>
                       </div>
                       <div style={{ fontSize: 18, color: dSub }}>›</div>
                     </div>
