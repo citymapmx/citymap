@@ -7,7 +7,7 @@ const MOODS = [
   { id: 'comer',     emoji: '🍽️', label: 'Comer algo rico',  cats: ['restaurante', 'marisco', 'taco', 'pizza', 'sushi', 'hamburguesa', 'alitas', 'comida', 'cenaduria', 'cena'] },
   { id: 'cafe',      emoji: '☕', label: 'Un café',           cats: ['cafeteria', 'cafe', 'postre', 'helado', 'churro', 'crepa'] },
   { id: 'tomar',     emoji: '🍺', label: 'Tomar algo',        cats: ['bar', 'antro', 'cantina', 'coctel', 'cerveza', 'cerveceria', 'michelada', 'mezcaleria', 'pub'] },
-  { id: 'noche',     emoji: '🪩', label: 'Planes nocturnos',  cats: ['antro', 'bar', 'botanero', 'club', 'disco', 'karaoke', 'cantina', 'cerveceria', 'coctel', 'pub', 'michelada'] },
+  { id: 'noche',     emoji: '🪩', label: 'Planes nocturnos',  cats: ['antro', 'bar', 'botanero', 'club', 'disco', 'karaoke', 'cantina', 'cerveceria', 'coctel', 'pub', 'michelada', 'restaurante', 'cafeteria', 'entretenimiento'] },
   { id: 'planes',    emoji: '🧭', label: 'Armar un plan',     cats: ['punto de interes', 'atraccion', 'turismo', 'parque', 'museo', 'senderismo', 'tour'] }, // Se nutre de experiences + mapPins
   { id: 'compras',   emoji: '🛍️', label: 'Comprar algo',      cats: ['compras', 'tienda', 'boutique', 'plaza', 'comercial', 'ropa', 'moda', 'zapateria', 'mall', 'departamental'] },
   { id: 'eventos',   emoji: '🎫', label: 'Eventos locales',   cats: ['evento'] }, // Se maneja especial en la lógica
@@ -81,6 +81,34 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
   };
 
   // ── Pick a random business ─────────────────────────────────────────────────
+  const closesLate = (sch) => {
+    if (!sch || typeof sch !== "object") return false;
+    if (sch.type === "always_open") return true;
+    const toMin = s => {
+      const m = s.trim().match(/(\d{1,2})(?:\s*:\s*(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
+      if (!m) return null;
+      let hh = parseInt(m[1]);
+      const mm = parseInt(m[2] || 0);
+      const p = (m[3] || "").replace(/\./g, "").toLowerCase();
+      if (p === "pm" && hh !== 12) hh += 12;
+      if (p === "am" && hh === 12) hh = 0;
+      return hh * 60 + mm;
+    };
+    for (const txt of Object.values(sch)) {
+      if (typeof txt !== 'string' || /cerrado/i.test(txt)) continue;
+      const shifts = txt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
+      for (const shift of shifts) {
+        const segs = shift.split(/\s*[-–]\s*|\s+a\s+/i).map(s => s.trim());
+        if (segs.length < 2) continue;
+        const open = toMin(segs[0]);
+        const close = toMin(segs[1]);
+        if (open === null || close === null) continue;
+        if (close <= open || close >= 22 * 60 || close <= 5 * 60) return true; // Closes after 10 PM or overnight
+      }
+    }
+    return false;
+  };
+
   const normalize = (str) => (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
   const isValidMatch = (b, moodId, cats) => {
@@ -88,15 +116,19 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
     if (b.isExperience && moodId === 'planes') return true;
     
     const normCat = normalize(b.category || b.activity_type);
-    const normName = normalize(b.name || b.title);
 
-    if (moodId === 'noche' || moodId === 'tomar') {
+    if (moodId === 'noche') {
+      if (!closesLate(b.schedule)) return false;
+    }
+    
+    if (moodId === 'tomar') {
       if (normCat.includes('cafe') || normCat.includes('cafeteria')) {
         if (!normCat.includes('bar') && !normCat.includes('antro') && !normCat.includes('cantina')) return false;
       }
     }
     
     if (moodId === 'compras') {
+      const normName = normalize(b.name || b.title);
       if (normCat.includes('hotel') || normCat.includes('hospedaje') || normCat.includes('motel') || normName.includes('hotel')) {
         return false;
       }
@@ -104,7 +136,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
 
     return cats.some(c => {
       const regex = new RegExp(`(^|\\s)${c}(s|es)?(\\s|$)`);
-      return regex.test(normCat) || regex.test(normName);
+      return regex.test(normCat);
     });
   };
 
