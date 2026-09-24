@@ -47,6 +47,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
 
   const getNextOpenText = (b) => {
     if (!b.schedule || typeof b.schedule !== 'object') return null;
+    if (b.schedule.type === "always_open") return null;
     try {
       const d = new Date();
       const tz = (typeof window !== "undefined" && window.CITY_TZ) || "America/Mexico_City";
@@ -67,15 +68,28 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
         return hh * 60 + mm;
       };
 
-      const todayTxt = b.schedule[days[todayIdx]];
-      if (todayTxt && todayTxt.includes("-")) {
-        const parts = todayTxt.split("-");
-        const openMin = toMin(parts[0]);
-        if (openMin !== null && currentMin < openMin) return `Abre hoy a las ${parts[0].trim()}`;
+      for (let i = 0; i < 7; i++) {
+        const checkIdx = (todayIdx + i) % 7;
+        const txt = b.schedule[days[checkIdx]];
+        if (!txt || typeof txt !== 'string' || /cerrado/i.test(txt)) continue;
+        
+        const shifts = txt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
+        for (const shift of shifts) {
+          const segs = shift.split(/\s*[-–]\s*|\s+a\s+/i).map(s => s.trim());
+          if (segs.length < 2) continue;
+          const openMin = toMin(segs[0]);
+          if (openMin === null) continue;
+          
+          if (i === 0) {
+            if (openMin > currentMin) return `Abre hoy a las ${segs[0]}`;
+          } else if (i === 1) {
+            return `Abre mañana a las ${segs[0]}`;
+          } else {
+            const dayNames = ["el domingo", "el lunes", "el martes", "el miércoles", "el jueves", "el viernes", "el sábado"];
+            return `Abre ${dayNames[checkIdx]} a las ${segs[0]}`;
+          }
+        }
       }
-      
-      const tmrwTxt = b.schedule[days[(todayIdx + 1) % 7]];
-      if (tmrwTxt && tmrwTxt.includes("-")) return `Abre mañana a las ${tmrwTxt.split("-")[0].trim()}`;
     } catch (e) { /* ignore */ }
     return null;
   };
