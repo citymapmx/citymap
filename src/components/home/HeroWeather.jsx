@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from 'react';
 
-export default function HeroWeather({ userCoords, dark }) {
+export default function HeroWeather({ userCoords, activeCity, cities = [], dark }) {
   const [weatherData, setWeatherData] = useState(null);
 
   useEffect(() => {
-    const lat = userCoords?.lat || 20.659698;
-    const lng = userCoords?.lng || -103.349609;
+    // Determine the coordinates to use for weather
+    let lat = 20.659698;
+    let lng = -103.349609;
+    
+    const currentCityObj = cities?.find(c => c.slug === activeCity || c.slug === activeCity?.split(',')[0]);
+    if (currentCityObj && currentCityObj.lat) {
+      lat = currentCityObj.lat;
+      lng = currentCityObj.lng;
+    } else if (userCoords?.lat) {
+      lat = userCoords.lat;
+      lng = userCoords.lng;
+    }
+
     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`)
       .then(r => r.json())
       .then(d => {
@@ -13,7 +24,7 @@ export default function HeroWeather({ userCoords, dark }) {
             setWeatherData(d.current_weather);
          }
       }).catch(e => console.error(e));
-  }, [userCoords]);
+  }, [userCoords, activeCity, cities]);
 
   if (!weatherData) return <div style={{ height: 24, marginTop: 12 }}></div>;
 

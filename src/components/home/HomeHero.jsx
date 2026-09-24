@@ -73,7 +73,7 @@ export default function HomeHero({
                 {getGreeting()} <span className="animated-city">{cityName}</span>
               </h1>
               <div className="hero-title-anim" style={{ display: 'flex', justifyContent: 'center' }}>
-                <HeroWeather userCoords={userCoords} dark={dark} />
+                <HeroWeather userCoords={userCoords} activeCity={activeCity} cities={cities} dark={dark} />
               </div>
             </div>
           );
