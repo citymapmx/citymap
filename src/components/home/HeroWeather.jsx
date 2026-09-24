@@ -32,10 +32,12 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
   const code = weatherData.weathercode;
   const hour = new Date().getHours();
 
-  let icon = "☀️";
+  const isNight = hour >= 20 || hour < 6;
+
+  let icon = isNight ? "🌙" : "☀️";
   let mood = "Perfecto para terrazas y mariscos";
 
-  // 🌩️ Condiciones extremas primero
+  // 🌩️ Condiciones extremas primero (iguales de día y noche)
   if (code >= 95) {
     icon = "⛈️"; mood = "Tormenta afuera — ideal para pedir a domicilio";
   } else if (code >= 71 && code <= 77) {
@@ -45,29 +47,30 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
   }
   // 🌡️ Por temperatura + hora
   else if (t >= 32) {
-    icon = "🔥";
+    icon = isNight ? "🌙" : "🔥";
     if (hour >= 14 && hour <= 17) mood = "Calor extremo — busca un lugar con aire o alberca";
+    else if (isNight) mood = "Noche calurosa — perfecto para bares y terrazas";
     else mood = "Hace mucho calor — perfecto para mariscos o aguas frescas";
   } else if (t >= 27) {
-    icon = "☀️";
+    icon = isNight ? "🌙" : "☀️";
     if (hour >= 6 && hour < 11) mood = "Mañana cálida — perfecta para un brunch al aire libre";
     else if (hour >= 11 && hour < 15) mood = "Buen clima para comer en terraza";
     else if (hour >= 15 && hour < 20) mood = "Tarde perfecta para una cerveza o mariscos";
     else mood = "Noche cálida — perfecto para bares o cenar afuera";
   } else if (t >= 20) {
-    icon = code <= 3 ? "⛅" : "☀️";
+    icon = isNight ? "🌛" : (code <= 3 ? "⛅" : "☀️");
     if (hour >= 6 && hour < 10) mood = "Mañana fresca — ideal para un buen desayuno";
     else if (hour >= 10 && hour < 14) mood = "Clima agradable para explorar la ciudad";
     else if (hour >= 14 && hour < 19) mood = "Tarde ideal para café o salir a caminar";
     else mood = "Noche agradable — ¿cena o un trago?";
   } else if (t >= 14) {
-    icon = "🌤️";
+    icon = isNight ? "🌙" : "🌤️";
     if (hour >= 6 && hour < 12) mood = "Mañana fresca — perfecta para un café caliente";
     else if (hour >= 12 && hour < 20) mood = "Clima fresco — ideal para cafeterías y restaurantes";
     else mood = "Noche fresca — abrígate y sal a cenar";
   } else {
-    icon = "🥶";
-    if (hour >= 22 || hour < 6) mood = "Noche helada — pide a domicilio o cena cerca";
+    icon = isNight ? "🥶" : "🥶";
+    if (isNight) mood = "Noche helada — pide a domicilio o cena cerca";
     else mood = "Día muy frío — busca caldos, pozole o café calientito";
   }
 
