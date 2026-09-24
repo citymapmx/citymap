@@ -6,33 +6,12 @@ const FLAG_MAP = Object.fromEntries(
   Object.entries(COUNTRY_NAMES).map(([code, name]) => [name, COUNTRY_FLAGS[code] || '🌍'])
 );
 
-const RECENT_KEY = 'citymap_recent_cities';
-const MAX_RECENT = 3;
-
-function saveRecent(city) {
-  try {
-    const prev = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-    const filtered = prev.filter(c => c.slug !== city.slug);
-    const next = [{ slug: city.slug, name: city.name, country_code: city.country_code }, ...filtered].slice(0, MAX_RECENT);
-    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-  } catch {}
-}
-
-function loadRecent() {
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch { return []; }
-}
-
 export default function CountryPickerDropdown({ cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark, isWelcome }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCountry, setExpandedCountry] = useState(null);
   const [expandedStates, setExpandedStates] = useState({});
   const [cityCounts, setCityCounts] = useState({});
-  const [recentCities, setRecentCities] = useState([]);
   const ref = useRef(null);
-
-  useEffect(() => {
-    setRecentCities(loadRecent());
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -59,7 +38,6 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
   }, []);
 
   const handleSelectCity = (city) => {
-    saveRecent(city);
     onSelectCity(city);
     onClose();
   };
@@ -77,11 +55,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
   // Top popular cities (up to 5, only when not searching)
   const popularCities = sortedCities.slice(0, 5);
 
-  // Recent cities resolved from full city list
-  const resolvedRecent = recentCities
-    .map(r => sortedCities.find(c => c.slug === r.slug))
-    .filter(Boolean)
-    .filter(c => c.slug !== activeCity);
+
 
   // Group by country for the "explore" section
   const activeCountriesMap = {};
@@ -248,15 +222,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
               <span>{locating ? "Buscando..." : "Encontrar lugares cerca de mí"}</span>
             </button>
 
-            {/* Recent cities */}
-            {!isSearching && resolvedRecent.length > 0 && (
-              <div style={cardStyle}>
-                <SectionLabel label="⏱ Recientes" />
-                {resolvedRecent.map(city => (
-                  <CityRow key={city.slug} city={city} selected={city.slug === activeCity} />
-                ))}
-              </div>
-            )}
+
 
             {/* Popular cities */}
             {!isSearching && (
