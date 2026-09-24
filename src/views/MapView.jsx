@@ -348,6 +348,8 @@ export default function MapView() {
                 {/* ── SMART CONTEXT CAPSULE ── */}
                 {(() => {
                   if (!userCoords || !mapPin.lat) return null;
+                  if (!isOpen(mapPin)) return null;
+
                   const d = getKm(userCoords.lat, userCoords.lng, parseFloat(mapPin.lat), parseFloat(mapPin.lng));
                   
                   const hour = new Date().getHours();
