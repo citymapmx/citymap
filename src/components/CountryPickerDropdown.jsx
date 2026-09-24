@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { m, AnimatePresence } from 'framer-motion';
 import Icon from './ui/Icon.jsx';
 import { COUNTRY_NAMES, COUNTRY_FLAGS } from '../lib/domain.js';
 
@@ -6,7 +7,7 @@ const FLAG_MAP = Object.fromEntries(
   Object.entries(COUNTRY_NAMES).map(([code, name]) => [name, COUNTRY_FLAGS[code] || '🌍'])
 );
 
-export default function CountryPickerDropdown({ cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark, isWelcome }) {
+export default function CountryPickerDropdown({ show, cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark, isWelcome }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCountry, setExpandedCountry] = useState(null);
   const [expandedStates, setExpandedStates] = useState({});
@@ -123,42 +124,57 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 999999,
-        background: isWelcome ? (dark ? "#0f172a" : "#f8fafc") : "rgba(0,0,0,0.6)",
-        backdropFilter: isWelcome ? "none" : "blur(4px)",
-        WebkitBackdropFilter: isWelcome ? "none" : "blur(4px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: isWelcome ? "center" : "flex-end",
-      }}
-    >
-      <div
-        ref={ref}
-        style={{
-          width: isWelcome ? "100%" : "85%",
-          maxWidth: isWelcome ? 400 : 320,
-          height: "100vh",
-          background: isWelcome ? "transparent" : (dark ? "#0f172a" : "#ffffff"),
-          borderRadius: 0,
-          boxShadow: isWelcome ? "none" : (dark ? "-4px 0 24px rgba(0,0,0,0.5)" : "-4px 0 24px rgba(0,0,0,0.1)"),
-          border: "none",
-          overflowY: "auto",
-          maxHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-start",
-          padding: isWelcome ? "20px 20px 100px 20px" : 0,
-          animation: isWelcome ? "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)" : "slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
-        }}
-      >
-        <style>{`
-          @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-          @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        `}</style>
+    <AnimatePresence>
+      {show && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 999999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: isWelcome ? "center" : "flex-end",
+          }}
+        >
+          {/* Backdrop */}
+          <m.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: isWelcome ? (dark ? "#0f172a" : "#f8fafc") : "rgba(0,0,0,0.6)",
+              backdropFilter: isWelcome ? "none" : "blur(4px)",
+              WebkitBackdropFilter: isWelcome ? "none" : "blur(4px)",
+            }}
+          />
+
+          <m.div
+            ref={ref}
+            initial={isWelcome ? { opacity: 0, scale: 0.95 } : { x: '100%' }}
+            animate={isWelcome ? { opacity: 1, scale: 1 } : { x: 0 }}
+            exit={isWelcome ? { opacity: 0, scale: 0.95 } : { x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{
+              position: "relative",
+              width: isWelcome ? "100%" : "85%",
+              maxWidth: isWelcome ? 400 : 320,
+              height: "100vh",
+              background: isWelcome ? "transparent" : (dark ? "#0f172a" : "#ffffff"),
+              borderRadius: 0,
+              boxShadow: isWelcome ? "none" : (dark ? "-4px 0 24px rgba(0,0,0,0.5)" : "-4px 0 24px rgba(0,0,0,0.1)"),
+              border: "none",
+              overflowY: "auto",
+              maxHeight: "100vh",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start",
+              padding: isWelcome ? "20px 20px 100px 20px" : 0,
+            }}
+          >
 
         {isWelcome ? (
           <div style={{ padding: "0 0 24px 0", textAlign: "center", position: "relative" }}>
@@ -310,7 +326,9 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
             </div>
           </div>
         </div>
-      </div>
-    </div>
+          </m.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

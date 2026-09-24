@@ -1372,20 +1372,19 @@ useEffect(() => {
 
         
 
-        {(showCountryPicker || (requireCitySelection && hasOnboarded)) && (
-          <Suspense fallback={null}>
-            <CountryPickerDropdown 
-              cities={cities} 
-              activeCity={activeCity} 
-              onSelectCity={(city) => { handleCitySelect(city); setRequireCitySelection(false); setShowCountryPicker(false); }} 
-              onDetectCity={() => { if (!locating) detectCity({ showToast: true, onDone: (slug) => { const found = cities.find(c => c.slug === slug); if (found) handleCitySelect(found); setRequireCitySelection(false); } }); setShowCountryPicker(false); }}
-              locating={locating}
-              onClose={() => { if(!requireCitySelection) setShowCountryPicker(false); }} 
-              dark={dark}
-              isWelcome={requireCitySelection} 
-            />
-          </Suspense>
-        )}
+        <Suspense fallback={null}>
+          <CountryPickerDropdown 
+            show={showCountryPicker || (requireCitySelection && hasOnboarded)}
+            cities={cities} 
+            activeCity={activeCity} 
+            onSelectCity={(city) => { handleCitySelect(city); setRequireCitySelection(false); setShowCountryPicker(false); }} 
+            onDetectCity={() => { if (!locating) detectCity({ showToast: true, onDone: (slug) => { const found = cities.find(c => c.slug === slug); if (found) handleCitySelect(found); setRequireCitySelection(false); } }); setShowCountryPicker(false); }}
+            locating={locating}
+            onClose={() => { if(!requireCitySelection) setShowCountryPicker(false); }} 
+            dark={dark}
+            isWelcome={requireCitySelection} 
+          />
+        </Suspense>
 
         <Suspense fallback={null}>
           <GalleryModals />
