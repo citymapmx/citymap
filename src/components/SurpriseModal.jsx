@@ -4,10 +4,10 @@ import { getThumbUrl, isOpenNow } from '../lib/utils';
 
 // ── MOODS ──────────────────────────────────────────────────────────────────────
 const MOODS = [
-  { id: 'comer',     emoji: '🍽️', label: 'Comer algo rico',  cats: ['restaurante', 'marisco', 'taco', 'pizza', 'sushi', 'hamburguesa', 'alitas', 'comida', 'cenaduria'] },
+  { id: 'comer',     emoji: '🍽️', label: 'Comer algo rico',  cats: ['restaurante', 'marisco', 'taco', 'pizza', 'sushi', 'hamburguesa', 'alitas', 'comida', 'cenaduria', 'cena'] },
   { id: 'cafe',      emoji: '☕', label: 'Un café',           cats: ['cafeteria', 'cafe', 'postre', 'helado', 'churro', 'crepa'] },
-  { id: 'tomar',     emoji: '🍺', label: 'Tomar algo',        cats: ['bar', 'antro', 'cantina', 'coctel', 'cerveza', 'cerveceria', 'michelada'] },
-  { id: 'noche',     emoji: '🪩', label: 'Planes nocturnos',  cats: ['antro', 'bar', 'botanero', 'club', 'disco', 'karaoke'] },
+  { id: 'tomar',     emoji: '🍺', label: 'Tomar algo',        cats: ['bar', 'antro', 'cantina', 'coctel', 'cerveza', 'cerveceria', 'michelada', 'mezcaleria', 'pub'] },
+  { id: 'noche',     emoji: '🪩', label: 'Planes nocturnos',  cats: ['antro', 'bar', 'botanero', 'club', 'disco', 'karaoke', 'cantina', 'cerveceria', 'coctel', 'pub', 'michelada'] },
   { id: 'relax',     emoji: '💆', label: 'Relajarme',         cats: ['spa', 'salud', 'bienestar', 'belleza', 'masaje', 'yoga', 'facial'] },
   { id: 'compras',   emoji: '🛍️', label: 'Comprar algo',      cats: ['compras', 'tienda', 'boutique', 'plaza', 'comercial', 'ropa', 'moda', 'zapateria', 'mall', 'departamental'] },
   { id: 'eventos',   emoji: '🎫', label: 'Eventos locales',   cats: ['evento'] }, // Se maneja especial en la lógica
@@ -106,11 +106,26 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
     const cats = mood.cats;
     let pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
     if (cats.length > 0) {
-      // Ampliamos búsqueda y quitamos acentos (así "cafetería" y "café" coinciden con "cafe")
+      // Ampliamos búsqueda y quitamos acentos
       pool = pool.filter(b => {
         const normCat = normalize(b.category);
         const normName = normalize(b.name);
-        return cats.some(c => normCat.includes(c) || normName.includes(c));
+        
+        // Evitar falsos positivos: un 'café' que se llame 'brew bar' no debe salir en vida nocturna
+        if (mood.id === 'noche' || mood.id === 'tomar') {
+          if (normCat.includes('cafe') || normCat.includes('cafeteria')) {
+            if (!normCat.includes('bar') && !normCat.includes('antro') && !normCat.includes('cantina')) {
+              return false;
+            }
+          }
+        }
+        
+        // Evitar que 'antro' haga match con 'cilantro', y 'bar' con 'embarcadero' o 'barbacoa'
+        return cats.some(c => {
+          // Buscamos la palabra exacta o su plural
+          const regex = new RegExp(`(^|\\s)${c}(s|es)?(\\s|$)`);
+          return regex.test(normCat) || regex.test(normName);
+        });
       });
     }
     
@@ -165,12 +180,23 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
         let filtered = openBiz.filter(b => {
           const normCat = normalize(b.category);
           const normName = normalize(b.name);
-          return vibe.cats.some(c => normCat.includes(c) || normName.includes(c));
+          return vibe.cats.some(c => {
+            const regex = new RegExp(`(^|\\s)${c}(s|es)?(\\s|$)`);
+            return regex.test(normCat) || regex.test(normName);
+          });
         });
         
-        // Si no hay 3 abiertos de esas categorías, rellenar con cerrados, o cualquier abierto
+        // Si no hay 3 abiertos de esas categorías, rellenar con cerrados
         if (filtered.length < 3) {
-          const closedFiltered = pool.filter(b => !isOpenNow(b, true) && vibe.cats.some(c => normalize(b.category).includes(c) || normalize(b.name).includes(c)));
+          const closedFiltered = pool.filter(b => {
+            if (isOpenNow(b, true)) return false;
+            const normCat = normalize(b.category);
+            const normName = normalize(b.name);
+            return vibe.cats.some(c => {
+              const regex = new RegExp(`(^|\\s)${c}(s|es)?(\\s|$)`);
+              return regex.test(normCat) || regex.test(normName);
+            });
+          });
           filtered = [...filtered, ...closedFiltered];
         }
         if (filtered.length < 3) {
