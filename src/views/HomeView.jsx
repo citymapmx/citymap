@@ -303,20 +303,26 @@ export default function HomeView({ isBackground }) {
   }
 
   const canonicalUrl = `https://citymap.mx/${activeCity}`;
+  // Track already-shown IDs so 🎲 never repeats until the full pool is exhausted
+  const surpriseSeenRef = React.useRef(new Set());
 
   return (
     <div style={{ paddingBottom: 84, position: "relative", ...viewStyle }}>
           {/* ── HERO HEADER ── */}
           <HomeHero dark={dark} T={T} t={t} search={search} setSearch={setSearch} localizedPlaceholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dbReady={dbReady} cats={cats} activeCat={activeCat} setActiveCat={setActiveCat} activeCity={activeCity} city={city} cities={cities} haptic={haptic} detectedTown={detectedTown} onSurprise={() => {
             haptic("light");
-            const openPlaces = mapPins.filter(b => isNear(b, userCoords, activeCity) && isOpenNow(b, true) && b.status === "approved" && b.plan !== "free");
-            if (openPlaces.length > 0) {
-              handleCardTap(openPlaces[Math.floor(Math.random() * openPlaces.length)]);
-            } else {
-              const anyPlaces = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === "approved");
-              if (anyPlaces.length > 0) handleCardTap(anyPlaces[Math.floor(Math.random() * anyPlaces.length)]);
-              else toast$("No hay lugares disponibles 😅");
-            }
+            // All approved businesses in city, any plan
+            const pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === "approved");
+            if (pool.length === 0) { toast$("No hay lugares disponibles 😅"); return; }
+            // Prefer open ones; fall back to all if needed
+            const open = pool.filter(b => isOpenNow(b, true));
+            const candidates = open.length > 0 ? open : pool;
+            // Remove already-seen IDs; reset when all have been shown
+            let unseen = candidates.filter(b => !surpriseSeenRef.current.has(b.id));
+            if (unseen.length === 0) { surpriseSeenRef.current.clear(); unseen = candidates; }
+            const pick = unseen[Math.floor(Math.random() * unseen.length)];
+            surpriseSeenRef.current.add(pick.id);
+            handleCardTap(pick);
           }} />
           
           <PushPrompt citySlug={activeCity} dark={dark} />
