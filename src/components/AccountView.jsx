@@ -340,12 +340,6 @@ export default function AccountView({
               <div style={{ fontSize: 10, color: T.sub, fontWeight: 800, textTransform: "uppercase", marginTop: 4, letterSpacing: 0.5 }}>Listas</div>
             </div>
 
-            <div onClick={() => setShowUserQR(true)} className="press" style={{ flex: 1, background: "#0F172A", border: `1px solid #0F172A`, borderRadius: 20, padding: "16px 8px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 6px 16px rgba(15,23,42,0.15)" }}>
-              <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-                 <Icon name="grid" size={22} color="#fff" />
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", textAlign: "center", lineHeight: 1.2 }}>Mi<br/>Código</div>
-            </div>
           </div>
         </div>
         {/* ── WALLET ── */}
