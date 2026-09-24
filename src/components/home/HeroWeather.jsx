@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
+const CITY_COORDS = {
+  "guadalajara": { lat: 20.659698, lng: -103.349609 },
+  "puerto-vallarta": { lat: 20.6534, lng: -105.2253 },
+  "tepic": { lat: 21.5042, lng: -104.8944 },
+  "ciudad-de-mexico": { lat: 19.4326, lng: -99.1332 },
+  "madrid": { lat: 40.4168, lng: -3.7038 },
+  "los-angeles": { lat: 34.0522, lng: -118.2437 },
+  "cancun": { lat: 21.1619, lng: -86.8515 },
+  "monterrey": { lat: 25.6866, lng: -100.3161 }
+};
+
 export default function HeroWeather({ userCoords, activeCity, cities = [], dark }) {
   const [weatherData, setWeatherData] = useState(null);
 
@@ -8,10 +19,15 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
     let lat = 20.659698;
     let lng = -103.349609;
     
-    const currentCityObj = cities?.find(c => c.slug === activeCity || c.slug === activeCity?.split(',')[0]);
+    const slug = activeCity || activeCity?.split(',')[0];
+    const currentCityObj = cities?.find(c => c.slug === slug);
+    
     if (currentCityObj && currentCityObj.lat) {
       lat = currentCityObj.lat;
       lng = currentCityObj.lng;
+    } else if (slug && CITY_COORDS[slug]) {
+      lat = CITY_COORDS[slug].lat;
+      lng = CITY_COORDS[slug].lng;
     } else if (userCoords?.lat) {
       lat = userCoords.lat;
       lng = userCoords.lng;
@@ -26,7 +42,7 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
       }).catch(e => console.error(e));
   }, [userCoords, activeCity, cities]);
 
-  if (!weatherData) return <div style={{ height: 24, marginTop: 12 }}></div>;
+  if (!weatherData) return <div style={{ height: 40, marginTop: 12 }}></div>;
 
   const t = weatherData.temperature;
   const code = weatherData.weathercode;
@@ -45,16 +61,11 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
 
   return (
     <div style={{
-      display: "inline-flex",
+      display: "flex",
+      flexDirection: "column",
       alignItems: "center",
-      gap: 6,
-      background: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
-      backdropFilter: "blur(10px)",
-      WebkitBackdropFilter: "blur(10px)",
-      padding: "6px 14px",
-      borderRadius: 100,
+      gap: 4,
       marginTop: 12,
-      margin: "12px auto 0",
       animation: "fadeUp 1s ease forwards",
       opacity: 0,
       transform: "translateY(10px)"
@@ -64,10 +75,13 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      <span style={{ fontSize: 14 }}>{icon}</span>
-      <span style={{ fontSize: 13, fontWeight: 800, color: dark ? "#fff" : "#111827" }}>{Math.round(t)}°C</span>
-      <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "rgba(255,255,255,0.7)" : "rgba(17,24,39,0.6)" }}>•</span>
-      <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "rgba(255,255,255,0.8)" : "rgba(17,24,39,0.7)", letterSpacing: "-0.2px" }}>{mood}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 16 }}>{icon}</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: dark ? "#fff" : "#111827" }}>{Math.round(t)}°C</span>
+      </div>
+      <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "rgba(255,255,255,0.7)" : "rgba(17,24,39,0.5)", letterSpacing: "-0.2px", textAlign: "center" }}>
+        {mood}
+      </span>
     </div>
   );
 }
