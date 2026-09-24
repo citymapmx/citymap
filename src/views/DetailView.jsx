@@ -349,7 +349,7 @@ export default function DetailView() {
                 </div>
               </div>
               {/* Pill distance if available */}
-              {userCoords && selected.lat && selected.lng && (() => {
+              {(userCoords && selected.lat && selected.lng && (!selected.hide_location && selected.address && selected.address.trim() !== '')) && (() => {
                  const dist = getKm(userCoords.lat, userCoords.lng, parseFloat(selected.lat), parseFloat(selected.lng));
                  return <div className="text-xs" style={{ position: "absolute", bottom: isElite ? 60 : 40, right: 20, background: "rgba(0, 0, 0, 0.65)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", color: "#fff", borderRadius: 20, padding: "5px 10px", fontWeight: 700, display: "flex", alignItems: "center", gap: 4, zIndex: 20 }}><Icon name="nav" size={10} color="#fff" /> {dist < 1 ? Math.round(dist * 1000) + "m" : dist.toFixed(1) + " km"}</div>;
               })()}
@@ -453,7 +453,7 @@ export default function DetailView() {
                 <img src="/whatsapp.svg" alt="WhatsApp" style={{ width: 20, height: 20, objectFit: "contain" }} />
                 <span style={{ fontSize: 14, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>WhatsApp</span>
               </m.button>}
-              {!selected.hide_location && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goDir(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+              {(!selected.hide_location && selected.address && selected.address.trim() !== '') && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goDir(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                 <img src="/mapa.svg" alt="Mapa" style={{ width: 20, height: 20, objectFit: "contain" }} />
                 <span style={{ fontSize: 14, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>Ubicación</span>
               </m.button>}
@@ -896,7 +896,7 @@ export default function DetailView() {
             </div>}
 
             {/* Ubicación Row */}
-            {!selected.hide_location && <div style={{ padding: "20px 0", borderBottom: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+            {(!selected.hide_location && selected.address && selected.address.trim() !== '') && <div style={{ padding: "20px 0", borderBottom: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Icon name="map-pin" size={22} color={dText} />
