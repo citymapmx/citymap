@@ -230,7 +230,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
 
   if (!open) return null;
 
-  const imgSrc = pick ? (pick.photos?.[0]?.url || pick.img1 || pick.img_url) : null;
+  const imgSrc = pick ? (pick.photos?.[0]?.url || pick.gallery?.[0] || pick.img1 || pick.img_url) : null;
 
   return ReactDOM.createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -339,11 +339,16 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-              <button onClick={() => { pick.isEvent ? handleEventTap(pick) : handleCardTap(pick); handleClose(); }} style={{
+              <button onClick={() => { 
+                if (pick.isEvent) handleEventTap(pick); 
+                else if (pick.isExperience) handleExperienceTap(pick);
+                else handleCardTap(pick); 
+                handleClose(); 
+              }} style={{
                 flex: 2, background: dText, color: dBg, border: 'none',
                 borderRadius: 14, padding: '14px', fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit'
               }}>
-                {pick.isEvent ? 'Ver evento →' : 'Ver lugar →'}
+                {pick.isEvent ? 'Ver evento →' : pick.isExperience ? 'Ver plan →' : 'Ver lugar →'}
               </button>
               <button onClick={() => {
                 const result = pickBusiness(selectedMood);
@@ -414,7 +419,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
             {aiResults.bizList?.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {aiResults.bizList.slice(0, 3).map((b, i) => {
-                  const thumb = b.photos?.[0]?.url || b.img1 || b.img_url;
+                  const thumb = b.photos?.[0]?.url || b.gallery?.[0] || b.img1 || b.img_url;
                   return (
                     <div key={b.id} onClick={() => { 
                       if (b.isExperience) handleExperienceTap(b);
