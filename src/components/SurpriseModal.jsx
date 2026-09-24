@@ -46,12 +46,18 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
   const handleClose = () => { reset(); onClose(); };
 
   // ── Pick a random business ─────────────────────────────────────────────────
+  const normalize = (str) => (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
   const pickBusiness = (mood) => {
     const cats = mood.cats;
     let pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
     if (cats.length > 0) {
-      // Ampliamos un poco la búsqueda: checar categoría o nombre (ej. "Starbucks")
-      const filtered = pool.filter(b => cats.some(c => (b.category || '').toLowerCase().includes(c) || (b.name || '').toLowerCase().includes(c)));
+      // Ampliamos búsqueda y quitamos acentos (así "cafetería" y "café" coinciden con "cafe")
+      const filtered = pool.filter(b => {
+        const normCat = normalize(b.category);
+        const normName = normalize(b.name);
+        return cats.some(c => normCat.includes(c) || normName.includes(c));
+      });
       if (filtered.length > 0) pool = filtered;
     }
     
@@ -103,11 +109,15 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
         const pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
         const openBiz = pool.filter(b => isOpenNow(b, true));
         
-        let filtered = openBiz.filter(b => vibe.cats.some(c => (b.category || '').toLowerCase().includes(c) || (b.name || '').toLowerCase().includes(c)));
+        let filtered = openBiz.filter(b => {
+          const normCat = normalize(b.category);
+          const normName = normalize(b.name);
+          return vibe.cats.some(c => normCat.includes(c) || normName.includes(c));
+        });
         
         // Si no hay 3 abiertos de esas categorías, rellenar con cerrados, o cualquier abierto
         if (filtered.length < 3) {
-          const closedFiltered = pool.filter(b => !isOpenNow(b, true) && vibe.cats.some(c => (b.category || '').toLowerCase().includes(c)));
+          const closedFiltered = pool.filter(b => !isOpenNow(b, true) && vibe.cats.some(c => normalize(b.category).includes(c) || normalize(b.name).includes(c)));
           filtered = [...filtered, ...closedFiltered];
         }
         if (filtered.length < 3) {
