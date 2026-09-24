@@ -8,6 +8,7 @@ const PLAN_META = {
 
 // ─── TIMEZONE POR CIUDAD ──────────────────────────────────────────────────────
 const CITY_TZ = {
+  // México
   "tepic": "America/Mazatlan",
   "guadalajara": "America/Mexico_City",
   "ciudad-de-mexico": "America/Mexico_City",
@@ -20,7 +21,28 @@ const CITY_TZ = {
   "culiacan": "America/Mazatlan",
   "mazatlan": "America/Mazatlan",
   "puerto-vallarta": "America/Mexico_City",
+  "nuevo-vallarta": "America/Mexico_City",
   "los-cabos": "America/Mazatlan",
+  "playa-del-carmen": "America/Cancun",
+  "tlaquepaque": "America/Mexico_City",
+  "zapopan": "America/Mexico_City",
+  "xalisco": "America/Mazatlan",
+  "compostela": "America/Mazatlan",
+  "magdalena": "America/Mazatlan",
+  // España
+  "madrid": "Europe/Madrid",
+  "barcelona": "Europe/Madrid",
+  "sevilla": "Europe/Madrid",
+  "valencia": "Europe/Madrid",
+  // Francia
+  "paris": "Europe/Paris",
+  "lyon": "Europe/Paris",
+  // EE.UU.
+  "los-angeles": "America/Los_Angeles",
+  "new-york": "America/New_York",
+  "miami": "America/New_York",
+  "chicago": "America/Chicago",
+  "houston": "America/Chicago",
 };
 
 const FONT_BIZ = "var(--heading)";
