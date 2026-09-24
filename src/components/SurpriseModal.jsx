@@ -115,49 +115,46 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
   const imgSrc = pick ? (pick.photos?.[0]?.url || pick.img1 || pick.img_url) : null;
 
   return ReactDOM.createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       {/* Backdrop */}
       <div onClick={handleClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
 
-      {/* Sheet */}
+      {/* Modal */}
       <div style={{
-        position: 'relative', width: '100%', maxWidth: 480,
-        background: dBg, borderRadius: '24px 24px 0 0',
-        padding: '0 0 40px', maxHeight: '88dvh', overflowY: 'auto',
-        zIndex: 1, boxShadow: '0 -8px 40px rgba(0,0,0,0.2)',
-        animation: 'slideUp 0.3s cubic-bezier(0.32,0.72,0,1) forwards'
+        position: 'relative', width: '100%', maxWidth: 440,
+        background: dBg, borderRadius: 24,
+        padding: '24px 20px', maxHeight: '85dvh', overflowY: 'auto',
+        zIndex: 1, boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+        animation: 'popIn 0.25s cubic-bezier(0.16,1,0.3,1) forwards'
       }}>
-        <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity:0 } to { transform: translateY(0); opacity:1 } }`}</style>
-
-        {/* Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 999, background: dBorder }} />
-        </div>
+        <style>{`@keyframes popIn { from { transform: scale(0.95); opacity:0 } to { transform: scale(1); opacity:1 } }`}</style>
 
         {/* Close */}
-        <button onClick={handleClose} style={{ position: 'absolute', top: 16, right: 16, background: dCard, border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: dText }}>✕</button>
+        <button onClick={handleClose} style={{ position: 'absolute', top: 16, right: 16, background: 'transparent', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: dSub }}>✕</button>
 
         {/* ── STEP: MOOD PICKER ── */}
         {(step === 'mood') && (
-          <div style={{ padding: '16px 20px 0' }}>
+          <div>
             <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>🎲 Sorpréndeme</p>
-            <h2 style={{ textAlign: 'center', fontSize: 22, fontWeight: 900, color: dText, margin: '0 0 20px', letterSpacing: '-0.5px' }}>¿Qué se te antoja?</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <h2 style={{ textAlign: 'center', fontSize: 22, fontWeight: 900, color: dText, margin: '0 0 24px', letterSpacing: '-0.5px' }}>¿Qué se te antoja?</h2>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {MOODS.map(mood => (
                 <button key={mood.id} onClick={() => handleMoodSelect(mood)} style={{
-                  background: dCard, border: `1.5px solid ${dBorder}`, borderRadius: 16,
-                  padding: '16px 12px', cursor: 'pointer', textAlign: 'left',
-                  transition: 'all 0.15s', display: 'flex', flexDirection: 'column', gap: 6
+                  background: 'transparent', border: `1px solid ${dBorder}`, borderRadius: 16,
+                  padding: '16px 14px', cursor: 'pointer', textAlign: 'left',
+                  transition: 'all 0.15s', display: 'flex', flexDirection: 'column', gap: 8
                 }}>
-                  <span style={{ fontSize: 28 }}>{mood.emoji}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: dText, lineHeight: 1.2 }}>{mood.label}</span>
+                  <div style={{ fontSize: 26, lineHeight: 1 }}>{mood.emoji}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: dText, lineHeight: 1.2 }}>{mood.label}</div>
                 </button>
               ))}
             </div>
+            
             {/* AI Option */}
             <button onClick={() => setStep('ai_vibe')} style={{
-              width: '100%', marginTop: 14, background: dark ? 'rgba(139,92,246,0.15)' : '#F3F0FF',
-              border: `1.5px solid ${dark ? 'rgba(139,92,246,0.3)' : '#DDD6FE'}`,
+              width: '100%', marginTop: 16, background: dark ? 'rgba(139,92,246,0.1)' : '#F5F3FF',
+              border: `1px solid ${dark ? 'rgba(139,92,246,0.2)' : '#EDE9FE'}`,
               borderRadius: 16, padding: '14px 20px', cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 12
             }}>
@@ -182,7 +179,7 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
 
         {/* ── STEP: RESULT ── */}
         {step === 'result' && pick && (
-          <div style={{ padding: '16px 20px 0' }}>
+          <div>
             <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>{selectedMood?.emoji} {selectedMood?.label}</p>
             <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 16px' }}>¡Lo encontramos!</h2>
 
@@ -234,7 +231,7 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
         )}
 
         {step === 'result' && !pick && (
-          <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <div style={{ padding: '40px 0', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>😅</div>
             <p style={{ fontSize: 16, fontWeight: 700, color: dText }}>No encontramos lugares de esta categoría</p>
             <button onClick={() => setStep('mood')} style={{ marginTop: 16, background: dText, color: dBg, border: 'none', borderRadius: 14, padding: '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>Intentar otra categoría</button>
@@ -243,17 +240,18 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
 
         {/* ── STEP: AI VIBE PICKER ── */}
         {step === 'ai_vibe' && (
-          <div style={{ padding: '16px 20px 0' }}>
+          <div>
             <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>🤖 IA</p>
             <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 6px' }}>¿Cuál es el ambiente?</h2>
             <p style={{ textAlign: 'center', fontSize: 13, color: dSub, margin: '0 0 20px' }}>La IA buscará 3 opciones perfectas para ti</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {VIBES.map(v => (
                 <button key={v.id} onClick={() => handleAiGenerate(v)} style={{
-                  background: dCard, border: `1.5px solid ${dBorder}`, borderRadius: 16,
-                  padding: '18px 14px', cursor: 'pointer', textAlign: 'center', fontFamily: 'inherit'
+                  background: 'transparent', border: `1px solid ${dBorder}`, borderRadius: 16,
+                  padding: '16px 14px', cursor: 'pointer', textAlign: 'center', fontFamily: 'inherit',
+                  transition: 'all 0.15s'
                 }}>
-                  <div style={{ fontSize: 30, marginBottom: 6 }}>{v.emoji}</div>
+                  <div style={{ fontSize: 26, marginBottom: 6 }}>{v.emoji}</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: dText }}>{v.label}</div>
                 </button>
               ))}
@@ -274,7 +272,7 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
 
         {/* ── STEP: AI RESULT ── */}
         {step === 'ai_result' && aiResults && (
-          <div style={{ padding: '16px 20px 0' }}>
+          <div>
             <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>🤖 {aiVibe?.emoji} Recomendaciones IA</p>
             <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 16px' }}>Perfectas para ti</h2>
 
