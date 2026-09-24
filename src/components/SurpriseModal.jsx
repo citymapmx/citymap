@@ -15,10 +15,10 @@ const MOODS = [
 ];
 
 const VIBES = [
-  { id: 'romantico', emoji: '💑', label: 'Romántico' },
-  { id: 'amigos',    emoji: '🎉', label: 'Con amigos' },
-  { id: 'familia',   emoji: '👨‍👩‍👧', label: 'Familia' },
-  { id: 'casual',    emoji: '😎', label: 'Sin drama' },
+  { id: 'romantico', emoji: '💑', label: 'Romántico', cats: ['restaurantes', 'bares', 'cafe', 'postres'] },
+  { id: 'amigos',    emoji: '🎉', label: 'Con amigos', cats: ['bares', 'antros', 'botaneros', 'tacos', 'mariscos'] },
+  { id: 'familia',   emoji: '👨‍👩‍👧', label: 'Familia', cats: ['restaurantes', 'postres', 'helados', 'compras', 'cafeterias'] },
+  { id: 'casual',    emoji: '😎', label: 'Sin drama', cats: ['cafe', 'cafeterias', 'tacos', 'mariscos', 'pizza'] },
 ];
 
 // ── COMPONENT ──────────────────────────────────────────────────────────────────
@@ -92,38 +92,39 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
     }, 1800);
   };
 
-  // ── AI plan ───────────────────────────────────────────────────────────────
-  const handleAiGenerate = async (vibe) => {
+  // ── Smart plan (Local) ───────────────────────────────────────────────────
+  const handleAiGenerate = (vibe) => {
     setAiVibe(vibe);
     setStep('ai_loading');
     setAiError(null);
-    try {
-      const openBiz = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved' && isOpenNow(b, true));
-      const allBiz = openBiz.slice(0, 40);
-      const res = await fetch('/api/ai-night', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          city,
-          time: `${new Date().getHours()}:${String(new Date().getMinutes()).padStart(2, '0')}`,
-          group: '2 personas',
-          budget: 'moderado',
-          vibe: vibe.id,
-          businesses: allBiz.map(b => ({ name: b.name, category: b.category, isOpen: true }))
-        })
-      });
-      if (!res.ok) throw new Error('Error del servidor');
-      const data = await res.json();
-      if (!data.plan) throw new Error('Sin respuesta');
-      // Parse plan text into biz recommendations
-      const names = (data.plan.match(/\*\*([^*]+)\*\*/g) || []).map(s => s.replace(/\*\*/g, '').trim());
-      const found = names.map(n => mapPins.find(b => b.name?.toLowerCase().trim() === n.toLowerCase().trim())).filter(Boolean);
-      setAiResults({ raw: data.plan, bizList: found });
-      setStep('ai_result');
-    } catch (e) {
-      setAiError('No pudimos generar sugerencias. Intenta de nuevo.');
-      setStep('result');
-    }
+    
+    setTimeout(() => {
+      try {
+        const pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
+        const openBiz = pool.filter(b => isOpenNow(b, true));
+        
+        let filtered = openBiz.filter(b => vibe.cats.some(c => (b.category || '').toLowerCase().includes(c) || (b.name || '').toLowerCase().includes(c)));
+        
+        // Si no hay 3 abiertos de esas categorías, rellenar con cerrados, o cualquier abierto
+        if (filtered.length < 3) {
+          const closedFiltered = pool.filter(b => !isOpenNow(b, true) && vibe.cats.some(c => (b.category || '').toLowerCase().includes(c)));
+          filtered = [...filtered, ...closedFiltered];
+        }
+        if (filtered.length < 3) {
+          const otherOpen = openBiz.filter(b => !filtered.find(f => f.id === b.id)).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          filtered = [...filtered, ...otherOpen];
+        }
+        
+        // Mezclamos el top 10 para que se sienta fresco
+        const candidates = filtered.slice(0, 10).sort(() => Math.random() - 0.5);
+        
+        setAiResults({ raw: null, bizList: candidates.slice(0, 3) });
+        setStep('ai_result');
+      } catch (e) {
+        setAiError('No pudimos generar sugerencias. Intenta de nuevo.');
+        setStep('result');
+      }
+    }, 1500); // 1.5s delay to feel like it's "thinking"
   };
 
   if (!open) return null;
@@ -158,8 +159,8 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
               {MOODS.map(mood => (
                 <button key={mood.id} onClick={() => handleMoodSelect(mood)} style={{
                   background: 'transparent', border: `1px solid ${dBorder}`, borderRadius: 16,
-                  padding: '16px 14px', cursor: 'pointer', textAlign: 'left',
-                  transition: 'all 0.15s', display: 'flex', flexDirection: 'column', gap: 8
+                  padding: '16px 14px', cursor: 'pointer', textAlign: 'center',
+                  transition: 'all 0.15s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8
                 }}>
                   <div style={{ fontSize: 26, lineHeight: 1 }}>{mood.emoji}</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: dText, lineHeight: 1.2 }}>{mood.label}</div>
@@ -169,16 +170,13 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
             
             {/* AI Option */}
             <button onClick={() => setStep('ai_vibe')} style={{
-              width: '100%', marginTop: 16, background: dark ? 'rgba(139,92,246,0.1)' : '#F5F3FF',
-              border: `1px solid ${dark ? 'rgba(139,92,246,0.2)' : '#EDE9FE'}`,
-              borderRadius: 16, padding: '14px 20px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 12
+              width: '100%', marginTop: 16, background: 'transparent',
+              border: `1px solid ${dBorder}`,
+              borderRadius: 16, padding: '16px 14px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10
             }}>
-              <span style={{ fontSize: 24 }}>🤖</span>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#C4B5FD' : '#7C3AED' }}>Dejar que la IA decida</div>
-                <div style={{ fontSize: 12, color: dSub }}>Te da 3 sugerencias personalizadas</div>
-              </div>
+              <span style={{ fontSize: 24, lineHeight: 1 }}>🤖</span>
+              <div style={{ fontSize: 14, fontWeight: 700, color: dText, lineHeight: 1.2 }}>Dejar que la IA decida</div>
             </button>
           </div>
         )}
