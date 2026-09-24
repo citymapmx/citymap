@@ -50,14 +50,30 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
     const cats = mood.cats;
     let pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
     if (cats.length > 0) {
-      const filtered = pool.filter(b => cats.some(c => (b.category || '').toLowerCase().includes(c)));
+      // Ampliamos un poco la búsqueda: checar categoría o nombre (ej. "Starbucks")
+      const filtered = pool.filter(b => cats.some(c => (b.category || '').toLowerCase().includes(c) || (b.name || '').toLowerCase().includes(c)));
       if (filtered.length > 0) pool = filtered;
     }
-    const open = pool.filter(b => isOpenNow(b, true));
-    const candidates = open.length > 0 ? open : pool;
-    let unseen = candidates.filter(b => !seenRef.current.has(b.id));
-    if (unseen.length === 0) { seenRef.current.clear(); unseen = candidates; }
+    
+    const openPool = pool.filter(b => isOpenNow(b, true));
+    const closedPool = pool.filter(b => !isOpenNow(b, true));
+
+    // 1. Intentar buscar uno ABIERTO que no hayamos visto
+    let unseen = openPool.filter(b => !seenRef.current.has(b.id));
+    
+    // 2. Si no hay más abiertos nuevos, intentar cerrados que no hayamos visto
+    if (unseen.length === 0) {
+      unseen = closedPool.filter(b => !seenRef.current.has(b.id));
+    }
+    
+    // 3. Si ya vimos TODO (abiertos y cerrados), vaciamos el historial y empezamos de nuevo con los abiertos
+    if (unseen.length === 0) {
+      seenRef.current.clear();
+      unseen = openPool.length > 0 ? openPool : closedPool;
+    }
+    
     if (unseen.length === 0) return null;
+    
     const chosen = unseen[Math.floor(Math.random() * unseen.length)];
     seenRef.current.add(chosen.id);
     return chosen;
