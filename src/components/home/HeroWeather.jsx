@@ -1,45 +1,29 @@
 import React, { useState, useEffect } from 'react';
 
-const CITY_COORDS = {
-  "guadalajara": { lat: 20.659698, lng: -103.349609 },
-  "puerto-vallarta": { lat: 20.6534, lng: -105.2253 },
-  "tepic": { lat: 21.5042, lng: -104.8944 },
-  "ciudad-de-mexico": { lat: 19.4326, lng: -99.1332 },
-  "madrid": { lat: 40.4168, lng: -3.7038 },
-  "los-angeles": { lat: 34.0522, lng: -118.2437 },
-  "cancun": { lat: 21.1619, lng: -86.8515 },
-  "monterrey": { lat: 25.6866, lng: -100.3161 }
-};
-
 export default function HeroWeather({ userCoords, activeCity, cities = [], dark }) {
   const [weatherData, setWeatherData] = useState(null);
 
   useEffect(() => {
-    // Determine the coordinates to use for weather
-    let lat = 20.659698;
-    let lng = -103.349609;
-    
+    let lat = null;
+    let lng = null;
+
     const slug = (activeCity || "").split(',')[0].trim();
-    const currentCityObj = cities?.find(c => c.slug === slug);
-    
-    if (currentCityObj && currentCityObj.lat) {
-      lat = currentCityObj.lat;
-      lng = currentCityObj.lng;
-    } else if (slug && CITY_COORDS[slug]) {
-      lat = CITY_COORDS[slug].lat;
-      lng = CITY_COORDS[slug].lng;
+    const cityObj = cities?.find(c => c.slug === slug);
+
+    if (cityObj?.lat) {
+      lat = cityObj.lat;
+      lng = cityObj.lng;
     } else if (userCoords?.lat) {
       lat = userCoords.lat;
       lng = userCoords.lng;
     }
 
+    if (!lat) return; // no coords at all yet, wait
+
     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`)
       .then(r => r.json())
-      .then(d => {
-         if (d.current_weather) {
-            setWeatherData(d.current_weather);
-         }
-      }).catch(e => console.error(e));
+      .then(d => { if (d.current_weather) setWeatherData(d.current_weather); })
+      .catch(() => {});
   }, [userCoords, activeCity, cities]);
 
   if (!weatherData) return <div style={{ height: 40, marginTop: 12 }}></div>;
