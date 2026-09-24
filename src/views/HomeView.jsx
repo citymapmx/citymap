@@ -99,7 +99,7 @@ export default function HomeView({ isBackground }) {
     queryKey: ['home-businesses', activeCity],
     queryFn: async () => {
       const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url";
-      const batch = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(activeCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=50`);
+      const batch = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(activeCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=1000`);
       
       const processBatch = (arr) => arr ? arr.map(b => ({
         ...b,

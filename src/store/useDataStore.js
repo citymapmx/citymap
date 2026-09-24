@@ -68,8 +68,8 @@ export const useDataStore = create((set, get) => ({
       const initialPins = processBatch(firstBatch);
       set({ mapPins: initialPins });
       
-      // Background loading: Trae unos cuantos más para poblar el mapa inicial sin ahogar la memoria
-      sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=40&offset=12`)
+      // Background loading: Trae la base de datos completa de la ciudad sin ahogar la carga inicial
+      sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=1000&offset=12`)
         .then(restBatch => {
           if (restBatch && restBatch.length > 0) {
             const restPins = processBatch(restBatch);
