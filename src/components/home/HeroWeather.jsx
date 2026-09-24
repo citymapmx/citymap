@@ -19,7 +19,7 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
     let lat = 20.659698;
     let lng = -103.349609;
     
-    const slug = activeCity || activeCity?.split(',')[0];
+    const slug = (activeCity || "").split(',')[0].trim();
     const currentCityObj = cities?.find(c => c.slug === slug);
     
     if (currentCityObj && currentCityObj.lat) {
@@ -46,17 +46,45 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
 
   const t = weatherData.temperature;
   const code = weatherData.weathercode;
-  
+  const hour = new Date().getHours();
+
   let icon = "☀️";
   let mood = "Perfecto para terrazas y mariscos";
-  
-  if (code >= 1 && code <= 3) { icon = "⛅"; mood = "Ideal para un buen café o salir a caminar"; }
-  else if (code >= 51 && code <= 67) { icon = "🌧️"; mood = "Se antoja un lugar techado y calentito"; }
-  else if (code >= 71 && code <= 77) { icon = "❄️"; mood = "Día helado, ¡busca algo caliente!"; }
-  else if (code >= 95) { icon = "⛈️"; mood = "Tormenta, ideal para pedir a domicilio"; }
-  else {
-    if (t > 29) { icon = "🔥"; mood = "Hace calor, busca una terraza o mariscos"; }
-    else if (t < 16) { icon = "☕"; mood = "Clima fresco, ideal para café o postres"; }
+
+  // 🌩️ Condiciones extremas primero
+  if (code >= 95) {
+    icon = "⛈️"; mood = "Tormenta afuera — ideal para pedir a domicilio";
+  } else if (code >= 71 && code <= 77) {
+    icon = "❄️"; mood = "Día helado — ¿una fondue o un chocolate caliente?";
+  } else if (code >= 51 && code <= 67) {
+    icon = "🌧️"; mood = "Está lloviendo — busca un lugar techado y calentito";
+  }
+  // 🌡️ Por temperatura + hora
+  else if (t >= 32) {
+    icon = "🔥";
+    if (hour >= 14 && hour <= 17) mood = "Calor extremo — busca un lugar con aire o alberca";
+    else mood = "Hace mucho calor — perfecto para mariscos o aguas frescas";
+  } else if (t >= 27) {
+    icon = "☀️";
+    if (hour >= 6 && hour < 11) mood = "Mañana cálida — perfecta para un brunch al aire libre";
+    else if (hour >= 11 && hour < 15) mood = "Buen clima para comer en terraza";
+    else if (hour >= 15 && hour < 20) mood = "Tarde perfecta para una cerveza o mariscos";
+    else mood = "Noche cálida — perfecto para bares o cenar afuera";
+  } else if (t >= 20) {
+    icon = code <= 3 ? "⛅" : "☀️";
+    if (hour >= 6 && hour < 10) mood = "Mañana fresca — ideal para un buen desayuno";
+    else if (hour >= 10 && hour < 14) mood = "Clima agradable para explorar la ciudad";
+    else if (hour >= 14 && hour < 19) mood = "Tarde ideal para café o salir a caminar";
+    else mood = "Noche agradable — ¿cena o un trago?";
+  } else if (t >= 14) {
+    icon = "🌤️";
+    if (hour >= 6 && hour < 12) mood = "Mañana fresca — perfecta para un café caliente";
+    else if (hour >= 12 && hour < 20) mood = "Clima fresco — ideal para cafeterías y restaurantes";
+    else mood = "Noche fresca — abrígate y sal a cenar";
+  } else {
+    icon = "🥶";
+    if (hour >= 22 || hour < 6) mood = "Noche helada — pide a domicilio o cena cerca";
+    else mood = "Día muy frío — busca caldos, pozole o café calientito";
   }
 
   return (
