@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
+// Cache in memory so we don't re-fetch when navigating back to home
+if (typeof window !== 'undefined' && !window.__weatherCache) {
+  window.__weatherCache = {};
+}
+
 export default function HeroWeather({ userCoords, activeCity, cities = [], dark }) {
   const [weatherData, setWeatherData] = useState(null);
 
@@ -18,15 +23,34 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
       lng = userCoords.lng;
     }
 
-    if (!lat) return; // no coords at all yet, wait
+    if (!lat) return;
+
+    const cacheKey = `${Math.round(lat*100)},${Math.round(lng*100)}`;
+    if (window.__weatherCache[cacheKey]) {
+      setWeatherData(window.__weatherCache[cacheKey]);
+      return;
+    }
 
     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`)
       .then(r => r.json())
-      .then(d => { if (d.current_weather) setWeatherData(d.current_weather); })
+      .then(d => { 
+        if (d.current_weather) {
+          window.__weatherCache[cacheKey] = d.current_weather;
+          setWeatherData(d.current_weather); 
+        }
+      })
       .catch(() => {});
   }, [userCoords, activeCity, cities]);
 
-  if (!weatherData) return <div style={{ height: 40, marginTop: 12 }}></div>;
+  if (!weatherData) {
+    return (
+      <div style={{ height: 40, marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+        <div style={{ width: 60, height: 20, borderRadius: 10, background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', animation: 'pulse 1.5s infinite' }} />
+        <div style={{ width: 140, height: 14, borderRadius: 8, background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', animation: 'pulse 1.5s infinite' }} />
+        <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }`}</style>
+      </div>
+    );
+  }
 
   const t = weatherData.temperature;
   const code = weatherData.weathercode;
@@ -80,16 +104,8 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
       flexDirection: "column",
       alignItems: "center",
       gap: 4,
-      marginTop: 12,
-      animation: "fadeUp 1s ease forwards",
-      opacity: 0,
-      transform: "translateY(10px)"
+      marginTop: 12
     }}>
-      <style>{`
-        @keyframes fadeUp {
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <span style={{ fontSize: 16 }}>{icon}</span>
         <span style={{ fontSize: 15, fontWeight: 800, color: dark ? "#fff" : "#111827" }}>{Math.round(t)}°C</span>
