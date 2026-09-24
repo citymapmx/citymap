@@ -564,6 +564,17 @@ export default function HomeView({ isBackground }) {
           })()}
 
           
+          {/* ── BANNERS ── */}
+          {!search && activeCat === "explorar" && (() => {
+            if (activeBannersMemo.length === 0) return null;
+            return <div style={{ margin: "16px 20px 8px", borderRadius: 14, overflow: "hidden", aspectRatio: "21/9", position: "relative", background: T.border, boxShadow: "0 6px 16px rgba(0,0,0,0.1)" }}>
+              <BannerSlider activeBanners={activeBannersMemo} />
+            </div>;
+          })()}
+
+          {/* ── EVENTOS ── */}
+          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} cityImg={cityImg} handleEventTap={handleEventTap} T={T} city={city} />}
+
           {/* ── LUGAR DEL DÍA (Recomendación) ── */}
           {!search && activeCat === "explorar" && spotlightBiz && (
             <div style={{ padding: "16px 20px 0 20px" }}>
@@ -629,19 +640,8 @@ export default function HomeView({ isBackground }) {
             </div>
           )}
 
-          {/* ── EVENTOS ── */}
-          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} cityImg={cityImg} handleEventTap={handleEventTap} T={T} city={city} />}
-
-
-
-          {/* ── BENTO CATEGORIES (REMOVED) ── */}          {!search && activeCat === "explorar" && <div id="explorar-section">
-            {/* ── BANNERS ── */}
-            {(() => {
-              if (activeBannersMemo.length === 0) return null;
-              return <div style={{ margin: "24px 20px 8px", borderRadius: 14, overflow: "hidden", aspectRatio: "21/9", position: "relative", background: T.border, boxShadow: "0 6px 16px rgba(0,0,0,0.1)" }}>
-                <BannerSlider activeBanners={activeBannersMemo} />
-              </div>;
-            })()}
+          {/* ── EXPLORAR SECTION ── */}
+          {!search && activeCat === "explorar" && <div id="explorar-section">
             {(() => {
               const { listTitle, timeList } = timeBasedListsMemo;
               if (timeList.length === 0) return null;
