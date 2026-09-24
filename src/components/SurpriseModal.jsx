@@ -80,13 +80,27 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
           const openMin = toMin(segs[0]);
           if (openMin === null) continue;
           
+          const format12h = (mins) => {
+            let h = Math.floor(mins / 60);
+            let m = mins % 60;
+            let p = "am";
+            if (h >= 12) {
+              p = "pm";
+              if (h > 12) h -= 12;
+            }
+            if (h === 0) h = 12;
+            return `${h}:${m.toString().padStart(2, '0')} ${p}`;
+          };
+          
+          const timeStr = format12h(openMin);
+
           if (i === 0) {
-            if (openMin > currentMin) return `Abre hoy a las ${segs[0]}`;
+            if (openMin > currentMin) return `Abre hoy a las ${timeStr}`;
           } else if (i === 1) {
-            return `Abre mañana a las ${segs[0]}`;
+            return `Abre mañana a las ${timeStr}`;
           } else {
             const dayNames = ["el domingo", "el lunes", "el martes", "el miércoles", "el jueves", "el viernes", "el sábado"];
-            return `Abre ${dayNames[checkIdx]} a las ${segs[0]}`;
+            return `Abre ${dayNames[checkIdx]} a las ${timeStr}`;
           }
         }
       }
