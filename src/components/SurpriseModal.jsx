@@ -254,10 +254,12 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-              <button onClick={() => { handleCardTap(pick); handleClose(); }} style={{
+              <button onClick={() => { pick.isEvent ? handleEventTap(pick) : handleCardTap(pick); handleClose(); }} style={{
                 flex: 2, background: dText, color: dBg, border: 'none',
                 borderRadius: 14, padding: '14px', fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit'
-              }}>Ver lugar →</button>
+              }}>
+                {pick.isEvent ? 'Ver evento →' : 'Ver lugar →'}
+              </button>
               <button onClick={() => {
                 const result = pickBusiness(selectedMood);
                 if (result) setPick(result);
