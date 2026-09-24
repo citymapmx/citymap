@@ -106,7 +106,7 @@ export default function AccountView({
           );
           return items;
         }),
-        ...(!isAdmin ? [{ label: t("agregar_negocio", "Agregar mi negocio"), icon: "plus", act: "add_biz" }] : []),
+        ...((!isAdmin && myBizList.length === 0) ? [{ label: t("agregar_negocio", "Agregar mi negocio"), icon: "plus", act: "add_biz" }] : []),
         { label: t("planes_precios", "Planes y precios"), icon: "award", act: "plans" },
       ]
     },
