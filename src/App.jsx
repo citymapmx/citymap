@@ -566,7 +566,14 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { localStorage.setItem("cg_dark", dark); }, [dark]);
+  useEffect(() => {
+    localStorage.setItem("cg_dark", dark);
+    document.body.style.backgroundColor = dark ? "#0F172A" : "#FFFFFF";
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute("content", dark ? "#0F172A" : "#FFFFFF");
+    }
+  }, [dark]);
 
   // SEO meta & JSON-LD structured data update
   useAppSEO({ city });

@@ -70,9 +70,11 @@
   }
 }
 
-body {
+html, body {
   margin: 0;
   overflow-x: clip;
+  overscroll-behavior-y: none;
+  background-color: var(--bg);
 }
 
 #root {
