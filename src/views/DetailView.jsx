@@ -443,7 +443,7 @@ export default function DetailView() {
             )}
 
             {/* Quick Actions Pills */}
-            <div style={{ display: "flex", gap: 12, padding: "0 20px" }}>
+            <div style={{ display: (selected.phone || (selected.whatsapp && ['premium', 'pro', 'destacado'].includes(selected.plan)) || (!selected.hide_location && selected.address && selected.address.trim() !== '')) ? "flex" : "none", gap: 12, padding: "0 20px" }}>
               {(selected.phone) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => callPhone(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                 <img src="/telefono.svg" alt="Teléfono" style={{ width: 20, height: 20, objectFit: "contain" }} />
                 <span style={{ fontSize: 14, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>Llamar</span>
@@ -459,7 +459,7 @@ export default function DetailView() {
               </m.button>}
             </div>
 
-            <div style={{ display: "flex", gap: 8, padding: "0 20px", marginTop: 12, opacity: loyaltyLoading ? 0 : 1, transition: "opacity 0.3s ease", pointerEvents: loyaltyLoading ? "none" : "auto" }}>
+            <div style={{ display: (hasLoyalty || selected.booking_config?.enabled || (selected.plan === "premium" && hasMenu)) ? "flex" : "none", gap: 8, padding: "0 20px", marginTop: 12, opacity: loyaltyLoading ? 0 : 1, transition: "opacity 0.3s ease", pointerEvents: loyaltyLoading ? "none" : "auto" }}>
               {/* LOYALTY PILL */}
               {hasLoyalty && (
                 <button 
@@ -585,8 +585,7 @@ export default function DetailView() {
               try { embedData = JSON.parse(asyncEmbedUrl); } catch(e){ /* ignore */ }
             }
             return (
-              <div style={{ padding: "20px 20px 0" }}>
-                <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 14 }}>Video Promocional</div>
+              <div style={{ padding: "8px 20px 0" }}>
                 {embedData.type === 'tiktok' ? (
                   <TikTokBlock url={embedData.url} videoId={embedData.id} />
                 ) : (
