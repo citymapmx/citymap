@@ -6,7 +6,7 @@ import { Sk } from '../ui/Skeleton.jsx';
 export default function HomeHero({
   dark, T, t, search, setSearch, localizedPlaceholders, phIdx, 
   locating, detectCity, userCoords, dbReady, cats, activeCat, setActiveCat, 
-  activeCity, city, haptic, detectedTown, cities
+  activeCity, city, haptic, detectedTown, cities, onSurprise
 }) {
   const cityName = detectedTown || (city || "").split(",")[0] || "tu ciudad";
 
@@ -128,7 +128,7 @@ export default function HomeHero({
             <div className="hero-search-magic-container">
               <div className="hero-search-magic-inner"></div>
             </div>
-            <DebouncedSearchBar initialValue={search} onSearch={setSearch} placeholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dark={dark} />
+            <DebouncedSearchBar initialValue={search} onSearch={setSearch} placeholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dark={dark} onSurprise={onSurprise} />
         </div>
 
         {/* Fila 4: Categorías Iconos (Ocultos en Inicio) */}

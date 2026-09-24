@@ -1,7 +1,7 @@
 import React from "react";
 import Icon from "../ui/Icon.jsx";
 
-export default function DebouncedSearchBar({ initialValue, onSearch, placeholders, phIdx, locating, detectCity, dark }) {
+export default function DebouncedSearchBar({ initialValue, onSearch, placeholders, phIdx, locating, detectCity, dark, onSurprise }) {
   const [localSearch, setLocalSearch] = React.useState(initialValue);
   const [displayedPlaceholder, setDisplayedPlaceholder] = React.useState("");
   
@@ -56,7 +56,12 @@ export default function DebouncedSearchBar({ initialValue, onSearch, placeholder
           </button>
         </div>
       ) : (
-        <div style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", zIndex: 5, display: "flex" }}>
+        <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", zIndex: 5, display: "flex", alignItems: "center", gap: 2 }}>
+          {onSurprise && (
+            <button aria-label="Sorpréndeme" className="press" onClick={onSurprise} title="Sorpréndeme" style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 6, fontSize: 18, lineHeight: 1 }}>
+              🎲
+            </button>
+          )}
           <button aria-label="Actualizar ubicación" className="press" onClick={() => { localStorage.removeItem("cg_manual_city"); if (!locating) detectCity({ showToast: true }); }} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 8, animation: locating ? "pulse 1.5s infinite" : "none" }} title="Actualizar GPS">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={dark ? "rgba(255,255,255,0.7)" : "rgba(17,17,17,0.4)"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line></svg>
           </button>

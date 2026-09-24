@@ -307,52 +307,19 @@ export default function HomeView({ isBackground }) {
   return (
     <div style={{ paddingBottom: 84, position: "relative", ...viewStyle }}>
           {/* ── HERO HEADER ── */}
-          <HomeHero dark={dark} T={T} t={t} search={search} setSearch={setSearch} localizedPlaceholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dbReady={dbReady} cats={cats} activeCat={activeCat} setActiveCat={setActiveCat} activeCity={activeCity} city={city} cities={cities} haptic={haptic} detectedTown={detectedTown} />
+          <HomeHero dark={dark} T={T} t={t} search={search} setSearch={setSearch} localizedPlaceholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dbReady={dbReady} cats={cats} activeCat={activeCat} setActiveCat={setActiveCat} activeCity={activeCity} city={city} cities={cities} haptic={haptic} detectedTown={detectedTown} onSurprise={() => {
+            haptic("light");
+            const openPlaces = mapPins.filter(b => isNear(b, userCoords, activeCity) && isOpenNow(b, true) && b.status === "approved" && b.plan !== "free");
+            if (openPlaces.length > 0) {
+              handleCardTap(openPlaces[Math.floor(Math.random() * openPlaces.length)]);
+            } else {
+              const anyPlaces = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === "approved");
+              if (anyPlaces.length > 0) handleCardTap(anyPlaces[Math.floor(Math.random() * anyPlaces.length)]);
+              else toast$("No hay lugares disponibles 😅");
+            }
+          }} />
           
           <PushPrompt citySlug={activeCity} dark={dark} />
-
-          {/* ── SORPRÉNDEME BUTTON ── */}
-          {!search && dbReady && (
-             <div style={{ padding: "0 20px", display: "flex", justifyContent: "center", marginTop: 4, marginBottom: 12 }}>
-                <button 
-                  onClick={() => {
-                     haptic("light");
-                     const openPlaces = mapPins.filter(b => isNear(b, userCoords, activeCity) && isOpenNow(b, true) && b.status === "approved" && b.plan !== "free");
-                     if (openPlaces.length > 0) {
-                        const randomBiz = openPlaces[Math.floor(Math.random() * openPlaces.length)];
-                        handleCardTap(randomBiz);
-                     } else {
-                        const anyPlaces = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === "approved");
-                        if (anyPlaces.length > 0) {
-                          const randomBiz = anyPlaces[Math.floor(Math.random() * anyPlaces.length)];
-                          handleCardTap(randomBiz);
-                        } else {
-                          toast$("No hay lugares disponibles 😅");
-                        }
-                     }
-                  }}
-                  className="press"
-                  style={{ 
-                    background: dark ? "rgba(255,255,255,0.08)" : "#FFFFFF", 
-                    border: `1px solid ${dark ? "rgba(255,255,255,0.12)" : "#E2E8F0"}`, 
-                    color: dark ? "#FFFFFF" : "#0F172A", 
-                    padding: "10px 22px", 
-                    borderRadius: 100, 
-                    fontSize: 14, 
-                    fontWeight: 800, 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 8,
-                    cursor: "pointer",
-                    boxShadow: dark ? "0 4px 16px rgba(0,0,0,0.4)" : "0 4px 16px rgba(0,0,0,0.05)",
-                    transition: "all 0.2s"
-                  }}
-                >
-                  <span style={{ fontSize: 18, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))" }}>🎲</span> 
-                  Sorpréndeme
-                </button>
-             </div>
-          )}
 
           {/* ── EMPTY CITY STATE ── */}
           {!search && dbReady && !pinsLoading && mapPins.filter(b => isNear(b, userCoords, activeCity)).length === 0 && (
