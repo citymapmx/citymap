@@ -9,7 +9,7 @@ const MOODS = [
   { id: 'tomar',     emoji: '🍺', label: 'Tomar algo',        cats: ['bares', 'antros', 'cantinas', 'cocteles'] },
   { id: 'noche',     emoji: '🪩', label: 'Planes nocturnos',  cats: ['antros', 'bares', 'botaneros'] },
   { id: 'relax',     emoji: '💆', label: 'Relajarme',         cats: ['spa', 'salud', 'bienestar', 'belleza'] },
-  { id: 'compras',   emoji: '🛍️', label: 'Comprar algo',      cats: ['compras', 'tiendas', 'boutiques'] },
+  { id: 'compras',   emoji: '🛍️', label: 'Comprar algo',      cats: ['compras', 'tienda', 'boutique', 'plaza', 'comercial', 'ropa', 'moda', 'zapateria', 'mall', 'departamental'] },
   { id: 'deporte',   emoji: '🏋️', label: 'Fitness',           cats: ['fitness', 'gym', 'deportes'] },
   { id: 'sorpresa',  emoji: '🎲', label: 'Lo que sea',        cats: [] },
 ];
@@ -53,12 +53,11 @@ export default function SurpriseModal({ open, onClose, mapPins, activeCity, user
     let pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
     if (cats.length > 0) {
       // Ampliamos búsqueda y quitamos acentos (así "cafetería" y "café" coinciden con "cafe")
-      const filtered = pool.filter(b => {
+      pool = pool.filter(b => {
         const normCat = normalize(b.category);
         const normName = normalize(b.name);
         return cats.some(c => normCat.includes(c) || normName.includes(c));
       });
-      if (filtered.length > 0) pool = filtered;
     }
     
     const openPool = pool.filter(b => isOpenNow(b, true));
