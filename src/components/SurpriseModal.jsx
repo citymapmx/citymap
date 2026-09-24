@@ -45,6 +45,41 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
   };
   const handleClose = () => { reset(); onClose(); };
 
+  const getNextOpenText = (b) => {
+    if (!b.schedule || typeof b.schedule !== 'object') return null;
+    try {
+      const d = new Date();
+      const tz = (typeof window !== "undefined" && window.CITY_TZ) || "America/Mexico_City";
+      const fmt = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d);
+      const get = type => fmt.find(p => p.type === type)?.value || "";
+      const h = parseInt(get("hour")), min = parseInt(get("minute"));
+      const currentMin = h * 60 + min;
+      const days = ["dom", "lun", "mar", "mie", "jue", "vie", "sab"];
+      const enDays = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+      const todayIdx = enDays[get("weekday")] || 0;
+      
+      const toMin = s => {
+        const m = s.trim().match(/(\d{1,2})(?:\s*:\s*(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
+        if (!m) return null;
+        let hh = parseInt(m[1]), mm = parseInt(m[2] || 0), p = (m[3] || "").replace(/\./g, "").toLowerCase();
+        if (p === "pm" && hh !== 12) hh += 12;
+        if (p === "am" && hh === 12) hh = 0;
+        return hh * 60 + mm;
+      };
+
+      const todayTxt = b.schedule[days[todayIdx]];
+      if (todayTxt && todayTxt.includes("-")) {
+        const parts = todayTxt.split("-");
+        const openMin = toMin(parts[0]);
+        if (openMin !== null && currentMin < openMin) return `Abre hoy a las ${parts[0].trim()}`;
+      }
+      
+      const tmrwTxt = b.schedule[days[(todayIdx + 1) % 7]];
+      if (tmrwTxt && tmrwTxt.includes("-")) return `Abre mañana a las ${tmrwTxt.split("-")[0].trim()}`;
+    } catch (e) { /* ignore */ }
+    return null;
+  };
+
   // ── Pick a random business ─────────────────────────────────────────────────
   const normalize = (str) => (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -248,7 +283,10 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], act
               ) : (
                 isOpenNow(pick, true)
                   ? <div style={{ position: 'absolute', top: 12, right: 12, background: '#10B981', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Abierto</div>
-                  : <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Cerrado</div>
+                  : <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 800, color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}>Cerrado {(() => {
+                    const txt = getNextOpenText(pick);
+                    return txt ? ` • ${txt}` : '';
+                  })()}</div>
               )}
             </div>
 
