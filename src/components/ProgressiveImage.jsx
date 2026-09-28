@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { m } from "framer-motion";
 
+const globalLoadedImages = new Set();
+
 export default function ProgressiveImage({
   src,
   thumbSrc,
@@ -11,7 +13,7 @@ export default function ProgressiveImage({
   transition,
   ...props
 }) {
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(() => globalLoadedImages.has(src));
 
   return (
     <m.div
@@ -26,32 +28,34 @@ export default function ProgressiveImage({
       {...props}
     >
       {/* Blurred Placeholder */}
-      <img
-        src={thumbSrc}
-        alt=""
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: style.objectFit || 'cover',
-          objectPosition: style.objectPosition || 'center',
-          filter: 'blur(20px)',
-          transform: 'scale(1.2)', // Prevent white edges from blur
-          transition: 'opacity 0.6s ease-out',
-          opacity: isLoaded ? 0 : 1,
-        }}
-      />
+      {!isLoaded && thumbSrc && (
+        <img
+          src={thumbSrc}
+          alt=""
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: style.objectFit || 'cover',
+            objectPosition: style.objectPosition || 'center',
+            filter: 'blur(20px)',
+            transform: 'scale(1.2)', // Prevent white edges from blur
+            transition: 'opacity 0.6s ease-out',
+            opacity: isLoaded ? 0 : 1,
+          }}
+        />
+      )}
       
       {/* Actual High Res Image */}
-      <m.img
+      <img
         src={src}
         alt={alt}
         loading="lazy"
-        onLoad={() => setIsLoaded(true)}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: isLoaded ? 1 : 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
+        onLoad={() => {
+          globalLoadedImages.add(src);
+          setIsLoaded(true);
+        }}
         style={{
           position: 'absolute',
           inset: 0,
@@ -59,6 +63,8 @@ export default function ProgressiveImage({
           height: '100%',
           objectFit: style.objectFit || 'cover',
           objectPosition: style.objectPosition || 'center',
+          opacity: isLoaded ? 1 : 0,
+          transition: isLoaded ? 'none' : 'opacity 0.6s ease-out'
         }}
       />
     </m.div>

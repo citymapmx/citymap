@@ -36,7 +36,6 @@ const renderFavoriteButton = (isFav, onClick, showPlus, overlay = false, T) => {
       <AnimatePresence>
         {showPlus && (
           <m.div 
-            initial={{ opacity: 0, y: 0, scale: 0.5 }} 
             animate={{ opacity: 1, y: -30, scale: 1.2 }} 
             exit={{ opacity: 0 }} 
             transition={{ duration: 0.6, ease: "easeOut" }} 
@@ -188,9 +187,6 @@ export default memo(function BusinessCard({
   if (b._isCustom) {
     return (
       <m.div 
-        initial={{ opacity: 0, y: 15 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-10px" }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         className={onTap ? "press" : ""} 
         onClick={onTap ? () => { haptic("light"); onTap(b); } : undefined} 
@@ -231,9 +227,6 @@ export default memo(function BusinessCard({
   if (variant === "compact") {
     return (
       <m.div 
-        initial={{ opacity: 0, y: 15 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-10px" }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         whileHover={onTap ? "hover" : undefined} 
         whileTap={onTap ? { scale: 0.96 } : undefined} 
@@ -325,9 +318,6 @@ export default memo(function BusinessCard({
   if (variant === "destacado") {
     return (
       <m.div 
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-10px" }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         whileHover="hover" 
         whileTap={{ scale: 0.96 }} 
@@ -396,9 +386,6 @@ export default memo(function BusinessCard({
   if (variant === "featured") {
     return (
       <m.div 
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-10px" }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         whileHover="hover" 
         whileTap={{ scale: 0.96 }} 

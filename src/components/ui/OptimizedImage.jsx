@@ -1,6 +1,8 @@
 import React, { memo } from 'react';
 import { getThumbUrl } from '../../lib/utils';
 
+const globalLoadedImages = new Set();
+
 /**
  * OptimizedImage
  * Un wrapper inteligente para cargar imágenes optimizadas de Cloudinary/Supabase.
@@ -27,12 +29,10 @@ const OptimizedImage = memo(({
   style,
   onClick 
 }) => {
-  const [loaded, setLoaded] = React.useState(false);
+  const optimizedSrc = src ? getThumbUrl(src, widthRequest, heightRequest) : null;
+  const [loaded, setLoaded] = React.useState(() => globalLoadedImages.has(optimizedSrc));
   
   if (!src) return null;
-
-  // Process the URL using the bucketed width logic
-  const optimizedSrc = getThumbUrl(src, widthRequest, heightRequest);
 
   return (
     <img 
@@ -43,20 +43,21 @@ const OptimizedImage = memo(({
       className={className}
       style={{
         opacity: loaded ? 1 : 0,
-        transition: "opacity 0.4s ease-out",
+        transition: loaded ? "none" : "opacity 0.4s ease-out",
         backgroundColor: "#F1F5F9",
         transform: "translateZ(0)",
         willChange: "opacity",
         ...style
       }}
-      onLoad={() => setLoaded(true)}
-      onError={() => setLoaded(true)} // Prevents being stuck invisible on error
+      onLoad={() => {
+        globalLoadedImages.add(optimizedSrc);
+        setLoaded(true);
+      }}
+      onError={() => setLoaded(true)}
       onClick={onClick}
     />
   );
 });
 
-// Setting display name for debugging purposes
 OptimizedImage.displayName = 'OptimizedImage';
-
 export default OptimizedImage;
