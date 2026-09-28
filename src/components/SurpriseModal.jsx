@@ -207,8 +207,8 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
       pool = pool.filter(b => isValidMatch(b, mood.id, cats));
     }
     
-    const openPool = pool.filter(b => isOpenNow(b, true));
-    const closedPool = pool.filter(b => !isOpenNow(b, true));
+    const openPool = pool.filter(b => isOpenNow(b));
+    const closedPool = pool.filter(b => !isOpenNow(b));
 
     // 1. Intentar buscar uno ABIERTO que no hayamos visto
     let unseen = openPool.filter(b => !seenRef.current.has(b.id));
@@ -259,14 +259,14 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
           pool = [...pool, ...expPool];
         }
 
-        const openBiz = pool.filter(b => b.isExperience || isOpenNow(b, true));
+        const openBiz = pool.filter(b => b.isExperience || isOpenNow(b));
         
         let filtered = openBiz.filter(b => isValidMatch(b, vibe.id, vibe.cats));
         
         // Si no hay 3 abiertos de esas categorías, rellenar con cerrados
         if (filtered.length < 3) {
           const closedFiltered = pool.filter(b => {
-            if (b.isExperience || isOpenNow(b, true)) return false;
+            if (b.isExperience || isOpenNow(b)) return false;
             return isValidMatch(b, vibe.id, vibe.cats);
           });
           filtered = [...filtered, ...closedFiltered];
@@ -379,7 +379,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
               ) : pick.isExperience ? (
                 <div style={{ position: 'absolute', top: 12, right: 12, background: '#F59E0B', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Plan</div>
               ) : (
-                isOpenNow(pick, true)
+                isOpenNow(pick)
                   ? <div style={{ position: 'absolute', top: 12, right: 12, background: '#10B981', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Abierto</div>
                   : <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 800, color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}>Cerrado</div>
               )}
