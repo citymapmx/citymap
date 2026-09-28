@@ -42,7 +42,8 @@ export default function HomeHero({
               </div>
               <style>{`
                 @keyframes heroGradientFlow {
-                  0% { background-position: 100% center; }
+                  0% { background-position: 0% center; }
+                  50% { background-position: 100% center; }
                   100% { background-position: 0% center; }
                 }
                 
@@ -59,7 +60,7 @@ export default function HomeHero({
                   background-size: 200% auto;
                   -webkit-background-clip: text;
                   -webkit-text-fill-color: transparent;
-                  animation: heroGradientFlow 4s linear infinite;
+                  animation: heroGradientFlow 8s ease-in-out infinite;
                 }
                 
               `}</style>
