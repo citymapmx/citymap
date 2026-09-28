@@ -63,31 +63,16 @@ import CityEmptyState from '../components/CityEmptyState.jsx';
 // Removed FloatingParticles
 
 const placeholders = [
-  "Buscar lugares, eventos...",
-  "Buscar 'Sushi'...",
-  "Cafeterías cerca...",
-  "¿Antojo de mariscos?...",
-  "Descubre bares locales...",
+  "Buscar 'Restaurantes'...",
+  "Buscar 'Cafeterías'...",
+  "Buscar 'Bares'...",
+  "Buscar 'Antros'...",
   "Buscar 'Tacos'...",
-  "Lugares para cenar...",
-  "¿Qué hacer hoy?...",
-  "Buscar 'Pizza'...",
-  "Restaurantes románticos...",
-  "Eventos de fin de semana...",
+  "Buscar 'Mariscos'...",
   "Buscar 'Hamburguesas'...",
-  "Desayunos deliciosos...",
-  "Lugares pet-friendly...",
-  "Comida saludable...",
-  "Postres y helados...",
-  "Cena con amigos...",
-  "Buffets cerca de mi...",
-  "Dónde tomar un café...",
-  "Buscar 'Cerveza artesanal'...",
-  "Comida típica de la región...",
-  "Lugares para leer un libro...",
-  "Parques y lugares al aire libre...",
-  "Centros comerciales...",
-  "Buscar 'Cortes de carne'..."
+  "Buscar 'Sushi'...",
+  "Buscar 'Postres'...",
+  "Buscar 'Pizzas'..."
 ];
 
 export default function HomeView({ isBackground }) {
@@ -121,11 +106,9 @@ export default function HomeView({ isBackground }) {
   const { t, lang } = useTranslation();
 
   const placeholdersKeys = React.useMemo(() => [
-    "buscar_placeholder", "buscar_sushi", "cafeterias_cerca", "antojo_mariscos",
-    "bares_locales", "buscar_tacos", "lugares_cenar", "que_hacer", "buscar_pizza",
-    "romanticos", "fin_de_semana", "buscar_hamburguesas", "desayunos", "pet_friendly",
-    "healthy", "postres", "cena_amigos", "buffets", "donde_cafe", "buscar_cerveza",
-    "típica", "leer_libro", "aire_libre", "comerciales", "cortes"
+    "buscar_restaurantes", "buscar_cafeterias", "buscar_bares", "buscar_antros", 
+    "buscar_tacos", "buscar_mariscos", "buscar_hamburguesas", "buscar_sushi", 
+    "buscar_postres", "buscar_pizza"
   ], []);
 
   const localizedPlaceholders = React.useMemo(() => {
