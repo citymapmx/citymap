@@ -46,8 +46,7 @@ export default function HomeHero({
                   100% { background-position: 0% center; }
                 }
                 
-                  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
-                }
+
                 .animated-city {
                   display: inline-block;
                   font-family: 'Montserrat', sans-serif;
