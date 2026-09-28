@@ -8,6 +8,7 @@ if (typeof window !== 'undefined' && !window.__weatherCache) {
 export default function HeroWeather({ userCoords, activeCity, cities = [], dark }) {
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const randomSeed = React.useRef(Math.random());
 
   useEffect(() => {
     let lat = null;
@@ -92,7 +93,7 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
   // Simple hash based on day of year to keep message consistent during the same day, 
   // but change randomly between days. (Or just Math.random since it mounts once).
   // Math.random() is fine, we just want variety.
-  const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const pickRandom = (arr) => arr[Math.floor(randomSeed.current * arr.length)];
 
   let icon = "☀️";
   let moodOptions = [];
