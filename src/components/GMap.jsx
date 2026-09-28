@@ -62,6 +62,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
   const radiusCircle = useRef(null);
   const utilityPins = useRef([]);
   const ok = useGMaps();
+  const [mapReady, setMapReady] = useState(false);
 
   // Trigger Google Maps resize whenever the container changes size (e.g. flex animations)
   useEffect(() => {
@@ -73,7 +74,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
     });
     ro.observe(ref.current);
     return () => ro.disconnect();
-  }, [ok]);
+  }, [ok, mapReady]);
 
   useEffect(() => {
     if (!ok || !map.current) return;
@@ -108,7 +109,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         });
       }
     });
-  }, [ok, utilityFilter]);
+  }, [ok, mapReady, utilityFilter]);
 
   // Live Geolocation Tracking Effect
   React.useEffect(() => {
@@ -154,7 +155,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
       radiusCircle.current.setMap(null);
       radiusCircle.current = null;
     }
-  }, [ok, userLocation, radiusKm]);
+  }, [ok, mapReady, userLocation, radiusKm]);
 
   useEffect(() => {
     if (!ok || !ref.current) return;
@@ -186,6 +187,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         ],
       });
       infoWin.current = new window.google.maps.InfoWindow();
+      setMapReady(true);
       
       window.google.maps.event.addListener(map.current, 'idle', () => {
         if (onBoundsChanged) {
