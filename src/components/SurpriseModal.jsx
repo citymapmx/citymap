@@ -390,10 +390,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
               ) : (
                 isOpenNow(pick, true)
                   ? <div style={{ position: 'absolute', top: 12, right: 12, background: '#10B981', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Abierto</div>
-                  : <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 800, color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}>Cerrado {(() => {
-                    const txt = getNextOpenText(pick);
-                    return txt ? ` • ${txt}` : '';
-                  })()}</div>
+                  : <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 800, color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}>Cerrado</div>
               )}
             </div>
 
