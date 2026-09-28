@@ -318,7 +318,7 @@ export default function CityGuide() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   
-  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === "/" || location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath; if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true }); } } });
+  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === "/" || location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/"); if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true }); } } });
   const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites({ sb, user, setShowAuth });
   
   useEffect(() => {
@@ -616,7 +616,9 @@ useEffect(() => {
         setTimeout(() => setFade(true), 50);
         return;
       }
-      path = cityPrefix;
+      // Preserve category paths when navigating home
+      const isOnHomePath = location.pathname === "/" || location.pathname === cityPrefix || location.pathname.startsWith(cityPrefix + "/c/");
+      path = isOnHomePath ? location.pathname : cityPrefix;
     }
 
     if (v === "detail") {
