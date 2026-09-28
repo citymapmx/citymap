@@ -498,8 +498,8 @@ export default function HomeView({ isBackground }) {
                   {nearbyList.length === 0 ? (
                     <div style={{ padding: "24px 16px", background: dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: 16, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12 }}>
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: 14, color: T.text, marginBottom: 4 }}>{t("sugerir_zona", "¡Sé el primero en descubrir esta zona! 🗺️")}</div>
-                        <div style={{ fontSize: 13, color: T.sub }}>{t("sugerir_desc", "Amplía tu radio de búsqueda o sugiere una joya oculta")}</div>
+                        <div style={{ fontWeight: 800, fontSize: 14, color: T.text, marginBottom: 4 }}>{t("sugerir_zona_cerca", "No hay lugares a esta distancia 🗺️")}</div>
+                        <div style={{ fontSize: 13, color: T.sub }}>{t("sugerir_desc_cerca", "Intenta ampliar el radio de búsqueda o sugiere un lugar por aquí.")}</div>
                       </div>
                       <button className="press" onClick={() => { if (!user) { setShowAuth(true); toast$("Inicia sesión para sugerir un lugar"); } else { setShowAddBiz(true); } }} style={{ background: "#0ea5e9", color: "#fff", border: "none", borderRadius: 20, padding: "8px 16px", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                         <Icon name="plus" size={16} color="#fff" /> {t("sugerir_btn", "Sugerir lugar")}

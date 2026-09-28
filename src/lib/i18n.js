@@ -19,7 +19,7 @@ export const TRANSLATIONS = {
     "lugares_cerca": "lugares cerca",
     "toca_cerca": "Toca para ver lugares cerca de ti",
     "sugerir_zona": "¡Sé el primero en descubrir esta zona! 🗺️",
-    "sugerir_desc": "Amplía tu radio de búsqueda o sugiere una joya oculta",
+    "sugerir_desc": "Intenta ampliar el radio de búsqueda (ej. a 3km) o sugiere una joya oculta cerca de ti.",
     "sugerir_btn": "Sugerir lugar",
     "agenda_local": "Agenda Local",
     "es_hoy": "🤩 ES HOY",
