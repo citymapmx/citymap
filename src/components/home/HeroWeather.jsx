@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
-// Cache in memory so we don't re-fetch when navigating back to home
+// Cache in memory fallback
 if (typeof window !== 'undefined' && !window.__weatherCache) {
   window.__weatherCache = {};
 }
 
 export default function HeroWeather({ userCoords, activeCity, cities = [], dark }) {
   const [weatherData, setWeatherData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let lat = null;
@@ -23,11 +24,30 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
       lng = userCoords.lng;
     }
 
-    if (!lat) return;
+    if (!lat) {
+      setLoading(false);
+      return;
+    }
 
-    const cacheKey = `${Math.round(lat*100)},${Math.round(lng*100)}`;
+    const cacheKey = `cg_weather_${Math.round(lat*100)}_${Math.round(lng*100)}`;
+    
+    // Check localStorage first (1 hour expiration)
+    try {
+      const saved = localStorage.getItem(cacheKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Date.now() - parsed.timestamp < 3600000) {
+          setWeatherData(parsed.data);
+          setLoading(false);
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // Check memory cache fallback
     if (window.__weatherCache[cacheKey]) {
       setWeatherData(window.__weatherCache[cacheKey]);
+      setLoading(false);
       return;
     }
 
@@ -36,13 +56,24 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
       .then(d => { 
         if (d.current_weather) {
           window.__weatherCache[cacheKey] = d.current_weather;
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify({
+              timestamp: Date.now(),
+              data: d.current_weather
+            }));
+          } catch(e) {}
           setWeatherData(d.current_weather); 
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        // Silently fail so we don't show loading forever
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [userCoords, activeCity, cities]);
 
-  if (!weatherData) {
+  if (loading) {
     return (
       <div style={{ height: 40, marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
         <div style={{ width: 60, height: 20, borderRadius: 10, background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', animation: 'pulse 1.5s infinite' }} />
@@ -52,51 +83,117 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
     );
   }
 
-  const t = weatherData.temperature;
-  const code = weatherData.weathercode;
-  const hour = new Date().getHours();
+  if (!weatherData) return null; // Hide completely if failed
 
+  const t = weatherData.temperature;
+  const hour = new Date().getHours();
   const isNight = hour >= 20 || hour < 6;
 
-  let icon = isNight ? "🌙" : "☀️";
-  let mood = "Perfecto para terrazas y mariscos";
+  // Simple hash based on day of year to keep message consistent during the same day, 
+  // but change randomly between days. (Or just Math.random since it mounts once).
+  // Math.random() is fine, we just want variety.
+  const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-  // 🌩️ Condiciones extremas primero (iguales de día y noche)
-  if (code >= 95) {
-    icon = "⛈️"; mood = "Tormenta afuera — ideal para pedir a domicilio";
-  } else if (code >= 71 && code <= 77) {
-    icon = "❄️"; mood = "Día helado — ¿una fondue o un chocolate caliente?";
-  } else if (code >= 51 && code <= 67) {
-    icon = "🌧️"; mood = "Está lloviendo — busca un lugar techado y calentito";
-  }
+  let icon = "☀️";
+  let moodOptions = [];
+
   // 🌡️ Por temperatura + hora
-  else if (t >= 32) {
+  if (t >= 32) {
     icon = isNight ? "🌙" : "🔥";
-    if (hour >= 14 && hour <= 17) mood = "Calor extremo — busca un lugar con aire o alberca";
-    else if (isNight) mood = "Noche calurosa — perfecto para bares y terrazas";
-    else mood = "Hace mucho calor — perfecto para mariscos o aguas frescas";
+    if (hour >= 14 && hour <= 17) moodOptions = [
+      "Calor extremo — busca un lugar con aire acondicionado",
+      "Día ardiente — ¡urge una alberca o algo frío!",
+      "El calor está fuerte — tiempo de una nieve o raspado",
+      "Tarde calurosa — ideal para lugares frescos e interiores"
+    ];
+    else if (isNight) moodOptions = [
+      "Noche calurosa — perfecto para bares y terrazas",
+      "Clima ideal para una cerveza bien fría",
+      "Noche tropical — ¿qué tal unos mariscos frescos?",
+      "Excelente clima para cenar al aire libre"
+    ];
+    else moodOptions = [
+      "Hace mucho calor — perfecto para mariscos o aguas frescas",
+      "Mañana calurosa — empieza el día con algo refrescante",
+      "Día cálido — ideal para buscar la sombra y un buen drink"
+    ];
   } else if (t >= 27) {
     icon = isNight ? "🌙" : "☀️";
-    if (hour >= 6 && hour < 11) mood = "Mañana cálida — perfecta para un brunch al aire libre";
-    else if (hour >= 11 && hour < 15) mood = "Buen clima para comer en terraza";
-    else if (hour >= 15 && hour < 20) mood = "Tarde perfecta para una cerveza o mariscos";
-    else mood = "Noche cálida — perfecto para bares o cenar afuera";
+    if (hour >= 6 && hour < 11) moodOptions = [
+      "Mañana cálida — perfecta para un brunch al aire libre",
+      "Excelente clima para un café frío y buen desayuno",
+      "Lindo inicio de día — anímate a salir temprano"
+    ];
+    else if (hour >= 11 && hour < 15) moodOptions = [
+      "Buen clima para comer en terraza",
+      "Mediodía agradable — busca un lugar con buena vista",
+      "Día soleado — perfecto para explorar lugares nuevos"
+    ];
+    else if (hour >= 15 && hour < 20) moodOptions = [
+      "Tarde perfecta para una cerveza o mariscos",
+      "Clima relajado — ideal para tardear con amigos",
+      "Excelente tarde para un helado o paseo"
+    ];
+    else moodOptions = [
+      "Noche cálida — perfecto para bares o cenar afuera",
+      "Clima estupendo para salir de fiesta o cenar rico",
+      "Noche de manga corta — ¡aprovecha las terrazas!"
+    ];
   } else if (t >= 20) {
-    icon = isNight ? "🌛" : (code <= 3 ? "⛅" : "☀️");
-    if (hour >= 6 && hour < 10) mood = "Mañana fresca — ideal para un buen desayuno";
-    else if (hour >= 10 && hour < 14) mood = "Clima agradable para explorar la ciudad";
-    else if (hour >= 14 && hour < 19) mood = "Tarde ideal para café o salir a caminar";
-    else mood = "Noche agradable — ¿cena o un trago?";
+    icon = isNight ? "🌛" : "⛅";
+    if (hour >= 6 && hour < 10) moodOptions = [
+      "Mañana fresca — ideal para un buen desayuno",
+      "Despierta con un buen café — el clima está perfecto",
+      "Mañana muy agradable para arrancar el día"
+    ];
+    else if (hour >= 10 && hour < 14) moodOptions = [
+      "Clima perfecto para explorar la ciudad",
+      "Mediodía súper a gusto — ideal para cualquier plan",
+      "Ni frío ni calor — ¡sal a dar la vuelta!"
+    ];
+    else if (hour >= 14 && hour < 19) moodOptions = [
+      "Tarde ideal para café o salir a caminar",
+      "Tardes de relax — busca un buen postre o café",
+      "Clima ideal para platicar largo y tendido"
+    ];
+    else moodOptions = [
+      "Noche agradable — ¿cena o un trago?",
+      "Clima de 10 para salir con amigos o en pareja",
+      "Noche perfecta para pasear o cenar rico"
+    ];
   } else if (t >= 14) {
     icon = isNight ? "🌙" : "🌤️";
-    if (hour >= 6 && hour < 12) mood = "Mañana fresca — perfecta para un café caliente";
-    else if (hour >= 12 && hour < 20) mood = "Clima fresco — ideal para cafeterías y restaurantes";
-    else mood = "Noche fresca — abrígate y sal a cenar";
+    if (hour >= 6 && hour < 12) moodOptions = [
+      "Mañana fresca — perfecta para un café caliente",
+      "Día fresco — se antoja algo horneado y un cafecito",
+      "El clima pide a gritos un pan dulce y bebida caliente"
+    ];
+    else if (hour >= 12 && hour < 20) moodOptions = [
+      "Clima fresco — ideal para cafeterías y restaurantes techados",
+      "Tarde fresquita — perfecta para lugares acogedores",
+      "Se antoja platicar con algo calientito en mano"
+    ];
+    else moodOptions = [
+      "Noche fresca — abrígate y sal a cenar",
+      "Noche para chamarra ligera y una buena cena",
+      "Clima frío y romántico — busca lugares cálidos"
+    ];
   } else {
     icon = isNight ? "🥶" : "🥶";
-    if (isNight) mood = "Noche helada — pide a domicilio o cena cerca";
-    else mood = "Día muy frío — busca caldos, pozole o café calientito";
+    if (isNight) moodOptions = [
+      "Noche helada — pide a domicilio o cena cerca",
+      "Hace muchísimo frío — ¡Pide por la app desde tu cama!",
+      "Noche bajo cero — se antoja algo bien caliente y cobijas"
+    ];
+    else moodOptions = [
+      "Día muy frío — busca caldos, pozole o café calientito",
+      "Clima helado — perfecto para no salir y pedir a casa",
+      "Hace mucho frío — ¡mantente calientito!"
+    ];
   }
+
+  // Pick a random mood using useMemo so it doesn't change on arbitrary re-renders
+  const mood = React.useMemo(() => pickRandom(moodOptions), [hour, t]);
 
   return (
     <div style={{
