@@ -329,16 +329,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
               ))}
             </div>
             
-            {/* AI Option */}
-            <button onClick={() => setStep('ai_vibe')} style={{
-              width: '100%', marginTop: 16, background: 'transparent',
-              border: `1px solid ${dBorder}`,
-              borderRadius: 16, padding: '16px 14px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10
-            }}>
-              <span style={{ fontSize: 24, lineHeight: 1 }}>🤖</span>
-              <div style={{ fontSize: 14, fontWeight: 700, color: dText, lineHeight: 1.2 }}>Dejar que la IA decida</div>
-            </button>
+            
           </div>
         )}
 
@@ -420,9 +411,8 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
             {aiError && <p style={{ color: '#EF4444', fontSize: 12, textAlign: 'center', marginTop: 8 }}>{aiError}</p>}
 
             {/* Back + AI */}
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button onClick={() => setStep('mood')} style={{ flex: 1, background: 'transparent', border: `1.5px solid ${dBorder}`, borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13, color: dSub, cursor: 'pointer', fontFamily: 'inherit' }}>← Cambiar mood</button>
-              <button onClick={() => setStep('ai_vibe')} style={{ flex: 1, background: 'transparent', border: `1.5px solid ${dark ? 'rgba(139,92,246,0.4)' : '#DDD6FE'}`, borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13, color: dark ? '#C4B5FD' : '#7C3AED', cursor: 'pointer', fontFamily: 'inherit' }}>🤖 IA decide</button>
+            <div style={{ marginTop: 10 }}>
+              <button onClick={() => setStep('mood')} style={{ width: '100%', background: 'transparent', border: `1.5px solid ${dBorder}`, borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13, color: dSub, cursor: 'pointer', fontFamily: 'inherit' }}>← Cambiar mood</button>
             </div>
           </div>
         )}
