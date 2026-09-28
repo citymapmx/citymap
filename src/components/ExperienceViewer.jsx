@@ -136,7 +136,8 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const gallery = Array.isArray(exp.gallery) ? exp.gallery : [];
   const cover = gallery.length > 0 ? gallery[0] : null;
   const curr = (exp.booking_config && exp.booking_config.currency) ? exp.booking_config.currency : 'MXN';
-  const priceFormatted = exp.price > 0 ? `$${exp.price.toLocaleString("en-US")} ${curr}` : 'Gratis';
+  const priceFormatted = exp.price > 0 ? `${exp.price.toLocaleString("en-US")} ${curr}` : 'Gratis';
+  const isBlog = exp.activity_type && (exp.activity_type.toLowerCase().includes("blog") || exp.activity_type.toLowerCase().includes("guía"));
 
   const PLATFORM_STYLES = {
     airbnb: { color: "#FF5A5F", label: "Airbnb", img: "/airbnb.svg" },
@@ -322,12 +323,14 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
           </div>
         )}
 
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 16 }}>
-          <span style={{ fontSize: priceFormatted === 'Gratis' ? 14 : 22, fontWeight: 900, color: T.text, textTransform: priceFormatted === 'Gratis' ? "uppercase" : "none", letterSpacing: priceFormatted === 'Gratis' ? 0.5 : 0 }}>{priceFormatted}</span>
-          {priceFormatted !== 'Gratis' && (
-            <span style={{ fontSize: 13, color: T.sub, fontWeight: 500 }}>(los precios pueden variar)</span>
-          )}
-        </div>
+        {!isBlog && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 16 }}>
+            <span style={{ fontSize: priceFormatted === 'Gratis' ? 14 : 22, fontWeight: 900, color: T.text, textTransform: priceFormatted === 'Gratis' ? "uppercase" : "none", letterSpacing: priceFormatted === 'Gratis' ? 0.5 : 0 }}>{priceFormatted}</span>
+            {priceFormatted !== 'Gratis' && (
+              <span style={{ fontSize: 13, color: T.sub, fontWeight: 500 }}>(los precios pueden variar)</span>
+            )}
+          </div>
+        )}
 
         {/* Price & Book CTA — buttons only if external links exist */}
         {(externalLinks.length > 0 || exp.route_url) && (
@@ -425,7 +428,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {/* Description */}
         {exp.description && (
           <div style={{ marginBottom: 36 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 14, letterSpacing: -0.3 }}>Sobre esta experiencia</h3>
+            {!isBlog && <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 14, letterSpacing: -0.3 }}>Sobre esta experiencia</h3>}
             <FormattedText text={exp.description} T={T} />
           </div>
         )}
