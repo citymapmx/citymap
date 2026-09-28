@@ -8,10 +8,10 @@ const MOODS = [
   { id: 'cafe',      emoji: '☕', label: 'Un café',           cats: ['cafeteria', 'cafe', 'postre', 'helado', 'churro', 'crepa'] },
   { id: 'tomar',     emoji: '🍺', label: 'Tomar algo',        cats: ['bar', 'antro', 'cantina', 'coctel', 'cerveza', 'cerveceria', 'michelada', 'mezcaleria', 'pub'] },
   { id: 'noche',     emoji: '🪩', label: 'Planes nocturnos',  cats: ['antro', 'bar', 'botanero', 'club', 'disco', 'karaoke', 'cantina', 'cerveceria', 'coctel', 'pub', 'michelada', 'restaurante', 'cafeteria', 'entretenimiento'] },
-  { id: 'planes',    emoji: '🧭', label: 'Armar un plan',     cats: ['punto de interes', 'atraccion', 'turismo', 'parque', 'museo', 'senderismo', 'tour'] }, // Se nutre de experiences + mapPins
+  { id: 'planes',    emoji: '🔥', label: 'Armar un plan',     cats: ['punto de interes', 'atraccion', 'turismo', 'parque', 'museo', 'senderismo', 'tour'] }, // Se nutre de experiences + mapPins
   { id: 'compras',   emoji: '🛍️', label: 'Comprar algo',      cats: ['compras', 'tienda', 'boutique', 'plaza', 'comercial', 'ropa', 'moda', 'zapateria', 'mall', 'departamental'] },
   { id: 'eventos',   emoji: '🎫', label: 'Eventos locales',   cats: ['evento'] }, // Se maneja especial en la lógica
-  { id: 'sorpresa',  emoji: '🎲', label: 'Lo que sea',        cats: [] },
+  { id: 'sorpresa',  emoji: '🎲', label: '¡Sorpréndeme!',        cats: [] },
 ];
 
 const VIBES = [
