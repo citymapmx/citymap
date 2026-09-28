@@ -401,9 +401,7 @@ export default function DetailView() {
                           <>
                             <span style={{ width: 6, height: 6, borderRadius: "50%", background: smartSt.color, display: "inline-block" }} />
                             <span className="text-sm" style={{ color: smartSt.color, fontWeight: 700 }}>{smartSt.text}</span>
-                            {selected.hours && (
-                              <span className="text-sm" style={{ color: dSub, display: "flex", alignItems: "center", gap: 4 }}>· {selected.hours}</span>
-                            )}
+                            
                           </>
                         );
                       })()}
