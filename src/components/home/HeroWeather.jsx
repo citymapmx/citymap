@@ -193,7 +193,8 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
   }
 
   // Pick a random mood using useMemo so it doesn't change on arbitrary re-renders
-  const mood = React.useMemo(() => pickRandom(moodOptions), [hour, t]);
+  // Avoid useMemo here to prevent hook order issues after conditional returns
+  const mood = pickRandom(moodOptions);
 
   return (
     <div style={{
