@@ -37,6 +37,9 @@ async function generateSitemap() {
     const bizRes = await fetch(`${SUPABASE_URL}/rest/v1/businesses?status=eq.approved&select=slug,city_slug,category`, { headers });
     const businesses = await bizRes.json();
     
+    const expRes = await fetch(`${SUPABASE_URL}/rest/v1/experiences?status=eq.approved&select=city_slug,slug,title`, { headers });
+    const experiences = await expRes.json();
+    
     // 3. Fetch active events
     const eventRes = await fetch(`${SUPABASE_URL}/rest/v1/events?status=eq.approved&select=slug,id`, { headers });
     const events = await eventRes.json();
@@ -64,6 +67,16 @@ async function generateSitemap() {
 
     // Businesses
     const FOOD_CATS = ['restaurantes', 'restaurante', 'cafe', 'cafeteria', 'cafetería', 'comida', 'mariscos', 'sushi', 'pizza', 'tacos', 'hamburgesas', 'panaderia', 'pasteleria', 'heladeria', 'antros y bares', 'bares', 'bar', 'antro'];
+    
+    const createSlug = (text) => text ? text.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") : "";
+    
+    for (const exp of experiences) {
+      if (!exp.title) continue;
+      const cSlug = exp.city_slug || 'tepic';
+      const expSlug = exp.slug || createSlug(exp.title);
+      urls.push({ loc: `${BASE_URL}/experiencias/${cSlug}/${expSlug}`, priority: 0.8 });
+    }
+
     for (const biz of businesses) {
       if (!biz.slug) continue;
       const cSlug = biz.city_slug || 'tepic';
