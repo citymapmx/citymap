@@ -33,7 +33,7 @@ export default function HomeHero({
         {!search && (() => {
           return (
             <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 10, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
-              <div className="hero-title-anim" style={{ marginBottom: 4 }}>
+              <div  style={{ marginBottom: 4 }}>
                 <img 
                   src="/citymap.mx.png" 
                   alt="CityMap" 
@@ -45,8 +45,7 @@ export default function HomeHero({
                   0% { background-position: 100% center; }
                   100% { background-position: 0% center; }
                 }
-                @keyframes premiumFadeUp {
-                  0% { opacity: 0; transform: translateY(15px); filter: blur(8px); }
+                
                   100% { opacity: 1; transform: translateY(0); filter: blur(0); }
                 }
                 .animated-city {
@@ -63,16 +62,12 @@ export default function HomeHero({
                   -webkit-text-fill-color: transparent;
                   animation: heroGradientFlow 4s linear infinite;
                 }
-                .hero-title-anim {
-                  color: #ffffff;
-                  animation: premiumFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6));
-                }
+                
               `}</style>
-              <h1 className="hero-title-anim" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(22px, 5.5vw, 28px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: dark ? "#fff" : T.text }}>
+              <h1  style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(22px, 5.5vw, 28px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: dark ? "#fff" : T.text }}>
                 {getGreeting()} <span className="animated-city">{cityName}</span>
               </h1>
-              <div className="hero-title-anim" style={{ display: 'flex', justifyContent: 'center' }}>
+              <div  style={{ display: 'flex', justifyContent: 'center' }}>
                 <HeroWeather userCoords={userCoords} activeCity={activeCity} cities={cities} dark={dark} />
               </div>
             </div>
