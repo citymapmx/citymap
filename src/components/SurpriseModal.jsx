@@ -377,7 +377,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
               {pick.isEvent ? (
                 <div style={{ position: 'absolute', top: 12, right: 12, background: '#3B82F6', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Próximamente</div>
               ) : pick.isExperience ? (
-                <div style={{ position: 'absolute', top: 12, right: 12, background: '#F59E0B', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Plan</div>
+                null
               ) : (
                 isOpenNow(pick)
                   ? <div style={{ position: 'absolute', top: 12, right: 12, background: '#10B981', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Abierto</div>
