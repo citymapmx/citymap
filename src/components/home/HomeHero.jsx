@@ -140,7 +140,7 @@ export default function HomeHero({
               : [{id: "explorar", label: t("explorar", "Explorar")}, ...cats.map(c => ({ ...c, label: t(c.label, c.label) }))].map((c) => {
                 const isActive = activeCat === c.id
                 const catSlug = (c.id || "").replace(/\s+/g, '-').toLowerCase();
-                const catUrl = `/${(activeCity || city || "").split(",")[0]}${c.id === "explorar" ? "" : "/" + catSlug}`;
+                const catUrl = `/${(activeCity || city || "").split(",")[0]}${c.id === "explorar" ? "" : "/c/" + catSlug}`;
                 
                 let emojiVal = c.id === "explorar" ? "🌎" : (c.icon === "❤️" ? "🤍" : (c.emoji || c.icon || "✨"));
                 let cleanEmoji = typeof emojiVal === 'string' ? emojiVal.trim() : emojiVal;

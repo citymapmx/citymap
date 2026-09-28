@@ -224,9 +224,12 @@ export default function CityGuide() {
 
   useEffect(() => {
     if (initialParams.current.citySlug && initialParams.current.citySlug !== activeCity) {
-       
       setActiveCity(initialParams.current.citySlug);
       loadData(initialParams.current.citySlug);
+    }
+    
+    if (initialParams.current.cat && initialParams.current.cat !== activeCat) {
+      setActiveCat(initialParams.current.cat);
     }
 
     const handleBeforeInstallPrompt = (e) => {

@@ -97,6 +97,13 @@ export function useAppInitialization() {
           }
         }
       }
+    } else if (segments.length === 3 && segments[1] === "c") {
+      const potentialCity = segments[0].toLowerCase();
+      if (!SYSTEM_ROUTES.includes(potentialCity)) {
+        currentCity = potentialCity;
+        localStorage.setItem("cg_city_slug", currentCity);
+        cat = segments[2].replace(/-/g, ' ');
+      }
     } else if (segments.length === 3 && segments[2] === "menu") {
       vista = "menu_direct";
       const cSlug = segments[0].toLowerCase();
