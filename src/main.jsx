@@ -49,7 +49,7 @@ if (isAdminRoute) {
         });
       }).catch(() => {});
 
-      sessionStorage.removeItem('chunk_reload_guard');
+      // chunk_reload_guard now uses timestamps
 
       createRoot(document.getElementById('root')).render(
         <StrictMode>

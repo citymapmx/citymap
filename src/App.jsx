@@ -3,24 +3,24 @@ import { useState, useRef, useEffect, useCallback, lazy as reactLazy, Suspense, 
 const lazy = (importer) => reactLazy(async () => {
   try {
     const component = await importer();
-    // Clear guards on successful load so next deploy can auto-reload again
-    sessionStorage.removeItem('chunk_load_retry');
-    sessionStorage.removeItem('chunk_reload_guard');
     return component;
   } catch (error) {
     const errStr = String(error?.message || error || '');
     const isChunkError = error.name === 'ChunkLoadError' || errStr.includes('fetch') || errStr.includes('dynamically imported') || errStr.includes('MIME type') || errStr.includes('text/html') || errStr.includes('Load failed') || errStr.includes('module');
-    if (!sessionStorage.getItem('chunk_load_retry') && isChunkError) {
-      sessionStorage.setItem('chunk_load_retry', 'true');
-      sessionStorage.setItem('chunk_reload_guard', '1');
-      if ('serviceWorker' in navigator) {
-        try {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          for (let reg of regs) await reg.unregister();
-        } catch (e) { console.error(e); }
+    if (isChunkError) {
+      const last = parseInt(sessionStorage.getItem('chunk_reload_guard') || '0', 10);
+      const now = Date.now();
+      if (now - last > 15000) {
+        sessionStorage.setItem('chunk_reload_guard', now.toString());
+        if ('serviceWorker' in navigator) {
+          try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for (let reg of regs) await reg.unregister();
+          } catch (e) { console.error(e); }
+        }
+        window.location.reload(true);
+        return new Promise(() => {}); // Wait for reload
       }
-      window.location.reload(true);
-      return new Promise(() => {}); // Wait for reload
     }
     throw error;
   }

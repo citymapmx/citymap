@@ -25,8 +25,10 @@ export class GlobalErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     if (isChunkError(error)) {
-      if (!sessionStorage.getItem('chunk_reload_guard')) {
-        sessionStorage.setItem('chunk_reload_guard', '1');
+      const last = parseInt(sessionStorage.getItem('chunk_reload_guard') || '0', 10);
+      const now = Date.now();
+      if (now - last > 15000) {
+        sessionStorage.setItem('chunk_reload_guard', now.toString());
         window.location.reload(true);
         return;
       }
