@@ -323,24 +323,7 @@ export default function AccountView({
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
-            <div onClick={() => navigate("favs")} className="press" style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 20, padding: "16px 8px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
-              <div style={{ background: "rgba(239,68,68,0.1)", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-                 <Icon name="heart_overlay_f" size={22} color="#EF4444" />
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: T.text, lineHeight: 1 }}>{favIds?.length || 0}</div>
-              <div style={{ fontSize: 10, color: T.sub, fontWeight: 800, textTransform: "uppercase", marginTop: 4, letterSpacing: 0.5 }}>Favs</div>
-            </div>
-
-            <div onClick={() => navigate("itineraries")} className="press" style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 20, padding: "16px 8px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
-              <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-                 <Icon name="map" size={22} color="#3B82F6" />
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: T.text, lineHeight: 1 }}>{ctx.collections?.length || 0}</div>
-              <div style={{ fontSize: 10, color: T.sub, fontWeight: 800, textTransform: "uppercase", marginTop: 4, letterSpacing: 0.5 }}>Listas</div>
-            </div>
-
-          </div>
+          
         </div>
         {/* ── WALLET ── */}
         {wallet.length > 0 && (
