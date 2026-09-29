@@ -218,18 +218,18 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
       <div style={{ position: "relative", width: "100%", height: "35vh", minHeight: 280, background: cover ? `url(${getThumbUrl(cover, 900, 600)}) center/cover` : (dark ? "#222" : "#E5E7EB") }}>
         {/* Top bar */}
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "calc(env(safe-area-inset-top, 0px) + 16px) 20px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
-          <button onClick={onClose} style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 20, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-            <Icon name="arrow_left" size={20} color="#fff" />
+          <button onClick={onClose} style={{ background: "transparent", border: "none", borderRadius: 20, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "flex-start", cursor: "pointer", padding: 0 }}>
+            <Icon name="arrow_left" size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.8))" }} />
           </button>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 16 }}>
             <button 
               onClick={() => {
                 setItineraryTargetBiz(exp);
                 setShowItineraryModal(true);
               }}
-              style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 20, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              style={{ background: "transparent", border: "none", borderRadius: 20, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
             >
-              <Icon name="plus" size={18} color="#fff" />
+              <Icon name="plus" size={26} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.8))" }} />
             </button>
             <button 
               onClick={() => {
@@ -241,9 +241,9 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                 alert("Enlace copiado al portapapeles");
               }
             }}
-            style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 20, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            style={{ background: "transparent", border: "none", borderRadius: 20, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "flex-end", cursor: "pointer", padding: 0 }}
           >
-            <Icon name="share" size={18} color="#fff" />
+            <Icon name="share" size={22} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.8))" }} />
             </button>
           </div>
         </div>
