@@ -29,7 +29,27 @@ export default function AdminCouponsTab({
             </select>
           </div>
           
-          <FI label="Código *" field="code" src={cpForm} set={setCpForm} ph="BIENVENIDO20" />
+          
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+              <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8 }}>Código *</label>
+              <input 
+                type="text" 
+                value={cpForm.code || ""} 
+                placeholder="BIENVENIDO20" 
+                onChange={e => setCpForm(f => ({ ...f, code: e.target.value.toUpperCase().replace(/\s/g, "") }))} 
+                style={{ padding: "11px 14px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 16, color: "#0F1A14", background: "#fff", fontFamily: "inherit", width: "100%", letterSpacing: 1 }} 
+              />
+            </div>
+            <button 
+              onClick={() => setCpForm(f => ({ ...f, code: 'CM' + Math.random().toString(36).substr(2, 5).toUpperCase() }))}
+              style={{ height: 46, padding: "0 16px", background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 10, cursor: "pointer", fontSize: 18 }}
+              title="Generar aleatorio"
+            >
+              🎲
+            </button>
+          </div>
+
           
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}>
             <input type="checkbox" id="cp_public" checked={cpForm.is_public !== false} onChange={e => setCpForm(f => ({...f, is_public: e.target.checked}))} style={{ width: 16, height: 16, accentColor: "#7C3AED" }} />
@@ -41,12 +61,27 @@ export default function AdminCouponsTab({
 
           <div style={{ padding: "12px", background: "#F8FAFC", borderRadius: 10, border: "1px solid #E2E8F0", display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
-              <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Tipo de recompensa</label>
-              <select value={cpForm.discount_type || "percentage"} onChange={e => setCpForm(f => ({ ...f, discount_type: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 14, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>
-                <option value="percentage">Descuento en Porcentaje (%)</option>
-                <option value="fixed">Monto Fijo de Descuento ($)</option>
-                <option value="promo">Promoción Especial (2x1, Regalo)</option>
-              </select>
+              <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Tipo de recompensa</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, background: "#E2E8F0", padding: 4, borderRadius: 12 }}>
+                {[
+                  { id: 'percentage', label: '% Porcentaje' },
+                  { id: 'fixed', label: '$ Monto Fijo' },
+                  { id: 'promo', label: '🎁 Regalo / 2x1' }
+                ].map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setCpForm(f => ({ ...f, discount_type: t.id }))}
+                    style={{
+                      padding: "8px 4px", fontSize: 13, fontWeight: 700, borderRadius: 8, border: "none", cursor: "pointer", transition: "all 0.2s",
+                      background: (cpForm.discount_type || 'percentage') === t.id ? '#fff' : 'transparent',
+                      color: (cpForm.discount_type || 'percentage') === t.id ? '#0F172A' : '#64748B',
+                      boxShadow: (cpForm.discount_type || 'percentage') === t.id ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -62,7 +97,32 @@ export default function AdminCouponsTab({
             <FI label="Consumo mínimo ($) - Opcional" field="min_purchase" src={cpForm} set={setCpForm} type="number" />
           </div>
 
-          <FI label="Términos y condiciones (Letras chiquitas)" field="terms_conditions" src={cpForm} set={setCpForm} rows={2} ph="Ej. Válido solo de lunes a jueves. No aplica con otras promociones." />
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8 }}>Términos y condiciones (Letras chiquitas)</label>
+              <button 
+                onClick={() => {
+                  let text = "Válido por 1 cupón por usuario. ";
+                  if (cpForm.min_purchase > 0) text += `Aplica en consumo mínimo de $${cpForm.min_purchase}. `;
+                  if (cpForm.expires_at) text += `Vigente hasta agotar existencias o fecha límite. `;
+                  text += "No acumulable con otras promociones.";
+                  setCpForm(f => ({ ...f, terms_conditions: text }));
+                }}
+                style={{ fontSize: 12, fontWeight: 700, color: "#7C3AED", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+              >
+                ✨ Autocompletar
+              </button>
+            </div>
+            <textarea 
+              rows={2} 
+              value={cpForm.terms_conditions || ""} 
+              placeholder="Ej. Válido solo de lunes a jueves. No aplica con otras promociones." 
+              onChange={e => setCpForm(f => ({ ...f, terms_conditions: e.target.value }))} 
+              style={{ padding: "11px 14px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 16, color: "#0F1A14", background: "#fff", fontFamily: "inherit", width: "100%", resize: "vertical" }} 
+            />
+          </div>
+
           
           <FI label="Vence (Opcional)" field="expires_at" src={cpForm} set={setCpForm} type="date" />
         </div>
