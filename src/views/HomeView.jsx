@@ -56,7 +56,8 @@ import TopImperdibles from "../components/home/TopImperdibles.jsx";
 import SquareCarousel from "../components/home/SquareCarousel.jsx";
 import AiNightPlanner from "../components/AiNightPlanner.jsx";
 import BannerSlider from "../components/home/BannerSlider.jsx";
-import { getDailyScore } from '../lib/utils.js';
+import { getDailyScore, getKm, createSlug, cleanCityPrefix, CAT_EMOJI } from '../lib/utils.js';
+import { FONT_BIZ } from '../lib/constants.js';
 import useTimeStore from '../store/useTimeStore.js';
 import CityEmptyState from '../components/CityEmptyState.jsx';
 
@@ -77,8 +78,24 @@ const placeholders = [
 
 export default function HomeView({ isBackground }) {
   const ctx = useAppContext();
-  const { dark, activeCity, showCityPicker, setShowCityPicker, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, showCityPicker: s.showCityPicker, setShowCityPicker: s.setShowCityPicker, toast$: s.toast$ })));
-  const { dbReady, cats, banners, globalFavCounts, coupons, events, raffles, cities, experiences, setMapPins } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, cats: s.cats, banners: s.banners, globalFavCounts: s.globalFavCounts, coupons: s.coupons, events: s.events, raffles: s.raffles, cities: s.cities, experiences: s.experiences, setMapPins: s.setMapPins })));
+  
+  const dark = useUIStore(s => s.dark);
+  const activeCity = useUIStore(s => s.activeCity);
+  const showCityPicker = useUIStore(s => s.showCityPicker);
+  const setShowCityPicker = useUIStore(s => s.setShowCityPicker);
+  const toast$ = useUIStore(s => s.toast$);
+
+  const dbReady = useDataStore(s => s.dbReady);
+  const cats = useDataStore(s => s.cats);
+  const banners = useDataStore(s => s.banners);
+  const globalFavCounts = useDataStore(s => s.globalFavCounts);
+  const coupons = useDataStore(s => s.coupons);
+  const events = useDataStore(s => s.events);
+  const raffles = useDataStore(s => s.raffles);
+  const cities = useDataStore(s => s.cities);
+  const experiences = useDataStore(s => s.experiences);
+  const setMapPins = useDataStore(s => s.setMapPins);
+
   
   const { data: mapPins = [], isLoading: pinsLoading } = useQuery({
     queryKey: ['home-businesses', activeCity],
@@ -100,7 +117,10 @@ export default function HomeView({ isBackground }) {
     enabled: !!activeCity,
     staleTime: 5 * 60 * 1000
   });
-  const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
+  
+  const user = useAuthStore(s => s.user);
+  const setShowAuth = useAuthStore(s => s.setShowAuth);
+
   const now = useTimeStore(s => s.now);
   
   const { t, lang } = useTranslation();
@@ -151,7 +171,10 @@ export default function HomeView({ isBackground }) {
     return () => clearInterval(interval);
   }, [placeholdersKeys.length]);
 
-  const { viewStyle, cityImg, locating, detectCity, city, isAdmin, setShowAdmin, search, setSearch, setShowAddBiz, activeCat, setActiveCat, T, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, requestLocation, allNearby, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, biz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState, setSelectedEvent, cleanCityPrefix, createSlug } = ctx;
+  
+  const { viewStyle, cityImg, locating, detectCity, city, isAdmin, setShowAdmin, search, setSearch, setShowAddBiz, activeCat, setActiveCat, T, displayList, userCoords, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, requestLocation, allNearby, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, biz, AutoSlider, detectedTown, detectedState, setSelectedEvent } = ctx;
+  const isOpen = (b) => isOpenNow(b, city?.timezone || "America/Mexico_City");
+
 
   const nearbyList = React.useMemo(() => {
     if (!allNearby || !allNearby.length) return [];

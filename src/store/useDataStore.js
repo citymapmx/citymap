@@ -234,12 +234,54 @@ export const useDataStore = create((set, get) => ({
 
       const pPins = get().loadMapPins(targetCity);
       
-      const pEvents = sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => []);
-      const pExperiences = sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => []);
-      const pPromos = sb.get("promos", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => []);
-      const pRaffles = sb.get("raffles", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => []);
-      const pCoupons = sb.get("coupons", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => []);
       
+      // Secondary fetches (Non-blocking)
+      const fetchSecondary = async () => {
+        try {
+          const [e, ex, r, p, c] = await Promise.all([
+            sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => []),
+            sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => []),
+            sb.get("raffles", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => []),
+            sb.get("promos", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => []),
+            sb.get("coupons", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => [])
+          ]);
+          
+          const now = new Date();
+          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          
+          const validEvents = Array.isArray(e) ? e.filter(ev => {
+            if (!ev.date) return true;
+            if (ev.end_date) return ev.end_date >= todayStr;
+            return ev.date >= todayStr;
+          }).map(ev => {
+            let booking_config = null;
+            let website = ev.website;
+            if (website && website.startsWith('{')) {
+              try {
+                booking_config = JSON.parse(website);
+                website = null;
+              } catch (err) { console.error(err); }
+            } else if (website) {
+              booking_config = { enabled: true, type: "external", externalLinks: [{ platform: "otro", url: website, label: "Sitio Web / Boletos" }] };
+            }
+            return { ...ev, booking_config, website };
+          }) : [];
+
+          set({
+            events: validEvents,
+            experiences: Array.isArray(ex) ? ex : [],
+            raffles: Array.isArray(r) ? r : [],
+            promos: Array.isArray(p) ? p : [],
+            coupons: Array.isArray(c) ? c : []
+          });
+        } catch(err) {
+          console.warn("Secondary fetch failed", err);
+        }
+      };
+
+      // Fire non-blocking fetch
+      fetchSecondary();
+
       const bannerCities = ["all", ...(METRO_ZONES[targetCity] || [targetCity])];
       const pBanners = sb.get("banners", `?active=eq.true&city_slug=in.(${bannerCities.join(',')})`).catch(() => []);
       const pCats = sb.get("categories", "?active=eq.true&order=sort_order.asc").catch(() => []);
@@ -247,39 +289,15 @@ export const useDataStore = create((set, get) => ({
       const pCities = currentCities && currentCities.length > 0 ? Promise.resolve(currentCities) : sb.get("cities", "?order=name.asc").catch(() => []);
       const pFavs = sb.rpc("get_global_favs").catch(() => sb.get("favorites")).catch(() => []);
 
-      const [e, ex, r, p, c, bn, ca, cc, ci, globalFavs] = await Promise.all([pEvents, pExperiences, pRaffles, pPromos, pCoupons, pBanners, pCats, pCityCats, pCities, pFavs, pPins]);
+      const [bn, ca, cc, ci, globalFavs] = await Promise.all([pBanners, pCats, pCityCats, pCities, pFavs, pPins]);
       
       if (ci && Array.isArray(ci)) {
         updateMetroZones(ci);
       }
 
-      const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      
-      const validEvents = Array.isArray(e) ? e.filter(ev => {
-        if (!ev.date) return true;
-        if (ev.end_date) return ev.end_date >= todayStr;
-        return ev.date >= todayStr;
-      }).map(ev => {
-        let booking_config = null;
-        let website = ev.website;
-        if (website && website.startsWith('{')) {
-          try {
-            booking_config = JSON.parse(website);
-            website = null;
-          } catch (err) { console.error(err); }
-        } else if (website) {
-          booking_config = { enabled: true, type: "external", externalLinks: [{ platform: "otro", url: website, label: "Sitio Web / Boletos" }] };
-        }
-        return { ...ev, booking_config, website };
-      }) : [];
-
       const stateUpdates = {};
-      stateUpdates.events = validEvents;
-      stateUpdates.experiences = Array.isArray(ex) ? ex : [];
-      stateUpdates.raffles = Array.isArray(r) ? r : [];
-      stateUpdates.promos = Array.isArray(p) ? p : [];
-      stateUpdates.coupons = Array.isArray(c) ? c : [];
+
+      
       stateUpdates.banners = Array.isArray(bn) ? bn.filter(Boolean) : [];
       if (cc) {
         stateUpdates.cityCats = cc;
