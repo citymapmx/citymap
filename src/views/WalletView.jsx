@@ -294,7 +294,7 @@ export default function WalletView({ T, dark, user, setShowAuth }) {
                       coupon={c} 
                       bizName={biz.name} 
                       dark={dark} 
-                      isClaimed={isClaimed}
+                      isClaimed={!!claimedAt}
                       uniqueCode={uniqueCode}
                       timeLeftStr={timeLeftStr}
                       isExpired={isExpired}
