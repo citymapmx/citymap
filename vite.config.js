@@ -5,7 +5,15 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      babel: {
+        plugins: [
+          ['babel-plugin-react-compiler', {
+            target: '19',  // React 19 mode — enables all optimizations
+          }]
+        ]
+      }
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       selfDestroying: true,
