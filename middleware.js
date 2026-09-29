@@ -16,10 +16,18 @@ export default async function middleware(request) {
   const url = new URL(request.url);
   const { pathname, searchParams } = url;
   const ua = request.headers.get("user-agent") || "";
+  // ── 0. KILL SWITCH PARA SERVICE WORKER VIEJO ──────────────────────────────
+  // Si el navegador pide sw.js, devolvemos 404. Esto hace que el navegador 
+  // desinstale el Service Worker silenciosamente sin disparar el evento "updatefound"
+  // que causa el bucle de recarga en el cliente viejo.
+  if (pathname === '/sw.js') {
+    return new Response('Service Worker Removed', { status: 404 });
+  }
+
   // ── 1. Archivos estáticos y API: pasar de largo siempre ──────────────────
   if (pathname.startsWith('/api/') || pathname.startsWith('/assets/') ||
       pathname.startsWith('/_next/') || pathname.startsWith('/web-next/') ||
-      pathname.includes('.')) {
+      (pathname.includes('.') && pathname !== '/sw.js')) {
     return;
   }
 
@@ -109,5 +117,5 @@ export default async function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|sw.js|workbox).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|workbox).*)'],
 };
