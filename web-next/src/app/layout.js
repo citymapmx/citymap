@@ -60,7 +60,33 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es" className="antialiased">
+      
+      <head>
+        <link rel="preconnect" href="https://dpkjxhjkzdlkvyotoeai.supabase.co" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://dpkjxhjkzdlkvyotoeai.supabase.co" />
+        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+      </head>
       <body className="flex flex-col min-h-screen">
+
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "CityMap",
+              "url": "https://citymap.mx",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://citymap.mx/?buscar={search_term_string}",
+                "query-input": "required name=search_term_string"
+              }
+            })
+          }}
+        />
+
         <Providers>
           {children}
           <BottomNav />
