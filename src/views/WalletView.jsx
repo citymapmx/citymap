@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import Icon from '../components/ui/Icon.jsx';
+import CouponCard from '../components/ui/CouponCard.jsx';
 import LoyaltyCardModal from './LoyaltyCardModal.jsx';
 import { useUIStore } from '../store/useUIStore.js';
 

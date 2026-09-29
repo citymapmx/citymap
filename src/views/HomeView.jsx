@@ -22,6 +22,7 @@ import CompactCard from "../components/cards/CompactCard.jsx";
 import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import { Virtuoso } from "react-virtuoso";
 import { Helmet } from "react-helmet-async";
+import CouponCard from "../components/ui/CouponCard.jsx";
 import HomeEvents from "../components/home/HomeEvents.jsx";
 import PushPrompt from "../components/PushPrompt.jsx";
 import SurpriseModal from "../components/SurpriseModal.jsx";
