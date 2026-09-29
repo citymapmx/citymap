@@ -108,7 +108,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
     </button>
   );
 
-  const SectionLabel = ({ label }) => (
+  const renderSectionLabel = (label) => (
     <div style={{ padding: "12px 14px 4px 14px", fontSize: 11, fontWeight: 700, color: dark ? "#475569" : "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8 }}>
       {label}
     </div>
@@ -243,7 +243,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
             {/* Popular cities */}
             {!isSearching && (
               <div style={cardStyle}>
-                <SectionLabel label="🔥 Populares" />
+                {renderSectionLabel("🔥 Populares")}
                 {popularCities.map(city => (
                   <CityRow key={city.slug} city={city} selected={city.slug === activeCity} />
                 ))}
@@ -254,7 +254,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
             <div style={cardStyle}>
               {isSearching ? (
                 <>
-                  <SectionLabel label="Resultados" />
+                  {renderSectionLabel("Resultados")}
                   {sortedCities.length === 0 ? (
                     <div style={{ padding: "16px 14px", fontSize: 13, color: dark ? "#64748b" : "#94a3b8", textAlign: "center" }}>Sin resultados</div>
                   ) : (
@@ -263,7 +263,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
                 </>
               ) : (
                 <>
-                  <SectionLabel label="Por país" />
+                  {renderSectionLabel("Por país")}
                   {activeCountryNames.map(country => {
                     const isExpanded = expandedCountry === country;
                     const countryCities = activeCountriesMap[country] || [];

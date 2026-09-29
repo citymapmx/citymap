@@ -746,6 +746,7 @@ export default function HomeView({ isBackground }) {
           )}
 
           {/* AI Night Planner FAB (Shows after 5 PM and before 4 AM) - OCULTO TEMPORALMENTE */}
+          {/* eslint-disable-next-line no-constant-binary-expression */}
           {false && !search && (new Date().getHours() >= 17 || new Date().getHours() < 4) && (
             <div style={{ position: "fixed", bottom: 84, left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 90 }}>
               <button

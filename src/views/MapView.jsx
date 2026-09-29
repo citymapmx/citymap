@@ -353,7 +353,7 @@ export default function MapView() {
                   const d = getKm(userCoords.lat, userCoords.lng, parseFloat(mapPin.lat), parseFloat(mapPin.lng));
                   
                   const hour = new Date().getHours();
-                  let msg = "";
+                  let msg;
                   
                   if (d < 0.4) {
                      msg = "¡Estás a unos pasos! (Caminando) 🚶";

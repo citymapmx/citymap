@@ -23,7 +23,7 @@ async function saveToken(token, citySlug) {
         updated_at: new Date().toISOString()
       })
     });
-  } catch {}
+  } catch { /* empty */ }
 }
 
 export function useWebPush({ citySlug, enabled = true } = {}) {
@@ -62,7 +62,7 @@ export function useWebPush({ citySlug, enabled = true } = {}) {
           new Notification(title, { body, icon: '/icon-192.png' });
         }
       });
-    } catch {}
+    } catch { /* empty */ }
   }
 
   async function requestAndRegister() {
