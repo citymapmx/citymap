@@ -187,11 +187,11 @@ export default function MapView() {
 
             {/* Solo abiertos Overlay */}
             {!mapPin && (
-              <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", zIndex: 10 }}>
-                <button className="press" onClick={() => setNearbyFilter(nearbyFilter === "open" ? "all" : "open")} style={{ display: "flex", alignItems: "center", gap: 6, background: nearbyFilter === "open" ? (dark ? "#fff" : "#0F172A") : "rgba(255, 255, 255, 0.95)", border: nearbyFilter === "open" ? "1px solid transparent" : "1px solid rgba(0,0,0,0.1)", padding: "8px 18px", borderRadius: 24, fontSize: 13, cursor: "pointer", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 6px 16px rgba(0,0,0,0.15)", fontFamily: "inherit", transition: "all .2s", whiteSpace: "nowrap" }}>
-                  <div className="live-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: nearbyFilter === "open" ? "#10B981" : "#9CA3AF" }} />
-                  <span style={{ fontWeight: 800, background: "linear-gradient(90deg, #3B82F6 0%, #06B6D4 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", display: "inline-block" }}>
-                    {t("mostrar_solo_abiertos", "Mostrar solo lugares abiertos")}
+              <div style={{ position: "absolute", top: 16, left: 16, zIndex: 10 }}>
+                <button className="press" onClick={() => setNearbyFilter(nearbyFilter === "open" ? "all" : "open")} style={{ display: "flex", alignItems: "center", gap: 6, background: nearbyFilter === "open" ? "#10B981" : "rgba(255, 255, 255, 0.95)", border: nearbyFilter === "open" ? "1px solid transparent" : "1px solid rgba(0,0,0,0.1)", padding: "8px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", fontFamily: "inherit", transition: "all .2s", whiteSpace: "nowrap" }}>
+                  <div className="live-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: nearbyFilter === "open" ? "#fff" : "#9CA3AF" }} />
+                  <span style={{ fontWeight: 800, color: nearbyFilter === "open" ? "#fff" : T.text, display: "inline-block" }}>
+                    {t("abiertos_ahora", "Abiertos ahora")}
                   </span>
                 </button>
               </div>
