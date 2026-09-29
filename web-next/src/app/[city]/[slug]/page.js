@@ -17,7 +17,35 @@ const SB_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUP
 const H = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
 
 
-// ─── CATEGORY DEFINITIONS ───────────────────────────────────────────────────
+// ─── SCHEMA.ORG TYPE MAP ─────────────────────────────────────────────────────
+// Maps category slugs to specific Schema.org @types.
+// Specific types enable Google Rich Results (stars, hours, priceRange in SERPs).
+const SCHEMA_TYPE_MAP = {
+  restaurantes: 'Restaurant',
+  cafe:         'CafeOrCoffeeShop',
+  cafeteria:    'CafeOrCoffeeShop',
+  cafeterias:   'CafeOrCoffeeShop',
+  bares:        'BarOrPub',
+  hoteles:      'Hotel',
+  hospedaje:    'Hotel',
+  salud:        'MedicalClinic',
+  belleza:      'BeautySalon',
+  fitness:      'ExerciseGym',
+  gimnasios:    'ExerciseGym',
+  compras:      'Store',
+  tiendas:      'Store',
+  tech:         'ElectronicsStore',
+  ocio:         'EntertainmentBusiness',
+  educacion:    'EducationalOrganization',
+  servicios:    'ProfessionalService',
+};
+
+function getSchemaType(category) {
+  if (!category) return 'LocalBusiness';
+  const key = category.toLowerCase().split(',')[0].trim();
+  return SCHEMA_TYPE_MAP[key] || 'LocalBusiness';
+}
+
 const CATS = {
   restaurantes:  { label: 'Restaurantes',     emoji: '🍽️', color: '#EF4444' },
   cafe:          { label: 'Cafeterías',        emoji: '☕',  color: '#92400E' },
@@ -321,8 +349,9 @@ export default async function BusinessProfile({ params }) {
     const bizUrl = `https://citymap.mx/${city}/${slug}`;
     const schema = {
       "@context": "https://schema.org",
-      "@type": "LocalBusiness",
+      "@type": getSchemaType(biz.category),
       "name": biz.name,
+      ...(biz.price_range ? { "priceRange": biz.price_range } : {}),
       "description": biz.description || '',
       "url": bizUrl,
       "image": biz.banner_url || biz.logo_url || '',
