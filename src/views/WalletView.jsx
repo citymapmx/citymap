@@ -288,46 +288,17 @@ export default function WalletView({ T, dark, user, setShowAuth }) {
                 }
 
                 return (
-                  <div key={c.id} onClick={() => navigate(biz.slug ? `/${biz.slug}` : `/lugar/${biz.id}`)} style={{ position: "relative", background: dark ? "#1E293B" : "#fff", borderRadius: 16, border: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`, overflow: "hidden", boxShadow: dark ? "none" : "0 4px 12px rgba(0,0,0,0.04)", cursor: "pointer" }}>
-                    {/* Top Part */}
-                    <div style={{ display: "flex", padding: 16, gap: 14 }}>
-                      <div style={{ width: 64, height: 64, borderRadius: 12, background: "#F5F3FF", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#7C3AED" }}>
-                         <Icon name="coupon" size={24} color="#7C3AED" />
-                         <div style={{ fontSize: 12, fontWeight: 900, marginTop: 4 }}>{rewardTitle}</div>
-                      </div>
-                      
-                      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
-                        <div className="text-xs" style={{ color: sub, fontWeight: 700, marginBottom: 2 }}>{biz.name}</div>
-                        <div className="text-sm" style={{ fontWeight: 800, color: text, lineHeight: 1.2 }}>{c.title}</div>
-                        {(c.description || c.terms_conditions) && <div className="text-xs" style={{ color: sub, marginTop: 4, lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.description} {c.terms_conditions}</div>}
-                      </div>
-                    </div>
-
-                    {/* Divider with Cutouts */}
-                    <div style={{ position: "relative", height: 20, display: "flex", alignItems: "center" }}>
-                      <div style={{ position: "absolute", left: -10, width: 20, height: 20, borderRadius: "50%", background: bg, borderRight: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}` }} />
-                      <div style={{ flex: 1, borderTop: `2px dashed ${dark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`, margin: "0 14px" }} />
-                      <div style={{ position: "absolute", right: -10, width: 20, height: 20, borderRadius: "50%", background: bg, borderLeft: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}` }} />
-                    </div>
-
-                    {/* Bottom Part */}
-                    <div style={{ padding: "12px 16px", background: dark ? "rgba(255,255,255,0.02)" : "#F9FAFB", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      {claimedAt ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", overflow: "hidden" }}>
-                           <div style={{ flex: 1, minWidth: 0 }}>
-                              <div className="text-micro" style={{ color: sub, letterSpacing: 0, marginBottom: 2 }}>TU CÓDIGO</div>
-                              <div style={{ fontSize: 16, fontWeight: 900, color: "#7C3AED", letterSpacing: 1.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{uniqueCode}</div>
-                           </div>
-                           <button disabled style={{ padding: "8px 12px", borderRadius: 8, border: "none", background: isExpired ? "#9CA3AF" : "#16A34A", color: "#fff", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                             {isExpired ? "Expirado" : <><Icon name="clock" size={14} color="#fff" /> {timeLeftStr}</>}
-                           </button>
-                        </div>
-                      ) : (
-                        <div style={{ width: "100%", padding: "10px", borderRadius: 10, border: "none", background: "rgba(124, 58, 237, 0.1)", color: "#7C3AED", fontWeight: 700, fontSize: 13, textAlign: "center" }}>
-                          Ver negocio y reclamar
-                        </div>
-                      )}
-                    </div>
+                  <div key={c.id}>
+                    <CouponCard 
+                      coupon={c} 
+                      bizName={biz.name} 
+                      dark={dark} 
+                      isClaimed={isClaimed}
+                      uniqueCode={uniqueCode}
+                      timeLeftStr={timeLeftStr}
+                      isExpired={isExpired}
+                      onClick={() => navigate(biz.slug ? `/${biz.slug}` : `/lugar/${biz.id}`)}
+                    />
                   </div>
                 );
               })}

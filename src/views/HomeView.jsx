@@ -733,11 +733,14 @@ export default function HomeView({ isBackground }) {
             </div>
             <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
               {coupons.map(c => {
-                const b = biz.find(x => x.id === c.biz_id); return <div key={c.id} style={{ minWidth: 200, flexShrink: 0, background: "#F5F3FF", borderRadius: 14, padding: "14px", border: "1.5px dashed #7C3AED44" }}>
-                  <div style={{ fontWeight: 800, fontSize: 22, color: "#7C3AED" }}>{c.discount_pct}%</div>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: T.text, marginTop: 4 }}>{c.title}</div>
-                  <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{b?.name}</div>
-                  <div style={{ marginTop: 8, background: "#7C3AED", color: "#fff", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 800, letterSpacing: 1, display: "inline-block" }}>{c.code}</div>
+                const b = biz.find(x => x.id === c.biz_id); return <div key={c.id} style={{ minWidth: 280, flexShrink: 0 }}>
+                  <CouponCard 
+                    coupon={c} 
+                    bizName={b?.name || "Oferta Especial"} 
+                    dark={dark} 
+                    T={T} 
+                    onClick={() => { const cleanSlug = createSlug(b?.name || b?.id || ""); navigate(`/${b?.city_slug || activeCity}/${cleanSlug}`); }} 
+                  />
                 </div>;
               })}
             </div>
