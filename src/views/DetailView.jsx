@@ -19,6 +19,7 @@ import { useShallow } from 'zustand/react/shallow';
 import * as dbService from '../services/dbService';
 import useTimeStore from "../store/useTimeStore.js";
 import Icon from "../components/ui/Icon.jsx";
+import CouponCard from "../components/ui/CouponCard.jsx";
 import StarRow from "../components/ui/StarRow.jsx";
 import { ErrorBoundary } from "../components/ErrorBoundary.jsx";
 import { haptic } from "../lib/utils.js";
