@@ -570,47 +570,17 @@ export default function DetailView() {
               else if (c.discount_type === "promo") rewardTitle = "Promoción";
               else rewardTitle = `-${c.discount_pct}%`;
 
-              return <div key={c.id} style={{ position: "relative", background: isElite ? dCard : (dark ? "#1E293B" : "#fff"), borderRadius: 16, border: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`, overflow: "hidden", marginBottom: 16, boxShadow: dark ? "none" : "0 4px 12px rgba(0,0,0,0.04)" }}>
-                
-                {/* Top Part */}
-                <div style={{ display: "flex", padding: 16, gap: 14 }}>
-                  {/* Left Badges */}
-                  <div style={{ width: 64, height: 64, borderRadius: 12, background: "#F5F3FF", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#7C3AED" }}>
-                     <Icon name="coupon" size={24} color="#7C3AED" />
-                     <div style={{ fontSize: 12, fontWeight: 900, marginTop: 4 }}>{rewardTitle}</div>
-                  </div>
-                  
-                  {/* Content */}
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                    <div className="text-sm" style={{ fontWeight: 800, color: dText, lineHeight: 1.2 }}>{c.title}</div>
-                    {(c.description || c.terms_conditions) && <div className="text-xs" style={{ color: dSub, marginTop: 4, lineHeight: 1.3 }}>{c.description} {c.terms_conditions}</div>}
-                    {c.min_purchase > 0 && <div className="text-xs" style={{ color: dSub, marginTop: 2, fontWeight: 600 }}>Compra mínima: ${c.min_purchase}</div>}
-                    {c.expires_at && <div className="text-xs" style={{ color: "#D94F3D", marginTop: 4, fontWeight: 700 }}>Vence: {new Date(c.expires_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</div>}
-                  </div>
-                </div>
-
-                {/* Divider with Cutouts */}
-                <div style={{ position: "relative", height: 20, display: "flex", alignItems: "center" }}>
-                  <div style={{ position: "absolute", left: -10, width: 20, height: 20, borderRadius: "50%", background: dBg, borderRight: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}` }} />
-                  <div style={{ flex: 1, borderTop: `2px dashed ${dark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`, margin: "0 14px" }} />
-                  <div style={{ position: "absolute", right: -10, width: 20, height: 20, borderRadius: "50%", background: dBg, borderLeft: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}` }} />
-                </div>
-
-                {/* Bottom Part (Code or Claim Button) */}
-                <div style={{ padding: "12px 16px", background: dark ? "rgba(255,255,255,0.02)" : "#F9FAFB", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  {claimedAt ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", overflow: "hidden" }}>
-                       <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="text-micro" style={{ color: dSub, letterSpacing: 0, marginBottom: 2 }}>TU CÓDIGO DE CANJE</div>
-                          <div style={{ fontSize: 16, fontWeight: 900, color: "#7C3AED", letterSpacing: 1.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{uniqueCode}</div>
-                       </div>
-                       <button disabled style={{ padding: "8px 12px", borderRadius: 8, border: "none", background: isExpired ? "#9CA3AF" : "#16A34A", color: "#fff", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                         {isExpired ? "Expirado" : <><Icon name="clock" size={14} color="#fff" /> {timeLeftStr}</>}
-                       </button>
-                    </div>
-                  ) : (
-                    <button onClick={(e) => {
-                      e.stopPropagation();
+              return (
+                <div key={c.id} style={{ marginBottom: 16 }}>
+                  <CouponCard 
+                    coupon={c} 
+                    bizName={selected.name} 
+                    isClaimed={!!claimedAt}
+                    claimedAt={claimedAt}
+                    uniqueCode={uniqueCode}
+                    dark={dark} 
+                    T={T}
+                    onClaimClick={(e) => {
                       if (!user) { setShowAuth(true); toast$("Inicia sesión para reclamar"); return; }
                       if (!claimedAt) {
                         const newClaimed = { ...claimedCoupons, [c.id]: Date.now() };
@@ -623,12 +593,10 @@ export default function DetailView() {
                         }
                         toast$("¡Cupón activado por 24 horas!");
                       }
-                    }} style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: "#7C3AED", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                      Reclamar Cupón
-                    </button>
-                  )}
+                    }}
+                  />
                 </div>
-              </div>;
+              );
             })}
           </div>}
           {raffles && raffles.filter(r => r.biz_id === selected.id).length > 0 && <div style={{ padding: "20px 20px 0" }}>
