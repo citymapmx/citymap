@@ -67,7 +67,7 @@ export default function HomeHero({
                 {getGreeting()} <span className="animated-city">{cityName}</span>
               </h1>
               <p style={{ margin: "6px 0 0 0", fontSize: 14, fontWeight: 600, color: dark ? "rgba(255,255,255,0.7)" : "#6B7280" }}>
-                {getContextMessage()}
+                {contextMessage}
               </p>
             </div>
           );
