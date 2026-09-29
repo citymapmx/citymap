@@ -6,7 +6,15 @@ const lazy = (importer) => reactLazy(async () => {
     return component;
   } catch (error) {
     const errStr = String(error?.message || error || '');
-    const isChunkError = error.name === 'ChunkLoadError' || errStr.includes('fetch') || errStr.includes('dynamically imported') || errStr.includes('MIME type') || errStr.includes('text/html') || errStr.includes('Load failed') || errStr.includes('module');
+    // Only match ACTUAL module load failures, NOT generic network/fetch errors.
+    // 'fetch' alone is too broad and fires on Supabase failures causing reload loops.
+    const isChunkError = error.name === 'ChunkLoadError' 
+      || errStr.includes('Failed to fetch dynamically imported module')
+      || errStr.includes('dynamically imported') 
+      || errStr.includes('Load failed') 
+      || errStr.includes('module script')
+      || (errStr.includes('MIME type') && errStr.includes('module'))
+      || errStr.includes('text/html');
     if (isChunkError) {
       const last = parseInt(sessionStorage.getItem('chunk_reload_guard') || '0', 10);
       const now = Date.now();

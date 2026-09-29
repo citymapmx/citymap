@@ -2,14 +2,16 @@ import React from 'react';
 
 const isChunkError = (error) => {
   const msg = String(error?.message || error || '');
+  // Only match ACTUAL module/chunk load errors, not generic fetch/network failures
+  // Generic "fetch" or "Failed to fetch" must NOT trigger a reload — that would
+  // reload on every Supabase network error, creating an infinite loop.
   return (
     error?.name === 'ChunkLoadError' ||
     msg.includes('Failed to fetch dynamically imported module') ||
     msg.includes('Importing a module script failed') ||
     msg.includes('dynamically imported') ||
-    msg.includes('MIME type') ||
-    msg.includes('text/html') ||
-    msg.includes('fetch')
+    (msg.includes('MIME type') && msg.includes('module')) ||
+    msg.includes('text/html') // SW serving index.html instead of JS chunk
   );
 };
 

@@ -38,12 +38,18 @@ if (isAdminRoute) {
   import('./App.jsx').then(({ default: App }) => {
     import('./components/GlobalErrorBoundary.jsx').then(({ GlobalErrorBoundary }) => {
 
-      // Check for updates every 30 min via Service Worker
+      // Register Service Worker - updates silently in background (no forced reload)
+      // IMPORTANT: onNeedRefresh must NOT call updateSW(true) or window.location.reload()
+      // because skipWaiting+clientsClaim in vite.config already handles the update,
+      // and forcing a reload here causes an infinite refresh loop on every page load.
       import('virtual:pwa-register').then(({ registerSW }) => {
-        const updateSW = registerSW({
-          onNeedRefresh() { updateSW(true); },
+        registerSW({
+          onNeedRefresh() {
+            // Silently accept - do NOT reload, causes infinite loop
+            console.log('[SW] Update available, will activate on next visit.');
+          },
           onRegistered(r) {
-            r && setInterval(() => { r.update(); }, 30 * 60 * 1000);
+            r && setInterval(() => { r.update(); }, 60 * 60 * 1000);
           },
           onRegisterError(error) { console.error('SW registration error', error); }
         });
