@@ -1,5 +1,5 @@
 import React from "react";
-import OptimizedImage from "../OptimizedImage.jsx";
+import OptimizedImage from "../ui/OptimizedImage.jsx";
 
 export default function GalleryLayout({ photos, T, setShowGallery, bizName }) {
   if (!photos || photos.length === 0) return null;

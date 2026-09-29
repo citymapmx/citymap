@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import StarRow from "../StarRow.jsx";
+import StarRow from "../ui/StarRow.jsx";
 
 const MAX_LEN = 140;
 
