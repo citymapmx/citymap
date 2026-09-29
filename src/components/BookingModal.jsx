@@ -342,7 +342,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
   return (
     <div 
       style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
-      onClick={onClose}
+      onClick={(e) => { e.stopPropagation(); onClose(); }}
     >
       <m.div 
         initial={{ scale: 0.95, opacity: 0, y: 10 }} 

@@ -2833,6 +2833,18 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://citymap.mx/tepic/carrito-la-paz-tostadas-de-atun</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://citymap.mx/tepic/carrito-la-paz-tostadas-de-atun/menu</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://citymap.mx/ciudad-de-mexico/gran-hotel-ciudad-de-mexico</loc>
     <lastmod>2026-09-29</lastmod>
     <changefreq>daily</changefreq>
@@ -3323,18 +3335,6 @@
     <lastmod>2026-09-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://citymap.mx/tepic/carrito-la-paz-tostadas-de-atun</loc>
-    <lastmod>2026-09-29</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://citymap.mx/tepic/carrito-la-paz-tostadas-de-atun/menu</loc>
-    <lastmod>2026-09-29</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://citymap.mx/ciudad-de-mexico/museo-nacional-de-arte</loc>
