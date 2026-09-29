@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-export default function CouponCard({ coupon, bizName, isClaimed = false, onClick, onClaimClick, dark, T, uniqueCode, claimedAt }) {
+export default function CouponCard({ coupon, bizName, isClaimed = false, onClick, onClaimClick, dark, T, uniqueCode }) {
   const bg = dark ? "#1E293B" : "#FFFFFF";
   const text = dark ? "#F8FAFC" : "#111827";
   const sub = dark ? "#94A3B8" : "#6B7280";
@@ -10,30 +10,6 @@ export default function CouponCard({ coupon, bizName, isClaimed = false, onClick
   const btnBg = dark ? "#F8FAFC" : "#111827";
   const btnText = dark ? "#0F172A" : "#FFFFFF";
 
-  const [timeLeft, setTimeLeft] = useState("");
-  const [expired, setExpired] = useState(false);
-
-  useEffect(() => {
-    if (!isClaimed || !claimedAt) return;
-
-    const updateTimer = () => {
-      const diff = 86400000 - (Date.now() - claimedAt);
-      if (diff <= 0) {
-        setExpired(true);
-        setTimeLeft("Expirado");
-      } else {
-        const h = Math.floor(diff / 3600000);
-        const m = Math.floor((diff % 3600000) / 60000);
-        const s = Math.floor((diff % 60000) / 1000);
-        setTimeLeft(`${h}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`);
-        setExpired(false);
-      }
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [isClaimed, claimedAt]);
 
   return (
     <div 
@@ -79,13 +55,10 @@ export default function CouponCard({ coupon, bizName, isClaimed = false, onClick
       {/* Bottom Part: Action / Code */}
       <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)" }}>
         {isClaimed ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", overflow: "hidden" }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-               <div style={{ fontSize: 10, fontWeight: 700, color: sub, textTransform: "uppercase", letterSpacing: 0.5 }}>CÓDIGO SECRETO</div>
-               <div style={{ fontSize: 16, fontWeight: 900, color: text, letterSpacing: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "monospace" }}>{uniqueCode}</div>
-            </div>
-            <div style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${expired ? border : 'transparent'}`, background: expired ? "transparent" : btnBg, color: expired ? sub : btnText, fontWeight: 800, fontSize: 12, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              {expired ? "Expirado" : `⏳ ${timeLeft}`}
+               <div style={{ fontSize: 10, fontWeight: 700, color: sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>CÓDIGO DE CANJE</div>
+               <div style={{ fontSize: 20, fontWeight: 900, color: text, letterSpacing: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "monospace" }}>{uniqueCode}</div>
             </div>
           </div>
         ) : (

@@ -577,7 +577,6 @@ export default function DetailView() {
                     coupon={c} 
                     bizName={selected.name} 
                     isClaimed={!!claimedAt}
-                    claimedAt={claimedAt}
                     uniqueCode={uniqueCode}
                     dark={dark} 
                     T={T}

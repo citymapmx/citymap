@@ -284,13 +284,6 @@ export default function WalletView({ T, dark, user, setShowAuth }) {
                 let uniqueCode = c.code;
 
                 if (claimedAt) {
-                   const diff = 86400000 - (Date.now() - claimedAt);
-                   if (diff <= 0) { isExpired = true; timeLeftStr = "Expirado"; }
-                   else {
-                      const h = Math.floor(diff / 3600000);
-                      const m = Math.floor((diff % 3600000) / 60000);
-                      timeLeftStr = `${h}h ${m}m restantes`;
-                   }
                    uniqueCode = c.code + "-" + claimedAt.toString().slice(-4);
                 }
 
@@ -301,10 +294,7 @@ export default function WalletView({ T, dark, user, setShowAuth }) {
                       bizName={biz.name} 
                       dark={dark} 
                       isClaimed={!!claimedAt}
-                      claimedAt={claimedAt}
                       uniqueCode={uniqueCode}
-                      timeLeftStr={timeLeftStr}
-                      isExpired={isExpired}
                       onClick={() => navigate(biz.slug ? `/${biz.slug}` : `/lugar/${biz.id}`)}
                     />
                   </div>
