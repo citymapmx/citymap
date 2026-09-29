@@ -571,7 +571,17 @@ useEffect(() => {
         setActiveCat(initialCatParam.current);
         navigate("home");
       } else {
-        navigate("home");
+        // If already on a detail/category/non-home path (e.g. hard refresh on /tepic/restaurante),
+        // do NOT navigate away — let AppRouter handle the URL as-is.
+        const currentPath = window.location.pathname;
+        const nonHomePrefixes = ['/mapa', '/eventos', '/mis-planes', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan'];
+        const isNonHome = nonHomePrefixes.some(p => currentPath.startsWith(p));
+        const segments = currentPath.split('/').filter(Boolean);
+        const isDetailOrCategory = segments.length >= 2; // e.g. /tepic/emilianos or /tepic/c/restaurantes
+        if (!isNonHome && !isDetailOrCategory) {
+          navigate("home");
+        }
+        // else: stay on current path — AppRouter already shows the right view
       }
        
       setAuthChecked(true);

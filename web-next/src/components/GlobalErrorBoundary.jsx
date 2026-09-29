@@ -2,14 +2,14 @@ import React from 'react';
 
 const isChunkError = (error) => {
   const msg = String(error?.message || error || '');
+  // Only match ACTUAL module/chunk load errors, not generic fetch/network failures
   return (
     error?.name === 'ChunkLoadError' ||
     msg.includes('Failed to fetch dynamically imported module') ||
     msg.includes('Importing a module script failed') ||
     msg.includes('dynamically imported') ||
-    msg.includes('MIME type') ||
-    msg.includes('text/html') ||
-    msg.includes('fetch')
+    (msg.includes('MIME type') && msg.includes('module')) ||
+    msg.includes('text/html')
   );
 };
 
@@ -25,8 +25,10 @@ export class GlobalErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     if (isChunkError(error)) {
-      if (!sessionStorage.getItem('chunk_reload_guard')) {
-        sessionStorage.setItem('chunk_reload_guard', '1');
+      const last = parseInt(sessionStorage.getItem('chunk_reload_guard') || '0', 10);
+      const now = Date.now();
+      if (now - last > 15000) {
+        sessionStorage.setItem('chunk_reload_guard', now.toString());
         window.location.reload(true);
         return;
       }
