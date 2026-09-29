@@ -247,29 +247,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         if (pos) {
           this.div.style.left = pos.x + "px";
           this.div.style.top = pos.y + "px";
-          
-          if (this.lastClusterPosition) {
-            const oldPos = this.getProjection().fromLatLngToDivPixel(this.lastClusterPosition);
-            if (oldPos) {
-              const dx = oldPos.x - pos.x;
-              const dy = oldPos.y - pos.y;
-              // Reset transition and apply offset transform
-              this.div.style.transition = "none";
-              this.div.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-              
-              // Force reflow
-              void this.div.offsetWidth;
-              
-              // Animate to origin
-              this.div.style.transition = "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)";
-              this.div.style.transform = "translate(-50%, -50%)";
-            } else {
-              this.div.style.transform = "translate(-50%, -50%)";
-            }
-            this.lastClusterPosition = null;
-          } else if (!this.div.style.transition) {
-            this.div.style.transform = "translate(-50%, -50%)";
-          }
+          this.div.style.transform = "translate(-50%, -50%)";
         }
       }
       onRemove() {
@@ -469,12 +447,6 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
     // 3. Inicializar el MarkerClusterer oficial
     const renderer = {
       render: (cluster, stats, map) => {
-        if (cluster.markers) {
-          cluster.markers.forEach(m => {
-            m.lastClusterPosition = cluster.position;
-          });
-        }
-        
         const content = document.createElement("div");
         content.style.width = "30px";
         content.style.height = "30px";
