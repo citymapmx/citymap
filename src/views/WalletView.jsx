@@ -143,7 +143,11 @@ export default function WalletView({ T, dark, user, setShowAuth }) {
 
       // Fetch active loyalty cards for suggestions (ignoring the ones user already has)
       const allCards = await sb.get('loyalty_cards', '?active=eq.true&limit=10') || [];
-      const sugCards = allCards.filter(c => !myBizIds.has(c.biz_id));
+      
+      // Asegurarse de que myBizIds contenga los biz_ids correctamente, incluso si difieren por espacios o tipos
+      const activeBizSet = new Set(Array.from(myBizIds).map(id => String(id).trim()));
+      const sugCards = allCards.filter(c => !activeBizSet.has(String(c.biz_id).trim()));
+
       
       if (sugCards.length > 0) {
         const bizIds = sugCards.map(c => `"${c.biz_id}"`).join(',');
@@ -157,6 +161,8 @@ export default function WalletView({ T, dark, user, setShowAuth }) {
         }).filter(Boolean);
         
         setSuggestions(mapped);
+      } else {
+        setSuggestions([]);
       }
 
       // Fetch active coupons
@@ -295,6 +301,7 @@ export default function WalletView({ T, dark, user, setShowAuth }) {
                       bizName={biz.name} 
                       dark={dark} 
                       isClaimed={!!claimedAt}
+                      claimedAt={claimedAt}
                       uniqueCode={uniqueCode}
                       timeLeftStr={timeLeftStr}
                       isExpired={isExpired}
