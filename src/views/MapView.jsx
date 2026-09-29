@@ -31,6 +31,8 @@ export default function MapView() {
   const events = useDataStore(s => s.events);
   const loadMapPinsByBounds = useDataStore(s => s.loadMapPinsByBounds);
   const cities = useDataStore(s => s.cities);
+  const mapPins = useDataStore(s => s.mapPins);
+
 
   const user = useAuthStore(s => s.user);
   const setShowAuth = useAuthStore(s => s.setShowAuth);
