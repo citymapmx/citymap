@@ -6,6 +6,7 @@ import { useUIStore } from "../store/useUIStore";
 import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon";
 import ReservationsAgenda from "../components/ReservationsAgenda";
+import GamificationWidget from "../components/admin/GamificationWidget";
 
 export default function OwnerDashboardView() {
   const ctx = useAppContext();
@@ -92,6 +93,9 @@ export default function OwnerDashboardView() {
             Copiar
           </button>
         </div>
+
+        {/* GAMIFICATION WIDGET */}
+        <GamificationWidget ownerView={ownerView} />
 
         {/* UPGRADE PLAN */}
         {ownerView.plan === "free" && (

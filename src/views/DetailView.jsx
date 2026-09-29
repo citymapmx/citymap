@@ -10,6 +10,7 @@ import { sb } from '../lib/supabase.js';
 import { useNavigate, useNavigationType } from "react-router-dom";
 
 import { m, AnimatePresence } from "framer-motion";
+import { getBizTier } from '../lib/gamification';
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
@@ -260,8 +261,17 @@ export default function DetailView() {
                       {selected.badge}
                     </div>
                   )}
+                  
                   <h1 className="text-2xl" style={{ fontFamily: FONT_BIZ, color: dText, lineHeight: 1.15, fontWeight: 800, margin: "0", display: "flex", alignItems: "center" }}>
                     {selected.name}
+                    {(() => {
+                      const tier = getBizTier(selected.reviews_count || reviews?.length || 0, selected.rating || 5);
+                      if (tier) {
+                        return <span title={`Nivel ${tier.name}`} style={{ marginLeft: 6, fontSize: 18, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}>{tier.icon}</span>;
+                      }
+                      return null;
+                    })()}
+
                     {(selected.plan === "destacado" || selected.plan === "premium" || selected.plan === "pro") && (
                       <img src="/verificado.png" alt="Verificado" width="22" height="22" style={{ marginLeft: 6, flexShrink: 0 }} />
                     )}
