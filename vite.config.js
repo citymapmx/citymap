@@ -8,6 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      selfDestroying: true,
       includeAssets: ['favicon.png', 'apple-icon.png', 'Coolvetica Rg.otf'],
       workbox: {
         navigateFallbackDenylist: [/^\/native-auth\.html/],
