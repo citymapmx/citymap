@@ -331,18 +331,16 @@ export const useDataStore = create((set, get) => ({
       set(stateUpdates);
 
       try {
-        localStorage.setItem(cacheKey, JSON.stringify({ 
-          e: Array.isArray(e) ? validEvents : [],
-          ex: Array.isArray(ex) ? ex : [],
-          p: Array.isArray(p) ? p : [], 
-          c: Array.isArray(c) ? c : [], 
-          bn: Array.isArray(bn) ? bn : [], 
+        // Only cache the blocking-fetch data that is in scope here.
+        // Secondary data (events, promos, raffles, coupons) is cached separately by fetchSecondary.
+        localStorage.setItem(cacheKey, JSON.stringify({
+          bn: Array.isArray(bn) ? bn : [],
           ca: Array.isArray(ca) ? ca : [],
           cc: Array.isArray(cc) ? cc : [],
           ci: Array.isArray(ci) ? ci : [],
           globalFavs: Array.isArray(globalFavs) ? globalFavs : []
         }));
-      } catch (e) { console.error(e); }
+      } catch (cacheErr) { console.error(cacheErr); }
 
       set({ dbReady: true, dbError: false });
     } catch (err) {
