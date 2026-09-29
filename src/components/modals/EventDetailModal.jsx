@@ -56,13 +56,13 @@ export default function EventDetailModal({ savedEventIds, setSavedEventIds }) {
                 )}
                 
                 {/* Floating Back Button */}
-                <button onClick={(e) => { e.stopPropagation(); setSelectedEvent(null); window.history.back(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 44, height: 44, borderRadius: 22, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
-                  <Icon name="chevron" size={22} color="#fff" style={{ transform: "rotate(180deg)", marginLeft: -2 }} />
+                <button onClick={(e) => { e.stopPropagation(); setSelectedEvent(null); window.history.back(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 44, height: 44, borderRadius: 22, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
+                  <Icon name="chevron" size={26} color="#fff" style={{ transform: "rotate(180deg)", marginLeft: -2, filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.8))" }} />
                 </button>
                 
                 {/* Floating Share Button */}
-                <button onClick={(e) => { e.stopPropagation(); const evUrl = `${window.location.origin}/evento/${createSlug(ev.title)}_${ev.id}`; if (navigator.share) navigator.share({ title: ev.title, text: evShareMsg, url: evUrl }); else { navigator.clipboard?.writeText(evUrl); toast$("Enlace copiado"); } }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 44, height: 44, borderRadius: 22, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
-                  <Icon name="share" size={20} color="#fff" style={{ marginRight: 2 }} />
+                <button onClick={(e) => { e.stopPropagation(); const evUrl = `${window.location.origin}/evento/${createSlug(ev.title)}_${ev.id}`; if (navigator.share) navigator.share({ title: ev.title, text: evShareMsg, url: evUrl }); else { navigator.clipboard?.writeText(evUrl); toast$("Enlace copiado"); } }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 44, height: 44, borderRadius: 22, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
+                  <Icon name="share" size={24} color="#fff" style={{ marginRight: 2, filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.8))" }} />
                 </button>
               </div>
 
