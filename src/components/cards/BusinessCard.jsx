@@ -339,7 +339,7 @@ export default memo(function BusinessCard({
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
         {/* Top Banner */}
-        <div style={{ height: thumb?.url ? 120 : 48, position: "relative", background: T.border }}>
+        <div style={{ height: thumb?.url ? 120 : 48, position: "relative", background: thumb?.url ? T.border : 'transparent' }}>
           {thumb?.url
             ? <ProgressiveImage 
                 variants={{ hover: { scale: 1.08 } }} 
@@ -349,7 +349,7 @@ export default memo(function BusinessCard({
                 alt={b.name} 
                 style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }} 
               />
-            : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, opacity: 0.6 }}>{(b.emoji || CAT_EMOJI[b.category]) || "🏪"}</div>
+            : null
           }
           
           {/* Heart overlaid on top banner */}
