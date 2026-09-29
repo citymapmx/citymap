@@ -20,6 +20,44 @@ export default function HomeHero({
     return `¡Linda noche!`;
   };
 
+  const contextMessage = React.useMemo(() => {
+    const now = new Date();
+    const h = now.getHours();
+    const dayIndex = now.getDay();
+    const isWeekend = dayIndex === 0 || dayIndex === 5 || dayIndex === 6;
+
+    const rand = (arr) => arr[Math.floor(now.getDate() % arr.length)];
+
+    if (h < 11) {
+      return isWeekend 
+        ? rand(["El fin de semana merece un desayuno especial 🥞", "Empieza tu día de descanso con un buen brunch 🍳", "Mañana perfecta para salir por un café ☕️"])
+        : rand(["Ideal para un buen café mañanero ☕️", "Empieza el día con energía y un buen desayuno 🥐", "¡Buenos días! ¿Qué se te antoja desayunar hoy? 🥯"]);
+    }
+    
+    if (h >= 11 && h < 14) {
+      return isWeekend
+        ? rand(["¿Listo para el antojo de fin de semana? 🍔", "¿Dónde vamos a comer hoy? 🌮", "Es hora de disfrutar una buena comida 🍤"])
+        : rand(["¿Ya hace hambre? Descubre dónde comer 🌮", "Haz una pausa y disfruta una buena comida 🍱", "Encuentra el lugar perfecto para tu hora de comida 🥗"]);
+    }
+    
+    if (h >= 14 && h < 18) {
+      return isWeekend 
+        ? rand(["Tarde perfecta para salir por un postre 🍦", "Aprovecha la tarde libre para explorar 🚶", "Relájate con un helado o café de tarde 🧋"])
+        : rand(["Para romper la rutina con algo dulce 🍰", "Haz una pausa en tu tarde con un buen café ☕️", "Un gustito a mitad del día no hace daño 🍪"]);
+    }
+    
+    if (h >= 18 && h < 22) {
+      return isWeekend 
+        ? rand(["La noche es joven. Ideal para una cena o tragos 🍸", "Descubre dónde cenar y relajarte este fin de semana 🍻", "Noche perfecta para probar algo diferente 🍣"])
+        : rand(["¿Antojo de cenar algo rico? 🍕", "Termina tu día con una cena espectacular 🍝", "Descubre qué cenar esta noche 🌮"]);
+    }
+    
+    return isWeekend
+      ? rand(["Para los que todavía no quieren dormir 🌙", "Descubre la vida nocturna de la ciudad 🎶", "Los mejores lugares para alargar la noche 🥂"])
+      : rand(["Descubre los mejores lugares nocturnos 🌙", "¿Antojo de medianoche? 🍔", "La ciudad nunca duerme 🌃"]);
+  }, []);
+
+
 
   return (
     <div style={{ position: "relative", padding: "8px 20px 0px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "transparent" }}>
