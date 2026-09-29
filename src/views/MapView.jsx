@@ -1,6 +1,8 @@
 import { Suspense, useEffect, useState, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
-import { getThumbUrl, getScheduleStatus, isNear } from "../lib/utils";
+import { FONT_BIZ } from "../lib/constants.js";
+
+import { getThumbUrl, getScheduleStatus, isNear, getKm, isOpenNow, CAT_EMOJI } from "../lib/utils";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
@@ -12,11 +14,32 @@ import { useTranslation } from "../hooks/useTranslation.js";
 export default function MapView() {
   const { t, lang } = useTranslation();
   const ctx = useAppContext();
-  const { dark, activeCity, toast$, mapFullScreen, setMapFullScreen, setSelectedEvent, setOpenedFromMap } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$, mapFullScreen: s.mapFullScreen, setMapFullScreen: s.setMapFullScreen, setSelectedEvent: s.setSelectedEvent, setOpenedFromMap: s.setOpenedFromMap })));
-  const { cats, mapPins, events, loadMapPinsByBounds, cities } = useDataStore(useShallow(s => ({ cats: s.cats, mapPins: s.mapPins, events: s.events, loadMapPinsByBounds: s.loadMapPinsByBounds, cities: s.cities })));
-  const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   
-  const { viewStyle, T, activeCat, setActiveCat, GMap, navigate, setSelected, setMapPin, mapPin, userCoords, requestLocation, FONT_BIZ, CAT_EMOJI, getKm, isOpen, allNearby, nearbyRadius, setNearbyRadius, setNearbyFilter, nearbyFilter, LoaderFallback, setShowAddBiz, city, handleCardTap } = ctx;
+  const dark = useUIStore(s => s.dark);
+  const activeCity = useUIStore(s => s.activeCity);
+  const toast$ = useUIStore(s => s.toast$);
+  const mapFullScreen = useUIStore(s => s.mapFullScreen);
+  const setMapFullScreen = useUIStore(s => s.setMapFullScreen);
+  const setSelectedEvent = useUIStore(s => s.setSelectedEvent);
+  const setOpenedFromMap = useUIStore(s => s.setOpenedFromMap);
+  const mapPin = useUIStore(s => s.mapPin);
+  const setMapPin = useUIStore(s => s.setMapPin);
+  const setSelected = useUIStore(s => s.setSelected);
+  const setShowAddBiz = useUIStore(s => s.setShowAddBiz);
+
+  const cats = useDataStore(s => s.cats);
+  const events = useDataStore(s => s.events);
+  const loadMapPinsByBounds = useDataStore(s => s.loadMapPinsByBounds);
+  const cities = useDataStore(s => s.cities);
+
+  const user = useAuthStore(s => s.user);
+  const setShowAuth = useAuthStore(s => s.setShowAuth);
+
+  
+  
+  const { viewStyle, T, activeCat, setActiveCat, GMap, navigate, userCoords, requestLocation, allNearby, nearbyRadius, setNearbyRadius, setNearbyFilter, nearbyFilter, LoaderFallback, city, handleCardTap } = ctx;
+  const isOpen = (b) => isOpenNow(b, city?.timezone || "America/Mexico_City");
+
 
   const [visibleCount, setVisibleCount] = useState(5);
   const scrollRef = useRef(null);
