@@ -181,11 +181,39 @@ export default function DetailView() {
   const ctx = useAppContext();
   const routerNavigate = useNavigate();
 
-  const { dark, activeCity, toast$, setShowItineraryModal, setItineraryTargetBiz, openedFromMap, setOpenedFromMap } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$, setShowItineraryModal: s.setShowItineraryModal, setItineraryTargetBiz: s.setItineraryTargetBiz, openedFromMap: s.openedFromMap, setOpenedFromMap: s.setOpenedFromMap })));
-  const { dbReady, promos, coupons, events, wallet, setWallet, claimedCoupons, setClaimedCoupons, reviews, setReviews, globalFavCounts, raffles, setRaffles } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, promos: s.promos, coupons: s.coupons, events: s.events, wallet: s.wallet, setWallet: s.setWallet, claimedCoupons: s.claimedCoupons, setClaimedCoupons: s.setClaimedCoupons, reviews: s.reviews, setReviews: s.setReviews, globalFavCounts: s.globalFavCounts, raffles: s.raffles, setRaffles: s.setRaffles })));
-  const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   
-  const { viewStyle, selected, setView, setFade, navigate, T, favIds, toggleFav, goWhatsApp, goDir, doShare, getEventStatus, setReviewStar, setReviewText, setShowReview, biz, userCoords, getKm, showGallery, setShowGallery, FONT_BIZ, isOpen, callPhone, setMapPin, setShowMenuGallery, goWeb, trackEvent, setSelectedEvent, handleEventTap, createSlug, showReview, reviewStar, reviewText, postReview, isAdmin, setBiz, setSelected, toggleLikeReview, setClaimBiz, reviewImgFile, setReviewImgFile, reviewImgLoading } = ctx;
+  const dark = useUIStore(s => s.dark);
+  const activeCity = useUIStore(s => s.activeCity);
+  const toast$ = useUIStore(s => s.toast$);
+  const setShowItineraryModal = useUIStore(s => s.setShowItineraryModal);
+  const setItineraryTargetBiz = useUIStore(s => s.setItineraryTargetBiz);
+  const openedFromMap = useUIStore(s => s.openedFromMap);
+  const setOpenedFromMap = useUIStore(s => s.setOpenedFromMap);
+
+  
+  const dbReady = useDataStore(s => s.dbReady);
+  const promos = useDataStore(s => s.promos);
+  const coupons = useDataStore(s => s.coupons);
+  const events = useDataStore(s => s.events);
+  const wallet = useDataStore(s => s.wallet);
+  const setWallet = useDataStore(s => s.setWallet);
+  const claimedCoupons = useDataStore(s => s.claimedCoupons);
+  const setClaimedCoupons = useDataStore(s => s.setClaimedCoupons);
+  const reviews = useDataStore(s => s.reviews);
+  const setReviews = useDataStore(s => s.setReviews);
+  const globalFavCounts = useDataStore(s => s.globalFavCounts);
+  const raffles = useDataStore(s => s.raffles);
+  const setRaffles = useDataStore(s => s.setRaffles);
+
+  
+  const user = useAuthStore(s => s.user);
+  const setShowAuth = useAuthStore(s => s.setShowAuth);
+
+  
+  
+  const { viewStyle, selected, setView, setFade, navigate, T, favIds, toggleFav, goWhatsApp, goDir, doShare, setReviewStar, setReviewText, setShowReview, biz, userCoords, showGallery, setShowGallery, callPhone, setMapPin, setShowMenuGallery, goWeb, trackEvent, setSelectedEvent, handleEventTap, showReview, reviewStar, reviewText, postReview, isAdmin, setBiz, setSelected, toggleLikeReview, setClaimBiz, reviewImgFile, setReviewImgFile, reviewImgLoading, city } = ctx;
+  const isOpen = (b) => isOpenNow(b, city?.timezone || "America/Mexico_City");
+
   
   const { data: hasLoyalty = false, isLoading: loyaltyLoading } = useQuery({
     queryKey: ['loyalty', selected?.id],
