@@ -165,6 +165,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
       map.current = new window.google.maps.Map(ref.current, {
         center: { lat: 21.5042, lng: -104.8944 },
         zoom: 13,
+        backgroundColor: "#f9fafb",
         disableDefaultUI: true,
         zoomControl: false,
         gestureHandling: "greedy",
@@ -592,7 +593,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
           animation: gmapBounce 1s infinite ease-in-out;
         }
       `}</style>
-      <div ref={ref} style={{ width: "100%", height: "100%" }} />
+      <div ref={ref} style={{ width: "100%", height: "100%", background: "#f9fafb" }} />
       <div style={{
         position: "absolute",
         bottom: 30,
