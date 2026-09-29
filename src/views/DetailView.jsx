@@ -211,8 +211,8 @@ export default function DetailView() {
         style={{ width: "100%", maxWidth: 600, height: "100%", overflowY: "auto", overflowX: "hidden", background: T.bg, position: "relative", boxShadow: "0 0 40px rgba(0,0,0,0.1)" }}
       >
         {/* Header Image Full Bleed */}
-            <div style={{ height: isElite ? "40vh" : 220, position: "relative", background: "#111", overflow: "hidden", flexShrink: 0 }}>
-              <img src={selected.banner_url ? getThumbUrl(selected.banner_url, 1200, 900) : (selected.photos?.[0]?.url ? getThumbUrl(selected.photos[0].url, 1200, 900) : (selected.logo_url ? getThumbUrl(selected.logo_url, 1200, 900) : ""))} alt={`Foto de ${selected.name}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ height: (selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) ? (isElite ? "40vh" : 220) : 64, position: "relative", background: (selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) ? "#111" : (dark ? "#0F172A" : "#F8FAFC"), overflow: "hidden", flexShrink: 0 }}>
+              {(selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) && <img src={selected.banner_url ? getThumbUrl(selected.banner_url, 1200, 900) : (selected.photos?.[0]?.url ? getThumbUrl(selected.photos[0].url, 1200, 900) : getThumbUrl(selected.logo_url, 1200, 900))} alt={`Foto de ${selected.name}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
               {isElite && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(to top, #111111 0%, rgba(17,17,17,0) 100%)" }} />}
               <div style={{ position: "absolute", top: 16, left: 16, right: 16, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 20 }}>
                 <button aria-label="Volver" className="press" onClick={() => {
@@ -240,14 +240,14 @@ export default function DetailView() {
                 </div>
               </div>
               {/* Pill distance if available */}
-              {(userCoords && selected.lat && selected.lng && (!selected.hide_location && selected.address && selected.address.trim() !== '')) && (() => {
+              {(selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) && (userCoords && selected.lat && selected.lng && (!selected.hide_location && selected.address && selected.address.trim() !== '')) && (() => {
                  const dist = getKm(userCoords.lat, userCoords.lng, parseFloat(selected.lat), parseFloat(selected.lng));
                  return <div className="text-xs" style={{ position: "absolute", bottom: isElite ? 60 : 40, right: 20, background: "rgba(0, 0, 0, 0.65)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", color: "#fff", borderRadius: 20, padding: "5px 10px", fontWeight: 700, display: "flex", alignItems: "center", gap: 4, zIndex: 20 }}><Icon name="nav" size={10} color="#fff" /> {dist < 1 ? Math.round(dist * 1000) + "m" : dist.toFixed(1) + " km"}</div>;
               })()}
             </div>
 
             {/* White Card Overlapping */}
-            <div style={{ background: dBg, borderRadius: isElite ? "0" : "20px 20px 0 0", marginTop: isElite ? -40 : -20, position: "relative", padding: "16px 16px 0", zIndex: 30 }}>
+            <div style={{ background: dBg, borderRadius: (selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) ? (isElite ? "0" : "20px 20px 0 0") : 0, marginTop: (selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) ? (isElite ? -40 : -20) : 0, position: "relative", padding: "16px 16px 0", zIndex: 30 }}>
               
               {selected.logo_url && (selected.plan === "premium" || selected.plan === "pro" || selected.plan === "destacado") && (
                 <div style={{ position: "absolute", top: -48, left: 16, width: 96, height: 96, borderRadius: "50%", background: "#fff", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 6px 16px rgba(0,0,0,0.12)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 40, padding: 3, boxSizing: "border-box", overflow: "hidden" }}>
