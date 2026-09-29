@@ -840,6 +840,44 @@ export default function DetailView() {
             </div>
           </div>}
 
+          {/* Eventos del Negocio */}
+          {(() => {
+            const bizEvents = events.filter(e => e.biz_id === selected.id && e.status === "approved" && e.active !== false);
+            if (bizEvents.length === 0) return null;
+            const fmtDate = d => {
+              if (!d) return "";
+              const [y, m, day] = d.split("-").map(Number);
+              const months = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+              return { day, month: months[m - 1] };
+            };
+            const fmtTime = t => {
+              if (!t) return "";
+              const [h, mn] = t.split(":").map(Number);
+              return `${h % 12 || 12}:${String(mn).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+            };
+            return <div style={{ paddingTop: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingLeft: 20, paddingRight: 20 }}>
+                <div className="text-base" style={{ fontWeight: 800, color: dText }}>Agenda</div>
+                <div className="text-xs" style={{ color: dSub, fontWeight: 600 }}>{bizEvents.length} {bizEvents.length === 1 ? "evento" : "eventos"}</div>
+              </div>
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingLeft: 20, paddingRight: 20, paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+                {bizEvents.map(ev => {
+                  const d = fmtDate(ev.date);
+                  return (
+                    <div key={ev.id} className="press" onClick={() => handleEventTap(ev)}
+                      style={{ position: "relative", flexShrink: 0, width: 140, height: 210, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: dBg, boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}>
+                      {(ev.img_url || ev.img)
+                        ? <img src={getThumbUrl(ev.img_url || ev.img || "", 300, 420)} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>🎭</div>
+                      }
+                    </div>
+                  );
+                })}
+              </div>
+            </div>;
+          })()}
+
+
           {/* Location & Schedule Native Style */}
           <div style={{ display: "flex", flexDirection: "column", padding: "0 20px" }}>
             
@@ -906,44 +944,6 @@ export default function DetailView() {
               </button>
             </div>}
           </div>
-
-          {/* Eventos del Negocio */}
-          {(() => {
-            const bizEvents = events.filter(e => e.biz_id === selected.id && e.status === "approved" && e.active !== false);
-            if (bizEvents.length === 0) return null;
-            const fmtDate = d => {
-              if (!d) return "";
-              const [y, m, day] = d.split("-").map(Number);
-              const months = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-              return { day, month: months[m - 1] };
-            };
-            const fmtTime = t => {
-              if (!t) return "";
-              const [h, mn] = t.split(":").map(Number);
-              return `${h % 12 || 12}:${String(mn).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
-            };
-            return <div style={{ paddingTop: 24 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingLeft: 20, paddingRight: 20 }}>
-                <div className="text-base" style={{ fontWeight: 800, color: dText }}>Agenda</div>
-                <div className="text-xs" style={{ color: dSub, fontWeight: 600 }}>{bizEvents.length} {bizEvents.length === 1 ? "evento" : "eventos"}</div>
-              </div>
-              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingLeft: 20, paddingRight: 20, paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-                {bizEvents.map(ev => {
-                  const d = fmtDate(ev.date);
-                  return (
-                    <div key={ev.id} className="press" onClick={() => handleEventTap(ev)}
-                      style={{ position: "relative", flexShrink: 0, width: 140, height: 210, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: dBg, boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}>
-                      {(ev.img_url || ev.img)
-                        ? <img src={getThumbUrl(ev.img_url || ev.img || "", 300, 420)} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
-                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>🎭</div>
-                      }
-                    </div>
-                  );
-                })}
-              </div>
-            </div>;
-          })()}
-
 
           {/* Reseñas de Google Maps */}
           {selected.social_links?.google_place_id && googleData && googleData.reviews && googleData.reviews.length > 0 && (
