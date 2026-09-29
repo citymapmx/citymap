@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import DebouncedSearchBar from './DebouncedSearchBar.jsx';
+import HeroWeather from './HeroWeather.jsx';
 import { Sk } from '../ui/Skeleton.jsx';
 
 export default function HomeHero({
@@ -66,6 +67,9 @@ export default function HomeHero({
               <h1  style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(22px, 5.5vw, 28px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: dark ? "#fff" : T.text }}>
                 {getGreeting()} <span className="animated-city">{cityName}</span>
               </h1>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <HeroWeather userCoords={userCoords} activeCity={activeCity} cities={cities} dark={dark} />
+              </div>
             </div>
           );
         })()}
