@@ -371,12 +371,9 @@ export default function MapView() {
                      }
                   }
                   
-                  const bgColor = dark ? "rgba(255,255,255,0.06)" : "#F3F4F6";
-                  const borderColor = dark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
-                  
                   return (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 12px", borderRadius: 10, background: bgColor, border: `1px solid ${borderColor}`, marginBottom: 4 }}>
-                       <span style={{ fontSize: 11.5, fontWeight: 700, color: T.text, textAlign: "center" }}>{msg}</span>
+                    <div style={{ fontSize: 11, color: T.sub, display: "flex", gap: 5, alignItems: "center", opacity: 0.8, marginTop: -2 }}>
+                       <span>{msg}</span>
                     </div>
                   );
                 })()}
