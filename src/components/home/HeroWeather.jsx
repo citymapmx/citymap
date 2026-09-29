@@ -105,91 +105,107 @@ export default function HeroWeather({ userCoords, activeCity, cities = [], dark 
       "Calor extremo — busca un lugar con aire acondicionado",
       "Día ardiente — ¡urge una alberca o algo frío!",
       "El calor está fuerte — tiempo de una nieve o raspado",
-      "Tarde calurosa — ideal para lugares frescos e interiores"
+      "Tarde calurosa — escápate a una plaza o lugar techado",
+      "Ideal para pedir mariscos frescos o aguachile"
     ];
     else if (isNight) moodOptions = [
       "Noche calurosa — perfecto para bares y terrazas",
       "Clima ideal para una cerveza bien fría",
-      "Noche tropical — ¿qué tal unos mariscos frescos?",
-      "Excelente clima para cenar al aire libre"
+      "Noche tropical — ¿qué tal unos buenos tacos al pastor?",
+      "Excelente clima para cenar al aire libre",
+      "Hace calorcito — ideal para salir por unos drinks"
     ];
     else moodOptions = [
-      "Hace mucho calor — perfecto para mariscos o aguas frescas",
       "Mañana calurosa — empieza el día con algo refrescante",
-      "Día cálido — ideal para buscar la sombra y un buen drink"
+      "Día cálido — ideal para buscar la sombra",
+      "El sol está a tope — ¡no olvides hidratarte bien!",
+      "Excelente día para desayunar fruta o algo ligero"
     ];
   } else if (t >= 27) {
     icon = isNight ? "🌙" : "☀️";
     if (hour >= 6 && hour < 11) moodOptions = [
       "Mañana cálida — perfecta para un brunch al aire libre",
-      "Excelente clima para un café frío y buen desayuno",
-      "Lindo inicio de día — anímate a salir temprano"
+      "Lindo inicio de día — anímate a salir temprano",
+      "Clima riquísimo para unos chilaquiles picositos",
+      "El clima pinta de maravilla para hoy"
     ];
     else if (hour >= 11 && hour < 15) moodOptions = [
       "Buen clima para comer en terraza",
       "Mediodía agradable — busca un lugar con buena vista",
-      "Día soleado — perfecto para explorar lugares nuevos"
+      "Día soleado — perfecto para explorar lugares nuevos",
+      "Aprovecha el sol para comer mariscos o cortes"
     ];
     else if (hour >= 15 && hour < 20) moodOptions = [
-      "Tarde perfecta para una cerveza o mariscos",
+      "Tarde perfecta para salir a pasear",
       "Clima relajado — ideal para tardear con amigos",
-      "Excelente tarde para un helado o paseo"
+      "Excelente tarde para un helado o crepas",
+      "Se respira buen ambiente — sal a dar la vuelta"
     ];
     else moodOptions = [
       "Noche cálida — perfecto para bares o cenar afuera",
-      "Clima estupendo para salir de fiesta o cenar rico",
-      "Noche de manga corta — ¡aprovecha las terrazas!"
+      "Clima estupendo para salir de fiesta",
+      "Noche de manga corta — ¡aprovecha las terrazas!",
+      "¿Pizza o sushi? La noche está perfecta para salir"
     ];
   } else if (t >= 20) {
     icon = isNight ? "🌛" : "⛅";
     if (hour >= 6 && hour < 10) moodOptions = [
       "Mañana fresca — ideal para un buen desayuno",
-      "Despierta con un buen café — el clima está perfecto",
-      "Mañana muy agradable para arrancar el día"
+      "Mañana muy agradable para arrancar el día",
+      "Clima suave — se antoja algo horneado recién hecho",
+      "Empieza con energía, el día está hermoso"
     ];
     else if (hour >= 10 && hour < 14) moodOptions = [
       "Clima perfecto para explorar la ciudad",
       "Mediodía súper a gusto — ideal para cualquier plan",
-      "Ni frío ni calor — ¡sal a dar la vuelta!"
+      "Ni frío ni calor — ¡sal a dar la vuelta!",
+      "El clima está en su punto perfecto"
     ];
     else if (hour >= 14 && hour < 19) moodOptions = [
-      "Tarde ideal para café o salir a caminar",
-      "Tardes de relax — busca un buen postre o café",
-      "Clima ideal para platicar largo y tendido"
+      "Tarde ideal para salir a caminar o ir al parque",
+      "Tardes de relax — busca un buen postre",
+      "Clima ideal para platicar largo y tendido",
+      "Se siente muy a gusto, escápate un rato"
     ];
     else moodOptions = [
       "Noche agradable — ¿cena o un trago?",
       "Clima de 10 para salir con amigos o en pareja",
-      "Noche perfecta para pasear o cenar rico"
+      "Noche perfecta para pasear o cenar rico",
+      "La velada está perfecta para descubrir un lugar nuevo"
     ];
   } else if (t >= 14) {
     icon = isNight ? "🌙" : "🌤️";
     if (hour >= 6 && hour < 12) moodOptions = [
-      "Mañana fresca — perfecta para un café caliente",
-      "Día fresco — se antoja algo horneado y un cafecito",
-      "El clima pide a gritos un pan dulce y bebida caliente"
+      "Día fresco — abrígate un poco y sal a desayunar",
+      "El clima pide a gritos un pan dulce o hot cakes",
+      "Mañanita fresca para arrancar con calma",
+      "Desayuno calientito para entrar en calor"
     ];
     else if (hour >= 12 && hour < 20) moodOptions = [
-      "Clima fresco — ideal para cafeterías y restaurantes techados",
+      "Clima fresco — ideal para restaurantes techados",
       "Tarde fresquita — perfecta para lugares acogedores",
-      "Se antoja platicar con algo calientito en mano"
+      "Se antoja platicar con una buena bebida caliente",
+      "Tarde nublada — ¡ve a probar un lugar nuevo en interiores!"
     ];
     else moodOptions = [
       "Noche fresca — abrígate y sal a cenar",
       "Noche para chamarra ligera y una buena cena",
-      "Clima frío y romántico — busca lugares cálidos"
+      "Clima frío y romántico — busca lugares cálidos",
+      "Ideal para cenar pastas, fondues o carne asada"
     ];
   } else {
     icon = isNight ? "🥶" : "🥶";
     if (isNight) moodOptions = [
       "Noche helada — pide a domicilio o cena cerca",
       "Hace muchísimo frío — ¡Pide por la app desde tu cama!",
-      "Noche bajo cero — se antoja algo bien caliente y cobijas"
+      "Noche bajo cero — se antoja cena caliente y cobijas",
+      "El clima perfecto para pedir pizza y ver pelis"
     ];
     else moodOptions = [
-      "Día muy frío — busca caldos, pozole o café calientito",
+      "Día muy frío — busca caldos o pozole caliente",
       "Clima helado — perfecto para no salir y pedir a casa",
-      "Hace mucho frío — ¡mantente calientito!"
+      "Hace mucho frío — ¡mantente calientito!",
+      "Abrígate muy bien si vas a salir hoy"
     ];
   }
 
