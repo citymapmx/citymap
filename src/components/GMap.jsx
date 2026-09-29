@@ -169,7 +169,8 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         disableDefaultUI: true,
         zoomControl: false,
         gestureHandling: "greedy",
-        tilt: 0,
+        tilt: 45,
+        mapId: import.meta.env.VITE_GMAPS_MAP_ID || undefined, // Required for WebGL Vector Maps
         maxZoom: 18,
         minZoom: 10,
         styles: [

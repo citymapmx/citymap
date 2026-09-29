@@ -12,7 +12,7 @@ export default function useGMaps() {
     const s = document.getElementById("gms") || (() => { 
       const el = document.createElement("script"); 
       el.id = "gms"; 
-      el.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GMAPS_KEY}&libraries=places`; 
+      el.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GMAPS_KEY}&libraries=places,marker&v=weekly`; 
       el.async = true; 
       document.head.appendChild(el); 
       return el; 

@@ -326,7 +326,7 @@ export default function CityGuide() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   
-  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === "/" || location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/"); if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true }); } } });
+  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === "/" || location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/"); if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true, viewTransition: true }); } } });
   const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites({ sb, user, setShowAuth });
   
   useEffect(() => {
@@ -630,7 +630,7 @@ useEffect(() => {
       if (location.state?.background) {
         setSelected(null);
         setSelectedEvent(null);
-        routerNavigate(-1);
+        routerNavigate(-1, { viewTransition: true });
         setTimeout(() => setFade(true), 50);
         return;
       }
@@ -644,7 +644,7 @@ useEffect(() => {
     }
 
     if (location.pathname !== path) {
-      routerNavigate(path);
+      routerNavigate(path, { viewTransition: true });
       setFade(true);
       window.scrollTo(0, 0);
     }
@@ -713,7 +713,7 @@ useEffect(() => {
     const slug = cleanCityPrefix(b.slug || createSlug(b.name), bizCity);
     const cityBase = buildCityPath(bizCity, cities);
     const targetPath = `${cityBase}/${slug}`;
-    routerNavigate(targetPath, { state: { background: location } });
+    routerNavigate(targetPath, { state: { background: location }, viewTransition: true });
     trackEvent(b.id, "view");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackEvent, activeCity, cities, location.pathname]);
@@ -722,7 +722,7 @@ useEffect(() => {
     setSelectedEvent(ev);
     const slug = ev.slug || ev.id;
     const targetPath = `/evento/${slug}`;
-    routerNavigate(targetPath, { state: { background: location } });
+    routerNavigate(targetPath, { state: { background: location }, viewTransition: true });
     trackEvent(ev.id, "view_event");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackEvent, location.pathname]);

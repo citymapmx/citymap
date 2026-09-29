@@ -290,3 +290,30 @@ input[type=range].sleek-slider::-webkit-slider-runnable-track {
 .party-pin { animation: party-blink 1s infinite ease-in-out; }
 
 * { -webkit-tap-highlight-color: transparent; }
+
+/* View Transitions API */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.35s;
+  animation-timing-function: cubic-bezier(0.34, 1.1, 0.64, 1);
+}
+
+::view-transition-old(root) {
+  animation-name: fadeOutScale;
+}
+
+::view-transition-new(root) {
+  animation-name: fadeInScale;
+}
+
+@keyframes fadeOutScale {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.98); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(1.02); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Specific component transitions can be added via view-transition-name inline styles */
