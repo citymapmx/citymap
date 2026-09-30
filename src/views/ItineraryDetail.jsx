@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { m, Reorder } from "framer-motion";
+import { m, Reorder, useDragControls } from "framer-motion";
 import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import * as dbService from "../services/dbService.js";
@@ -569,11 +569,15 @@ export default function ItineraryDetail({ T, dark, navigate, token, id, userCoor
                       }
 
                       return (
-                      <Reorder.Item key={item.id} value={item} style={{ position: "relative", marginBottom: 16 }} dragListener={isOwner}>
+                      <SortableItemWrapper key={item.id} item={item} isOwner={isOwner}>
+                        {(dragControls) => (
                         <div style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
                           {/* Timeline Line */}
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 4 }}>
-                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: T.text, color: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0, cursor: isOwner ? "grab" : "default" }}>
+                            <div 
+                              onPointerDown={(e) => { if (isOwner) dragControls.start(e); }}
+                              style={{ touchAction: "none", width: 28, height: 28, borderRadius: "50%", background: T.text, color: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0, cursor: isOwner ? "grab" : "default" }}
+                            >
                               {isOwner ? <Icon name="grip" size={14} color={T.bg} /> : itemGlobalIndex + 1}
                             </div>
                             {idx < dayItems.length - 1 && (
@@ -798,7 +802,7 @@ export default function ItineraryDetail({ T, dark, navigate, token, id, userCoor
                             )}
                           </div>
                         </div>
-                      </Reorder.Item>
+                        )}</SortableItemWrapper>
                       );
                     })}
                     </Reorder.Group>
