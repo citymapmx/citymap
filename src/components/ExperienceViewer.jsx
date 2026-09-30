@@ -31,9 +31,9 @@ const renderInline = (lineContent, T) => {
             href={linkMatch[2]}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "#FF5A5F", fontWeight: 600, textDecoration: "none" }}
-            onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
-            onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+            style={{ color: T.text, fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 3, fontStyle: "italic", transition: "opacity 0.2s" }}
+            onMouseEnter={(e) => e.target.style.opacity = 0.7}
+            onMouseLeave={(e) => e.target.style.opacity = 1}
           >
             {linkMatch[1]}
           </a>
