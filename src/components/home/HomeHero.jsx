@@ -26,7 +26,7 @@ export default function HomeHero({
     const dayIndex = now.getDay();
     const isWeekend = dayIndex === 0 || dayIndex === 5 || dayIndex === 6;
 
-    const rand = (arr) => arr[Math.floor(now.getDate() % arr.length)];
+    const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
     if (h < 11) {
       return isWeekend 
