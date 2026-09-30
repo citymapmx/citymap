@@ -30,11 +30,11 @@
     },
     {
       "source": "/experiencias/:city/:slug",
-      "destination": "/web-next/experiencias/:city/:slug"
+      "destination": "/index.html"
     },
     {
       "source": "/experiencias/:city",
-      "destination": "/web-next/experiencias/:city"
+      "destination": "/index.html"
     },
     {
       "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|planes|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento)",
