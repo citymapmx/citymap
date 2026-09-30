@@ -403,11 +403,24 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {gallery.length > 1 && (
           <div style={{ marginBottom: 32 }}>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12 }}>Galería</h3>
-            <div className="no-scrollbar" style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
-              {gallery.map((url, i) => (
-                <div key={i} onClick={() => setFullGalleryIdx(i)} style={{ flexShrink: 0, width: 220, height: 160, borderRadius: 16, background: `url(${getThumbUrl(url, 400, 300)}) center/cover`, scrollSnapAlign: "start", border: `1px solid ${T.border}`, boxShadow: "0 4px 12px rgba(0,0,0,0.05)", cursor: "pointer" }} />
-              ))}
-            </div>
+            {gallery.length === 2 ? (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "180px", gap: 8, borderRadius: 20, overflow: "hidden" }}>
+                <div onClick={() => setFullGalleryIdx(0)} className="press" style={{ background: `url(${getThumbUrl(gallery[0], 600, 400)}) center/cover`, cursor: "pointer" }} />
+                <div onClick={() => setFullGalleryIdx(1)} className="press" style={{ background: `url(${getThumbUrl(gallery[1], 600, 400)}) center/cover`, cursor: "pointer" }} />
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "180px 140px", gap: 8, borderRadius: 20, overflow: "hidden" }}>
+                <div onClick={() => setFullGalleryIdx(0)} className="press" style={{ gridColumn: "1 / -1", background: `url(${getThumbUrl(gallery[0], 1200, 600)}) center/cover`, cursor: "pointer" }} />
+                <div onClick={() => setFullGalleryIdx(1)} className="press" style={{ background: `url(${getThumbUrl(gallery[1], 600, 400)}) center/cover`, cursor: "pointer" }} />
+                <div onClick={() => setFullGalleryIdx(2)} className="press" style={{ background: `url(${getThumbUrl(gallery[2], 600, 400)}) center/cover`, cursor: "pointer", position: "relative" }}>
+                  {gallery.length > 3 && (
+                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 24, fontWeight: 700 }}>
+                      +{gallery.length - 3}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
