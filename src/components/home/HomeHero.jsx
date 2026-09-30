@@ -30,31 +30,91 @@ export default function HomeHero({
 
     if (h < 11) {
       return isWeekend 
-        ? rand(["El fin de semana merece un desayuno especial 🥞", "Empieza tu día de descanso con un buen brunch 🍳", "Mañana perfecta para salir por un café ☕️"])
-        : rand(["Ideal para un buen café mañanero ☕️", "Empieza el día con energía y un buen desayuno 🥐", "¡Buenos días! ¿Qué se te antoja desayunar hoy? 🥯"]);
+        ? rand([
+            "El fin de semana merece un desayuno especial 🥞", 
+            "Empieza tu día de descanso con un buen brunch 🍳", 
+            "Mañana perfecta para salir por un café ☕️",
+            "¿Listos para salir a explorar la ciudad hoy? 🗺️",
+            "Descubre qué eventos hay este fin de semana 🎟️"
+          ])
+        : rand([
+            "Ideal para un buen café mañanero ☕️", 
+            "Empieza el día con energía y un buen desayuno 🥐", 
+            "¡Buenos días! ¿Qué se te antoja desayunar hoy? 🥯",
+            "Planea tus actividades y rutas para hoy 📍",
+            "Descubre nuevos lugares cerca de ti 🚶‍♂️"
+          ]);
     }
     
     if (h >= 11 && h < 14) {
       return isWeekend
-        ? rand(["¿Listo para el antojo de fin de semana? 🍔", "¿Dónde vamos a comer hoy? 🌮", "Es hora de disfrutar una buena comida 🍤"])
-        : rand(["¿Ya hace hambre? Descubre dónde comer 🌮", "Haz una pausa y disfruta una buena comida 🍱", "Encuentra el lugar perfecto para tu hora de comida 🥗"]);
+        ? rand([
+            "¿Listo para el antojo de fin de semana? 🍔", 
+            "¿Dónde vamos a comer hoy? 🌮", 
+            "Busca el plan perfecto para esta tarde 🎢",
+            "Descubre museos, parques y lugares increíbles 📸",
+            "Hay mucho por hacer hoy en la ciudad 🎡"
+          ])
+        : rand([
+            "¿Ya hace hambre? Descubre dónde comer 🌮", 
+            "Haz una pausa y disfruta una buena comida 🍱", 
+            "Encuentra el lugar perfecto para tu hora de comida 🥗",
+            "Busca qué hacer al salir de la oficina 💼",
+            "Explora los mejores lugares de la zona 🏙️"
+          ]);
     }
     
     if (h >= 14 && h < 18) {
       return isWeekend 
-        ? rand(["Tarde perfecta para salir por un postre 🍦", "Aprovecha la tarde libre para explorar 🚶", "Relájate con un helado o café de tarde 🧋"])
-        : rand(["Para romper la rutina con algo dulce 🍰", "Haz una pausa en tu tarde con un buen café ☕️", "Un gustito a mitad del día no hace daño 🍪"]);
+        ? rand([
+            "Tarde perfecta para salir por un postre 🍦", 
+            "Aprovecha la tarde libre para explorar 🚶", 
+            "Busca eventos y música en vivo para hoy 🎸",
+            "¿Un paseo por la ciudad o un buen café? 🧋",
+            "Descubre las mejores experiencias locales 🌟"
+          ])
+        : rand([
+            "Para romper la rutina con algo dulce 🍰", 
+            "Haz una pausa en tu tarde con un buen café ☕️", 
+            "Un gustito a mitad del día no hace daño 🍪",
+            "Escapa de la rutina y descubre algo nuevo 🧭",
+            "¿Qué plan hay para salir del trabajo? 🌇"
+          ]);
     }
     
     if (h >= 18 && h < 22) {
       return isWeekend 
-        ? rand(["La noche es joven. Ideal para una cena o tragos 🍸", "Descubre dónde cenar y relajarte este fin de semana 🍻", "Noche perfecta para probar algo diferente 🍣"])
-        : rand(["¿Antojo de cenar algo rico? 🍕", "Termina tu día con una cena espectacular 🍝", "Descubre qué cenar esta noche 🌮"]);
+        ? rand([
+            "La noche es joven. Ideal para una cena o tragos 🍸", 
+            "Descubre dónde cenar y relajarte este fin de semana 🍻", 
+            "Busca eventos, teatro o comedia para esta noche 🎭",
+            "Noche perfecta para probar algo diferente 🍣",
+            "Encuentra el mejor ambiente nocturno 🕺"
+          ])
+        : rand([
+            "¿Antojo de cenar algo rico? 🍕", 
+            "Termina tu día con una cena espectacular 🍝", 
+            "Descubre qué hacer esta noche en la ciudad 🎟️",
+            "El día aún no termina, sal a explorar 🌃",
+            "Relájate en un buen bar o terraza 🍷"
+          ]);
     }
     
     return isWeekend
-      ? rand(["Para los que todavía no quieren dormir 🌙", "Descubre la vida nocturna de la ciudad 🎶", "Los mejores lugares para alargar la noche 🥂"])
-      : rand(["Descubre los mejores lugares nocturnos 🌙", "¿Antojo de medianoche? 🍔", "La ciudad nunca duerme 🌃"]);
+      ? rand([
+            "Para los que todavía no quieren dormir 🌙", 
+            "Descubre la vida nocturna de la ciudad 🎶", 
+            "Los mejores eventos para alargar la noche 🥂",
+            "Encuentra música y fiesta cerca de ti 🪩",
+            "Una noche inolvidable te espera 🎆"
+          ])
+      : rand([
+            "Descubre los mejores lugares nocturnos 🌙", 
+            "¿Antojo de medianoche? 🍔", 
+            "La ciudad nunca duerme 🌃",
+            "Lugares increíbles que abren hasta tarde 🦉",
+            "Encuentra dónde terminar la noche 🚕"
+          ]);
   }, []);
 
 
