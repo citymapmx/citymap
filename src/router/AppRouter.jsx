@@ -148,13 +148,9 @@ export default function AppRouter(props) {
             <Route path="/mapa/:city" element={<MapView />} />
             <Route path="/eventos" element={<EventsView />} />
 
-            // eslint-disable-next-line react-hooks/refs, react-hooks/immutability
             <Route path="/mis-planes" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
-            // eslint-disable-next-line react-hooks/refs, react-hooks/immutability
             <Route path="/experiencias/:city" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
-            // eslint-disable-next-line react-hooks/refs, react-hooks/immutability
             <Route path="/experiencias/:city/:slug" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
-            // eslint-disable-next-line react-hooks/refs, react-hooks/immutability
             <Route path="/planes" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
 
             <Route path="/favoritos" element={<FavsView hideHeader={false} />} />

@@ -240,7 +240,6 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     {extraPrice > 0 && <div style={{ fontSize: 14, color: T.sub }}>+${extraPrice.toFixed(2)}</div>}
                     {opt.is_required && <div style={{ fontSize: 10, fontWeight: 700, color: T.red, textTransform: 'uppercase', background: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: 4 }}>Obligatorio</div>}
-                  // eslint-disable-next-line preserve-caught-error
                   </div>
                 </label>
               </div>
