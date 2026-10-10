@@ -391,9 +391,9 @@ export default function DetailView() {
                   <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{selected.booking_config.label || "Reservar"}</span>
                 </button>
               ) : selected.plan === "premium" && hasMenu && (
-                <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => setShowIntentModal(true)} style={{ flex: 1, background: "#FACC15", border: "none", borderRadius: 14, padding: "12px 10px", color: "#111827", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+                <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => setShowIntentModal(true)} style={{ flex: 1, background: "#000000", border: "none", borderRadius: 14, padding: "12px 10px", color: "#FFFFFF", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>
-                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>Ver menú interactivo</span>
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>VER MENÚ</span>
                 </m.button>
               )}
             </div>
