@@ -10,7 +10,7 @@ import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { useShallow } from 'zustand/react/shallow';
-import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear } from "../lib/utils";
+import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear, METRO_ZONES } from "../lib/utils";
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
 import ExperienceViewer from "../components/ExperienceViewer.jsx";
@@ -48,8 +48,27 @@ function seededRand(id, seed) {
 }
 
 // Caché de spotlight a nivel de módulo: persiste entre re-mounts y múltiples
-// actualizaciones de mapPins. Clave: "CURRENT_SEED:city_slug" → biz.id
+// actualizaciones de mapPins. Clave: "SPOTLIGHT_PERIOD:city_slug" → biz.id
 const SPOTLIGHT_CACHE = {};
+
+// Contador absoluto de bloques de 6 h (hora local). Cambia 4 veces al día y
+// nunca se repite, así sirve como índice de rotación (round-robin).
+const SPOTLIGHT_PERIOD = (() => {
+  const d = new Date();
+  const localDays = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
+  return localDays * 4 + Math.floor(d.getHours() / 6);
+})();
+
+// Hash numérico estable de un texto (FNV-1a), para ordenar distinto en cada ciudad
+function hashString(str) {
+  let h = 2166136261;
+  const s = String(str || "");
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+// Misma fuente de imagen que usa la tarjeta de "Recomendación del día"
+const hasSpotlightPhoto = (biz) => !!((biz.photos && biz.photos[0]?.url) || biz.img1 || biz.img2 || biz.img3 || biz.img_url);
 
 import DebouncedSearchBar from "../components/home/DebouncedSearchBar.jsx";
 
@@ -248,39 +267,45 @@ export default function HomeView({ isBackground }) {
   const spotlightBiz = React.useMemo(() => {
     if (!mapPins || mapPins.length === 0) return null;
 
-    const cacheKey = `${CURRENT_SEED}:${activeCity}`;
+    const cacheKey = `${SPOTLIGHT_PERIOD}:${activeCity}`;
 
-    // Si ya teníamos uno guardado para hoy+ciudad y sigue en mapPins → devuélvelo sin recalcular
+    // Si ya elegimos uno para este periodo+ciudad y sigue disponible → mantenerlo estable
     const cachedId = SPOTLIGHT_CACHE[cacheKey];
     if (cachedId) {
       const found = mapPins.find(b => b.id === cachedId);
       if (found) return found;
-      // Si no lo encontramos (mapPins parcial), esperamos a que llegue
-      // devolvemos null en vez de recalcular con datos incompletos
-      return null;
     }
 
-    // Primera vez para hoy+ciudad: calculamos y guardamos en el caché de módulo
-    const nearPins = mapPins.filter(b => isNear(b, null, activeCity));
-    if (nearPins.length === 0) return null;
-    
-    // Le damos un "bonus" al plan destacado (+0.7) y al pro (+0.3)
-    // De esta forma tienen mucha más probabilidad de aparecer, pero no monopolizan
-    // la recomendación si hay pocos, permitiendo que otros negocios con buena "suerte" (semilla alta) aparezcan.
-    const sorted = [...nearPins].sort((a, b) => {
-      const getScore = (biz) => {
-        let base = seededRand(biz.id, CURRENT_SEED);
-        if (biz.plan === "destacado") base += 0.7;
-        else if (biz.plan === "pro") base += 0.3;
-        const hasPhoto = (biz.photos && biz.photos.length > 0) || biz.img1 || biz.img_url || biz.img2 || biz.img3;
-        if (!hasPhoto) base -= 1.5;
-        return base;
-      };
-      return getScore(b) - getScore(a);
-    });
-    
-    if (sorted[0]) SPOTLIGHT_CACHE[cacheKey] = sorted[0].id;
-    return sorted[0] || null;
+    // 1) Elegibles: cualquier plan (gratuito, destacado, premium), solo publicados
+    //    (status "approved" excluye pendientes, rechazados, suspendidos y eliminados),
+    //    sin los "Solo Menú" privados y únicamente de la ciudad consultada
+    //    (o su zona metropolitana). Se excluyen los negocios globales (city_slug "all").
+    const allowedCities = METRO_ZONES[activeCity] || [activeCity];
+    const eligible = mapPins.filter(b =>
+      b && b.id &&
+      b.status === "approved" &&
+      b.plan !== "menu" &&
+      typeof b.city_slug === "string" &&
+      b.city_slug.split(",").some(c => allowedCities.includes(c.trim()))
+    );
+    if (eligible.length === 0) return null;
+
+    // 2) Preferimos negocios con foto para conservar el diseño de la tarjeta;
+    //    si en la ciudad ninguno tiene, se usan todos.
+    const withPhoto = eligible.filter(hasSpotlightPhoto);
+    const pool = withPhoto.length > 0 ? withPhoto : eligible;
+
+    // 3) Rotación justa (round-robin): orden aleatorio pero fijo por ciudad, y cada
+    //    periodo de 6 h avanza una posición. Todos los negocios salen una vez antes
+    //    de que alguno se repita, y nunca sale el mismo dos periodos seguidos.
+    const citySeed = hashString(activeCity);
+    const order = [...pool].sort((a, b) =>
+      (seededRand(a.id, citySeed) - seededRand(b.id, citySeed)) || String(a.id).localeCompare(String(b.id))
+    );
+    const pick = order[SPOTLIGHT_PERIOD % order.length];
+
+    if (pick) SPOTLIGHT_CACHE[cacheKey] = pick.id;
+    return pick || null;
   }, [mapPins, activeCity]);
 
   const activeBannersMemo = React.useMemo(() => {
