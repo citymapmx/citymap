@@ -12,6 +12,7 @@ import { useDataStore } from '../../store/useDataStore.js';
  
 import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix } from '../../lib/utils.js';
 import { FONT_BIZ } from '../../lib/constants.js';
+import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
 import { Helmet } from 'react-helmet-async';
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
@@ -544,35 +545,20 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 const totalInCart = cartItems.reduce((acc, i) => acc + i.quantity, 0);
                 const productWithCategory = { ...product, cat_name: cat.name };
 
-                let calculatedPrice = Number(product.price) || 0;
-                let isFromPrice = false;
-                if (hasOptions) {
-                  let requiredMinAdd = 0;
-                  let hasVariableOptions = false;
-                  product.store_product_options.forEach(opt => {
-                    if (opt.is_required && opt.store_option_values && opt.store_option_values.length > 0) {
-                      const minOptPrice = Math.min(...opt.store_option_values.map(v => Number(v.extra_price) || 0));
-                      requiredMinAdd += minOptPrice;
-                    }
-                    if (opt.store_option_values && opt.store_option_values.some(v => Number(v.extra_price) > 0)) {
-                      hasVariableOptions = true;
-                    }
-                  });
-                  if (requiredMinAdd > 0) {
-                    calculatedPrice += requiredMinAdd;
-                    isFromPrice = true;
-                  } else if (calculatedPrice === 0 && hasVariableOptions) {
-                    isFromPrice = true;
-                  }
-                }
+                const priceInfo = getProductDisplayPrice(product);
+                const priceLabel = getProductPriceLabel(product);
+
+                // En modo "local" no hay botón "+", pero si el producto tiene tamaños/extras
+                // se puede abrir el detalle (solo lectura) para consultarlos.
+                const canOpenModal = menuIntent !== 'local' || hasOptions;
 
                 return (
                 <div 
                   key={product.id} 
-                  onClick={() => menuIntent !== 'local' ? setSelectedProduct(productWithCategory) : null}
+                  onClick={() => canOpenModal ? setSelectedProduct(productWithCategory) : null}
                   style={{ 
                     display: 'flex', 
-                    cursor: menuIntent !== 'local' ? 'pointer' : 'default',
+                    cursor: canOpenModal ? 'pointer' : 'default',
                     flexDirection: viewMode === 'grid' ? 'column' : 'row',
                     alignItems: 'stretch',
                     position: 'relative',
@@ -615,53 +601,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                         </div>
                       )}
 
-                      {hasOptions && viewMode === 'list' && (
-                        <div style={{ fontSize: 13, color: dark ? '#94A3B8' : '#6B7280', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 3, lineHeight: 1.3, paddingTop: 4 }}>
-                          {product.store_product_options.map(opt => {
-                            if (!opt.store_option_values || opt.store_option_values.length === 0) return null;
-                            const isCleanToggle = opt.store_option_values.length === 1 && opt.store_option_values[0].label.toLowerCase() === 'sí';
-                            const isSize = opt.name.toLowerCase().includes('tamaño') || opt.name.toLowerCase().includes('size');
-                            const base = Number(product.price) || 0;
-                            const showAbsolute = isSize || base === 0;
 
-                            if (menuIntent !== 'local' && !showAbsolute) return null;
-
-                            if (isCleanToggle) {
-                               const extra = Number(opt.store_option_values[0].extra_price || 0);
-                               if (showAbsolute) {
-                                 return (
-                                   <div key={opt.id} style={{ fontSize: 16, fontWeight: 900, color: dark ? '#F8FAFC' : '#111111', marginTop: 4 }}>
-                                     {opt.name} ${base + extra}
-                                   </div>
-                                 );
-                               }
-                               return <div key={opt.id}>• {opt.name}{extra > 0 ? ` (+$${extra})` : ''}</div>;
-                            }
-                            const vals = opt.store_option_values.map(v => {
-                               const ext = Number(v.extra_price || 0);
-                               if (showAbsolute) {
-                                 return `${v.label} $${base + ext}`;
-                               }
-                               return `${v.label}${ext > 0 ? ` (+$${ext})` : ''}`;
-                            }).join(' • ');
-                            
-                            if (showAbsolute) {
-                               return (
-                                 <div key={opt.id} style={{ fontSize: 16, fontWeight: 900, color: dark ? '#F8FAFC' : '#111111', marginTop: 4 }}>
-                                   {vals}
-                                 </div>
-                               );
-                            }
-                            
-                            return (
-                              <div key={opt.id}>
-                                <span style={{ fontWeight: 700 }}>{opt.name}:</span> {vals}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      
                       {(() => {
                         const addToCartControls = menuIntent !== 'local' ? (
                           <div style={
@@ -731,32 +671,27 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                           </div>
                         ) : null;
 
-                        const base = Number(product.price) || 0;
-                        const hasSizeOption = hasOptions && product.store_product_options.some(o => o.name.toLowerCase().includes('tamaño') || o.name.toLowerCase().includes('size'));
-                        const hideMainPrice = hasOptions && (base === 0 || hasSizeOption);
-                        
-                        if (hideMainPrice && viewMode === 'list') {
-                          return addToCartControls;
-                        }
-                        
-                        const priceContent = (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {product.old_price && (
-                               <span style={{ fontSize: viewMode === 'grid' ? 12 : 14, color: '#9CA3AF', textDecoration: 'line-through', fontWeight: 600 }}>
+                        const priceContent = priceInfo.hasPrice ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingTop: viewMode === 'grid' ? 2 : 0 }}>
+                            {product.old_price && !priceInfo.isFrom && (
+                               <span style={{ fontSize: viewMode === 'grid' ? 11 : 13, color: '#9CA3AF', textDecoration: 'line-through', fontWeight: 600 }}>
                                  ${Number(product.old_price).toFixed(0)}
                                </span>
                             )}
-                            <span style={{ fontSize: viewMode === 'grid' ? 14 : 16, fontWeight: 900, color: dark ? '#F8FAFC' : '#111111' }}>
-                              {isFromPrice && <span style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', marginRight: 4 }}>Desde</span>}
-                              ${Number(calculatedPrice).toFixed(calculatedPrice % 1 === 0 ? 0 : 2)}
+                            <span style={{ fontSize: viewMode === 'grid' ? 13 : 14, fontWeight: 700, color: dark ? '#CBD5E1' : '#4B5563' }}>
+                              {priceLabel}
                             </span>
                           </div>
-                        );
+                        ) : null;
 
                         return (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: (hasOptions && viewMode === 'list') ? 8 : 'auto', minHeight: 32 }}>
-                            {!hideMainPrice ? priceContent : <div />}
-                            {addToCartControls}
+                          <div style={{ display: 'flex', alignItems: viewMode === 'grid' ? 'flex-start' : 'center', justifyContent: 'space-between', marginTop: 2, flex: viewMode === 'grid' ? 1 : 'none', paddingTop: 2, minHeight: viewMode === 'grid' ? 32 : 24, gap: 8 }}>
+                            {priceContent || <div />}
+                            {viewMode === 'grid' ? (
+                              <div style={{ alignSelf: 'flex-end', marginLeft: 'auto' }}>
+                                {addToCartControls}
+                              </div>
+                            ) : addToCartControls}
                           </div>
                         );
                       })()}

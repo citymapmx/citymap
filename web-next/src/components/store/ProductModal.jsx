@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { useCart, calculateItemTotal } from '../../hooks/useCart.js';
+import { getProductDisplayPrice, formatMenuAmount, isVariantGroup } from '../../lib/menuPricing.js';
 
 export default function ProductModal({ product, businessId, onClose, T, menuIntent }) {
   const [selectedOptions, setSelectedOptions] = useState({});
@@ -85,27 +86,7 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
   const unitTotal = calculateItemTotal(product, formattedOptionsForTotal, 1);
   const finalTotal = unitTotal * quantity;
 
-  let calculatedPrice = Number(product.price) || 0;
-  let isFromPrice = false;
-  if (product.store_product_options && product.store_product_options.length > 0) {
-    let requiredMinAdd = 0;
-    let hasVariableOptions = false;
-    product.store_product_options.forEach(opt => {
-      if (opt.is_required && opt.store_option_values && opt.store_option_values.length > 0) {
-        const minOptPrice = Math.min(...opt.store_option_values.map(v => Number(v.extra_price) || 0));
-        requiredMinAdd += minOptPrice;
-      }
-      if (opt.store_option_values && opt.store_option_values.some(v => Number(v.extra_price) > 0)) {
-        hasVariableOptions = true;
-      }
-    });
-    if (requiredMinAdd > 0) {
-      calculatedPrice += requiredMinAdd;
-      isFromPrice = true;
-    } else if (calculatedPrice === 0 && hasVariableOptions) {
-      isFromPrice = true;
-    }
-  }
+  const priceInfo = getProductDisplayPrice(product);
 
   return ReactDOM.createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', background: T.bg, animation: 'slideUp .3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
@@ -130,10 +111,12 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
             </div>
           )}
           <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 8px 0', textTransform: 'uppercase' }}>{product.name}</h2>
-          <div style={{ fontSize: 18, fontWeight: 700, color: T.green }}>
-            {isFromPrice && <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginRight: 6 }}>Desde</span>}
-            ${Number(calculatedPrice).toFixed(calculatedPrice % 1 === 0 ? 0 : 2)}
-          </div>
+          {priceInfo.hasPrice && (
+            <div style={{ fontSize: 18, fontWeight: 700, color: T.green }}>
+              {priceInfo.isFrom && <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginRight: 6 }}>Desde:</span>}
+              {formatMenuAmount(priceInfo.amount)}
+            </div>
+          )}
           {product.description && (
             <p style={{ fontSize: 14, color: T.sub, marginTop: 12, lineHeight: 1.5 }}>{product.description}</p>
           )}
@@ -285,10 +268,11 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
                         <div style={{ fontSize: 15, color: T.text, fontWeight: isSelected ? 700 : 500 }}>{val.label}</div>
                       </div>
                       {(() => {
-                        const isSize = opt.name.toLowerCase().includes('tamaño') || opt.name.toLowerCase().includes('size');
+                        const isSize = /tamañ|taman|size|presentaci|porci/i.test(String(opt.name || ""));
                         const ext = Number(val.extra_price) || 0;
                         const base = Number(product.price) || 0;
-                        const showAbsolute = isSize || base === 0;
+                        const hasPositiveInGroup = opt.store_option_values.some(v => Number(v.extra_price) > 0);
+                        const showAbsolute = isVariantGroup(opt) && hasPositiveInGroup && (isSize || base === 0) && (base + ext) > 0;
 
                         if (showAbsolute) {
                            const total = base + ext;
