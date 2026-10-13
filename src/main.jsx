@@ -17,6 +17,19 @@ const queryClient = new QueryClient({
   },
 });
 
+// Auto-recuperación cuando un deploy nuevo invalida los hashes de chunks JS antiguos
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault();
+  const last = parseInt(sessionStorage.getItem('chunk_reload_guard') || '0', 10);
+  const now = Date.now();
+  if (now - last > 10000) {
+    sessionStorage.setItem('chunk_reload_guard', now.toString());
+    import('./components/ErrorBoundary.jsx')
+      .then(({ reloadClearingStaleAssets }) => reloadClearingStaleAssets())
+      .catch(() => window.location.reload());
+  }
+});
+
 // ─── Ruta /admin — carga sólo el panel sin la app completa ───────────────────
 const isAdminRoute = window.location.pathname === '/admin' || window.location.pathname === '/admin/';
 
