@@ -32,7 +32,7 @@ export function isVariantGroup(opt) {
     return false;
   }
   const isSizeName = /tamañ|taman|size|presentaci|porci/i.test(String(opt.name || ""));
-  return Boolean(opt.is_required) || opt.type === "single" || isSizeName;
+  return opt.type === "single" || isSizeName;
 }
 
 /**

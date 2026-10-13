@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { normalizeStoreOptionsInData } from './modifierRules.js';
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 // Credenciales leídas desde variables de entorno (.env.local / Vercel)
@@ -41,7 +42,7 @@ const sb = {
   async _json(r) {
     const text = await r.text();
     if (!text) return null;
-    try { return JSON.parse(text); } catch { return { message: text }; }
+    try { return normalizeStoreOptionsInData(JSON.parse(text)); } catch { return { message: text }; }
   },
 
   async get(table, params = "") {
