@@ -68,14 +68,7 @@ const renderRatingRow = (b, realFavs, hideReviews, hideFavs, T, starStyle = {}, 
     <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
       {b.review_count > 0 ? (
         <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-          <img 
-            src="/estrella.svg" 
-            alt="star" 
-            width={14} 
-            height={14} 
-            loading="lazy" 
-            style={{ width: 14, height: 14, marginTop: -2, ...starStyle }} 
-          />
+          <Icon name="star_f" size={14} color={textStyle.color || T.text} style={{ marginTop: -2, ...starStyle }} />
           <span style={{ fontSize: 12, fontWeight: 700, color: T.text, ...textStyle }}>
             {b.rating && !isNaN(parseFloat(String(b.rating).replace(',', '.'))) 
               ? parseFloat(String(b.rating).replace(',', '.')).toFixed(1) 
@@ -136,6 +129,7 @@ const renderNotesBlock = (stayTimeStr, note, onEditNote, T, t) => {
           </p>
           {onEditNote && (
             <button 
+              aria-label="Editar nota"
               onClick={(e) => { e.stopPropagation(); onEditNote(); }}
               style={{ position: "absolute", top: 0, right: 0, background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
             >
@@ -253,7 +247,7 @@ export default memo(function BusinessCard({
           {distStr && <div style={{ position: "absolute", top: 12, right: 12, fontSize: 10, fontWeight: 700, color: T.sub, padding: "2px 6px", zIndex: 2 }}>{distStr}</div>}
           
           {/* Thumbnail */}
-          <div style={{ width: 140, flexShrink: 0, position: "relative", background: T.border }}>
+          <div style={{ width: 135, flexShrink: 0, position: "relative", background: T.border, overflow: "hidden", borderRadius: 12 }}>
             {thumb?.url
               ? <ProgressiveImage 
                   variants={{ hover: { scale: 1.08 } }} 
@@ -263,7 +257,7 @@ export default memo(function BusinessCard({
                   alt={b.name} 
                   style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }} 
                 />
-              : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>{(b.emoji || CAT_EMOJI[b.category]) || "🏪"}</div>
+              : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, background: dark ? "rgba(255,255,255,0.05)" : "#F3F4F6" }}>{(b.emoji || CAT_EMOJI[b.category]) || "🏪"}</div>
             }
             {b.badge && <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.6)", borderRadius: 6, padding: "2px 6px", fontSize: 8, fontWeight: 800, color: "#fff", textTransform: "uppercase" }}>{b.badge}</div>}
           </div>
@@ -339,7 +333,7 @@ export default memo(function BusinessCard({
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
         {/* Top Banner */}
-        <div style={{ height: thumb?.url ? 120 : 48, position: "relative", background: thumb?.url ? T.border : 'transparent' }}>
+        <div style={{ height: thumb?.url ? 120 : 48, position: "relative", background: "transparent" }}>
           {thumb?.url
             ? <ProgressiveImage 
                 variants={{ hover: { scale: 1.08 } }} 
@@ -394,7 +388,7 @@ export default memo(function BusinessCard({
         style={{ 
           borderRadius: 18, 
           overflow: "hidden", 
-          background: "#0a0a0a", 
+          background: "transparent", 
           position: "relative", 
           display: "flex", 
           flexDirection: "column", 
@@ -406,7 +400,7 @@ export default memo(function BusinessCard({
         variants={{ hover: { y: -4, boxShadow: T.shadowLg } }} 
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        <div style={{ position: "relative", height: 190, overflow: "hidden" }}>
+        <div style={{ position: "relative", height: 190, overflow: "hidden", background: "transparent" }}>
           {thumb?.url
            ? <ProgressiveImage 
                 variants={{ hover: { scale: 1.08 } }} 
@@ -416,10 +410,10 @@ export default memo(function BusinessCard({
                 alt={b.name} 
                 style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }} 
               />
-            : <div style={{ height: "100%", background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44 }}>{(b.emoji || CAT_EMOJI[b.category]) || "🏪"}</div>
+            : <div style={{ height: "100%", background: dark ? "rgba(255,255,255,0.05)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44 }}>{(b.emoji || CAT_EMOJI[b.category]) || "🏪"}</div>
           }
-          {/* Bottom dark gradient for text readability */}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%)" }} />
+          {/* Bottom dark gradient for text readability (focalized only on bottom text area) */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "48%", background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0) 100%)", pointerEvents: "none" }} />
           
           {/* Podium Badge */}
           {rank && (
@@ -430,7 +424,7 @@ export default memo(function BusinessCard({
 
           {/* Premium Logo (Top Left) */}
           {b.logo_url && (b.plan === "premium" || b.plan === "pro" || b.plan === "destacado") && (
-            <div style={{ position: "absolute", top: 12, left: rank ? 56 : 12, width: 76, height: 76, borderRadius: "50%", background: dark ? "rgba(15, 23, 42, 0.4)" : "rgba(255, 255, 255, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: `1px solid ${dark ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.8)'}`, zIndex: 10, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", boxSizing: "border-box", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: 12, left: rank ? 56 : 12, width: 76, height: 76, borderRadius: "50%", background: dark ? "rgba(15, 23, 42, 0.4)" : "rgba(255, 255, 255, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "2px solid #FFFFFF", zIndex: 10, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", boxSizing: "border-box", overflow: "hidden" }}>
               <OptimizedImage src={b.logo_url} widthRequest={200} heightRequest={200} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%", display: "block", backgroundColor: "transparent" }} alt="logo" />
             </div>
           )}

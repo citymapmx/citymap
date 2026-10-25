@@ -1,4 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import {isCatalogBusiness} from '../../lib/storePresentation.js';
+import StorePromotions from './StorePromotions.jsx';
+import SlidingCategoryTrack from '../ui/SlidingCategoryTrack.jsx';
+import { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import { sb } from '../../lib/supabase.js';
@@ -9,14 +12,18 @@ import CartDrawer from './CartDrawer.jsx';
 import { useCart } from '../../hooks/useCart.js';
 import { useUIStore } from '../../store/useUIStore.js';
 import { useDataStore } from '../../store/useDataStore.js';
+import { useAuthStore } from '../../store/useAuthStore.js';
+import { AppContext } from '../../context/AppContext.jsx';
  
-import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix } from '../../lib/utils.js';
-import { FONT_BIZ } from '../../lib/constants.js';
+import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic } from '../../lib/utils.js';
+import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
 import { Helmet } from 'react-helmet-async';
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
   const navigate = useNavigate();
+  const isCatalog = isCatalogBusiness(business);
+  const storeLabel = isCatalog ? 'catálogo' : 'menú';
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -29,16 +36,33 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   }, [viewMode]);
   const [showToast, setShowToast] = useState(false);
   const [toastName, setToastName] = useState('');
-  const [expandedCategories, setExpandedCategories] = useState({});
   const [activeTabId, setActiveTabId] = useState(null);
   const activeTabIdRef = useRef(activeTabId);
   useEffect(() => { activeTabIdRef.current = activeTabId; }, [activeTabId]);
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [menuIntent, setMenuIntent] = useState(() => {
-    return initialIntent || localStorage.getItem(`intent_${business?.id}`) || null;
+    return isCatalog ? 'delivery' : initialIntent || localStorage.getItem(`intent_${business?.id}`) || null;
   });
   const { dark } = useUIStore();
   const { globalFavCounts } = useDataStore();
+  const { user, setShowAuth } = useAuthStore();
+  const appContext = useContext(AppContext);
+  const favIds = appContext?.favIds || [];
+  const toggleFav = appContext?.toggleFav;
+  const isFav = business?.id ? favIds.includes(business.id) : false;
+
+  const handleHeartClick = (e) => {
+    if (e) e.stopPropagation();
+    haptic("light");
+    if (!user) {
+      setShowAuth(true);
+      return;
+    }
+    if (toggleFav && business?.id) {
+      toggleFav(business.id, e);
+    }
+  };
+
   const { items, setIsOpen, addItem, removeItem, updateQuantity, clearCart } = useCart();
   const cartTotal = items.reduce((acc, item) => acc + (item.quantity * item.unitTotal), 0);
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
@@ -71,10 +95,10 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
         let data = null;
         try {
           // Try with image_url first (for category image fallback feature)
-          data = await sb.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,image_url,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
+          data = await sb.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,image_url,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
         } catch {
           // Fallback: query without image_url (in case column doesn't have permissions yet)
-          data = await sb.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
+          data = await sb.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
         }
         
         // PostgREST doesn't support ordering nested resources directly in the main order clause easily without specific syntax, 
@@ -151,22 +175,25 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   }, [activeCategories, menuSearch]);
 
   if (loading) {
-    return null;
+    return inline ? <div role="status" aria-label={`Cargando productos del ${storeLabel}`} style={{minHeight:'100dvh',background:dark ? '#18181B' : '#FFFFFF',color:dark ? '#A1A1AA' : '#71717A',padding:'32px 20px',boxSizing:'border-box'}}>
+      <p style={{fontSize:14,margin:'0 0 24px'}}>Cargando {storeLabel}…</p>
+      {[1,2,3].map(row => <div key={row} aria-hidden="true" style={{height:84,borderRadius:14,marginBottom:12,background:dark ? '#232326' : '#F4F4F5'}} />)}
+    </div> : null;
   }
 
   if (activeCategories.length === 0) {
     if (inline) {
       return (
-        <div style={{ flex: 1, height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center', background: dark ? '#0F172A' : '#F8FAFC' }}>
+        <div style={{ flex: 1, height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center', background: dark ? '#18181B' : '#FAFAFA' }}>
           <Helmet>
             <meta name="robots" content="noindex, follow" />
           </Helmet>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: dark ? '#1E293B' : '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-            <Icon name="store" size={40} color={dark ? '#475569' : '#94A3B8'} />
+          <div style={{ width: 80, height: 80, borderRadius: '50%', background: dark ? '#232326' : '#E4E4E7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+            <Icon name="store" size={40} color={dark ? '#71717A' : '#A1A1AA'} />
           </div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', margin: '0 0 12px 0', fontFamily: FONT_BIZ }}>Menú no disponible</h2>
-          <p style={{ fontSize: 15, color: dark ? '#94A3B8' : '#64748B', maxWidth: 300, margin: '0 auto 32px', lineHeight: 1.5 }}>
-            Parece que <strong>{business?.name}</strong> aún no ha publicado su menú digital o lo ha desactivado temporalmente.
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', margin: '0 0 12px 0', fontFamily: FONT_BIZ }}>{isCatalog?'Catálogo no disponible':'Menú no disponible'}</h2>
+          <p style={{ fontSize: 15, color: dark ? '#A1A1AA' : '#71717A', maxWidth: 300, margin: '0 auto 32px', lineHeight: 1.5 }}>
+            Parece que <strong>{business?.name}</strong> aún no ha publicado su {storeLabel} digital o lo ha desactivado temporalmente.
           </p>
           <button 
             onClick={() => onBack && onBack()} 
@@ -202,13 +229,13 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
     
     if (navigator.share) {
       navigator.share({
-        title: `Menú de ${business.name}`,
-        text: `Consulta el menú digital y realiza tu pedido en ${business.name}`,
+        title: `${isCatalog?'Catálogo':'Menú'} de ${business.name}`,
+        text: `Consulta el ${storeLabel} digital y realiza tu pedido en ${business.name}`,
         url: url
       }).catch(err => console.log(err));
     } else {
       navigator.clipboard?.writeText(url);
-      alert("¡Enlace del menú copiado al portapapeles!");
+      alert(`¡Enlace del ${storeLabel} copiado al portapapeles!`);
     }
   };
 
@@ -218,7 +245,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
 
   return (
     <div style={{ marginTop: inline ? 0 : 24, paddingBottom: (cartCount > 0 && (showMenuModal || inline)) ? 80 : 0 }}>
-      {inline && menuIntent === null && (
+      {inline && !isCatalog && menuIntent === null && (
         <m.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -226,9 +253,9 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
           <m.div 
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            style={{ background: dark ? '#1E293B' : '#FFFFFF', width: '100%', maxWidth: 320, borderRadius: 24, padding: '32px 24px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}
+            style={{ background: dark ? '#232326' : '#FFFFFF', width: '100%', maxWidth: 320, borderRadius: 24, padding: '32px 24px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}
           >
-            <div style={{ width: 80, height: 80, borderRadius: '50%', background: dark ? '#0F172A' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#1E293B' : '#FFFFFF'}` }}>
+            <div style={{ width: 80, height: 80, borderRadius: '50%', background: dark ? '#18181B' : '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}` }}>
               {(business.logo_url || business.logo) ? (
                 <OptimizedImage 
                   src={getThumbUrl(business.logo_url || business.logo, 200, 200)} 
@@ -242,7 +269,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             <h2 style={{ margin: '0 0 12px 0', fontSize: 22, fontWeight: 800, color: dark ? '#FFF' : '#111', fontFamily: 'system-ui, -apple-system, sans-serif', letterSpacing: '-0.3px' }}>
               ¿Cómo nos visitas hoy?
             </h2>
-            <p style={{ margin: '0 0 28px 0', fontSize: 14, color: dark ? '#94A3B8' : '#64748B', lineHeight: 1.5 }}>
+            <p style={{ margin: '0 0 28px 0', fontSize: 14, color: dark ? '#A1A1AA' : '#71717A', lineHeight: 1.5 }}>
               Elige una opción para mostrarte el menú adecuado.
             </p>
 
@@ -250,7 +277,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               <button 
                 onClick={() => { setMenuIntent('local'); localStorage.setItem(`intent_${business?.id}`, 'local'); }}
                 className="press"
-                style={{ width: '100%', padding: '16px', background: dark ? '#0F172A' : '#F8FAFC', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 16, color: dark ? '#F8FAFC' : '#0F172A', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                style={{ width: '100%', padding: '16px', background: dark ? '#18181B' : '#FAFAFA', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, borderRadius: 16, color: dark ? '#FAFAFA' : '#18181B', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
               >
                 <span style={{ fontSize: 24 }}>🍽️</span>
                 Estoy en el local
@@ -259,7 +286,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               <button 
                 onClick={() => { setMenuIntent('delivery'); localStorage.setItem(`intent_${business?.id}`, 'delivery'); }}
                 className="press"
-                style={{ width: '100%', padding: '16px', background: dark ? '#0F172A' : '#F8FAFC', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 16, color: dark ? '#F8FAFC' : '#0F172A', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                style={{ width: '100%', padding: '16px', background: dark ? '#18181B' : '#FAFAFA', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, borderRadius: 16, color: dark ? '#FAFAFA' : '#18181B', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
               >
                 <img src="/pedido.png" alt="Para llevar" style={{ width: 24, height: 24, objectFit: 'contain' }} />
                 Para llevar / Domicilio
@@ -296,22 +323,41 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
       ) : (
         <AnimatePresence>
           <m.div 
-             initial={inline ? false : { y: '100%' }}
-             animate={inline ? false : { y: 0 }}
-             exit={inline ? false : { y: '100%' }}
-             transition={inline ? {} : { type: 'spring', damping: 25, stiffness: 200 }}
+             key="store-modal-backdrop"
+             initial={inline ? false : { opacity: 0 }}
+             animate={inline ? false : { opacity: 1 }}
+             exit={inline ? false : { opacity: 0 }}
+             transition={{ duration: 0.2 }}
              style={{ 
                position: inline ? 'relative' : 'fixed', 
                inset: inline ? 'auto' : 0, 
                zIndex: inline ? 'auto' : 80000, 
-               background: dark ? '#0F172A' : '#F8FAFC', 
-               overflowY: inline ? 'visible' : 'auto',
-               minHeight: inline ? '100%' : 'auto'
+               background: inline ? 'transparent' : 'rgba(0,0,0,0.5)', 
+               display: inline ? 'block' : 'flex',
+               justifyContent: inline ? 'normal' : 'center',
+               overflow: 'hidden'
              }}
           >
+            <m.div 
+               key="store-modal-card"
+               initial={inline ? false : { y: '100%' }}
+               animate={inline ? false : { y: 0 }}
+               exit={inline ? false : { y: '100%' }}
+               transition={inline ? {} : { type: 'spring', damping: 25, stiffness: 200 }}
+               style={{ 
+                 width: '100%',
+                 maxWidth: inline ? 'none' : 600,
+                 height: inline ? 'auto' : '100%',
+                 position: 'relative',
+                 background: dark ? '#18181B' : '#FAFAFA', 
+                 overflowY: inline ? 'visible' : 'auto',
+                 minHeight: inline ? '100%' : '100vh',
+                 boxShadow: inline ? 'none' : '0 0 40px rgba(0,0,0,0.2)'
+               }}
+            >
             {/* Banner Area (Baryo Style) */}
-            <div style={{ position: 'relative', width: '100%', background: dark ? '#0F172A' : '#FFFFFF' }}>
-              <div style={{ position: 'relative', width: '100%', height: business.banner_url ? "auto" : 170, aspectRatio: business.banner_url ? "800/340" : "auto", background: '#1E293B' }}>
+            <div style={{ position: 'relative', width: '100%', background: dark ? '#18181B' : '#FFFFFF' }}>
+              <div style={{ position: 'relative', width: '100%', height: business.banner_url ? "auto" : 170, aspectRatio: business.banner_url ? "800/340" : "auto", background: '#232326' }}>
                 {(business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url) && (
                   <OptimizedImage 
                     src={business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url} 
@@ -328,20 +374,37 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 {/* Close/Back Button */}
                 <button 
                   className="press"
+                  aria-label={inline ? "Volver" : "Cerrar menú"}
                   onClick={() => inline ? (onBack && onBack()) : setShowMenuModal(false)}
                   style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, padding: 12, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#FFF' }}
                 >
-                  <Icon name={inline ? "arrow_left" : "x"} size={26} style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
+                  <Icon name={inline ? "chevron" : "x"} size={26} color="#fff" style={{ transform: inline ? "rotate(180deg)" : undefined, filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                 </button>
 
-                {/* Share Button */}
-                <button 
-                  className="press"
-                  onClick={handleShare}
-                  style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, padding: 12, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#FFF' }}
-                >
-                  <Icon name="share" size={26} style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
-                </button>
+                {/* Top Right Actions: Favorite & Share */}
+                <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <m.button 
+                    whileTap={{ scale: 0.85 }}
+                    aria-label={isFav ? "Quitar de favoritos" : "Guardar en favoritos"}
+                    className="press"
+                    onClick={handleHeartClick}
+                    style={{ padding: 10, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <m.div key={isFav ? 'fav' : 'unfav'} initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 15 }}>
+                      <Icon name={isFav ? "heart_overlay_f" : "heart_overlay"} size={26} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
+                    </m.div>
+                  </m.button>
+
+                  <m.button 
+                    whileTap={{ scale: 0.85 }}
+                    aria-label="Compartir"
+                    className="press"
+                    onClick={handleShare}
+                    style={{ padding: 10, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#FFF' }}
+                  >
+                    <Icon name="share" size={26} style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
+                  </m.button>
+                </div>
               </div>
 
               {/* Profile Logo Circular Superpuesto */}
@@ -351,7 +414,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                   height: 90, 
                   borderRadius: '50%', 
                   background: '#FFFFFF', 
-                  border: `4px solid ${dark ? '#0F172A' : '#FFFFFF'}`,
+                  border: `4px solid ${dark ? '#18181B' : '#FFFFFF'}`,
                   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                   overflow: 'hidden',
                   display: 'flex',
@@ -371,78 +434,89 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               </div>
 
               {/* Business Info under the image */}
-              <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginTop: 12, padding: '0 20px 8px' }}>
+              <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginTop: 10, padding: '0 20px 4px' }}>
                 <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: dark ? '#FFFFFF' : '#111111', fontFamily: FONT_BIZ, letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   {business.name}
                   {(business.plan === "destacado" || business.plan === "premium" || business.plan === "pro") && (
                     <img src="/verificado.png" alt="Verificado" width="22" height="22" style={{ flexShrink: 0, marginTop: 2 }} />
                   )}
                 </h1>
-                
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 6, marginBottom: 4 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <img src="/estrella.svg" alt="star" style={{ width: 14, height: 14, marginTop: -2, filter: dark ? 'invert(1)' : 'none' }} />
-                    <span style={{ fontSize: 13, fontWeight: 800, color: dark ? '#FFFFFF' : '#111111' }}>
-                      {business.rating && !isNaN(parseFloat(String(business.rating).replace(',', '.'))) ? parseFloat(String(business.rating).replace(',', '.')).toFixed(1) : "N/A"}
-                    </span>
-                    <span style={{ fontSize: 11, color: dark ? '#94A3B8' : '#64748B', fontWeight: 600 }}>({business.review_count || 0})</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <Icon name="heart_f" size={14} />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: dark ? '#FFFFFF' : '#111111' }}>
-                      {globalFavCounts[business.id] || 0}
-                    </span>
-                  </div>
-                </div>
 
                 {menuIntent === 'local' ? (
-                  <div style={{ marginTop: 8, fontSize: 16, fontWeight: 700, color: dark ? '#F8FAFC' : '#1E293B', letterSpacing: -0.2 }}>
+                  <div style={{ marginTop: 6, fontSize: 15, fontWeight: 700, color: dark ? '#FAFAFA' : '#232326', letterSpacing: -0.2 }}>
                     ¡Qué bueno tenerte aquí!
                   </div>
                 ) : (
-                  <>
-                    {!business.hide_location && business.address && (
-                      <div style={{ fontSize: 13, color: dark ? '#94A3B8' : '#6B7280', marginTop: 4, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {business.address}
-                      </div>
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, justifyContent: 'center' }}>
-                       <Icon name="clock" size={14} color={isOpen ? "#10B981" : "#EF4444"} />
-                       <span style={{ fontSize: 13, fontWeight: 700, color: isOpen ? "#10B981" : "#EF4444" }}>
-                         {scheduleInfo?.text?.[0] || (isOpen ? "Abierto" : "Cerrado")}
-                       </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 6, flexWrap: 'wrap', padding: '0 8px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                      <Icon name="clock" size={13} color={isOpen ? "#10B981" : "#EF4444"} />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: isOpen ? "#10B981" : "#EF4444" }}>
+                        {scheduleInfo?.text?.[0] || (isOpen ? "Abierto ahora" : "Cerrado")}
+                      </span>
                     </div>
-                  </>
+
+                    {!business.hide_location && business.address && (
+                      <>
+                        <span style={{ fontSize: 12, color: dark ? '#71717A' : '#D4D4D8', userSelect: 'none' }}>•</span>
+                        <a
+                          href={(business.lat && business.lng) ? `https://www.google.com/maps/search/?api=1&query=${business.lat},${business.lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address + ', ' + (business.city || ''))}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: dark ? '#A1A1AA' : '#71717A',
+                            textDecoration: 'none',
+                            maxWidth: '100%',
+                            cursor: 'pointer'
+                          }}
+                          title={business.address}
+                        >
+                          <Icon name="pin" size={13} color={dark ? '#A1A1AA' : '#71717A'} style={{ flexShrink: 0 }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {cleanShortAddress(business.address)}
+                          </span>
+                        </a>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
             
             <div style={{ paddingBottom: cartCount > 0 ? 100 : 80 }}>
+      <StorePromotions products={categories.flatMap(cat=>(cat.store_products||[]).map(product=>({...product,cat_name:cat.name})))} intent={menuIntent} timeZone={CITY_TZ[business.city_slug] || 'America/Mazatlan'} T={T} onSelect={setSelectedProduct}/>
       {/* Sticky Header: Search + Tabs */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: dark ? '#0F172A' : '#FFFFFF', paddingBottom: 12, paddingTop: 4, borderBottom: `1px solid ${dark ? '#1E293B' : '#F1F5F9'}` }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: dark ? '#18181B' : '#FFFFFF', paddingBottom: 12, paddingTop: 4, borderBottom: `1px solid ${dark ? '#232326' : '#F4F4F5'}` }}>
         {/* Search & Toggle */}
-        <div style={{ padding: '0 16px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}><Icon name="search" size={16} color={dark ? '#94A3B8' : '#6B7280'} /></span>
+        <div style={{ padding: '0 16px', marginBottom: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth:0 }}>
+            <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}><Icon name="search" size={16} color={dark ? '#A1A1AA' : '#6B7280'} /></span>
             <input
-              type="text"
+              type="search"
+              aria-label={`Buscar en el ${storeLabel}`}
               value={menuSearch}
               onChange={e => setMenuSearch(e.target.value)}
-              placeholder="Buscar en el menú"
-              style={{ width: '100%', padding: '12px 16px 12px 40px', borderRadius: 12, border: 'none', background: dark ? '#1E293B' : '#F3F4F6', color: dark ? '#FFFFFF' : '#111111', fontSize: 15, fontWeight: 500, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+              placeholder={`Buscar en el ${storeLabel}`}
+              style={{ width: '100%', padding: '12px 16px 12px 40px', borderRadius: 12, border: 'none', background: dark ? '#232326' : '#F3F4F6', color: dark ? '#FFFFFF' : '#111111', fontSize: 16, fontWeight: 500, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
             />
-            {menuSearch && <button onClick={() => setMenuSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><Icon name="x" size={16} color={dark ? '#94A3B8' : '#6B7280'} /></button>}
+            {menuSearch && <button aria-label="Borrar búsqueda de productos" onClick={() => setMenuSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><Icon name="x" size={16} color={dark ? '#A1A1AA' : '#6B7280'} /></button>}
           </div>
-          <div style={{ display: 'flex', background: dark ? '#1E293B' : '#F3F4F6', borderRadius: 12, padding: 4 }}>
+          <div style={{ display: 'flex', background: dark ? '#232326' : '#F3F4F6', borderRadius: 12, padding: 4 }}>
             <button 
+              aria-label="Ver productos en cuadrícula" aria-pressed={viewMode === 'grid'}
               onClick={() => setViewMode('grid')}
-              style={{ background: viewMode === 'grid' ? (dark ? '#334155' : '#FFFFFF') : 'transparent', border: 'none', width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: viewMode === 'grid' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', transition: 'all 0.2s', color: viewMode === 'grid' ? (dark ? '#FFFFFF' : '#111111') : '#94A3B8' }}
+              style={{ background: viewMode === 'grid' ? (dark ? '#3F3F46' : '#FFFFFF') : 'transparent', border: 'none', width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: viewMode === 'grid' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', transition: 'all 0.2s', color: viewMode === 'grid' ? (dark ? '#FFFFFF' : '#111111') : '#A1A1AA' }}
             >
               <Icon name="grid" size={18} color="currentColor" />
             </button>
             <button 
+              aria-label="Ver productos en lista" aria-pressed={viewMode === 'list'}
               onClick={() => setViewMode('list')}
-              style={{ background: viewMode === 'list' ? (dark ? '#334155' : '#FFFFFF') : 'transparent', border: 'none', width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', transition: 'all 0.2s', color: viewMode === 'list' ? (dark ? '#FFFFFF' : '#111111') : '#94A3B8' }}
+              style={{ background: viewMode === 'list' ? (dark ? '#3F3F46' : '#FFFFFF') : 'transparent', border: 'none', width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', transition: 'all 0.2s', color: viewMode === 'list' ? (dark ? '#FFFFFF' : '#111111') : '#A1A1AA' }}
             >
               <Icon name="list" size={18} color="currentColor" />
             </button>
@@ -452,13 +526,14 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
         {/* Category Tabs */}
         {activeCategories.length > 1 && (
           <div ref={tabsRef} style={{ padding: '0 16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <div style={{ display: 'inline-flex', gap: 8 }}>
+            <SlidingCategoryTrack dark={dark} selectedKey={activeTabId}  style={{ display: 'inline-flex', gap: 8 }}>
               {[{id: 'all', name: 'Todos'}, ...activeCategories].map(cat => {
                 const isActive = activeTabId === cat.id;
                 return (
                   <button
                     key={cat.id}
                     id={`tab-${cat.id}`}
+                    aria-pressed={isActive}
                     onClick={() => { 
                       setMenuSearch(''); 
                       setActiveTabId(cat.id);
@@ -474,8 +549,8 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                       setTimeout(() => { isClickScrolling.current = false; }, 800);
                     }}
                     style={{
-                      background: isActive ? (dark ? '#FFFFFF' : '#111111') : (dark ? '#1E293B' : '#F3F4F6'),
-                      color: isActive ? (dark ? '#111111' : '#FFFFFF') : (dark ? '#E2E8F0' : '#111111'),
+                      background: isActive ? (dark ? '#FFFFFF' : '#111111') : (dark ? '#232326' : '#F3F4F6'),
+                      color: isActive ? (dark ? '#111111' : '#FFFFFF') : (dark ? '#E4E4E7' : '#111111'),
                       border: 'none',
                       padding: '6px 14px',
                       borderRadius: 16,
@@ -492,7 +567,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                   </button>
                 );
               })}
-            </div>
+            </SlidingCategoryTrack>
           </div>
         )}
       </div>
@@ -507,9 +582,6 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
       <div style={{ paddingTop: 16 }}>
       {(searchLower ? filteredCategories : activeCategories).map(cat => {
         const availableProducts = cat.store_products.filter(p => p.is_available);
-        const isExpanded = expandedCategories[cat.id];
-        const visibleProducts = isExpanded ? availableProducts : availableProducts.slice(0, 6);
-        const hasMore = availableProducts.length > 6;
 
         return (
           <m.div 
@@ -526,11 +598,11 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               viewMode === 'list' ? { 
                 display: 'flex', 
                 flexDirection: 'column', 
-                background: dark ? '#1E293B' : '#FFFFFF',
+                background: dark ? '#232326' : '#FFFFFF',
                 borderRadius: 20,
                 margin: '0 16px',
                 boxShadow: dark ? '0 2px 10px rgba(0,0,0,0.2)' : '0 2px 12px rgba(0,0,0,0.04)',
-                border: `1px solid ${dark ? '#334155' : '#F3F4F6'}`,
+                border: `1px solid ${dark ? '#3F3F46' : '#F3F4F6'}`,
                 overflow: 'hidden'
               } : {
                 display: 'grid',
@@ -539,7 +611,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 margin: '0 16px',
               }
             }>
-              {visibleProducts.map((product, index) => {
+              {availableProducts.map((product, index) => {
                 const hasOptions = product.store_product_options && product.store_product_options.length > 0;
                 const cartItems = items.filter(i => i.product.id === product.id);
                 const totalInCart = cartItems.reduce((acc, i) => acc + i.quantity, 0);
@@ -562,22 +634,22 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                     flexDirection: viewMode === 'grid' ? 'column' : 'row',
                     alignItems: 'stretch',
                     position: 'relative',
-                    background: viewMode === 'grid' ? (dark ? '#1E293B' : '#FFFFFF') : 'transparent',
+                    background: viewMode === 'grid' ? (dark ? '#232326' : '#FFFFFF') : 'transparent',
                     borderRadius: viewMode === 'grid' ? 16 : 0,
                     overflow: viewMode === 'grid' ? 'hidden' : 'visible',
-                    border: viewMode === 'grid' ? `1px solid ${dark ? '#334155' : '#F3F4F6'}` : 'none',
-                    borderBottom: (viewMode === 'list' && index < visibleProducts.length - 1) ? `1px solid ${dark ? '#334155' : '#E5E7EB'}` : (viewMode === 'grid' ? `1px solid ${dark ? '#334155' : '#F3F4F6'}` : 'none'),
+                    border: viewMode === 'grid' ? `1px solid ${dark ? '#3F3F46' : '#F3F4F6'}` : 'none',
+                    borderBottom: (viewMode === 'list' && index < availableProducts.length - 1) ? `1px solid ${dark ? '#3F3F46' : '#E5E7EB'}` : (viewMode === 'grid' ? `1px solid ${dark ? '#3F3F46' : '#F3F4F6'}` : 'none'),
                     boxShadow: viewMode === 'grid' ? (dark ? '0 2px 10px rgba(0,0,0,0.2)' : '0 2px 12px rgba(0,0,0,0.04)') : 'none',
                   }}
                 >
                   {/* Image */}
                   {(product.image_url || viewMode === 'grid') && (
                     <div style={viewMode === 'list' ? { width: 120, height: 120, margin: 12, flexShrink: 0, position: 'relative' } : { width: '100%', aspectRatio: '1', position: 'relative', flexShrink: 0 }}>
-                      <div style={{ width: '100%', height: '100%', borderRadius: viewMode === 'list' ? 16 : 0, overflow: 'hidden', background: dark ? '#334155' : '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: '100%', height: '100%', borderRadius: viewMode === 'list' ? 16 : 0, overflow: 'hidden', background: dark ? '#3F3F46' : '#FAFAFA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {product.image_url ? (
                           <OptimizedImage src={product.image_url} widthRequest={400} heightRequest={400} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                         ) : (
-                          <Icon name="image" size={32} color={dark ? '#475569' : '#CBD5E1'} />
+                          <Icon name="image" size={32} color={dark ? '#71717A' : '#D4D4D8'} />
                         )}
                       </div>
                       {/* Promo Badge */}
@@ -589,134 +661,146 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                     </div>
                   )}
 
-                  <div style={viewMode === 'list' ? { flex: 1, display: "flex", flexDirection: "column", padding: "16px 56px 16px 16px", position: 'relative' } : { flex: 1, display: "flex", flexDirection: "column", padding: "12px", position: 'relative' }}>
-                    <div style={{ flex: 1, display: "flex", flexDirection: "column", textAlign: 'left' }}>
-                      <div style={{ fontSize: viewMode === 'grid' ? 14 : 16, fontWeight: 800, color: dark ? '#F8FAFC' : '#111111', marginBottom: 4, lineHeight: 1.3, wordBreak: 'break-word', textTransform: 'uppercase' }}>
+                  <div style={
+                    viewMode === 'list' 
+                      ? { 
+                          flex: 1, 
+                          display: "flex", 
+                          flexDirection: "column", 
+                          justifyContent: product.image_url ? "space-between" : "flex-start", 
+                          padding: product.image_url ? "14px 16px 14px 4px" : "12px 16px", 
+                          position: 'relative', 
+                          minHeight: product.image_url ? 120 : 'auto' 
+                        } 
+                      : { flex: 1, display: "flex", flexDirection: "column", padding: "12px", position: 'relative' }
+                  }>
+                    <div style={{ display: "flex", flexDirection: "column", textAlign: 'left' }}>
+                      <div style={{ fontSize: viewMode === 'grid' ? 14 : 15, fontWeight: 800, color: dark ? '#FAFAFA' : '#111111', marginBottom: product.image_url ? 4 : 2, lineHeight: 1.3, wordBreak: 'break-word', textTransform: 'uppercase' }}>
                         {product.name}
                       </div>
                       
                       {product.description && viewMode === 'list' && (
-                        <div style={{ fontSize: 13, color: dark ? '#94A3B8' : '#6B7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4, marginBottom: 8, paddingRight: 8 }}>
+                        <div style={{ fontSize: 13, color: dark ? '#A1A1AA' : '#6B7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4, marginBottom: product.image_url ? 8 : 4, paddingRight: 8 }}>
                           {product.description}
                         </div>
                       )}
+                    </div>
 
-
-                      {(() => {
-                        const addToCartControls = menuIntent !== 'local' ? (
-                          <div style={
-                            viewMode === 'list' 
-                              ? { position: 'absolute', bottom: 12, right: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }
-                              : { display: 'flex', alignItems: 'center', justifyContent: 'center' }
-                          }>
-                            {totalInCart === 0 ? (
+                    {(() => {
+                      const addToCartControls = menuIntent !== 'local' ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {totalInCart === 0 ? (
+                            <m.button 
+                              whileTap={{ scale: 0.75 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (hasOptions) {
+                                  setSelectedProduct(productWithCategory);
+                                } else {
+                                  handleAddWithToast(productWithCategory, [], "", 1, business.id);
+                                }
+                              }}
+                              style={{ width: 34, height: 34, borderRadius: '50%', background: '#3F3F46', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, outline: 'none' }}
+                            >
+                              <Icon name="plus" size={16} color="#FFF" />
+                            </m.button>
+                          ) : (
+                            <div 
+                              onClick={(e) => { 
+                                if (hasOptions) {
+                                   // allow bubble to open modal
+                                } else {
+                                   e.stopPropagation(); 
+                                }
+                              }} 
+                              style={{ display: 'flex', alignItems: 'center', background: dark ? '#232326' : '#FFFFFF', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, borderRadius: 24, padding: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+                            >
                               <m.button 
-                                whileTap={{ scale: 0.75 }}
+                                whileTap={{ scale: 0.8 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (hasOptions) {
-                                    setSelectedProduct(productWithCategory);
+                                     const lastCartItem = cartItems[cartItems.length - 1];
+                                     if (lastCartItem.quantity === 1) removeItem(lastCartItem.id);
+                                     else updateQuantity(lastCartItem.id, lastCartItem.quantity - 1);
                                   } else {
-                                    handleAddWithToast(productWithCategory, [], "", 1, business.id);
+                                     const cartItem = cartItems[0];
+                                     if (cartItem.quantity === 1) removeItem(cartItem.id);
+                                     else updateQuantity(cartItem.id, cartItem.quantity - 1);
                                   }
                                 }}
-                                style={{ width: 32, height: 32, borderRadius: '50%', background: '#374151', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, outline: 'none' }}
-                              >
-                                <Icon name="plus" size={16} color="#FFF" />
-                              </m.button>
-                            ) : (
-                              <div 
-                                onClick={(e) => { 
+                                style={{ width: 28, height: 28, borderRadius: '50%', background: dark ? '#3F3F46' : '#F4F4F5', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', outline: 'none' }}
+                              ><Icon name="minus" size={16} color="#3F3F46" /></m.button>
+                              
+                              <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', minWidth: 24, textAlign: 'center' }}>{totalInCart}</div>
+                              
+                              <m.button 
+                                whileTap={{ scale: 0.8 }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   if (hasOptions) {
-                                     // allow bubble to open modal
+                                     setSelectedProduct(productWithCategory);
                                   } else {
-                                     e.stopPropagation(); 
+                                     handleAddWithToast(productWithCategory, [], "", 1, business.id);
                                   }
-                                }} 
-                                style={{ display: 'flex', alignItems: 'center', background: dark ? '#1E293B' : '#FFFFFF', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 24, padding: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-                              >
-                                <m.button 
-                                  whileTap={{ scale: 0.8 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (hasOptions) {
-                                       const lastCartItem = cartItems[cartItems.length - 1];
-                                       if (lastCartItem.quantity === 1) removeItem(lastCartItem.id);
-                                       else updateQuantity(lastCartItem.id, lastCartItem.quantity - 1);
-                                    } else {
-                                       const cartItem = cartItems[0];
-                                       if (cartItem.quantity === 1) removeItem(cartItem.id);
-                                       else updateQuantity(cartItem.id, cartItem.quantity - 1);
-                                    }
-                                  }}
-                                  style={{ width: 28, height: 28, borderRadius: '50%', background: dark ? '#334155' : '#F1F5F9', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', outline: 'none' }}
-                                ><Icon name="minus" size={16} color="#374151" /></m.button>
-                                
-                                <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', minWidth: 24, textAlign: 'center' }}>{totalInCart}</div>
-                                
-                                <m.button 
-                                  whileTap={{ scale: 0.8 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (hasOptions) {
-                                       setSelectedProduct(productWithCategory);
-                                    } else {
-                                       handleAddWithToast(productWithCategory, [], "", 1, business.id);
-                                    }
-                                  }}
-                                  style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', outline: 'none' }}
-                                ><Icon name="plus" size={16} color="#374151" /></m.button>
-                              </div>
-                            )}
-                          </div>
-                        ) : null;
+                                }}
+                                style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', outline: 'none' }}
+                              ><Icon name="plus" size={16} color="#3F3F46" /></m.button>
+                            </div>
+                          )}
+                        </div>
+                      ) : null;
 
-                        const priceContent = priceInfo.hasPrice ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingTop: viewMode === 'grid' ? 2 : 0 }}>
-                            {product.old_price && !priceInfo.isFrom && (
-                               <span style={{ fontSize: viewMode === 'grid' ? 11 : 13, color: '#9CA3AF', textDecoration: 'line-through', fontWeight: 600 }}>
-                                 ${Number(product.old_price).toFixed(0)}
-                               </span>
-                            )}
-                            <span style={{ fontSize: viewMode === 'grid' ? 13 : 14, fontWeight: 700, color: dark ? '#CBD5E1' : '#4B5563' }}>
-                              {priceLabel}
+                      const priceContent = priceInfo.hasPrice ? (
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+                          {product.old_price && !priceInfo.isFrom && (
+                             <span style={{ fontSize: viewMode === 'grid' ? 11 : 13, color: '#9CA3AF', textDecoration: 'line-through', fontWeight: 600 }}>
+                               ${Number(product.old_price).toFixed(0)}
+                             </span>
+                          )}
+                          {priceInfo.isFrom ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: dark ? '#A1A1AA' : '#6B7280' }}>Desde</span>
+                              <span style={{ fontSize: viewMode === 'grid' ? 13 : 16, fontWeight: 800, color: dark ? '#FAFAFA' : '#111827' }}>
+                                ${Number(priceInfo.amount).toFixed(0)}
+                              </span>
                             </span>
-                          </div>
-                        ) : null;
+                          ) : (
+                            <span style={{ fontSize: viewMode === 'grid' ? 13 : 16, fontWeight: 800, color: dark ? '#FAFAFA' : '#111827' }}>
+                              ${Number(priceInfo.amount).toFixed(0)}
+                            </span>
+                          )}
+                        </div>
+                      ) : null;
 
-                        return (
-                          <div style={{ display: 'flex', alignItems: viewMode === 'grid' ? 'flex-start' : 'center', justifyContent: 'space-between', marginTop: 2, flex: viewMode === 'grid' ? 1 : 'none', paddingTop: 2, minHeight: viewMode === 'grid' ? 32 : 24, gap: 8 }}>
-                            {priceContent || <div />}
-                            {viewMode === 'grid' ? (
-                              <div style={{ alignSelf: 'flex-end', marginLeft: 'auto' }}>
-                                {addToCartControls}
-                              </div>
-                            ) : addToCartControls}
-                          </div>
-                        );
-                      })()}
-                    </div>
+                      return (
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between', 
+                          marginTop: viewMode === 'list' ? (product.image_url ? 'auto' : 4) : 8, 
+                          paddingTop: viewMode === 'list' ? (product.image_url ? 8 : 0) : 2, 
+                          gap: 8,
+                          width: '100%' 
+                        }}>
+                          {priceContent || <div />}
+                          {addToCartControls}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );
               })}
             </div>
             
-            {hasMore && (
-              <button 
-                onClick={() => setExpandedCategories(prev => ({ ...prev, [cat.id]: !prev[cat.id] }))} 
-                style={{ width: '100%', padding: '12px 0', background: 'transparent', border: 'none', color: dark ? '#94A3B8' : '#64748B', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'color 0.2s' }}
-              >
-                {isExpanded ? 'Mostrar menos' : `Ver todo (${availableProducts.length})`}
-                <Icon name="chevron" size={16} color={dark ? '#94A3B8' : '#64748B'} style={{ transform: isExpanded ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.3s ease' }} />
-              </button>
-            )}
+
           </m.div>
         );
       })}
         {filteredCategories.length > 0 && (
           <div style={{ padding: '24px 20px 24px', textAlign: 'center' }}>
-            <p style={{ fontSize: 11, color: dark ? '#64748B' : '#94A3B8', lineHeight: 1.5, opacity: 0.8, margin: 0, fontWeight: 500 }}>
+            <p style={{ fontSize: 11, color: dark ? '#71717A' : '#A1A1AA', lineHeight: 1.5, opacity: 0.8, margin: 0, fontWeight: 500 }}>
               Aviso legal: Los precios, imágenes y descripciones son administrados por cada negocio y pueden cambiar. CityMap no se responsabiliza por diferencias al momento de la compra.
             </p>
             <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', opacity: 1 }}>
@@ -727,8 +811,9 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
       </div>
             </div>
           </m.div>
-        </AnimatePresence>
-      )}
+        </m.div>
+      </AnimatePresence>
+    )}
 
       {/* Toast Notification */}
       {showToast && (
@@ -763,8 +848,8 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
 
       {/* Floating Cart Button */}
       {cartCount > 0 && menuIntent !== 'local' && (showMenuModal || inline) && (
-        <div style={{ position: 'fixed', bottom: 20, left: 16, right: 16, zIndex: 90000 }}>
-          <button onClick={() => setIsOpen(true)} style={{ width: '100%', background: '#0F172A', color: '#FFFFFF', border: 'none', borderRadius: 16, padding: '14px 20px', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(15, 23, 42, 0.4)' }}>
+        <div style={{ position: 'fixed', bottom: 20, left: 0, right: 0, zIndex: 90000, display: 'flex', justifyContent: 'center', padding: '0 16px', pointerEvents: 'none' }}>
+          <button onClick={() => setIsOpen(true)} style={{ width: '100%', maxWidth: 568, pointerEvents: 'auto', background: '#18181B', color: '#FFFFFF', border: 'none', borderRadius: 16, padding: '14px 20px', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(24, 24, 27, 0.4)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ fontSize: 16, fontWeight: 900, color: '#FFFFFF' }}>{cartCount}</div>
               <span style={{ fontSize: 16, fontWeight: 600 }}>•</span>

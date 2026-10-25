@@ -1,8 +1,24 @@
 import { useState, useCallback, useEffect } from 'react';
 import { sb } from '../lib/supabase.js';
 
-export function useGeolocation({ toast$, cities, mapPins, setActiveCity }) {
-  const [city, setCity] = useState(() => localStorage.getItem("cg_city_name") || "Tepic, Nayarit");
+export function getCityDisplayName(activeCity, cities = [], fallback = 'tu ciudad') {
+  if (!activeCity) return fallback || 'tu ciudad';
+  const selected = cities.find(city => city.slug === activeCity);
+  if (selected?.name) {
+    const state = selected.state?.split(';')[0]?.trim();
+    return state ? `${selected.name}, ${state}` : selected.name;
+  }
+  // The catalogue can still be loading. Never borrow a previous city's name.
+  return activeCity.split('-').map(word => word.charAt(0).toLocaleUpperCase('es') + word.slice(1)).join(' ');
+}
+
+export function useGeolocation({ toast$, cities, mapPins, setActiveCity, activeCity }) {
+  const [city, setCity] = useState('');
+  const cityLabel = getCityDisplayName(activeCity, cities, city);
+  useEffect(() => {
+    if (!activeCity) return;
+    try { localStorage.setItem('cg_city_name', cityLabel); } catch { /* Storage is optional. */ }
+  }, [activeCity, cityLabel]);
   const [locating, setLocating] = useState(false);
   const [userCoords, setUserCoords] = useState(() => {
     try {
@@ -189,7 +205,7 @@ const getKm = useCallback((lat1, lng1, lat2, lng2) => {
   }, [setActiveCity, toast$]);
 
   return {
-    city, setCity,
+    city: cityLabel, setCity,
     locating, setLocating,
     userCoords, setUserCoords,
     detectedTown, setDetectedTown,

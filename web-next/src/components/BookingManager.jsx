@@ -1,3 +1,4 @@
+import { CIVITATIS_PLATFORM } from '../lib/reservationPlatforms.js';
 import { useState } from 'react';
 import Icon from './ui/Icon.jsx';
 
@@ -105,14 +106,17 @@ export default function BookingManager({ bookingConfig, onChange, T }) {
                   
                   {(config.externalLinks || []).map((link, idx) => (
                     <div key={idx} style={{ display: "flex", gap: 8 }}>
+                      <div style={{ width:130, flexShrink:0, display:'flex', alignItems:'center', gap:6 }}>
+                        {link.platform === 'civitatis' && <img src={CIVITATIS_PLATFORM.img} alt="Civitatis" width={24} height={24} style={{ flexShrink:0, objectFit:'contain' }} />}
                       <select
+                        aria-label={`Plataforma de reservación ${idx + 1}`}
                         value={link.platform}
                         onChange={e => {
                           const newLinks = [...(config.externalLinks || [])];
-                          newLinks[idx].platform = e.target.value;
+                          newLinks[idx] = { ...newLinks[idx], platform: e.target.value };
                           setField("externalLinks", newLinks);
                         }}
-                        style={{ width: "130px", padding: "12px", border: `1px solid ${T?.border || "#E4E8E4"}`, borderRadius: 10, fontSize: 13, background: T?.white || "#fff", color: T?.text || "#0F1A14", fontFamily: "inherit" }}
+                        style={{ width: link.platform === "civitatis" ? "100%" : "130px", minWidth:0, padding: link.platform === "civitatis" ? "12px 4px" : "12px", border: `1px solid ${T?.border || "#E4E8E4"}`, borderRadius: 10, fontSize: 13, background: T?.white || "#fff", color: T?.text || "#0F1A14", fontFamily: "inherit" }}
                       >
                         <option value="airbnb">Airbnb</option>
                         <option value="booking">Booking</option>
@@ -121,6 +125,7 @@ export default function BookingManager({ bookingConfig, onChange, T }) {
                         <option value="expedia">Expedia</option>
                         <option value="hoteles">Hoteles.com</option>
                         <option value="getyourguide">GetYourGuide</option>
+                        <option value="civitatis">{CIVITATIS_PLATFORM.label}</option>
                         <option value="renta_auto">Rentar Auto</option>
                         <option value="opentable">OpenTable</option>
                         <option value="ubereats">Uber Eats</option>
@@ -130,13 +135,15 @@ export default function BookingManager({ bookingConfig, onChange, T }) {
                         <option value="comprar_entradas">Comprar Entradas</option>
                         <option value="otro">Otro / Web</option>
                       </select>
+                      </div>
                       <input 
                         type="url" 
+                        aria-label={`Enlace de reservación ${idx + 1}`}
                         placeholder="Pega tu enlace aquí (https://...)" 
                         value={link.url}
                         onChange={e => {
                           const newLinks = [...(config.externalLinks || [])];
-                          newLinks[idx].url = e.target.value;
+                          newLinks[idx] = { ...newLinks[idx], url: e.target.value };
                           setField("externalLinks", newLinks);
                         }}
                         style={{ flex: 1, padding: "12px", border: `1px solid ${T?.border || "#E4E8E4"}`, borderRadius: 10, fontSize: 13, background: T?.white || "#fff", color: T?.text || "#0F1A14", fontFamily: "inherit", minWidth: 0 }} 

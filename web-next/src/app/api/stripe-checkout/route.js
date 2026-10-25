@@ -51,7 +51,7 @@ export async function POST(req) {
       }],
       mode: 'subscription',
       success_url: `${host_url}/perfil?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${host_url}/planes?canceled=true`,
+      cancel_url: `${host_url}/precios?canceled=true`,
       client_reference_id: biz_id,
       metadata: { user_id, plan_tier: plan_id },
     });

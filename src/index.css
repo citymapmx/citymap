@@ -317,3 +317,14 @@ input[type=range].sleek-slider::-webkit-slider-runnable-track {
 }
 
 /* Specific component transitions can be added via view-transition-name inline styles */
+
+/* ── Hide reCAPTCHA v3 badge (allowed by Google if branding is in privacy policy) ── */
+.grecaptcha-badge { visibility: hidden !important; }
+
+/* ── Google Identity Services One Tap z-index on mobile ── */
+#credential_picker_container,
+#credential_picker_iframe,
+iframe[id^="credential_picker"] {
+  z-index: 2147483647 !important;
+  position: fixed !important;
+}

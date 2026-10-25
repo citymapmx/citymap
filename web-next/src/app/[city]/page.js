@@ -55,13 +55,12 @@ export async function generateMetadata({ params }) {
   const { city, businesses } = await getCityData(citySlug);
   if (!city) return { title: 'CityMap' };
   const cityName = city.name;
-  const bizCount = businesses.length;
   return {
-    title: `Negocios en ${cityName} - CityMap`,
-    description: `Descubre los ${bizCount}+ mejores restaurantes, cafeterías, bares y negocios en ${cityName}. Directorio local con reseñas, horarios y ubicaciones.`,
+    title: `Qué hacer en ${cityName}: Dónde comer, eventos y lugares — CityMap`,
+    description: `Descubre dónde comer, qué hacer y qué está pasando en ${cityName}. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.`,
     openGraph: {
-      title: `Negocios en ${cityName} - CityMap`,
-      description: `${bizCount}+ negocios locales en ${cityName} con reseñas y horarios.`,
+      title: `Qué hacer en ${cityName}: Dónde comer, eventos y lugares — CityMap`,
+      description: `Descubre dónde comer, qué hacer y qué está pasando en ${cityName}. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.`,
       images: city.bg_image ? [city.bg_image] : [],
     },
     alternates: { 

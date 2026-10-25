@@ -21,14 +21,14 @@ export default function Footer() {
       padding: '48px 24px 24px',
       borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
       marginTop: 40,
-      background: dark ? '#000' : '#F9FAFB',
+      background: dark ? T.white : '#F9FAFB',
       textAlign: 'center'
     }}>
       <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 40, marginBottom: 48, alignItems: 'center' }}>
         
         {/* Brand Info */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src="/citymap.mx.png" alt="CityMap" style={{ height: 32, objectFit: "contain", filter: dark ? "none" : "brightness(0)", marginBottom: 16 }} />
+          <img src="/citymap.mx.png" alt="CityMap" style={{ height: 32, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", marginBottom: 16 }} />
           <p style={{ fontSize: 13, color: T.sub, margin: "0 0 20px 0", lineHeight: 1.6, maxWidth: 350 }}>
             Tu guía local para descubrir lo mejor de la ciudad. Encuentra lugares increíbles, eventos y experiencias cerca de ti.
           </p>
@@ -62,9 +62,8 @@ export default function Footer() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <h4 style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>Para Negocios</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
-              <span onClick={() => setShowPlans?.(true)} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>Planes y precios</span>
               <span onClick={() => { if(!user) { setShowAuth?.(true); return; } setShowAddBiz?.(true); }} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>Agrega tu negocio</span>
-              <span onClick={() => navigate('cuenta')} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>Acceso a dueños</span>
+              <span onClick={() => { if(!user) { setShowAuth?.(true); return; } navigate('cuenta'); }} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>Acceso a dueños</span>
             </div>
           </div>
 

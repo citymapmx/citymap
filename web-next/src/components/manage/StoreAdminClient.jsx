@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import {isAdminUser} from '../../lib/adminAccess.js';
 import { sb } from '../../lib/supabase.js';
 import { useAuthStore } from "../../store/useAuthStore.js";
 
@@ -107,7 +108,7 @@ export default function StoreAdminClient({ biz }) {
 
       <div className="flex-1 pb-24">
         {view === 'cats' && !loading && (
-          <StoreCategoriesTab business={biz} categories={categories} loadData={loadData} isCatalog={isCatalog} handleToggleType={handleToggleType} setActiveCat={setActiveCat} setView={setView} inpH={inpH} T={T} setLoading={setLoading} isAdmin={profile?.is_admin} />
+          <StoreCategoriesTab business={biz} categories={categories} loadData={loadData} isCatalog={isCatalog} handleToggleType={handleToggleType} setActiveCat={setActiveCat} setView={setView} inpH={inpH} T={T} setLoading={setLoading} isAdmin={isAdminUser(user,profile)} />
         )}
         {(view === 'prods' || view === 'prodForm') && currentCat && !loading && (
           <StoreProductsTab business={biz} currentCat={currentCat} activeProd={activeProd} setActiveProd={setActiveProd} view={view} setView={setView} loadData={loadData} isCatalog={isCatalog} setActiveOpt={setActiveOpt} inpH={inpH} T={T} setLoading={setLoading} />

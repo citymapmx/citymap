@@ -68,6 +68,7 @@ export default function BannerSlider({ activeBanners }) {
               zIndex: isActive ? 10 : 1, pointerEvents: isActive ? "auto" : "none"
             }}
             onClick={isActive ? handleClick : undefined}
+            aria-hidden={!isActive}
           >
             {mediaType === "video" ? (
               isActive && <video
@@ -89,11 +90,18 @@ export default function BannerSlider({ activeBanners }) {
               <OptimizedImage 
                 src={bn.img_url} 
                 widthRequest={1400} 
-                priority={true} 
+                priority={i === 0} 
                 alt={bn.title || ""} 
                 style={{ width: "100%", height: "100%", objectFit: "cover", cursor: bn.link_url ? "pointer" : "default" }} 
               />
             )}
+            {bn.is_advertisement === true && <span style={{
+              position: "absolute", top: 0, left: 0, zIndex: 2,
+              padding: "2px 7px 2px 9px", borderRadius: "0 0 6px 0",
+              background: "rgba(0,0,0,0.62)", color: "#fff",
+              fontSize: 10, lineHeight: "14px", fontWeight: 500,
+              letterSpacing: 0.15, pointerEvents: "none"
+            }}>Publicidad</span>}
           </m.div>
         );
       })}

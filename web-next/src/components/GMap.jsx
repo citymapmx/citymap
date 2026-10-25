@@ -1,3 +1,4 @@
+import {useUIStore} from '../store/useUIStore.js';
 import React, { useState, useEffect, useRef } from "react";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { GMAPS_KEY } from "../lib/supabase.js";
@@ -51,7 +52,7 @@ function flyToLocation(mapInstance, lat, lng, targetZoom = 15) {
   setTimeout(() => smoothZoom(targetZoom, currentZoom), 200);
 }
 
-const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin, userLocation, onRequestLocation, categories = [], radiusKm, utilityFilter, onBoundsChanged, showRoute = false }) {
+const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin, userLocation, onRequestLocation, categories = [], radiusKm, utilityFilter, onBoundsChanged, showRoute = false, dark = false, camera }) {
   const ref = useRef(); 
   const map = useRef(); 
   const pins = useRef([]); 
@@ -62,6 +63,19 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
   const radiusCircle = useRef(null);
   const utilityPins = useRef([]);
   const ok = useGMaps();
+
+  // A new map instance is needed when Google's initial color scheme changes.
+  useEffect(()=>()=>{
+    if(map.current && camera){
+      const center=map.current.getCenter();
+      if(center) camera.current={center:{lat:center.lat(),lng:center.lng()},zoom:map.current.getZoom()};
+    }
+    clusterer.current?.clearMarkers();
+    clusterer.current?.setMap(null);
+    [...pins.current,...utilityPins.current,userPin.current,radiusCircle.current].filter(Boolean).forEach(pin=>pin.setMap(null));
+    infoWin.current?.close();
+    if(map.current) window.google?.maps?.event?.clearInstanceListeners(map.current);
+  },[]);
 
   // Trigger Google Maps resize whenever the container changes size (e.g. flex animations)
   useEffect(() => {
@@ -116,8 +130,10 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
     // Init map once
     if (!map.current) {
       map.current = new window.google.maps.Map(ref.current, {
-        center: { lat: 21.5042, lng: -104.8944 },
-        zoom: 13,
+        center: camera?.current?.center || { lat: 21.5042, lng: -104.8944 },
+        zoom: camera?.current?.zoom ?? 13,
+        // Custom dark colors retain the same POI filtering as the light map.
+        colorScheme: 'LIGHT',
         disableDefaultUI: true,
         zoomControl: false,
         gestureHandling: "greedy",
@@ -125,23 +141,31 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         maxZoom: 18,
         minZoom: 10,
         styles: [
+          ...(dark ? [
+            { elementType: 'geometry', stylers: [{color:'#1D2C3D'}] },
+            { elementType: 'labels.text.fill', stylers: [{color:'#A8B6C7'}] },
+            { elementType: 'labels.text.stroke', stylers: [{color:'#1D2C3D'}] },
+          ] : []),
           { featureType: "poi", stylers: [{ visibility: "off" }] },
           { featureType: "poi.business", stylers: [{ visibility: "off" }] },
           { featureType: "poi.park", elementType: "labels", stylers: [{ visibility: "off" }] },
           { featureType: "transit", stylers: [{ visibility: "off" }] },
           { featureType: "road", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-          { featureType: "administrative.neighborhood", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
-          { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-          { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#f3f4f6" }] },
-          { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#e5e7eb" }] },
-          { featureType: "water", elementType: "geometry", stylers: [{ color: "#bfdbfe" }] },
-          { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#f9fafb" }] },
-          { featureType: "landscape.man_made", elementType: "geometry", stylers: [{ color: "#f3f4f6" }] },
+          { featureType: "administrative.neighborhood", elementType: "labels.text.fill", stylers: [{ color: dark ? "#9AA9BB" : "#9ca3af" }] },
+          { featureType: "road", elementType: "geometry", stylers: [{ color: dark ? "#354A60" : "#ffffff" }] },
+          { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: dark ? "#40566D" : "#f3f4f6" }] },
+          { featureType: "road.highway", elementType: "geometry", stylers: [{ color: dark ? "#576D82" : "#e5e7eb" }] },
+          { featureType: "water", elementType: "geometry", stylers: [{ color: dark ? "#102936" : "#bfdbfe" }] },
+          { featureType: "landscape", elementType: "geometry", stylers: [{ color: dark ? "#1D2C3D" : "#f9fafb" }] },
+          { featureType: "landscape.man_made", elementType: "geometry", stylers: [{ color: dark ? "#223448" : "#f3f4f6" }] },
         ],
       });
+      map.current._hasCentered = Boolean(camera?.current?.center);
       infoWin.current = new window.google.maps.InfoWindow();
       
       window.google.maps.event.addListener(map.current, 'idle', () => {
+        const center=map.current?.getCenter();
+        if(center && camera) camera.current={center:{lat:center.lat(),lng:center.lng()},zoom:map.current.getZoom()};
         if (onBoundsChanged) {
           const bounds = map.current.getBounds();
           if (bounds) {
@@ -564,9 +588,9 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
   }, [ok, businesses, selected, userLocation, showRoute]);
 
   if (!ok) return (
-    <div style={{ width: "100%", height: "100%", background: "#F2F4F2", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+    <div style={{ width: "100%", height: "100%", background: dark ? "#18181B" : "#F2F4F2", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
       <div style={{ width: 28, height: 28, border: "2px solid #EAF4F0", borderTop: "2px solid #1A7A5E", borderRadius: "50%", animation: "spin .9s linear infinite" }} />
-      <span style={{ fontSize: 13, color: "#5A6872" }}>Cargando mapa…</span>
+      <span style={{ fontSize: 13, color: dark ? "#A1A1AA" : "#5A6872" }}>Cargando mapa…</span>
     </div>
   );
   
@@ -632,34 +656,6 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
             <line x1="19" y1="12" x2="22" y2="12"></line>
           </svg>
         </button>
-
-        {/* Zoom Controls */}
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          background: "rgba(255, 255, 255, 0.9)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          border: "1px solid rgba(0,0,0,0.08)",
-          borderRadius: 14,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-          overflow: "hidden"
-        }}>
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (map.current) map.current.setZoom(map.current.getZoom() + 1); }}
-            style={{ width: 42, height: 42, background: "transparent", border: "none", borderBottom: "1px solid rgba(0,0,0,0.08)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-            title="Acercar"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          </button>
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (map.current) map.current.setZoom(map.current.getZoom() - 1); }}
-            style={{ width: 42, height: 42, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-            title="Alejar"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -674,4 +670,8 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
   );
 });
 
-export default GMap;
+export default function ThemedGMap(props) {
+  const dark=useUIStore(state=>state.dark);
+  const camera=useRef(null);
+  return <GMap key={dark?'dark':'light'} {...props} dark={dark} camera={camera}/>;
+}

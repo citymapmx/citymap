@@ -5,6 +5,7 @@ import { sb } from '../lib/supabase.js';
 export default function UserNotifs({ T, onBack, user }) {
   const [loading, setLoading] = useState(true);
   const [notifs, setNotifs] = useState([]);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -20,9 +21,11 @@ export default function UserNotifs({ T, onBack, user }) {
   const loadNotifs = async () => {
     try {
       setLoading(true);
+      setError(false);
       const data = await sb.get("notifications", `?user_id=eq.${user.id}&order=created_at.desc`);
       setNotifs(data || []);
     } catch (err) {
+      setError(true);
       console.error(err);
     } finally {
       setLoading(false);
@@ -32,8 +35,8 @@ export default function UserNotifs({ T, onBack, user }) {
   const markAsRead = async (id, currentRead) => {
     if (currentRead) return; // Ya está leída
     try {
+      await sb.patch("notifications", id, { read: true });
       setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-      await sb.patch("notifications", `?id=eq.${id}`, { read: true });
     } catch (err) {
       console.error(err);
     }
@@ -41,8 +44,8 @@ export default function UserNotifs({ T, onBack, user }) {
 
   const markAllAsRead = async () => {
     try {
+      await Promise.all(notifs.filter(n => !n.read).map(n => sb.patch("notifications", n.id, { read: true })));
       setNotifs(prev => prev.map(n => ({ ...n, read: true })));
-      await sb.patch("notifications", `?user_id=eq.${user.id}&read=eq.false`, { read: true });
     } catch (err) {
       console.error(err);
     }
@@ -51,8 +54,8 @@ export default function UserNotifs({ T, onBack, user }) {
   const deleteNotif = async (e, id) => {
     e.stopPropagation();
     try {
-      setNotifs(prev => prev.filter(n => n.id !== id));
       await sb.del("notifications", id);
+      setNotifs(prev => prev.filter(n => n.id !== id));
     } catch (err) {
       console.error(err);
     }
@@ -102,8 +105,8 @@ export default function UserNotifs({ T, onBack, user }) {
         )}
       </div>
 
-      <div style={{ padding: "20px", flex: 1 }}>
-        {loading ? (
+      <div style={{ padding: "20px", flex: 1, overflowY: "auto" }}>
+        {error ? <div role="status" style={{ padding: 24, textAlign: "center", color: T.sub }}>No se pudieron cargar las notificaciones. <button type="button" onClick={loadNotifs}>Reintentar</button></div> : loading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
             <div className="spin" style={{ width: 30, height: 30, border: `3px solid ${T.border}`, borderTopColor: T.green, borderRadius: "50%" }} />
           </div>

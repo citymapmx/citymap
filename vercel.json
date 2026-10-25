@@ -5,9 +5,27 @@
       "source": "/:path+/",
       "destination": "/:path+",
       "permanent": true
+    },
+    {
+      "source": "/experiencias/:path*",
+      "destination": "/revista/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/mis-planes",
+      "destination": "/revista",
+      "permanent": true
     }
   ],
   "rewrites": [
+    {
+      "source": "/planes",
+      "destination": "/__removed__/planes"
+    },
+    {
+      "source": "/planes/:path*",
+      "destination": "/__removed__/planes"
+    },
     {
       "source": "/sitemap.xml",
       "destination": "/api/sitemap.xml"
@@ -29,6 +47,14 @@
       "destination": "/web-next/evento/:slug"
     },
     {
+      "source": "/revista/:city/:slug",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/revista/:city",
+      "destination": "/index.html"
+    },
+    {
       "source": "/experiencias/:city/:slug",
       "destination": "/index.html"
     },
@@ -37,11 +63,11 @@
       "destination": "/index.html"
     },
     {
-      "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|planes|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento)",
+      "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|revista|experiencias|explorar|eventos|mapa|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento)",
       "destination": "/index.html"
     },
     {
-      "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|planes|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento)/(.*)",
+      "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|revista|experiencias|explorar|eventos|mapa|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento)/(.*)",
       "destination": "/index.html"
     },
     {

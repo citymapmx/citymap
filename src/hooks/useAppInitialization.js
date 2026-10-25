@@ -7,16 +7,19 @@ export function useAppInitialization() {
     const p = window.location.pathname;
     if (p.startsWith("/mapa")) return "map";
     if (p.startsWith("/eventos")) return "events";
+    if (p.startsWith("/explorar")) return "events";
     if (p.startsWith("/mis-planes")) return "mis-planes";
-    if (p.startsWith("/experiencias")) return "mis-planes";
+    if (p.startsWith("/experiencias") || p.startsWith("/revista")) return "mis-planes";
     if (p.startsWith("/cuenta")) return "account";
+    if (p.startsWith("/favoritos")) return "favs";
     if (p.startsWith("/admin_notifs")) return "admin_notifs";
     if (p.startsWith("/admin")) return "admin";
     if (p.startsWith("/lealtad")) return "lealtad";
     if (p.startsWith("/wallet")) return "wallet";
     if (p.startsWith("/scan")) return "scan";
     if (p.startsWith("/manage/")) return "owner_dashboard";
-    if (p.startsWith("/planes")) return "plans";
+    // Removed section: keep a non-onboarding view so the router can render its 404.
+    if (p.startsWith("/planes")) return "planes";
     if (p.startsWith("/precios")) return "plans";
     if (p.startsWith("/itinerarios")) return "itineraries";
     if (p.startsWith("/itinerario/")) return "itinerary_detail_" + p.split('/')[2];
@@ -46,7 +49,7 @@ export function useAppInitialization() {
     let expSlug = null;
     let storedCity = localStorage.getItem("cg_city_slug");
     
-    const SYSTEM_ROUTES = ["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "itinerarios", "experiencias", "manage", "stats", "itinerario", "plan", "evento", "precios", "lealtad", "wallet", "scan"];
+    const SYSTEM_ROUTES = ["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "explorar", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "explorer", "itinerarios", "revista", "experiencias", "manage", "stats", "itinerario", "plan", "evento", "precios", "lealtad", "wallet", "scan"];
 
     if (storedCity && (SYSTEM_ROUTES.includes(storedCity) || storedCity.includes("/"))) {
       localStorage.removeItem("cg_city_slug");
@@ -66,8 +69,22 @@ export function useAppInitialization() {
           currentCity = cSlug;
           localStorage.setItem("cg_city_slug", currentCity);
         }
-      } else if (segments[0] === "experiencias") {
+      } else if (segments[0] === "experiencias" || segments[0] === "revista") {
         vista = "mis-planes";
+        const cSlug = segments[1].toLowerCase();
+        if (!SYSTEM_ROUTES.includes(cSlug)) {
+          currentCity = cSlug;
+          localStorage.setItem("cg_city_slug", currentCity);
+        }
+      } else if (segments[0] === "explorar") {
+        vista = "events";
+        const cSlug = segments[1].toLowerCase();
+        if (!SYSTEM_ROUTES.includes(cSlug)) {
+          currentCity = cSlug;
+          localStorage.setItem("cg_city_slug", currentCity);
+        }
+      } else if (segments[0] === "eventos") {
+        vista = "events";
         const cSlug = segments[1].toLowerCase();
         if (!SYSTEM_ROUTES.includes(cSlug)) {
           currentCity = cSlug;
@@ -111,7 +128,7 @@ export function useAppInitialization() {
         currentCity = cSlug;
         localStorage.setItem("cg_city_slug", currentCity);
       }
-    } else if (segments.length >= 3 && segments[0] === "experiencias") {
+    } else if (segments.length >= 3 && (segments[0] === "experiencias" || segments[0] === "revista")) {
       vista = "mis-planes";
       const cSlug = segments[1].toLowerCase();
       if (!SYSTEM_ROUTES.includes(cSlug)) {

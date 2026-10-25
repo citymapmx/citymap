@@ -9,6 +9,7 @@ export default function StoreCategoriesTab({
   categories, 
   loadData, 
   isCatalog, 
+  typeSaving = false,
   handleToggleType, 
   setActiveCat, 
   setView, 
@@ -107,8 +108,8 @@ export default function StoreCategoriesTab({
   return (
     <>
       <div style={{ padding: "16px 16px 0", display: "flex", gap: 10 }}>
-        <button onClick={() => handleToggleType(false)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1.5px solid ${!isCatalog ? "#0F172A" : T.border}`, background: !isCatalog ? "#0F172A" : T.bg, color: !isCatalog ? "#fff" : T.sub, fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>Es Menú (Comida)</button>
-        <button onClick={() => handleToggleType(true)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1.5px solid ${isCatalog ? "#0F172A" : T.border}`, background: isCatalog ? "#0F172A" : T.bg, color: isCatalog ? "#fff" : T.sub, fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>Es Catálogo (Productos)</button>
+        <button disabled={typeSaving} onClick={() => handleToggleType(false)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1.5px solid ${!isCatalog ? "#0F172A" : T.border}`, background: !isCatalog ? "#0F172A" : T.bg, color: !isCatalog ? "#fff" : T.sub, fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>Es Menú (Comida)</button>
+        <button disabled={typeSaving} onClick={() => handleToggleType(true)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1.5px solid ${isCatalog ? "#0F172A" : T.border}`, background: isCatalog ? "#0F172A" : T.bg, color: isCatalog ? "#fff" : T.sub, fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>Es Catálogo (Productos)</button>
       </div>
 
       <div style={{ padding: 16 }}>

@@ -1,3 +1,4 @@
+import {isCatalogBusiness} from '../lib/storePresentation.js';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
@@ -40,6 +41,7 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  const storeTitle = isCatalogBusiness(biz) ? 'Catálogo' : 'Menú';
   const error = queryError ? "Negocio no encontrado" : null;
 
   useEffect(() => {
@@ -51,18 +53,18 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
   if (loading) {
     return (
       <>
-        <Helmet><title>Cargando menú... - CityMap</title></Helmet>
+        <Helmet><title>Cargando productos… - CityMap</title></Helmet>
         <SkeletonMenu dark={dark} />
       </>
     );
   }
 
   if (error || !biz) {
-    return <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#F8FAFC', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: dark ? '#F8FAFC' : '#0F172A' }}>
+    return <div style={{ minHeight: '100vh', background: dark ? '#18181B' : '#F4F4F5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: dark ? '#F4F4F5' : '#18181B' }}>
       <Helmet>
         <title>Menú no encontrado - CityMap</title>
       </Helmet>
-      <Icon name="store" size={48} color={dark ? '#334155' : '#CBD5E1'} />
+      <Icon name="store" size={48} color={dark ? '#3F3F46' : '#D4D4D8'} />
       <h3 style={{ marginTop: 16 }}>{error || "No encontrado"}</h3>
       <button onClick={() => navigate('/')} style={{ marginTop: 16, padding: '10px 20px', background: T.green, color: '#fff', border: 'none', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}>Volver al inicio</button>
     </div>;
@@ -72,28 +74,28 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
 
   if (!isElite) {
     return (
-      <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#F8FAFC', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: dark ? '#F8FAFC' : '#0F172A', textAlign: 'center', padding: '0 32px' }}>
+      <div style={{ minHeight: '100vh', background: dark ? '#18181B' : '#F4F4F5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: dark ? '#F4F4F5' : '#18181B', textAlign: 'center', padding: '0 32px' }}>
         <Helmet>
-          <title>Menú no disponible - CityMap</title>
+          <title>{storeTitle} no disponible - CityMap</title>
         </Helmet>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', background: dark ? '#1E293B' : '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-          <Icon name="store" size={32} color={dark ? '#475569' : '#94A3B8'} />
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: dark ? '#232326' : '#E4E4E7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <Icon name="store" size={32} color={dark ? '#71717A' : '#A1A1AA'} />
         </div>
-        <h2 style={{ fontWeight: 800, fontSize: 20, margin: '0 0 10px', color: dark ? '#F8FAFC' : '#0F172A' }}>Menú no disponible</h2>
-        <p style={{ fontSize: 14, color: dark ? '#94A3B8' : '#64748B', lineHeight: 1.6, margin: '0 0 24px' }}>
-          Parece que <strong style={{ color: dark ? '#F8FAFC' : '#0F172A' }}>{biz.name}</strong> aún no ha publicado su menú digital o lo ha desactivado temporalmente.
+        <h2 style={{ fontWeight: 800, fontSize: 20, margin: '0 0 10px', color: dark ? '#F4F4F5' : '#18181B' }}>{storeTitle} no disponible</h2>
+        <p style={{ fontSize: 14, color: dark ? '#A1A1AA' : '#71717A', lineHeight: 1.6, margin: '0 0 24px' }}>
+          Parece que <strong style={{ color: dark ? '#F4F4F5' : '#18181B' }}>{biz.name}</strong> aún no ha publicado su {storeTitle.toLowerCase()} digital o lo ha desactivado temporalmente.
         </p>
         <button onClick={() => {
           const navCity = biz.city_slug || city;
           const navSlug = cleanCityPrefix(biz.slug || '', navCity) || slug;
           navigate(`/${navCity}/${navSlug}`);
-        }} style={{ padding: '12px 28px', background: dark ? '#F8FAFC' : '#0F172A', color: dark ? '#0F172A' : '#fff', border: 'none', borderRadius: 24, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Ver perfil del negocio</button>
+        }} style={{ padding: '12px 28px', background: dark ? '#F4F4F5' : '#18181B', color: dark ? '#18181B' : '#fff', border: 'none', borderRadius: 24, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Ver perfil del negocio</button>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#FFFFFF', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: dark ? '#18181B' : '#FFFFFF', display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, position: 'relative' }}>
         <BusinessStore business={biz} T={T} isElite={isElite} inline={true} initialIntent={initialIntent} onBack={() => {
           setSelected(biz);
@@ -107,11 +109,11 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
 }
 
 function SkeletonMenu({ dark }) {
-  const bg = dark ? '#1E293B' : '#E2E8F0';
+  const bg = dark ? '#232326' : '#E4E4E7';
   const shimmer = `linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)`;
   
   return (
-    <div style={{ minHeight: '100vh', background: dark ? '#0F172A' : '#FFFFFF', display: 'flex', flexDirection: 'column' }}>
+    <div role="status" aria-label="Cargando productos" style={{ minHeight: '100vh', background: dark ? '#18181B' : '#FFFFFF', display: 'flex', flexDirection: 'column' }}>
       {/* Banner */}
       <div style={{ height: 200, width: '100%', background: bg, position: 'relative', overflow: 'hidden' }}>
         <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
@@ -119,7 +121,7 @@ function SkeletonMenu({ dark }) {
       
       <div style={{ padding: '0 16px', position: 'relative', top: -30 }}>
         {/* Logo */}
-        <div style={{ width: 80, height: 80, borderRadius: '50%', background: bg, border: `4px solid ${dark ? '#0F172A' : '#FFFFFF'}`, overflow: 'hidden', position: 'relative' }}>
+        <div style={{ width: 80, height: 80, borderRadius: '50%', background: bg, border: `4px solid ${dark ? '#18181B' : '#FFFFFF'}`, overflow: 'hidden', position: 'relative' }}>
           <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
         </div>
         

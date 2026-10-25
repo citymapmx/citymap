@@ -1,3 +1,4 @@
+import { searchCandidatePattern } from '../lib/searchPattern.js';
 import { create } from 'zustand';
 import { sb } from '../lib/supabase.js';
 
@@ -13,6 +14,22 @@ const getCityFilterOr = (city) => {
   return zone ? zone.map(z => `city_slug.ilike.*${z}*`).join(',') : `city_slug.ilike.*${city}*`;
 };
 
+let inFlightLoadPromise = null;
+let inFlightCity = null;
+let citiesRefreshPromise = null;
+
+const updateCityCache = (key, updates) => {
+  try {
+    const existing = JSON.parse(localStorage.getItem(key) || "{}");
+    localStorage.setItem(key, JSON.stringify({ ...existing, ...updates }));
+  } catch (err) {
+    console.warn("City cache write error", err);
+  }
+};
+
+let businessLoadId = 0;
+const highlightRequests = new Map();
+
 export const useDataStore = create((set, get) => ({
   events: [], setEvents: (val) => set(s => ({ events: typeof val === 'function' ? val(s.events) : val })),
   experiences: [], setExperiences: (val) => set(s => ({ experiences: typeof val === 'function' ? val(s.experiences) : val })),
@@ -24,10 +41,31 @@ export const useDataStore = create((set, get) => ({
   cats: [], setCats: (val) => set(s => ({ cats: typeof val === 'function' ? val(s.cats) : val })),
   cityCats: [],
   cities: [], setCities: (val) => set(s => ({ cities: typeof val === 'function' ? val(s.cities) : val })),
+  refreshCities: async () => {
+    if(citiesRefreshPromise) return citiesRefreshPromise;
+    citiesRefreshPromise=(async()=>{
+      try {
+        const rows=await sb.get('cities','?order=name.asc');
+        if(!Array.isArray(rows)) throw new Error('Invalid cities response');
+        const cities=rows.filter(Boolean);
+        set({cities});
+        updateMetroZones(cities);
+        return cities;
+      } catch(error) {
+        console.warn('Could not refresh cities',error);
+        return get().cities;
+      } finally { citiesRefreshPromise=null; }
+    })();
+    return citiesRefreshPromise;
+  },
   wallet: (() => { try { return JSON.parse(localStorage.getItem("citymap_wallet") || "[]"); } catch { return []; } })(),
   setWallet: (val) => set(s => ({ wallet: typeof val === 'function' ? val(s.wallet) : val })),
   claimedCoupons: (() => { try { return JSON.parse(localStorage.getItem("citymap_claims") || "{}"); } catch { return {}; } })(),
   setClaimedCoupons: (val) => set(s => ({ claimedCoupons: typeof val === 'function' ? val(s.claimedCoupons) : val })),
+  homeCoreCity: null,
+  homeCoreError: false,
+  homeSecondaryCity: null,
+  homeSecondaryError: false,
   dbReady: false, setDbReady: (val) => set(s => ({ dbReady: typeof val === 'function' ? val(s.dbReady) : val })),
   dbError: false, setDbError: (val) => set(s => ({ dbError: typeof val === 'function' ? val(s.dbError) : val })),
   mapPins: [], setMapPins: (val) => set(s => ({ mapPins: typeof val === 'function' ? val(s.mapPins) : val })),
@@ -42,19 +80,26 @@ export const useDataStore = create((set, get) => ({
     return val || {};
   },
 
+  mapPinsCity: null,
+  initialBizCount: null,
+  homeHighlights: [],
+  highlightsCity: null,
+
   loadMapPins: async (targetCity) => {
+    if (!targetCity) return;
+    const requestId = ++businessLoadId;
+    const cacheKey = `cg_mapPins_${targetCity}`;
+    set({ mapPinsCity: targetCity, initialBizCount: null, mapPins: [], homeHighlights: [], highlightsCity: null });
     try {
-      if (!targetCity) return;
-      const cacheKey = `cg_mapPins_${targetCity}`;
-      const cached = localStorage.getItem(cacheKey);
+      // Old caches may contain the entire city. Restore only the first page.
+      const cached = typeof localStorage !== 'undefined' ? localStorage.getItem(cacheKey) : null;
       if (cached) {
         try {
-          const parsedCache = JSON.parse(cached);
-          set({ mapPins: parsedCache });
-        } catch (e) { console.error(e); }
+          const rows = JSON.parse(cached);
+          if (Array.isArray(rows)) set({ mapPins: rows.slice(0, 20) });
+        } catch { /* Invalid caches are replaced by the network response. */ }
       }
-
-      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url";
+      let selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url,is_catalog";
       
       const processBatch = (batch) => Array.isArray(batch) ? batch.map(b => ({
         ...b,
@@ -63,36 +108,33 @@ export const useDataStore = create((set, get) => ({
         photos: get().parseJSON(b.photos)
       })) : [];
 
-      // Fast-first loading: Carga inicial de 12 lugares para TTI ultra rápido
-      let firstBatch = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=12`);
+      let firstBatch;
+      try {
+        firstBatch = await sb.get("businesses", `?select=${selectCols},subcategory&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=20`);
+        selectCols = selectCols + ",subcategory";
+      } catch (err) {
+        if (err?.message?.includes("subcategory") || err?.message?.includes("column")) {
+          firstBatch = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=20`);
+        } else {
+          throw err;
+        }
+      }
+      if (requestId !== businessLoadId) return;
       const initialPins = processBatch(firstBatch);
-      set({ mapPins: initialPins });
-      
-      // Background loading: Trae la base de datos completa de la ciudad sin ahogar la carga inicial
-      sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=1000&offset=12`)
-        .then(restBatch => {
-          if (restBatch && restBatch.length > 0) {
-            const restPins = processBatch(restBatch);
-            const allPinsMap = new Map();
-            initialPins.forEach(p => allPinsMap.set(p.id, p));
-            restPins.forEach(p => allPinsMap.set(p.id, p));
-            const uniquePins = Array.from(allPinsMap.values());
-            
-            set({ mapPins: uniquePins });
-            localStorage.setItem(cacheKey, JSON.stringify(uniquePins));
-          }
-        })
-        .catch(e => console.warn("Error background fetch pins", e));
-
+      set({ mapPins: initialPins, initialBizCount: initialPins.length });
+      try {
+        if (typeof localStorage !== 'undefined') localStorage.setItem(cacheKey, JSON.stringify(initialPins));
+      } catch { /* Storage may be full or disabled. */ }
+      // Further rows are requested only by pagination or the map viewport.
     } catch (e) {
       console.warn("Error fetching map pins", e);
     }
   },
 
-  fetchMoreBiz: async ({ targetCity, query, category, offset = 0, limit = 20 }) => {
+  fetchMoreBiz: async ({ targetCity, query, category, offset = 0, limit = 20, onBatch }) => {
     try {
-      if (!targetCity) return 0;
-      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url";
+      if (!targetCity) return null;
+      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url,description,is_catalog";
       
       let filters = `status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}`;
       
@@ -101,14 +143,34 @@ export const useDataStore = create((set, get) => ({
         filters += `&category=ilike.*${category}*`;
       }
       
-      if (query) {
-        // Search in name or tags or type
-        filters += `&or=(name.ilike.*${query}*,type.ilike.*${query}*,category.ilike.*${query}*)`;
-      }
-      
-      const batch = await sb.get("businesses", `?select=${selectCols}&${filters}&order=plan.desc,rating.desc.nullslast,id.desc&limit=${limit}&offset=${offset}`);
-      
-      if (!batch || batch.length === 0) return 0;
+      const makeSearchFilter = (jsonTags = false) => {
+        if (!query) return "";
+        // Quote PostgREST patterns before URL encoding, including punctuation.
+        const pattern = JSON.stringify(`*${query.trim()}*`);
+        const textFilters = ["name", "type", "category", "tagline", "description"].map(field => `${field}.ilike.${pattern}`);
+        const candidate = searchCandidatePattern(query);
+        if (candidate) {
+          for (const field of ['name', 'type', 'category', 'tagline']) textFilters.push(`${field}.imatch.${JSON.stringify(candidate)}`);
+        }
+        const tags = jsonTags ? JSON.stringify([query.trim()]) : `{${JSON.stringify(query.trim())}}`;
+        return `&or=${encodeURIComponent(`(${[...textFilters, `tags.cs.${tags}`].join(',')})`)}`;
+      };
+      const requestBatch = async (jsonTags = false, includeSubcategory = true) => {
+        try {
+          return await sb.get("businesses", `?select=${selectCols}${includeSubcategory ? ",subcategory" : ""}&${filters}${makeSearchFilter(jsonTags)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=${limit}&offset=${offset}`);
+        } catch (error) {
+          const message = error?.message || "";
+          if (includeSubcategory && /subcategory/i.test(message) && /column|schema cache/i.test(message)) return requestBatch(jsonTags, false);
+          // Support either text[] or jsonb tags without fetching the full city.
+          if (query && !jsonTags && /invalid input syntax for type json/i.test(message)) return requestBatch(true, includeSubcategory);
+          throw error;
+        }
+      };
+      const batch = await requestBatch();
+
+      if (get().mapPinsCity !== targetCity) return null;
+      if (!Array.isArray(batch)) return null;
+      if (batch.length === 0) { onBatch?.([]); return 0; }
       
       const processBatch = (bArray) => Array.isArray(bArray) ? bArray.map(b => ({
         ...b,
@@ -118,6 +180,7 @@ export const useDataStore = create((set, get) => ({
       })) : [];
       
       const processed = processBatch(batch);
+      onBatch?.(processed);
       
       // Merge with existing mapPins
       const currentPins = get().mapPins;
@@ -130,14 +193,49 @@ export const useDataStore = create((set, get) => ({
       return processed.length;
     } catch (e) {
       console.error("Error fetching paginated biz:", e);
-      return 0;
+      return null;
     }
+  },
+
+  loadHomeHighlights: (targetCity) => {
+    if (!targetCity || get().mapPinsCity !== targetCity || get().highlightsCity === targetCity) return Promise.resolve();
+    if (highlightRequests.has(targetCity)) return highlightRequests.get(targetCity);
+    const request = (async () => {
+      try {
+        const filters = `status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}`;
+        const columns = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,plan,city_slug,status,slug,badge,is_catalog";
+        const ratedRequest = sb.get("businesses", `?select=${columns}&${filters}&review_count=gt.0&order=rating.desc.nullslast,review_count.desc,id.desc&limit=10`);
+        const favoriteRequest = (async () => {
+          const ids = Object.entries(get().globalFavCounts).filter(([, count]) => count > 0).sort((a, b) => b[1] - a[1]).map(([id]) => id);
+          const found = [];
+          // Look up ranked candidates in bounded batches, only for this city.
+          for (let offset = 0; offset < ids.length && found.length < 10; offset += 50) {
+            if (get().mapPinsCity !== targetCity) return [];
+            const chunk = ids.slice(offset, offset + 50);
+            const rows = await sb.get("businesses", `?select=${columns}&${filters}&id=in.(${chunk.join(',')})&limit=50`);
+            const byId = new Map((Array.isArray(rows) ? rows : []).map(row => [row.id, row]));
+            chunk.forEach(id => { if (byId.has(id)) found.push(byId.get(id)); });
+          }
+          return found.slice(0, 10);
+        })();
+        const [rated, favorites] = await Promise.all([ratedRequest, favoriteRequest]);
+        if (get().mapPinsCity !== targetCity) return;
+        if (!Array.isArray(rated)) throw new Error("Invalid ranked businesses response");
+        const unique = new Map([...rated, ...favorites].map(b => [b.id, { ...b, photos: get().parseJSON(b.photos) }]));
+        set({ homeHighlights: Array.from(unique.values()), highlightsCity: targetCity });
+      } catch (e) {
+        console.warn("Error fetching home highlights", e);
+      }
+    })();
+    highlightRequests.set(targetCity, request);
+    request.finally(() => highlightRequests.delete(targetCity));
+    return request;
   },
 
   loadMapPinsByBounds: async (targetCity, bounds) => {
     try {
       if (!bounds || !bounds.minLat || !bounds.maxLat || !bounds.minLng || !bounds.maxLng) return;
-      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,banner_url";
+      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,banner_url,is_catalog";
       
       const processBatch = (batch) => Array.isArray(batch) ? batch.map(b => ({
         ...b,
@@ -148,7 +246,7 @@ export const useDataStore = create((set, get) => ({
 
       // Fetch businesses within bounds using Supabase filters
       const page = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&lat=gte.${bounds.minLat}&lat=lte.${bounds.maxLat}&lng=gte.${bounds.minLng}&lng=lte.${bounds.maxLng}&limit=200`);
-      if (!Array.isArray(page) || page.length === 0) return;
+      if (get().mapPinsCity !== targetCity || !Array.isArray(page) || page.length === 0) return;
       
       const processedPage = processBatch(page);
       
@@ -165,31 +263,23 @@ export const useDataStore = create((set, get) => ({
     }
   },
 
-  loadData: async (cityOverride) => {
-    try {
-      let currentCities = get().cities;
-      if (!currentCities || currentCities.length === 0) {
-        const pCities = await sb.get("cities", "?order=name.asc").catch(() => []);
-        if (pCities && Array.isArray(pCities)) {
-          set({ cities: pCities });
-          updateMetroZones(pCities);
-          currentCities = pCities;
-        }
-      }
+  loadData: (cityOverride) => {
+    const rawTarget = cityOverride || localStorage.getItem("cg_city_slug") || (get().cities?.[0]?.slug) || "";
+    if (inFlightLoadPromise && inFlightCity === rawTarget && rawTarget !== "") {
+      return inFlightLoadPromise;
+    }
+    inFlightCity = rawTarget;
+    set({homeCoreCity:null,homeCoreError:false,homeSecondaryCity:null,homeSecondaryError:false});
 
-      const targetCity = cityOverride || localStorage.getItem("cg_city_slug") || (currentCities?.[0]?.slug) || "";
-      if (!targetCity) {
-         set({ dbReady: true });
-         return; // Avoid crashing if no cities are loaded yet
-      }
-      
-      const cacheKey = `cg_data_${targetCity}_v4`;
+    // Instant synchronous cache restoration before any network call
+    if (rawTarget) {
+      const cacheKey = `cg_data_${rawTarget}_v4`;
+      const currentActiveCity = localStorage.getItem("cg_city_slug");
 
-      // Reset city-specific arrays immediately so we never render stale data from another city
-      if (cityOverride) {
+      if (cityOverride && currentActiveCity && cityOverride !== currentActiveCity) {
         set({ dbReady: false, events: [], experiences: [], banners: [], promos: [], coupons: [], mapPins: [] });
       }
-      
+
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         try {
@@ -197,8 +287,12 @@ export const useDataStore = create((set, get) => ({
           const now = new Date();
           const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
           
-          if (c.e) {
-            const validCachedEvents = c.e.filter(ev => ev && new Date(ev.date) >= new Date(todayStr));
+          if (Array.isArray(c.e)) {
+            const validCachedEvents = c.e.filter(ev => {
+              if (!ev || !ev.date) return false;
+              if (ev.end_date) return ev.end_date >= todayStr;
+              return ev.date >= todayStr;
+            });
             set({ events: validCachedEvents });
           }
           if (c.ex) set({ experiences: c.ex.filter(Boolean) });
@@ -211,7 +305,7 @@ export const useDataStore = create((set, get) => ({
             const cityLinkedSlugs = cityLinks.map(l => l.category_slug);
             const filteredCa = c.ca.filter(Boolean).filter(cat => {
               if (!cityLinkedSlugs.includes(cat.slug)) return true;
-              return cityLinks.some(l => l.category_slug === cat.slug && l.city_slug === targetCity);
+              return cityLinks.some(l => l.category_slug === cat.slug && l.city_slug === rawTarget);
             });
             set({ cats: filteredCa.map(cat => ({ id: cat.slug, label: cat.name?.trim(), icon: cat.icon || "pin", slug: cat.slug, emoji: cat.emoji, img_url: cat.img_url || null, subtitle: cat.subtitle || null })) });
           }
@@ -226,55 +320,91 @@ export const useDataStore = create((set, get) => ({
             set({ globalFavCounts: counts });
           }
           
-          if (localStorage.getItem(`cg_mapPins_${targetCity}`)) {
+          if (localStorage.getItem(`cg_mapPins_${rawTarget}`)) {
             set({ dbReady: true });
           }
         } catch (e) { console.error(e); }
       }
+    }
 
-      const pPins = get().loadMapPins(targetCity);
+    inFlightLoadPromise = (async () => {
+      try {
+        const currentCities = await get().refreshCities();
+
+        const targetCity = cityOverride || localStorage.getItem("cg_city_slug") || (currentCities?.[0]?.slug) || "";
+        if (!targetCity) {
+           set({ dbReady: true });
+           return; // Avoid crashing if no cities are loaded yet
+        }
+        
+        const cacheKey = `cg_data_${targetCity}_v4`;
+        const pPins = get().loadMapPins(targetCity);
       
       
       // Secondary fetches (Non-blocking)
       const fetchSecondary = async () => {
         try {
           const [e, ex, r, p, c] = await Promise.all([
-            sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => []),
-            sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => []),
-            sb.get("raffles", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => []),
-            sb.get("promos", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => []),
-            sb.get("coupons", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => [])
+            sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+            sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+            sb.get("raffles", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => null),
+            sb.get("promos", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => null),
+            sb.get("coupons", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => null)
           ]);
           
           const now = new Date();
           const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
           
-          const validEvents = Array.isArray(e) ? e.filter(ev => {
-            if (!ev.date) return true;
-            if (ev.end_date) return ev.end_date >= todayStr;
-            return ev.date >= todayStr;
-          }).map(ev => {
-            let booking_config = null;
-            let website = ev.website;
-            if (website && website.startsWith('{')) {
-              try {
-                booking_config = JSON.parse(website);
-                website = null;
-              } catch (err) { console.error(err); }
-            } else if (website) {
-              booking_config = { enabled: true, type: "external", externalLinks: [{ platform: "otro", url: website, label: "Sitio Web / Boletos" }] };
-            }
-            return { ...ev, booking_config, website };
-          }) : [];
+          const updates = {};
+          const cacheUpdates = {};
 
-          set({
-            events: validEvents,
-            experiences: Array.isArray(ex) ? ex : [],
-            raffles: Array.isArray(r) ? r : [],
-            promos: Array.isArray(p) ? p : [],
-            coupons: Array.isArray(c) ? c : []
-          });
+          if (Array.isArray(e)) {
+            const validEvents = e.filter(ev => {
+              if (!ev || !ev.date) return false;
+              if (ev.end_date) return ev.end_date >= todayStr;
+              return ev.date >= todayStr;
+            }).map(ev => {
+              let booking_config = null;
+              let website = ev.website;
+              if (website && website.startsWith('{')) {
+                try {
+                  booking_config = JSON.parse(website);
+                  website = null;
+                } catch (err) { console.error(err); }
+              } else if (website) {
+                booking_config = { enabled: true, type: "external", externalLinks: [{ platform: "otro", url: website, label: "Sitio Web / Boletos" }] };
+              }
+              return { ...ev, booking_config, website };
+            });
+            updates.events = validEvents;
+            cacheUpdates.e = validEvents;
+          }
+
+          if (Array.isArray(ex)) {
+            updates.experiences = ex;
+            cacheUpdates.ex = ex;
+          }
+          if (Array.isArray(r)) {
+            updates.raffles = r;
+          }
+          if (Array.isArray(p)) {
+            updates.promos = p;
+            cacheUpdates.p = p;
+          }
+          if (Array.isArray(c)) {
+            updates.coupons = c;
+            cacheUpdates.c = c;
+          }
+
+          if(get().mapPinsCity !== targetCity)return;
+          updates.homeSecondaryCity=targetCity;
+          updates.homeSecondaryError=[e,ex,r,p,c].some(rows=>!Array.isArray(rows));
+          set(updates);
+          if (Object.keys(cacheUpdates).length > 0) {
+            updateCityCache(cacheKey, cacheUpdates);
+          }
         } catch(err) {
+          if(get().mapPinsCity===targetCity)set({homeSecondaryCity:targetCity,homeSecondaryError:true});
           console.warn("Secondary fetch failed", err);
         }
       };
@@ -282,10 +412,11 @@ export const useDataStore = create((set, get) => ({
       // Fire non-blocking fetch
       fetchSecondary();
 
+      let coreError=false;
       const bannerCities = ["all", ...(METRO_ZONES[targetCity] || [targetCity])];
-      const pBanners = sb.get("banners", `?active=eq.true&city_slug=in.(${bannerCities.join(',')})`).catch(() => []);
-      const pCats = sb.get("categories", "?active=eq.true&order=sort_order.asc").catch(() => []);
-      const pCityCats = sb.get("city_categories").catch(() => []);
+      const pBanners = sb.get("banners", `?active=eq.true&city_slug=in.(${bannerCities.join(',')})`).catch(() => {coreError=true;return [];});
+      const pCats = sb.get("categories", "?active=eq.true&order=sort_order.asc").catch(() => {coreError=true;return [];});
+      const pCityCats = sb.get("city_categories").catch(() => {coreError=true;return [];});
       const pCities = currentCities && currentCities.length > 0 ? Promise.resolve(currentCities) : sb.get("cities", "?order=name.asc").catch(() => []);
       const pFavs = sb.rpc("get_global_favs").catch(() => sb.get("favorites")).catch(() => []);
 
@@ -297,7 +428,6 @@ export const useDataStore = create((set, get) => ({
 
       const stateUpdates = {};
 
-      
       stateUpdates.banners = Array.isArray(bn) ? bn.filter(Boolean) : [];
       if (cc) {
         stateUpdates.cityCats = cc;
@@ -331,23 +461,26 @@ export const useDataStore = create((set, get) => ({
       set(stateUpdates);
 
       try {
-        // Only cache the blocking-fetch data that is in scope here.
-        // Secondary data (events, promos, raffles, coupons) is cached separately by fetchSecondary.
-        localStorage.setItem(cacheKey, JSON.stringify({
+        updateCityCache(cacheKey, {
           bn: Array.isArray(bn) ? bn : [],
           ca: Array.isArray(ca) ? ca : [],
           cc: Array.isArray(cc) ? cc : [],
           ci: Array.isArray(ci) ? ci : [],
           globalFavs: Array.isArray(globalFavs) ? globalFavs : []
-        }));
+        });
       } catch (cacheErr) { console.error(cacheErr); }
 
-      set({ dbReady: true, dbError: false });
+      if(get().mapPinsCity===targetCity)set({ dbReady: true, dbError: coreError, homeCoreCity:targetCity,homeCoreError:coreError });
     } catch (err) {
       console.warn("loadData error", err);
-      set({ dbError: true, dbReady: true });
+      set({ dbError: true, dbReady: true,homeCoreError:true });
+    } finally {
+      inFlightLoadPromise = null;
+      inFlightCity = null;
     }
-  },
+  })();
+  return inFlightLoadPromise;
+},
 
   loadMyBiz: async (userId) => {
     if (!userId) return [];

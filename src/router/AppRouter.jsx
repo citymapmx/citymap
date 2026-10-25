@@ -12,9 +12,11 @@ const DetailView = React.lazy(() => import('../views/DetailView.jsx'));
 const MenuView = React.lazy(() => import('../views/MenuView.jsx'));
 const PlansPage = React.lazy(() => import('../components/PlansPage.jsx'));
 const WalletView = React.lazy(() => import('../views/WalletView.jsx'));
+const FavsView = React.lazy(() => import('../views/FavsView.jsx'));
+const NotFoundView = React.lazy(() => import('../views/NotFoundView.jsx'));
 
 // Paths that are NOT the home/category view
-const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/mis-planes', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan'];
+const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/mis-planes', '/revista', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan'];
 
 function isCategoryPath(segments) {
   if (IS_WORLD) return segments.length === 4 && segments[2] === 'c';
@@ -87,7 +89,6 @@ export default function AppRouter(props) {
     MapView,
     TripsView,
     EventsView,
-    FavsView,
     AccountView,
     About,
     Privacy,
@@ -105,11 +106,14 @@ export default function AppRouter(props) {
 
   // Show HomeView whenever we're on the home screen OR on a detail page
   // (detail page shows HomeView behind it). This prevents unmount on back navigation.
-  const showHomeView = isHomePath(pathname) || isEventDetailPath(pathname);
+  const showDetail = isDetailPath(pathname) || isEventDetailPath(pathname);
+  const background = showDetail ? location.state?.background : null;
+  const contentLocation = background || location;
+  // Keep the actual source screen mounted under a detail, rather than loading
+  // an unrelated HomeView when opening an event from Plans or a business from Map.
+  const showHomeView = isHomePath(contentLocation.pathname) && !isEventDetailPath(contentLocation.pathname);
 
   // Show detail overlay on top of HomeView
-  const showDetail = isDetailPath(pathname) || isEventDetailPath(pathname);
-
   return (
     <ErrorBoundary>
       <Suspense fallback={<LoaderFallback/>}>
@@ -119,7 +123,7 @@ export default function AppRouter(props) {
             This avoids the React.lazy remount / Suspense white-screen
             bug that occurred when pressing back from a detail view.
         ──────────────────────────────────────────────────────────────── */}
-        {showHomeView && <HomeView isBackground={showDetail} />}
+        {showHomeView && <div inert={showDetail || undefined}><HomeView isBackground={showDetail} /></div>}
 
         {/* ── DETAIL OVERLAY ────────────────────────────────────────── */}
         <AnimatePresence>
@@ -137,8 +141,8 @@ export default function AppRouter(props) {
         </AnimatePresence>
 
         {/* ── ALL OTHER ROUTES (non-home, non-detail) ───────────────── */}
-        {!showHomeView && !showDetail && (
-          <Routes>
+        {!showHomeView && (!showDetail || background) && (
+          <div inert={showDetail || undefined}><Routes location={contentLocation}>
             <Route path="/precios" element={<PlansPage T={T} onClose={() => navigate("/")} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); navigate("/"); }} />} />
             
             <Route path="/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />
@@ -147,13 +151,21 @@ export default function AppRouter(props) {
             <Route path="/mapa" element={<MapView />} />
             <Route path="/mapa/:city" element={<MapView />} />
             <Route path="/eventos" element={<EventsView />} />
+            <Route path="/eventos/:city" element={<EventsView />} />
+            <Route path="/explorar" element={<EventsView />} />
+            <Route path="/explorar/:city" element={<EventsView />} />
+            {/* The legacy "Planes" section was removed: these URLs must answer 404 (no redirect). */}
+            <Route path="/planes" element={<NotFoundView />} />
+            <Route path="/planes/*" element={<NotFoundView />} />
 
             <Route path="/mis-planes" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
             <Route path="/experiencias/:city" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
             <Route path="/experiencias/:city/:slug" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
-            <Route path="/planes" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
+            <Route path="/revista" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
+            <Route path="/revista/:city" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
+            <Route path="/revista/:city/:slug" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
 
-            <Route path="/favoritos" element={<FavsView hideHeader={false} />} />
+            <Route path="/favoritos" element={<FavsView />} />
             <Route path="/cuenta" element={<AccountView
               user={user} authChecked={authChecked} profile={profile} isAdmin={isAdmin} T={T} dark={dark} setDark={setDark}
               favIds={favIds} reviews={reviews} wallet={wallet} coupons={coupons} claimedCoupons={claimedCoupons}
@@ -171,11 +183,11 @@ export default function AppRouter(props) {
             <Route path="/itinerario/:id" element={<ItineraryDetail T={T} dark={dark} navigate={navigate} id={pathname.split('/itinerario/')[1]} userCoords={userCoords} />} />
             <Route path="/plan/:token" element={<ItineraryDetail T={T} dark={dark} navigate={navigate} token={pathname.split('/plan/')[1]} userCoords={userCoords} />} />
 
-            <Route path="/about" element={<About T={T} onBack={() => navigate("account")} />} />
-            <Route path="/privacy" element={<Privacy T={T} onBack={() => navigate("account")} />} />
-            <Route path="/terms" element={<Terms T={T} onBack={() => navigate("account")} />} />
-            <Route path="/admin_notifs" element={<AdminNotifs T={T} onBack={() => navigate("account")} />} />
-            <Route path="/user_notifs" element={<UserNotifs T={T} user={user} onBack={() => navigate("account")} />} />
+            <Route path="/about" element={<About T={T} onBack={() => { if (window.history.length > 1) window.history.back(); else navigate("home"); }} />} />
+            <Route path="/privacy" element={<Privacy T={T} onBack={() => { if (window.history.length > 1) window.history.back(); else navigate("home"); }} />} />
+            <Route path="/terms" element={<Terms T={T} onBack={() => { if (window.history.length > 1) window.history.back(); else navigate("home"); }} />} />
+            <Route path="/admin_notifs" element={<AdminNotifs T={T} onBack={() => { if (window.history.length > 1) window.history.back(); else navigate("home"); }} />} />
+            <Route path="/user_notifs" element={<UserNotifs T={T} user={user} onBack={() => { if (window.history.length > 1) window.history.back(); else navigate("home"); }} />} />
 
             <Route path="/manage/*" element={<OwnerDashboardView />} />
             <Route path="/stats/*" element={<OwnerStatsView />} />
@@ -184,7 +196,7 @@ export default function AppRouter(props) {
             <Route path="/scan/:memberId" element={<ScanView T={T} dark={dark} user={user} setShowAuth={setShowAuth} />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          </Routes></div>
         )}
 
       </Suspense>

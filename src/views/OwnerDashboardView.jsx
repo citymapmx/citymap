@@ -19,7 +19,7 @@ export default function OwnerDashboardView() {
   // Si no hay ownerView, redirigimos a cuenta
   useEffect(() => {
     if (!ownerView) {
-      navigate("account");
+      navigate("home");
     }
   }, [ownerView, navigate]);
 
@@ -69,7 +69,7 @@ export default function OwnerDashboardView() {
       {/* HEADER */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.white }}>
         <div style={{ display: "flex", alignItems: "center" }}>
-          <button onClick={() => { setOwnerView(null); window.history.length > 2 ? window.history.back() : navigate("account"); }} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
+          <button onClick={() => { setOwnerView(null); window.history.length > 1 ? window.history.back() : navigate("home"); }} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
             <Icon name="arrow_left" size={24} color={T.text} />
           </button>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.5px" }}>Reservaciones</h1>
@@ -97,19 +97,6 @@ export default function OwnerDashboardView() {
         {/* GAMIFICATION WIDGET */}
         <GamificationWidget ownerView={ownerView} />
 
-        {/* UPGRADE PLAN */}
-        {ownerView.plan === "free" && (
-          <div onClick={() => { setOwnerView(null); setShowPlans(true); }} className="press" style={{ background: "linear-gradient(135deg, #111, #333)", padding: "20px", borderRadius: 16, marginBottom: 24, cursor: "pointer", color: "#fff", display: "flex", alignItems: "center", gap: 16, boxShadow: "0 8px 24px rgba(0,0,0,0.15)" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg, #C9A84C, #D4B663)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Icon name="award" size={24} color="#fff" />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div className="text-base" style={{ fontWeight: 900, marginBottom: 2 }}>Sube de nivel tu negocio</div>
-              <div className="text-sm" style={{ fontWeight: 500, color: "rgba(255,255,255,0.7)", lineHeight: 1.3 }}>Desbloquea reservas automáticas, WhatsApp directo y Menú digital.</div>
-            </div>
-            <Icon name="chevron" size={20} color="rgba(255,255,255,0.3)" />
-          </div>
-        )}
 
         {/* AGENDA */}
         {ownerView.plan !== "free" && (

@@ -1,4 +1,6 @@
+import { CIVITATIS_PLATFORM } from '../lib/reservationPlatforms.js';
 import { useState, Suspense, lazy, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { m, AnimatePresence } from "framer-motion";
 import { Helmet } from 'react-helmet-async';
 import Icon from './ui/Icon';
@@ -9,6 +11,7 @@ import { useUIStore } from '../store/useUIStore';
 import { useDataStore } from '../store/useDataStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, createSlug } from '../lib/utils';
+import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
 
 const Gallery = lazy(() => import('./Gallery').catch(() => {
   window.location.reload();
@@ -45,6 +48,36 @@ const renderInline = (lineContent, T) => {
 };
 
 const FormattedText = ({ text, T }) => {
+  if (isHtmlContent(text)) {
+    const cleanHtml = sanitizeHtml(text);
+    return (
+      <>
+        <style>{`
+          .blog-public-content, .blog-public-content * { font-family: var(--sans, system-ui, sans-serif) !important; }
+          .blog-public-content h2 { font-size: 22px; font-weight: 800; margin: 28px 0 12px 0; color: ${T.text}; line-height: 1.3; }
+          .blog-public-content h3 { font-size: 18px; font-weight: 700; margin: 22px 0 10px 0; color: ${T.text}; line-height: 1.4; }
+          .blog-public-content p { margin: 0 0 16px 0; line-height: 1.8; color: ${T.text}; }
+          .blog-public-content ul { margin: 12px 0 16px 22px; list-style-type: disc; }
+          .blog-public-content ol { margin: 12px 0 16px 22px; list-style-type: decimal; }
+          .blog-public-content li { margin-bottom: 6px; line-height: 1.7; color: ${T.text}; }
+          .blog-public-content figure { margin: 24px 0; text-align: center; }
+          .blog-public-content figure img { width: 100%; max-width: 100%; height: auto; border-radius: 16px; object-fit: cover; display: block; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+          .blog-public-content figcaption { font-size: 13px; color: ${T.sub || '#71717A'}; margin-top: 8px; font-style: italic; text-align: center; }
+          .blog-public-content hr { border: none; border-top: 1px solid ${T.border || '#E4E4E7'}; margin: 28px 0; }
+          .blog-public-content blockquote { border-left: 3px solid #1A7A5E; margin: 20px 0; padding-left: 16px; font-style: italic; color: ${T.sub || '#71717A'}; }
+          .blog-public-content a { color: #1A7A5E; text-decoration: underline; font-weight: 600; }
+          .blog-public-content strong { font-weight: 700; color: ${T.text}; }
+          .blog-public-content em { font-style: italic; }
+        `}</style>
+        <div
+          className="blog-public-content"
+          style={{ fontSize: 16, color: T.text, lineHeight: 1.8, wordBreak: "break-word" }}
+          dangerouslySetInnerHTML={{ __html: cleanHtml }}
+        />
+      </>
+    );
+  }
+
   // Normalize line endings (Windows \r\n, old Mac \r → \n)
   const normalized = (text || "").replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   // Split into lines
@@ -121,8 +154,8 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const [showAllReviews, setShowAllReviews] = useState(false);
   
   const { handleCardTap, reviews, loadExperienceReviews, postExperienceReview, showReview, setShowReview, reviewStar, setReviewStar, reviewText, setReviewText, reviewImgFile, setReviewImgFile, reviewImgLoading, toggleLikeReview, sb, isAdmin, toast$ } = useAppContext();
+  const { setSelected } = useUIStore(useShallow(s => ({ setSelected: s.setSelected })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
-  const { setShowItineraryModal, setItineraryTargetBiz, setSelected } = useUIStore(useShallow(s => ({ setShowItineraryModal: s.setShowItineraryModal, setItineraryTargetBiz: s.setItineraryTargetBiz, setSelected: s.setSelected })));
   const mapPins = useDataStore(s => s.mapPins);
 
 
@@ -140,6 +173,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const isBlog = exp.activity_type && (exp.activity_type.toLowerCase().includes("blog") || exp.activity_type.toLowerCase().includes("guía"));
 
   const PLATFORM_STYLES = {
+                    civitatis: CIVITATIS_PLATFORM,
     airbnb: { color: "#FF5A5F", label: "Airbnb", img: "/airbnb.svg" },
     booking: { color: "#003580", label: "Booking.com", img: "/booking.png" },
     tiqets: { color: "#4bc2c5", label: "Comprar entradas", img: "/tiqets.png" },
@@ -167,22 +201,28 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const bookingConfig = exp.booking_config || {};
   const externalLinks = bookingConfig.type === "external" ? (bookingConfig.externalLinks || []) : [];
 
-  const canonicalUrl = `https://citymap.mx/experiencias/${exp.city_slug || 'todas'}/${exp.slug || exp.id}`;
+  const canonicalUrl = `https://citymap.mx/revista/${exp.city_slug || 'todas'}/${exp.slug || exp.id}`;
   const schemaJson = JSON.stringify([
     {
       "@context": "https://schema.org",
-      "@type": "TouristAttraction",
-      "name": exp.title,
+      "@type": "Article",
+      "headline": exp.title,
       "description": exp.description ? exp.description.substring(0, 160) : "",
       "url": canonicalUrl,
-      "image": cover ? [cover] : []
+      "image": cover ? [cover] : [],
+      "publisher": {
+        "@type": "Organization",
+        "name": "CityMap",
+        "url": "https://citymap.mx",
+        "logo": { "@type": "ImageObject", "url": "https://citymap.mx/citymap.mx.png" }
+      }
     },
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       "itemListElement": [
         { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://citymap.mx" },
-        { "@type": "ListItem", "position": 2, "name": "Experiencias", "item": `https://citymap.mx/experiencias/${exp.city_slug || ''}` },
+        { "@type": "ListItem", "position": 2, "name": "Revista", "item": `https://citymap.mx/revista/${exp.city_slug || ''}` },
         { "@type": "ListItem", "position": 3, "name": exp.title, "item": canonicalUrl }
       ]
     }
@@ -193,15 +233,16 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
     return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
   const cityName = formatCityName(exp.city_slug);
-  const metaTitle = cityName ? `${exp.title} en ${cityName} | CityMap` : `${exp.title} | CityMap`;
+  const metaTitle = cityName ? `${exp.title} | Revista CityMap ${cityName}` : `${exp.title} | Revista CityMap`;
 
-  return (
+  return createPortal(
     <m.div
+      data-article-viewer
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 50 }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      style={{ position: 'fixed', inset: 0, zIndex: 99999, background: dark ? "#000" : "#fff", overflowY: "auto", fontFamily: "inherit" }}
+      style={{ position: 'fixed', inset: 0, bottom: 'calc(57px + env(safe-area-inset-bottom, 8px))', zIndex: 40, background: T.bg, overflowY: "auto", fontFamily: "inherit" }}
     >
       <Helmet>
         <title>{metaTitle}</title>
@@ -215,23 +256,32 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
       </Helmet>
 
       {/* Header / Hero */}
-      <div style={{ position: "relative", width: "100%", height: "35vh", minHeight: 280, background: cover ? `url(${getThumbUrl(cover, 900, 600)}) center/cover` : (dark ? "#222" : "#E5E7EB") }}>
+      <div style={{ position: "relative", width: "100%", background: dark ? "#111" : "#000", overflow: "hidden" }}>
+        {cover ? (
+          <img 
+            src={getThumbUrl(cover, 1200)} 
+            alt={exp.title || ""} 
+            style={{ 
+              width: "100%", 
+              height: "auto", 
+              maxHeight: "75vh",
+              objectFit: "contain",
+              display: "block",
+              margin: "0 auto"
+            }} 
+          />
+        ) : (
+          <div style={{ height: 260, background: "transparent" }} />
+        )}
+
         {/* Top bar */}
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "calc(env(safe-area-inset-top, 0px) + 16px) 20px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", borderRadius: 20, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "flex-start", cursor: "pointer", padding: 0 }}>
-            <Icon name="arrow_left" size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.8))" }} />
+          <button aria-label="Volver" onClick={onClose} style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}>
+            <Icon name="arrow_left" size={22} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
           </button>
-          <div style={{ display: "flex", gap: 16 }}>
+          <div style={{ display: "flex", gap: 12 }}>
             <button 
-              onClick={() => {
-                setItineraryTargetBiz(exp);
-                setShowItineraryModal(true);
-              }}
-              style={{ background: "transparent", border: "none", borderRadius: 20, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
-            >
-              <Icon name="plus" size={26} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.8))" }} />
-            </button>
-            <button 
+              aria-label="Compartir guía"
               onClick={() => {
               const shareText = `Descubre la experiencia ${exp.title} en CityMap.`;
               if (navigator.share) {
@@ -241,14 +291,14 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                 alert("Enlace copiado al portapapeles");
               }
             }}
-            style={{ background: "transparent", border: "none", borderRadius: 20, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "flex-end", cursor: "pointer", padding: 0 }}
+            style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
           >
-            <Icon name="share" size={22} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.8))" }} />
+            <Icon name="share" size={20} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
             </button>
           </div>
         </div>
 
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 30%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 40%)", pointerEvents: "none" }} />
         
         <div style={{ position: "absolute", bottom: 16, left: 20, right: 20, display: "flex", flexWrap: "wrap", gap: 16, zIndex: 10 }}>
           {exp.duration && (
@@ -612,13 +662,13 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
           </div>
 
           {showReview && <div style={{ background: dark ? "rgba(255,255,255,0.03)" : "#f9fafb", borderRadius: 12, padding: 14, marginBottom: 16, border: `1px solid ${T.border}` }}>
-            <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>{[1, 2, 3, 4, 5].map(s => <button key={s} onClick={() => setReviewStar(s)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}><img src="/estrella.svg" alt="star" style={{ width: 24, height: 24, filter: s <= reviewStar ? "none" : "grayscale(1) opacity(0.3)", marginTop: -2 }} /></button>)}</div>
+            <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>{[1, 2, 3, 4, 5].map(s => <button key={s} onClick={() => setReviewStar(s)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}><Icon name={s <= reviewStar ? "star_f" : "star"} size={24} color={s <= reviewStar ? T.text : T.sub} style={{ marginTop: -2 }} /></button>)}</div>
             <textarea className="inp" rows={3} style={{ resize: "none", marginBottom: 10, background: dark ? "rgba(255,255,255,0.05)" : "#fff", color: T.text, border: `1px solid ${T.border}` }} placeholder="Comparte tu experiencia…" value={reviewText} onChange={e => setReviewText(e.target.value)} />
             
             {reviewImgFile && (
               <div style={{ position: "relative", width: 80, height: 80, marginBottom: 10, borderRadius: 8, overflow: "hidden", border: `1px solid ${T.border}` }}>
                 <img src={URL.createObjectURL(reviewImgFile)} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                <button onClick={() => setReviewImgFile(null)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="x" size={10} color="#fff" /></button>
+                <button aria-label="Quitar foto" onClick={() => setReviewImgFile(null)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="x" size={10} color="#fff" /></button>
               </div>
             )}
             
@@ -689,10 +739,10 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
       </div>
 
       {/* Fullscreen Gallery Modal */}
-      {fullGalleryIdx !== null && (
+      {fullGalleryIdx !== null && createPortal(
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, background: "#000000", display: "flex", flexDirection: "column" }}>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "16px 20px", display: "flex", justifyContent: "flex-start", zIndex: 10 }}>
-            <button className="press" onClick={() => setFullGalleryIdx(null)} style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginTop: 20 }}>
+            <button aria-label="Cerrar galería" className="press" onClick={() => setFullGalleryIdx(null)} style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginTop: 20 }}>
               <Icon name="x" size={24} color="#fff" />
             </button>
           </div>
@@ -701,8 +751,8 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
               <Gallery photos={gallery.map(u => ({ url: u }))} h="100dvh" fit="contain" bg="transparent" initialIndex={fullGalleryIdx} />
             </Suspense>
           </div>
-        </div>
+        </div>, document.body
       )}
-    </m.div>
+    </m.div>, document.body
   );
 }

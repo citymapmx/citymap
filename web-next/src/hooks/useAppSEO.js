@@ -44,11 +44,11 @@ export function useAppSEO({ city }) {
     let title, desc;
     if (isGenericRoot) {
       // Generic brand title — represents all cities in any country
-      title = `CityMap — Restaurantes, Cafés y Eventos en tu Ciudad`;
-      desc = `Descubre los mejores restaurantes, cafés, eventos y negocios locales en tu ciudad. Horarios actualizados, reseñas y cupones exclusivos en CityMap.`;
+      title = `CityMap — Dónde comer, qué hacer y eventos en tu ciudad`;
+      desc = `Descubre dónde comer, qué hacer y qué está pasando en tu ciudad. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.`;
     } else {
-      title = `CityMap ${cityCapitalized} — Restaurantes, Cafés y Negocios Locales`;
-      desc = `Descubre los mejores restaurantes, cafés, eventos y negocios en ${cityCapitalized}. Horarios actualizados, ubicaciones exactas, reseñas y cupones exclusivos.`;
+      title = `Qué hacer en ${cityCapitalized}: Dónde comer, eventos y lugares | CityMap`;
+      desc = `Descubre dónde comer, qué hacer y qué está pasando en ${cityCapitalized}. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.`;
     }
     const activeCityData = cities.find(c => c.slug === activeCity);
     let image = activeCityData?.bg_image || `${BASE_URL}/og-image.png`;
@@ -120,12 +120,14 @@ export function useAppSEO({ city }) {
         "geo": selected.lat ? { "@type": "GeoCoordinates", "latitude": parseFloat(selected.lat), "longitude": parseFloat(selected.lng) } : undefined,
         "priceRange": "$$"
       };
-      if (selected.review_count > 0 && selected.rating) {
+      const count = selected.review_count || selected.reviews_count || (reviews?.length && reviews[0]?.biz_id === selected.id ? reviews.length : 0);
+      if (selected.rating) {
         businessSchema.aggregateRating = {
           "@type": "AggregateRating",
-          "ratingValue": String(selected.rating),
-          "reviewCount": String(selected.review_count),
-          "bestRating": "5"
+          "ratingValue": String(Number(selected.rating).toFixed(1)),
+          "reviewCount": String(count > 0 ? count : 1),
+          "bestRating": "5",
+          "worstRating": "1"
         };
       }
       if (selected.schedule && typeof selected.schedule === "object") {
@@ -248,27 +250,37 @@ export function useAppSEO({ city }) {
         desc = `Explora el mapa interactivo de ${cityCapitalized}. Encuentra los mejores restaurantes, cafés, eventos y negocios locales cerca de ti con horarios y reseñas.`;
          
         canonical = `${BASE_URL}/mapa`;
-      } else if (location.pathname.startsWith("/mis-planes") || location.pathname.startsWith("/experiencias") || location.pathname.startsWith("/planes")) {
-        title = `Qué hacer en ${cityCapitalized} — Mejores Tours y Actividades | CityMap`;
-        desc = `Descubre qué hacer en ${cityCapitalized}. Encuentra los mejores tours, actividades, planes de fin de semana y experiencias inolvidables. Reserva ahora con CityMap.`;
+      } else if (location.pathname.startsWith("/mis-planes") || location.pathname.startsWith("/experiencias") || location.pathname.startsWith("/revista")) {
+        const hasCity = Boolean(activeCity && !location.pathname.endsWith("/todas"));
+        title = hasCity 
+          ? `Revista CityMap ${cityCapitalized} — Historias, Recomendaciones y Notas Locales` 
+          : `Revista CityMap — Historias, Guías y Recomendaciones Locales`;
+        desc = hasCity
+          ? `Historias, recomendaciones y notas locales de ${cityCapitalized}. Descubre guías exclusivas, eventos, lugares imperdibles y artículos en la Revista CityMap.`
+          : `Historias, recomendaciones y notas locales de tu ciudad. Guías exclusivas, reportajes y artículos en la Revista CityMap.`;
          
-        canonical = `${BASE_URL}/experiencias/${activeCity || ""}`;
+        canonical = `${BASE_URL}/revista/${activeCity || ""}`;
         schemaJson = JSON.stringify({
           "@context": "https://schema.org",
           "@graph": [
             {
-              "@type": "TouristAttraction",
-              "name": `Qué hacer en ${cityCapitalized}`,
+              "@type": "CollectionPage",
+              "name": title,
               "description": desc,
               "url": canonical,
-              "address": { "@type": "PostalAddress", "addressLocality": cityCapitalized, "addressCountry": "MX" }
+              "publisher": {
+                "@type": "Organization",
+                "name": "CityMap",
+                "url": BASE_URL,
+                "logo": { "@type": "ImageObject", "url": `${BASE_URL}/citymap.mx.png` }
+              }
             },
             {
               "@type": "BreadcrumbList",
               "itemListElement": [
                 { "@type": "ListItem", "position": 1, "name": "Inicio", "item": `${BASE_URL}` },
-                { "@type": "ListItem", "position": 2, "name": cityCapitalized, "item": `${BASE_URL}${buildCityPath(activeCity, cities)}` },
-                { "@type": "ListItem", "position": 3, "name": "Qué hacer", "item": canonical }
+                { "@type": "ListItem", "position": 2, "name": "Revista", "item": `${BASE_URL}/revista` },
+                ...(hasCity ? [{ "@type": "ListItem", "position": 3, "name": cityCapitalized, "item": canonical }] : [])
               ]
             }
           ]

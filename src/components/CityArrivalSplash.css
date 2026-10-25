@@ -1,0 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap');
+.city-arrival,.city-arrival p,.city-arrival button{font-family:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important}
+.city-arrival-progress{width:76px;height:3px;margin:24px auto 0;overflow:hidden;border-radius:4px;background:rgba(120,140,160,.16)}
+.city-arrival-progress:after{content:'';display:block;height:100%;width:38%;border-radius:4px;background:#519ADC;animation:city-arrival-progress 1.5s ease-in-out infinite}
+@keyframes city-arrival-progress{from{transform:translateX(-100%)}to{transform:translateX(365%)}}
+@media(prefers-reduced-motion:reduce){.city-arrival-progress:after{animation:none;transform:translateX(80%)}}
+
+.city-arrival-exit .city-arrival-content{animation:city-arrival-lift 620ms cubic-bezier(.22,1,.36,1) both}
+.city-arrival-exit .city-arrival-glow{animation:city-arrival-glow-out 620ms ease-out both}
+.city-arrival-exit .city-arrival-progress:after{animation:none;width:100%;transform:none;transition:width 180ms ease}
+@keyframes city-arrival-lift{from{transform:translateY(0) scale(1)}to{transform:translateY(-28px) scale(.97)}}
+@keyframes city-arrival-glow-out{from{transform:scale(1);opacity:1}to{transform:scale(1.22);opacity:0}}
+@media(prefers-reduced-motion:reduce){.city-arrival-exit .city-arrival-content,.city-arrival-exit .city-arrival-glow{animation:none}}

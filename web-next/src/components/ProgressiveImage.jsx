@@ -21,6 +21,8 @@ export default function ProgressiveImage({
       style={{
         position: 'relative',
         overflow: 'hidden',
+        background: 'transparent',
+        backgroundColor: 'transparent',
         ...style
       }}
       {...props}
@@ -38,8 +40,9 @@ export default function ProgressiveImage({
           objectPosition: style.objectPosition || 'center',
           filter: 'blur(20px)',
           transform: 'scale(1.2)', // Prevent white edges from blur
-          transition: 'opacity 0.6s ease-out',
+          transition: 'opacity 0.25s ease-out',
           opacity: isLoaded ? 0 : 1,
+          backgroundColor: 'transparent',
         }}
       />
       
@@ -51,7 +54,7 @@ export default function ProgressiveImage({
         onLoad={() => setIsLoaded(true)}
         initial={{ opacity: 0 }}
         animate={{ opacity: isLoaded ? 1 : 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
         style={{
           position: 'absolute',
           inset: 0,
@@ -59,6 +62,7 @@ export default function ProgressiveImage({
           height: '100%',
           objectFit: style.objectFit || 'cover',
           objectPosition: style.objectPosition || 'center',
+          backgroundColor: 'transparent',
         }}
       />
     </m.div>

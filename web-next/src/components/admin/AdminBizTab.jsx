@@ -45,10 +45,16 @@ export default function AdminBizTab({
         else newSlug = `${baseSlug}-${counter++}`;
       }
 
+      const parseCoord = (val) => {
+        if (val === "" || val === null || val === undefined) return null;
+        const num = Number(val);
+        return isNaN(num) ? null : num;
+      };
+
       const payload = {
         category: bizForm.category, name: bizForm.name, slug: newSlug, emoji: bizForm.emoji || null,
         type: bizForm.type, tagline: bizForm.tagline, schedule: bizForm.schedule || {}, address: bizForm.address,
-        city_slug: cty, lat: bizForm.lat, lng: bizForm.lng, phone: bizForm.phone,
+        city_slug: cty, lat: parseCoord(bizForm.lat), lng: parseCoord(bizForm.lng), phone: bizForm.phone,
         whatsapp: bizForm.whatsapp, website: bizForm.website, video_url: bizForm.video_url || null,
         logo_url: bizForm.logo_url || null, hours: bizForm.hours, tags, description: bizForm.description,
         open: bizForm.open, badge: bizForm.badge || null, plan: bizForm.plan || "free",
@@ -56,10 +62,26 @@ export default function AdminBizTab({
         menu_pdf_url: bizForm.menu_pdf_url || null, hide_location: bizForm.hide_location || false,
         banner_url: bizForm.banner_url || null,
         mercado_libre_nickname: bizForm.mercado_libre_nickname || null,
-        booking_config: bizForm.booking_config || null
+        booking_config: bizForm.booking_config || null,
+        subcategory: bizForm.subcategory ? String(bizForm.subcategory).trim() : null
       };
-      if (bizForm._new) await sb.post("businesses", payload);
-      else await sb.patch("businesses", bizForm.id, payload);
+
+      try {
+        if (bizForm._new) await sb.post("businesses", payload);
+        else await sb.patch("businesses", bizForm.id, payload);
+      } catch (postErr) {
+        if (postErr?.message?.includes("subcategory")) {
+          const { subcategory: _, ...fallbackPayload } = payload;
+          if (bizForm._new) await sb.post("businesses", fallbackPayload);
+          else await sb.patch("businesses", bizForm.id, fallbackPayload);
+          if (onToast) onToast("Guardado sin subcategoría (Ejecuta scripts/sql/add_subcategory_column.sql en Supabase)");
+          setBizForm(null);
+          fetchBiz(0, false);
+          return;
+        }
+        throw postErr;
+      }
+
       if (onToast) onToast(bizForm._new ? "Negocio creado ✓" : "Negocio actualizado ✓");
       setBizForm(null);
       
@@ -140,7 +162,7 @@ export default function AdminBizTab({
       {!bizForm && <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>Listado de negocios</span>
-          <button onClick={() => setBizForm({ _new: true, category: data.categories.length > 0 ? data.categories[0].slug : "restaurantes", open: true, photos: [], tags: "", lat: 21.5042, lng: -104.8944, plan: "free", status: "pending", city_slug: (data.cities && data.cities.length > 0 ? data.cities[0].slug : ""), social_links: {} })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo</button>
+          <button onClick={() => setBizForm({ _new: true, category: data.categories.length > 0 ? data.categories[0].slug : "restaurantes", open: true, photos: [], tags: "", lat: "", lng: "", plan: "free", status: "pending", city_slug: (data.cities && data.cities.length > 0 ? data.cities[0].slug : ""), social_links: {} })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo</button>
         </div>
 
         <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
@@ -221,6 +243,7 @@ export default function AdminBizTab({
           <FI label="Eslogan" field="tagline" src={bizForm} set={setBizForm} ph="Ej: El mejor sabor de la ciudad" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Categoría</label><select value={bizForm.category || (data.categories.length > 0 ? data.categories[0].slug : "restaurantes")} onChange={e => setBizForm(f => ({ ...f, category: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{(() => { const cityCatSlugs = (data.city_categories || []).map(cc => cc.category_slug); return data.categories.filter(c => !cityCatSlugs.includes(c.slug) || (data.city_categories || []).some(cc => cc.category_slug === c.slug && cc.city_slug === (bizForm.city_slug || ""))).map(c => <option key={c.slug} value={c.slug}>{c.name}</option>); })()}</select></div>
+            <FI label="Subcategoría" field="subcategory" src={bizForm} set={setBizForm} ph="Ej: Pizzerías, Pádel..." />
             <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Plan</label><select value={bizForm.plan || "free"} onChange={e => setBizForm(f => ({ ...f, plan: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{Object.entries(PLAN_META).map(([k, m]) => <option key={k} value={k}>{m.label}</option>)}</select></div>
             <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Estado</label><select value={bizForm.status || "pending"} onChange={e => setBizForm(f => ({ ...f, status: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{["pending", "approved", "rejected"].map(s => <option key={s}>{s}</option>)}</select></div>
             <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Ciudad</label><select value={(bizForm.city_slug || "").toLowerCase() || (data.cities && data.cities.length > 0 ? data.cities[0].slug : "")} onChange={e => setBizForm(f => ({ ...f, city_slug: e.target.value.toLowerCase() }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}>{data.cities.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select></div>
@@ -418,8 +441,18 @@ export default function AdminBizTab({
         {bizForm.hide_location && <div className="text-xs" style={{ color: "#D94F3D", background: "#FEF2F2", borderRadius: 8, padding: "8px 10px", marginBottom: 8, fontWeight: 500 }}>La ubicación y el mapa no se mostrarán en el perfil público del negocio. Ideal para dark kitchens o servicios a domicilio.</div>}
         <div style={{ display: "flex", gap: 8, marginBottom: 8 }}><input value={bizForm.address || ""} onChange={e => setBizForm(f => ({ ...f, address: e.target.value }))} placeholder="Dirección completa" style={{ flex: 1, padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 14, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }} /><button className="text-xs" onClick={geo} style={{ background: "#1A7A5E", border: "none", borderRadius: 10, padding: "0 12px", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Geo</button></div>
         <div style={{ display: "flex", gap: 8 }}>
-          <input value={bizForm.lat || ""} onChange={e => setBizForm(f => ({ ...f, lat: e.target.value }))} placeholder="Latitud (ej. 21.50)" style={{ flex: 1, padding: "9px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }} />
-          <input value={bizForm.lng || ""} onChange={e => setBizForm(f => ({ ...f, lng: e.target.value }))} placeholder="Longitud (ej. -104.89)" style={{ flex: 1, padding: "9px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }} />
+          <input value={bizForm.lat ?? ""} onChange={e => setBizForm(f => ({ ...f, lat: e.target.value }))} placeholder="Latitud (ej. 21.50)" style={{ flex: 1, padding: "9px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }} />
+          <input value={bizForm.lng ?? ""} onChange={e => setBizForm(f => ({ ...f, lng: e.target.value }))} placeholder="Longitud (ej. -104.89)" style={{ flex: 1, padding: "9px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }} />
+          {(bizForm.lat !== "" && bizForm.lat !== null && bizForm.lat !== undefined) && (
+            <button 
+              type="button" 
+              onClick={() => setBizForm(f => ({ ...f, lat: "", lng: "" }))} 
+              title="Borrar coordenadas"
+              style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 10, padding: "0 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+            >
+              Borrar
+            </button>
+          )}
         </div>
       </div>
       

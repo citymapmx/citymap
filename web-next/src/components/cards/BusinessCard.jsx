@@ -69,14 +69,7 @@ const renderRatingRow = (b, realFavs, hideReviews, hideFavs, T, starStyle = {}, 
     <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
       {b.review_count > 0 ? (
         <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-          <img 
-            src="/estrella.svg" 
-            alt="star" 
-            width={14} 
-            height={14} 
-            loading="lazy" 
-            style={{ width: 14, height: 14, marginTop: -2, ...starStyle }} 
-          />
+          <Icon name="star_f" size={14} color={textStyle.color || T.text} style={{ marginTop: -2, ...starStyle }} />
           <span style={{ fontSize: 12, fontWeight: 700, color: T.text, ...textStyle }}>
             {b.rating && !isNaN(parseFloat(String(b.rating).replace(',', '.'))) 
               ? parseFloat(String(b.rating).replace(',', '.')).toFixed(1) 
@@ -259,7 +252,7 @@ export default memo(function BusinessCard({
           {distStr && <div style={{ position: "absolute", top: 12, right: 12, fontSize: 10, fontWeight: 700, color: T.sub, padding: "2px 6px", zIndex: 2 }}>{distStr}</div>}
           
           {/* Thumbnail */}
-          <div style={{ width: 140, flexShrink: 0, position: "relative", background: T.border }}>
+          <div style={{ width: 135, flexShrink: 0, position: "relative", background: T.border, overflow: "hidden" }}>
             {thumb?.url
               ? <ProgressiveImage 
                   variants={{ hover: { scale: 1.08 } }} 
@@ -406,7 +399,7 @@ export default memo(function BusinessCard({
         style={{ 
           borderRadius: 18, 
           overflow: "hidden", 
-          background: "#0a0a0a", 
+          background: "transparent", 
           position: "relative", 
           display: "flex", 
           flexDirection: "column", 
@@ -418,7 +411,7 @@ export default memo(function BusinessCard({
         variants={{ hover: { y: -4, boxShadow: T.shadowLg } }} 
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        <div style={{ position: "relative", height: 190, overflow: "hidden" }}>
+        <div style={{ position: "relative", height: 190, overflow: "hidden", background: "transparent" }}>
           {thumb?.url
            ? <ProgressiveImage 
                 variants={{ hover: { scale: 1.08 } }} 
@@ -428,7 +421,7 @@ export default memo(function BusinessCard({
                 alt={b.name} 
                 style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }} 
               />
-            : <div style={{ height: "100%", background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44 }}>{(b.emoji || CAT_EMOJI[b.category]) || "🏪"}</div>
+            : <div style={{ height: "100%", background: dark ? "rgba(255,255,255,0.05)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44 }}>{(b.emoji || CAT_EMOJI[b.category]) || "🏪"}</div>
           }
           {/* Bottom dark gradient for text readability */}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%)" }} />

@@ -12,6 +12,20 @@ import SearchPlacesModal from "../components/modals/SearchPlacesModal.jsx";
 import { PageLogo } from "../components/Brand.jsx";
 
 
+function SortableItemWrapper({ item, isOwner, children }) {
+  const dragControls = useDragControls();
+  return (
+    <Reorder.Item
+      value={item}
+      dragListener={false}
+      dragControls={dragControls}
+      style={{ listStyle: "none", position: "relative" }}
+    >
+      {typeof children === "function" ? children(dragControls) : children}
+    </Reorder.Item>
+  );
+}
+
 export default function ItineraryDetail({ T, dark, navigate, token, id, userCoords }) {
   const { mapPins, experiences, myItineraries } = useDataStore();
   const { user } = useAuthStore();

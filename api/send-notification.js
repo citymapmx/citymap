@@ -28,13 +28,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { title, body, deepLink, secret, user_id, type = 'system', target_city } = req.body;
+    const { title, body, deepLink, secret, user_id: requestedUserId, test_self = false, imageUrl, type = 'system', target_city } = req.body;
 
     // Proteger el endpoint — acepta ADMIN_SECRET o JWT de usuario autenticado
     const authHeader = req.headers['authorization'];
     const jwtToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
     let isAuthorized = false;
+    let authenticatedUserId = null;
 
     if (secret && secret === process.env.ADMIN_SECRET) {
       // Autenticación clásica con secret (retro-compatible)
@@ -48,10 +49,15 @@ export default async function handler(req, res) {
           headers: { 'apikey': serviceRoleKey, 'Authorization': `Bearer ${jwtToken}` }
         });
         const userData = await userRes.json();
-        // Solo admins (email en lista o rol admin en metadata)
-        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
-        if (userRes.ok && userData?.email && (adminEmails.includes(userData.email) || userData?.user_metadata?.isAdmin)) {
+        // Solo administradores autorizados por el servidor
+        // Only server-managed metadata or a verified allowlisted email can grant access.
+        // user_metadata is editable by the user and must never authorize an admin.
+        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+        const isListedAdmin = Boolean(userData?.email_confirmed_at && userData?.email && adminEmails.includes(userData.email.toLowerCase()));
+        const isManagedAdmin = userData?.app_metadata?.isAdmin === true;
+        if (userRes.ok && userData?.id && (isListedAdmin || isManagedAdmin)) {
           isAuthorized = true;
+          authenticatedUserId = userData.id;
         }
       } catch { /* JWT inválido */ }
     }
@@ -59,6 +65,9 @@ export default async function handler(req, res) {
     if (!isAuthorized) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    if (test_self && !authenticatedUserId) return res.status(401).json({ error: "La prueba requiere una sesión de administrador" });
+    const user_id = test_self ? authenticatedUserId : requestedUserId;
 
     if (!title || !body) {
       return res.status(400).json({ error: 'Faltan campos: title y body son requeridos' });
@@ -75,9 +84,18 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Supabase env vars missing' });
     }
 
+    const safeUrl = (value, base) => {
+      if (!value) return undefined;
+      try { const url = new URL(value, base); return url.protocol === 'https:' ? url.href : undefined; } catch { return undefined; }
+    };
+    const link = safeUrl(deepLink, "https://citymap.mx");
+    if (deepLink && (!link || !['citymap.mx', 'www.citymap.mx', 'citymap.world', 'www.citymap.world'].includes(new URL(link).hostname))) return res.status(400).json({ error: 'El destino debe ser una URL HTTPS de CityMap' });
+    const image = safeUrl(imageUrl);
+    if (imageUrl && !image) return res.status(400).json({ error: 'La imagen debe usar HTTPS' });
+
     // 1. Si hay user_id, insertar notificacion en DB (bypass RLS)
     if (user_id) {
-      await fetch(`${supabaseUrl}/rest/v1/notifications`, {
+      const inboxResult = await fetch(`${supabaseUrl}/rest/v1/notifications`, {
         method: 'POST',
         headers: {
           'apikey': serviceRoleKey,
@@ -86,6 +104,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({ user_id, title, body, type, read: false })
       });
+      if (!inboxResult.ok) throw new Error("No se pudo guardar la notificación en la bandeja");
     }
 
     // 2. Fetch push tokens
@@ -99,16 +118,15 @@ export default async function handler(req, res) {
       queryUrl += `&city_slug=eq.${target_city}`;
     } // else: Fetch ALL tokens (Envío masivo global)
 
-    const r = await fetch(queryUrl, {
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
-      }
-    });
-
-    if (!r.ok) throw new Error(`Supabase fetch tokens error: ${r.status}`);
-    const data = await r.json();
-    tokens = data.map(t => t.token);
+    for (let offset = 0; ; offset += 1000) {
+      const r = await fetch(`${queryUrl}&order=token.asc&limit=1000&offset=${offset}`, { headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` } });
+      if (!r.ok) throw new Error(`Supabase fetch tokens error: ${r.status}`);
+      const data = await r.json();
+      if (!Array.isArray(data)) throw new Error('Respuesta de dispositivos inválida');
+      tokens.push(...data.map(t => t.token).filter(token => typeof token === 'string' && token.length));
+      if (data.length < 1000) break;
+    }
+    tokens = [...new Set(tokens)];
 
     if (!tokens || tokens.length === 0) {
       return res.status(200).json({ message: 'No hay tokens registrados para enviar push', successCount: 0, failureCount: 0 });
@@ -121,8 +139,9 @@ export default async function handler(req, res) {
       messages.push(
         getMessaging().sendEachForMulticast({
           tokens: chunk,
-          notification: { title, body },
-          data: deepLink ? { deepLink } : {},
+          notification: { title, body, ...(image ? { imageUrl: image } : {}) },
+          data: link ? { deepLink: link } : {},
+          webpush: { fcmOptions: { link: link || "https://citymap.mx" }, notification: { icon: "/icon-192.png", ...(image ? { image } : {}) } },
           android: { notification: { sound: 'default' } }
         })
       );
@@ -134,20 +153,20 @@ export default async function handler(req, res) {
 
     // Limpiar tokens inválidos
     const invalidTokens = [];
-    responses.forEach(r => {
+    responses.forEach((r, batchIndex) => {
       r.responses.forEach((resp, idx) => {
         if (!resp.success && (
           resp.error?.code === 'messaging/invalid-registration-token' ||
           resp.error?.code === 'messaging/registration-token-not-registered'
         )) {
-          invalidTokens.push(tokens[idx]);
+          invalidTokens.push(tokens[batchIndex * 500 + idx]);
         }
       });
     });
 
     // Opcional: borrar invalidTokens de la base de datos (se podría hacer aquí con serviceRoleKey)
     if (invalidTokens.length > 0) {
-      const deleteUrl = `${supabaseUrl}/rest/v1/push_tokens?token=in.(${invalidTokens.join(',')})`;
+      const deleteUrl = `${supabaseUrl}/rest/v1/push_tokens?token=in.(${encodeURIComponent(invalidTokens.map(token => JSON.stringify(token)).join(','))})`;
       await fetch(deleteUrl, {
         method: 'DELETE',
         headers: {

@@ -1,3 +1,4 @@
+import SectionCategoryBar from '../components/ui/SectionCategoryBar.jsx';
 import { Suspense, useEffect, useState, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { FONT_BIZ } from "../lib/constants.js";
@@ -112,30 +113,24 @@ export default function MapView() {
               .exp-subtitle-anim {
                 animation: expFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
               }
-              .animated-pill {
-                background: #0f172a !important;
-                border-color: #0f172a !important;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.25) !important;
-                animation: none !important;
-              }
             `}</style>
-            <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 6px", background: T.white, textAlign: "center" }}>
+            <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 10px", background: T.white, textAlign: "center" }}>
               <img
                 src="/citymap.mx.png"
                 alt="CityMap"
-                style={{ height: 44, objectFit: "contain", filter: dark ? "none" : "brightness(0)", marginBottom: 4, display: "block", margin: "0 auto 4px" }}
+                style={{ height: 38, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", display: "block", margin: "0 auto 4px" }}
               />
-              <p className="exp-subtitle-anim" style={{ margin: 0, fontSize: 14, fontWeight: 600, color: T.sub, lineHeight: 1.4 }}>
+              <p className="exp-subtitle-anim section-category-subtitle" style={{ margin: 0, fontSize: 13, fontWeight: 600, color: T.sub, lineHeight: 1.4 }}>
                 {t("encuentra_mejores_lugares", "Encuentra los mejores lugares en ")}<span className="exp-city-anim">{shortCity}</span>
               </p>
             </div>
             {/* Category Bar (Above Map) */}
-            <div style={{ overflowX: "auto", scrollbarWidth: "none", background: T.white, borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap", WebkitOverflowScrolling: "touch" }}>
-              <div style={{ display: "flex", gap: 8, padding: "4px 16px 14px" }}>
+            <div style={{ background: T.white, borderBottom: `1px solid ${T.border}`, padding: "0 20px 12px" }}>
+              <SectionCategoryBar dark={dark} selectedKey={activeCat}>
                 {[{id: "todas", label: t("todos_category", "Todos"), icon: "📍"}, ...cats].map(c => {
                    const isSel = activeCat === c.id || (c.id === "todas" && activeCat === "explorar");
                    return (
-                     <button key={c.id} className={isSel ? "animated-pill press" : "press"} onClick={() => setActiveCat(c.id === "todas" ? "explorar" : c.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", background: dark ? "rgba(255,255,255,0.05)" : T.white, color: isSel ? "#fff" : T.text, border: `1px solid ${T.border}`, borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", flexShrink: 0 }}>
+                     <button key={c.id} className="press" aria-pressed={isSel} onClick={() => setActiveCat(c.id === "todas" ? "explorar" : c.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", background: isSel ? (dark ? "#FFFFFF" : "#0F172A") : "transparent", color: isSel ? (dark ? "#18181B" : "#FFFFFF") : T.sub, border: "none", borderRadius: 9999, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", flexShrink: 0 }}>
                        {(() => {
                          let iconVal = c.icon || "📍";
                          let cleanIcon = typeof iconVal === 'string' ? iconVal.trim() : iconVal;
@@ -146,7 +141,7 @@ export default function MapView() {
                      </button>
                    );
                 })}
-              </div>
+              </SectionCategoryBar>
             </div>
           </div>
 
@@ -159,42 +154,6 @@ export default function MapView() {
             <button onClick={() => setMapFullScreen(!mapFullScreen)} className="press" style={{ position: "absolute", top: 16, right: 16, zIndex: 10, width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.9)", backdropFilter: "blur(10px)", border: "1px solid rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", cursor: "pointer" }}>
               <Icon name={mapFullScreen ? "minimize-2" : "maximize-2"} size={20} color="#0F172A" />
             </button>
-
-            {/* Floating Category Filter (Bottom, Circular Icons) */}
-            {mapFullScreen && !mapPin && (
-              <div style={{ position: "absolute", bottom: 76, left: 0, right: 64, zIndex: 10, display: "flex", overflowX: "auto", gap: 10, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "10px 0", WebkitMaskImage: "linear-gradient(to right, transparent, black 6%, black 94%, transparent)", maskImage: "linear-gradient(to right, transparent, black 6%, black 94%, transparent)" }}>
-                 <div style={{ display: "flex", gap: 10, margin: "0 auto", padding: "0 20px" }}>
-                  {[{id: "todas", label: "Todos", icon: "📍"}, ...cats].map(c => {
-                     const isSel = activeCat === c.id || (c.id === "todas" && activeCat === "explorar");
-                     return (
-                       <button 
-                         key={c.id} 
-                         className={isSel ? "animated-pill press" : "press"} 
-                         onClick={() => setActiveCat(c.id === "todas" ? "explorar" : c.id)} 
-                         title={t(c.label, c.label)}
-                         style={{ 
-                           display: "flex", alignItems: "center", justifyContent: "center", 
-                           width: 40, height: 40,
-                           background: isSel ? (dark ? "rgba(255,255,255,0.15)" : "#F0F9FF") : (dark ? "rgba(30, 41, 59, 0.9)" : "rgba(255, 255, 255, 0.95)"), 
-                           border: isSel ? "2px solid #0EA5E9" : (dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)"), 
-                           borderRadius: "50%", cursor: "pointer", 
-                           backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", 
-                           boxShadow: isSel ? "0 4px 16px rgba(14, 165, 233, 0.3)" : "0 4px 12px rgba(0,0,0,0.12)", 
-                           flexShrink: 0, transition: "all 0.2s"
-                         }}
-                       >
-                         {(() => {
-                           let iconVal = c.icon || "📍";
-                           let cleanIcon = typeof iconVal === 'string' ? iconVal.trim() : iconVal;
-                           let isImg = typeof cleanIcon === 'string' && (cleanIcon.toLowerCase().endsWith('.svg') || cleanIcon.toLowerCase().endsWith('.png'));
-                           return isImg ? <img src={`/${cleanIcon}`} alt="" style={{ width: 24, height: 24, objectFit: "contain" }} /> : <span style={{ fontSize: 24 }}>{cleanIcon}</span>;
-                         })()}
-                       </button>
-                     );
-                  })}
-                 </div>
-              </div>
-            )}
 
             <Suspense fallback={<LoaderFallback/>}><GMap events={(events||[]).filter(e => e.city_slug === activeCity || e.city_slug === 'all')} businesses={displayedPins} selected={mapPin} onPin={b => { setMapPin(p => p?.id === b.id ? null : b); }} userLocation={userCoords} onRequestLocation={requestLocation} categories={cats} radiusKm={null} onBoundsChanged={(bounds) => loadMapPinsByBounds(activeCity, bounds)} showRoute={mapFullScreen} /></Suspense>
 
@@ -209,19 +168,6 @@ export default function MapView() {
                 </button>
               </div>
             )}
-
-            {/* Solo abiertos Overlay */}
-            {!mapPin && (
-              <div style={{ position: "absolute", top: 16, left: 16, zIndex: 10 }}>
-                <button className="press" onClick={() => setNearbyFilter(nearbyFilter === "open" ? "all" : "open")} style={{ display: "flex", alignItems: "center", gap: 6, background: nearbyFilter === "open" ? "#10B981" : "rgba(255, 255, 255, 0.95)", border: nearbyFilter === "open" ? "1px solid transparent" : "1px solid rgba(0,0,0,0.1)", padding: "8px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", fontFamily: "inherit", transition: "all .2s", whiteSpace: "nowrap" }}>
-                  <div className="live-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: nearbyFilter === "open" ? "#fff" : "#9CA3AF" }} />
-                  <span style={{ fontWeight: 800, color: nearbyFilter === "open" ? "#fff" : T.text, display: "inline-block" }}>
-                    {t("abiertos_ahora", "Abiertos ahora")}
-                  </span>
-                </button>
-              </div>
-            )}
-
           </div>
 
                     {/* Backdrop for selected map pin */}
@@ -419,7 +365,7 @@ export default function MapView() {
                 <div style={{ marginBottom: 20 }}>
                   {/* Title row */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <span style={{ fontFamily: "var(--heading)", fontSize: 20, color: T.text, fontWeight: 800 }}>{activeCat === "explorar" || activeCat === "todas" ? `${t("descubre", "Descubre")} ${shortCity}` : `${t(cats.find(c => c.id === activeCat)?.label || "Lugares", cats.find(c => c.id === activeCat)?.label || "Lugares")} en ${shortCity}`}</span>
+                    <span style={{ fontFamily: "var(--heading)", fontSize: 20, color: T.text, fontWeight: 800 }}>{activeCat === "explorar" || activeCat === "todas" ? (lang === "en" ? "Closest to you" : "Lo más cerca de ti") : `${t(cats.find(c => c.id === activeCat)?.label || "Lugares", cats.find(c => c.id === activeCat)?.label || (lang === "en" ? "Places" : "Lugares"))} ${lang === "en" ? "near you" : "cerca de ti"}`}</span>
                     {userCoords && filteredNearby.length > 0 && <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>{filteredNearby.length} {lang === 'en' ? 'places' : 'lugares'}</span>}
                   </div>
 

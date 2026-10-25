@@ -26,35 +26,48 @@ const CITY_TZ = {
 const FONT_BIZ = "var(--heading)";
 
 export const CATS_DEFAULT = [{ id: "restaurantes", label: "Restaurantes" }, { id: "cafe", label: "Cafés" }, { id: "salud", label: "Salud" }, { id: "belleza", label: "Belleza" }, { id: "fitness", label: "Fitness" }, { id: "compras", label: "Compras" }, { id: "tech", label: "Tech" }, { id: "ocio", label: "Ocio" }];
-const EVENT_CATS = ["Música en vivo", "DJ", "Karaoke", "Fiesta", "Deportes", "Comedia", "Networking", "Promoción especial", "Otro"];
+const EVENT_CATEGORIES = [
+  "Concierto",
+  "Comedia",
+  "Festival",
+  "Obra de teatro",
+  "Fiesta",
+  "Deporte",
+  "Gastronomía",
+  "Cultura",
+  "Otro"
+];
+const EVENT_CATS = EVENT_CATEGORIES;
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
 const getT = dark => dark ? {
+  dark: true,
   // ── DARK MODE ──────────────────────────────
-  green:    "#FFFFFF", // White primary
-  greenL:   "#1A1A1A", // Dark gray for active tags/chips
-  greenD:   "#E5E7EB", // Light gray for hover states
-  bg:       "#000000",
-  white:    "#141414",
-  text:     "#F0F0F0",
-  sub:      "#9CA3AF",
-  border:   "#2A2A2A",
+  green:    "#F4F4F5", // White primary
+  greenL:   "#232326", // Dark gray for active tags/chips
+  greenD:   "#E4E4E7", // Light gray for hover states
+  bg:       "#18181B",
+  white:    "#232326",
+  text:     "#F4F4F5",
+  sub:      "#A1A1AA",
+  border:   "#3F3F46",
   red:      "#F07060",
   gold:     "#C9A84C",
-  card:     "#1A1A1A",
-  shadow:   "0 2px 16px rgba(0,0,0,.6)",
-  shadowLg: "0 8px 40px rgba(0,0,0,.8)",
-  skBase:   "#1A1A1A",
-  skShine:  "#252525",
-  glassBg:  "rgba(15,20,17,0.75)",
+  card:     "#232326",
+  shadow:   "0 2px 16px rgba(0,0,0,.20)",
+  shadowLg: "0 8px 40px rgba(0,0,0,.35)",
+  skBase:   "#232326",
+  skShine:  "#2D2D31",
+  glassBg:  "rgba(35,35,38,0.92)",
   glassBorder: "rgba(255,255,255,0.12)",
   overlay:  "rgba(0,0,0,0.8)",
-  iconBg:   "#1F2937",
-  btnBg:    "#374151",
-  btnText:  "#F9FAFB",
-  tagBg:    "#1E293B",
+  iconBg:   "#2D2D31",
+  btnBg:    "#2D2D31",
+  btnText:  "#F4F4F5",
+  tagBg:    "#232326",
   invert:   1, // For filters like invert(1) on dark mode
 } : {
+  dark: false,
   // ── LIGHT MODE (predeterminado) ────────────
   green:    "#000000", // Black primary
   greenL:   "#F3F4F6", // Light gray for active tags/chips
@@ -81,4 +94,4 @@ const getT = dark => dark ? {
   invert:   0,
 };
 
-export { PLAN_META, CITY_TZ, FONT_BIZ, EVENT_CATS, getT };
+export { PLAN_META, CITY_TZ, FONT_BIZ, EVENT_CATS, EVENT_CATEGORIES, getT };

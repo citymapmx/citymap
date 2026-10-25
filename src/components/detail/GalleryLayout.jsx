@@ -1,82 +1,55 @@
-import React from "react";
-import { getThumbUrl } from "../../lib/utils.js";
+import { getThumbUrl } from '../../lib/utils.js';
 
 export default function GalleryLayout({ photos, T, setShowGallery, bizName }) {
-  if (!photos || photos.length === 0) return null;
+  const items = (photos || []).map((photo, index) => ({
+    photo, index, url: typeof photo === 'string' ? photo : photo?.url,
+  })).filter(item => item.url);
+  if (!items.length) return null;
 
   return (
-    <div style={{ padding: "20px 0 0", position: "relative" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 20px" }}>
-        <div className="text-base" style={{ fontWeight: 800, color: T.text, letterSpacing: "-0.5px" }}>Galería de fotos</div>
+    <section aria-label={`Galería de fotos de ${bizName || 'este lugar'}`} style={{ padding: '20px 20px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: T.text, letterSpacing: '-0.5px' }}>Galería de fotos</h2>
+        <button
+          type="button"
+          aria-label={`Ver todas las fotos (${items.length})`}
+          onClick={() => setShowGallery(items[0].index)}
+          style={{ border: 0, background: 'transparent', padding: '8px 0 8px 12px', color: T.sub || T.text, fontFamily: 'inherit', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}
+        >
+          Ver todas <span aria-hidden="true">›</span>
+        </button>
       </div>
-
       <style>{`
-        .mosaic-gallery {
-          display: grid;
-          gap: 12px;
-          padding: 0 20px;
+        .business-photo-masonry { column-count: 2; column-gap: 10px; }
+        .business-photo-masonry.single-photo { column-count: 1; }
+        .business-photo-button {
+          display: block; width: 100%; padding: 0; margin: 0 0 10px;
+          border: 0; border-radius: 14px; overflow: hidden; cursor: pointer;
+          background: transparent; break-inside: avoid;
         }
-        .mosaic-gallery.count-1 {
-          grid-template-columns: 1fr;
-        }
-        .mosaic-gallery.count-2 {
-          grid-template-columns: 1fr 1fr;
-        }
-        .mosaic-gallery.count-more {
-          grid-template-columns: 1fr 1fr;
-        }
-        .mosaic-item {
-          border-radius: 16px;
-          overflow: hidden;
-          background: ${T.border};
-          cursor: pointer;
-          position: relative;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-          transition: transform 0.2s, box-shadow 0.2s;
-          aspect-ratio: 4/3;
-        }
-        .mosaic-item:active {
-          transform: scale(0.97);
-        }
-        .mosaic-item-lead {
-          grid-column: 1 / -1;
-          aspect-ratio: 2/1;
-        }
-        .mosaic-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
+        .business-photo-button:focus-visible { outline: 3px solid #1A7A5E; outline-offset: 3px; }
+        .business-photo-button img { display: block; width: 100%; height: auto; }
       `}</style>
-
-      <div className={`mosaic-gallery ${photos.length === 1 ? 'count-1' : photos.length === 2 ? 'count-2' : 'count-more'}`}>
-        {photos.slice(0, 3).map((photo, index) => {
-          const isLead = photos.length >= 3 && index === 0;
-          const isLastVisible = photos.length > 3 && index === 2;
-          const photoUrl = typeof photo === 'string' ? photo : photo?.url;
-
-          return (
-            <div
-              key={index}
-              className={`mosaic-item ${isLead ? 'mosaic-item-lead' : ''}`}
-              onClick={() => setShowGallery(index)}
-            >
-              <img
-                src={getThumbUrl(photoUrl, isLead ? 1200 : 600, isLead ? 600 : 600)}
-                className="mosaic-img"
-                alt={`Foto ${index + 1} de ${bizName || "galería"}`}
-                loading="lazy"
-              />
-              {isLastVisible && (
-                <div className="text-xl" style={{ position: "absolute", inset: 0, background: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800 }}>
-                  +{photos.length - 3}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div className={`business-photo-masonry${items.length === 1 ? ' single-photo' : ''}`}>
+        {items.slice(0, 6).map(({ photo, index, url }) => (
+          <button
+            key={`${url}-${index}`}
+            type="button"
+            className="business-photo-button"
+            aria-label={`Abrir foto ${index + 1} de ${bizName || 'la galería'}`}
+            onClick={() => setShowGallery(index)}
+          >
+            <img
+              src={getThumbUrl(url, items.length === 1 ? 800 : 400)}
+              alt={(typeof photo === 'object' && (photo.alt || photo.label)) || `Foto ${index + 1} de ${bizName || 'este lugar'}`}
+              width={photo?.width || undefined}
+              height={photo?.height || undefined}
+              loading={index < 2 ? 'eager' : 'lazy'}
+              decoding="async"
+            />
+          </button>
+        ))}
       </div>
-    </div>
+    </section>
   );
 }

@@ -440,6 +440,25 @@ export default async function BusinessProfile({ params }) {
           {(biz.banner_url || biz.logo_url) && <Image src={biz.banner_url || biz.logo_url} alt={biz.name} fill className="object-cover rounded-b-[32px]" sizes="100vw" priority />}
         </div>
         <div className="px-5 pt-5 pb-20 max-w-2xl mx-auto">
+          {/* Breadcrumbs */}
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-gray-500 mb-3 flex-wrap">
+            <a href="https://citymap.mx" className="hover:underline">CityMap</a>
+            <span>›</span>
+            <a href={`https://citymap.mx/${city}`} className="hover:underline">{cityCapitalized}</a>
+            {biz.category && (
+              <>
+                <span>›</span>
+                <a href={`https://citymap.mx/${city}/${biz.category.toLowerCase().split(',')[0].trim()}`} className="capitalize hover:underline">
+                  {biz.category.split(',')[0].trim()}
+                </a>
+              </>
+            )}
+            <span>›</span>
+            <span aria-current="page" className="font-semibold text-gray-900 truncate max-w-[180px]">
+              {biz.name}
+            </span>
+          </nav>
+
           <div className="mb-2">
             <h1 className="text-[28px] font-black tracking-tight leading-tight text-gray-900 flex items-center gap-2">
               {biz.name}

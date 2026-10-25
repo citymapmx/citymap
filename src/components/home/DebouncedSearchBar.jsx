@@ -1,72 +1,55 @@
 import React from "react";
 import Icon from "../ui/Icon.jsx";
 
-export default function DebouncedSearchBar({ initialValue, onSearch, placeholders, phIdx, locating, detectCity, dark, onSurprise }) {
-  const [localSearch, setLocalSearch] = React.useState(initialValue);
-  const [displayedPlaceholder, setDisplayedPlaceholder] = React.useState("");
-  
+export default function DebouncedSearchBar({ initialValue, onSearch, placeholder = "¿Qué buscas?", dark }) {
+  const [localSearch, setLocalSearch] = React.useState(initialValue || "");
+  const [focusedPlaceholder, setFocusedPlaceholder] = React.useState(null);
+  const lastSubmitted = React.useRef(initialValue || "");
+  const pendingSearch = React.useRef(null);
+
   React.useEffect(() => {
-    setLocalSearch(initialValue);
+    const value = initialValue || "";
+    if (value !== lastSubmitted.current) {
+      lastSubmitted.current = value;
+      setLocalSearch(value);
+    }
   }, [initialValue]);
 
   React.useEffect(() => {
-    const t = setTimeout(() => onSearch(localSearch), 300);
-    return () => clearTimeout(t);
+    if (localSearch === lastSubmitted.current) return;
+    pendingSearch.current = setTimeout(() => {
+      lastSubmitted.current = localSearch;
+      onSearch(localSearch);
+    }, 300);
+    return () => clearTimeout(pendingSearch.current);
   }, [localSearch, onSearch]);
 
-  React.useEffect(() => {
-    const targetText = placeholders[phIdx] || "";
-    let i = 0;
-    setDisplayedPlaceholder("|"); // Start with cursor
-    
-    let interval;
-    const timeout = setTimeout(() => {
-      interval = setInterval(() => {
-        setDisplayedPlaceholder(targetText.slice(0, i + 1) + (i < targetText.length - 1 ? "|" : ""));
-        i++;
-        if (i >= targetText.length) {
-          clearInterval(interval);
-          setDisplayedPlaceholder(targetText);
-        }
-      }, 50);
-    }, phIdx === 0 ? 500 : 100);
-
-    return () => {
-      clearTimeout(timeout);
-      if (interval) clearInterval(interval);
-    };
-  }, [phIdx, placeholders]);
+  const submit = value => {
+    clearTimeout(pendingSearch.current);
+    lastSubmitted.current = value;
+    setLocalSearch(value);
+    onSearch(value);
+  };
+  const handleClear = () => submit("");
 
   return (
-    <>
-      <input 
-        className="inp hero-search-input" 
-        style={{ width: "100%", padding: "12px 16px 12px 44px", border: "none", borderRadius: 100, color: dark ? "#fff" : "#111", fontSize: 15, fontWeight: 600, outline: "none", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }} 
-        placeholder={displayedPlaceholder} 
-        value={localSearch} 
-        onChange={e => setLocalSearch(e.target.value)} 
+    <div style={{display:"grid",position:"relative",zIndex:3}}>
+      <input role="searchbox" aria-label="Buscar lugares y eventos" autoComplete="off" enterKeyHint="search"
+        className="inp hero-search-input"
+        style={{ width: "100%", minHeight: 48, boxSizing: "border-box", padding: "12px 48px 12px 44px", border: "none", borderRadius: 100, color: dark ? "#F4F4F5" : "#18181B", fontSize: 16, fontWeight: 500, gridArea:"1 / 1",height:"100%" }}
+        placeholder="" value={localSearch}
+        onFocus={() => setFocusedPlaceholder(placeholder)} onBlur={() => setFocusedPlaceholder(null)}
+        onChange={event => setLocalSearch(event.target.value)}
+        onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); submit(event.currentTarget.value.trim()); } }}
       />
+      {!localSearch && <span aria-hidden="true" style={{gridArea:'1 / 1',alignSelf:'center',minWidth:0,padding:'12px 16px 12px 44px',zIndex:4,pointerEvents:'none',fontSize:'clamp(14px, 3.8vw, 16px)',fontWeight:500,lineHeight:'20px',whiteSpace:'normal',overflowWrap:'anywhere',color:dark?'#A1A1AA':'#6B7280'}}>{focusedPlaceholder || placeholder}</span>}
       <span style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", zIndex: 5, pointerEvents: "none", display: "flex" }}>
-        <Icon name="search" size={18} color={dark ? "rgba(255,255,255,0.8)" : "rgba(17,17,17,0.5)"} sw={2.5} />
+        <Icon name="search" size={19} color={dark ? "#A1A1AA" : "#6B7280"} />
       </span>
-      {localSearch ? (
-        <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", zIndex: 5, display: "flex" }}>
-          <button aria-label="Borrar búsqueda" className="press" onClick={() => setLocalSearch("")} style={{ background: dark ? "rgba(255,255,255,0.15)" : "rgba(17,17,17,0.08)", borderRadius: "50%", width: 28, height: 28, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
-            <Icon name="x" size={14} color={dark ? "#fff" : "#111"} sw={3} />
-          </button>
-        </div>
-      ) : (
-        <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", zIndex: 5, display: "flex", alignItems: "center", gap: 2 }}>
-          {onSurprise && (
-            <button aria-label="Sorpréndeme" className="press" onClick={onSurprise} title="Sorpréndeme" style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 6, fontSize: 18, lineHeight: 1 }}>
-              🎲
-            </button>
-          )}
-          <button aria-label="Actualizar ubicación" className="press" onClick={() => { localStorage.removeItem("cg_manual_city"); if (!locating) detectCity({ showToast: true }); }} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 8, animation: locating ? "pulse 1.5s infinite" : "none" }} title="Actualizar GPS">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={dark ? "rgba(255,255,255,0.7)" : "rgba(17,17,17,0.4)"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line></svg>
-          </button>
-        </div>
-      )}
-    </>
+      {localSearch && <button type="button" aria-label="Borrar búsqueda" onClick={handleClear}
+        style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", zIndex: 5, display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, border: 0, borderRadius: "50%", background: "transparent", color: dark ? "#F4F4F5" : "#18181B", cursor: "pointer" }}>
+        <Icon name="x" size={18} color="currentColor" />
+      </button>}
+    </div>
   );
 }

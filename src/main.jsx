@@ -1,3 +1,6 @@
+import LoadFailureView from './components/LoadFailureView.jsx';
+import { initializeTheme } from './lib/theme.js';
+import { useUIStore } from './store/useUIStore.js';
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
@@ -5,6 +8,9 @@ import './index.css'
 import { HelmetProvider } from 'react-helmet-async'
 import { LazyMotion, domAnimation } from 'framer-motion'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const stopTheme = initializeTheme(useUIStore);
+if (import.meta.hot) import.meta.hot.dispose(stopTheme);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,18 +23,11 @@ const queryClient = new QueryClient({
   },
 });
 
-// Auto-recuperación cuando un deploy nuevo invalida los hashes de chunks JS antiguos
-window.addEventListener('vite:preloadError', (event) => {
-  event.preventDefault();
-  const last = parseInt(sessionStorage.getItem('chunk_reload_guard') || '0', 10);
-  const now = Date.now();
-  if (now - last > 10000) {
-    sessionStorage.setItem('chunk_reload_guard', now.toString());
-    import('./components/ErrorBoundary.jsx')
-      .then(({ reloadClearingStaleAssets }) => reloadClearingStaleAssets())
-      .catch(() => window.location.reload());
-  }
-});
+// Import failures propagate to a boundary or the startup fallback; they do not
+// trigger a cache purge/reload merely because the connection failed.
+const renderStartupFailure = error => {
+  createRoot(document.getElementById('root')).render(<LoadFailureView error={error} fullPage/>);
+};
 
 // ─── Ruta /admin — carga sólo el panel sin la app completa ───────────────────
 const isAdminRoute = window.location.pathname === '/admin' || window.location.pathname === '/admin/';
@@ -45,11 +44,11 @@ if (isAdminRoute) {
         </HelmetProvider>
       </StrictMode>
     );
-  });
+  }).catch(renderStartupFailure);
 } else {
   // App normal
   import('./App.jsx').then(({ default: App }) => {
-    import('./components/GlobalErrorBoundary.jsx').then(({ GlobalErrorBoundary }) => {
+    return import('./components/GlobalErrorBoundary.jsx').then(({ GlobalErrorBoundary }) => {
 
       // Register Service Worker - updates silently in background (no forced reload)
       // IMPORTANT: onNeedRefresh must NOT call updateSW(true) or window.location.reload()
@@ -86,5 +85,5 @@ if (isAdminRoute) {
         </StrictMode>
       );
     });
-  });
+  }).catch(renderStartupFailure);
 }

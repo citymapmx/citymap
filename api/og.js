@@ -1,3 +1,4 @@
+import { seoSite } from '../src/lib/seoRoutes.js';
 const SUPABASE_URL  = "https://dpkjxhjkzdlkvyotoeai.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
 
@@ -49,15 +50,48 @@ async function getCityData(citySlug) {
     const d = await r.json();
     return {
       country_code: d?.[0]?.country_code || "mx",
-      bg_image: d?.[0]?.bg_image || null
+      bg_image: d?.[0]?.bg_image || null,
+      exists: Boolean(d?.[0])
     };
   } catch {
     return { country_code: "mx", bg_image: null };
   }
 }
 
+function photoList(value) {
+  if (Array.isArray(value)) return value;
+  try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+}
+
+async function getListing(city, category, origin, cityPath) {
+  try {
+    const query = new URLSearchParams({ city_slug: `eq.${city}`, status: 'eq.approved',
+      select: 'id,slug,name,description,logo_url,photos', order: 'name.asc', limit: '24' });
+    if (category) query.set('category', `eq.${category}`);
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/businesses?${query}`, {
+      headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` }
+    });
+    if (!response.ok) return '';
+    const rows = await response.json();
+    if (!Array.isArray(rows)) return '';
+    return `<section><h2>${category ? 'Lugares para descubrir' : 'Lugares en esta ciudad'}</h2><ul>${rows.map(business => {
+      const slug = String(business.slug || business.id).replace(new RegExp(`^${city}-`), '');
+      const photo = photoList(business.photos)[0];
+      const image = (typeof photo === 'string' ? photo : photo?.url) || business.logo_url;
+      return `<li><article><h3><a href="${esc(origin + cityPath + '/' + slug)}">${esc(business.name)}</a></h3>${/^https?:\/\//i.test(image || '') ? `<img src="${esc(image)}" alt="${esc(business.name)} en ${esc(city.replace(/-/g, ' '))}" loading="lazy" style="max-width:100%;height:auto" />` : ''}${business.description ? `<p>${esc(business.description.slice(0, 300))}</p>` : ''}</article></li>`;
+    }).join('')}</ul></section>`;
+  } catch { return ''; }
+}
+
 async function getBiz(id, city) {
   try {
+    const RESERVED_SLUGS = new Set([
+      'planes', 'explorar', 'eventos', 'mapa', 'revista', 'experiencias', 'mis-planes',
+      'cuenta', 'favoritos', 'explorer', 'about', 'privacy', 'terms', 'admin',
+      'lealtad', 'wallet', 'scan', 'precios'
+    ]);
+    if (!id || RESERVED_SLUGS.has(id.toLowerCase())) return null;
+
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     let q = isUUID ? `id=eq.${id}` : `slug=in.(${id},${city ? `${city}-${id}` : id})`;
     
@@ -77,8 +111,9 @@ async function getBiz(id, city) {
     let d = await r.json();
     if (!d?.[0] && !isUUID && !q.startsWith("id=")) {
       const searchName = id.split("-").join("%25");
+      const cityFilter = (city && !RESERVED_SLUGS.has(city.toLowerCase())) ? `&city_slug=eq.${encodeURIComponent(city)}` : "";
       r = await fetch(
-        `${SUPABASE_URL}/rest/v1/businesses?name=ilike.*${searchName}*&select=id,slug,name,tagline,description,address,rating,review_count,category,photos,city_slug,schedule,lat,lng`,
+        `${SUPABASE_URL}/rest/v1/businesses?name=ilike.*${searchName}*${cityFilter}&select=id,slug,name,tagline,description,address,rating,review_count,category,photos,city_slug,schedule,lat,lng`,
         { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
       );
       if (r.ok) d = await r.json();
@@ -169,14 +204,17 @@ export default async function handler(req) {
   const city = searchParams.get("city");
   const ua = req.headers.get("user-agent") || "";
 
-  const host = req.headers.get("host") || "";
-  const isWorld = host.endsWith("citymap.world");
-  const BASE_URL = isWorld ? "https://citymap.world" : "https://citymap.mx";
+  const { isWorld, origin: BASE_URL } = seoSite(new URL(req.url).hostname);
   const SITE_NAME = isWorld ? "CityMap" : "CityMap México";
   
   // Dynamic country extraction to set appropriate locales and paths
   const targetCitySlug = city || "";
-  const { country_code: countryCode, bg_image: cityBgImage } = await getCityData(targetCitySlug);
+  const { country_code: countryCode, bg_image: cityBgImage, exists: cityExists } = await getCityData(targetCitySlug);
+  if (city && cityExists === false && !id && !evId && !expId && !vista) {
+    return new Response('<!doctype html><html lang="es"><title>Ciudad no encontrada | CityMap</title><h1>Ciudad no encontrada</h1></html>', {
+      status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex' }
+    });
+  }
   const cityPath = isWorld && targetCitySlug ? `/${countryCode}/${targetCitySlug}` : `/${targetCitySlug}`;
   
   // Set locale based on target country
@@ -247,7 +285,10 @@ export default async function handler(req) {
        else loc += `?lugar=${id}`;
     }
     else if (evId) loc += `?evento=${evId}`;
-    else if (expId) loc = `${BASE_URL}/experiencias/${city || 'todas'}/${expId}`;
+    else if (expId) loc = `${BASE_URL}/revista/${city || 'todas'}/${expId}`;
+    else if (vista === "eventos" || vista === "explorar") loc = city ? `${BASE_URL}/eventos/${city}` : `${BASE_URL}/eventos`;
+    else if (vista === "mapa") loc = city ? `${BASE_URL}/mapa/${city}` : `${BASE_URL}/mapa`;
+    else if (vista === "mis-planes" || vista === "experiencias" || vista === "revista") loc = city ? `${BASE_URL}/revista/${city}` : `${BASE_URL}/revista`;
     else if (vista) loc += `?vista=${vista}`;
     else if (city) loc = `${BASE_URL}${cityPath}`;
     
@@ -258,11 +299,13 @@ export default async function handler(req) {
   }
 
   // --- RESPUESTA PARA CIUDAD ---
-  if (city && !id && !evId && !expId) {
+  if (city && !id && !evId && !expId && !vista) {
     const cityName = city.charAt(0).toUpperCase() + city.slice(1).replace("-", " ");
     const title = `${SITE_NAME} ${cityName} — La guía de tu ciudad`;
     const desc = `Encuentra los mejores restaurantes, servicios y eventos en ${cityName}. Explora lugares increíbles cerca de ti.`;
     const img = cityBgImage || `${BASE_URL}/og-image.png`;
+    const listing = await getListing(city, null, BASE_URL, cityPath);
+    const categoryLinks = `<nav aria-label="Categorías"><ul>${Object.entries(CAT_SEO).map(([slug, info]) => `<li><a href="${esc(BASE_URL + cityPath + '/' + slug)}">${esc(info.label)}</a></li>`).join('')}</ul></nav>`;
     
     const html = `<!doctype html>
 <html lang="es" prefix="og: https://ogp.me/ns#">
@@ -291,6 +334,8 @@ export default async function handler(req) {
 <h1>${esc(title)}</h1>
 <img src="${esc(img)}" alt="${esc(title)}" style="max-width: 100%; height: auto;" />
 <p>${esc(desc)}</p>
+${listing}
+${categoryLinks}
 <a href="${BASE_URL}${cityPath}">Abrir ${esc(SITE_NAME)} en ${esc(cityName)}</a>
 </body>
 </html>`;
@@ -304,18 +349,50 @@ export default async function handler(req) {
     });
   }
 
-  // --- RESPUESTA PARA TABS ---
+  // --- RESPUESTA PARA TABS Y SECCIONES ---
   if (vista) {
     let title = SITE_NAME;
     let desc = "Descubre tu ciudad.";
-    const img = `${BASE_URL}/og-image.png`;
+    let img = cityBgImage || `${BASE_URL}/og-image.png`;
+    const cityName = city ? (city.charAt(0).toUpperCase() + city.slice(1).replace(/-/g, " ")) : "";
+    let canonicalUrl = `${BASE_URL}/?vista=${esc(vista)}`;
+    let schemaJson = "";
 
-    if (vista === "eventos") {
-      title = `Cartelera de Eventos — ${SITE_NAME}`;
-      desc = "Descubre los mejores eventos, conciertos y actividades en tu ciudad.";
+    if (vista === "eventos" || vista === "explorar") {
+      canonicalUrl = city ? `${BASE_URL}/eventos/${city}` : `${BASE_URL}/eventos`;
+      if (city) {
+        title = `Cartelera de Eventos en ${cityName} — Conciertos y Festivales | ${SITE_NAME}`;
+        desc = `Consulta la cartelera de eventos en ${cityName}. Conciertos, obras de teatro, festivales y actividades imperdibles para salir hoy en ${cityName}.`;
+      } else {
+        title = `Cartelera de Eventos — ${SITE_NAME}`;
+        desc = `Descubre los mejores eventos, conciertos y actividades en tu ciudad con ${SITE_NAME}.`;
+      }
     } else if (vista === "mapa") {
-      title = `Mapa Interactivo de Negocios — ${SITE_NAME}`;
-      desc = "Explora todos los negocios y lugares de interés cercanos a ti en nuestro mapa interactivo.";
+      canonicalUrl = city ? `${BASE_URL}/mapa/${city}` : `${BASE_URL}/mapa`;
+      if (city) {
+        title = `Mapa Interactivo de ${cityName} — Restaurantes, Cafés y Lugares | ${SITE_NAME}`;
+        desc = `Explora el mapa interactivo de ${cityName}. Encuentra los mejores lugares, restaurantes y eventos cercanos a ti en tiempo real.`;
+      } else {
+        title = `Mapa Interactivo de Negocios — ${SITE_NAME}`;
+        desc = "Explora todos los negocios y lugares de interés cercanos a ti en nuestro mapa interactivo.";
+      }
+    } else if (vista === "revista" || vista === "experiencias" || vista === "mis-planes") {
+      canonicalUrl = city ? `${BASE_URL}/revista/${city}` : `${BASE_URL}/revista`;
+      if (city) {
+        title = `Revista CityMap ${cityName} — Historias, Recomendaciones y Notas Locales`;
+        desc = `Descubre las mejores historias, notas locales, recomendaciones y guías de ${cityName} en la Revista CityMap. Qué hacer y lugares imperdibles.`;
+      } else {
+        title = `Revista CityMap — Historias, Guías y Recomendaciones Locales`;
+        desc = `Descubre historias, reportajes, notas locales y las mejores recomendaciones de tu ciudad en la Revista CityMap.`;
+      }
+    } else if (vista === "favoritos") {
+      title = `Mis Favoritos — ${SITE_NAME}`;
+      desc = `Guarda y organiza tus lugares y planes favoritos en ${SITE_NAME}.`;
+      canonicalUrl = `${BASE_URL}/favoritos`;
+    } else if (vista === "cuenta") {
+      title = `Mi Cuenta — ${SITE_NAME}`;
+      desc = `Gestiona tu perfil, reseñas y membresías en ${SITE_NAME}.`;
+      canonicalUrl = `${BASE_URL}/cuenta`;
     }
 
     const html = `<!doctype html>
@@ -324,10 +401,11 @@ export default async function handler(req) {
 <meta charset="UTF-8"/>
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}"/>
+<link rel="canonical" href="${canonicalUrl}"/>
 
 <!-- Open Graph -->
 <meta property="og:type" content="website"/>
-<meta property="og:url" content="${BASE_URL}/?vista=${esc(vista)}"/>
+<meta property="og:url" content="${canonicalUrl}"/>
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(desc)}"/>
 <meta property="og:image" content="${esc(img)}"/>
@@ -339,12 +417,14 @@ export default async function handler(req) {
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(desc)}"/>
 <meta name="twitter:image" content="${esc(img)}"/>
+
+${schemaJson}
 </head>
 <body>
 <h1>${esc(title)}</h1>
 <img src="${esc(img)}" alt="${esc(title)}" style="max-width: 100%; height: auto;" />
 <p>${esc(desc)}</p>
-<a href="${BASE_URL}/?vista=${esc(vista)}">Abrir en ${esc(SITE_NAME)}</a>
+<a href="${canonicalUrl}">Abrir en ${esc(SITE_NAME)}</a>
 </body>
 </html>`;
 
@@ -357,7 +437,7 @@ export default async function handler(req) {
     });
   }
 
-  let name = "", desc = "", img = "", url = "", category = "", fullDesc = "", linkHref = "", canonicalUrl = "", cityNameFormat = "";
+  let name = "", desc, img = "", url = "", category = "", fullDesc = "", linkHref = "", canonicalUrl = "", cityNameFormat = "";
   let bizData = null, evData = null, expData = null;
 
   if (id) {
@@ -371,6 +451,7 @@ export default async function handler(req) {
       const specificCityPath = isWorld && city ? `/${cityCountry}/${city}` : `/${city || ""}`;
       const canonicalUrl = `${BASE_URL}${specificCityPath}/${esc(id)}`;
       const img = cityBgImage || `${BASE_URL}/og-image.png`;
+      const listing = await getListing(city, id, BASE_URL, specificCityPath);
       
       const html = `<!doctype html>
 <html lang="es" prefix="og: https://ogp.me/ns#">
@@ -399,6 +480,7 @@ export default async function handler(req) {
 <h1>${esc(catInfo.label)} en ${esc(cityName)}</h1>
 <img src="${esc(img)}" alt="${esc(catInfo.label)} en ${esc(cityName)}" style="max-width: 100%; height: auto;" />
 <p>${esc(desc)}</p>
+${listing}
 <a href="${canonicalUrl}">Ver ${esc(catInfo.label)} en ${esc(SITE_NAME)}</a>
 </body>
 </html>`;
@@ -462,7 +544,7 @@ export default async function handler(req) {
     category = esc(ev.event_category || "");
     let dStr = "";
     if (ev.date) {
-      try { dStr = `📅 ${new Date(ev.date).toLocaleDateString("es-MX")}`; } catch(e) {}
+      try { dStr = `📅 ${new Date(ev.date).toLocaleDateString("es-MX")}`; } catch(e) { /* ignore */ }
     }
     fullDesc = [desc, dStr, ev.venue_name ? esc(`📍 ${ev.venue_name}`) : ""].filter(Boolean).join(" — ");
     canonicalUrl = `${BASE_URL}/evento/${esc(evId)}`;
@@ -475,13 +557,13 @@ export default async function handler(req) {
     }
     expData = exp;
     name = esc(exp.title);
-    desc = esc(exp.description?.slice(0, 160) || `Experiencia en ${SITE_NAME}`);
+    desc = esc(exp.description?.slice(0, 160) || `Artículo en Revista ${SITE_NAME}`);
     const gallery = Array.isArray(exp.gallery) ? exp.gallery : [];
     img = esc(gallery[0] || `${BASE_URL}/og-image.png`);
-    category = esc(exp.activity_type || "Experiencia");
+    category = esc(exp.activity_type || "Revista");
     
     fullDesc = desc;
-    canonicalUrl = `${BASE_URL}/experiencias/${esc(city || 'todas')}/${esc(expId)}`;
+    canonicalUrl = `${BASE_URL}/revista/${esc(city || 'todas')}/${esc(expId)}`;
     url = canonicalUrl;
     linkHref = canonicalUrl;
   }
@@ -561,7 +643,7 @@ export default async function handler(req) {
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Inicio", "item": BASE_URL },
-          { "@type": "ListItem", "position": 2, "name": "Experiencias", "item": `${BASE_URL}/experiencias/${city || ''}` },
+          { "@type": "ListItem", "position": 2, "name": "Revista", "item": `${BASE_URL}/revista/${city || ''}` },
           { "@type": "ListItem", "position": 3, "name": expData.title, "item": canonicalUrl }
         ]
       }
@@ -640,9 +722,7 @@ export default async function handler(req) {
 <meta property="og:image" content="${img}"/>
 <meta property="og:image:url" content="${img}"/>
 <meta property="og:image:secure_url" content="${img}"/>
-<meta property="og:image:type" content="image/jpeg"/>
-<meta property="og:image:width" content="1200"/>
-<meta property="og:image:height" content="630"/>
+
 <meta property="og:site_name" content="${esc(SITE_NAME)}"/>
 <meta property="og:locale" content="${esc(locale)}"/>
 

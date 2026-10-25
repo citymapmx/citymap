@@ -1,0 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap');
+
+.business-detail {
+  --sans: 'Geist', system-ui, -apple-system, sans-serif;
+  --heading: 'Geist', system-ui, -apple-system, sans-serif;
+  font-family: var(--sans);
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.business-detail :is(button, input, textarea, select) { font-family: inherit; }
+.business-detail :is(h1, h2, h3) { letter-spacing: -0.025em; }
+.business-detail .business-section-title { font-size: 16px; font-weight: 600; letter-spacing: -0.015em; }
+.business-detail .business-address { font-size: 15px; line-height: 1.6; }

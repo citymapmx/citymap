@@ -1,13 +1,19 @@
-import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { buildCityPath } from '../../lib/domain.js';
+import SlidingCategoryTrack from '../ui/SlidingCategoryTrack.jsx';
+import {getCityDisplayName} from '../../hooks/useGeolocation.js';
+import React, { useEffect, memo } from 'react';
 import DebouncedSearchBar from './DebouncedSearchBar.jsx';
 import { Sk } from '../ui/Skeleton.jsx';
 
-export default function HomeHero({
+export default memo(function HomeHero({
   dark, T, t, search, setSearch, localizedPlaceholders, phIdx, 
   locating, detectCity, userCoords, dbReady, cats, activeCat, setActiveCat, 
-  activeCity, city, haptic, detectedTown, cities, onSurprise
+  activeCity, city, haptic, detectedTown, cities, onSurprise, navigate
 }) {
-  const cityName = detectedTown || (city || "").split(",")[0] || "tu ciudad";
+  const routerNavigate = useNavigate();
+  const cityName = getCityDisplayName(activeCity, cities, city || detectedTown).split(",")[0];
+  const searchPlaceholder = "Buscar lugares y eventos";
 
   
 
@@ -31,96 +37,97 @@ export default function HomeHero({
     if (h < 11) {
       return isWeekend 
         ? rand([
-            "El fin de semana merece un desayuno especial 🥞", 
-            "Empieza tu día de descanso con un buen brunch 🍳", 
-            "Mañana perfecta para salir por un café ☕️",
-            "¿Listos para salir a explorar la ciudad hoy? 🗺️",
-            "Descubre qué eventos hay este fin de semana 🎟️"
+            "El fin de semana merece un desayuno especial", 
+            "Empieza tu día de descanso con un buen brunch", 
+            "Mañana perfecta para salir por un café",
+            "¿Listos para salir a explorar la ciudad hoy?",
+            "Descubre qué eventos hay este fin de semana"
           ])
         : rand([
-            "Ideal para un buen café mañanero ☕️", 
-            "Empieza el día con energía y un buen desayuno 🥐", 
-            "¡Buenos días! ¿Qué se te antoja desayunar hoy? 🥯",
-            "Planea tus actividades y rutas para hoy 📍",
-            "Descubre nuevos lugares cerca de ti 🚶‍♂️"
+            "Ideal para un buen café mañanero", 
+            "Empieza el día con energía y un buen desayuno", 
+            "¡Buenos días! ¿Qué se te antoja desayunar hoy?",
+            "Planea tus actividades y rutas para hoy",
+            "Descubre nuevos lugares cerca de ti"
           ]);
     }
     
     if (h >= 11 && h < 14) {
       return isWeekend
         ? rand([
-            "¿Listo para el antojo de fin de semana? 🍔", 
-            "¿Dónde vamos a comer hoy? 🌮", 
-            "Busca el plan perfecto para esta tarde 🎢",
-            "Descubre museos, parques y lugares increíbles 📸",
-            "Hay mucho por hacer hoy en la ciudad 🎡"
+            "¿Listo para el antojo de fin de semana?", 
+            "¿Dónde vamos a comer hoy?", 
+            "Busca el plan perfecto para esta tarde",
+            "Descubre museos, parques y lugares increíbles",
+            "Hay mucho por hacer hoy en la ciudad"
           ])
         : rand([
-            "¿Ya hace hambre? Descubre dónde comer 🌮", 
-            "Haz una pausa y disfruta una buena comida 🍱", 
-            "Encuentra el lugar perfecto para tu hora de comida 🥗",
-            "Busca qué hacer al salir de la oficina 💼",
-            "Explora los mejores lugares de la zona 🏙️"
+            "¿Ya hace hambre? Descubre dónde comer", 
+            "Haz una pausa y disfruta una buena comida", 
+            "Encuentra el lugar perfecto para tu hora de comida",
+            "Busca qué hacer al salir de la oficina",
+            "Explora los mejores lugares de la zona"
           ]);
     }
     
     if (h >= 14 && h < 18) {
       return isWeekend 
         ? rand([
-            "Tarde perfecta para salir por un postre 🍦", 
-            "Aprovecha la tarde libre para explorar 🚶", 
-            "Busca eventos y música en vivo para hoy 🎸",
-            "¿Un paseo por la ciudad o un buen café? 🧋",
-            "Descubre las mejores experiencias locales 🌟"
+            "Tarde perfecta para salir por un postre", 
+            "Aprovecha la tarde libre para explorar", 
+            "Busca eventos y música en vivo para hoy",
+            "¿Un paseo por la ciudad o un buen café?",
+            "Descubre las mejores experiencias locales"
           ])
         : rand([
-            "Para romper la rutina con algo dulce 🍰", 
-            "Haz una pausa en tu tarde con un buen café ☕️", 
-            "Un gustito a mitad del día no hace daño 🍪",
-            "Escapa de la rutina y descubre algo nuevo 🧭",
-            "¿Qué plan hay para salir del trabajo? 🌇"
+            "Para romper la rutina con algo dulce", 
+            "Haz una pausa en tu tarde con un buen café", 
+            "Un gustito a mitad del día no hace daño",
+            "Escapa de la rutina y descubre algo nuevo",
+            "¿Qué plan hay para salir del trabajo?"
           ]);
     }
     
     if (h >= 18 && h < 22) {
       return isWeekend 
         ? rand([
-            "La noche es joven. Ideal para una cena o tragos 🍸", 
-            "Descubre dónde cenar y relajarte este fin de semana 🍻", 
-            "Busca eventos, teatro o comedia para esta noche 🎭",
-            "Noche perfecta para probar algo diferente 🍣",
-            "Encuentra el mejor ambiente nocturno 🕺"
+            "La noche es joven. Ideal para una cena o tragos", 
+            "Descubre dónde cenar y relajarte este fin de semana", 
+            "Busca eventos, teatro o comedia para esta noche",
+            "Noche perfecta para probar algo diferente",
+            "Encuentra el mejor ambiente nocturno"
           ])
         : rand([
-            "¿Antojo de cenar algo rico? 🍕", 
-            "Termina tu día con una cena espectacular 🍝", 
-            "Descubre qué hacer esta noche en la ciudad 🎟️",
-            "El día aún no termina, sal a explorar 🌃",
-            "Relájate en un buen bar o terraza 🍷"
+            "¿Antojo de cenar algo rico?", 
+            "Termina tu día con una cena espectacular", 
+            "Descubre qué hacer esta noche en la ciudad",
+            "El día aún no termina, sal a explorar",
+            "Relájate en un buen bar o terraza"
           ]);
     }
     
     return isWeekend
       ? rand([
-            "Para los que todavía no quieren dormir 🌙", 
-            "Descubre la vida nocturna de la ciudad 🎶", 
-            "Los mejores eventos para alargar la noche 🥂",
-            "Encuentra música y fiesta cerca de ti 🪩",
-            "Una noche inolvidable te espera 🎆"
+            "Para los que todavía no quieren dormir", 
+            "Descubre la vida nocturna de la ciudad", 
+            "Los mejores eventos para alargar la noche",
+            "Encuentra música y fiesta cerca de ti",
+            "Una noche inolvidable te espera"
           ])
       : rand([
-            "Descubre los mejores lugares nocturnos 🌙", 
-            "¿Antojo de medianoche? 🍔", 
-            "La ciudad nunca duerme 🌃",
-            "Lugares increíbles que abren hasta tarde 🦉",
-            "Encuentra dónde terminar la noche 🚕"
+            "Descubre los mejores lugares nocturnos", 
+            "¿Antojo de medianoche?", 
+            "La ciudad nunca duerme",
+            "Lugares increíbles que abren hasta tarde",
+            "Encuentra dónde terminar la noche"
           ]);
   }, []);
 
 
 
   return (
-    <div style={{ position: "relative", padding: "8px 20px 0px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "transparent" }}>
+    <div style={{ position: "relative", padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 0px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "transparent" }}>
+
 
       {/* Contenido Header (Por encima del fondo) */}
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", flex: 1 }}>
@@ -129,12 +136,12 @@ export default function HomeHero({
         {/* ── Fila 2: Título Hero ── */}
         {!search && (() => {
           return (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 10, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
-              <div  style={{ marginBottom: 4 }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 0, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
+              <div style={{ marginBottom: 4 }}>
                 <img 
                   src="/citymap.mx.png" 
                   alt="CityMap" 
-                  style={{ height: 40, objectFit: "contain", filter: dark ? "none" : "invert(1)" }} 
+                  style={{ height: 38, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", display: "block", margin: "0 auto" }} 
                 />
               </div>
               <style>{`
@@ -163,6 +170,7 @@ export default function HomeHero({
               `}</style>
               <h1  style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(22px, 5.5vw, 28px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: dark ? "#fff" : T.text }}>
                 {getGreeting()} <span className="animated-city">{cityName}</span>
+
               </h1>
               <p style={{ margin: "6px 0 0 0", fontSize: 14, fontWeight: 600, color: dark ? "rgba(255,255,255,0.7)" : "#6B7280" }}>
                 {contextMessage}
@@ -172,7 +180,8 @@ export default function HomeHero({
         })()}
 
         {/* ── Fila 3: Search Bar ── */}
-        <div style={{ position: "relative", width: "100%", marginTop: search ? 76 : 20, zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: search ? 76 : 20, zIndex: 10 }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
             <style>{`
               @keyframes magicBorderSpin {
                 100% { transform: rotate(1turn); }
@@ -192,12 +201,12 @@ export default function HomeHero({
                 position: absolute;
                 top: 0; left: 0; right: 0; bottom: 0;
                 border-radius: 100px;
-                background: ${dark ? 'rgba(15, 23, 42, 0.8)' : '#F3F4F6'};
+                background: ${dark ? '#2D2D31' : '#F8FAFC'};
                 backdrop-filter: blur(24px);
                 -webkit-backdrop-filter: blur(24px);
-                box-shadow: ${dark ? 'inset 0 1px 1px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04)'};
+                box-shadow: ${dark ? 'inset 0 1px 1px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.1)' : 'inset 0 1px 2px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.02)'};
                 z-index: 2;
-                border: ${dark ? 'none' : '1px solid #E5E7EB'};
+                border: ${dark ? '1px solid #3F3F46' : '1px solid #ECEFF2'};
               }
               .hero-search-input {
                 position: relative;
@@ -205,64 +214,65 @@ export default function HomeHero({
                 -webkit-appearance: none !important;
                 appearance: none !important;
                 background: transparent !important;
-                color: ${dark ? '#fff' : '#111'} !important;
+                color: ${dark ? '#F4F4F5' : '#111'} !important;
               }
               .hero-search-input::placeholder {
-                color: ${dark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(17, 17, 17, 0.5)'} !important;
-                -webkit-text-fill-color: ${dark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(17, 17, 17, 0.5)'} !important;
+                color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
+                -webkit-text-fill-color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
                 opacity: 1;
                 letter-spacing: 0.2px;
               }
               .hero-search-input:focus {
+                outline: 2px solid ${dark ? '#A1A1AA' : '#71717A'} !important;
+                outline-offset: 2px;
                 box-shadow: none !important;
               }
             `}</style>
             <div className="hero-search-magic-container">
               <div className="hero-search-magic-inner"></div>
             </div>
-            <DebouncedSearchBar initialValue={search} onSearch={setSearch} placeholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dark={dark} onSurprise={onSurprise} />
+            <DebouncedSearchBar initialValue={search} onSearch={setSearch} placeholder={searchPlaceholder} dark={dark} />
         </div>
 
-        {/* Fila 4: Categorías Iconos (Ocultos en Inicio) */}
-        {!search && <div style={{ margin: "12px -20px 0" }}>
-          <style>{`
-            @keyframes catHeartbeat {
-              0% { transform: translateY(-4px) scale(1.1); }
-              50% { transform: translateY(-4px) scale(1.25); }
-              100% { transform: translateY(-4px) scale(1.1); }
-            }
-          `}</style>
-          <div style={{ display: "flex", alignItems: "flex-start", overflowX: "auto", paddingTop: 8, paddingBottom: 8, paddingLeft: 20, paddingRight: 20, gap: 14, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-            {!dbReady ? [1, 2, 3, 4, 5].map(i => <Sk key={i} w={56} h={56} r={28} dark={true} style={{ flexShrink: 0 }} />)
-              : [{id: "explorar", label: t("explorar", "Explorar")}, ...cats.map(c => ({ ...c, label: t(c.label, c.label) }))].map((c) => {
-                const isActive = activeCat === c.id
-                const catSlug = (c.id || "").replace(/\s+/g, '-').toLowerCase();
-                const catUrl = `/${(activeCity || city || "").split(",")[0]}${c.id === "explorar" ? "" : "/c/" + catSlug}`;
-                
-                let emojiVal = c.id === "explorar" ? "🌎" : (c.icon === "❤️" ? "🤍" : (c.emoji || c.icon || "✨"));
-                let cleanEmoji = typeof emojiVal === 'string' ? emojiVal.trim() : emojiVal;
-                let isImage = typeof cleanEmoji === 'string' && (cleanEmoji.toLowerCase().endsWith('.svg') || cleanEmoji.toLowerCase().endsWith('.png'));
+        {!search && onSurprise && <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={onSurprise}
+          style={{ width: 44, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: 'pointer', fontSize: 23 }}>🎲</button>}
+        </div>
 
+        {/* Fila 4: Carrusel de Categorías */}
+        {!search && <div style={{ margin: "12px -20px 0" }}>
+          <SlidingCategoryTrack dark={dark} selectedKey={activeCat} variant="dot" className="home-category-track" style={{ display: "flex", alignItems: "stretch", overflowX: "auto", paddingTop: 8, paddingBottom: 2, paddingLeft: 20, paddingRight: 20, gap: 24, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+            <style>{`.home-category-track > .sliding-category-indicator { display: none; }`}</style>
+            {!dbReady ? [1, 2, 3, 4, 5].map(i => <Sk key={i} w={76} h={16} r={4} dark={dark} style={{ flexShrink: 0, marginTop: 14, marginBottom: 14 }} />)
+              : [{id: "explorar", label: t("explorar", "Explorar")}, ...(cats || []).map(c => ({ ...c, label: t(c.label, c.label) }))].map((c) => {
+                const isActive = activeCat === c.id;
+                const catSlug = (c.id || "").replace(/\s+/g, '-').toLowerCase();
+                const catUrl = `${buildCityPath(activeCity, cities)}${c.id === "explorar" ? "" : "/c/" + catSlug}`;
+                
                 return (
-                  <a href={catUrl} key={c.id} onClick={(e) => { e.preventDefault(); haptic("light"); setActiveCat(c.id); window.history.pushState(null, "", catUrl); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, textDecoration: "none", flexShrink: 0, width: 64 }}>
-                    <div style={{ width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", transition: isActive ? "none" : "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", transform: isActive ? "translateY(-4px) scale(1.1)" : "none", animation: isActive ? "catHeartbeat 2s ease-in-out infinite" : "none" }}>
-                      {isImage ? (
-                        <img src={`/${cleanEmoji}`} alt={c.label} style={{ width: 26, height: 26, objectFit: "contain" }} />
-                      ) : (
-                        <span style={{ fontSize: 26, lineHeight: 1 }}>{cleanEmoji}</span>
-                      )}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? T.text : T.sub, textAlign: "center", lineHeight: 1.15, transition: "color 0.3s" }}>{c.label}</span>
-                      {isActive && <div style={{ width: 4, height: 4, borderRadius: "50%", background: T.text }} />}
-                    </div>
+                  <a 
+                    href={catUrl}
+                    aria-current={isActive ? "page" : undefined} 
+                    key={c.id} 
+                    onClick={(e) => { 
+                      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                      e.preventDefault(); 
+                      haptic?.("light"); 
+                      setActiveCat?.(c.id);
+                      routerNavigate(catUrl);
+                      if (c.id === "explorar") {
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }
+                    }} 
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0, minHeight: 44, boxSizing: "border-box", padding: "10px 0", borderBottom: `2px solid ${isActive ? (dark ? "#FFFFFF" : "#000000") : "transparent"}`, color: isActive ? (dark ? "#FFFFFF" : "#000000") : (dark ? "#A3AFBF" : "#788496"), fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: "20px", whiteSpace: "nowrap", transition: "color 180ms ease, border-color 180ms ease" }}
+                  >
+                    {c.label}
                   </a>
                 );
               })}
-          </div>
+          </SlidingCategoryTrack>
         </div>}
 
       </div>
     </div>
   );
-}
+});

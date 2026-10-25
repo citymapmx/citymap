@@ -2,6 +2,7 @@ import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import Icon from "../components/ui/Icon.jsx";
+import FavoriteCollectionModal from "../components/FavoriteCollectionModal.jsx";
 import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, isNear } from "../lib/utils.js";
 import { useTranslation } from "../hooks/useTranslation.js";
@@ -18,7 +19,7 @@ export default function FavsView({ hideHeader }) {
       {!hideHeader && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.white }}>
           <div style={{ display: "flex", alignItems: "center" }}>
-            <button onClick={() => window.history.length > 2 ? window.history.back() : navigate("account")} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
+            <button onClick={() => window.history.length > 1 ? window.history.back() : navigate("home")} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <Icon name="arrow_left" size={24} color={T.text} />
             </button>
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.5px" }}>{t("mis_favoritos", "Mis Favoritos")}</h1>
@@ -127,7 +128,7 @@ export default function FavsView({ hideHeader }) {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     {unsortedBiz.map(b => (
                       <div key={b.id} className="press" draggable={true} onDragStart={e => { e.dataTransfer.setData("bizId", b.id); e.currentTarget.style.opacity = "0.5"; }} onDragEnd={e => { e.currentTarget.style.opacity = "1"; }} onClick={() => setMovingBiz(b)} style={{ background: T.bg, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", position: "relative", cursor: "grab" }}>
-                        <div style={{ height: 140, background: T.border, position: "relative" }}>
+                        <div style={{ height: 140, background: "transparent", position: "relative" }}>
                           {b.photos?.[0]?.url ? <img src={getThumbUrl(b.photos[0].url, 400, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={24} color={T.sub} /></div>}
                           <button onClick={e => toggleFav(b.id, e)} style={{ position: "absolute", top: 10, right: 10, background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}><Icon name="heart_overlay_f" size={26} color="none" /></button>
                         </div>
@@ -146,7 +147,7 @@ export default function FavsView({ hideHeader }) {
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {savedEv.map(e => (
                       <div key={e.id} className="press" onClick={() => handleEventTap(e)} style={{ display: "flex", background: T.bg, borderRadius: 16, overflow: "hidden", position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-                        <div style={{ width: 100, height: 100, background: T.border, flexShrink: 0, position: "relative" }}>
+                        <div style={{ width: 100, height: 100, background: "transparent", flexShrink: 0, position: "relative" }}>
                           {e.img_url ? (
                             <img src={getThumbUrl(e.img_url, 300, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} loading="lazy" />
                           ) : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar" size={24} color={T.sub} /></div>}
@@ -161,34 +162,14 @@ export default function FavsView({ hideHeader }) {
                   </div>
                 </div>}
 
-                {/* ACTION SHEET PARA MOVER BIZ */}
-                {movingBiz && <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", flexDirection: "column", justifyContent: "flex-start" }}>
-                  <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} onClick={() => setMovingBiz(null)} />
-                  <div style={{ background: T.white, borderRadius: "0 0 24px 24px", width: "100%", maxHeight: "85vh", overflowY: "auto", padding: "calc(env(safe-area-inset-top, 0px) + 24px) 20px 32px", position: "relative", animation: "slideDown .3s cubic-bezier(0.1, 1, 0.2, 1)", boxShadow: "0 12px 40px rgba(0,0,0,0.2)" }}>
-                    <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 24 }}>
-                      <div style={{ width: 60, height: 60, borderRadius: 12, background: T.bg, overflow: "hidden" }}>
-                        {movingBiz.photos?.[0]?.url ? <img src={getThumbUrl(movingBiz.photos[0].url, 200, 200)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={24} color={T.sub} /></div>}
-                      </div>
-                      <div>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, margin: "0 0 4px" }}>{movingBiz.name}</h3>
-                        <p style={{ fontSize: 13, color: T.sub, margin: 0 }}>{t("que_deseas_hacer", "¿Qué deseas hacer?")}</p>
-                      </div>
-                    </div>
-                    
-                    <button className="press" onClick={() => { setMovingBiz(null); setSelected(movingBiz); navigate(`/${movingBiz.city}/${movingBiz.slug}`); }} style={{ width: "100%", background: T.bg, border: "none", borderRadius: 16, padding: "16px", fontSize: 16, fontWeight: 700, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}><div style={{ width: 32, height: 32, borderRadius: "50%", background: T.white, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="nav" size={16} color={T.text} /></div> {t("ver_detalles_lugar", "Ver detalles del lugar")}</button>
-
-                    <div style={{ margin: "24px 0 12px", fontSize: 13, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: 1 }}>{t("mover_a_coleccion", "Mover a colección")}</div>
-                    
-                    {collections.map(col => (
-                      <button key={col.id} className="press" onClick={() => {
-                        const updatedCol = { ...col, items: [...new Set([...col.items, movingBiz.id])] };
-                        updateCollection(updatedCol);
-                        setMovingBiz(null);
-                        toast$(t("agregado_a", "Agregado a ") + col.name);
-                      }} style={{ width: "100%", background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, padding: "16px", fontSize: 16, fontWeight: 700, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, marginBottom: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}><div style={{ fontSize: 24 }}>{col.emoji}</div> <div style={{ flex: 1, textAlign: "left" }}>{col.name}</div></button>
-                    ))}
-                  </div>
-                </div>}
+                <FavoriteCollectionModal business={movingBiz} collections={collections} T={T} t={t}
+                  onClose={() => setMovingBiz(null)}
+                  onCreate={() => { setMovingBiz(null); setNewColModal(true); }}
+                  onSelect={col => {
+                    updateCollection({ ...col, items: [...new Set([...(col.items || []), movingBiz.id])] });
+                    setMovingBiz(null);
+                    toast$(t("agregado_a", "Agregado a ") + col.name);
+                  }} />
                 {/* NEW COLLECTION MODAL */}
                 {newColModal && <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "80px 20px 20px" }}>
                   <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} onClick={() => setNewColModal(false)} />

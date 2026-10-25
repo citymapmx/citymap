@@ -4,7 +4,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useDataStore } from '../../store/useDataStore';
 import { useUIStore } from '../../store/useUIStore';
 import { sb } from '../../lib/supabase';
-import { getT } from '../../lib/constants';
+import { getT, EVENT_CATEGORIES } from '../../lib/constants';
 import { createSlug } from '../../lib/utils';
 import Icon from '../ui/Icon';
 import Uploader from '../Uploader';
@@ -100,8 +100,52 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
             </div>
             {createEvForm.price_type === "paid" && <input className="inp" placeholder="Ej: $200" value={createEvForm.price} onChange={e => setCreateEvForm(f => ({ ...f, price: e.target.value }))} style={{ marginTop: 8 }} />}
           </div>
-          <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Categoría</div>
-            <input className="inp" placeholder="Ej: Concierto" value={createEvForm.event_category || ""} onChange={e => setCreateEvForm(f => ({ ...f, event_category: e.target.value }))} />
+          <div>
+            <div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 8 }}>
+              Categoría
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 8 }}>
+              {EVENT_CATEGORIES.map(cat => {
+                const isPreset = EVENT_CATEGORIES.filter(c => c !== "Otro").includes(createEvForm.event_category);
+                const isSelected = createEvForm.event_category === cat || (cat === "Otro" && createEvForm.event_category && !isPreset);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      if (cat === "Otro") {
+                        setCreateEvForm(f => ({ ...f, event_category: isPreset ? "" : f.event_category }));
+                      } else {
+                        setCreateEvForm(f => ({ ...f, event_category: cat }));
+                      }
+                    }}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 9999,
+                      border: isSelected ? "none" : `1.5px solid ${T.border}`,
+                      background: isSelected ? (dark ? "#FFFFFF" : "#0F172A") : (dark ? "rgba(255,255,255,0.06)" : "#F8FAFC"),
+                      color: isSelected ? (dark ? "#000000" : "#FFFFFF") : T.text,
+                      fontSize: 12,
+                      fontWeight: isSelected ? 800 : 600,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      fontFamily: "inherit"
+                    }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+            {(!createEvForm.event_category || !EVENT_CATEGORIES.filter(c => c !== "Otro").includes(createEvForm.event_category)) && (
+              <input
+                className="inp"
+                placeholder="Escribe otra categoría..."
+                value={createEvForm.event_category || ""}
+                onChange={e => setCreateEvForm(f => ({ ...f, event_category: e.target.value }))}
+                style={{ marginTop: 4 }}
+              />
+            )}
           </div>
 <div>
             <div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "space-between" }}>

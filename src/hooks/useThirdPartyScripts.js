@@ -1,48 +1,34 @@
-import { useEffect } from 'react';
+import {useEffect} from 'react';
 
-export default function useThirdPartyScripts() {
-  useEffect(() => {
-    let injected = false;
-    
-    const injectScripts = () => {
-      if (injected) return;
-      injected = true;
-      
-      // Google Analytics
-      const gtagScript = document.createElement('script');
-      gtagScript.src = "https://www.googletagmanager.com/gtag/js?id=G-TGZ7JVM90W";
-      gtagScript.async = true;
-      document.head.appendChild(gtagScript);
-      
-      const gtagInit = document.createElement('script');
-      gtagInit.innerHTML = `
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-TGZ7JVM90W');
-      `;
-      document.head.appendChild(gtagInit);
-      
-      // Google Adsense
-      const adsScript = document.createElement('script');
-      adsScript.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6883476912475263";
-      adsScript.async = true;
-      adsScript.crossOrigin = "anonymous";
-      document.head.appendChild(adsScript);
-      
-      window.removeEventListener('scroll', injectScripts);
-      window.removeEventListener('mousemove', injectScripts);
-      window.removeEventListener('touchstart', injectScripts);
-      window.removeEventListener('click', injectScripts);
+// Optional integrations start after city content, never during city selection.
+export default function useThirdPartyScripts(enabled=true) {
+  useEffect(()=>{
+    if(!enabled)return;
+    let idle;
+    const inject=()=>{
+      if(!document.getElementById('citymap-analytics-script')){
+        window.dataLayer=window.dataLayer||[];
+        window.gtag=window.gtag||function(){window.dataLayer.push(arguments);};
+        window.gtag('js',new Date());
+        window.gtag('config','G-TGZ7JVM90W');
+        const analytics=document.createElement('script');
+        analytics.id='citymap-analytics-script';
+        analytics.src='https://www.googletagmanager.com/gtag/js?id=G-TGZ7JVM90W';
+        analytics.async=true;
+        document.head.appendChild(analytics);
+      }
+      if(!document.getElementById('google-adsense-script')){
+        const ads=document.createElement('script');
+        ads.id='google-adsense-script';
+        ads.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6883476912475263';
+        ads.async=true;ads.crossOrigin='anonymous';
+        document.head.appendChild(ads);
+      }
     };
-
-    const timer = setTimeout(injectScripts, 3500);
-    
-    window.addEventListener('scroll', injectScripts, { passive: true, once: true });
-    window.addEventListener('mousemove', injectScripts, { passive: true, once: true });
-    window.addEventListener('touchstart', injectScripts, { passive: true, once: true });
-    window.addEventListener('click', injectScripts, { passive: true, once: true });
-
-    return () => clearTimeout(timer);
-  }, []);
+    const timer=setTimeout(()=>{
+      if(window.requestIdleCallback)idle=window.requestIdleCallback(inject,{timeout:2000});
+      else inject();
+    },3500);
+    return ()=>{clearTimeout(timer);if(idle!==undefined)window.cancelIdleCallback?.(idle);};
+  },[enabled]);
 }

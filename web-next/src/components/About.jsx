@@ -1,96 +1,40 @@
-import { useEffect } from 'react';
+import {useEffect} from 'react';
 import Icon from './ui/Icon.jsx';
 
-export default function About({ T, onBack }) {
-  useEffect(() => { window.scrollTo(0, 0); }, []);
+const purpose = [
+  {title:'Misión',icon:'star',description:'Conectar a las personas con los mejores negocios y experiencias locales, impulsando la economía de nuestra ciudad a través de una plataforma accesible, moderna y fácil de usar para todos.'},
+  {title:'Visión',icon:'eye',description:'Ser la aplicación líder y el referente número uno para descubrir lugares increíbles, creando una comunidad fuerte donde los usuarios y negocios locales prosperen juntos.'},
+];
+const values = [
+  {num:'01',title:'Comunidad Primero',desc:'Existimos para servir a nuestra gente y fortalecer los lazos locales.'},
+  {num:'02',title:'Innovación Continua',desc:'Buscamos siempre la mejor tecnología para brindar experiencias únicas.'},
+  {num:'03',title:'Transparencia',desc:'Reseñas reales y tratos justos para todos nuestros comercios aliados.'},
+  {num:'04',title:'Calidad',desc:'Nos aseguramos de que cada interacción en CityMap sea excepcional.'},
+];
 
-  const isDark = T.bg === "#000" || T.bg === "#111827";
-  const cardBg = isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC";
-  const cardBorder = isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0";
-  const accentGradient = "linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)";
-
-  return (
-    <div style={{ paddingBottom: 84, animation: "fadeUp .4s ease", background: T.bg, minHeight: "100vh" }}>
-      {/* Navbar */}
-      <div style={{ position: "sticky", top: 0, background: T.bg, zIndex: 10, borderBottom: `1px solid ${T.border}`, padding: "16px 20px", display: "flex", alignItems: "center" }}>
-        <button className="press" onClick={onBack} style={{ background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}><Icon name="chevron" size={24} color={T.text} style={{ transform: "rotate(180deg)" }} /></button>
-        <span style={{ marginLeft: 16, fontSize: 16, fontWeight: 700, color: T.text }}>Acerca de CityMap</span>
+export default function About({T,onBack}) {
+  useEffect(()=>{window.scrollTo(0,0);},[]);
+  return <div style={{paddingBottom:84,background:T.bg,color:T.text,minHeight:'100vh',textAlign:'left'}}>
+    <header style={{position:'sticky',top:0,background:T.bg,zIndex:10,borderBottom:`1px solid ${T.border}`,padding:'12px 16px',display:'flex',alignItems:'center',gap:10}}>
+      <button type="button" aria-label="Volver" onClick={onBack} style={{width:36,height:36,padding:0,background:'transparent',border:0,color:T.text,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><Icon name="chevron" size={22} color="currentColor" style={{transform:'rotate(180deg)'}}/></button>
+      <h1 style={{fontSize:16,fontWeight:700,margin:0,color:T.text}}>Acerca de CityMap</h1>
+    </header>
+    <main style={{maxWidth:680,margin:'0 auto',padding:'28px 24px 20px'}}>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',padding:'12px 0 32px'}}>
+        <img src="/logo-brand.png" alt="CityMap" style={{height:48,maxWidth:'80%',objectFit:'contain',filter:T.dark?'brightness(0) invert(1)':'brightness(0)',marginBottom:18}}/>
+        <p style={{fontSize:15,color:T.sub,lineHeight:1.65,fontWeight:500,maxWidth:380,margin:0}}>Tu guía local inteligente para descubrir lo mejor de la ciudad, en un solo lugar.</p>
       </div>
-
-      <div style={{ padding: "32px 20px" }}>
-        
-        {/* Hero Section */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 48, marginTop: 16 }}>
-          <img 
-            src="/logo-brand.png" 
-            alt="CityMap Logo" 
-            style={{ 
-              height: 60, 
-              objectFit: "contain", 
-              marginBottom: 16,
-              filter: isDark ? "brightness(10)" : "brightness(0)",
-              transition: "filter .3s"
-            }} 
-          />
-          <p style={{ fontSize: 16, color: T.sub, lineHeight: 1.6, fontWeight: 500, maxWidth: 300, margin: 0 }}>
-            Tu guía local inteligente para descubrir lo mejor de la ciudad, en un solo lugar.
-          </p>
-        </div>
-
-        {/* Misión y Visión (Cards) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 48 }}>
-          {/* Misión Card */}
-          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 24, padding: 24, position: "relative", overflow: "hidden" }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(59, 130, 246, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, color: "#3B82F6" }}>
-              <Icon name="star" size={20} />
-            </div>
-            <h3 style={{ fontSize: 20, fontWeight: 800, color: T.text, margin: "0 0 12px 0", letterSpacing: -0.5 }}>Misión</h3>
-            <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.7, fontWeight: 500, margin: 0 }}>
-              Conectar a las personas con los mejores negocios y experiencias locales, impulsando la economía de nuestra ciudad a través de una plataforma accesible, moderna y fácil de usar para todos.
-            </p>
-          </div>
-
-          {/* Visión Card */}
-          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 24, padding: 24, position: "relative", overflow: "hidden" }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(139, 92, 246, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, color: "#8B5CF6" }}>
-              <Icon name="eye" size={20} />
-            </div>
-            <h3 style={{ fontSize: 20, fontWeight: 800, color: T.text, margin: "0 0 12px 0", letterSpacing: -0.5 }}>Visión</h3>
-            <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.7, fontWeight: 500, margin: 0 }}>
-              Ser la aplicación líder y el referente número uno para descubrir lugares increíbles, creando una comunidad fuerte donde los usuarios y negocios locales prosperen juntos.
-            </p>
-          </div>
-        </div>
-
-        {/* Valores */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24, justifyContent: "center" }}>
-            <h3 style={{ fontSize: 24, fontWeight: 800, color: T.text, margin: 0, letterSpacing: -0.5 }}>Nuestros Valores</h3>
-          </div>
-          
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-            
-            {[
-              { num: "01", title: "Comunidad Primero", desc: "Existimos para servir a nuestra gente y fortalecer los lazos locales." },
-              { num: "02", title: "Innovación Continua", desc: "Buscamos siempre la mejor tecnología para brindar experiencias únicas." },
-              { num: "03", title: "Transparencia", desc: "Reseñas reales y tratos justos para todos nuestros comercios aliados." },
-              { num: "04", title: "Calidad", desc: "Nos aseguramos de que cada interacción en CityMap sea excepcional." }
-            ].map((v) => (
-              <div key={v.num} style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#fff", border: `1px solid ${cardBorder}`, borderRadius: 20, padding: 20, position: "relative", overflow: "hidden", boxShadow: isDark ? "none" : "0 4px 12px rgba(0,0,0,0.02)" }}>
-                <div style={{ position: "absolute", top: -10, right: -10, fontSize: 80, fontWeight: 900, color: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", pointerEvents: "none", letterSpacing: -5 }}>
-                  {v.num}
-                </div>
-                <div style={{ position: "relative", zIndex: 1 }}>
-                  <strong style={{ display: "block", fontSize: 17, color: T.text, letterSpacing: -0.2, marginBottom: 6 }}>{v.title}</strong>
-                  <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.6, margin: 0, paddingRight: 20 }}>{v.desc}</p>
-                </div>
-              </div>
-            ))}
-
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
+      {purpose.map(section=><section key={section.title} aria-label={section.title} style={{padding:'24px 0',borderTop:`1px solid ${T.border}`}}>
+        <h2 style={{display:'flex',alignItems:'center',gap:10,fontSize:21,fontWeight:800,color:T.text,margin:'0 0 12px',letterSpacing:-0.3}}><Icon name={section.icon} size={21} color={T.text}/>{section.title}</h2>
+        <p style={{fontSize:15,color:T.sub,lineHeight:1.75,margin:0}}>{section.description}</p>
+      </section>)}
+      <section aria-label="Nuestros valores" style={{borderTop:`1px solid ${T.border}`,paddingTop:26}}>
+        <h2 style={{fontSize:22,fontWeight:800,color:T.text,margin:'0 0 6px',letterSpacing:-0.3}}>Nuestros valores</h2>
+        {values.map(value=><div key={value.num} style={{display:'flex',alignItems:'flex-start',gap:16,padding:'20px 0',borderBottom:`1px solid ${T.border}`}}>
+          <span aria-hidden="true" style={{minWidth:24,color:T.sub,fontSize:12,fontWeight:700,paddingTop:4,fontVariantNumeric:'tabular-nums'}}>{value.num}</span>
+          <div><h3 style={{margin:'0 0 6px',fontSize:17,fontWeight:700,color:T.text}}>{value.title}</h3><p style={{margin:0,fontSize:14,lineHeight:1.7,color:T.sub}}>{value.desc}</p></div>
+        </div>)}
+      </section>
+    </main>
+  </div>;
 }

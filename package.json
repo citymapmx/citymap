@@ -1,12 +1,12 @@
 {
   "name": "cityguide",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.38.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node generate-sitemap.js && vite build",
-    "build:android": "npm run build && npx cap sync android",
+    "build": "vite build",
+    "build:android": "node scripts/build-android.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -20,6 +20,7 @@
     "@capacitor/core": "^8.4.1",
     "@capacitor/geolocation": "^8.2.0",
     "@capacitor/push-notifications": "^8.1.2",
+    "@capacitor/status-bar": "^8.0.4",
     "@googlemaps/markerclusterer": "^2.6.2",
     "@hello-pangea/dnd": "^18.0.1",
     "@supabase/supabase-js": "^2.110.8",

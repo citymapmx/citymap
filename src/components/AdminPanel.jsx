@@ -536,10 +536,10 @@ function PushTab({ T, onToast }) {
     ? allBiz.filter(b => b.name?.toLowerCase().includes(search.toLowerCase()))
     : allEvents.filter(e => e.title?.toLowerCase().includes(search.toLowerCase()));
 
-  const handleSend = async () => {
-    if (!title || !body) return onToast("Faltan campos");
+  const handleSend = async (testSelf = false) => {
+    if (!testSelf && (!title || !body)) return onToast("Faltan campos");
     if (deepLinkType !== "none" && !selectedItem) return onToast("Selecciona un negocio o evento destino");
-    if (!window.confirm("¿Seguro que quieres enviar esta notificación a TODOS los usuarios con la app instalada?")) return;
+    if (!window.confirm(testSelf ? "Enviar una prueba solo a los dispositivos vinculados a tu cuenta de administrador?" : targetCity ? `Enviar esta notificación a los dispositivos de ${targetCity}?` : "Enviar esta notificación a todos los dispositivos suscritos?")) return;
     
     setLoading(true);
     try {
@@ -553,21 +553,21 @@ function PushTab({ T, onToast }) {
 
       const res = await fetch("https://citymap.mx/api/send-notification", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sb._token || ""}` },
         body: JSON.stringify({ 
-          title, 
-          body, 
-          deepLink, 
+          title: testSelf ? title || "Prueba de CityMap" : title,
+          body: testSelf ? body || "Si recibiste este aviso, tu dispositivo está recibiendo notificaciones." : body,
+          test_self: testSelf,
+          deepLink,
           imageUrl: imgUrl,
-          target_city: targetCity || null,
-          secret: import.meta.env.VITE_ADMIN_SECRET 
+          target_city: targetCity || null 
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al enviar");
       
-      onToast(`✅ Enviadas: ${data.successCount}, Fallos: ${data.failureCount}`);
-      setTitle(""); setBody(""); setSelectedItem(null); setSearch(""); setDeepLinkType("none");
+      onToast(data.successCount > 0 ? `Firebase aceptó ${data.successCount} notificaciones. Fallos: ${data.failureCount || 0}. Comprueba la recepción en tu dispositivo.` : data.failureCount > 0 ? `No se pudo entregar el envío. Fallos: ${data.failureCount}.` : "No hay dispositivos registrados para este destino. Activa las notificaciones con esa cuenta.");
+      if (!testSelf) { setTitle(""); setBody(""); setSelectedItem(null); setSearch(""); setDeepLinkType("none"); }
     } catch (err) {
       console.error(err);
       onToast(err.message || "Error al enviar la notificación");
@@ -579,7 +579,7 @@ function PushTab({ T, onToast }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <h3 className="text-lg" style={{ margin: 0, color: T.text }}>Enviar Notificación Push</h3>
-      <p className="text-sm" style={{ margin: 0, color: T.sub }}>Esta notificación llegará a los usuarios con la app CityMap instalada en sus celulares.</p>
+      <p className="text-sm" style={{ margin: 0, color: T.sub }}>Se enviará a los dispositivos que hayan activado las notificaciones de CityMap.</p>
       
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <label className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase" }}>Ciudad Destino</label>
@@ -648,7 +648,8 @@ function PushTab({ T, onToast }) {
         )}
       </div>
 
-      <button className="text-base" onClick={handleSend} disabled={loading} style={{ background: T.green, color: "#fff", padding: "14px 20px", borderRadius: 12, border: "none", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "all 0.2s", marginTop: 6 }}>
+      <button type="button" onClick={() => handleSend(true)} disabled={loading} style={{ padding: "12px 16px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.white, color: T.text, fontWeight: 700, cursor: "pointer" }}>Enviar prueba a mi cuenta</button>
+      <button className="text-base" onClick={() => handleSend(false)} disabled={loading} style={{ background: T.green, color: "#fff", padding: "14px 20px", borderRadius: 12, border: "none", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "all 0.2s", marginTop: 6 }}>
         {loading ? "Enviando..." : "Enviar Notificación Masiva"}
       </button>
     </div>

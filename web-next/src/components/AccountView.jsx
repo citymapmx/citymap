@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from './ui/Icon.jsx';
+import ThemeToggle from './ui/ThemeToggle.jsx';
 import Uploader from './Uploader.jsx';
 import { sb } from '../lib/supabase.js';
 import { isOpenNow, createSlug, cleanCityPrefix } from '../lib/utils.js';
@@ -17,7 +18,7 @@ export default function AccountView({
   setShowAuth, setAuthMode, setEditBizId, setAddBizForm,
   setShowAddBiz, setOwnerView, setSelected, navigate,
   doSignOut, toast$, viewStyle, setUser, authChecked,
-  setShowAdmin, setShowPlans, setDark, setStoreAdminBiz
+  setShowAdmin, setShowPlans, setStoreAdminBiz
 }) {
   const { t, lang } = useTranslation();
   const isOpen = isOpenNow;
@@ -26,7 +27,6 @@ export default function AccountView({
   const ctx = useAppContext();
   const { savedEventIds, setSelectedEvent } = ctx;
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState("");
@@ -36,6 +36,12 @@ export default function AccountView({
   const [loyaltyDesignerBiz, setLoyaltyDesignerBiz] = useState(null);
 
   const [myClaims, setMyClaims] = useState([]);
+  useEffect(() => {
+    if (authChecked && !user) {
+      navigate("home");
+    }
+  }, [authChecked, user, navigate]);
+
   useEffect(() => {
     if (!user) return;
     sb.get("business_claims", `?user_id=eq.${user.id}`).then(res => {
@@ -75,6 +81,7 @@ export default function AccountView({
     {
       title: t("cuenta", "Cuenta"),
       items: [
+        { label: dark ? "Modo oscuro activado" : "Modo oscuro", icon: dark ? "moon" : "sun", act: "toggle_dark" },
         { label: t("mis_favoritos", "Mis Favoritos"), icon: "heart", act: "favs" },
         { label: t("mis_planes_itin", "Mis Planes (Itinerarios)"), icon: "map", act: "itineraries" },
         { label: t("editar_perfil", "Editar perfil"), icon: "user", act: "edit_profile" },
@@ -105,15 +112,8 @@ export default function AccountView({
           );
           return items;
         }),
-        ...(!isAdmin ? [{ label: t("agregar_negocio", "Agregar mi negocio"), icon: "plus", act: "add_biz" }] : []),
-        { label: t("planes_precios", "Planes y precios"), icon: "award", act: "plans" },
-      ]
-    },
-    {
-      title: t("app", "App"),
-      items: [
-        { label: t("sobre_citymap", "Sobre CityMap"), icon: "info", act: "about" },
-        ...(!isStandalone && (installPromptEvent || isIOS) ? [{ label: t("instalar_app", "Instalar App"), icon: "download", act: "install_pwa" }] : []),
+        { label: t("ver_planes", "Ver planes"), icon: "award", act: "business_plans" },
+        { label: t("agregar_negocio", "Agregar mi negocio"), icon: "plus", act: "add_biz" },
       ]
     }
   ];
@@ -121,14 +121,13 @@ export default function AccountView({
   const handleMenuAction = (act) => {
     if (act === "no_op") return;
     if (act === "privacy") navigate("privacy");
-    if (act === "toggle_dark") setDark(!dark);
     if (act === "install_pwa") {
       if (installPromptEvent) { installPromptEvent.prompt(); installPromptEvent.userChoice.then(r => { if (r.outcome === 'accepted') setInstallPromptEvent(null); }); }
       else if (isIOS) toast$(t("instruccion_ios", "Toca 'Compartir' ⬆ y luego 'Agregar a Inicio' 📱"));
     } else if (act === "edit_profile") startEditProfile();
     else if (act === "favs") navigate("favs");
     else if (act === "itineraries") navigate("itineraries");
-    else if (act === "plans") setShowPlans(true);
+    else if (act === "business_plans") setShowPlans(true);
     else if (act === "add_biz") { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); }
     else if (act === "about") navigate("about");
     else if (act === "user_notifs") navigate("user_notifs");
@@ -339,19 +338,14 @@ export default function AccountView({
               <div style={{ fontSize: 20, fontWeight: 800, color: T.text, marginBottom: 16, marginLeft: 8, letterSpacing: "-0.5px", textAlign: "left" }}>{group.title}</div>
               <div style={{ background: "transparent", borderRadius: 16, overflow: "hidden" }}>
                 {group.items.map(({ label, icon, act }, i, arr) => {
+                  if (act === "toggle_dark") return <div key={act} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"}` : "none" }}><ThemeToggle showLabel padding="16px" /></div>;
                   return (
                     <div key={label} onClick={() => handleMenuAction(act)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"}` : "none", cursor: "pointer", background: "transparent", transition: "background .15s" }}
                       onMouseEnter={e => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       <Icon name={icon} size={20} color={T.sub} sw={1.5} />
                       <span style={{ fontSize: 15, fontWeight: 500, color: T.text, flex: 1 }}>{label}</span>
-                      {act === "toggle_dark" ? (
-                        <div style={{ width: 44, height: 26, borderRadius: 13, background: dark ? T.green : "#D1D5DB", transition: "background 0.25s", position: "relative", flexShrink: 0 }}>
-                          <div style={{ position: "absolute", top: 3, left: dark ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.25)", transition: "left 0.25s cubic-bezier(0.34,1.56,0.64,1)" }} />
-                        </div>
-                      ) : (
-                        <Icon name="chevron" size={16} color={T.border} sw={2} />
-                      )}
+                      <Icon name="chevron" size={16} color={T.border} sw={2} />
                     </div>
                   );
                 })}
@@ -399,23 +393,7 @@ export default function AccountView({
             })}
           </div>
         )}
-        {/* ── APP STORES ── */}
-        <div style={{ margin: "24px 16px 0", display: "flex", gap: 12, justifyContent: "center" }}>
-          <div className="press" onClick={() => toast$("Próximamente en App Store")} style={{ flex: 1, background: "#000", color: "#fff", borderRadius: 12, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", border: "1px solid #333" }}>
-            <svg viewBox="0 0 384 512" style={{ width: 22, height: 22, fill: "#fff" }}><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 9, opacity: 0.8, lineHeight: 1.2 }}>{t("consiguelo_en", "Consíguelo en el")}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>App Store</div>
-            </div>
-          </div>
-          <div className="press" onClick={() => toast$("Próximamente en Google Play")} style={{ flex: 1, background: "#000", color: "#fff", borderRadius: 12, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", border: "1px solid #333" }}>
-            <svg viewBox="0 0 512 512" style={{ width: 22, height: 22, fill: "#fff" }}><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 9, opacity: 0.8, lineHeight: 1.2 }}>{t("disponible_en", "DISPONIBLE EN")}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>Google Play</div>
-            </div>
-          </div>
-        </div>
+
 
         {/* ── CERRAR SESIÓN ── */}
         <button onClick={doSignOut} style={{ width: "calc(100% - 32px)", margin: "16px 16px 0", padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: T.sub, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -427,20 +405,7 @@ export default function AccountView({
           <div style={{ width: 68, height: 68, borderRadius: 18, background: T.border, margin: "0 auto 18px", animation: "pulse 1.5s infinite" }} />
           <div style={{ width: 140, height: 28, borderRadius: 8, background: T.border, margin: "0 auto" }} />
         </div>
-      ) : (
-        <div style={{ padding: "88px 26px 0", textAlign: "center" }}>
-          <div style={{ width: 68, height: 68, borderRadius: 18, background: T.greenL, margin: "0 auto 18px", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="user" size={30} color={T.green} /></div>
-          <h2 style={{ fontFamily: "var(--heading)", fontSize: 24, color: T.text, marginBottom: 9 }}>{t("tu_cuenta", "Tu cuenta")}</h2>
-          <p style={{ color: T.sub, fontSize: 15, lineHeight: 1.65, marginBottom: 28 }}>{t("tu_cuenta_desc", "Inicia sesión para guardar favoritos, escribir reseñas y acceder desde cualquier dispositivo.")}</p>
-          <button className="btn-g press" onClick={() => setShowAuth(true)}>{t("iniciar_sesion", "Iniciar sesión")}</button>
-          <button className="btn-s press" style={{ marginTop: 11 }} onClick={() => { setAuthMode("register"); setShowAuth(true); }}>{t("crear_cuenta_gratis", "Crear cuenta gratis")}</button>
-          <div onClick={() => toast$(t("toast_planes_negocio", "¡Crea una cuenta gratis y registra tu negocio para ver los planes! 🏢"))} style={{ marginTop: 18, padding: "12px 16px", background: T.greenL, borderRadius: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-            <Icon name="award" size={20} color={T.green} />
-            <div style={{ flex: 1, textAlign: "left" }}><div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{t("ver_planes_negocio", "Ver planes para tu negocio")}</div><div style={{ fontSize: 12, color: T.sub, marginTop: 1 }}>{t("planes_tipos", "Gratuito, Destacado y Premium")}</div></div>
-            <Icon name="chevron" size={16} color={T.sub} />
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {/* ── FOOTER ── */}
       <Footer />

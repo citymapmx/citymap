@@ -80,6 +80,15 @@ const sb = {
     if (!r.ok) throw new Error(d?.message || d?.hint || d?.error || `HTTP ${r.status}`);
     return d ?? [];
   },
+  async upsert(table, body, onConflict = 'id') {
+    const headers = { ...sb.restHeaders(), 'Prefer': `resolution=merge-duplicates,return=representation` };
+    const r = await fetch(`${_REST}/${table}?on_conflict=${onConflict}`, {
+      method: 'POST', headers, body: JSON.stringify(body),
+    });
+    const d = await sb._json(r);
+    if (!r.ok) throw new Error(d?.message || d?.hint || d?.error || `HTTP ${r.status}`);
+    return d ?? [];
+  },
   async rpc(func, body = {}, params = "") {
     const r = await fetch(`${_REST}/rpc/${func}${params}`, {
       method: "POST", headers: sb.restHeaders(), body: JSON.stringify(body),
@@ -181,6 +190,24 @@ const sb = {
     localStorage.removeItem("cg_t");
     localStorage.removeItem("cg_r");
   },
+  async signInWithIdToken({ provider = 'google', token, nonce }) {
+    const body = { provider, id_token: token };
+    if (nonce) body.nonce = nonce;
+    const r = await fetch(`${_AUTH}/token?grant_type=id_token`, {
+      method: "POST",
+      headers: sb.authHeaders(),
+      body: JSON.stringify(body),
+    });
+    const d = await sb._json(r);
+    if (d?.error || d?.error_description) {
+      throw new Error(d.error_description || d.error || "Error al iniciar sesión con Google");
+    }
+    if (!d?.access_token) throw new Error("No se pudo iniciar sesión con Google");
+    sb._token = d.access_token;
+    localStorage.setItem("cg_t", d.access_token);
+    if (d.refresh_token) localStorage.setItem("cg_r", d.refresh_token);
+    return d;
+  },
   async signInWithOAuth(provider) {
     try {
       if (!navigator.onLine) {
@@ -189,37 +216,35 @@ const sb = {
       }
 
       const isNative = Capacitor.isNativePlatform();
-      
+
       if (isNative) {
-        // Usar App Link nativo con esquema personalizado para evitar errores de intercepción en Android
+        // Abrir Chrome Custom Tab con redirect a esquema personalizado
         const redirectTo = encodeURIComponent('mx.citymap.app://login');
         const url = `${_AUTH}/authorize?provider=${provider}&redirect_to=${redirectTo}`;
         const { Browser } = await import('@capacitor/browser');
-        // Listen for browser close as a fallback
-        const closeListener = await Browser.addListener('browserFinished', async () => {
-          closeListener.remove();
-          setTimeout(async () => {
+        // Listener de fallback por si el deep link no dispara
+        Browser.addListener('browserFinished', async () => {
+          setTimeout(() => {
             const tok = localStorage.getItem("cg_t");
             if (tok) window.location.reload();
           }, 500);
         });
-        await Browser.open({ url, presentationStyle: 'popover' });
+        await Browser.open({ url });
       } else {
         const redirectTo = encodeURIComponent(window.location.origin);
         const url = `${_AUTH}/authorize?provider=${provider}&redirect_to=${redirectTo}`;
-        
-        // Detect if we are in iOS PWA Standalone mode (specifically iOS, not Mac desktop)
+
+        // iOS PWA: usar popup para no salir del modo standalone
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isIOSPWA = isIOS && (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches);
 
         if (isIOSPWA) {
-          // Use popup ONLY for PWA to avoid iOS Safari kicking out of standalone mode
           const width = 500;
           const height = 600;
           const left = window.screenX + (window.outerWidth - width) / 2;
           const top = window.screenY + (window.outerHeight - height) / 2;
           const popup = window.open(url, 'oauth', `width=${width},height=${height},left=${left},top=${top}`);
-          
+
           if (!popup || popup.closed || typeof popup.closed === 'undefined') {
             window.location.href = url;
             return;
@@ -236,8 +261,7 @@ const sb = {
             }
           }, 1000);
         } else {
-          // Normal web browser (Mac, PC, Android Chrome, etc) - ALWAYS redirect directly
-          // This prevents popup blockers from silently eating the login request!
+          // Android Chrome, desktop, etc. — redirect directo (más confiable)
           window.location.href = url;
         }
       }

@@ -10,13 +10,14 @@ export function useAppInitialization() {
     if (p.startsWith("/mis-planes")) return "mis-planes";
     if (p.startsWith("/experiencias")) return "mis-planes";
     if (p.startsWith("/cuenta")) return "account";
+    if (p.startsWith("/favoritos")) return "favs";
     if (p.startsWith("/admin_notifs")) return "admin_notifs";
     if (p.startsWith("/admin")) return "admin";
     if (p.startsWith("/lealtad")) return "lealtad";
     if (p.startsWith("/wallet")) return "wallet";
     if (p.startsWith("/scan")) return "scan";
     if (p.startsWith("/manage/")) return "owner_dashboard";
-    if (p.startsWith("/planes")) return "plans";
+    if (p.startsWith("/planes")) return "planes";
     if (p.startsWith("/precios")) return "plans";
     if (p.startsWith("/itinerarios")) return "itineraries";
     if (p.startsWith("/itinerario/")) return "itinerary_detail_" + p.split('/')[2];
@@ -46,7 +47,7 @@ export function useAppInitialization() {
     let expSlug = null;
     let storedCity = localStorage.getItem("cg_city_slug");
     
-    const SYSTEM_ROUTES = ["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "itinerarios", "experiencias", "manage", "stats", "itinerario", "plan", "evento", "precios", "lealtad", "wallet", "scan"];
+    const SYSTEM_ROUTES = ["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "explorar", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "explorer", "itinerarios", "experiencias", "manage", "stats", "itinerario", "plan", "evento", "precios", "lealtad", "wallet", "scan"];
 
     if (storedCity && (SYSTEM_ROUTES.includes(storedCity) || storedCity.includes("/"))) {
       localStorage.removeItem("cg_city_slug");

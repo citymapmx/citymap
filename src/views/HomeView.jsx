@@ -1,9 +1,10 @@
+import SlidingCategoryTrack from '../components/ui/SlidingCategoryTrack.jsx';
+import {useLocation, useNavigate} from 'react-router-dom';
+import SearchRecoveryLinks from '../components/home/SearchRecoveryLinks.jsx';
+import {eventMatchesQuery} from '../lib/eventSearch.js';
+import SearchSuggestions from '../components/home/SearchSuggestions.jsx';
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { sb } from "../lib/supabase.js";
-import { getCityFilterEq } from "../lib/utils.js";
-import ReactDOM from "react-dom";
-import { m, AnimatePresence } from "framer-motion";
+import { m } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
@@ -13,7 +14,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear, METRO_ZONES } from "../lib/utils";
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
-import ExperienceViewer from "../components/ExperienceViewer.jsx";
 import { PageLogo } from "../components/Brand.jsx";
 import { Sk, CardSk, DuoSk, EventSk } from "../components/ui/Skeleton.jsx";
 import FeaturedCard from "../components/cards/FeaturedCard.jsx";
@@ -24,9 +24,9 @@ import { Virtuoso } from "react-virtuoso";
 import { Helmet } from "react-helmet-async";
 import CouponCard from "../components/ui/CouponCard.jsx";
 import HomeEvents from "../components/home/HomeEvents.jsx";
-import PushPrompt from "../components/PushPrompt.jsx";
 import SurpriseModal from "../components/SurpriseModal.jsx";
 import HomeTopGrids from "../components/home/HomeTopGrids.jsx";
+import BusinessListTransition from "../components/ui/BusinessListTransition.jsx";
 import HomeHero from "../components/home/HomeHero.jsx";
 
 // Seed determinista que rota cada 6 horas (0-5, 6-11, 12-17, 18-23)
@@ -114,30 +114,9 @@ export default function HomeView({ isBackground }) {
   const raffles = useDataStore(s => s.raffles);
   const cities = useDataStore(s => s.cities);
   const experiences = useDataStore(s => s.experiences);
-  const setMapPins = useDataStore(s => s.setMapPins);
+  const mapPins = useDataStore(s => s.mapPins);
+  const pinsLoading = useDataStore(s => s.initialBizCount === null);
 
-  
-  const { data: mapPins = [], isLoading: pinsLoading } = useQuery({
-    queryKey: ['home-businesses', activeCity],
-    queryFn: async () => {
-      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url";
-      const batch = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(activeCity)}&order=plan.desc,rating.desc.nullslast,id.desc&limit=1000`);
-      
-      const processBatch = (arr) => arr ? arr.map(b => ({
-        ...b,
-        category: b.category?.toLowerCase(),
-        rating: b.rating || 0,
-        photos: typeof b.photos === 'string' ? JSON.parse(b.photos || '[]') : (b.photos || [])
-      })) : [];
-      
-      const processed = processBatch(batch);
-      setTimeout(() => setMapPins(processed), 0);
-      return processed;
-    },
-    enabled: !!activeCity,
-    staleTime: 5 * 60 * 1000
-  });
-  
   const user = useAuthStore(s => s.user);
   const setShowAuth = useAuthStore(s => s.setShowAuth);
 
@@ -178,8 +157,7 @@ export default function HomeView({ isBackground }) {
     return desc;
   }, [lang]);
 
-  const [viewingPlan, setViewingPlan] = React.useState(null);
-  const [isViewing, setIsViewing] = React.useState(false);
+  const articleNavigate = useNavigate();
   const [showAiPlanner, setShowAiPlanner] = React.useState(false);
   const [showSurprise, setShowSurprise] = React.useState(false);
   const [phIdx, setPhIdx] = React.useState(0);
@@ -192,8 +170,74 @@ export default function HomeView({ isBackground }) {
   }, [placeholdersKeys.length]);
 
   
-  const { viewStyle, cityImg, locating, detectCity, city, isAdmin, setShowAdmin, search, setSearch, setShowAddBiz, activeCat, setActiveCat, T, displayList, userCoords, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, requestLocation, allNearby, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, biz, AutoSlider, detectedTown, detectedState, setSelectedEvent } = ctx;
-  const isOpen = (b) => isOpenNow(b, city?.timezone || "America/Mexico_City");
+  const { businessListReady = true, businessListError = false, viewStyle, cityImg, locating, detectCity, city, isAdmin, setShowAdmin, search, setSearch, setShowAddBiz, activeCat, setActiveCat, T, displayList, userCoords, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, requestLocation, allNearby, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, biz, AutoSlider, detectedTown, detectedState, setSelectedEvent } = ctx;
+
+  const recoveryLocation = useLocation();
+  const [ratedRecoveryStatus, setRatedRecoveryStatus] = React.useState(null);
+  const loadHomeHighlights = useDataStore(state => state.loadHomeHighlights);
+  const isRatedRecovery = recoveryLocation.hash === '#mejor-calificados';
+  React.useEffect(() => {
+    if (!isRatedRecovery || search || activeCat !== 'explorar' || !dbReady || pinsLoading) return;
+    let cancelled = false;
+    setRatedRecoveryStatus('loading');
+    loadHomeHighlights(activeCity).then(() => {
+      if (!cancelled) setRatedRecoveryStatus(useDataStore.getState().highlightsCity === activeCity ? 'ready' : 'error');
+    }).catch(() => { if (!cancelled) setRatedRecoveryStatus('error'); });
+    return () => { cancelled = true; };
+  }, [isRatedRecovery, search, activeCat, dbReady, pinsLoading, activeCity, loadHomeHighlights]);
+  React.useEffect(() => {
+    if (!isRatedRecovery || !ratedRecoveryStatus || ratedRecoveryStatus === 'loading' || search || activeCat !== 'explorar') return;
+    const frame = requestAnimationFrame(() => document.getElementById('mejor-calificados')?.scrollIntoView({behavior:'smooth',block:'start'}));
+    return () => cancelAnimationFrame(frame);
+  }, [isRatedRecovery, ratedRecoveryStatus, search, activeCat, activeCity]);
+
+  const [selectedSubcat, setSelectedSubcat] = React.useState("todas");
+  const [showAllSearchResults, setShowAllSearchResults] = React.useState(false);
+  React.useEffect(() => { setShowAllSearchResults(false); }, [search, activeCity, activeCat]);
+
+  React.useEffect(() => {
+    setSelectedSubcat("todas");
+  }, [activeCat]);
+
+  const availableSubcats = React.useMemo(() => {
+    if (!activeCat || activeCat === "explorar" || !biz) return [];
+    const subcatMap = new Map();
+    
+    biz.forEach(b => {
+      const candidates = [];
+      if (b.subcategory) {
+        candidates.push(...String(b.subcategory).split(/[,/•|]/));
+      } else if (b.type) {
+        candidates.push(...String(b.type).split(/[,/•|]/));
+      }
+      
+      candidates.forEach(raw => {
+        const item = raw.trim();
+        if (item && item.length > 1) {
+          const key = item.toLowerCase();
+          if (!subcatMap.has(key)) {
+            const formatted = item.charAt(0).toUpperCase() + item.slice(1);
+            subcatMap.set(key, formatted);
+          }
+        }
+      });
+    });
+
+    return Array.from(subcatMap.values()).sort((a, b) => a.localeCompare(b));
+  }, [biz, activeCat]);
+
+  const finalDisplayList = React.useMemo(() => {
+    if (!selectedSubcat || selectedSubcat === "todas") return displayList;
+    const target = selectedSubcat.toLowerCase().trim();
+    return displayList.filter(b => {
+      const sub = (b.subcategory || "").toLowerCase();
+      const typ = (b.type || "").toLowerCase();
+      const tags = Array.isArray(b.tags) ? b.tags.join(" ").toLowerCase() : (b.tags || "").toLowerCase();
+      return sub.includes(target) || typ.includes(target) || tags.includes(target);
+    });
+  }, [biz, displayList, selectedSubcat]);
+
+  const isOpen = React.useCallback((b) => isOpenNow(b, city?.timezone || "America/Mexico_City"), [city?.timezone]);
 
 
   const nearbyList = React.useMemo(() => {
@@ -341,16 +385,14 @@ export default function HomeView({ isBackground }) {
   const surpriseSeenRef = React.useRef(new Set());
 
   const handleExperienceTap = (exp) => {
-    useUIStore.getState().setSelectedExpSlug(createSlug(exp.title));
-    navigate(`/experiencias/${activeCity}/${createSlug(exp.title)}`);
+    articleNavigate(`/revista/${activeCity}/${createSlug(exp.title)}`, { state: { articleOrigin: true } });
   };
 
   return (
-    <div style={{ paddingBottom: 84, position: "relative", ...viewStyle }}>
+    <div data-city-home={activeCity} style={{ paddingBottom: 84, position: "relative", ...viewStyle }}>
           {/* ── HERO HEADER ── */}
-          <HomeHero dark={dark} T={T} t={t} search={search} setSearch={setSearch} localizedPlaceholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dbReady={dbReady} cats={cats} activeCat={activeCat} setActiveCat={setActiveCat} activeCity={activeCity} city={city} cities={cities} haptic={haptic} detectedTown={detectedTown} onSurprise={() => { haptic("light"); setShowSurprise(true); }} />
+          <HomeHero dark={dark} T={T} t={t} search={search} setSearch={setSearch} localizedPlaceholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dbReady={dbReady} cats={cats} activeCat={activeCat} setActiveCat={setActiveCat} activeCity={activeCity} city={city} cities={cities} haptic={haptic} detectedTown={detectedTown} onSurprise={() => { haptic("light"); setShowSurprise(true); }} navigate={navigate} />
           
-          <PushPrompt citySlug={activeCity} dark={dark} />
 
           {/* ── EMPTY CITY STATE ── */}
           {!search && dbReady && !pinsLoading && mapPins.filter(b => isNear(b, userCoords, activeCity)).length === 0 && (
@@ -371,9 +413,8 @@ export default function HomeView({ isBackground }) {
             const query = search.toLowerCase();
             const qWords = query.split(/\s+/).filter(Boolean);
             const matchingEvents = (events || []).filter(ev => {
-              if (!isNear(ev, userCoords, activeCity)) return false;
-              const text = [ev.title, ev.description, ev.location, ev.venue_name, ev.category].join(" ").toLowerCase();
-              return qWords.every(w => text.includes(w));
+              if (ev.status !== 'approved' || !isNear(ev, userCoords, activeCity)) return false;
+              return eventMatchesQuery(search, ev);
             });
             const isEventQuery = qWords.some(w => w === "evento" || w === "eventos");
             
@@ -384,11 +425,11 @@ export default function HomeView({ isBackground }) {
                   {matchingEvents.map(ev => {
                     const posterUrl = ev.img_url || ev.img || ev.poster_url;
                     return (
-                      <div key={ev.id} className="press" onClick={() => { handleEventTap(ev); }} style={{ width: 140, height: 180, borderRadius: 14, background: `#f3f4f6 url('${getThumbUrl(posterUrl, 400, 500)}') center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: T.shadow, position: "relative", overflow: "hidden" }}>
+                      <button type="button" aria-label={`Ver evento: ${ev.title}`} key={ev.id} className="press" onClick={() => { handleEventTap(ev); }} style={{ width: 140, height: 180, padding: 0, textAlign: "left", fontFamily: "inherit", borderRadius: 14, background: `transparent url('${getThumbUrl(posterUrl, 400, 500)}') center/cover`, border: `1px solid ${T.border}`, cursor: "pointer", flexShrink: 0, boxShadow: T.shadow, position: "relative", overflow: "hidden" }}>
                         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.85))", padding: "20px 10px 10px", color: "#fff", fontSize: 12, fontWeight: 700, lineHeight: 1.2 }}>
                           {ev.title}
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -399,14 +440,15 @@ export default function HomeView({ isBackground }) {
               <div style={{ padding: "16px 20px 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                   <span style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 20, color: T.text }}>"{search}"</span>
-                  <span style={{ fontSize: 12, color: T.sub, fontWeight: 600 }}>{displayList.length + matchingEvents.length} {t("resultados", "resultados")}</span>
+                  <span style={{ fontSize: 12, color: T.sub, fontWeight: 600 }}>{displayList.length + matchingEvents.length} {displayList.length + matchingEvents.length === 1 ? t("resultado", "resultado") : t("resultados", "resultados")}</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {!dbReady && [1, 2].map(i => <CardSk key={i} dark={dark} />)}
+                  {(!dbReady || (!businessListReady && !businessListError)) && [1, 2].map(i => <CardSk key={i} dark={dark} />)}
                   
                   {isEventQuery && <EventosBlock />}
 
-                  {dbReady && displayList.length > 0 && displayList.map((b, index) => {
+                  {dbReady && businessListReady && displayList.length > 0 && !showAllSearchResults && <SearchSuggestions results={displayList} cats={cats} userCoords={userCoords} T={T} onSelect={handleCardTap} onViewAll={() => setShowAllSearchResults(true)} />}
+                  {dbReady && businessListReady && showAllSearchResults && displayList.length > 0 && displayList.map((b, index) => {
                     const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
                     const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : null;
                     if (b.plan === "premium") {
@@ -417,7 +459,7 @@ export default function HomeView({ isBackground }) {
                       return <div key={b.id} style={{ paddingBottom: 14 }}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     }
                   })}
-                  {dbReady && hasMore && (
+                  {dbReady && businessListReady && showAllSearchResults && hasMore && (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
                       <button
                         onClick={() => loadPaginatedBiz(false)}
@@ -427,15 +469,10 @@ export default function HomeView({ isBackground }) {
                     </div>
                   )}
                   
-                  {dbReady && displayList.length === 0 && !isEventQuery && matchingEvents.length > 0 && <EventosBlock />}
+                  {dbReady && !isEventQuery && matchingEvents.length > 0 && <EventosBlock />}
                   
-                  {dbReady && displayList.length === 0 && matchingEvents.length === 0 && (() => {
-                    const quickLinks = [
-                      { label: "Restaurantes", emoji: "🍽️", action: () => { setSearch(""); setActiveCat("restaurantes"); } },
-                      { label: "Próximos Eventos", emoji: "🎉", action: () => { setSearch(""); setActiveCat("explorar"); setTimeout(() => window.scrollTo({top: 0, behavior: "smooth"}), 100); } },
-                      { label: "Mapa de la ciudad", emoji: "🗺️", action: () => { setSearch(""); navigate("map"); } },
-                      { label: "Mejor Calificados", emoji: "⭐", action: () => { setSearch(""); setActiveCat("explorar"); setTimeout(() => document.getElementById("explorar-section")?.scrollIntoView({behavior: "smooth"}), 100); } }
-                    ];
+                  {dbReady && businessListReady && displayList.length === 0 && matchingEvents.length === 0 && (() => {
+
 
                     return (
                       <div style={{ padding: "10px 0 30px" }}>
@@ -443,32 +480,7 @@ export default function HomeView({ isBackground }) {
                           No encontramos resultados para <strong style={{ color: T.text }}>"{search}"</strong>. <br/>Explora la ciudad:
                         </div>
                         
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
-                          {quickLinks.map(opt => (
-                            <button
-                              key={opt.label}
-                              className="press"
-                              onClick={opt.action}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                padding: "14px 12px",
-                                borderRadius: 16,
-                                background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
-                                border: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`,
-                                cursor: "pointer",
-                                textAlign: "left",
-                                width: "100%",
-                                color: T.text,
-                                fontFamily: "inherit"
-                              }}
-                            >
-                              <span style={{ fontSize: 22 }}>{opt.emoji}</span>
-                              <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{opt.label}</span>
-                            </button>
-                          ))}
-                        </div>
+                        <SearchRecoveryLinks activeCity={activeCity} cities={cities} T={T} dark={dark} onSelect={category => { setSearch(''); setActiveCat(category); }} />
 
                         <div style={{ textAlign: "center", padding: "20px", background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)", borderRadius: 20, border: `1px dashed ${T.border}` }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>¿Conoces este lugar?</div>
@@ -495,110 +507,12 @@ export default function HomeView({ isBackground }) {
             );
           })()}
 
-          {/* ── CERCA DE TI ── */}
-          {(() => {
-            const isLocal = !userCoords || mapPins.some(b => b.city_slug && b.city_slug.split(",").includes(activeCity) && b.lat && b.lng && getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) < 50);
-            if (search || !dbReady || !isLocal || activeCat === "explorar") return null;
-            return (
-            <div style={{ padding: "8px 20px 0" }}>
-              <div>
-                {/* Title row */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 12 }}>
-                  <span style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 22, color: T.text, margin: 0 }}>{activeCat === "explorar" || activeCat === "todas" ? t("cerca_de_ti", "Cerca de ti") : `${t(cats.find(c => c.id === activeCat)?.label || "Lugares")} ${t("cerca_de_ti", "cerca de ti").toLowerCase()}`}</span>
-                  {userCoords && nearbyList.length > 0 && <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>{nearbyList.length} {t("lugares_cerca", "lugares")}</span>}
-                </div>
-
-                {/* Filter pills */}
-                {userCoords && (
-                  <div style={{ display: "flex", gap: 12, marginBottom: 12, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
-                    
-                    {/* Magnetic Segmented Control */}
-                    <div style={{ display: "flex", background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", padding: 4, borderRadius: 24, position: "relative" }}>
-                      {[{ km: 0.5, label: "🚶‍♂️ 500m" }, { km: 1, label: "🚶‍♂️ 1km" }, { km: 2, label: "🚗 2km" }, { km: 3, label: "🚗 3km" }].map(opt => {
-                        const active = nearbyRadius === opt.km;
-                        return (
-                          <button key={opt.km} onClick={() => setNearbyRadius(opt.km)} style={{ position: "relative", zIndex: 1, padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 700, color: active ? (dark ? "#000" : "#000") : T.text, background: "transparent", border: "none", cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap", transition: "color 0.3s ease", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            {active && (
-                              <m.div layoutId="homeDistIndicator" style={{ position: "absolute", inset: 0, background: dark ? "#fff" : "#fff", borderRadius: 20, zIndex: -1, boxShadow: "0 2px 8px rgba(0,0,0,0.12)" }} transition={{ type: "spring", bounce: 0.25, duration: 0.5 }} />
-                            )}
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <button className="press" onClick={() => setNearbyFilter(nearbyFilter === "open" ? "all" : "open")} style={{ display: "flex", alignItems: "center", gap: 5, background: nearbyFilter === "open" ? (dark ? "#fff" : "#1a1a1a") : "transparent", color: nearbyFilter === "open" ? (dark ? "#000" : "#fff") : T.text, border: nearbyFilter === "open" ? "none" : `1.5px solid ${T.border}`, padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all .2s", flexShrink: 0, whiteSpace: "nowrap" }}>
-                      <div className="live-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "#16A34A" }} />
-                      {t("abierto_ahora", "Abiertos ahora")}
-                    </button>
-                  </div>
-                )}
-
-                {!userCoords && (
-                  <div onClick={requestLocation} style={{ padding: "14px 16px", background: T.white, borderRadius: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, boxShadow: T.shadow }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: T.greenL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Icon name="pin" size={16} color={T.green} />
-                    </div>
-                    <span style={{ fontSize: 13, color: T.green, fontWeight: 600 }}>{t("toca_cerca", "Toca para ver lugares cerca de ti")}</span>
-                  </div>
-                )}
-
-                {userCoords && <>
-                  {nearbyList.length === 0 ? (
-                    <div style={{ padding: "24px 16px", background: dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: 16, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12 }}>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: 14, color: T.text, marginBottom: 4 }}>{t("sugerir_zona_cerca", "No hay lugares a esta distancia 🗺️")}</div>
-                        <div style={{ fontSize: 13, color: T.sub }}>{t("sugerir_desc_cerca", "Intenta ampliar el radio de búsqueda o sugiere un lugar por aquí.")}</div>
-                      </div>
-                      <button className="press" onClick={() => { if (!user) { setShowAuth(true); toast$("Inicia sesión para sugerir un lugar"); } else { setShowAddBiz(true); } }} style={{ background: "#0ea5e9", color: "#fff", border: "none", borderRadius: 20, padding: "8px 16px", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                        <Icon name="plus" size={16} color="#fff" /> {t("sugerir_btn", "Sugerir lugar")}
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, scrollbarWidth: "none", alignItems: "flex-start", marginRight: -20, paddingRight: 20 }}>
-                      {nearbyList.map(b => (
-                        <div key={b.id} className="press" onClick={() => handleCardTap(b)}
-                          style={{ minWidth: 120, maxWidth: 120, height: "max-content", flexShrink: 0, background: T.white, borderRadius: 12, overflow: "hidden", boxShadow: T.shadow, transition: "all .2s", cursor: "pointer" }}>
-                          {/* Photo */}
-                          <div style={{ height: 90, overflow: "hidden", position: "relative", background: T.border }}>
-                            {b.photos?.[0]?.url
-                              ? <OptimizedImage src={b.photos[0].url} widthRequest={200} heightRequest={200} alt={b.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                              : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{(b.emoji || CAT_EMOJI[b.category]) || "📍"}</div>
-                            }
-                          </div>
-                          {/* Info */}
-                          <div style={{ padding: "6px 8px" }}>
-                            <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 13, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.1, marginBottom: 4 }}>{b.name}</div>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                                {!getScheduleStatus(b, isOpen(b)).hidden && (
-                                  <>
-                                    <div style={{ width: 5, height: 5, borderRadius: "50%", background: getScheduleStatus(b, isOpen(b)).color, flexShrink: 0 }} />
-                                    <span style={{ fontSize: 9, color: getScheduleStatus(b, isOpen(b)).color, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.2 }}>{t(getScheduleStatus(b, isOpen(b)).text)}</span>
-                                  </>
-                                )}
-                              </div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 1, color: T.sub, fontSize: 10, fontWeight: 600 }}>
-                                <Icon name="pin" size={9} color={T.sub} />
-                                {b._km < 1 ? `${Math.round(b._km * 1000)}m` : `${b._km.toFixed(1)}km`}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>}
-              </div>
-            </div>
-            );
-          })()}
 
           
           {/* ── BANNERS ── */}
           {!search && activeCat === "explorar" && (() => {
             if (activeBannersMemo.length === 0) return null;
-            return <div style={{ margin: "16px 20px 8px", borderRadius: 14, overflow: "hidden", aspectRatio: "21/9", position: "relative", background: T.border, boxShadow: "0 6px 16px rgba(0,0,0,0.1)" }}>
+            return <div style={{ margin: "6px 20px 8px", borderRadius: 14, overflow: "hidden", aspectRatio: "21/9", position: "relative", background: "transparent" }}>
               <BannerSlider activeBanners={activeBannersMemo} />
             </div>;
           })()}
@@ -681,28 +595,105 @@ export default function HomeView({ isBackground }) {
               );
             })()}
 
-            <TopImperdibles experiences={experiences} globalFavCounts={globalFavCounts} setViewingPlan={setViewingPlan} setIsViewing={setIsViewing} T={T} FONT_BIZ={FONT_BIZ} city={city} />
+            <TopImperdibles experiences={experiences} T={T} FONT_BIZ={FONT_BIZ} city={city} />
 
           </div>}
 
           {/* ── FAVORITOS DE LA CIUDAD ── */}
-          {!search && activeCat === "explorar" && <HomeTopGrids topFavs={topFavsMemo} showMoreTopFavs={showMoreTopFavs} setShowMoreTopFavs={setShowMoreTopFavs} topRated={topRatedMemo} showMoreTopRated={showMoreTopRated} setShowMoreTopRated={setShowMoreTopRated} userCoords={userCoords} getKm={getKm} dark={dark} T={T} favIds={favIds} toggleFav={toggleFav} handleCardTap={handleCardTap} globalFavCounts={globalFavCounts} t={t} />}
+          {!search && activeCat === "explorar" && <HomeTopGrids ratedStatus={isRatedRecovery ? ratedRecoveryStatus : null} topFavs={topFavsMemo} showMoreTopFavs={showMoreTopFavs} setShowMoreTopFavs={setShowMoreTopFavs} topRated={topRatedMemo} showMoreTopRated={showMoreTopRated} setShowMoreTopRated={setShowMoreTopRated} userCoords={userCoords} getKm={getKm} dark={dark} T={T} favIds={favIds} toggleFav={toggleFav} handleCardTap={handleCardTap} globalFavCounts={globalFavCounts} t={t} />}
 
 
 
 
           {/* ── TODOS LOS NEGOCIOS POR CATEGORÍA ── */}
-          {!search && activeCat !== "explorar" && <div id="all-biz-section" style={{ padding: "20px 20px 0" }}>
-            <div style={{ textAlign: "center", marginBottom: 16 }}>
+          {!search && activeCat !== "explorar" && <div id="all-biz-section" style={{ padding: "6px 20px 0" }}>
+            <div style={{ textAlign: "center", marginBottom: availableSubcats.length > 0 ? 12 : 16 }}>
               {!dbReady ? <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Sk w="60%" h={26} r={6} dark={dark} /></div> : <h1 style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 26, color: T.text, margin: "0 0 6px 0", padding: 0, textAlign: "center" }}>{t(cats.find(c => c.id === activeCat)?.label || activeCat)} {lang === 'en' ? 'in' : 'en'} {(city || "").split(',')[0]}</h1>}
               {!dbReady ? <div style={{ display: "flex", justifyContent: "center" }}><Sk w="80%" h={14} r={4} dark={dark} /></div> : <h2 style={{ fontSize: 13, color: T.sub, fontWeight: 500, margin: 0, lineHeight: 1.4, textAlign: "center" }}>{getCategoryDescription(activeCat, cats.find(c => c.id === activeCat)?.label, city)}</h2>}
             </div>
+
+            {/* ── BARRA DE SUBCATEGORÍAS ── */}
+            {dbReady && businessListReady && availableSubcats.length > 0 && (
+              <SlidingCategoryTrack dark={dark} selectedKey={selectedSubcat}  
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  overflowX: "auto",
+                  paddingBottom: 14,
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  WebkitOverflowScrolling: "touch",
+                  justifyContent: availableSubcats.length <= 3 ? "center" : "flex-start",
+                }}
+                className="no-scrollbar"
+              >
+                <button
+                  className="press"
+                  aria-pressed={selectedSubcat === "todas"}
+                  onClick={() => setSelectedSubcat("todas")}
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                    border: selectedSubcat === "todas" ? "none" : `1px solid ${dark ? "rgba(255,255,255,0.12)" : "#ECEFF2"}`,
+                    background: selectedSubcat === "todas" 
+                      ? (dark ? "#fff" : "#0F1A14") 
+                      : (dark ? "rgba(255,255,255,0.06)" : "#F8FAFC"),
+                    color: selectedSubcat === "todas" 
+                      ? (dark ? "#0F1A14" : "#fff") 
+                      : (dark ? "#9CA3AF" : "#4B5563"),
+                    cursor: "pointer",
+                    boxShadow: "none",
+                    flexShrink: 0,
+                    transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+                  }}
+                >
+                  Todos
+                </button>
+                {availableSubcats.map(sub => {
+                  const isSelected = selectedSubcat.toLowerCase() === sub.toLowerCase();
+                  return (
+                    <button
+                      key={sub}
+                      className="press"
+                      aria-pressed={isSelected}
+                      onClick={() => setSelectedSubcat(isSelected ? "todas" : sub)}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: 20,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                        border: isSelected ? "none" : `1px solid ${dark ? "rgba(255,255,255,0.12)" : "#ECEFF2"}`,
+                        background: isSelected 
+                          ? (dark ? "#fff" : "#0F1A14") 
+                          : (dark ? "rgba(255,255,255,0.06)" : "#F8FAFC"),
+                        color: isSelected 
+                          ? (dark ? "#0F1A14" : "#fff") 
+                          : (dark ? "#9CA3AF" : "#4B5563"),
+                        cursor: "pointer",
+                        boxShadow: "none",
+                        flexShrink: 0,
+                        transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+                      }}
+                    >
+                      {sub}
+                    </button>
+                  );
+                })}
+              </SlidingCategoryTrack>
+            )}
+
             <div style={{ flexDirection: "column", gap: 14 }}>
-              {!dbReady && [1, 2, 3].map(i => <CardSk key={i} dark={dark} />)}
-              {dbReady && displayList.length > 0 && (
+              {(!dbReady || (!businessListReady && !businessListError)) && <div role="status" aria-label="Cargando negocios de esta categoría">{[1, 2, 3].map(i => <CardSk key={i} dark={dark} />)}</div>}
+              {dbReady && businessListError && <div role="status" style={{ padding: 24, textAlign: "center", color: T.sub }}><p>No se pudieron cargar los negocios.</p><button type="button" onClick={() => loadPaginatedBiz()} disabled={loadingMore}>{loadingMore ? "Cargando…" : "Reintentar"}</button></div>}
+              {dbReady && businessListReady && finalDisplayList.length > 0 && (
+                <BusinessListTransition transitionKey={JSON.stringify([activeCity, activeCat, selectedSubcat])}>
                 <Virtuoso
                   useWindowScroll
-                  data={displayList}
+                  data={finalDisplayList}
                   endReached={() => {
                     if (hasMore && !loadingMore) loadPaginatedBiz(false);
                   }}
@@ -727,8 +718,38 @@ export default function HomeView({ isBackground }) {
                     )
                   }}
                 />
+                </BusinessListTransition>
               )}
-              {dbReady && displayList.length === 0 && <div style={{ textAlign: "center", padding: "32px 0", color: T.sub }}><Icon name="search" size={36} color={T.border} /><p style={{ fontWeight: 700, color: T.text, marginTop: 14, marginBottom: 6 }}>{t("sin_negocios_cat", "Sin negocios en esta categoría")}</p><p style={{ fontSize: 14 }}>{t("prueba_otra_cat", "Prueba otra categoría")}</p></div>}
+              {dbReady && businessListReady && finalDisplayList.length === 0 && (
+                <div style={{ textAlign: "center", padding: "32px 0", color: T.sub }}>
+                  <Icon name="search" size={36} color={T.border} />
+                  <p style={{ fontWeight: 700, color: T.text, marginTop: 14, marginBottom: 6 }}>
+                    {selectedSubcat !== "todas" 
+                      ? `Sin negocios en "${selectedSubcat}"` 
+                      : t("sin_negocios_cat", "Sin negocios en esta categoría")}
+                  </p>
+                  {selectedSubcat !== "todas" ? (
+                    <button 
+                      onClick={() => setSelectedSubcat("todas")}
+                      style={{ 
+                        marginTop: 6, 
+                        padding: "8px 16px", 
+                        background: dark ? "rgba(255,255,255,0.1)" : "#E5E7EB", 
+                        borderRadius: 12, 
+                        border: "none", 
+                        color: T.text, 
+                        fontSize: 13, 
+                        fontWeight: 700, 
+                        cursor: "pointer" 
+                      }}
+                    >
+                      Ver todas las opciones
+                    </button>
+                  ) : (
+                    <p style={{ fontSize: 14 }}>{t("prueba_otra_cat", "Prueba otra categoría")}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>}
           {!search && raffles && raffles.length > 0 && <div style={{ padding: "20px 20px 0" }}>
@@ -778,24 +799,6 @@ export default function HomeView({ isBackground }) {
 
           {/* Bottom Spacing */}
           <div style={{ height: 20 }} />
-
-          {ReactDOM.createPortal(
-            <AnimatePresence>
-              {isViewing && viewingPlan && (
-                <ExperienceViewer 
-                  exp={viewingPlan} 
-                  T={T} 
-                  dark={dark} 
-                  onClose={() => { 
-                    setIsViewing(false); 
-                    setTimeout(() => setViewingPlan(null), 300);
-                    window.history.pushState({}, '', `/${activeCity}`);
-                  }} 
-                />
-              )}
-            </AnimatePresence>,
-            document.body
-          )}
 
           {/* AI Night Planner FAB (Shows after 5 PM and before 4 AM) - OCULTO TEMPORALMENTE */}
           {/* eslint-disable-next-line no-constant-binary-expression */}

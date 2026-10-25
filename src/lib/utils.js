@@ -446,6 +446,7 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
     const joinChar = url.includes("?") ? "&" : "?";
     let renderQuery = `width=${targetW}&quality=75&format=webp`; // Bajamos calidad a 75 para cargar más rápido
     if (targetH) renderQuery += `&height=${targetH}&resize=${fit}`;
+    else renderQuery += `&resize=contain`;
     return url.replace("/object/public/", "/render/image/public/") + joinChar + renderQuery;
   }
   
@@ -453,33 +454,84 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
 }
 
 export const getCategoryDescription = (categoryId, categoryLabel, cityLabel) => {
-  const city = (cityLabel || "tu ciudad").split(',')[0];
-  const label = categoryLabel ? categoryLabel.toLowerCase() : categoryId;
-  const id = categoryId.toLowerCase();
+  const city = (cityLabel || "tu ciudad").split(',')[0].trim();
+  const label = categoryLabel ? categoryLabel.toLowerCase().trim() : (categoryId || "").toLowerCase().trim();
+  const id = (categoryId || "").toLowerCase().trim();
   
-  if (id === 'salud') return `Encuentra la mejor atención médica en ${city}. Especialistas, clínicas y hospitales de confianza con servicios y horarios verificados.`;
-  if (id === 'educacion') return `Impulsa tu futuro en las mejores escuelas y academias de ${city}. Encuentra la institución ideal para tu desarrollo y aprendizaje.`;
-  if (id === 'eventos') return `Vive la ciudad al máximo con los mejores eventos en ${city}. Encuentra conciertos, obras de teatro, festivales y mucho más.`;
-  if (id === 'restaurantes') return `Deléitate con los mejores restaurantes en ${city}. Encuentra desde joyas locales hasta alta cocina con menús, horarios y reseñas.`;
-  if (id === 'cafe') return `Disfruta del mejor café y repostería en ${city}. Explora cafeterías acogedoras perfectas para trabajar, estudiar o charlar.`;
-  if (id === 'hoteles') return `Planea tu estancia perfecta en los mejores hoteles de ${city}. Desde opciones boutique hasta estancias de lujo con todas las comodidades.`;
-  if (id === 'bares') return `Vive la vida nocturna en los mejores bares y antros de ${city}. Descubre dónde salir por unas copas o a bailar con amigos.`;
-  if (id === 'belleza') return `Consiéntete en los mejores salones, spas y barberías de ${city}. Descubre lugares increíbles para relajarte y cuidar tu imagen.`;
-  if (id === 'fitness' || id === 'gimnasios') return `Actívate en los mejores gimnasios, estudios de yoga y centros deportivos en ${city}. Encuentra la disciplina perfecta para tu rutina.`;
-  if (id === 'compras' || id === 'tiendas') return `Vete de shopping por ${city}. Descubre desde plazas comerciales hasta boutiques locales para encontrar exactamente lo que buscas.`;
-  if (id === 'tech' || id === 'tecnologia' || id === 'tecnología') return `Actualízate con las mejores tiendas de tecnología en ${city}. Encuentra desde el último smartphone hasta expertos en reparaciones.`;
-  if (id === 'ocio' || id === 'entretenimiento') return `Rompe la rutina con el mejor entretenimiento en ${city}. Descubre cines, boliches, parques y actividades divertidas para toda la familia.`;
-  if (id === 'hospedaje' || id === 'hoteles') return `Encuentra y reserva los mejores lugares de hospedaje en ${city}. Compara opciones, revisa opiniones reales de viajeros y asegura tu reservación al mejor precio.`;
-  
-  let features = "ubicaciones, horarios, detalles y reseñas";
-  if (['comida'].includes(id)) {
-    features = "ubicaciones, menús, horarios y reseñas";
-  } else if (['poi', 'puntos-de-interes', 'turismo'].includes(id)) {
-    features = "ubicaciones, cómo llegar, horarios y reseñas";
+  if (['restaurantes', 'restaurante'].includes(id)) {
+    return `Deléitate con los mejores restaurantes en ${city}. Encuentra desde joyas locales hasta alta cocina con menús, horarios y reseñas.`;
+  }
+  if (['cafeterias', 'cafeterías', 'cafe', 'café', 'cafe-postres'].includes(id)) {
+    return `Disfruta del mejor café de especialidad y repostería en ${city}. Espacios acogedores con buena vibra, ideales para platicar, leer o trabajar.`;
+  }
+  if (['antros y bares', 'antros-y-bares', 'bares', 'antros', 'vida-nocturna'].includes(id)) {
+    return `Enciende tu noche con los mejores bares, cantinas y antros en ${city}. Descubre el mejor ambiente, coctelería y música para salir con amigos.`;
+  }
+  if (['foodies', 'gastronomia', 'gourmet'].includes(id)) {
+    return `Descubre las experiencias gastronómicas más auténticas y virales de ${city}. Rincones únicos, propuestas de autor y sabores recomendados por la comunidad.`;
+  }
+  if (['unidad deportiva', 'unidad-deportiva', 'deportes', 'canchas'].includes(id)) {
+    return `Mantente activo en las mejores unidades deportivas y canchas de ${city}. Espacios al aire libre e instalaciones para entrenar, jugar y convivir en familia.`;
+  }
+  if (['fitness', 'gimnasios', 'gimnasio', 'gym', 'padel', 'pádel'].includes(id)) {
+    return `Supera tus metas en los mejores gimnasios, estudios de pádel, yoga y fitness en ${city}. Entrena con la mejor motivación y equipamiento de primera.`;
+  }
+  if (['hospedaje', 'hoteles', 'hotel', 'alojamiento'].includes(id)) {
+    return `Encuentra la estancia perfecta en ${city}. Desde hoteles boutique con encanto hasta estancias confortables con todas las comodidades y excelentes ubicaciones.`;
+  }
+  if (['lugares', 'puntos-de-interes', 'puntos de interés', 'turismo', 'parques'].includes(id)) {
+    return `Explora los rincones más emblemáticos, plazas históricas y atractivos naturales de ${city}. Guías, rutas y vistas imperdibles para disfrutar tu día.`;
+  }
+  if (['ocio', 'entretenimiento', 'diversion'].includes(id)) {
+    return `Rompe la rutina con el mejor entretenimiento en ${city}. Cines, boliches, teatros y actividades llenas de diversión para toda la familia.`;
+  }
+  if (['snacks', 'postres', 'antojitos'].includes(id)) {
+    return `Date un gusto con los antojitos, postres y snacks más ricos de ${city}. Nieves, botanas, crepas y delicias irresistibles para consentirte.`;
+  }
+  if (['servicios', 'servicios profesionales'].includes(id)) {
+    return `Conecta con profesionales y servicios de confianza en ${city}. Soluciones expertas para tu hogar, vehículo, salud financiera y proyectos personales.`;
+  }
+  if (['playa', 'costa', 'playas'].includes(id)) {
+    return `Siente la brisa marina en las playas más hermosas de la región. Clubes de playa, atardeceres dorados y gastronomía fresca frente al mar.`;
+  }
+  if (['salud', 'medicos', 'clinicas'].includes(id)) {
+    return `Cuida tu bienestar con médicos especialistas, clínicas y centros de salud de confianza en ${city}. Atención profesional y horarios verificados.`;
+  }
+  if (['compras', 'tiendas', 'moda'].includes(id)) {
+    return `Vete de compras por ${city}. Descubre plazas comerciales, boutiques locales y tiendas exclusivas para encontrar exactamente lo que buscas.`;
+  }
+  if (['hogar', 'muebles', 'decoracion'].includes(id)) {
+    return `Transforma tus espacios con las mejores tiendas de muebles, decoración y artículos para el hogar en ${city}.`;
+  }
+  if (['tech', 'tecnologia', 'tecnología'].includes(id)) {
+    return `Actualízate con las mejores tiendas de tecnología en ${city}. Dispositivos, accesorios y expertos en reparaciones a tu alcance.`;
+  }
+  if (['belleza', 'spas', 'barberias', 'salones'].includes(id)) {
+    return `Consiéntete en los mejores salones, spas y barberías de ${city}. Descubre lugares increíbles para relajarte y cuidar tu estilo e imagen.`;
+  }
+  if (['educacion', 'educación', 'escuelas'].includes(id)) {
+    return `Impulsa tu futuro y talento en las mejores escuelas y academias de ${city}. Instituciones ideales para tu aprendizaje y desarrollo.`;
+  }
+  if (['eventos', 'planes'].includes(id)) {
+    return `Vive la ciudad al máximo con los mejores eventos en ${city}. Conciertos, obras de teatro, festivales y espectáculos para disfrutar en grande.`;
   }
   
-  return `Descubre lo mejor de ${label} en ${city}. Encuentra ${features} de la comunidad.`;
+  return `Descubre los mejores lugares de ${label} en ${city}. Encuentra ubicaciones, horarios, fotos y reseñas verificadas de la comunidad.`;
 };
+
+export function cleanShortAddress(addr) {
+  if (!addr) return "";
+  const parts = addr.split(",").map(p => p.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const first = parts[0];
+    const second = parts[1].replace(/^(?:C\.?P\.?\s*)?\d{5}\s*/i, "").trim();
+    if (second && !/^(?:Nay\.?|Nayarit|Jal\.?|Jalisco|CDMX|México|Mexico)$/i.test(second)) {
+      return `${first}, ${second}`;
+    }
+    return first;
+  }
+  return parts[0] || addr;
+}
 
 export function haptic(pattern = "light") {
   if (typeof navigator !== "undefined" && navigator.vibrate) {
@@ -512,6 +564,9 @@ export function levenshtein(a, b) {
           matrix[i - 1][j - 1] + 1, // substitution
           Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1) // insertion, deletion
         );
+      }
+      if (i > 1 && j > 1 && b[i - 1] === a[j - 2] && b[i - 2] === a[j - 1]) {
+        matrix[i][j] = Math.min(matrix[i][j], matrix[i - 2][j - 2] + 1);
       }
     }
   }

@@ -1,3 +1,6 @@
+import CivitatisWidget from './CivitatisWidget.jsx';
+import { getCivitatisWidgetSrc } from '../lib/civitatisWidget.js';
+import SectionCategoryBar from './ui/SectionCategoryBar.jsx';
 import { useState, useEffect, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
 import Icon from "./ui/Icon.jsx";
@@ -177,37 +180,11 @@ function TiqetsParisWidget({ T, dark }) {
   );
 }
 
-function TravelHub({ T, dark }) {
-  const { t } = useTranslation();
-  const links = [
-    { id: 'vuelos', emoji: '✈️', title: t("vuelos_baratos", "Vuelos Baratos"), desc: t("vuelos_baratos_desc", "Rutas al mejor precio"), url: 'https://expedia.com/affiliate/G4ETQnX' },
-    { id: 'hospedaje', emoji: '🏨', img: '/booking.png', title: t("hospedaje_ideal", "Hospedaje Ideal"), desc: t("hospedaje_ideal_desc", "Reserva tu estancia"), url: 'https://booking.stay22.com/citymapmx/MQbyFZdMFZ' },
-    { id: 'autos', emoji: '🚗', title: t("renta_autos", "Renta de Autos"), desc: t("renta_autos_desc", "Muévete a tu ritmo"), url: 'https://expedia.com/affiliate/DTtL3D8' },
-    { id: 'tours', emoji: '🎟️', img: '/getyourguide.png', title: t("tours_tickets", "Tours y Tickets"), desc: t("tours_tickets_desc", "Asegura tu lugar"), url: 'https://getyourguide.stay22.com/citymapmx/594Wk5DWwJ' }
-  ];
-
-  return (
-    <div style={{ marginTop: 24, padding: "0 4px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-      <h3 style={{ margin: "0 0 4px 0", fontFamily: "var(--heading)", fontWeight: 900, fontSize: 19, color: T.text, lineHeight: 1.1, letterSpacing: "-0.5px" }}>{t("arma_viaje_ideal", "Arma tu viaje ideal")}</h3>
-      <p style={{ fontSize: 13, color: T.sub, margin: "0 0 20px 0", lineHeight: 1.4 }}>{t("arma_viaje_ideal_desc", "Reserva todo lo que necesitas para tu siguiente aventura.")}</p>
-      
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, width: "100%" }}>
-        {links.map(l => (
-          <div key={l.id} onClick={() => window.open(l.url, '_blank')} className="press" style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", background: dark ? "rgba(255,255,255,0.05)" : "#F3F4F6", borderRadius: 14 }}>
-              {l.img ? <img src={l.img} alt={l.title} style={{ width: 26, height: 26, objectFit: "contain", borderRadius: 4 }} /> : <span style={{ fontSize: 24, lineHeight: 1 }}>{l.emoji}</span>}
-            </div>
-            <div style={{ fontWeight: 800, fontSize: 11, color: T.text, lineHeight: 1.2, width: "100%", padding: "0 2px" }}>{l.title}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 const DISCOVER_FILTERS = [
   { id: "all", label: "✨ Todos" },
   { id: "tour", label: "🗺️ Tours" },
+  { id: "blog", label: "📝 Blog" },
+  { id: "guia", label: "📖 Guías" },
   { id: "senderismo", label: "🥾 Senderismo" },
   { id: "evento", label: "🎟️ Eventos" },
   { id: "parque", label: "🎡 Parques" },
@@ -231,7 +208,7 @@ function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark }) 
 
   return (
     <a href={href} onClick={(e) => { e.preventDefault(); onClick(); }} className="press" style={{ display: "block", textDecoration: "none", background: dark ? "rgba(255,255,255,0.03)" : "#fff", borderRadius: 20, overflow: "hidden", cursor: "pointer", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: `1px solid ${T.border}`, position: "relative" }}>
-      <div style={{ display: showGrid ? "grid" : "block", gridTemplateColumns: showGrid ? "1.5fr 1fr" : "none", gridTemplateRows: showGrid ? "1fr 1fr" : "none", aspectRatio: "5/2", width: "100%", gap: 3, position: "relative" }}>
+      <div style={{ display: showGrid ? "grid" : "block", gridTemplateColumns: showGrid ? "1.5fr 1fr" : "none", gridTemplateRows: showGrid ? "1fr 1fr" : "none", aspectRatio: "21/9", width: "100%", gap: 3, position: "relative" }}>
         <div style={{ gridRow: showGrid ? "1 / 3" : "auto", height: showGrid ? "auto" : "100%", background: dark ? "#222" : "#E5E7EB", position: "relative", overflow: "hidden" }}>
           {photos[0] && <img src={getThumbUrl(photos[0], 900)} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
         </div>
@@ -276,7 +253,7 @@ function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark }) 
         
       </div>
 
-      <div style={{ padding: "14px 16px", textAlign: "center" }}>
+      <div style={{ padding: "14px 16px", textAlign: "left" }}>
         <h3 style={{ margin: 0, fontFamily: "var(--heading)", fontWeight: 900, fontSize: 19, color: T.text, lineHeight: 1.1, letterSpacing: "-0.5px" }}>
           {exp.title}
         </h3>
@@ -330,11 +307,11 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     }
   }, [selectedExpSlug, experiences, isViewing]);
 
-  // Keep URL in sync with active city (base /experiencias/:city URL)
+  // Keep URL in sync with active city (base /revista/:city URL)
   useEffect(() => {
     if (activeCity && !isViewing) {
-      const target = `/experiencias/${activeCity}`;
-      if (window.location.pathname !== target && !window.location.pathname.startsWith(`/experiencias/${activeCity}/`)) {
+      const target = `/revista/${activeCity}`;
+      if (window.location.pathname !== target && !window.location.pathname.startsWith(`/revista/${activeCity}/`)) {
         window.history.replaceState({}, '', target);
       }
     }
@@ -349,6 +326,9 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     setVisibleCount(6);
   }, [discoverFilter, searchQ]);
 
+  const widgetCode = cities.find(c => c.slug === activeCity)?.civitatis_widget_code || '';
+  const hasCivitatisWidget = Boolean(getCivitatisWidgetSrc(widgetCode));
+  const showCivitatisWidget = discoverFilter === 'tour' && hasCivitatisWidget;
   const cityName = cities.find(c => c.slug === activeCity)?.name || (activeCity ? activeCity.charAt(0).toUpperCase() + activeCity.slice(1) : t("tu_ciudad", "tu ciudad"));
 
   const toggleSaveExp = (exp) => {
@@ -362,7 +342,12 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     let filtered = experiences.filter(e => isNear(e, userCoords, activeCity));
     
     if (discoverFilter && discoverFilter !== "all" && discoverFilter !== "trending") {
-      filtered = filtered.filter(p => p.activity_type && p.activity_type.toLowerCase().includes(discoverFilter));
+      const qFilter = discoverFilter.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      filtered = filtered.filter(p => {
+        if (!p.activity_type) return false;
+        const normAct = p.activity_type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return normAct.includes(qFilter);
+      });
     }
     
     if (searchQ) {
@@ -385,19 +370,29 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
   const availableFilters = useMemo(() => {
     const cityExps = experiences.filter(e => isNear(e, userCoords, activeCity));
     const validIds = new Set(["all", "trending"]);
+    if (hasCivitatisWidget) validIds.add("tour");
     DISCOVER_FILTERS.forEach(f => {
       if (f.id === "all" || f.id === "trending") return;
-      if (cityExps.some(p => p.activity_type && p.activity_type.toLowerCase().includes(f.id))) {
+      const qFilter = f.id.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (cityExps.some(p => {
+        if (!p.activity_type) return false;
+        const normAct = p.activity_type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return normAct.includes(qFilter);
+      })) {
         validIds.add(f.id);
       }
     });
     return DISCOVER_FILTERS.filter(f => validIds.has(f.id));
-  }, [experiences, activeCity, userCoords]);
+  }, [experiences, activeCity, userCoords, hasCivitatisWidget]);
+
+  useEffect(() => {
+    if (!availableFilters.some(filter => filter.id === discoverFilter)) setDiscoverFilter('all');
+  }, [availableFilters, discoverFilter]);
 
   const shortCity = cityName.split(",")[0];
 
   // Si la ciudad no tiene lugares registrados (y por ende ni experiencias), mostramos el empty state global.
-  if (dbReady && mapPins.length === 0) {
+  if (dbReady && mapPins.length === 0 && !hasCivitatisWidget) {
     return (
       <div style={{ paddingBottom: 84, minHeight: "100vh", display: "flex", flexDirection: "column", background: dark ? "#0a0a0a" : "#F7F8F6" }}>
         <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative" }}>
@@ -435,14 +430,29 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
             animation: expFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
           }
         `}</style>
-        <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 6px", textAlign: "center" }}>
-          <img
-            src="/citymap.mx.png"
-            alt="CityMap"
-            style={{ height: 44, objectFit: "contain", filter: dark ? "none" : "brightness(0)", marginBottom: 4, display: "block", margin: "0 auto 4px" }}
-          />
-          <p className="exp-subtitle-anim" style={{ margin: 0, fontSize: 14, fontWeight: 600, color: T.sub, lineHeight: 1.4 }}>
-            {t("descubre_actividades", "Descubre actividades increíbles en ")}<span className="exp-city-anim">{shortCity}</span>
+        <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 10px", textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 4 }}>
+            <img
+              src="/citymap.mx.png"
+              alt="CityMap"
+              style={{ height: 38, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", display: "block" }}
+            />
+            <span style={{ 
+              fontSize: 10, 
+              fontWeight: 900, 
+              letterSpacing: "0.16em", 
+              textTransform: "uppercase", 
+              padding: "3px 8px", 
+              borderRadius: 6, 
+              background: dark ? "rgba(255,255,255,0.15)" : "#0f172a", 
+              color: "#FFFFFF",
+              lineHeight: 1
+            }}>
+              REVISTA
+            </span>
+          </div>
+          <p className="exp-subtitle-anim section-category-subtitle" style={{ margin: 0, fontSize: 13, fontWeight: 600, color: T.sub, lineHeight: 1.4 }}>
+            {t("revista_subtitulo", "Historias, recomendaciones y notas locales de ")}<span className="exp-city-anim">{shortCity}</span>
           </p>
         </div>
         <style>{`
@@ -451,20 +461,16 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
           }
-          .animated-pill {
-            background: #0f172a !important;
-            border-color: #0f172a !important;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.25) !important;
-            animation: none !important;
-          }
         `}</style>
         {availableFilters.length > 1 && (
-          <div style={{ display: "flex", gap: 8, padding: "4px 20px 14px", overflowX: "auto", scrollbarWidth: "none" }}>
+          <SectionCategoryBar dark={dark} selectedKey={discoverFilter} style={{ margin: "0 20px 12px" }}>
             {availableFilters.map(f => {
               const isActive = discoverFilter === f.id;
               const transLabels = {
                 all: t("todos_filter", "✨ Todos"),
                 tour: t("tours_filter", "🗺️ Tours"),
+                blog: t("blog_filter", "📝 Blog"),
+                guia: t("guias_filter", "📖 Guías"),
                 senderismo: t("senderismo_filter", "🥾 Senderismo"),
                 evento: t("eventos_filter", "🎟️ Eventos"),
                 parque: t("parques_filter", "🎡 Parques"),
@@ -480,25 +486,21 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
               };
               const fLabel = transLabels[f.id] || f.label;
               return (
-                <button key={f.id} onClick={() => setDiscoverFilter(f.id)} className={isActive ? "animated-pill press" : "press"} style={{ padding: "8px 16px", background: dark ? "rgba(255,255,255,0.05)" : T.white, color: isActive ? "#fff" : T.sub, border: `1px solid ${T.border}`, borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.2s" }}>
+                <button key={f.id} onClick={() => setDiscoverFilter(f.id)} className="press" aria-pressed={isActive} style={{ padding: "8px 16px", background: isActive ? (dark ? "#FFFFFF" : "#0F172A") : "transparent", color: isActive ? (dark ? "#18181B" : "#FFFFFF") : T.sub, border: "none", borderRadius: 9999, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.2s" }}>
                   {fLabel}
                 </button>
               );
             })}
-          </div>
+          </SectionCategoryBar>
         )}
       </div>
       <div style={{ padding: "16px 20px" }}>
+        {showCivitatisWidget && <CivitatisWidget key={activeCity} code={widgetCode} cityName={cityName} T={T} />}
         <div style={{ position: "relative", marginBottom: 0 }}>
           <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.sub }}><Icon name="search" size={18} /></div>
           <input type="text" placeholder={t("buscar_exp_placeholder", "Buscar experiencias, tours, gastronomía...")} value={searchQ} onChange={e => setSearchQ(e.target.value)} style={{ width: "100%", padding: "14px 14px 14px 42px", background: dark ? "rgba(255,255,255,0.05)" : T.white, border: `1px solid ${T.border}`, borderRadius: 16, fontSize: 15, color: T.text, outline: "none", boxSizing: "border-box" }} />
         </div>
         
-        {/* Hub Planifica tu Viaje al inicio */}
-        <div style={{ marginBottom: 24 }}>
-          <TravelHub T={T} dark={dark} />
-        </div>
-
         {/* Planes de la Comunidad */}
         {publicPlans.length > 0 && (
           <div style={{ marginBottom: 32 }}>
@@ -549,7 +551,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {filteredDiscover.slice(0, visibleCount).map(exp => {
-                const href = `/experiencias/${activeCity}/${createSlug(exp.title)}`;
+                const href = `/revista/${activeCity}/${createSlug(exp.title)}`;
                 return (
                 <ExperienceCard 
                   key={exp.id} 
@@ -576,14 +578,14 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
                   className="press"
                   style={{ padding: "14px 28px", background: dark ? "#333" : "#fff", border: `1px solid ${T.border}`, borderRadius: 24, color: T.text, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}
                 >
-                  {t("cargar_mas_planes", "Cargar más planes")}
+                  {t("cargar_mas_articulos", "Cargar más artículos")}
                 </button>
               </div>
             )}
           </>
         ) : (
           // Solo mostrar el empty state si la ciudad NO tiene widgets propios
-          ![ "ciudad-de-mexico", "puerto-vallarta", "los-angeles", "madrid", "paris"].includes(activeCity) && (
+          !showCivitatisWidget && ![ "ciudad-de-mexico", "puerto-vallarta", "los-angeles", "madrid", "paris"].includes(activeCity) && (
             <div style={{ textAlign: "center", padding: "60px 20px", color: T.sub }}>
               <span style={{ fontSize: 48 }}>🌅</span>
               <h3 style={{ marginTop: 16, fontWeight: 800, color: T.text }}>{searchQ ? t("no_resultados", "No hay resultados") : t("pronto_experiencias", "Pronto habrá experiencias")}</h3>
@@ -615,7 +617,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
               setIsViewing(false); 
               setViewingPlan(null); 
               setSelectedExpSlug(null);
-              window.history.pushState({}, '', `/experiencias/${activeCity}`);
+              window.history.pushState({}, '', `/revista/${activeCity}`);
             }} 
           />
         )}

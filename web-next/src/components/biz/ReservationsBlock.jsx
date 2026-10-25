@@ -1,8 +1,10 @@
 'use client';
+import { CIVITATIS_PLATFORM } from '../../lib/reservationPlatforms.js';
 import React from 'react';
 import Image from 'next/image';
 
 const PLATFORM_STYLES = {
+                    civitatis: CIVITATIS_PLATFORM,
   opentable: { img: "https://citymap.mx/assets/opentable-DtBv3P8y.webp", label: "OpenTable", invertImg: true },
   cover: { color: "#FF5A5F", label: "Cover", icon: "🎟️" },
   resy: { color: "#b02a26", label: "Resy", icon: "🍷" },

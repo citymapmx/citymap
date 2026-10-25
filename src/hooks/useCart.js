@@ -1,3 +1,4 @@
+import {isCartPromotionValid} from '../lib/menuPromotions.js';
 import { create } from 'zustand';
 
 // Calculate the total price of a cart item including its selected options
@@ -29,6 +30,10 @@ export const useCart = create((set, get) => ({
 
   // Add an item to the cart
   addItem: (product, selectedOptions, specialInstructions, quantity, businessId) => {
+    if (!isCartPromotionValid(product)) {
+      if(typeof window!=='undefined') window.alert('Esta promoción ya no está disponible. Revisa las ofertas actuales.');
+      return false;
+    }
     const currentBusiness = get().businessId;
     
     // If adding from a different business, clear the cart first

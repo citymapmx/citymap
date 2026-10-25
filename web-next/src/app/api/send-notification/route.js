@@ -40,8 +40,12 @@ export async function POST(req) {
           headers: { apikey: serviceRoleKey, Authorization: `Bearer ${jwtToken}` },
         });
         const userData = await userRes.json();
-        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
-        if (userRes.ok && userData?.email && (adminEmails.includes(userData.email) || userData?.user_metadata?.isAdmin)) {
+        // Only server-managed metadata or a verified allowlisted email can grant access.
+        // user_metadata is editable by the user and must never authorize an admin.
+        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+        const isListedAdmin = Boolean(userData?.email_confirmed_at && userData?.email && adminEmails.includes(userData.email.toLowerCase()));
+        const isManagedAdmin = userData?.app_metadata?.isAdmin === true;
+        if (userRes.ok && userData?.id && (isListedAdmin || isManagedAdmin)) {
           isAuthorized = true;
         }
       } catch { /* JWT inválido */ }

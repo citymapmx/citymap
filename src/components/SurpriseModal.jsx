@@ -1,18 +1,13 @@
-import React, { useState, useRef } from 'react';
+import {MOODS, isValidMatch, loadSurpriseCandidates} from '../lib/surpriseSelection.js';
+import {sb} from '../lib/supabase.js';
+import {CITY_TZ} from '../lib/constants.js';
+import React, { useState, useRef, useEffect } from 'react';
+import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import ReactDOM from 'react-dom';
-import { getThumbUrl, isOpenNow } from '../lib/utils';
+import { METRO_ZONES, isOpenNow as checkOpenNow } from '../lib/utils';
 
 // ── MOODS ──────────────────────────────────────────────────────────────────────
-const MOODS = [
-  { id: 'comer',     emoji: '🍽️', label: 'Comer algo rico',  cats: ['restaurante', 'marisco', 'taco', 'pizza', 'sushi', 'hamburguesa', 'alitas', 'comida', 'cenaduria', 'cena'] },
-  { id: 'cafe',      emoji: '☕', label: 'Un café',           cats: ['cafeteria', 'cafe', 'postre', 'helado', 'churro', 'crepa'] },
-  { id: 'tomar',     emoji: '🍺', label: 'Tomar algo',        cats: ['bar', 'antro', 'cantina', 'coctel', 'cerveza', 'cerveceria', 'michelada', 'mezcaleria', 'pub'] },
-  { id: 'noche',     emoji: '🪩', label: 'Planes nocturnos',  cats: ['antro', 'bar', 'botanero', 'club', 'disco', 'karaoke', 'cantina', 'cerveceria', 'coctel', 'pub', 'michelada', 'restaurante', 'cafeteria', 'entretenimiento'] },
-  { id: 'planes',    emoji: '🔥', label: 'Encontrar un plan',     cats: ['punto de interes', 'atraccion', 'turismo', 'parque', 'museo', 'senderismo', 'tour'] }, // Se nutre de experiences + mapPins
-  { id: 'compras',   emoji: '🛍️', label: 'Comprar algo',      cats: ['compras', 'tienda', 'boutique', 'plaza', 'comercial', 'ropa', 'moda', 'zapateria', 'mall', 'departamental'] },
-  { id: 'eventos',   emoji: '🎫', label: 'Eventos locales',   cats: ['evento'] }, // Se maneja especial en la lógica
-  { id: 'sorpresa',  emoji: '🎲', label: '¡Sorpréndeme!',        cats: [] },
-];
+
 
 const VIBES = [
   { id: 'romantico', emoji: '💑', label: 'Romántico', cats: ['restaurante', 'bar', 'cafe', 'postre', 'cena'] },
@@ -23,6 +18,9 @@ const VIBES = [
 
 // ── COMPONENT ──────────────────────────────────────────────────────────────────
 export default function SurpriseModal({ open, onClose, mapPins, events = [], experiences = [], activeCity, userCoords, isNear, dark, T, handleCardTap, handleEventTap, handleExperienceTap, city }) {
+  const isOpenNow = business => checkOpenNow(business, CITY_TZ[activeCity]);
+  const candidateCache = useRef(new Map());
+  const requestVersion = useRef(0);
   const [step, setStep] = useState('mood');   // mood | spin | result | ai_vibe | ai_loading | ai_result
   const [selectedMood, setSelectedMood] = useState(null);
   const [spinning, setSpinning] = useState(false);
@@ -31,14 +29,34 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
   const [aiResults, setAiResults] = useState([]);
   const [aiError, setAiError] = useState(null);
   const seenRef = useRef(new Set());
+  const swapTimer = useRef(null);
+  const unlockTimer = useRef(null);
+  const changingRef = useRef(false);
+  const [changing, setChanging] = useState(false);
+  const [rotationNotice, setRotationNotice] = useState('');
+  const reduceMotion = useReducedMotion();
+  useEffect(() => {
+    requestVersion.current += 1;
+    candidateCache.current.clear();
+    seenRef.current.clear();
+    changingRef.current = false; setChanging(false); setRotationNotice('');
+    setStep('mood'); setPick(null); setSelectedMood(null);
+    return () => {
+      requestVersion.current += 1;
+      clearTimeout(swapTimer.current); clearTimeout(unlockTimer.current);
+    };
+  }, [open, activeCity]);
 
-  const dBg    = dark ? '#0F172A' : '#FFFFFF';
-  const dText  = dark ? '#F8FAFC' : '#0F172A';
-  const dSub   = dark ? '#94A3B8' : '#64748B';
-  const dCard  = dark ? '#1E293B' : '#F8FAFC';
-  const dBorder= dark ? 'rgba(255,255,255,0.08)' : '#E2E8F0';
+  const dBg    = T.bg;
+  const dText  = T.text;
+  const dSub   = T.sub;
+  const dCard  = dark ? T.card : '#F8FAFC';
+  const dBorder= T.border;
 
   const reset = () => {
+    requestVersion.current += 1;
+    clearTimeout(swapTimer.current); clearTimeout(unlockTimer.current);
+    changingRef.current = false; setChanging(false); setRotationNotice('');
     setStep('mood'); setSelectedMood(null); setSpinning(false);
     setPick(null); setAiVibe(null); setAiResults([]); setAiError(null);
     seenRef.current.clear();
@@ -109,70 +127,17 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
   };
 
   // ── Pick a random business ─────────────────────────────────────────────────
-  const closesLate = (sch) => {
-    if (!sch || typeof sch !== "object") return false;
-    if (sch.type === "always_open") return true;
-    const toMin = s => {
-      const m = s.trim().match(/(\d{1,2})(?:\s*:\s*(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
-      if (!m) return null;
-      let hh = parseInt(m[1]);
-      const mm = parseInt(m[2] || 0);
-      const p = (m[3] || "").replace(/\./g, "").toLowerCase();
-      if (p === "pm" && hh !== 12) hh += 12;
-      if (p === "am" && hh === 12) hh = 0;
-      return hh * 60 + mm;
-    };
-    for (const txt of Object.values(sch)) {
-      if (typeof txt !== 'string' || /cerrado/i.test(txt)) continue;
-      const shifts = txt.split(/\n|,|\by\b/i).map(s => s.trim()).filter(Boolean);
-      for (const shift of shifts) {
-        const segs = shift.split(/\s*[-–]\s*|\s+a\s+/i).map(s => s.trim());
-        if (segs.length < 2) continue;
-        const open = toMin(segs[0]);
-        const close = toMin(segs[1]);
-        if (open === null || close === null) continue;
-        if (close <= open || close >= 22 * 60 || close <= 5 * 60) return true; // Closes after 10 PM or overnight
-      }
-    }
-    return false;
+  const belongsToCity = business => {
+    const slugs = new Set([activeCity, ...(METRO_ZONES[activeCity] || []), 'all']);
+    return String(business.city_slug || '').split(',').some(slug => slugs.has(slug.trim()));
   };
 
-  const normalize = (str) => (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  const isValidMatch = (b, moodId, cats) => {
-    // Experiencias siempre matchean si están en la categoría planes, pero también checamos sus campos
-    if (b.isExperience && moodId === 'planes') return true;
-    
-    const normCat = normalize(b.category || b.activity_type);
-
-    if (moodId === 'noche') {
-      if (!closesLate(b.schedule)) return false;
-    }
-    
-    if (moodId === 'tomar') {
-      if (normCat.includes('cafe') || normCat.includes('cafeteria')) {
-        if (!normCat.includes('bar') && !normCat.includes('antro') && !normCat.includes('cantina')) return false;
-      }
-    }
-    
-    if (moodId === 'compras') {
-      const normName = normalize(b.name || b.title);
-      if (normCat.includes('hotel') || normCat.includes('hospedaje') || normCat.includes('motel') || normName.includes('hotel')) {
-        return false;
-      }
-    }
-
-    return cats.some(c => {
-      const regex = new RegExp(`(^|\\s)${c}(s|es)?(\\s|$)`);
-      return regex.test(normCat);
-    });
-  };
-
-  const pickBusiness = (mood) => {
+  const pickBusiness = (mood, excludeId = null, candidates = mapPins) => {
+    candidates = candidates.filter(business => belongsToCity(business) && business.plan !== 'menu');
     if (mood.id === 'eventos') {
       const now = new Date();
       let pool = events.filter(ev => {
-        if (ev.status !== 'approved' || !isNear(ev, userCoords, activeCity)) return false;
+        if (ev.id === excludeId || ev.status !== 'approved' || !isNear(ev, userCoords, activeCity)) return false;
         if (ev.date) {
           const endStr = ev.end_date || ev.date;
           const dt = ev.time ? new Date(`${endStr}T${ev.time}:00`) : new Date(`${endStr}T23:59:00`);
@@ -190,9 +155,9 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
 
     if (mood.id === 'planes') {
       const cats = mood.cats;
-      let mapPool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved' && isValidMatch(b, mood.id, cats));
+      let mapPool = candidates.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved' && b.plan !== 'menu' && isValidMatch(b, mood.id, cats));
       let expPool = experiences.filter(e => isNear(e, userCoords, activeCity)).map(e => ({ ...e, isExperience: true }));
-      let pool = [...mapPool, ...expPool];
+      let pool = [...mapPool, ...expPool].filter(item => item.id !== excludeId);
       let unseen = pool.filter(e => !seenRef.current.has(e.id));
       if (unseen.length === 0) { seenRef.current.clear(); unseen = pool; }
       if (unseen.length === 0) return null;
@@ -202,7 +167,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
     }
 
     const cats = mood.cats;
-    let pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
+    let pool = candidates.filter(b => b.id !== excludeId && isNear(b, userCoords, activeCity) && b.status === 'approved' && b.plan !== 'menu');
     if (cats.length > 0) {
       pool = pool.filter(b => isValidMatch(b, mood.id, cats));
     }
@@ -231,17 +196,52 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
     return chosen;
   };
 
-  // ── Mood selected → spin ──────────────────────────────────────────────────
+  const findPick = async (mood, excludeId, version) => {
+    if (mood.id === 'eventos') return pickBusiness(mood, excludeId);
+    const citySlugs = [...new Set([activeCity,...(METRO_ZONES[activeCity] || [])])].filter(Boolean);
+    const eligible = business => business.status === 'approved' && business.plan !== 'menu' && belongsToCity(business) && isNear(business,userCoords,activeCity) && isValidMatch(business,mood.id,mood.cats);
+    const candidates = await loadSurpriseCandidates({
+      get: (...args) => sb.get(...args), cache: candidateCache.current, citySlugs, mood,
+      local: mapPins, seen: seenRef.current, excludeId, eligible,
+      isCurrent: () => requestVersion.current === version
+    });
+    return requestVersion.current === version ? pickBusiness(mood,excludeId,candidates) : null;
+  };
+
   const handleMoodSelect = (mood) => {
-    setSelectedMood(mood);
-    setSpinning(true);
-    setStep('spin');
-    setTimeout(() => {
-      const result = pickBusiness(mood);
-      setPick(result);
-      setSpinning(false);
-      setStep('result');
-    }, 1800);
+    const version = ++requestVersion.current;
+    setRotationNotice(''); setAiError(null); setSelectedMood(mood); setSpinning(true); setStep('spin');
+    swapTimer.current = setTimeout(async () => {
+      try {
+        const result = await findPick(mood,null,version);
+        if (version !== requestVersion.current) return;
+        setPick(result);
+      } catch {
+        if (version !== requestVersion.current) return;
+        setPick(pickBusiness(mood));
+        setAiError('No pudimos consultar más lugares. Revisa tu conexión e inténtalo de nuevo.');
+      }
+      if (version === requestVersion.current) { setSpinning(false); setStep('result'); }
+    }, reduceMotion ? 0 : 1800);
+  };
+
+  const handleAnother = () => {
+    if (changingRef.current || !selectedMood) return;
+    const version = ++requestVersion.current;
+    changingRef.current = true; setChanging(true); setRotationNotice(''); setAiError(null);
+    swapTimer.current = setTimeout(async () => {
+      try {
+        const result = await findPick(selectedMood,pick?.id,version);
+        if (version !== requestVersion.current) return;
+        if (result) setPick(result);
+        else setRotationNotice('No encontramos otro lugar de este tipo en la ciudad. Puedes elegir otro plan.');
+      } catch {
+        if (version !== requestVersion.current) return;
+        setRotationNotice('No pudimos cargar más lugares. Revisa tu conexión e inténtalo de nuevo.');
+      }
+      if (version !== requestVersion.current) return;
+      unlockTimer.current = setTimeout(() => { changingRef.current = false; setChanging(false); }, reduceMotion ? 0 : 400);
+    }, reduceMotion ? 0 : 180);
   };
 
   // ── Smart plan (Local) ───────────────────────────────────────────────────
@@ -252,7 +252,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
     
     setTimeout(() => {
       try {
-        let pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved');
+        let pool = mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === 'approved' && b.plan !== 'menu');
         
         if (vibe.id === 'planes') {
           const expPool = experiences.filter(e => isNear(e, userCoords, activeCity)).map(e => ({ ...e, isExperience: true }));
@@ -271,10 +271,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
           });
           filtered = [...filtered, ...closedFiltered];
         }
-        if (filtered.length < 3) {
-          const otherOpen = openBiz.filter(b => !filtered.find(f => f.id === b.id)).sort((a, b) => (b.rating || 0) - (a.rating || 0));
-          filtered = [...filtered, ...otherOpen];
-        }
+
         
         // Mezclamos el top 10 para que se sienta fresco
         const candidates = filtered.slice(0, 10).sort(() => Math.random() - 0.5);
@@ -350,27 +347,30 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
             <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 16px' }}>¡Lo encontramos!</h2>
 
             {/* Business/Event/Experience Card */}
-            <div onClick={() => { 
+            <div style={{ minHeight: pick.isEvent ? undefined : 220 }} aria-busy={changing}>
+            <AnimatePresence mode="wait" initial={false}>
+            <m.div key={pick.id} initial={{ opacity: 0, x: reduceMotion ? 0 : 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: reduceMotion ? 0 : -12 }} transition={{ duration: reduceMotion ? 0 : 0.18 }} onClick={() => {
+              if (changingRef.current) return; 
               if (pick.isEvent) handleEventTap(pick); 
               else if (pick.isExperience) handleExperienceTap(pick);
               else handleCardTap(pick); 
               handleClose(); 
             }} style={{
               borderRadius: 20, overflow: 'hidden', cursor: 'pointer', position: 'relative',
-              height: 220, background: dCard, boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+              height: pick.isEvent ? 'auto' : 220, background: dCard, boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
             }}>
               {imgSrc
-                ? <img src={imgSrc} alt={pick.name || pick.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ? <img src={imgSrc} alt={pick.name || pick.title} style={{ display: 'block', width: '100%', height: pick.isEvent ? 'auto' : '100%', maxHeight: pick.isEvent ? '46dvh' : undefined, objectFit: pick.isEvent ? 'contain' : 'cover' }} />
                 : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#E2E8F0,#CBD5E1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>{pick.isEvent ? '🎫' : pick.isExperience ? '🧭' : '🏪'}</div>
               }
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
-              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 16px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+              {!pick.isEvent && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />}
+              <div style={{ position: pick.isEvent ? 'relative' : 'absolute', bottom: 0, left: 0, right: 0, padding: pick.isEvent ? '14px 16px 16px' : '20px 16px 16px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: pick.isEvent ? dSub : 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
                   {pick.isEvent ? 'EVENTO' : pick.isExperience ? (pick.activity_type || 'EXPERIENCIA') : pick.category}
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.1 }}>{pick.title || pick.name}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: pick.isEvent ? dText : '#fff', lineHeight: 1.1 }}>{pick.title || pick.name}</div>
                 {pick.isEvent || pick.isExperience
-                  ? (pick.location && <div style={{ fontSize: 13, color: '#fff', marginTop: 4 }}>📍 {pick.location}</div>)
+                  ? (pick.location && <div style={{ fontSize: 13, color: pick.isEvent ? dSub : '#fff', marginTop: 4 }}>📍 {pick.location}</div>)
                   : (pick.rating > 0 && <div style={{ fontSize: 13, color: '#fff', marginTop: 4 }}>⭐ {pick.rating}</div>)
                 }
               </div>
@@ -383,44 +383,33 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
                   ? <div style={{ position: 'absolute', top: 12, right: 12, background: '#10B981', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Abierto</div>
                   : <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 800, color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}>Cerrado</div>
               )}
+            </m.div>
+            </AnimatePresence>
             </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-              <button onClick={() => { 
-                if (pick.isEvent) handleEventTap(pick); 
-                else if (pick.isExperience) handleExperienceTap(pick);
-                else handleCardTap(pick); 
-                handleClose(); 
-              }} style={{
-                flex: 2, background: dText, color: dBg, border: 'none',
-                borderRadius: 14, padding: '14px', fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit'
-              }}>
-                {pick.isEvent ? 'Ver evento →' : pick.isExperience ? 'Ver plan →' : 'Ver lugar →'}
-              </button>
-              <button onClick={() => {
-                const result = pickBusiness(selectedMood);
-                if (result) setPick(result);
-                else { setStep('spin'); setTimeout(() => setStep('result'), 800); }
-              }} style={{
-                flex: 1, background: dCard, color: dText, border: `1.5px solid ${dBorder}`,
-                borderRadius: 14, padding: '14px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit'
-              }}>🎲 Otro</button>
+            {/* Primary action above the two secondary actions. */}
+            <button disabled={changing} onClick={() => {
+              if (pick.isEvent) handleEventTap(pick);
+              else if (pick.isExperience) handleExperienceTap(pick);
+              else handleCardTap(pick);
+              handleClose();
+            }} style={{ width: '100%', marginTop: 12, minHeight: 48, background: dText, color: dBg, border: 'none', borderRadius: 14, padding: '14px', fontWeight: 800, fontSize: 15, cursor: changing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+              {pick.isEvent ? 'Ver evento →' : pick.isExperience ? 'Ver plan →' : 'Ver lugar →'}
+            </button>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
+              <button disabled={changing} onClick={() => setStep('mood')} style={{ minHeight: 46, background: 'transparent', border: `1px solid ${dBorder}`, borderRadius: 14, padding: '10px 8px', fontWeight: 700, fontSize: 13, color: dSub, cursor: changing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>Elegir otro plan</button>
+              <button disabled={changing} onClick={handleAnother} style={{ minHeight: 46, background: dCard, color: dText, border: `1px solid ${dBorder}`, borderRadius: 14, padding: '10px 8px', fontWeight: 700, fontSize: 13, cursor: changing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>{changing ? 'Buscando…' : 'Buscar otro lugar'}</button>
             </div>
-
+            <div role="status" aria-live="polite" style={{ fontSize: 13, color: dSub, textAlign: 'center', lineHeight: 1.5, marginTop: rotationNotice ? 10 : 0 }}>{rotationNotice}</div>
             {aiError && <p style={{ color: '#EF4444', fontSize: 12, textAlign: 'center', marginTop: 8 }}>{aiError}</p>}
 
-            {/* Back + AI */}
-            <div style={{ marginTop: 10 }}>
-              <button onClick={() => setStep('mood')} style={{ width: '100%', background: 'transparent', border: `1.5px solid ${dBorder}`, borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13, color: dSub, cursor: 'pointer', fontFamily: 'inherit' }}>← Cambiar mood</button>
-            </div>
           </div>
         )}
 
         {step === 'result' && !pick && (
           <div style={{ padding: '40px 0', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>😅</div>
-            <p style={{ fontSize: 16, fontWeight: 700, color: dText }}>No encontramos lugares de esta categoría</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: dText }}>{aiError || 'No encontramos lugares de esta categoría'}</p>
             <button onClick={() => setStep('mood')} style={{ marginTop: 16, background: dText, color: dBg, border: 'none', borderRadius: 14, padding: '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>Intentar otra categoría</button>
           </div>
         )}
@@ -496,7 +485,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
 
             <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
               <button onClick={() => setStep('ai_vibe')} style={{ flex: 1, background: dCard, color: dText, border: `1.5px solid ${dBorder}`, borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>🔄 Intentar otro</button>
-              <button onClick={() => setStep('mood')} style={{ flex: 1, background: dText, color: dBg, border: 'none', borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>← Mood picker</button>
+              <button onClick={() => setStep('mood')} style={{ flex: 1, background: dText, color: dBg, border: 'none', borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Elegir otro plan</button>
             </div>
           </div>
         )}

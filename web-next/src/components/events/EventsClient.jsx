@@ -1,15 +1,24 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import EventCard from './EventCard';
 
-const EVENT_CATS = ["Todos", "Música en vivo", "DJ", "Karaoke", "Fiesta", "Deportes", "Comedia", "Networking", "Promoción especial", "Otro"];
-
-export default function EventsClient({ city, citySlug, events }) {
+export default function EventsClient({ city, citySlug, events = [] }) {
   const [activeCat, setActiveCat] = useState("Todos");
+
+  const availableCats = useMemo(() => {
+    if (!events || events.length === 0) return [];
+    const set = new Set();
+    events.forEach(e => {
+      const c = e.event_category || e.category;
+      if (c && c.trim()) set.add(c.trim());
+    });
+    if (set.size > 0) return ["Todos", ...Array.from(set)];
+    return ["Todos"];
+  }, [events]);
 
   const filteredEvents = activeCat === "Todos" 
     ? events 
-    : events.filter(e => e.category === activeCat);
+    : events.filter(e => (e.event_category || e.category) === activeCat);
 
   return (
     <div className="pb-24 font-sans bg-[#f8fafc] min-h-screen">
@@ -22,21 +31,23 @@ export default function EventsClient({ city, citySlug, events }) {
         </p>
 
         {/* Categories / Filters */}
-        <div className="flex overflow-x-auto gap-2 mt-4 pb-2" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-          {EVENT_CATS.map(cat => (
-            <button 
-              key={cat}
-              onClick={() => setActiveCat(cat)}
-              className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-                activeCat === cat 
-                  ? 'bg-gray-900 border-gray-900 text-white' 
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {availableCats.length > 1 && (
+          <div className="flex overflow-x-auto gap-2 mt-4 pb-2" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            {availableCats.map(cat => (
+              <button 
+                key={cat}
+                onClick={() => setActiveCat(cat)}
+                className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                  activeCat === cat 
+                    ? 'bg-gray-900 border-gray-900 text-white' 
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="px-5 pt-6">

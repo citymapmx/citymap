@@ -1,17 +1,41 @@
-import React from 'react';
+import React, { memo } from 'react';
 import CompactCard from '../cards/CompactCard.jsx';
+import { useDataStore } from "../../store/useDataStore.js";
+import { useUIStore } from "../../store/useUIStore.js";
 import Icon from '../ui/Icon.jsx';
 
-export default function HomeTopGrids({
+export default memo(function HomeTopGrids({
   topFavs, showMoreTopFavs, setShowMoreTopFavs,
   topRated, showMoreTopRated, setShowMoreTopRated,
-  userCoords, getKm, dark, T, favIds, toggleFav, handleCardTap, globalFavCounts, t
+  userCoords, getKm, dark, T, favIds, toggleFav, handleCardTap, globalFavCounts, t, ratedStatus
 }) {
+  const sectionRef = React.useRef(null);
+  const activeCity = useUIStore(s => s.activeCity);
+  const loadHighlights = useDataStore(s => s.loadHomeHighlights);
+  const dbReady = useDataStore(s => s.dbReady);
+  React.useEffect(() => {
+    if (!dbReady || !activeCity) return;
+    const node = sectionRef.current;
+    if (!node) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      loadHighlights(activeCity);
+      return;
+    }
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        loadHighlights(activeCity);
+        observer.disconnect();
+      }
+    }, { rootMargin: '300px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [activeCity, dbReady, loadHighlights]);
+
   const visibleFavs = topFavs.slice(0, showMoreTopFavs ? 10 : 5);
   const visibleRated = topRated.slice(0, showMoreTopRated ? 10 : 5);
 
   return (
-    <>
+    <div ref={sectionRef} style={{ minHeight: 1 }}>
       {topFavs.length > 0 && (
         <div style={{ margin: "32px 20px 24px" }}>
           <div style={{ textAlign: "left", marginBottom: 16 }}>
@@ -48,6 +72,11 @@ export default function HomeTopGrids({
         </div>
       )}
 
+      <div id="mejor-calificados" style={{scrollMarginTop:20}} />
+      {ratedStatus && topRated.length === 0 && <section style={{margin:'32px 20px 24px',textAlign:'left'}}>
+        <h2 style={{fontSize:20,fontWeight:800,color:T.text}}>⭐ {t('los_mas_valorados','Los más valorados')}</h2>
+        <p role="status" style={{fontSize:14,color:T.sub}}>{ratedStatus === 'loading' ? 'Cargando calificaciones…' : ratedStatus === 'error' ? 'No pudimos cargar las calificaciones. Vuelve a intentarlo cuando tengas conexión.' : 'Todavía no hay negocios con reseñas en esta ciudad.'}</p>
+      </section>}
       {topRated.length > 0 && (
         <div style={{ margin: "32px 20px 24px" }}>
           <div style={{ textAlign: "left", marginBottom: 16 }}>
@@ -80,6 +109,6 @@ export default function HomeTopGrids({
           )}
         </div>
       )}
-    </>
+    </div>
   );
-}
+});

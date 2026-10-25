@@ -79,7 +79,7 @@ export default async function handler(req, res) {
       ],
       mode: 'subscription',
       success_url: `${host_url}/perfil?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${host_url}/planes?canceled=true`,
+      cancel_url: `${host_url}/precios?canceled=true`,
       client_reference_id: biz_id, // Para saber a qué negocio aplicar el plan
       metadata: {
         user_id: user_id,

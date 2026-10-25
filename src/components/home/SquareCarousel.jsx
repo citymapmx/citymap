@@ -1,6 +1,7 @@
+import { memo } from "react";
 import OptimizedImage from "../ui/OptimizedImage.jsx";
 
-export default function SquareCarousel({ title, list, handleCardTap, getThumbUrl, CAT_EMOJI, T, FONT_BIZ }) {
+export default memo(function SquareCarousel({ title, list, handleCardTap, getThumbUrl, CAT_EMOJI, T, FONT_BIZ }) {
   if (!list || list.length === 0) return null;
   const isSingle = list.length === 1;
 
@@ -45,4 +46,4 @@ export default function SquareCarousel({ title, list, handleCardTap, getThumbUrl
       </div>
     </div>
   );
-}
+});

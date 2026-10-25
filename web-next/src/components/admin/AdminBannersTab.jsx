@@ -19,7 +19,7 @@ export default function AdminBannersTab({
       {!banForm && <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>{data.banners.length} banner{data.banners.length !== 1 ? "s" : ""}</span>
-          <button onClick={() => setBanForm({ _new: true, title: "", img_url: "", link_url: "", city_slug: "all", sort_order: 0, active: true, start_date: "", end_date: "", repeat_yearly: false })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo banner</button>
+          <button onClick={() => setBanForm({ _new: true, title: "", img_url: "", link_url: "", city_slug: "all", sort_order: 0, active: true, start_date: "", end_date: "", repeat_yearly: false, is_advertisement: true })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo banner</button>
         </div>
         {data.banners.length === 0 && <div style={{ textAlign: "center", padding: "40px 0", color: "#9CA3AF" }}><div className="text-3xl" style={{ marginBottom: 8 }}>🖼️</div><div style={{ fontWeight: 600 }}>Sin banners aún</div></div>}
         {data.banners.map(bn => {
@@ -40,6 +40,7 @@ export default function AdminBannersTab({
                     {bn.start_date && ` · Desde ${bn.start_date}`}
                     {bn.end_date && ` hasta ${bn.end_date}`}
                     {bn.repeat_yearly && " · Repite anual"}
+                    {bn.is_advertisement && " · Publicidad"}
                   </div>
                 </div>
                 <span className="text-micro" style={{ background: statusBg, color: statusColor, borderRadius: 20, padding: "3px 9px", fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{statusLbl}</span>
@@ -58,6 +59,10 @@ export default function AdminBannersTab({
           <div className="text-base" style={{ fontWeight: 800, color: "#0F1A14" }}>{banForm._new ? "Nuevo banner" : "Editar banner"}</div>
           <FI label="Título" field="title" src={banForm} set={setBanForm} />
           <FI label="URL destino" field="link_url" src={banForm} set={setBanForm} ph="https://..." />
+          <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "10px 0", cursor: "pointer", textAlign: "left" }}>
+            <span><span style={{ display: "block", fontSize: 14, fontWeight: 700, color: "#0F1A14" }}>Contenido publicitario</span><span style={{ display: "block", fontSize: 12, color: "#5A6872", marginTop: 3 }}>Muestra la etiqueta «Publicidad» sobre el banner.</span></span>
+            <input type="checkbox" role="switch" aria-label="Contenido publicitario" checked={banForm.is_advertisement === true} onChange={e => setBanForm(f => ({ ...f, is_advertisement: e.target.checked }))} style={{ width: 20, height: 20, accentColor: "#1A7A5E", flexShrink: 0, cursor: "pointer" }} />
+          </label>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Ciudad</label><select value={banForm.city_slug || "all"} onChange={e => setBanForm(f => ({ ...f, city_slug: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}><option value="all">Todas las ciudades</option>{data.cities.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select></div>
             <FI label="Orden" field="sort_order" src={banForm} set={setBanForm} type="number" />
@@ -79,7 +84,7 @@ export default function AdminBannersTab({
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => setBanForm(null)} style={{ flex: 1, padding: 14, background: "#fff", border: "1.5px solid #E4E8E4", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
-          <button onClick={async () => { setSaving(true); try { const pl = { title: banForm.title, img_url: banForm.img_url, link_url: banForm.link_url, city_slug: banForm.city_slug || "all", sort_order: parseInt(banForm.sort_order) || 0, active: banForm.active ?? true, start_date: banForm.start_date || null, end_date: banForm.end_date || null, repeat_yearly: banForm.repeat_yearly || false }; if (banForm._new) await sb.post("banners", pl); else await sb.patch("banners", banForm.id, pl); onToast("Guardado"); setBanForm(null); await load(); } catch (e) { onToast("Error: " + e.message); } finally { setSaving(false); } }} disabled={saving || !banForm.title} style={{ flex: 2, padding: 14, background: saving || !banForm.title ? "#9CA3AF" : "#1A7A5E", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>{saving ? "Guardando..." : banForm._new ? "Crear banner" : "Guardar"}</button>
+          <button onClick={async () => { setSaving(true); try { const pl = { title: banForm.title, img_url: banForm.img_url, link_url: banForm.link_url, city_slug: banForm.city_slug || "all", sort_order: parseInt(banForm.sort_order) || 0, active: banForm.active ?? true, start_date: banForm.start_date || null, end_date: banForm.end_date || null, repeat_yearly: banForm.repeat_yearly || false, ...(typeof banForm.is_advertisement === "boolean" ? { is_advertisement: banForm.is_advertisement } : {}) }; if (banForm._new) await sb.post("banners", pl); else await sb.patch("banners", banForm.id, pl); onToast("Guardado"); setBanForm(null); await load(); } catch (e) { onToast("Error: " + e.message); } finally { setSaving(false); } }} disabled={saving || !banForm.title} style={{ flex: 2, padding: 14, background: saving || !banForm.title ? "#9CA3AF" : "#1A7A5E", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>{saving ? "Guardando..." : banForm._new ? "Crear banner" : "Guardar"}</button>
         </div>
       </div>}
     </>

@@ -30,30 +30,40 @@ const OptimizedImage = memo(({
   onClick 
 }) => {
   const optimizedSrc = src ? getThumbUrl(src, widthRequest, heightRequest) : null;
-  const [loaded, setLoaded] = React.useState(() => globalLoadedImages.has(optimizedSrc));
+  const [loadedSrc, setLoadedSrc] = React.useState(null);
+  const [retrySrc, setRetrySrc] = React.useState(null);
+  const [failedSrc, setFailedSrc] = React.useState(null);
+  const displaySrc = retrySrc === optimizedSrc ? src : optimizedSrc;
+  const loaded = loadedSrc === optimizedSrc || globalLoadedImages.has(optimizedSrc);
+  const fallback = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="#e8ecf0"/><path d="M240 240l44-52 34 35 24-26 32 43z" fill="#a4afbb"/><circle cx="335" cy="164" r="15" fill="#a4afbb"/></svg>');
   
   if (!src) return null;
 
   return (
     <img 
-      src={optimizedSrc} 
+      src={failedSrc === optimizedSrc ? fallback : displaySrc} 
       alt={alt}
       loading={priority ? "eager" : "lazy"}
-      fetchpriority={priority ? "high" : "auto"}
+      fetchPriority={priority ? "high" : "auto"}
+      decoding={priority ? "sync" : "async"}
       className={className}
       style={{
-        opacity: loaded ? 1 : 0,
-        transition: loaded ? "none" : "opacity 0.4s ease-out",
-        backgroundColor: "#F1F5F9",
+        opacity: priority ? 1 : (loaded ? 1 : 0),
+        transition: (priority || loaded) ? "none" : "opacity 0.2s ease-out",
+        backgroundColor: "transparent",
         transform: "translateZ(0)",
-        willChange: "opacity",
+        willChange: priority ? "auto" : "opacity",
         ...style
       }}
       onLoad={() => {
         globalLoadedImages.add(optimizedSrc);
-        setLoaded(true);
+        setLoadedSrc(optimizedSrc);
       }}
-      onError={() => setLoaded(true)}
+      onError={() => {
+        if (displaySrc !== src) { setRetrySrc(optimizedSrc); return; }
+        setFailedSrc(optimizedSrc);
+        setLoadedSrc(optimizedSrc);
+      }}
       onClick={onClick}
     />
   );

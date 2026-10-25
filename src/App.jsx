@@ -1,38 +1,8 @@
+import CityArrivalSplash from './components/CityArrivalSplash.jsx';
+import { isAdminUser } from './lib/adminAccess.js';
 const AutoSliderEv = ({ children }) => <div style={{display:"flex", overflowX:"auto", gap:10}}>{children}</div>;
 import { useState, useRef, useEffect, useCallback, lazy as reactLazy, Suspense, useMemo } from "react";
-const lazy = (importer) => reactLazy(async () => {
-  try {
-    const component = await importer();
-    return component;
-  } catch (error) {
-    const errStr = String(error?.message || error || '');
-    // Only match ACTUAL module load failures, NOT generic network/fetch errors.
-    // 'fetch' alone is too broad and fires on Supabase failures causing reload loops.
-    const isChunkError = error.name === 'ChunkLoadError' 
-      || errStr.includes('Failed to fetch dynamically imported module')
-      || errStr.includes('dynamically imported') 
-      || errStr.includes('Load failed') 
-      || errStr.includes('module script')
-      || (errStr.includes('MIME type') && errStr.includes('module'))
-      || errStr.includes('text/html');
-    if (isChunkError) {
-      const last = parseInt(sessionStorage.getItem('chunk_reload_guard') || '0', 10);
-      const now = Date.now();
-      if (now - last > 15000) {
-        sessionStorage.setItem('chunk_reload_guard', now.toString());
-        if ('serviceWorker' in navigator) {
-          try {
-            const regs = await navigator.serviceWorker.getRegistrations();
-            for (let reg of regs) await reg.unregister();
-          } catch (e) { console.error(e); }
-        }
-        window.location.reload(true);
-        return new Promise(() => {}); // Wait for reload
-      }
-    }
-    throw error;
-  }
-});
+const lazy = reactLazy;
 import { m } from "framer-motion";
 import './App.css';
 import { sb, cloudUpload } from './lib/supabase.js';
@@ -45,7 +15,6 @@ import { useDataStore } from './store/useDataStore.js';
 import { useUIStore } from './store/useUIStore.js';
 import { useGeolocation } from './hooks/useGeolocation.js';
 
-const ItineraryModal = lazy(() => import('./components/modals/ItineraryModal.jsx'));
 const AuthModal = lazy(() => import('./components/AuthModal.jsx'));
 const GalleryModals = lazy(() => import('./components/GalleryModals.jsx'));
 import { useFavorites } from './hooks/useFavorites.js';
@@ -120,7 +89,7 @@ const FloatingParticles = ({ dark }) => {
     </div>
   );
 };
-const CountryPickerDropdown = lazy(() => import("./components/CountryPickerDropdown.jsx"));
+import CountryPickerDropdown from "./components/CountryPickerDropdown.jsx";
 import CosmicBackground from "./components/ui/CosmicBackground.jsx";
 
 const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:30,height:30,border:"3px solid #E4E8E4",borderTop:"3px solid #000000",borderRadius:"50%",animation:"spin .8s linear infinite"}}/></div>;
@@ -135,7 +104,6 @@ import { AppContext } from "./context/AppContext.jsx";
 const HomeView = lazy(() => import("./views/HomeView.jsx"));
 const DetailView = lazy(() => import("./views/DetailView.jsx"));
 const MapView = lazy(() => import("./views/MapView.jsx"));
-const FavsView = lazy(() => import("./views/FavsView.jsx"));
 const EventsView = lazy(() => import("./views/EventsView.jsx"));
 const ReservationsAgenda = lazy(() => import("./components/ReservationsAgenda.jsx"));
 const CreateEventModal = lazy(() => import("./components/modals/CreateEventModal.jsx"));
@@ -150,13 +118,22 @@ const SideMenu = lazy(() => import('./components/SideMenu.jsx'));
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
 import { useCapacitorHardwareBack } from './hooks/useCapacitorHardwareBack.js';
+import { useCapacitorStatusBar } from './hooks/useCapacitorStatusBar.js';
 import { usePushNotifications } from './hooks/usePushNotifications.js';
+import { orderBusinessIds, appendBusinessIds, getBusinessQueryState } from './lib/businessListing.js';
+import EventReminderPrompt from './components/EventReminderPrompt.jsx';
 import { useWebPush } from './hooks/useWebPush.js';
 import { useInAppNotifications } from './hooks/useInAppNotifications.js';
 import { useAppSEO } from './hooks/useAppSEO.js';
 import { useAppInitialization } from './hooks/useAppInitialization.js';
 import OfflineScreen from './components/OfflineScreen.jsx';
-const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/mis-planes', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios'];
+// Event listing routes already identify their screen and city; startup must preserve them.
+const isEventsRoute = (pathname) => {
+  const segments = pathname.split('/').filter(Boolean);
+  return segments.length >= 1 && segments.length <= 2 && (segments[0] === 'eventos' || segments[0] === 'explorar');
+};
+import { categoryFromUrl } from './lib/categoryRouting.js';
+const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios'];
 
 function isHomePath(pathname) {
   if (pathname === '/') return true;
@@ -169,7 +146,6 @@ function isHomePath(pathname) {
 import useThirdPartyScripts from './hooks/useThirdPartyScripts.js';
 
 export default function CityGuide() {
-  useThirdPartyScripts();
   const location = useLocation();
   const routerNavigate = useNavigate();
   const [backgroundLocation, setBackgroundLocation] = useState(null);
@@ -220,6 +196,7 @@ export default function CityGuide() {
   
   // --- NATIVE BACK BUTTON & DEEP LINKS (Capacitor) ---
   useCapacitorHardwareBack();
+  useCapacitorStatusBar(dark);
 
   // Track view changes logic removed as it's now handled by react-router history
   // ------------------------------------
@@ -227,7 +204,7 @@ export default function CityGuide() {
   // --- NOTIFICATIONS ---
   usePushNotifications();
   useInAppNotifications();
-  useWebPush({ citySlug: activeCity, enabled: true });
+  const { requestAndRegister: requestWebNotifications } = useWebPush({ citySlug: activeCity, userId: user?.id, enabled: true });
 
 
   useEffect(() => {
@@ -250,36 +227,6 @@ export default function CityGuide() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Deferred load of Google AdSense (improves LCP, TTI and SEO mobile scores)
-  useEffect(() => {
-    const loadAdSense = () => {
-      if (document.getElementById("google-adsense-script")) return;
-      const script = document.createElement("script");
-      script.id = "google-adsense-script";
-      script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6883476912475263";
-      script.async = true;
-      script.crossOrigin = "anonymous";
-      document.head.appendChild(script);
-    };
-
-    // Load after 2.5 seconds idle
-     
-    const timer = setTimeout(loadAdSense, 2500);
-
-    // Or load immediately on first user interaction
-    const triggerEvents = ["mousedown", "touchstart", "scroll", "keydown"];
-    const handleTrigger = () => {
-      clearTimeout(timer);
-      loadAdSense();
-      triggerEvents.forEach(e => window.removeEventListener(e, handleTrigger));
-    };
-    triggerEvents.forEach(e => window.addEventListener(e, handleTrigger, { passive: true }));
-
-    return () => {
-      clearTimeout(timer);
-      triggerEvents.forEach(e => window.removeEventListener(e, handleTrigger));
-    };
-  }, []);
   const [showMoreTopRated, setShowMoreTopRated] = useState(false);
   const [showMoreTopFavs, setShowMoreTopFavs] = useState(false);
 
@@ -300,7 +247,13 @@ export default function CityGuide() {
   const [editBizId, setEditBizId] = useState(null);
   
   const [activeTab, setActiveTab] = useState("descubrir");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("q") || "";
+    }
+    return "";
+  });
 
   const [mapQ, setMapQ] = useState("");
   const [nearbyRadius, setNearbyRadius] = useState(1);
@@ -326,7 +279,7 @@ export default function CityGuide() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   
-  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === "/" || location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/"); if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true, viewTransition: true }); } } });
+  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ activeCity, cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === "/" || location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/"); if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true, viewTransition: true }); } } });
   const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites({ sb, user, setShowAuth });
   
   useEffect(() => {
@@ -397,7 +350,6 @@ useEffect(() => {
       // Parsear token de Google OAuth si viene en la URL
       sb.parseOAuthHash();
       // Cargar sesión y datos en paralelo
-      const startTime = Date.now();
       
       const [u] = await Promise.all([
         sb.getUser(),
@@ -405,22 +357,15 @@ useEffect(() => {
           if (localStorage.getItem("cg_city_slug")) {
             await loadData();
           } else {
-            await loadData(); // Fallback temporal antes de que el GPS decida
+            await useDataStore.getState().refreshCities();
           }
         })()
       ]);
       
-      // Asegurar que el logo dure como mínimo 600ms para evitar parpadeos
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 600) {
-         
-        await new Promise(r => setTimeout(r, 600 - elapsed));
-      }
       if (u?.id) {
          
         setUser(u);
-        const profs = await dbService.getUserProfile(u.id);
-        let myProf = profs[0] || null;
+        let myProf = await useAuthStore.getState().loadProfile(u.id);
         
         if (myProf && (!myProf.name || !myProf.avatar_url) && u.user_metadata) {
           const mName = u.user_metadata.full_name || u.user_metadata.name;
@@ -458,8 +403,7 @@ useEffect(() => {
             if (localToken) {
               fetch(`https://citymap.mx/api/register-token`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                 
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sb._token || ''}` },
                 body: JSON.stringify({ 
                   token: localToken, 
                    
@@ -531,13 +475,21 @@ useEffect(() => {
             r = await dbService.getEvents(`?title=ilike.*${searchName}*&status=eq.approved`);
           }
            
-          if (r?.[0]) setSelectedEvent(r[0]);
-          navigate("home");
-        } catch { navigate("home"); }
+          if (r?.[0]) {
+            setSelectedEvent(r[0]);
+            const eventPath = `/evento/${r[0].slug || r[0].id}`;
+            // Reloading a detail must not execute home navigation, which clears it.
+            if (window.location.pathname !== eventPath) routerNavigate(eventPath, { replace:true });
+            if (r[0].city_slug && r[0].city_slug !== initialParams.current.citySlug) {
+              setActiveCity(r[0].city_slug);
+              loadData(r[0].city_slug);
+            }
+          } else navigate("events");
+        } catch { navigate("events"); }
          
         finally { setResolvingDeepLink(false); }
       } else if (initialJoinParam.current) {
-        navigate("plans");
+        navigate("mis-planes");
       } else if (initialPlanParam.current) {
         navigate("mis-planes");
       } else if (initialExpSlugParam.current) {
@@ -547,8 +499,10 @@ useEffect(() => {
         // AppRouter now has a route for /experiencias/:city/:slug which handles it naturally.
       } else if (initialVistaParam.current) {
         const v = initialVistaParam.current;
-        if (v.startsWith("plan_") || v.startsWith("itinerary_detail_")) navigate(v);
-        else if (v === "eventos") navigate("events");
+        if (isEventsRoute(window.location.pathname)) {
+          // The router already has the section and city.
+        } else if (v.startsWith("plan_") || v.startsWith("itinerary_detail_")) navigate(v);
+        else if (v === "eventos" || v === "events") navigate("events");
         else if (v === "mapa" || v === "map") navigate("map");
         else if (v === "admin_notifs") navigate("admin_notifs");
         else if (v === "user_notifs") navigate("user_notifs");
@@ -559,22 +513,22 @@ useEffect(() => {
         else if (v === "owner_dashboard") navigate("owner_dashboard");
         else if (v === "cuenta") navigate("account");
         else if (v === "favoritos") navigate("favs");
-        else if (v === "planes") navigate("plans");
         else if (v === "precios") navigate("precios");
-        else if (v === "mis-planes" || v === "experiencias") navigate("mis-planes");
+        else if (v === "mis-planes" || v === "experiencias" || v === "revista") navigate("mis-planes");
         else if (v === "itinerarios") navigate("itineraries");
         else if (v === "wallet" || v === "lealtad" || v === "scan") { /* DO NOTHING, let AppRouter handle it */ }
+        else if (v === "planes") { /* Removed section: let AppRouter render the 404 */ }
         else if (v === "menu_direct") { /* DO NOTHING, let AppRouter handle it */ }
         else navigate("home");
       } else if (initialCatParam.current) {
          
         setActiveCat(initialCatParam.current);
-        navigate("home");
+        // Keep the category URL on reload; navigating home clears this selection.
       } else {
         // If already on a detail/category/non-home path (e.g. hard refresh on /tepic/restaurante),
         // do NOT navigate away — let AppRouter handle the URL as-is.
         const currentPath = window.location.pathname;
-        const nonHomePrefixes = ['/mapa', '/eventos', '/mis-planes', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan'];
+        const nonHomePrefixes = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan'];
         const isNonHome = nonHomePrefixes.some(p => currentPath.startsWith(p));
         const segments = currentPath.split('/').filter(Boolean);
         const isDetailOrCategory = segments.length >= 2; // e.g. /tepic/emilianos or /tepic/c/restaurantes
@@ -590,14 +544,6 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("cg_dark", dark);
-    document.body.style.backgroundColor = dark ? "#0F172A" : "#FFFFFF";
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (metaThemeColor) {
-      metaThemeColor.setAttribute("content", dark ? "#0F172A" : "#FFFFFF");
-    }
-  }, [dark]);
 
   // SEO meta & JSON-LD structured data update
   useAppSEO({ city });
@@ -608,14 +554,13 @@ useEffect(() => {
     const cityPrefix = buildCityPath(city, cities); // e.g. "/cancun" or "/mx/cancun"
     let path = cityPrefix;
     if (v === "map" || v === "mapa") path = city ? `/mapa/${city}` : "/mapa";
-    else if (v === "events" || v === "eventos") path = "/eventos";
-    else if (v === "mis-planes") path = city ? `/experiencias/${city}` : "/mis-planes";
+    else if (v === "events" || v === "eventos" || v === "explorar") path = city ? `/eventos/${city}` : "/eventos";
+    else if (v === "mis-planes" || v === "revista" || v === "experiencias") path = city ? `/revista/${city}` : "/revista";
     else if (v === "admin") path = "/admin";
-    else if (v === "plans" || v === "planes") path = "/planes";
     else if (v === "precios") path = "/precios";
     else if (v === "wallet") path = "/wallet";
     else if (v === "account" || v === "cuenta") path = "/cuenta";
-    else if (v === "favs") path = "/favoritos";
+    else if (v === "favs" || v === "favoritos") path = "/favoritos";
     else if (v === "about") path = "/about";
     else if (v === "privacy") path = "/privacy";
     else if (v === "terms") path = "/terms";
@@ -634,9 +579,19 @@ useEffect(() => {
         setTimeout(() => setFade(true), 50);
         return;
       }
-      // Preserve category paths when navigating home
-      const isOnHomePath = location.pathname === "/" || location.pathname === cityPrefix || location.pathname.startsWith(cityPrefix + "/c/");
-      path = isOnHomePath ? location.pathname : cityPrefix;
+      setActiveCat("explorar");
+      setSearch("");
+      setSelected(null);
+      setSelectedEvent(null);
+      setMapPin(null);
+      path = cityPrefix;
+
+      if (location.pathname !== path || location.search) {
+        routerNavigate(path, { replace: false, viewTransition: true });
+        setFade(true);
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
     }
 
     if (v === "detail") {
@@ -649,6 +604,55 @@ useEffect(() => {
       window.scrollTo(0, 0);
     }
   };
+
+  // Restore category selection on reload and browser back/forward.
+  useEffect(() => {
+    const category = categoryFromUrl(location.pathname, location.search, cats, IS_WORLD);
+    if (category !== null) setActiveCat(category);
+    else if (isHomePath(location.pathname)) setActiveCat("explorar");
+  }, [location.pathname, location.search, cats, setActiveCat]);
+
+  const isSyncingFromUrl = useRef(false);
+
+  // Sync search state from URL query parameter (e.g. on back/forward, direct link, reload)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const urlQuery = params.get("q") || "";
+    // Only a URL change can restore input; typing must not restore the old URL.
+    isSyncingFromUrl.current = true;
+    setSearch(urlQuery);
+  }, [location.search]);
+
+  // Sync search state to URL query parameter
+  useEffect(() => {
+    if (isSyncingFromUrl.current) {
+      isSyncingFromUrl.current = false;
+      return;
+    }
+
+    const isNonHome = NON_HOME_PREFIXES.some(prefix => location.pathname.startsWith(prefix));
+    if (isNonHome) return;
+
+    const params = new URLSearchParams(location.search);
+    const currentQ = params.get("q") || "";
+    const trimmed = search.trim();
+
+    if (trimmed === currentQ) return;
+
+    if (trimmed) {
+      params.set("q", trimmed);
+    } else {
+      params.delete("q");
+    }
+
+    const newQueryStr = params.toString() ? `?${params.toString()}` : "";
+    const target = `${location.pathname}${newQueryStr}`;
+
+    // If current URL already had a 'q' query param, replace history to avoid creating an entry per keystroke.
+    // If it didn't have 'q' yet, push a new history entry for this search session.
+    const shouldReplace = !!currentQ;
+    routerNavigate(target, { replace: shouldReplace });
+  }, [search, location.pathname, location.search, routerNavigate]);
 
   // Listen to native browser back/forward gestures and clear detail state
   // so stale `selected` can't re-push the detail route after navigation
@@ -716,16 +720,18 @@ useEffect(() => {
     routerNavigate(targetPath, { state: { background: location }, viewTransition: true });
     trackEvent(b.id, "view");
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackEvent, activeCity, cities, location.pathname]);
+  }, [trackEvent, activeCity, cities, location]);
 
   const handleEventTap = useCallback((ev) => {
     setSelectedEvent(ev);
     const slug = ev.slug || ev.id;
     const targetPath = `/evento/${slug}`;
-    routerNavigate(targetPath, { state: { background: location }, viewTransition: true });
-    trackEvent(ev.id, "view_event");
+    routerNavigate(targetPath, { state: { background: location } });
+    // Business analytics has a business FK; event IDs must never be sent as biz IDs.
+    if (ev.biz_id) trackEvent(ev.biz_id, "view_event");
+    window.gtag?.('event', 'view_event', { event_id:ev.id, city_slug:activeCity });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackEvent, location.pathname]);
+  }, [trackEvent, activeCity, location]);
 
   const doAuth = async () => {
     const uid = await handleAuth();
@@ -735,7 +741,12 @@ useEffect(() => {
       toast$("Bienvenido a CityMap");
     }
   };
-  const doSignOut = async () => { await handleSignOut(); setFavIds([]); navigate("home"); toast$("Sesión cerrada"); };
+  const doSignOut = async () => { 
+    await handleSignOut(); 
+    setFavIds([]); 
+    navigate("home"); 
+    toast$("Sesión cerrada"); 
+  };
 
 
 
@@ -881,7 +892,7 @@ useEffect(() => {
     }
   };
 
-  const isAdmin = profile?.role === "admin" || user?.email === "soporte@citymap.mx" || user?.email === "mendozadaniel1999@gmail.com";
+  const isAdmin = isAdminUser(user, profile);
   const requestLocation = (cb) => { 
     navigator.geolocation?.getCurrentPosition(pos => {
       const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -1002,56 +1013,93 @@ useEffect(() => {
 
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
-
   const [serverHasMore, setServerHasMore] = useState(true);
+  const initialBizCount = useDataStore(s => s.initialBizCount);
+  const homeCoreCity=useDataStore(s=>s.homeCoreCity);
+  const homeCoreError=useDataStore(s=>s.homeCoreError);
+  const homeSecondaryCity=useDataStore(s=>s.homeSecondaryCity);
+  const homeSecondaryError=useDataStore(s=>s.homeSecondaryError);
+  const mapPinsCity = useDataStore(s => s.mapPinsCity);
+  const paginationKey = JSON.stringify([activeCity, activeCat, search]);
+  const isFilteredBusinessQuery = Boolean(search || (activeCat && activeCat !== "todas" && activeCat !== "explorar"));
+  const [businessQuery, setBusinessQuery] = useState({ key: null, ids: [], status: "loading" });
+  const businessListStatus = isFilteredBusinessQuery && (initialBizCount === null || mapPinsCity !== activeCity) ? "loading" : getBusinessQueryState(businessQuery, paginationKey, isFilteredBusinessQuery);
+  const businessListReady = businessListStatus === "ready";
+  const businessListError = businessListStatus === "error";
+  const activeBusinessQueryRef = useRef(paginationKey);
+  const paginationRequestRef = useRef(null);
+  const nextOffsetRef = useRef(20);
 
   const loadPaginatedBiz = useCallback(async () => {
-    if (loadingMore || !serverHasMore) return;
-    setLoadingMore(true);
-    
-    const count = await fetchMoreBiz({
-      targetCity: activeCity,
-      query: search,
-      category: activeCat,
-      offset: page * 20,
-      limit: 20
-    });
-    
-    if (count < 20) {
-      setServerHasMore(false);
+    if (paginationRequestRef.current || initialBizCount === null || mapPinsCity !== activeCity) return;
+    if (!serverHasMore) {
+      setPage(p => p + 1);
+      return;
     }
-    
-    setPage(p => p + 1);
+    const request = {};
+    paginationRequestRef.current = request;
+    setLoadingMore(true);
+    const offset = nextOffsetRef.current;
+    let rows = [];
+    const count = await fetchMoreBiz({ targetCity: activeCity, query: search, category: activeCat, offset, limit: 20, onBatch: batch => { rows = batch; } });
+    if (activeBusinessQueryRef.current !== paginationKey || paginationRequestRef.current !== request) return;
+    paginationRequestRef.current = null;
     setLoadingMore(false);
-  }, [loadingMore, serverHasMore, activeCity, search, activeCat, page, fetchMoreBiz]);
+    // A failed request must keep its offset so the user can retry it.
+    if (count === null) {
+      if (offset === 0) setBusinessQuery({ key: paginationKey, ids: [], status: "error" });
+      return;
+    }
+    if (isFilteredBusinessQuery) setBusinessQuery(previous => ({ key: paginationKey, status: "ready", ids: appendBusinessIds(offset === 0 || previous.key !== paginationKey ? [] : previous.ids, orderBusinessIds(rows)) }));
+    nextOffsetRef.current = offset + count;
+    setServerHasMore(count === 20);
+    setPage(p => offset === 0 ? 1 : p + 1);
+  }, [serverHasMore, initialBizCount, mapPinsCity, activeCity, search, activeCat, fetchMoreBiz, paginationKey, isFilteredBusinessQuery, setBusinessQuery]);
 
   useEffect(() => {
-    // Cuando cambian los filtros, reseteamos la paginación y pedimos la primera página
+    activeBusinessQueryRef.current = paginationKey;
+    paginationRequestRef.current = null;
     setPage(1);
-    setServerHasMore(true);
-    
-    if (search || (activeCat && activeCat !== "todas" && activeCat !== "explorar")) {
-      fetchMoreBiz({
-        targetCity: activeCity,
-        query: search,
-        category: activeCat,
-        offset: 0,
-        limit: 20
-      }).then(count => {
-        if (count < 20) setServerHasMore(false);
-      });
-    }
-  }, [activeCat, search, activeCity, fetchMoreBiz]);
+    setLoadingMore(false);
+    const filtered = Boolean(search || (activeCat && activeCat !== "todas" && activeCat !== "explorar"));
+    const isCategoryFilter = !search && activeCat && activeCat !== "todas" && activeCat !== "explorar";
+    const fetchLimit = isCategoryFilter ? 100 : 20;
+
+    nextOffsetRef.current = filtered ? 0 : 20;
+    setServerHasMore(filtered || initialBizCount === null || initialBizCount === 20);
+    if (!filtered || initialBizCount === null || mapPinsCity !== activeCity || !dbReady) return;
+
+    setBusinessQuery({ key: paginationKey, ids: [], status: "loading" });
+    const request = {};
+    let rows = [];
+    paginationRequestRef.current = request;
+    setLoadingMore(true);
+    fetchMoreBiz({ targetCity: activeCity, query: search, category: activeCat, offset: 0, limit: fetchLimit, onBatch: batch => { rows = batch; } }).then(count => {
+      if (activeBusinessQueryRef.current !== paginationKey || paginationRequestRef.current !== request) return;
+      paginationRequestRef.current = null;
+      setLoadingMore(false);
+      if (count === null) { setBusinessQuery({ key: paginationKey, ids: [], status: "error" }); return; }
+      setBusinessQuery({ key: paginationKey, ids: orderBusinessIds(rows), status: "ready" });
+      nextOffsetRef.current = count;
+      setServerHasMore(count === fetchLimit);
+      setPage(isCategoryFilter ? Math.max(1, Math.ceil(count / 20)) : 1);
+    });
+  }, [paginationKey, activeCat, search, activeCity, fetchMoreBiz, initialBizCount, mapPinsCity, dbReady]);
 
   const displayList = useMemo(() => {
+    if (isFilteredBusinessQuery) {
+      if (!businessListReady) return [];
+      const byId = new Map(filteredBiz.map(b => [b.id, b]));
+      return businessQuery.ids.map(id => byId.get(id)).filter(Boolean).slice(0, page * 20);
+    }
     return filteredBiz.slice(0, page * 20);
-  }, [filteredBiz, page]);
+  }, [filteredBiz, page, isFilteredBusinessQuery, businessListReady, businessQuery]);
 
-  const hasMore = serverHasMore || page * 20 < filteredBiz.length;
+  const hasMore = serverHasMore || page * 20 < (isFilteredBusinessQuery ? businessQuery.ids.length : filteredBiz.length);
   
   // topFavsMemo is computed here without depending on time
 
-  const viewStyle = { opacity: fade ? 1 : 0, transform: fade ? "translateY(0)" : "translateY(24px)", transition: "opacity .45s ease, transform .45s cubic-bezier(.34,1.1,.64,1)" };
+  const viewStyle = { opacity: fade ? 1 : 0, transform: fade ? "translateY(0)" : "translateY(12px)", transition: "opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1)" };
 
   const css = `
     .card{background:${T.card};border-radius:16px;overflow:hidden;box-shadow:${T.shadow};transition:box-shadow .2s,transform .2s,background .3s;cursor:pointer;}
@@ -1089,13 +1137,16 @@ useEffect(() => {
   const toggleSaveEvent = () => {};
   
 
+  const homeHighlights = useDataStore(s => s.homeHighlights);
+  const rankedBusinesses = useMemo(() => Array.from(new Map([...mapPins, ...homeHighlights].map(b => [b.id, b])).values()), [mapPins, homeHighlights]);
+
   const topFavsMemo = useMemo(() => {
-    return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && globalFavCounts[b.id] > 0).sort((a, b) => (globalFavCounts[b.id] || 0) - (globalFavCounts[a.id] || 0)).slice(0, 10);
-  }, [mapPins, activeCity, globalFavCounts, userCoords]);
+    return [...rankedBusinesses].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && globalFavCounts[b.id] > 0).sort((a, b) => (globalFavCounts[b.id] || 0) - (globalFavCounts[a.id] || 0)).slice(0, 10);
+  }, [rankedBusinesses, activeCity, globalFavCounts, userCoords]);
 
   const topRatedMemo = useMemo(() => {
-    return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && b.review_count > 0).sort((a, b) => b.rating - a.rating || b.review_count - a.review_count).slice(0, 10);
-  }, [mapPins, activeCity, userCoords]);
+    return [...rankedBusinesses].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && b.review_count > 0).sort((a, b) => b.rating - a.rating || b.review_count - a.review_count).slice(0, 10);
+  }, [rankedBusinesses, activeCity, userCoords]);
 
   const newBizMemo = useMemo(() => {
     return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved").sort((a, b) => new Date(b.created_at || 0).getTime() < new Date(a.created_at || 0).getTime() ? -1 : 1).slice(0, 8);
@@ -1109,7 +1160,7 @@ useEffect(() => {
   // (Removed static splash screen that blocked city selection)
 
   const appContextValue = {
-    viewStyle, cityImg, locating, detectCity, setShowCountryPicker, city, isAdmin, setShowAdmin, search, setSearch, user, setShowAuth, toast$, setShowAddBiz, setShowPlans, dbReady, dark, cats, activeCat, setActiveCat, T, mapPins, activeCity, banners: filteredBanners, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, globalFavCounts, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, coupons, biz: filteredBiz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState,
+    businessListReady, businessListError, requestWebNotifications, viewStyle, cityImg, locating, detectCity, setShowCountryPicker, city, isAdmin, setShowAdmin, search, setSearch, user, setShowAuth, toast$, setShowAddBiz, setShowPlans, dbReady, dark, cats, activeCat, setActiveCat, T, mapPins, activeCity, banners: filteredBanners, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, globalFavCounts, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, coupons, biz: filteredBiz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState,
     // From MapView
     mapPin, setMapPin, requestLocation, allNearby,
     // From FavsView
@@ -1121,6 +1172,23 @@ useEffect(() => {
     // Globals
     LoaderFallback, GMap
   };
+
+  useThirdPartyScripts(!requireCitySelection && homeCoreCity===activeCity && homeSecondaryCity===activeCity);
+  const cityPicker = (
+<Suspense fallback={null}>
+          <CountryPickerDropdown 
+            show={showCountryPicker || (requireCitySelection && hasOnboarded)}
+            cities={cities} 
+            activeCity={activeCity} 
+            onSelectCity={(city) => { handleCitySelect(city); setRequireCitySelection(false); setShowCountryPicker(false); }} 
+            onDetectCity={() => { if (!locating) detectCity({ showToast: true, onDone: (slug) => { const found = cities.find(c => c.slug === slug); if (found) handleCitySelect(found); setRequireCitySelection(false); } }); setShowCountryPicker(false); }}
+            locating={locating}
+            onClose={() => { if(!requireCitySelection) setShowCountryPicker(false); }} 
+            dark={dark}
+            isWelcome={requireCitySelection} 
+          />
+        </Suspense>
+  );
 
   if (resolvingDeepLink) {
     return <LoaderFallback />;
@@ -1146,9 +1214,15 @@ useEffect(() => {
     );
   }
 
+  if(requireCitySelection && hasOnboarded){
+    return <AppContext.Provider value={appContextValue}>{cityPicker}</AppContext.Provider>;
+  }
+
   return (
     <AppContext.Provider value={appContextValue}>
       <OfflineScreen />
+      <CityArrivalSplash enabled={!requireCitySelection && isHomePath(location.pathname)} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && businessListReady && homeCoreCity===activeCity && homeSecondaryCity===activeCity} error={dbError || businessListError || homeCoreError || homeSecondaryError} dark={dark}/>
+
       <div style={{ fontFamily: "'DM Sans',system-ui,sans-serif", background: dark ? "transparent" : T.bg, minHeight: "100vh", width: "100%", position: "relative", transition: "background .3s" }}>
         {dark && <CosmicBackground />}
         {/* Main app container */}
@@ -1162,12 +1236,15 @@ useEffect(() => {
         {/* ── GLOBAL GLASS NAVBAR (Fixed, home only) ── */}
         {(!location.pathname.startsWith("/mapa") && 
           !location.pathname.startsWith("/eventos") && 
+          !location.pathname.startsWith("/explorar") && 
           !location.pathname.startsWith("/mis-planes") && 
+          !location.pathname.startsWith("/revista") && 
           !location.pathname.startsWith("/experiencias") && 
           !location.pathname.startsWith("/planes") && 
           !location.pathname.startsWith("/cuenta") && 
           !location.pathname.startsWith("/admin") && 
           !location.pathname.startsWith("/favoritos") && 
+          !location.pathname.startsWith("/explorer") && 
           !location.pathname.startsWith("/about") && 
           !location.pathname.startsWith("/privacy") && 
           !location.pathname.startsWith("/terms") && 
@@ -1192,7 +1269,7 @@ useEffect(() => {
             alignItems: "center", 
             padding: "0 16px", 
             zIndex: 998, 
-            background: scrolled ? (dark ? "#0F172A" : "#FFFFFF") : "transparent", 
+            background: scrolled ? T.bg : "transparent", 
             backdropFilter: "none", 
             WebkitBackdropFilter: "none", 
             borderBottom: scrolled ? `1px solid ${dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'}` : "1px solid transparent", 
@@ -1233,10 +1310,10 @@ useEffect(() => {
                 alt="CityMap" 
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 style={{ 
-                  height: 32, 
+                  height: 34, 
                   objectFit: "contain",
                   cursor: "pointer",
-                  filter: !dark ? "invert(1)" : "drop-shadow(0 2px 8px rgba(56, 189, 248, 0.3))" 
+                  filter: !dark ? "brightness(0)" : "drop-shadow(0 2px 8px rgba(56, 189, 248, 0.3))" 
                 }} 
               />
             </div>
@@ -1272,8 +1349,10 @@ useEffect(() => {
             onClose={() => setShowSidebar(false)} 
             T={T} 
             dark={dark} 
+            navigate={navigate}
             routerNavigate={routerNavigate} 
             user={user} 
+            isAdmin={isAdmin}
             setShowAuth={setShowAuth} 
             setShowAdmin={setShowAdmin} 
           />
@@ -1327,7 +1406,6 @@ useEffect(() => {
             MapView={MapView}
             TripsView={TripsView}
             EventsView={EventsView}
-            FavsView={FavsView}
             AccountView={AccountView}
             About={About}
             Privacy={Privacy}
@@ -1343,9 +1421,11 @@ useEffect(() => {
         {storeAdminBiz && <Suspense fallback={<LoaderFallback/>}><StoreAdminPanel business={storeAdminBiz} onClose={() => setStoreAdminBiz(null)} T={T} /></Suspense>}
 
         {/* ════ CREAR EVENTO MODAL ════ */}
-        <Suspense fallback={null}>
+        {showCreateEvent && <Suspense fallback={null}>
           <CreateEventModal showCreateEvent={showCreateEvent} setShowCreateEvent={setShowCreateEvent} />
-        </Suspense>
+        </Suspense>}
+
+        <EventReminderPrompt />
 
         {/* ════ DETALLE EVENTO ════ */}
         <Suspense fallback={null}>
@@ -1386,6 +1466,7 @@ useEffect(() => {
         {/* ════ ADMIN FAB (Fixed globally for admins) ════ */}
         {isAdmin && !showAdmin && !mapFullScreen && (
           <button
+            aria-label="Abrir panel de administración"
             onClick={() => setShowAdmin(true)}
             style={{ 
               position: "fixed", bottom: location.pathname.endsWith('/menu') ? 20 : 90, right: 20, zIndex: 9999, 
@@ -1405,19 +1486,8 @@ useEffect(() => {
 
         
 
-        <Suspense fallback={null}>
-          <CountryPickerDropdown 
-            show={showCountryPicker || (requireCitySelection && hasOnboarded)}
-            cities={cities} 
-            activeCity={activeCity} 
-            onSelectCity={(city) => { handleCitySelect(city); setRequireCitySelection(false); setShowCountryPicker(false); }} 
-            onDetectCity={() => { if (!locating) detectCity({ showToast: true, onDone: (slug) => { const found = cities.find(c => c.slug === slug); if (found) handleCitySelect(found); setRequireCitySelection(false); } }); setShowCountryPicker(false); }}
-            locating={locating}
-            onClose={() => { if(!requireCitySelection) setShowCountryPicker(false); }} 
-            dark={dark}
-            isWelcome={requireCitySelection} 
-          />
-        </Suspense>
+        {cityPicker}
+
 
         <Suspense fallback={null}>
           <GalleryModals />
@@ -1427,10 +1497,6 @@ useEffect(() => {
         {/* Schedule Modal */}
         <Suspense fallback={null}>
           <ScheduleModal selected={selected} showSchedule={showSchedule} setShowSchedule={setShowSchedule} />
-        </Suspense>
-
-        <Suspense fallback={null}>
-          <ItineraryModal T={T} dark={dark} />
         </Suspense>
 
       </div>

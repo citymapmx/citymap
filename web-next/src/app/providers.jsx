@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { initializeTheme } from '../lib/theme.js';
+import { useUIStore } from '../store/useUIStore.js';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import GlobalAuthInit from '../components/GlobalAuthInit';
 
@@ -9,6 +11,7 @@ import GlobalAuthInit from '../components/GlobalAuthInit';
  * Add new providers here as the migration progresses.
  */
 export function Providers({ children }) {
+  useEffect(() => initializeTheme(useUIStore), []);
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {

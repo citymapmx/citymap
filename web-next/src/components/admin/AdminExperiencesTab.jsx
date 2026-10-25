@@ -149,7 +149,8 @@ export default function AdminExperiencesTab({
                     <option value="🏃 Deportes">🏃 Deportes</option>
                     <option value="🥳 Entretenimiento">🥳 Entretenimiento</option>
                     <option value="🎟️ Boleto">🎟️ Boleto</option>
-                    <option value="📝 Blog / Guía">📝 Blog / Guía</option>
+                    <option value="📝 Blog">📝 Blog</option>
+                    <option value="📖 Guía">📖 Guía</option>
                   </select>
                   <Icon name="chevron-down" size={14} color="#94A3B8" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
                 </div>
@@ -164,7 +165,7 @@ export default function AdminExperiencesTab({
 
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 6 }}>
-                <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8 }}>Descripción {expForm.activity_type === "📝 Blog / Guía" ? "(Contenido del Blog)" : ""}</label>
+                <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8 }}>Descripción {expForm.activity_type && (expForm.activity_type.toLowerCase().includes("blog") || expForm.activity_type.toLowerCase().includes("guía") || expForm.activity_type.toLowerCase().includes("guia")) ? (expForm.activity_type.toLowerCase().includes("guía") || expForm.activity_type.toLowerCase().includes("guia") ? "(Contenido de la Guía)" : "(Contenido del Blog)") : ""}</label>
                 <button type="button" onClick={async () => {
                   if(!expForm.title) return onToast("Primero escribe un título");
                   setExpForm(f => ({ ...f, _generating: true }));
@@ -185,7 +186,7 @@ export default function AdminExperiencesTab({
                   }
                 }} style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)", color: "#fff", border: "none", borderRadius: 6, padding: "4px 8px", fontSize: 10, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>{expForm._generating ? "Generando..." : "✨ Autocompletar con IA"}</button>
               </div>
-              <textarea placeholder={expForm.activity_type === "📝 Blog / Guía" ? "Escribe aquí tu artículo completo..." : "Describe la experiencia en detalle..."} value={expForm.description || ""} onChange={e => setExpForm(f => ({ ...f, description: e.target.value }))} style={{ width: "100%", padding: "12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", outline: "none", background: "#fff", fontFamily: "inherit", minHeight: expForm.activity_type === "📝 Blog / Guía" ? 300 : 120, resize: "vertical" }} />
+              <textarea placeholder={expForm.activity_type && (expForm.activity_type.toLowerCase().includes("blog") || expForm.activity_type.toLowerCase().includes("guía") || expForm.activity_type.toLowerCase().includes("guia")) ? "Escribe aquí tu artículo completo..." : "Describe la experiencia en detalle..."} value={expForm.description || ""} onChange={e => setExpForm(f => ({ ...f, description: e.target.value }))} style={{ width: "100%", padding: "12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", outline: "none", background: "#fff", fontFamily: "inherit", minHeight: expForm.activity_type && (expForm.activity_type.toLowerCase().includes("blog") || expForm.activity_type.toLowerCase().includes("guía") || expForm.activity_type.toLowerCase().includes("guia")) ? 300 : 120, resize: "vertical" }} />
             </div>
 
             <div>
@@ -213,7 +214,7 @@ export default function AdminExperiencesTab({
           </div>
 
           {/* Tarjeta 2: LOGÍSTICA (Oculta para Blog/Guía) */}
-          {expForm.activity_type !== "📝 Blog / Guía" && (
+          {!(expForm.activity_type && (expForm.activity_type.toLowerCase().includes("blog") || expForm.activity_type.toLowerCase().includes("guía") || expForm.activity_type.toLowerCase().includes("guia"))) && (
             <>
             <div style={{ border: "1px solid #E4E8E4", borderRadius: 12, padding: 16, background: "#F9FAFB", display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: "#0F1A14", textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>⏱️ Logística y Detalles</div>

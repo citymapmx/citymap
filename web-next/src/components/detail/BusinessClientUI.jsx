@@ -1,3 +1,7 @@
+import { CIVITATIS_PLATFORM } from '../../lib/reservationPlatforms.js';
+import './businessTypography.css';
+import {isCatalogBusiness} from '../../lib/storePresentation.js';
+import BusinessHours from './BusinessHours.jsx';
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -24,84 +28,8 @@ import BusinessStore from '../components/store/BusinessStore.jsx';
 import MercadoLibreShowcase from '../components/MercadoLibreShowcase.jsx';
 import { Helmet } from 'react-helmet-async';
 
-const GalleryLayout = ({ photos, T, setShowGallery, bizName }) => {
-  if (!photos || photos.length === 0) return null;
-
-  return (
-    <div style={{ padding: "20px 0 0", position: "relative" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 20px" }}>
-        <div className="text-base" style={{ fontWeight: 800, color: T.text, letterSpacing: "-0.5px" }}>Galería de fotos</div>
-      </div>
-
-      <style>{`
-        .mosaic-gallery {
-          display: grid;
-          gap: 12px;
-          padding: 0 20px;
-        }
-        .mosaic-gallery.count-1 {
-          grid-template-columns: 1fr;
-        }
-        .mosaic-gallery.count-2 {
-          grid-template-columns: 1fr 1fr;
-        }
-        .mosaic-gallery.count-more {
-          grid-template-columns: 1fr 1fr;
-        }
-        .mosaic-item {
-          border-radius: 16px;
-          overflow: hidden;
-          background: ${T.border};
-          cursor: pointer;
-          position: relative;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-          transition: transform 0.2s, box-shadow 0.2s;
-          aspect-ratio: 4/3;
-        }
-        .mosaic-item:active {
-          transform: scale(0.97);
-        }
-        .mosaic-item-lead {
-          grid-column: 1 / -1;
-          aspect-ratio: 2/1;
-        }
-        .mosaic-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-      `}</style>
-
-      <div className={`mosaic-gallery ${photos.length === 1 ? 'count-1' : photos.length === 2 ? 'count-2' : 'count-more'}`}>
-        {photos.slice(0, 3).map((photo, index) => {
-          const isLead = photos.length >= 3 && index === 0;
-          const isLastVisible = photos.length > 3 && index === 2;
-          
-          return (
-            <div 
-              key={index} 
-              className={`mosaic-item ${isLead ? 'mosaic-item-lead' : ''}`}
-              onClick={() => setShowGallery(index)}
-            >
-              <img 
-                src={getThumbUrl(photo.url, isLead ? 1200 : 600, isLead ? 600 : 600)} 
-                className="mosaic-img"
-                alt={`Foto ${index + 1} de ${bizName || "galería"}`} 
-                loading="lazy"
-              />
-              {isLastVisible && (
-                <div className="text-xl" style={{ position: "absolute", inset: 0, background: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800 }}>
-                  +{photos.length - 3}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+import GalleryLayout from './GalleryLayout.jsx';
+import JaguaresGames from './JaguaresGames.jsx';
 
 import useGMaps from '../components/map/useGMaps.js';
 import { sb } from '../lib/supabase.js';
@@ -175,9 +103,10 @@ export default function DetailView() {
   const navType = useNavigationType();
   const isPop = navType === "POP";
   const ctx = useAppContext();
+  const isCatalog = isCatalogBusiness(ctx.selected);
   const routerNavigate = useNavigate();
 
-  const { dark, activeCity, toast$, setShowItineraryModal, setItineraryTargetBiz, openedFromMap, setOpenedFromMap } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$, setShowItineraryModal: s.setShowItineraryModal, setItineraryTargetBiz: s.setItineraryTargetBiz, openedFromMap: s.openedFromMap, setOpenedFromMap: s.setOpenedFromMap })));
+  const { dark, activeCity, toast$, openedFromMap, setOpenedFromMap } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$, openedFromMap: s.openedFromMap, setOpenedFromMap: s.setOpenedFromMap })));
   const { dbReady, promos, coupons, events, wallet, setWallet, claimedCoupons, setClaimedCoupons, reviews, setReviews, globalFavCounts, raffles, setRaffles } = useDataStore(useShallow(s => ({ dbReady: s.dbReady, promos: s.promos, coupons: s.coupons, events: s.events, wallet: s.wallet, setWallet: s.setWallet, claimedCoupons: s.claimedCoupons, setClaimedCoupons: s.setClaimedCoupons, reviews: s.reviews, setReviews: s.setReviews, globalFavCounts: s.globalFavCounts, raffles: s.raffles, setRaffles: s.setRaffles })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   
@@ -294,13 +223,13 @@ export default function DetailView() {
   if (!selected) return null;
   const isElite = false; // Desactivado por petición del usuario
           const dText = T.text;
-          const dSub = T.sub;
+          const dSub = dark ? '#B0B7C3' : '#5F6B7A';
           const dBg = T.bg;
           const dCard = T.white;
           const dIconBg = T.iconBg;
           
   return (
-    <m.div 
+    <m.div className="business-detail"
       initial={isPop ? false : { scale: 0.96, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.96, opacity: 0 }}
@@ -320,8 +249,8 @@ export default function DetailView() {
         style={{ width: "100%", maxWidth: 600, height: "100%", overflowY: "auto", overflowX: "hidden", background: T.bg, position: "relative", boxShadow: "0 0 40px rgba(0,0,0,0.1)" }}
       >
         {/* Header Image Full Bleed */}
-            <div style={{ height: isElite ? "40vh" : 220, position: "relative", background: "#111", overflow: "hidden", flexShrink: 0 }}>
-              <img src={selected.banner_url ? getThumbUrl(selected.banner_url, 1200, 900) : (selected.photos?.[0]?.url ? getThumbUrl(selected.photos[0].url, 1200, 900) : (selected.logo_url ? getThumbUrl(selected.logo_url, 1200, 900) : ""))} alt={`Foto de ${selected.name}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ height: isElite ? "40vh" : 220, position: "relative", background: "transparent", overflow: "hidden", flexShrink: 0 }}>
+              <img src={getThumbUrl(selected.photos?.find(photo => photo?.url)?.url || selected.banner_url || selected.logo_url, 1200, 900)} alt={`Foto de ${selected.name}`} style={{ width: "100%", height: "100%", objectFit: "cover", backgroundColor: "transparent" }} />
               {isElite && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(to top, #111111 0%, rgba(17,17,17,0) 100%)" }} />}
               <div style={{ position: "absolute", top: 16, left: 16, right: 16, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 20 }}>
                 <button aria-label="Volver" className="press" onClick={() => {
@@ -334,11 +263,8 @@ export default function DetailView() {
                 }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="chevron" size={26} color="#fff" style={{ transform: "rotate(180deg)", filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                 </button>
-                <div style={{ display: "flex", gap: 0 }}>
-                  <m.button whileTap={{ scale: 0.85 }} aria-label="Añadir a plan" className="press" onClick={e => { e.stopPropagation(); haptic("light"); setItineraryTargetBiz(selected); setShowItineraryModal(true); }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Icon name="plus" size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
-                  </m.button>
-                  <m.button whileTap={{ scale: 0.85 }} aria-label={favIds.includes(selected.id) ? "Quitar de favoritos" : "Añadir a favoritos"} className="press" onClick={e => { haptic("light"); toggleFav(selected.id, e); }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ display: "flex", gap: 0, alignItems: "center" }}>
+                  <m.button whileTap={{ scale: 0.85 }} title="Mis favoritos" aria-label={favIds.includes(selected.id) ? "Quitar de favoritos" : "Añadir a favoritos"} className="press" onClick={e => { haptic("light"); toggleFav(selected.id, e); }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <m.div key={favIds.includes(selected.id) ? 'fav' : 'unfav'} initial={{ scale: 0.5 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 15 }}>
                       <Icon name={favIds.includes(selected.id) ? "heart_overlay_f" : "heart_overlay"} size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                     </m.div>
@@ -377,22 +303,13 @@ export default function DetailView() {
                       <img src="/verificado.png" alt="Verificado" width="22" height="22" style={{ marginLeft: 6, flexShrink: 0 }} />
                     )}
                   </h1>
-                  {(() => {
-                    const rawParts = [
-                      selected.type,
-                      selected.tagline,
-                      ...(Array.isArray(selected.tags) ? selected.tags : typeof selected.tags === 'string' ? selected.tags.split(',').map(t => t.trim()) : [])
-                    ].filter(Boolean);
-                    const parts = [...new Set(rawParts)];
-                    if (parts.length === 0) return null;
-                    return (
-                      <p className="text-sm" style={{ color: dSub, fontWeight: 500, margin: "2px 0 0 0" }}>
-                        {parts.length === 1 ? `• ${parts[0]}` : parts.join(" • ")}
-                      </p>
-                    );
-                  })()}
+                  {selected.type?.trim() && (
+                    <p className="text-sm" style={{ color: dSub, fontWeight: 500, margin: "2px 0 0 0" }}>
+                      {selected.type.trim()}
+                    </p>
+                  )}
                   
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px 16px", marginTop: 8 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {!selected.is_place && (() => {
                         const smartSt = getSmartScheduleInfo(selected, window.CITY_TZ, now);
@@ -418,7 +335,7 @@ export default function DetailView() {
                         if (rCount > 0) {
                           return (
                             <>
-                              <img src="/estrella.svg" alt="star" style={{ width: 16, height: 16, marginTop: -2 }} />
+                              <Icon name="star_f" size={16} color={dText} style={{ marginTop: -2 }} />
                               <span className="text-sm" style={{ fontWeight: 800, color: dText }}>{rRating > 0 ? rRating : "Nuevo"}</span>
                               <span className="text-xs" style={{ color: dSub }}>({rCount})</span>
                             </>
@@ -442,30 +359,30 @@ export default function DetailView() {
             )}
 
             {/* Quick Actions Pills */}
-            <div style={{ display: "flex", gap: 12, padding: "0 20px" }}>
-              {(selected.phone) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => callPhone(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                <img src="/telefono.svg" alt="Teléfono" style={{ width: 20, height: 20, objectFit: "contain" }} />
-                <span style={{ fontSize: 14, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>Llamar</span>
+            <div style={{ display: "flex", gap: 8, padding: "0" }}>
+              {(selected.phone) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => callPhone(selected, null)} style={{ flex: "1 1 0", minWidth: 0, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                <Icon name="phone" size={20} color={dText} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>Llamar</span>
               </m.button>}
               
-              {(selected.whatsapp && ['premium', 'pro', 'destacado'].includes(selected.plan)) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goWhatsApp(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                <img src="/whatsapp.svg" alt="WhatsApp" style={{ width: 20, height: 20, objectFit: "contain" }} />
-                <span style={{ fontSize: 14, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>WhatsApp</span>
+              {(selected.whatsapp && ['premium', 'pro', 'destacado'].includes(selected.plan)) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goWhatsApp(selected, null)} style={{ flex: "1 1 0", minWidth: 0, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                <Icon name="whatsapp" size={20} color={dText} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>WhatsApp</span>
               </m.button>}
-              {!selected.hide_location && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goDir(selected, null)} style={{ flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                <img src="/mapa.svg" alt="Mapa" style={{ width: 20, height: 20, objectFit: "contain" }} />
-                <span style={{ fontSize: 14, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>Ubicación</span>
+              {!selected.hide_location && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goDir(selected, null)} style={{ flex: "1 1 0", minWidth: 0, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                <Icon name="map-pin" size={20} color={dText} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>Ubicación</span>
               </m.button>}
             </div>
 
-            <div style={{ display: "flex", gap: 8, padding: "0 20px", marginTop: 12, opacity: loyaltyLoading ? 0 : 1, transition: "opacity 0.3s ease", pointerEvents: loyaltyLoading ? "none" : "auto" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 20px", marginTop: 12, opacity: loyaltyLoading ? 0 : 1, transition: "opacity 0.3s ease", pointerEvents: loyaltyLoading ? "none" : "auto" }}>
               {/* LOYALTY PILL */}
               {hasLoyalty && (
                 <button 
                   className="press" 
                   onClick={() => { const cleanSlug = ctx.cleanCityPrefix ? ctx.cleanCityPrefix(selected.slug || selected.id, selected.city_slug || activeCity) : (selected.slug || selected.id); navigate(`/lealtad/${cleanSlug}?from=biz`); }} 
                   style={{ 
-                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    flex: "1 1 140px", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                     padding: "12px 10px", borderRadius: 14, 
                     background: dark ? "#000000" : "#111827", 
                     color: "#FACC15", border: "none", cursor: "pointer", fontFamily: "inherit",
@@ -477,8 +394,8 @@ export default function DetailView() {
                 </button>
               )}
 
-              {/* BOOKING/MENU PILL (EXTERNAL OR NATIVE) */}
-              {selected.booking_config?.enabled && (!selected.booking_config.type || selected.booking_config.type !== "external" || !selected.booking_config.externalLinks || selected.booking_config.externalLinks.length === 0) ? (
+              {/* Booking and menu remain independent when both are available. */}
+              {selected.booking_config?.enabled && (!selected.booking_config.type || selected.booking_config.type !== "external" || !selected.booking_config.externalLinks || selected.booking_config.externalLinks.length === 0) && (
                 <button className="press" onClick={() => { 
                   if (selected.booking_config?.type === "external" && selected.booking_config?.externalUrl) {
                     let url = selected.booking_config.externalUrl;
@@ -487,14 +404,15 @@ export default function DetailView() {
                     return;
                   }
                   setShowBooking(true); 
-                }} style={{ flex: 1, background: "#FACC15", border: "none", borderRadius: 14, padding: "12px 10px", color: "#111827", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+                }} style={{ flex: "1 1 140px", minWidth: 0, background: "#FACC15", border: "none", borderRadius: 14, padding: "12px 10px", color: "#111827", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>
                   <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{selected.booking_config.label || "Reservar"}</span>
                 </button>
-              ) : selected.plan === "premium" && hasMenu && (
-                <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => setShowIntentModal(true)} style={{ flex: 1, background: "#000000", border: "none", borderRadius: 14, padding: "12px 10px", color: "#FFFFFF", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>
-                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>VER MENÚ</span>
+              )}
+              {selected.plan === "premium" && hasMenu && (
+                <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => setShowIntentModal(true)} style={{ flex: "1 1 140px", minWidth: 0, background: dark ? "#F0F0F0" : "#000000", border: "none", borderRadius: 14, padding: "12px 10px", color: dark ? "#111111" : "#FFFFFF", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2 }}>
+                  {isCatalog?<Icon name="grid" size={16} color="currentColor" />:(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>)}
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{isCatalog?'VER CATÁLOGO':'VER MENÚ'}</span>
                 </m.button>
               )}
             </div>
@@ -505,6 +423,7 @@ export default function DetailView() {
                 {(() => {
                   const links = selected.booking_config.externalLinks;
                   const PLATFORM_STYLES = {
+                    civitatis: CIVITATIS_PLATFORM,
                     airbnb: { color: "#FF5A5F", label: "Airbnb", img: "/airbnb.svg" },
                     booking: { color: "#003580", label: "Booking.com", img: "/booking.png" },
                     tiqets: { color: "#4bc2c5", label: "Comprar entradas", img: "/tiqets.png" },
@@ -601,6 +520,8 @@ export default function DetailView() {
               </div>
             );
           })()}
+
+          <JaguaresGames business={selected} T={T} />
 
           {/* Fotos */}
           {selected.photos?.length > 1 && (
@@ -771,7 +692,7 @@ export default function DetailView() {
             return (
               <div style={{ padding: "24px 20px 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div className="text-base" style={{ fontWeight: 800, color: dText, letterSpacing: "-0.5px" }}>Menú</div>
+                  <div className="text-base" style={{ fontWeight: 800, color: dText, letterSpacing: "-0.5px" }}>{isCatalog?'Catálogo':'Menú'}</div>
                   {!isSinglePdf && menuUrls.length > 2 && (
                     <div onClick={() => setShowMenuGallery(true)} style={{ fontSize: 13, fontWeight: 700, color: T.green, cursor: "pointer" }}>Ver todo</div>
                   )}
@@ -781,7 +702,7 @@ export default function DetailView() {
                   <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 10, scrollSnapType: "x mandatory" }} className="no-scrollbar">
                     {menuUrls.slice(0, 3).map((url, i) => (
                       <div key={i} onClick={() => setShowMenuGallery(true)} style={{ flexShrink: 0, width: 140, height: 180, borderRadius: 12, overflow: "hidden", background: T.border, scrollSnapAlign: "start", cursor: "pointer", border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, position: "relative" }}>
-                        <img src={getThumbUrl(url, 400, 600)} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="Menú" />
+                        <img src={getThumbUrl(url, 400, 600)} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={isCatalog?"Catálogo":"Menú"} />
                         {i === 2 && menuUrls.length > 3 && (
                           <div className="text-base" style={{ position: "absolute", inset: 0, background: "rgba(0, 0, 0, 0.5)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800 }}>
                             +{menuUrls.length - 3} hojas
@@ -792,12 +713,12 @@ export default function DetailView() {
                   </div>
                 )}
 
-                <button onClick={() => isSinglePdf ? window.open(menuUrls[0], '_blank') : setShowMenuGallery(true)} style={{ width: '100%', padding: '12px 16px', borderRadius: 14, background: dark ? '#1E293B' : '#0F172A', border: 'none', color: '#FFFFFF', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginTop: isSinglePdf ? 0 : 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontFamily: "inherit" }}>
+                <button aria-label={isCatalog?"Ver catálogo":"Ver menú"} onClick={() => isSinglePdf ? window.open(menuUrls[0], '_blank') : setShowMenuGallery(true)} style={{ width: '100%', padding: '12px 16px', borderRadius: 14, background: dark ? '#1E293B' : '#0F172A', border: 'none', color: '#FFFFFF', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginTop: isSinglePdf ? 0 : 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontFamily: "inherit" }}>
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: dark ? '#F8FAFC' : '#111111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="file" size={16} color={dark ? '#111111' : '#ffffff'} />
                   </div>
                   <span className="text-sm" style={{ fontWeight: 800, color: "#ffffff" }}>
-                    {isSinglePdf ? "Abrir menú en PDF" : `Ver menú completo (${menuUrls.length} hojas)`}
+                    {isSinglePdf ? `Abrir ${isCatalog?"catálogo":"menú"} en PDF` : `Ver ${isCatalog?"catálogo":"menú"} completo (${menuUrls.length} hojas)`}
                   </span>
                 </button>
               </div>
@@ -808,30 +729,29 @@ export default function DetailView() {
           <MercadoLibreShowcase nickname={selected.mercado_libre_nickname} bizName={selected.name} dText={dText} dSub={dSub} T={T} />
 
           {/* Redes Sociales */}
-          {((selected.instagram || selected.social_links?.instagram) || (selected.facebook || selected.social_links?.facebook) || (selected.tiktok || selected.social_links?.tiktok) || (selected.website || selected.social_links?.website)) && <div style={{ padding: "4px 20px 0" }}>
-            <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 12, textAlign: "center" }}>Redes sociales</div>
-            <div style={{ display: "flex", justifyContent: "center", gap: 14, overflowX: "auto", paddingBottom: 4 }}>
+          {((selected.instagram || selected.social_links?.instagram) || (selected.facebook || selected.social_links?.facebook) || (selected.tiktok || selected.social_links?.tiktok) || (selected.website || selected.social_links?.website)) && <div style={{ padding: "12px 20px 0", textAlign: "center" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", columnGap: 20, rowGap: 4, paddingBottom: 4 }}>
               {(selected.instagram || selected.social_links?.instagram) && <div onClick={() => window.open(`https://instagram.com/${(selected.instagram || selected.social_links?.instagram)?.replace("@","")}`, "_blank")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
-                <div style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <img src="/instagram.svg" alt="Instagram" style={{ width: "28px", height: "28px", objectFit: "contain" }} />
+                <div style={{ width: 22, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <img src="/instagram.svg" alt="Instagram" style={{ width: "20px", height: "20px", objectFit: "contain" }} />
                 </div>
-                <span className="text-sm" style={{ fontWeight: 600, color: dText }}>Instagram</span>
+                <span className="text-sm" style={{ fontWeight: 600, color: dSub }}>Instagram</span>
               </div>}
               {(selected.facebook || selected.social_links?.facebook) && <div onClick={() => window.open(`https://facebook.com/${(selected.facebook || selected.social_links?.facebook)?.replace("@","")}`, "_blank")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
-                <div style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <img src="/facebook.svg" alt="Facebook" style={{ width: "28px", height: "28px", objectFit: "contain" }} />
+                <div style={{ width: 22, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <img src="/facebook.svg" alt="Facebook" style={{ width: "20px", height: "20px", objectFit: "contain" }} />
                 </div>
-                <span className="text-sm" style={{ fontWeight: 600, color: dText }}>Facebook</span>
+                <span className="text-sm" style={{ fontWeight: 600, color: dSub }}>Facebook</span>
               </div>}
               {(selected.tiktok || selected.social_links?.tiktok) && <div onClick={() => window.open(`https://tiktok.com/${selected.tiktok || selected.social_links?.tiktok}`, "_blank")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
-                <div style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <img src="/tiktok.svg" alt="TikTok" style={{ width: "28px", height: "28px", objectFit: "contain" }} />
+                <div style={{ width: 22, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <img src="/tiktok.svg" alt="TikTok" style={{ width: "20px", height: "20px", objectFit: "contain" }} />
                 </div>
-                <span className="text-sm" style={{ fontWeight: 600, color: dText }}>TikTok</span>
+                <span className="text-sm" style={{ fontWeight: 600, color: dSub }}>TikTok</span>
               </div>}
               {(selected.website || selected.social_links?.website) && <div onClick={() => goWeb(selected, null)} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
                  <Icon name="globe" size={22} color="#0EA5E9" />
-                <span className="text-sm" style={{ fontWeight: 600, color: dText }}>Sitio web</span>
+                <span className="text-sm" style={{ fontWeight: 600, color: dSub }}>Sitio web</span>
               </div>}
             </div>
           </div>}
@@ -839,67 +759,19 @@ export default function DetailView() {
           {/* Location & Schedule Native Style */}
           <div style={{ display: "flex", flexDirection: "column", padding: "0 20px" }}>
             
-            {/* Horario Row */}
-            <div style={{ padding: "20px 0", borderBottom: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: Object.keys(selected.schedule || {}).length > 0 ? 12 : 4 }}>
-                <Icon name="clock" size={22} color={dText} />
-                <span className="text-base" style={{ fontWeight: 700, color: dText }}>Horario</span>
-              </div>
-              <div style={{ paddingLeft: 34 }}>
-                {(!selected.schedule?.type || selected.schedule.type === "regular" || selected.schedule.type === "advanced" || selected.schedule.type === "delivery") ? (
-                  Object.keys(selected.schedule || {}).filter(k => k !== 'type').length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      {[["lun", "Lunes"], ["mar", "Martes"], ["mie", "Miércoles"], ["jue", "Jueves"], ["vie", "Viernes"], ["sab", "Sábado"], ["dom", "Domingo"]].map(([k, label]) => {
-                        const formatTimeRange = (raw) => {
-                          if (!raw || /cerrado/i.test(raw)) return "Cerrado";
-                          return raw.split('\n').map(line => {
-                            return line.split(/\s*[–-]\s*|\s+a\s+/i).map(t => {
-                              const m = t.trim().match(/(\d{1,2})(?::(\d{2}))?/);
-                              if (!m) return t.trim();
-                              let h = parseInt(m[1]), mn = m[2] || "00";
-                              if (/p\.?m\.?/i.test(t) && h < 12) h += 12;
-                              if (/a\.?m\.?/i.test(t) && h === 12) h = 0;
-                              const ampm = h >= 12 ? "PM" : "AM";
-                              let outH = h % 12 || 12;
-                              return `${String(outH).padStart(2,'0')}:${mn} ${ampm}`;
-                            }).join(" - ");
-                          }).join('\n');
-                        };
-                        const val = formatTimeRange(selected.schedule[k]);
-                        const closed = /cerrado/i.test(val);
-                        const todayKey = ["dom", "lun", "mar", "mie", "jue", "vie", "sab"][new Date().getDay()];
-                        const isToday = k === todayKey;
-                        return (
-                          <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span className="text-sm" style={{ fontWeight: isToday ? 800 : 500, color: isToday ? dText : dSub }}>{label}{isToday && " (Hoy)"}</span>
-                            <span className="text-sm" style={{ fontWeight: closed ? 700 : (isToday ? 700 : 500), color: closed ? T.red : (isToday ? dText : dSub), whiteSpace: "pre-wrap", textAlign: "right", lineHeight: 1.3 }}>{val}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-sm" style={{ color: dSub, lineHeight: 1.5, fontWeight: 500 }}>{selected.hours || "No hay horario registrado"}</div>
-                  )
-                ) : (
-                  <div className="text-sm" style={{ color: dSub, lineHeight: 1.5, fontWeight: 500 }}>
-                    {selected.schedule.type === "always_open" ? "Siempre Abierto (24/7)" : "Atención por previa cita o servicio. Contacta al negocio para más información."}
-                  </div>
-                )}
-              </div>
-            </div>
+            <BusinessHours business={selected} T={T} text={dText} sub={dSub} border={isElite ? "rgba(255,255,255,0.1)" : T.border} timeZone={window.CITY_TZ} now={now} />
 
             {/* Ubicación Row */}
             {!selected.hide_location && <div style={{ padding: "20px 0", borderBottom: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0, textAlign: "left" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Icon name="map-pin" size={22} color={dText} />
-                  <span className="text-base" style={{ fontWeight: 700, color: dText }}>Ubicación</span>
+                  <span className="business-section-title" style={{ color: dText }}>Ubicación</span>
                 </div>
-                <div className="text-sm" style={{ color: dSub, lineHeight: 1.5, paddingLeft: 34 }}>{selected.address}</div>
+                <div className="business-address" style={{ color: dSub, paddingLeft: 34 }}>{selected.address}</div>
+                <button onClick={e => goDir(selected, e)} style={{alignSelf:"flex-start",marginLeft:34,minHeight:36,padding:0,background:"transparent",border:0,color:dText,fontSize:13,fontWeight:600,fontFamily:"inherit",cursor:"pointer",textDecoration:"underline",textUnderlineOffset:3}}>Cómo llegar ↗</button>
               </div>
-              <button onClick={(e) => goDir(selected, e)} style={{ width: 44, height: 44, borderRadius: "50%", background: isElite ? "rgba(255,255,255,0.1)" : "#F3F4F6", border: "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
-                <Icon name="nav" size={20} color={dText} />
-              </button>
+
             </div>}
           </div>
 
@@ -947,7 +819,7 @@ export default function DetailView() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <img src="/googlelogo.svg" alt="Google" style={{ width: 20, height: 20, objectFit: "contain" }} />
-                  <span className="text-base" style={{ fontWeight: 800, color: dText }}>Reseñas en Google</span>
+                  <span className="business-section-title" style={{ color: dText }}>Reseñas en Google</span>
                 </div>
                 <div className="text-sm" style={{ fontWeight: 700, color: dSub }}>{googleData.rating} ★ ({googleData.count} reseñas)</div>
               </div>
@@ -981,19 +853,19 @@ export default function DetailView() {
                 </div>
                 <div className="text-sm" style={{ color: dSub, lineHeight: 1.5, paddingLeft: 34 }}>{reviews.length > 0 ? "Comparte tu experiencia" : "Sé el primero en dejar reseña"}</div>
               </div>
-              <button className="press" onClick={() => { if (!user) { setShowAuth(true); return; } setShowReview(v => !v); }} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
+              <button aria-label="Escribir reseña" className="press" onClick={() => { if (!user) { setShowAuth(true); return; } setShowReview(v => !v); }} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
                 <Icon name="edit" size={20} color={dText} />
               </button>
             </div>
 
             {showReview && <div style={{ background: dBg, borderRadius: 12, padding: 14, marginBottom: 16, border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}` }}>
-              <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>{[1, 2, 3, 4, 5].map(s => <button key={s} onClick={() => setReviewStar(s)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}><img src="/estrella.svg" alt="star" style={{ width: 24, height: 24, filter: s <= reviewStar ? "none" : "grayscale(1) opacity(0.3)", marginTop: -2 }} /></button>)}</div>
+              <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>{[1, 2, 3, 4, 5].map(s => <button key={s} onClick={() => setReviewStar(s)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}><Icon name={s <= reviewStar ? "star_f" : "star"} size={24} color={s <= reviewStar ? T.text : T.sub} style={{ marginTop: -2 }} /></button>)}</div>
               <textarea className="inp" rows={3} style={{ resize: "none", marginBottom: 10 }} placeholder="Comparte tu experiencia…" value={reviewText} onChange={e => setReviewText(e.target.value)} />
               
               {reviewImgFile && (
                 <div style={{ position: "relative", width: 80, height: 80, marginBottom: 10, borderRadius: 8, overflow: "hidden", border: `1px solid ${T.border}` }}>
                   <img src={URL.createObjectURL(reviewImgFile)} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  <button onClick={() => setReviewImgFile(null)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="x" size={10} color="#fff" /></button>
+                  <button aria-label="Quitar foto" onClick={() => setReviewImgFile(null)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="x" size={10} color="#fff" /></button>
                 </div>
               )}
               
@@ -1089,9 +961,9 @@ export default function DetailView() {
               onClick={(e) => e.stopPropagation()}
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              style={{ background: dark ? '#1E293B' : '#FFFFFF', width: '100%', maxWidth: 320, borderRadius: 24, padding: '32px 24px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}
+              style={{ background: dark ? '#232326' : '#FFFFFF', width: '100%', maxWidth: 320, borderRadius: 24, padding: '32px 24px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}
             >
-              <div style={{ width: 80, height: 80, borderRadius: '50%', background: dark ? '#0F172A' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#1E293B' : '#FFFFFF'}` }}>
+              <div style={{ width: 80, height: 80, borderRadius: '50%', background: dark ? '#18181B' : '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}` }}>
                 {(selected.logo_url || selected.logo) ? (
                   <img 
                     src={selected.logo_url || selected.logo} 
@@ -1105,7 +977,7 @@ export default function DetailView() {
               <h2 style={{ margin: '0 0 12px 0', fontSize: 22, fontWeight: 800, color: dark ? '#FFF' : '#111', fontFamily: 'system-ui, -apple-system, sans-serif', letterSpacing: '-0.3px' }}>
                 ¿Cómo nos visitas hoy?
               </h2>
-              <p style={{ margin: '0 0 28px 0', fontSize: 14, color: dark ? '#94A3B8' : '#64748B', lineHeight: 1.5 }}>
+              <p style={{ margin: '0 0 28px 0', fontSize: 14, color: dark ? '#A1A1AA' : '#71717A', lineHeight: 1.5 }}>
                 Elige una opción para mostrarte el menú adecuado.
               </p>
 
@@ -1117,7 +989,7 @@ export default function DetailView() {
                     localStorage.setItem(`intent_${selected.id}`, 'local'); navigate(`/${selected.city_slug || activeCity}/${cleanSlug}/menu`);
                   }}
                   className="press"
-                  style={{ width: '100%', padding: '16px', background: dark ? '#0F172A' : '#F8FAFC', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 16, color: dark ? '#F8FAFC' : '#0F172A', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                  style={{ width: '100%', padding: '16px', background: dark ? '#18181B' : '#FAFAFA', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, borderRadius: 16, color: dark ? '#FAFAFA' : '#18181B', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                 >
                   <span style={{ fontSize: 24 }}>🍽️</span>
                   Estoy en el local
@@ -1130,7 +1002,7 @@ export default function DetailView() {
                     localStorage.setItem(`intent_${selected.id}`, 'delivery'); navigate(`/${selected.city_slug || activeCity}/${cleanSlug}/menu`);
                   }}
                   className="press"
-                  style={{ width: '100%', padding: '16px', background: dark ? '#0F172A' : '#F8FAFC', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 16, color: dark ? '#F8FAFC' : '#0F172A', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                  style={{ width: '100%', padding: '16px', background: dark ? '#18181B' : '#FAFAFA', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, borderRadius: 16, color: dark ? '#FAFAFA' : '#18181B', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                 >
                   <img src="/pedido.png" alt="Para llevar" style={{ width: 24, height: 24, objectFit: 'contain' }} />
                   Para llevar / Domicilio
@@ -1139,6 +1011,7 @@ export default function DetailView() {
             </m.div>
           </div>
         )}
+
     </m.div>
   );
 }

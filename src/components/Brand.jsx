@@ -35,7 +35,7 @@ function PageLogo({ dark, height = 48 }) {
             height: "100%",
             objectFit: "contain",
             opacity: dark ? .6 : 1,
-            filter: dark ? "brightness(10)" : "brightness(0)",
+            filter: dark ? "brightness(0) invert(1)" : "brightness(0)",
             transition: "filter .3s,opacity .3s"
           }}
         />

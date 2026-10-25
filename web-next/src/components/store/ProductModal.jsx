@@ -199,41 +199,74 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
     : [];
 
   return ReactDOM.createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', background: T.bg, animation: 'slideUp .3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-      {/* Header */}
-      <div style={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', background: T.bg, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>Detalle de producto</div>
-        <button onClick={onClose} style={{ width: 40, height: 40, borderRadius: '50%', background: T.border, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="x" size={18} color={T.text} /></button>
-      </div>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', animation: 'fadeIn .2s ease-out' }}>
+      <div style={{ width: '100%', maxWidth: 600, height: '100%', display: 'flex', flexDirection: 'column', background: T.bg, position: 'relative', boxShadow: '0 0 40px rgba(0,0,0,0.2)', animation: 'slideUp .3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+        {/* Header */}
+        <div style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', background: T.bg, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>Personalizar</div>
+          <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: '50%', background: T.border, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="x" size={16} color={T.text} /></button>
+        </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 110 }}>
-        {/* Product Image */}
-        {product.image_url && (
-          <div style={{ width: '100%', aspectRatio: '4/3', background: T.border }}>
-            <OptimizedImage src={product.image_url} widthRequest={800} heightRequest={600} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
+        {/* Product Compact Card */}
+        <div style={{ 
+          padding: '14px 16px', 
+          display: 'flex', 
+          gap: 14, 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          background: T.bg 
+        }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            {product.cat_name && product.cat_name.trim().toLowerCase() !== product.name.trim().toLowerCase() && (
+              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: T.sub, letterSpacing: 0.5, marginBottom: 2 }}>
+                {product.cat_name}
+              </div>
+            )}
+            <h2 style={{ fontSize: 17, fontWeight: 800, color: T.text, margin: 0, textTransform: 'uppercase', lineHeight: 1.25, wordBreak: 'break-word' }}>
+              {product.name}
+            </h2>
+            {priceInfo.hasPrice && (
+              <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
+                {priceInfo.isFrom && (
+                  <span style={{ fontSize: 12, fontWeight: 600, color: T.sub }}>Desde</span>
+                )}
+                <span style={{ fontSize: 16, fontWeight: 800, color: T.green }}>
+                  {formatMenuAmount(priceInfo.amount)}
+                </span>
+              </div>
+            )}
+            {product.description && (
+              <p style={{ fontSize: 13, color: T.sub, margin: '4px 0 0 0', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                {product.description}
+              </p>
+            )}
           </div>
-        )}
 
-        <div style={{ padding: '20px 16px' }}>
-          {product.cat_name && (
-            <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', color: T.sub, letterSpacing: 0.5, marginBottom: 4 }}>
-              {product.cat_name}
+          {product.image_url && (
+            <div style={{ 
+              width: 84, 
+              height: 84, 
+              borderRadius: 12, 
+              overflow: 'hidden', 
+              flexShrink: 0, 
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <OptimizedImage 
+                src={product.image_url} 
+                widthRequest={240} 
+                heightRequest={240} 
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                alt={product.name} 
+              />
             </div>
-          )}
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 8px 0', textTransform: 'uppercase' }}>{product.name}</h2>
-          {priceInfo.hasPrice && (
-            <div style={{ fontSize: 18, fontWeight: 700, color: T.green }}>
-              {priceInfo.isFrom && <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginRight: 6 }}>Desde:</span>}
-              {formatMenuAmount(priceInfo.amount)}
-            </div>
-          )}
-          {product.description && (
-            <p style={{ fontSize: 14, color: T.sub, marginTop: 12, lineHeight: 1.5 }}>{product.description}</p>
           )}
         </div>
 
         {(sortedOptions.length > 0 || menuIntent !== 'local') && (
-          <div style={{ height: 8, background: T.border }} />
+          <div style={{ height: 8, background: T.dark ? '#232326' : '#FAFAFA', borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }} />
         )}
 
         {/* Options */}
@@ -315,7 +348,7 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
                 {showHeader && (
                   <div
                     onClick={() => toggleGroupCollapse(toggleGroupKey)}
-                    style={{ padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: isGroupCollapsed ? `1px solid ${T.border}` : 'none', background: isGroupCollapsed && selectedTogglesInGroup.length > 0 ? (T.white || '#F8FAFC') : 'transparent' }}
+                    style={{ padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: isGroupCollapsed ? `1px solid ${T.border}` : 'none', background: isGroupCollapsed && selectedTogglesInGroup.length > 0 ? (T.white || '#FAFAFA') : 'transparent' }}
                   >
                     <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
                       <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>
@@ -343,15 +376,15 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
                         <Icon name="check" size={14} color="#fff" />
                       </div>
                     ) : (
-                      <div style={{ width: 24, height: 24, borderRadius: '50%', border: `1.5px solid #CBD5E1`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name="plus" size={14} color="#94A3B8" />
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', border: `1.5px solid #D4D4D8`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name="plus" size={14} color="#A1A1AA" />
                       </div>
                     )}
 
                     <div style={{ flex: 1, fontSize: 15, color: T.text, fontWeight: isToggled ? 700 : 400 }}>{cleanName}</div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      {extraPrice > 0 && <div style={{ fontSize: 14, color: T.sub }}>+${extraPrice.toFixed(2)}</div>}
+                      {extraPrice > 0 && <div style={{ fontSize: 14, color: T.sub }}>+{formatMenuAmount(extraPrice)}</div>}
                     </div>
                   </label>
                 )}
@@ -379,7 +412,7 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   cursor: 'pointer',
-                  background: isCollapsed && summaryText ? (T.white || '#F8FAFC') : 'transparent',
+                  background: isCollapsed && summaryText ? (T.white || '#FAFAFA') : 'transparent',
                   borderBottom: isCollapsed ? `1px solid ${T.border}` : 'none',
                   transition: 'background 0.2s ease',
                 }}
@@ -408,13 +441,20 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
                     </span>
                   ) : (
                     <>
-                      {!badge.isRequired && <div style={{ fontSize: 11, fontWeight: 600, color: T.sub }}>Opcional</div>}
-                      {badge.isRequired && (
-                        <div style={{ fontSize: 11, fontWeight: 700, color: validation.valid && validation.count > 0 ? T.green : T.red, textTransform: 'uppercase', background: validation.valid && validation.count > 0 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: 4 }}>
-                          {validation.valid && validation.count > 0 ? 'Listo' : 'Obligatorio'}
+                      {!badge.isRequired && <div style={{ fontSize: 12, fontWeight: 500, color: T.sub }}>Opcional</div>}
+                      {badge.isRequired && (!validation.valid || validation.count === 0) && (
+                        <div style={{ 
+                          fontSize: 11, 
+                          fontWeight: 700, 
+                          color: '#DC2626', 
+                          background: 'rgba(239, 68, 68, 0.1)', 
+                          padding: '2px 7px', 
+                          borderRadius: 6 
+                        }}>
+                          Requerido
                         </div>
                       )}
-                      {badge.ruleText && <div style={{ fontSize: 11, fontWeight: 600, color: T.sub }}>• {badge.ruleText}</div>}
+                      {badge.ruleText && <div style={{ fontSize: 12, fontWeight: 500, color: T.sub }}>• {badge.ruleText}</div>}
                     </>
                   )}
                   <Icon
@@ -450,27 +490,26 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          padding: '12px 16px',
+                          padding: '13px 16px',
                           borderBottom: `1px solid ${T.border}`,
                           cursor: isDisabledByMax ? 'not-allowed' : 'pointer',
-                          opacity: isDisabledByMax ? 0.5 : 1,
+                          opacity: isDisabledByMax ? 0.45 : 1,
                           gap: 12,
-                          transition: 'opacity 0.15s ease',
+                          background: isSelected ? (T.dark ? 'rgba(63, 63, 70, 0.6)' : 'rgba(241, 245, 249, 0.7)') : 'transparent',
+                          transition: 'background 0.15s ease, opacity 0.15s ease',
                         }}
                       >
-                        {/* Custom radio/checkbox */}
+                        {/* Custom circle selector (all options unified) */}
                         <div style={{
-                          width: 24, height: 24,
-                          borderRadius: isMultiple ? 8 : '50%',
-                          border: `2px solid ${isSelected ? '#0F172A' : T.border}`,
-                          background: isSelected ? '#0F172A' : 'transparent',
+                          width: 22, height: 22,
+                          borderRadius: '50%',
+                          border: `2px solid ${isSelected ? (T.dark ? '#F4F4F5' : '#18181B') : (T.dark ? '#71717A' : '#D4D4D8')}`,
+                          background: isSelected ? (T.dark ? '#F4F4F5' : '#18181B') : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transition: 'all 0.2s', flexShrink: 0
+                          transition: 'all 0.15s ease', flexShrink: 0
                         }}>
                           {isSelected && (
-                            <div style={{ width: isMultiple ? 'auto' : 10, height: isMultiple ? 'auto' : 10, borderRadius: isMultiple ? 0 : '50%', background: isMultiple ? 'transparent' : '#fff' }}>
-                              {isMultiple && <Icon name="check" size={14} color="#fff" />}
-                            </div>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.dark ? '#18181B' : '#fff' }} />
                           )}
                         </div>
                         <div style={{ flex: 1 }}>
@@ -485,9 +524,9 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
 
                           if (showAbsolute) {
                             const total = base + ext;
-                            return <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>${total.toFixed(2)}</div>;
+                            return <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{formatMenuAmount(total)}</div>;
                           } else if (ext > 0) {
-                            return <div style={{ fontSize: 13, fontWeight: 700, color: T.green }}>+${ext.toFixed(2)}</div>;
+                            return <div style={{ fontSize: 14, fontWeight: 700, color: T.green }}>+{formatMenuAmount(ext)}</div>;
                           }
                           return null;
                         })()}
@@ -498,7 +537,7 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
               )}
 
               {(menuIntent !== 'local' || index < arr.length - 1) && (
-                <div style={{ height: 8, background: T.border }} />
+                <div style={{ height: 8, background: T.dark ? '#232326' : '#FAFAFA', borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }} />
               )}
             </div>
           );
@@ -523,9 +562,9 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
           <div style={{ padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#5A6872', letterSpacing: 0.5 }}>CANTIDAD</div>
             <div style={{ display: 'flex', alignItems: 'center', background: '#F5F6F8', borderRadius: 20, padding: 4 }}>
-              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} style={{ width: 40, height: 40, borderRadius: 16, background: '#FFFFFF', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}><Icon name="minus" size={18} color="#334155" /></button>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#1E293B', minWidth: 44, textAlign: 'center' }}>{quantity}</div>
-              <button onClick={() => setQuantity(quantity + 1)} style={{ width: 40, height: 40, borderRadius: 16, background: '#FFFFFF', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}><Icon name="plus" size={18} color="#334155" /></button>
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} style={{ width: 40, height: 40, borderRadius: 16, background: '#FFFFFF', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}><Icon name="minus" size={18} color="#3F3F46" /></button>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#232326', minWidth: 44, textAlign: 'center' }}>{quantity}</div>
+              <button onClick={() => setQuantity(quantity + 1)} style={{ width: 40, height: 40, borderRadius: 16, background: '#FFFFFF', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}><Icon name="plus" size={18} color="#3F3F46" /></button>
             </div>
           </div>
         )}
@@ -533,26 +572,59 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
 
       {/* Footer Add Button */}
       {menuIntent !== 'local' && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 24px', background: T.bg, paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
-          <button onClick={handleAdd} style={{ width: '100%', background: '#0F172A', color: '#fff', border: 'none', borderRadius: 20, padding: 18, fontSize: 16, fontWeight: 700, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(15, 23, 42, 0.4)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="shopping-cart" size={18} color="#fff" />
+        <div style={{ 
+          flexShrink: 0,
+          padding: '14px 20px', 
+          background: T.bg, 
+          borderTop: `1px solid ${T.border}`,
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
+          paddingBottom: 'max(14px, env(safe-area-inset-bottom))',
+          zIndex: 10
+        }}>
+          <button 
+            onClick={handleAdd} 
+            style={{ 
+              width: '100%', 
+              background: '#18181B', 
+              color: '#fff', 
+              border: 'none', 
+              borderRadius: 16, 
+              padding: '16px 20px', 
+              fontSize: 16, 
+              fontWeight: 700, 
+              cursor: 'pointer', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              boxShadow: '0 4px 16px rgba(15, 23, 42, 0.25)',
+              transition: 'transform 0.1s ease, opacity 0.1s ease',
+              outline: 'none'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Icon name="shopping-cart" size={20} color="#fff" />
               <span>Agregar al carrito</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>${finalTotal.toFixed(2)}</span>
-              <Icon name="chevron" size={18} color="#fff" style={{ transform: 'rotate(-90deg)' }} />
+            <div style={{ fontSize: 16, fontWeight: 800 }}>
+              {finalTotal > 0 
+                ? formatMenuAmount(finalTotal) 
+                : (priceInfo.hasPrice ? (priceInfo.isFrom ? `Desde ${formatMenuAmount(priceInfo.amount)}` : formatMenuAmount(priceInfo.amount)) : '')}
             </div>
           </button>
         </div>
       )}
 
       <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
         @keyframes slideUp {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
         }
       `}</style>
+      </div>
     </div>,
     document.body
   );

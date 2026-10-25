@@ -4,10 +4,10 @@ import { Providers } from "./providers";
 
 export const metadata = {
   title: {
-    default: "CityMap — Restaurantes, Cafés y Eventos en tu Ciudad",
+    default: "CityMap — Dónde comer, qué hacer y eventos en tu ciudad",
     template: "%s | CityMap",
   },
-  description: "Descubre los mejores restaurantes, cafés, eventos y negocios locales en tu ciudad. Horarios actualizados, reseñas y cupones exclusivos en CityMap.",
+  description: "Descubre dónde comer, qué hacer y qué está pasando en tu ciudad. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.",
   metadataBase: new URL("https://citymap.mx"),
   alternates: {
     canonical: "https://citymap.mx",
@@ -31,22 +31,22 @@ export const metadata = {
   openGraph: {
     type: "website",
     siteName: "CityMap",
-    title: "CityMap — Restaurantes, Cafés y Eventos en tu Ciudad",
-    description: "Descubre los mejores restaurantes, cafés, eventos y negocios locales en tu ciudad.",
+    title: "CityMap — Dónde comer, qué hacer y eventos en tu ciudad",
+    description: "Descubre dónde comer, qué hacer y qué está pasando en tu ciudad. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.",
     url: "https://citymap.mx",
     images: [
       {
         url: "https://citymap.mx/og-image.png",
         width: 1200,
         height: 630,
-        alt: "CityMap — Directorio local de negocios",
+        alt: "CityMap — Explora experiencias y organiza tu plan",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "CityMap — Restaurantes, Cafés y Eventos en tu Ciudad",
-    description: "Descubre los mejores restaurantes, cafés, eventos y negocios locales en tu ciudad.",
+    title: "CityMap — Dónde comer, qué hacer y eventos en tu ciudad",
+    description: "Descubre dónde comer, qué hacer y qué está pasando en tu ciudad. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.",
     images: ["https://citymap.mx/og-image.png"],
   },
 };

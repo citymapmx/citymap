@@ -1,67 +1,22 @@
+import { authenticatePushRequest, pushCors } from '../server/pushTokenAuth.js';
 export default async function handler(req, res) {
-  // CORS Headers para permitir peticiones desde la app de Android (Capacitor)
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  // Handle preflight OPTIONS request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
+  if (pushCors(req, res)) return;
+  const auth = await authenticatePushRequest(req);
+  if (auth.error) return res.status(auth.status).json({ error: auth.error });
+  const { token, city_slug, platform = 'android' } = req.body || {};
+  if (typeof token !== 'string' || token.length < 20 || token.length > 4096 || !['web', 'android', 'ios'].includes(platform)) return res.status(400).json({ error: 'Dispositivo inválido' });
   try {
-    const { token, user_id, city_slug } = req.body;
-
-    if (!token || !user_id) {
-      return res.status(400).json({ error: 'Missing token or user_id' });
-    }
-
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return res.status(500).json({ error: 'Supabase env vars missing' });
-    }
-
-    // 1. Eliminar el token de cualquier otro usuario que lo haya registrado antes (orphaned tokens)
-    await fetch(`${supabaseUrl}/rest/v1/push_tokens?token=eq.${token}`, {
-      method: 'DELETE',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+    const filter = encodeURIComponent(token);
+    const previous = await fetch(`${auth.url}/rest/v1/push_tokens?select=user_id&token=eq.${filter}`, { headers: auth.headers });
+    if (!previous.ok) throw new Error();
+    const rows = await previous.json();
+    if (rows.some(row => row.user_id && row.user_id !== auth.userId)) return res.status(409).json({ error: 'Este dispositivo debe desvincularse de su cuenta anterior' });
+    const endpoint = rows.length ? `${auth.url}/rest/v1/push_tokens?token=eq.${filter}&or=(user_id.is.null,user_id.eq.${encodeURIComponent(auth.userId)})` : `${auth.url}/rest/v1/push_tokens`;
+    const response = await fetch(endpoint, {
+      method: rows.length ? 'PATCH' : 'POST', headers: auth.headers,
+      body: JSON.stringify({ token, user_id: auth.userId, city_slug: typeof city_slug === 'string' ? city_slug.slice(0, 120) : null, platform, updated_at: new Date().toISOString() })
     });
-
-    // 2. Insertar el token para el usuario actual
-    const insertData = { token, user_id };
-    if (city_slug) {
-      insertData.city_slug = city_slug;
-    }
-
-    const insertRes = await fetch(`${supabaseUrl}/rest/v1/push_tokens`, {
-      method: 'POST',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(insertData)
-    });
-
-    if (!insertRes.ok) {
-      const errText = await insertRes.text();
-      throw new Error(`Failed to insert token: ${insertRes.status} ${errText}`);
-    }
-
-    return res.status(200).json({ success: true, message: 'Token registered successfully' });
-
-  } catch (err) {
-    console.error("Register token error:", err);
-    return res.status(500).json({ error: err.message });
-  }
+    if (!response.ok) throw new Error();
+    return res.status(200).json({ success: true });
+  } catch { return res.status(500).json({ error: 'No se pudo registrar el dispositivo' }); }
 }

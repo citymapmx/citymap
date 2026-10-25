@@ -1,3 +1,4 @@
+import { seoSite } from '../lib/seoRoutes.js';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUIStore } from '../store/useUIStore.js';
@@ -33,7 +34,7 @@ export function useAppSEO({ city }) {
     
     const domain = IS_WORLD ? "citymap.world" : "citymap.mx";
     const origin = typeof window !== 'undefined' ? window.location.origin : `https://${domain}`;
-    const BASE_URL = origin;
+    const BASE_URL = seoSite(new URL(origin).hostname).origin;
     
     // Detect if we're on the generic homepage (no city in the URL path)
     // e.g. citymap.mx or citymap.world — not citymap.mx/tepic or citymap.mx/cancun
@@ -44,11 +45,11 @@ export function useAppSEO({ city }) {
     let title, desc;
     if (isGenericRoot) {
       // Generic brand title — represents all cities in any country
-      title = `CityMap — Restaurantes, Cafés y Eventos en tu Ciudad`;
-      desc = `Descubre los mejores restaurantes, cafés, eventos y negocios locales en tu ciudad. Horarios actualizados, reseñas y cupones exclusivos en CityMap.`;
+      title = `CityMap — Dónde comer, qué hacer y eventos en tu ciudad`;
+      desc = `Descubre dónde comer, qué hacer y qué está pasando en tu ciudad. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.`;
     } else {
-      title = `CityMap ${cityCapitalized} — Restaurantes, Cafés y Negocios Locales`;
-      desc = `Descubre los mejores restaurantes, cafés, eventos y negocios en ${cityCapitalized}. Horarios actualizados, ubicaciones exactas, reseñas y cupones exclusivos.`;
+      title = `Qué hacer en ${cityCapitalized}: Dónde comer, eventos y lugares | CityMap`;
+      desc = `Descubre dónde comer, qué hacer y qué está pasando en ${cityCapitalized}. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.`;
     }
     const activeCityData = cities.find(c => c.slug === activeCity);
     let image = activeCityData?.bg_image || `${BASE_URL}/og-image.png`;
@@ -120,12 +121,14 @@ export function useAppSEO({ city }) {
         "geo": selected.lat ? { "@type": "GeoCoordinates", "latitude": parseFloat(selected.lat), "longitude": parseFloat(selected.lng) } : undefined,
         "priceRange": "$$"
       };
-      if (selected.review_count > 0 && selected.rating) {
+      const count = selected.review_count || selected.reviews_count || (reviews?.length && reviews[0]?.biz_id === selected.id ? reviews.length : 0);
+      if (selected.rating) {
         businessSchema.aggregateRating = {
           "@type": "AggregateRating",
-          "ratingValue": String(selected.rating),
-          "reviewCount": String(selected.review_count),
-          "bestRating": "5"
+          "ratingValue": String(Number(selected.rating).toFixed(1)),
+          "reviewCount": String(count > 0 ? count : 1),
+          "bestRating": "5",
+          "worstRating": "1"
         };
       }
       if (selected.schedule && typeof selected.schedule === "object") {
@@ -238,37 +241,47 @@ export function useAppSEO({ city }) {
         } else {
           schemaJson = JSON.stringify(breadcrumbCat);
         }
-      } else if (location.pathname.startsWith("/eventos")) {
+      } else if (location.pathname.startsWith("/eventos") || location.pathname.startsWith("/explorar")) {
         title = `Eventos y Conciertos en ${cityCapitalized} — Cartelera Actualizada | CityMap`;
         desc = `Descubre los próximos eventos, conciertos, festivales y actividades en ${cityCapitalized}. Fechas, precios y ubicaciones en CityMap.`;
          
-        canonical = `${BASE_URL}/eventos`;
+        canonical = activeCity ? `${BASE_URL}/eventos/${activeCity}` : `${BASE_URL}/eventos`;
       } else if (location.pathname.startsWith("/mapa")) {
         title = `Descubre el Mapa de ${cityCapitalized} — Restaurantes, Eventos y Lugares | CityMap`;
         desc = `Explora el mapa interactivo de ${cityCapitalized}. Encuentra los mejores restaurantes, cafés, eventos y negocios locales cerca de ti con horarios y reseñas.`;
          
         canonical = `${BASE_URL}/mapa`;
-      } else if (location.pathname.startsWith("/mis-planes") || location.pathname.startsWith("/experiencias") || location.pathname.startsWith("/planes")) {
-        title = `Qué hacer en ${cityCapitalized} — Mejores Tours y Actividades | CityMap`;
-        desc = `Descubre qué hacer en ${cityCapitalized}. Encuentra los mejores tours, actividades, planes de fin de semana y experiencias inolvidables. Reserva ahora con CityMap.`;
+      } else if (location.pathname.startsWith("/mis-planes") || location.pathname.startsWith("/experiencias") || location.pathname.startsWith("/revista")) {
+        const hasCity = Boolean(activeCity && !location.pathname.endsWith("/todas"));
+        title = hasCity 
+          ? `Revista CityMap ${cityCapitalized} — Historias, Recomendaciones y Notas Locales` 
+          : `Revista CityMap — Historias, Guías y Recomendaciones Locales`;
+        desc = hasCity
+          ? `Historias, recomendaciones y notas locales de ${cityCapitalized}. Descubre guías exclusivas, eventos, lugares imperdibles y artículos en la Revista CityMap.`
+          : `Historias, recomendaciones y notas locales de tu ciudad. Guías exclusivas, reportajes y artículos en la Revista CityMap.`;
          
-        canonical = `${BASE_URL}/experiencias/${activeCity || ""}`;
+        canonical = `${BASE_URL}/revista/${activeCity || ""}`;
         schemaJson = JSON.stringify({
           "@context": "https://schema.org",
           "@graph": [
             {
-              "@type": "TouristAttraction",
-              "name": `Qué hacer en ${cityCapitalized}`,
+              "@type": "CollectionPage",
+              "name": title,
               "description": desc,
               "url": canonical,
-              "address": { "@type": "PostalAddress", "addressLocality": cityCapitalized, "addressCountry": "MX" }
+              "publisher": {
+                "@type": "Organization",
+                "name": "CityMap",
+                "url": BASE_URL,
+                "logo": { "@type": "ImageObject", "url": `${BASE_URL}/citymap.mx.png` }
+              }
             },
             {
               "@type": "BreadcrumbList",
               "itemListElement": [
                 { "@type": "ListItem", "position": 1, "name": "Inicio", "item": `${BASE_URL}` },
-                { "@type": "ListItem", "position": 2, "name": cityCapitalized, "item": `${BASE_URL}${buildCityPath(activeCity, cities)}` },
-                { "@type": "ListItem", "position": 3, "name": "Qué hacer", "item": canonical }
+                { "@type": "ListItem", "position": 2, "name": "Revista", "item": `${BASE_URL}/revista` },
+                ...(hasCity ? [{ "@type": "ListItem", "position": 3, "name": cityCapitalized, "item": canonical }] : [])
               ]
             }
           ]
@@ -319,7 +332,7 @@ export function useAppSEO({ city }) {
                 "url": `${BASE_URL}/`,
                 "logo": `${BASE_URL}/citymap.mx.png`,
                 "sameAs": ["https://citymap.mx", "https://citymap.world"],
-                "description": "Directorio digital de negocios locales, restaurantes, eventos y experiencias en múltiples ciudades."
+                "description": "Descubre dónde comer, qué hacer y qué está pasando en múltiples ciudades. Explora experiencias locales y organiza tu próximo plan con CityMap."
               }
             ]
           });

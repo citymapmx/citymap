@@ -7,8 +7,8 @@ android {
         applicationId "mx.citymap.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 33
-        versionName "1.33"
+        versionCode 38
+        versionName "1.38"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -60,3 +60,20 @@ configurations.all {
         force 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3'
     }
 }
+
+tasks.register('cleanDuplicateResFiles') {
+    doFirst {
+        fileTree('src/main/res').matching {
+            include '**/* *'
+        }.each { file ->
+            println "Removing duplicate resource file: ${file.name}"
+            file.delete()
+        }
+    }
+}
+preBuild.dependsOn 'cleanDuplicateResFiles'
+tasks.matching { it.name.startsWith('merge') && it.name.endsWith('Resources') }.configureEach {
+    dependsOn 'cleanDuplicateResFiles'
+}
+
+

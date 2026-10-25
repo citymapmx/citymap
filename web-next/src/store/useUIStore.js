@@ -1,11 +1,43 @@
+import { CITY_TZ } from '../lib/constants.js';
 import { create } from 'zustand';
+import { saveThemePreference, saveThemeMode, isScheduledDark } from '../lib/theme.js';
+
+const INVALID_CITY_SLUGS = new Set([
+  "explorar", "explorer", "favoritos", "mapa", "admin", "mis-planes", "revista", "planes", "cuenta", 
+  "eventos", "admin_notifs", "user_notifs", "about", "privacy", "terms", 
+  "itinerarios", "experiencias", "manage", "stats", "itinerario", "plan", 
+  "evento", "precios", "lealtad", "wallet", "scan", "menu"
+]);
 
 export const useUIStore = create((set) => ({
   dark: false,
-  setDark: (val) => set(s => ({ dark: typeof val === 'function' ? val(s.dark) : val })),
+  themeMode: 'auto',
+  setThemeMode: (themeMode) => set(state => {
+    if (!['auto', 'light', 'dark'].includes(themeMode)) return state;
+    saveThemeMode(themeMode);
+    return { themeMode, dark: themeMode === 'auto' ? isScheduledDark(new Date(), CITY_TZ[state.activeCity]) : themeMode === 'dark' };
+  }),
+  setDark: (val) => set(s => {
+    const dark = Boolean(typeof val === 'function' ? val(s.dark) : val);
+    saveThemePreference(dark);
+    return { dark, themeMode: dark ? 'dark' : 'light' };
+  }),
   
-  activeCity: (() => { try { return typeof window !== "undefined" ? localStorage : { getItem: () => null, setItem: () => {} }.getItem("cg_city_slug") || ""; } catch { return ""; } })(),
+  activeCity: (() => { 
+    try { 
+      const storage = typeof window !== "undefined" ? localStorage : { getItem: () => null, removeItem: () => {} };
+      const stored = storage.getItem("cg_city_slug") || ""; 
+      if (stored && INVALID_CITY_SLUGS.has(stored.toLowerCase())) {
+        storage.removeItem("cg_city_slug");
+        return "";
+      }
+      return stored; 
+    } catch { return ""; } 
+  })(),
   setActiveCity: (activeCity) => {
+    if (activeCity && INVALID_CITY_SLUGS.has(activeCity.toLowerCase())) {
+      return;
+    }
     if (activeCity) {
       typeof window !== "undefined" ? localStorage : { getItem: () => null, setItem: () => {} }.setItem("cg_city_slug", activeCity);
     }

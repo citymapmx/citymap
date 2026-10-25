@@ -145,21 +145,6 @@ export default function AddBizModal({
                     </p>
                   </div>
 
-                  {/* Upgrade CTA */}
-                  <button
-                    type="button"
-                    onClick={() => { setShowAddBiz(false); setEditBizId(null); setShowPlans(true); }}
-                    style={{ width: "100%", padding: "18px 16px", borderRadius: 16, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #C9A84C, #F59E0B)", color: "#fff", display: "flex", alignItems: "center", gap: 14, boxShadow: "0 8px 24px rgba(201,168,76,0.4)", marginTop: 4 }}
-                  >
-                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Icon name="award" size={22} color="#fff" />
-                    </div>
-                    <div style={{ flex: 1, textAlign: "left" }}>
-                      <div style={{ fontWeight: 900, fontSize: 15, letterSpacing: "0.3px" }}>🚀 ¡Sube tu negocio de nivel!</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.9, marginTop: 2 }}>Desbloquea fotos, WhatsApp, horarios y más</div>
-                    </div>
-                    <Icon name="chevron" size={18} color="#fff" />
-                  </button>
                 </>
               ) : (
                 /* ── PREMIUM PLAN: all owner fields ── */
@@ -322,6 +307,12 @@ export default function AddBizModal({
               let finalCitySlug = addBizForm.city || activeCity;
               finalCitySlug = finalCitySlug ? finalCitySlug.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') : "zapopan";
 
+              const parseCoord = (val) => {
+                if (val === "" || val === null || val === undefined) return null;
+                const num = Number(val);
+                return isNaN(num) ? null : num;
+              };
+
               const payload = { 
                 name: addBizForm.name, 
                 type: addBizForm.category, 
@@ -336,8 +327,8 @@ export default function AddBizModal({
                 video_url: addBizForm.video_url || null,
                 logo_url: addBizForm.logo_url || null,
                 mercado_libre_nickname: addBizForm.mercado_libre_nickname || null,
-                lat: addBizForm.lat || null, 
-                lng: addBizForm.lng || null, 
+                lat: parseCoord(addBizForm.lat), 
+                lng: parseCoord(addBizForm.lng), 
                 tags: typeof addBizForm.tags === "string" ? addBizForm.tags.split(",").map(t => t.trim()).filter(Boolean) : addBizForm.tags,
                 schedule: addBizForm.schedule || {}, 
                 social_links: {

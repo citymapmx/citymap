@@ -25,3 +25,15 @@ input, textarea, button, select { font-family: inherit; outline: none; }
 .plan-badge-free      { background: #F3F4F6; color: #6B7280; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 800; }
 .plan-badge-destacado { background: #EFF6FF; color: #3B82F6; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 800; }
 .plan-badge-premium   { background: #FFFBEB; color: #C9A84C; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 800; border: 1px solid #C9A84C44; }
+
+/* Visible keyboard navigation without changing touch appearance. */
+:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid #3989ff !important;
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+@media (min-width:720px) { .event-list-grid { --event-grid-columns:repeat(3,minmax(0,1fr)); } }
+@media (min-width:1024px) { .event-list-grid { --event-grid-columns:repeat(4,minmax(0,1fr)); } }

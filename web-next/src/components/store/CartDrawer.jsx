@@ -1,3 +1,4 @@
+import {isCartPromotionValid} from '../../lib/menuPromotions.js';
 import { useState, useRef } from 'react';
 import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
@@ -24,6 +25,10 @@ export default function CartDrawer({ business, T }) {
 
   const handleCheckout = () => {
     const newErrors = {};
+    if(items.some(item=>!isCartPromotionValid(item.product))) {
+      setErrors({promotion:'Una promoción de tu pedido ya terminó. Elimínala y revisa las ofertas actuales antes de continuar.'});
+      return;
+    }
     if (!customerName.trim()) {
       newErrors.name = "Por favor ingresa tu nombre para continuar";
     }
@@ -74,33 +79,34 @@ export default function CartDrawer({ business, T }) {
   // Shared input style
   const inputStyle = {
     width: '100%', padding: '14px 16px', borderRadius: 14,
-    border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`,
-    background: dark ? '#1E293B' : '#F8FAFC',
-    color: dark ? '#F1F5F9' : '#0F172A',
+    border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`,
+    background: dark ? '#232326' : '#FAFAFA',
+    color: dark ? '#F4F4F5' : '#18181B',
     fontSize: 16, fontWeight: 500, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', transition: 'border-color 0.2s'
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', background: dark ? '#0F172A' : '#FFFFFF', animation: 'slideUp .3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-      {/* Header */}
-      <div style={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', background: dark ? '#0F172A' : '#FFFFFF', flexShrink: 0 }}>
-        <div style={{ textAlign: 'left' }}>
-          <div style={{ fontSize: 24, fontWeight: 900, color: dark ? '#F8FAFC' : '#0F172A', letterSpacing: '-0.5px' }}>Tu pedido</div>
-          {business?.name && <div style={{ fontSize: 15, color: dark ? '#64748B' : '#64748B', fontWeight: 500 }}>{business.name}</div>}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', animation: 'fadeIn .2s ease-out' }}>
+      <div style={{ width: '100%', maxWidth: 600, height: '100%', display: 'flex', flexDirection: 'column', background: dark ? '#18181B' : '#FFFFFF', position: 'relative', boxShadow: '0 0 40px rgba(0,0,0,0.2)', animation: 'slideUp .3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+        {/* Header */}
+        <div style={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', background: dark ? '#18181B' : '#FFFFFF', flexShrink: 0 }}>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: 24, fontWeight: 900, color: dark ? '#FAFAFA' : '#18181B', letterSpacing: '-0.5px' }}>Tu pedido</div>
+            {business?.name && <div style={{ fontSize: 15, color: dark ? '#71717A' : '#71717A', fontWeight: 500 }}>{business.name}</div>}
+          </div>
+          <button onClick={() => setIsOpen(false)} style={{ width: 36, height: 36, borderRadius: '50%', background: dark ? '#232326' : '#F4F4F5', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="x" size={18} color={dark ? '#A1A1AA' : '#3F3F46'} /></button>
         </div>
-        <button onClick={() => setIsOpen(false)} style={{ width: 36, height: 36, borderRadius: '50%', background: dark ? '#1E293B' : '#F1F5F9', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="x" size={18} color={dark ? '#94A3B8' : '#334155'} /></button>
-      </div>
 
-      {items.length === 0 ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Icon name="shopping-bag" size={48} color={T.border} />
-          <p style={{ marginTop: 16, fontSize: 16, color: T.sub, textAlign: 'center', fontWeight: 600 }}>Tu carrito está vacío</p>
-        </div>
-      ) : (
-        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 120 }}>
+        {items.length === 0 ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+            <Icon name="shopping-bag" size={48} color={T.border} />
+            <p style={{ marginTop: 16, fontSize: 16, color: T.sub, textAlign: 'center', fontWeight: 600 }}>Tu carrito está vacío</p>
+          </div>
+        ) : (
+          <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
           {/* Item Count Badge */}
           <div style={{ padding: '4px 20px 16px', display: 'flex', alignItems: 'center' }}>
-            <div style={{ background: dark ? '#334155' : '#F1F5F9', borderRadius: 20, padding: '8px 16px', fontSize: 14, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ background: dark ? '#3F3F46' : '#F4F4F5', borderRadius: 20, padding: '8px 16px', fontSize: 14, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', display: 'flex', alignItems: 'center', gap: 6 }}>
               <img src="/pedido.png" alt="Artículos" style={{ width: 18, height: 18, objectFit: 'contain' }} />
               {itemCount} {itemCount === 1 ? 'artículo' : 'artículos'}
             </div>
@@ -109,11 +115,11 @@ export default function CartDrawer({ business, T }) {
           {/* Item List */}
           <div style={{ padding: '0 20px' }}>
             {items.map(item => (
-              <div key={item.id} style={{ padding: '20px 0', borderBottom: `1px solid ${dark ? '#1E293B' : '#F1F5F9'}`, display: 'flex', gap: 16 }}>
+              <div key={item.id} style={{ padding: '20px 0', borderBottom: `1px solid ${dark ? '#232326' : '#F4F4F5'}`, display: 'flex', gap: 16 }}>
                 
                 {/* Product Thumbnail */}
                 {item.product.image_url && (
-                  <div style={{ width: 72, height: 72, borderRadius: 16, overflow: 'hidden', flexShrink: 0, background: dark ? '#334155' : '#E2E8F0' }}>
+                  <div style={{ width: 72, height: 72, borderRadius: 16, overflow: 'hidden', flexShrink: 0, background: dark ? '#3F3F46' : '#E4E4E7' }}>
                     <OptimizedImage src={item.product.image_url} widthRequest={200} heightRequest={200} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                   </div>
                 )}
@@ -121,11 +127,11 @@ export default function CartDrawer({ business, T }) {
                 {/* Item Details & Controls */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {item.product.cat_name && (
-                    <div style={{ fontSize: 11, fontWeight: 800, color: dark ? '#94A3B8' : '#64748B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>{item.product.cat_name}</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: dark ? '#A1A1AA' : '#71717A', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>{item.product.cat_name}</div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', paddingRight: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{item.product.name}</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', flexShrink: 0 }}>${(Number(item.product.price) * item.quantity).toFixed(2)}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', paddingRight: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{item.product.name}</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', flexShrink: 0 }}>${(Number(item.product.price) * item.quantity).toFixed(2)}</div>
                   </div>
                   
                   {/* Options */}
@@ -152,7 +158,7 @@ export default function CartDrawer({ business, T }) {
                         }
 
                         return (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: 13, color: dark ? '#94A3B8' : '#475569', lineHeight: 1.4, textAlign: 'left', fontWeight: 500 }}>
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: 13, color: dark ? '#A1A1AA' : '#71717A', lineHeight: 1.4, textAlign: 'left', fontWeight: 500 }}>
                             <span>• {displayText}</span>
                             {extraPriceSum > 0 && (
                               <span style={{ flexShrink: 0, paddingLeft: 8 }}>+${(extraPriceSum * item.quantity).toFixed(2)}</span>
@@ -169,18 +175,18 @@ export default function CartDrawer({ business, T }) {
                     value={item.specialInstructions || ''}
                     onChange={e => updateNotes(item.id, e.target.value)}
                     placeholder="Agregar indicaciones..."
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, background: dark ? '#1E293B' : '#F8FAFC', color: dark ? '#E2E8F0' : '#334155', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', marginTop: 4 }}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, background: dark ? '#232326' : '#FAFAFA', color: dark ? '#E4E4E7' : '#3F3F46', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', marginTop: 4 }}
                   />
                   
                   <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: 12 }}>
-                    <button onClick={() => removeItem(item.id)} style={{ width: 32, height: 32, borderRadius: '50%', background: 'transparent', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: 10 }}>
-                      <Icon name="trash-2" size={16} color={dark ? '#94A3B8' : '#64748B'} />
+                    <button onClick={() => removeItem(item.id)} style={{ width: 32, height: 32, borderRadius: '50%', background: 'transparent', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: 10 }}>
+                      <Icon name="trash-2" size={16} color={dark ? '#A1A1AA' : '#71717A'} />
                     </button>
                     {/* Inline Quantity Controls */}
-                    <div style={{ display: 'flex', alignItems: 'center', background: 'transparent', border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, borderRadius: 24, padding: 2 }}>
-                      <button onClick={() => { if (item.quantity > 1) updateQuantity(item.id, item.quantity - 1); }} style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="minus" size={16} color={dark ? '#94A3B8' : '#64748B'} /></button>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', minWidth: 28, textAlign: 'center' }}>{item.quantity}</div>
-                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="plus" size={16} color={dark ? '#F8FAFC' : '#0F172A'} /></button>
+                    <div style={{ display: 'flex', alignItems: 'center', background: 'transparent', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, borderRadius: 24, padding: 2 }}>
+                      <button onClick={() => { if (item.quantity > 1) updateQuantity(item.id, item.quantity - 1); }} style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="minus" size={16} color={dark ? '#A1A1AA' : '#71717A'} /></button>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', minWidth: 28, textAlign: 'center' }}>{item.quantity}</div>
+                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="plus" size={16} color={dark ? '#FAFAFA' : '#18181B'} /></button>
                     </div>
                   </div>
                 </div>
@@ -189,46 +195,46 @@ export default function CartDrawer({ business, T }) {
           </div>
 
           {/* Order Summary */}
-          <div style={{ margin: '16px 20px', padding: 16, background: dark ? '#1E293B' : '#FFFFFF', borderRadius: 16, border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
+          <div style={{ margin: '16px 20px', padding: 16, background: dark ? '#232326' : '#FFFFFF', borderRadius: 16, border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                 <Icon name="tag" size={16} color={dark ? '#F8FAFC' : '#0F172A'} />
-                 <span style={{ fontSize: 14, color: dark ? '#E2E8F0' : '#334155', fontWeight: 500 }}>Subtotal</span>
+                 <Icon name="tag" size={16} color={dark ? '#FAFAFA' : '#18181B'} />
+                 <span style={{ fontSize: 14, color: dark ? '#E4E4E7' : '#3F3F46', fontWeight: 500 }}>Subtotal</span>
               </div>
-              <span style={{ fontSize: 14, color: dark ? '#F8FAFC' : '#0F172A', fontWeight: 600 }}>${total.toFixed(2)}</span>
+              <span style={{ fontSize: 14, color: dark ? '#FAFAFA' : '#18181B', fontWeight: 600 }}>${total.toFixed(2)}</span>
             </div>
             {orderType === 'delivery' && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Icon name="truck" size={16} color={dark ? '#94A3B8' : '#64748B'} />
-                  <span style={{ fontSize: 14, color: dark ? '#E2E8F0' : '#334155', fontWeight: 500 }}>Envío</span>
+                  <Icon name="truck" size={16} color={dark ? '#A1A1AA' : '#71717A'} />
+                  <span style={{ fontSize: 14, color: dark ? '#E4E4E7' : '#3F3F46', fontWeight: 500 }}>Envío</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, color: dark ? '#94A3B8' : '#64748B', fontWeight: 500 }}>Consultar con el negocio</span>
+                  <span style={{ fontSize: 13, color: dark ? '#A1A1AA' : '#71717A', fontWeight: 500 }}>Consultar con el negocio</span>
                 </div>
               </div>
             )}
-            <div style={{ borderTop: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 18, color: dark ? '#F8FAFC' : '#0F172A', fontWeight: 800 }}>Total</span>
-              <span style={{ fontSize: 18, color: dark ? '#F8FAFC' : '#0F172A', fontWeight: 800 }}>${total.toFixed(2)}</span>
+            <div style={{ borderTop: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 18, color: dark ? '#FAFAFA' : '#18181B', fontWeight: 800 }}>Total</span>
+              <span style={{ fontSize: 18, color: dark ? '#FAFAFA' : '#18181B', fontWeight: 800 }}>${total.toFixed(2)}</span>
             </div>
           </div>
 
           {/* Divider */}
-          <div style={{ height: 8, background: dark ? '#1E293B' : '#F1F5F9' }} />
+          <div style={{ height: 8, background: dark ? '#232326' : '#F4F4F5' }} />
 
           {/* Order Details */}
-          <div style={{ padding: '24px 20px', background: dark ? '#0F172A' : '#FFFFFF' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: dark ? '#F8FAFC' : '#0F172A', marginBottom: 24, letterSpacing: '-0.3px' }}>Datos del pedido</div>
+          <div style={{ padding: '24px 20px', background: dark ? '#18181B' : '#FFFFFF' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', marginBottom: 24, letterSpacing: '-0.3px' }}>Datos del pedido</div>
             
             <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E2E8F0' : '#1E293B', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Método de entrega *</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E4E4E7' : '#232326', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Método de entrega *</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <button onClick={() => setOrderType('pickup')} style={{ background: orderType === 'pickup' ? (dark ? '#1E293B' : '#FFFFFF') : 'transparent', border: `2px solid ${orderType === 'pickup' ? (dark ? '#94A3B8' : '#0F172A') : (dark ? '#334155' : '#E2E8F0')}`, padding: '16px 8px', borderRadius: 16, color: orderType === 'pickup' ? (dark ? '#F8FAFC' : '#0F172A') : (dark ? '#94A3B8' : '#64748B'), fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontSize: 15, boxShadow: orderType === 'pickup' ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
+                <button onClick={() => setOrderType('pickup')} style={{ background: orderType === 'pickup' ? (dark ? '#232326' : '#FFFFFF') : 'transparent', border: `2px solid ${orderType === 'pickup' ? (dark ? '#A1A1AA' : '#18181B') : (dark ? '#3F3F46' : '#E4E4E7')}`, padding: '16px 8px', borderRadius: 16, color: orderType === 'pickup' ? (dark ? '#FAFAFA' : '#18181B') : (dark ? '#A1A1AA' : '#71717A'), fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontSize: 15, boxShadow: orderType === 'pickup' ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
                   <img src="/pedido.png" alt="Recoger" style={{ width: 44, height: 44, objectFit: 'contain', filter: orderType === 'pickup' ? 'none' : 'grayscale(100%) opacity(40%)', transition: 'all 0.2s' }} />
                   Recoger
                 </button>
-                <button onClick={() => setOrderType('delivery')} style={{ background: orderType === 'delivery' ? (dark ? '#1E293B' : '#FFFFFF') : 'transparent', border: `2px solid ${orderType === 'delivery' ? (dark ? '#94A3B8' : '#0F172A') : (dark ? '#334155' : '#E2E8F0')}`, padding: '16px 8px', borderRadius: 16, color: orderType === 'delivery' ? (dark ? '#F8FAFC' : '#0F172A') : (dark ? '#94A3B8' : '#64748B'), fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontSize: 15, boxShadow: orderType === 'delivery' ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
+                <button onClick={() => setOrderType('delivery')} style={{ background: orderType === 'delivery' ? (dark ? '#232326' : '#FFFFFF') : 'transparent', border: `2px solid ${orderType === 'delivery' ? (dark ? '#A1A1AA' : '#18181B') : (dark ? '#3F3F46' : '#E4E4E7')}`, padding: '16px 8px', borderRadius: 16, color: orderType === 'delivery' ? (dark ? '#FAFAFA' : '#18181B') : (dark ? '#A1A1AA' : '#71717A'), fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontSize: 15, boxShadow: orderType === 'delivery' ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
                   <img src="/scooter-reparto.png" alt="Domicilio" style={{ width: 44, height: 44, objectFit: 'contain', filter: orderType === 'delivery' ? 'none' : 'grayscale(100%) opacity(40%)', transition: 'all 0.2s' }} />
                   Domicilio
                 </button>
@@ -236,7 +242,7 @@ export default function CartDrawer({ business, T }) {
             </div>
 
             <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E2E8F0' : '#1E293B', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Tu nombre *</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E4E4E7' : '#232326', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Tu nombre *</div>
               <input 
                 ref={nameRef}
                 type="text"
@@ -250,8 +256,8 @@ export default function CartDrawer({ business, T }) {
 
             {orderType === 'delivery' && (
               <div style={{ marginBottom: 24, animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                <div style={{ padding: 16, background: dark ? '#0F172A' : '#FFFFFF', borderRadius: 16, border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E2E8F0' : '#1E293B', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Dirección de envío *</div>
+                <div style={{ padding: 16, background: dark ? '#18181B' : '#FFFFFF', borderRadius: 16, border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E4E4E7' : '#232326', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Dirección de envío *</div>
                   <textarea 
                     value={address}
                     onChange={e => { setAddress(e.target.value); if (errors.address) setErrors({...errors, address: null}); }}
@@ -260,7 +266,7 @@ export default function CartDrawer({ business, T }) {
                   />
                   {errors.address && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 6, fontWeight: 700 }}>{errors.address}</div>}
                   
-                  <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E2E8F0' : '#1E293B', marginTop: 16, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Referencias de tu dirección (Opcional)</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E4E4E7' : '#232326', marginTop: 16, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Referencias de tu dirección (Opcional)</div>
                   <textarea 
                     value={references}
                     onChange={e => setReferences(e.target.value)}
@@ -282,7 +288,7 @@ export default function CartDrawer({ business, T }) {
 
             {/* General Notes */}
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E2E8F0' : '#1E293B', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notas para el negocio</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E4E4E7' : '#232326', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notas para el negocio</div>
               <textarea 
                 value={generalNotes}
                 onChange={e => setGeneralNotes(e.target.value)}
@@ -294,22 +300,23 @@ export default function CartDrawer({ business, T }) {
           </div>
 
           <div style={{ padding: '16px 16px' }}>
-            <button onClick={clearCart} style={{ margin: '0 auto', display: 'block', background: 'none', border: 'none', color: dark ? '#475569' : '#CBD5E1', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Vaciar carrito</button>
+            <button onClick={clearCart} style={{ margin: '0 auto', display: 'block', background: 'none', border: 'none', color: dark ? '#71717A' : '#D4D4D8', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Vaciar carrito</button>
           </div>
         </div>
       )}
 
       {/* Footer Checkout */}
       {items.length > 0 && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 20px', background: dark ? '#0F172A' : '#FFFFFF', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
-          <button onClick={handleCheckout} style={{ width: '100%', background: '#0F172A', color: '#FFFFFF', border: 'none', borderRadius: 16, padding: '14px 20px', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(15, 23, 42, 0.4)' }}>
+        <div style={{ flexShrink: 0, padding: '12px 20px', background: dark ? '#18181B' : '#FFFFFF', borderTop: `1px solid ${dark ? '#232326' : '#F4F4F5'}`, paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          {errors.promotion&&<p role="alert" style={{fontSize:13,lineHeight:1.5,color:dark?'#FCA5A5':'#B91C1C',margin:'0 0 10px'}}>{errors.promotion}</p>}
+          <button onClick={handleCheckout} style={{ width: '100%', background: '#18181B', color: '#FFFFFF', border: 'none', borderRadius: 16, padding: '14px 20px', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(24, 24, 27, 0.4)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="whatsapp" size={24} color="#FFFFFF" />
               </div>
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginBottom: 2 }}>Hacer pedido</div>
-                <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 500 }}>Enviar por WhatsApp</div>
+                <div style={{ fontSize: 12, color: '#A1A1AA', fontWeight: 500 }}>Enviar por WhatsApp</div>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -323,15 +330,20 @@ export default function CartDrawer({ business, T }) {
       )}
 
       <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
         @keyframes slideUp {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
         }
         input::placeholder, textarea::placeholder {
-          color: ${dark ? '#64748B' : '#94A3B8'} !important;
+          color: ${dark ? '#71717A' : '#A1A1AA'} !important;
           opacity: 1;
         }
       `}</style>
+      </div>
     </div>
   );
 }

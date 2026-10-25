@@ -6,6 +6,7 @@ import OptimizedImage from '../ui/OptimizedImage';
 import FI from './FI';
 import BookingManager from '../BookingManager';
 import { getEventStatus, createSlug, getThumbUrl } from '../../lib/utils.js';
+import { EVENT_CATEGORIES } from '../../lib/constants.js';
 import { cloudDelete } from '../../lib/supabase.js';
 
 
@@ -108,14 +109,36 @@ export default function AdminEventsTab({
   }, [mapsOk, formKey]);
 
 
+  const sortedEvents = [...(data.events || []).filter(ev => ev.status !== "pending")].sort((a, b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+
+    const isAFinished = getEventStatus(a).lbl === "Finalizado";
+    const isBFinished = getEventStatus(b).lbl === "Finalizado";
+
+    if (!isAFinished && isBFinished) return -1;
+    if (isAFinished && !isBFinished) return 1;
+
+    if (!isAFinished && !isBFinished) {
+      const cmp = a.date.localeCompare(b.date);
+      if (cmp !== 0) return cmp;
+      return (a.time || "").localeCompare(b.time || "");
+    }
+
+    const cmp = b.date.localeCompare(a.date);
+    if (cmp !== 0) return cmp;
+    return (b.time || "").localeCompare(a.time || "");
+  });
+
   return (
     <>
       {!evForm && <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>{data.events.filter(ev => ev.status !== "pending").length} eventos</span>
+          <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>{sortedEvents.length} eventos</span>
           <button onClick={() => setEvForm({ _new: true, biz_id: "", title: "", description: "", date: "", time: "", price_type: "gratis", price: "", event_category: "", venue_name: "", venue_address: "", whatsapp: "", img_url: "", city_slug: "all", status: "approved", active: true })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo</button>
         </div>
-        {data.events.filter(ev => ev.status !== "pending").map(ev => {
+        {sortedEvents.map(ev => {
           const st = getEventStatus(ev);
           const isPending = ev.status === "pending" || !ev.active;
           const thumb = ev.img_url || ev.img;
@@ -178,7 +201,46 @@ export default function AdminEventsTab({
             <div><label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Precio</label><select value={evForm.price_type || "gratis"} onChange={e => setEvForm(f => ({ ...f, price_type: e.target.value }))} style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit" }}><option value="gratis">Gratis</option><option value="paid">De pago</option></select></div>
             {evForm.price_type === "paid" && <FI label="Monto" field="price" src={evForm} set={setEvForm} ph="$200" />}
           </div>
-          <FI label="Categoría" field="event_category" src={evForm} set={setEvForm} ph="Ej: Concierto, Comedia..." />
+          <div>
+            <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
+              Categoría
+            </label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              {EVENT_CATEGORIES.map(cat => {
+                const isPreset = EVENT_CATEGORIES.filter(c => c !== "Otro").includes(evForm.event_category);
+                const isSelected = evForm.event_category === cat || (cat === "Otro" && evForm.event_category && !isPreset);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      if (cat === "Otro") {
+                        setEvForm(f => ({ ...f, event_category: isPreset ? "" : f.event_category }));
+                      } else {
+                        setEvForm(f => ({ ...f, event_category: cat }));
+                      }
+                    }}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: 9999,
+                      border: isSelected ? "none" : "1.5px solid #E4E8E4",
+                      background: isSelected ? "#0F1A14" : "#F4F5F4",
+                      color: isSelected ? "#fff" : "#0F1A14",
+                      fontSize: 11,
+                      fontWeight: isSelected ? 800 : 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit"
+                    }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+            {(!evForm.event_category || !EVENT_CATEGORIES.filter(c => c !== "Otro").includes(evForm.event_category)) && (
+              <FI label="" field="event_category" src={evForm} set={setEvForm} ph="Ej: Escribe otra categoría..." />
+            )}
+          </div>
 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "flex", alignItems: "center", gap: 6 }}>

@@ -52,7 +52,7 @@ export default function OnboardingModal({ onComplete, T }) {
         >
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
-            <img src="/citymap.mx.png" alt="CityMap" style={{ height: 40, filter: T.dark ? 'none' : 'brightness(0)' }} />
+            <img src="/citymap.mx.png" alt="CityMap" style={{ height: 40, filter: T.dark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
           </div>
 
           {/* Texts */}

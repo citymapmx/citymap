@@ -1,12 +1,17 @@
 import { useState, Suspense, lazy } from 'react';
 import { sb } from '../../lib/supabase.js';
 import Icon from '../ui/Icon.jsx';
+import StorePromotionFields,{defaultPromotion} from './StorePromotionFields.jsx';
+import {validatePromotion} from '../../lib/menuPromotions.js';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 
 const Uploader = lazy(() => import('../Uploader.jsx'));
 
 export default function StoreProductsTab({ 
   business, 
+  initialForm = null,
+  returnView = 'prods',
+  dataClient = sb,
   currentCat, 
   loadData, 
   isCatalog, 
@@ -17,10 +22,19 @@ export default function StoreProductsTab({
   inpH, 
   T 
 }) {
-  const [prodForm, setProdForm] = useState(null); // { id?, name, price, description, image_url, is_available }
+  const [prodForm, setProdForm] = useState(initialForm); // { id?, name, price, description, image_url, is_available }
 
+  const [saving,setSaving]=useState(false);
+  const [saveError,setSaveError]=useState('');
   const saveProduct = async () => {
-    if (!prodForm.name.trim()) return alert("Nombre del platillo obligatorio");
+    if(saving) return;
+    const promotionError=validatePromotion(prodForm.promotion);
+    if(promotionError) {setSaveError(promotionError);return;}
+    if(prodForm.promotion?.enabled && !(Number(prodForm.price)>0)) {setSaveError('Agrega un precio habitual mayor a cero para este producto o combo.');return;}
+    setSaveError('');
+    setSaving(true);
+    try {
+    if (!prodForm.name.trim()) {setSaveError("Agrega el nombre del producto.");return;}
     const payload = {
       business_id: business.id,
       category_id: currentCat.id,
@@ -28,34 +42,38 @@ export default function StoreProductsTab({
       description: prodForm.description,
       price: Number(prodForm.price) || 0,
       image_url: prodForm.image_url,
-      is_available: prodForm.is_available
+      is_available: prodForm.is_available,
+      promotion: prodForm.promotion || {}
     };
     
     if (prodForm.id) {
-      await sb.patch('store_products', prodForm.id, payload);
+      await dataClient.patch('store_products', prodForm.id, payload);
     } else {
-      await sb.post('store_products', payload);
+      await dataClient.post('store_products', payload);
     }
-    setView('prods');
+    setView(returnView);
     await loadData();
+    } catch(error) {setSaveError(error.message || "No se pudo guardar. Intenta de nuevo.");}
+    finally {setSaving(false);}
   };
 
   const deleteProduct = async (id) => {
     if (!window.confirm("¿Eliminar este producto?")) return;
-    await sb.del('store_products', id);
+    await dataClient.del('store_products', id);
     await loadData();
   };
 
   const toggleAvailable = async (p) => {
     // UI feedback can be slow because loadData fetches everything, 
     // but a patch is fast enough for now
-    await sb.patch('store_products', p.id, { is_available: !p.is_available });
+    await dataClient.patch('store_products', p.id, { is_available: !p.is_available });
     await loadData();
   };
 
   if (view === 'prods') {
     return (
       <div style={{ padding: 16 }}>
+        <button onClick={()=>{setSaveError('');setProdForm({name:'',price:'',description:'',image_url:'',is_available:true,promotion:{...defaultPromotion}});setView('prodForm');}} style={{width:'100%',padding:14,borderRadius:12,border:`1px solid ${T.border}`,background:T.white,color:T.text,fontWeight:800,fontFamily:'inherit',cursor:'pointer',marginBottom:10}}>🏷️ Nueva promoción o combo</button>
         <button onClick={() => { setProdForm({ name: '', price: '', description: '', image_url: '', is_available: true }); setView('prodForm'); }} style={{ width: "100%", background: T.green, color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 15, cursor: "pointer", marginBottom: 20, display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
           <Icon name="plus" size={18} color="#fff" /> Agregar Nuevo Producto
         </button>
@@ -86,7 +104,7 @@ export default function StoreProductsTab({
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, justifyContent: "center" }}>
-                  <button onClick={() => { setProdForm(p); setView('prodForm'); }} style={{ background: T.bg, border: "none", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="edit" size={14} color={T.text} /></button>
+                  <button aria-label={`Editar ${p.name}`} onClick={() => { setSaveError(''); setProdForm(p); setView('prodForm'); }} style={{ background: T.bg, border: "none", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="edit" size={14} color={T.text} /></button>
                   <button onClick={() => { setActiveProd(p); setView('opts'); }} style={{ background: T.greenL, border: "none", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="list" size={14} color={T.green} /></button>
                   <button onClick={() => deleteProduct(p.id)} style={{ background: "#FEF2F2", border: "none", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="trash" size={14} color={T.red} /></button>
                 </div>
@@ -122,7 +140,9 @@ export default function StoreProductsTab({
           <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Disponible en el {isCatalog ? "catálogo" : "menú"}</div>
         </label>
 
-        <button onClick={saveProduct} style={{ marginTop: 10, background: T.green, color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>Guardar Producto</button>
+        <StorePromotionFields value={prodForm.promotion} onChange={promotion=>setProdForm({...prodForm,promotion})} T={T} inpH={inpH}/>
+        {saveError&&<p role="alert" style={{color:T.red || '#DC2626',fontSize:13}}>{saveError}</p>}
+        <button disabled={saving} onClick={saveProduct} style={{ marginTop: 10, background: T.green, color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>{saving?'Guardando…':initialForm?'Guardar promoción':'Guardar producto'}</button>
       </div>
     );
   }

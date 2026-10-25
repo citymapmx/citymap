@@ -7,11 +7,11 @@ const SB_URL = (process.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.s
 const SB_KEY = (process.env.VITE_SUPABASE_ANON_KEY || "");
 
 export const metadata = {
-  title: 'CityMap — Descubre los mejores negocios de tu ciudad',
-  description: 'Directorio local de negocios con reseñas, horarios en tiempo real, mapa interactivo y notificaciones de ofertas. Restaurantes, cafeterías, bares y más.',
+  title: 'CityMap — Dónde comer, qué hacer y eventos en tu ciudad',
+  description: 'Descubre dónde comer, qué hacer y qué está pasando en tu ciudad. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.',
   openGraph: {
-    title: 'CityMap — Directorio local de negocios',
-    description: 'Encuentra los mejores negocios cerca de ti. Reseñas reales, horarios y mapa.',
+    title: 'CityMap — Dónde comer, qué hacer y eventos en tu ciudad',
+    description: 'Descubre dónde comer, qué hacer y qué está pasando en tu ciudad. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.',
     images: ['https://citymap.mx/og-image.png'],
   },
 };
@@ -37,10 +37,10 @@ export default async function HomePage() {
       <div style={{ background: 'linear-gradient(135deg, #0f4c35 0%, #1A7A5E 60%, #22a876 100%)', padding: '60px 24px 60px', textAlign: 'center', color: '#fff' }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🗺️</div>
         <h1 style={{ fontSize: 32, fontWeight: 900, margin: '0 0 12px', letterSpacing: '-0.5px', lineHeight: 1.2 }}>
-          Descubre los mejores<br />negocios de tu ciudad
+          Descubre dónde comer,<br />qué hacer y qué está pasando
         </h1>
-        <p style={{ fontSize: 16, opacity: 0.85, margin: '0 0 32px', maxWidth: 400, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>
-          Directorio local con reseñas, horarios en tiempo real y mapa interactivo.
+        <p style={{ fontSize: 16, opacity: 0.85, margin: '0 0 32px', maxWidth: 440, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>
+          Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.
         </p>
         <SearchBar citySlug="tepic" placeholders={["¿Qué estás buscando?", "Restaurantes, cafés...", "Buscar lugares..."]} />
       </div>

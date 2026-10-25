@@ -1,3 +1,5 @@
+import {useDataStore} from '../store/useDataStore.js';
+import {getT} from '../lib/constants.js';
 import { useState, useRef, useEffect } from 'react';
 import Icon from './ui/Icon.jsx';
 import { COUNTRY_NAMES, COUNTRY_FLAGS } from '../lib/domain.js';
@@ -7,12 +9,14 @@ const FLAG_MAP = Object.fromEntries(
 );
 
 export default function CountryPickerDropdown({ cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark, isWelcome }) {
+  const T = getT(dark);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCountry, setExpandedCountry] = useState(null);
   const [expandedStates, setExpandedStates] = useState({});
   const [showAllCities, setShowAllCities] = useState(false);
   const [cityCounts, setCityCounts] = useState({});
   const ref = useRef(null);
+  useEffect(()=>{if(show) void useDataStore.getState().refreshCities();},[show]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -78,7 +82,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
         position: "fixed",
         inset: 0,
         zIndex: 999999,
-        background: isWelcome ? (dark ? "#0f172a" : "#f8fafc") : "rgba(0,0,0,0.6)",
+        background: isWelcome ? (dark ? T.bg : "#f8fafc") : "rgba(0,0,0,0.6)",
         backdropFilter: isWelcome ? "none" : "blur(4px)",
         WebkitBackdropFilter: isWelcome ? "none" : "blur(4px)",
         display: "flex",
@@ -102,7 +106,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
-        padding: isWelcome ? "20px 20px 100px 20px" : 0,
+        padding: isWelcome ? "calc(env(safe-area-inset-top, 0px) + clamp(32px, 6dvh, 56px)) 20px calc(env(safe-area-inset-bottom, 0px) + 24px)" : 0,
         animation: "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
       }}>
         <style>{`
@@ -112,10 +116,10 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
           }
         `}</style>
       {isWelcome ? (
-        <div style={{ padding: "0 0 24px 0", textAlign: "center", position: "relative" }}>
+        <div style={{ padding: "0 0 24px 0", textAlign: "center", position: "relative", flexShrink: 0 }}>
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
-            <img src="/citymap.mx.png" alt="CityMap" style={{ height: 40, filter: dark ? 'none' : 'brightness(0)' }} />
+            <img src="/citymap.mx.png" alt="CityMap" style={{ height: 40, filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
           </div>
 
           {/* Texts */}
@@ -205,7 +209,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
               fontSize: 14,
               outline: "none",
               fontFamily: "inherit",
-              caretColor: "#60a5fa"
+              caretColor: T.text
             }}
           />
         </div>
@@ -251,7 +255,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
         </button>
         
         <div style={{
-          background: dark ? "rgba(255,255,255,0.02)" : "#ffffff",
+          background: T.white,
           borderRadius: 12,
           border: `1px solid ${dark ? "rgba(255,255,255,0.05)" : "#e2e8f0"}`,
           boxShadow: dark ? "none" : "0 2px 8px rgba(0,0,0,0.02)",
@@ -293,9 +297,9 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 18 }}>{FLAG_MAP[country] || "🌍"}</span>
-                  <span>{country} {currentCountry === country && <span style={{ color: dark ? "#38bdf8" : "#0284c7", fontSize: 12, fontWeight: 500 }}>(Actual)</span>}</span>
+                  <span>{country} {currentCountry === country && <span style={{ color: T.sub, fontSize: 12, fontWeight: 500 }}>(Actual)</span>}</span>
                 </div>
-                <Icon name={isExpanded ? "chevron-up" : "chevron-down"} size={16} color={dark ? "#64748b" : "#94a3b8"} />
+                <Icon name={isExpanded ? "chevron-up" : "chevron-down"} size={16} color={T.sub} />
               </button>
 
               {isExpanded && (() => {
@@ -341,7 +345,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
                           <span style={{ fontSize: 16 }}>📍</span>
                           {st.state}
                         </span>
-                        <Icon name="chevron" size={15} color={dark ? "#64748b" : "#94a3b8"} />
+                        <Icon name="chevron" size={15} color={T.sub} />
                       </button>
                       {isStateExpanded && st.cities.map((city, index) => {
                         const isSelected = city.slug === activeCity;
@@ -387,7 +391,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
                             }}>
                               {city.name}
                             </span>
-                            <Icon name="chevron" size={15} color={isSelected ? "#ffffff" : (dark ? "#64748b" : "#94a3b8")} />
+                            <Icon name="chevron" size={15} color={isSelected ? "#ffffff" : (T.sub)} />
                           </button>
                         );
                       })}
@@ -412,7 +416,7 @@ export default function CountryPickerDropdown({ cities, activeCity, onSelectCity
               alignItems: "center",
               justifyContent: "space-between",
               padding: "10px 12px",
-              color: dark ? "#64748b" : "#94a3b8",
+              color: T.sub,
               fontSize: 15,
               fontWeight: 500
             }}

@@ -1,3 +1,5 @@
+import { validateCivitatisWidgetCode, MAX_WIDGET_CODE_LENGTH } from '../../lib/civitatisWidget.js';
+import {useDataStore} from '../../store/useDataStore.js';
 import { useState } from 'react';
 import Icon from '../ui/Icon';
 import FI from './FI';
@@ -68,17 +70,24 @@ export default function AdminCitiesTab({
               ))}
             </select>
           </div>
+          <div>
+            <label htmlFor="city-civitatis-widget" style={{ display:'block', fontSize:12, fontWeight:700, color:'#0F1A14', marginBottom:6 }}>Código del Widget Civitatis</label>
+            <textarea id="city-civitatis-widget" value={cityForm.civitatis_widget_code || ''} onChange={e => setCityForm(form => ({ ...form, civitatis_widget_code:e.target.value }))} rows={7} maxLength={MAX_WIDGET_CODE_LENGTH} spellCheck={false} placeholder="Pega el código completo generado por Civitatis para esta ciudad" style={{ width:'100%', minHeight:150, resize:'vertical', border:'1px solid #E4E8E4', borderRadius:10, padding:12, fontSize:13, lineHeight:1.5, fontFamily:'ui-monospace, monospace', color:'#0F1A14', background:'#fff', boxSizing:'border-box' }} />
+            <p style={{ margin:'6px 0 0', fontSize:12, lineHeight:1.5, color:'#5A6872' }}>Se mostrará en Revista → Tours de esta ciudad. Déjalo vacío para retirarlo.</p>
+          </div>
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
             <button onClick={() => setCityForm(null)} style={{ flex: 1, padding: 14, background: "#fff", border: "1.5px solid #E4E8E4", borderRadius: 12, fontWeight: 700, fontSize: 15, color: "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
             <button onClick={async () => {
               setSaving(true);
               try {
                 const encodedState = cityForm.metro_zone ? `${cityForm.state};${cityForm.metro_zone}` : cityForm.state;
-                const payload = { name: cityForm.name, slug: cityForm.slug, state: encodedState, active: cityForm.active, country_code: cityForm.country_code || "mx" };
+                const widgetCode = validateCivitatisWidgetCode(cityForm.civitatis_widget_code);
+                const payload = { civitatis_widget_code: widgetCode, name: cityForm.name, slug: cityForm.slug, state: encodedState, active: cityForm.active, country_code: cityForm.country_code || "mx" };
                 if (cityForm._new) await sb.post("cities", payload);
                 else await sb.patch("cities", cityForm.id, payload);
                 onToast(cityForm._new ? "Ciudad creada" : "Ciudad actualizada");
                 setCityForm(null);
+                await useDataStore.getState().refreshCities();
                 await load();
               } catch (e) { onToast("Error: " + e.message); } finally { setSaving(false); }
             }} disabled={saving || !cityForm.name || !cityForm.slug} style={{ flex: 2, padding: 14, background: (saving || !cityForm.name || !cityForm.slug) ? "#9CA3AF" : "#1A7A5E", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 15, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>{saving ? "Guardando…" : "Guardar"}</button>
