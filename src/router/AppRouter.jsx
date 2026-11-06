@@ -86,6 +86,7 @@ export default function AppRouter(props) {
     setUser,
     setStoreAdminBiz,
     HomeView,
+    GlobalHomeView,
     MapView,
     TripsView,
     EventsView,
@@ -112,6 +113,8 @@ export default function AppRouter(props) {
   // Keep the actual source screen mounted under a detail, rather than loading
   // an unrelated HomeView when opening an event from Plans or a business from Map.
   const showHomeView = isHomePath(contentLocation.pathname) && !isEventDetailPath(contentLocation.pathname);
+  // La raíz "/" es el muro global (todas las ciudades); "/:ciudad" sigue siendo el inicio de esa ciudad.
+  const isGlobalHome = contentLocation.pathname === '/';
 
   // Show detail overlay on top of HomeView
   return (
@@ -123,7 +126,7 @@ export default function AppRouter(props) {
             This avoids the React.lazy remount / Suspense white-screen
             bug that occurred when pressing back from a detail view.
         ──────────────────────────────────────────────────────────────── */}
-        {showHomeView && <div inert={showDetail || undefined}><HomeView isBackground={showDetail} /></div>}
+        {showHomeView && (isGlobalHome ? <GlobalHomeView /> : <div inert={showDetail || undefined}><HomeView isBackground={showDetail} /></div>)}
 
         {/* ── DETAIL OVERLAY ────────────────────────────────────────── */}
         <AnimatePresence>

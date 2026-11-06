@@ -102,6 +102,7 @@ const PAGE_LOAD_SEED = Math.random();
 
 import { AppContext } from "./context/AppContext.jsx";
 const HomeView = lazy(() => import("./views/HomeView.jsx"));
+const GlobalHomeView = lazy(() => import("./views/GlobalHomeView.jsx"));
 const DetailView = lazy(() => import("./views/DetailView.jsx"));
 const MapView = lazy(() => import("./views/MapView.jsx"));
 const EventsView = lazy(() => import("./views/EventsView.jsx"));
@@ -261,7 +262,7 @@ export default function CityGuide() {
   const [fade, setFade] = useState(true);
   const [resolvingDeepLink, setResolvingDeepLink] = useState(!!initialParams.current.b || !!initialParams.current.ev);
   const [navbarVisible, setNavbarVisible] = useState(true);
-  const [requireCitySelection, setRequireCitySelection] = useState(() => !initialParams.current.citySlug && !["lealtad", "wallet", "scan"].includes(initialView));
+  const [requireCitySelection, setRequireCitySelection] = useState(() => !initialParams.current.citySlug && !["lealtad", "wallet", "scan"].includes(initialView) && window.location.pathname !== "/");
   const [hasOnboarded, setHasOnboarded] = useState(() => localStorage.getItem('citymap_onboarded') === 'true');
   const lastScrollY = useRef(0);
   useEffect(() => {
@@ -904,7 +905,7 @@ useEffect(() => {
   useEffect(() => {
     const cachedCity = localStorage.getItem("cg_city_slug") || activeCity;
 
-    if (!cachedCity && cities.length > 0) {
+    if (!cachedCity && cities.length > 0 && location.pathname !== '/') {
        
       setRequireCitySelection(true);
     } else if (cachedCity && cities.length > 0 && navigator.permissions && navigator.geolocation) {
@@ -1221,7 +1222,7 @@ useEffect(() => {
   return (
     <AppContext.Provider value={appContextValue}>
       <OfflineScreen />
-      <CityArrivalSplash enabled={!requireCitySelection && isHomePath(location.pathname)} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && homeCoreCity===activeCity} error={dbError || businessListError || homeCoreError || homeSecondaryError} dark={dark}/>
+      <CityArrivalSplash enabled={!requireCitySelection && isHomePath(location.pathname) && location.pathname !== '/'} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && homeCoreCity===activeCity} error={dbError || businessListError || homeCoreError || homeSecondaryError} dark={dark}/>
 
       <div style={{ fontFamily: "'DM Sans',system-ui,sans-serif", background: dark ? "transparent" : T.bg, minHeight: "100vh", width: "100%", position: "relative", transition: "background .3s" }}>
         {dark && <CosmicBackground />}
@@ -1403,6 +1404,7 @@ useEffect(() => {
             setUser={setUser}
             setStoreAdminBiz={setStoreAdminBiz}
             HomeView={HomeView}
+            GlobalHomeView={GlobalHomeView}
             MapView={MapView}
             TripsView={TripsView}
             EventsView={EventsView}
