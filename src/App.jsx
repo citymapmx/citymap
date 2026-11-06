@@ -134,7 +134,7 @@ const isEventsRoute = (pathname) => {
   return segments.length >= 1 && segments.length <= 2 && (segments[0] === 'eventos' || segments[0] === 'explorar');
 };
 import { categoryFromUrl } from './lib/categoryRouting.js';
-const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios'];
+const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
 
 function isHomePath(pathname) {
   if (pathname === '/') return true;
