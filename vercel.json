@@ -63,11 +63,11 @@
       "destination": "/index.html"
     },
     {
-      "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|revista|experiencias|explorar|eventos|mapa|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento)",
+      "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|revista|experiencias|explorar|eventos|mapa|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento|login)",
       "destination": "/index.html"
     },
     {
-      "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|revista|experiencias|explorar|eventos|mapa|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento)/(.*)",
+      "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|revista|experiencias|explorar|eventos|mapa|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento|login)/(.*)",
       "destination": "/index.html"
     },
     {
