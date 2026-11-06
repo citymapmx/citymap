@@ -17,7 +17,7 @@ export default function EventsView() {
   const { t, lang } = useTranslation();
   const ctx = useAppContext();
   const { dark, activeCity } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity })));
-  const { user } = useAuthStore(useShallow(s => ({ user: s.user })));
+  const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   const { cities } = useDataStore(useShallow(s => ({ cities: s.cities })));
   const now = useTimeStore(s => s.now);
 
@@ -135,6 +135,8 @@ export default function EventsView() {
   // Handle saving/unsaving events
   const handleToggleSaveEvent = (ev, e) => {
     if (e) e.stopPropagation();
+    // Sin sesión el corazón pide iniciar sesión para que se guarde de verdad (como toggleFav).
+    if (!user) { setShowAuth(true); return; }
     const isSaved = savedEventIds.includes(ev.id);
     const nw = isSaved ? savedEventIds.filter(x => x !== ev.id) : [...savedEventIds, ev.id];
     setSavedEventIds(nw);
