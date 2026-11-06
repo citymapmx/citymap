@@ -10,15 +10,9 @@ import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
 import Footer from '../components/Footer.jsx';
 
 const BIZ_PAGE = 60;
-const FEED_STEP = 12;
-
-const FEED_FILTERS = [
-  { id: 'todo', label: 'Todo' },
-  { id: 'negocios', label: 'Negocios' },
-  { id: 'lugares', label: 'Lugares' },
-  { id: 'articulos', label: 'Artículos' },
-  { id: 'eventos', label: 'Eventos' },
-];
+// Cada sección del muro muestra 5 tarjetas y al deslizar hasta el final
+// agrega 5 más, para no cargar/renderizar todo de golpe.
+const SECTION_STEP = 5;
 
 // Categorías de la tabla businesses que son lugares (no negocios): así se
 // clasifican en el filtro "Lugares" del muro, además de is_place.
@@ -59,9 +53,13 @@ export default function GlobalHomeView() {
   const [error, setError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [query, setQuery] = useState('');
-  const [feedFilter, setFeedFilter] = useState('todo');
   const [showAllCities, setShowAllCities] = useState(false);
-  const [visibleFeed, setVisibleFeed] = useState(FEED_STEP);
+  // Tarjetas visibles por sección (5 al inicio, 5 más al llegar al final
+  // del deslizamiento) y sección expandida en cuadrícula ("Ver todo").
+  const [eventsShown, setEventsShown] = useState(SECTION_STEP);
+  const [placesShown, setPlacesShown] = useState(SECTION_STEP);
+  const [restShown, setRestShown] = useState(SECTION_STEP);
+  const [expanded, setExpanded] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,7 +91,9 @@ export default function GlobalHomeView() {
           if (ev.end_date) return ev.end_date >= todayStr;
           return ev.date >= todayStr;
         });
-        setEvents(evRows.slice(0, 12));
+        // Sin recorte: la hilera "Próximos eventos" carga de 5 en 5, así que
+        // guarda todos los próximos (hasta 60) en vez de solo los primeros 12.
+        setEvents(evRows);
         setExperiences(Array.isArray(exRes) ? exRes : []);
         const cityList = Array.isArray(citiesRes) ? citiesRes : [];
         setAllCities(cityList);
@@ -249,42 +249,28 @@ export default function GlobalHomeView() {
     return items;
   }, [biz, experiences, events, cityBySlug]);
 
-  const filteredFeed = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return feed.filter((item) => {
-      if (feedFilter !== 'todo' && item.kind !== feedFilter) return false;
-      if (!q) return true;
-      return `${item.title} ${item.subtitle} ${cityBySlug.get(item.citySlug)?.name || ''}`.toLowerCase().includes(q);
-    });
-  }, [feed, feedFilter, query, cityBySlug]);
+  // Secciones del muro (opción A): cada una con sus propios items, sin mezclar.
+  // Eventos por fecha (los más cercanos primero); lugares y restaurantes por
+  // calificación (los mejores primero).
+  const upcomingEvents = useMemo(() => feed.filter((it) => it.kind === 'eventos').slice().sort((a, b) => String(a.date || '').localeCompare(String(b.date || ''))), [feed]);
+  const byRating = (a, b) => (b.raw.rating ?? -1) - (a.raw.rating ?? -1) || String(b.date || '').localeCompare(String(a.date || ''));
+  const placesList = useMemo(() => feed.filter((it) => it.kind === 'lugares').slice().sort(byRating), [feed]);
+  const restaurantsList = useMemo(() => feed.filter((it) => it.kind === 'negocios' && normCat(it.raw.category) === 'restaurantes').slice().sort(byRating), [feed]);
 
-  // En "Todo" el feed se ordena en pares que se repiten: 2 negocios,
-  // 2 eventos, 2 lugares, 2 artículos, y otra vez (sin búsqueda).
-  const orderedFeed = useMemo(() => {
-    if (feedFilter !== 'todo' || query.trim()) return filteredFeed;
-    const kinds = ['negocios', 'eventos', 'lugares', 'articulos'];
-    const byKind = kinds.map((k) => filteredFeed.filter((it) => it.kind === k));
-    const out = [];
-    let round = 0;
-    for (;;) {
-      let added = false;
-      byKind.forEach((list) => {
-        const a = list[round * 2];
-        const b = list[round * 2 + 1];
-        if (a) { out.push(a); added = true; }
-        if (b) { out.push(b); added = true; }
-      });
-      if (!added) break;
-      round++;
+  // Al llegar al final del deslizamiento de una hilera, se agregan 5 tarjetas
+  // más (los datos ya están cargados; esto limita lo que se renderiza).
+  const onRowScroll = (list, shown, setShown) => (e) => {
+    const el = e.currentTarget;
+    if (shown >= list.length) return;
+    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 80) {
+      setShown((v) => Math.min(v + SECTION_STEP, list.length));
     }
-    return out;
-  }, [filteredFeed, feedFilter, query]);
+  };
 
-  const shownFeed = orderedFeed.slice(0, visibleFeed);
-
-  const loadMoreFeed = async () => {
-    if (visibleFeed < orderedFeed.length) { setVisibleFeed((v) => v + FEED_STEP); return; }
-    if (!hasMoreBiz || loadingMore || feedFilter === 'eventos' || feedFilter === 'articulos') return;
+  // Pide la siguiente página de negocios al servidor (para el "Cargar más"
+  // de la vista expandida de Restaurantes).
+  const loadMoreBiz = async () => {
+    if (!hasMoreBiz || loadingMore) return;
     setLoadingMore(true);
     try {
       const rows = await sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=${bizOffset}`);
@@ -295,12 +281,47 @@ export default function GlobalHomeView() {
       });
       setBizOffset((o) => o + list.length);
       setHasMoreBiz(list.length === BIZ_PAGE);
-      setVisibleFeed((v) => v + FEED_STEP);
     } catch (e) {
       console.warn('Error cargando más negocios', e);
     } finally {
       setLoadingMore(false);
     }
+  };
+
+  // Tarjeta a sangre completa (sin barra blanca ni etiquetas), igual que el
+  // feed: el nombre y la ciudad van sobre la foto con degradado. En hilera
+  // tiene ancho fijo; en cuadrícula (vista expandida) ocupa su celda.
+  const renderCard = (item, idx, layout) => {
+    const isPoster = item.kind === 'eventos';
+    return (
+      <article
+        key={item.key}
+        onClick={() => openItem(item)}
+        style={{ ...(layout === 'row' ? { flex: isPoster ? '0 0 170px' : '0 0 240px' } : {}), borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: '#111', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
+      >
+        <div style={{ position: 'relative', ...(isPoster ? { aspectRatio: '3 / 4' } : { height: 168 }), background: 'linear-gradient(135deg,#111,#333)' }}>
+          {item.img
+            ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={600} priority={idx === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{isPoster ? '🎟️' : '📍'}</div>}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)' }} />
+          <button
+            aria-label="Guardar"
+            onClick={(e) => toggleSave(e, item)}
+            style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
+          >
+            <Icon name={isSaved(item) ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
+          </button>
+          {isPoster ? (
+            <span style={{ position: 'absolute', left: 12, right: 12, bottom: 10, color: '#fff', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{cityBySlug.get(item.citySlug)?.name || ''}</span>
+          ) : (
+            <div style={{ position: 'absolute', left: 12, right: 12, bottom: 10 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: '0 0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h3>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cityBySlug.get(item.citySlug)?.name || ''}</p>
+            </div>
+          )}
+        </div>
+      </article>
+    );
   };
 
   const openItem = (item) => {
@@ -436,11 +457,11 @@ export default function GlobalHomeView() {
               <div className="hero-search-magic-container">
                 <div className="hero-search-magic-inner"></div>
               </div>
-              <DebouncedSearchBar initialValue={query} onSearch={(v) => { setQuery(v); setVisibleFeed(FEED_STEP); }} placeholder="Buscar en CityMap" dark={dark} />
+              <DebouncedSearchBar initialValue={query} onSearch={(v) => setQuery(v)} placeholder="Buscar en CityMap" dark={dark} />
             </div>
 
             {!query && (
-              <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={() => { const pool = filteredFeed.length > 0 ? filteredFeed : feed; if (pool.length > 0) openItem(pool[Math.floor(Math.random() * pool.length)]); }}
+              <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={() => { if (feed.length > 0) openItem(feed[Math.floor(Math.random() * feed.length)]); }}
                 style={{ width: 44, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: 'pointer', fontSize: 23 }}>🎲</button>
             )}
           </div>
@@ -578,69 +599,71 @@ export default function GlobalHomeView() {
               </section>
             )}
 
-            {/* Lo más reciente */}
-            <section style={{ marginBottom: 32 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Lo más reciente en CityMap</h2>
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 14, scrollbarWidth: 'none' }}>
-                {FEED_FILTERS.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => { setFeedFilter(f.id); setVisibleFeed(FEED_STEP); }}
-                    style={{ flex: '0 0 auto', padding: '9px 20px', borderRadius: 999, border: 'none', background: feedFilter === f.id ? '#111' : (dark ? '#1e1e1e' : '#f1f1f1'), color: feedFilter === f.id ? '#fff' : T.text, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    {f.label}
+            {/* Próximos eventos: hilera deslizable, los más cercanos primero */}
+            {upcomingEvents.length > 0 && (
+              <section style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Próximos eventos</h2>
+                  <button onClick={() => navigate('/eventos')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    Ver todo →
                   </button>
-                ))}
-              </div>
-              {shownFeed.length === 0 ? (
-                <p style={{ color: T.sub }}>No encontramos nada con ese filtro.</p>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                  {shownFeed.map((item, idx) => (
-                    <article
-                      key={item.key}
-                      onClick={() => openItem(item)}
-                      style={{ borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: '#111', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
-                    >
-                      <div style={{ position: 'relative', ...(feedFilter === 'eventos' ? { aspectRatio: '3 / 4' } : { height: 168 }), background: 'linear-gradient(135deg,#111,#333)' }}>
-                        {item.img
-                          ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={600} priority={idx === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{item.kind === 'eventos' ? '🎟️' : item.kind === 'articulos' ? '📝' : '📍'}</div>}
-                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)' }} />
-                        <button
-                          aria-label="Guardar"
-                          onClick={(e) => toggleSave(e, item)}
-                          style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
-                        >
-                          <Icon name={isSaved(item) ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
+                </div>
+                <div onScroll={onRowScroll(upcomingEvents, eventsShown, setEventsShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                  {upcomingEvents.slice(0, eventsShown).map((item, idx) => renderCard(item, idx, 'row'))}
+                </div>
+              </section>
+            )}
+
+            {/* Lugares increíbles: puntos de interés, unidades deportivas y playas */}
+            {placesList.length > 0 && (
+              <section style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Lugares increíbles</h2>
+                  <button onClick={() => setExpanded(expanded === 'lugares' ? null : 'lugares')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    {expanded === 'lugares' ? 'Ver menos ←' : 'Ver todo →'}
+                  </button>
+                </div>
+                {expanded === 'lugares' ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                    {placesList.map((item, idx) => renderCard(item, idx, 'grid'))}
+                  </div>
+                ) : (
+                  <div onScroll={onRowScroll(placesList, placesShown, setPlacesShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                    {placesList.slice(0, placesShown).map((item, idx) => renderCard(item, idx, 'row'))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Restaurantes que debes conocer: los mejor calificados */}
+            {restaurantsList.length > 0 && (
+              <section style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Restaurantes que debes conocer</h2>
+                  <button onClick={() => setExpanded(expanded === 'restaurantes' ? null : 'restaurantes')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    {expanded === 'restaurantes' ? 'Ver menos ←' : 'Ver todo →'}
+                  </button>
+                </div>
+                {expanded === 'restaurantes' ? (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                      {restaurantsList.map((item, idx) => renderCard(item, idx, 'grid'))}
+                    </div>
+                    {hasMoreBiz && (
+                      <div style={{ textAlign: 'center', marginTop: 22 }}>
+                        <button onClick={loadMoreBiz} disabled={loadingMore} style={{ padding: '12px 28px', borderRadius: 999, border: 0, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, cursor: loadingMore ? 'wait' : 'pointer', opacity: loadingMore ? 0.7 : 1 }}>
+                          {loadingMore ? 'Cargando...' : 'Cargar más'}
                         </button>
-                        {feedFilter === 'eventos' ? (
-                          <span style={{ position: 'absolute', left: 12, right: 12, bottom: 10, color: '#fff', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{cityBySlug.get(item.citySlug)?.name || ''}</span>
-                        ) : (
-                          <div style={{ position: 'absolute', left: 12, right: 12, bottom: 10 }}>
-                            <h3 style={{ fontSize: 15, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: '0 0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h3>
-                            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {item.kind === 'eventos'
-                                ? `📅 ${fmtDate(item.raw.date)}${item.subtitle.includes('·') ? ` · ${item.subtitle.split('·').slice(1).join('·').trim()}` : ''}`
-                                : (item.kind === 'negocios' || item.kind === 'lugares')
-                                  ? (cityBySlug.get(item.citySlug)?.name || '')
-                                  : item.subtitle}
-                            </p>
-                          </div>
-                        )}
                       </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-              {(visibleFeed < orderedFeed.length || (!query && hasMoreBiz && feedFilter !== 'eventos' && feedFilter !== 'articulos')) && (
-                <div style={{ textAlign: 'center', marginTop: 22 }}>
-                  <button onClick={loadMoreFeed} disabled={loadingMore} style={{ padding: '12px 28px', borderRadius: 999, border: 0, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, cursor: loadingMore ? 'wait' : 'pointer', opacity: loadingMore ? 0.7 : 1 }}>
-                    {loadingMore ? 'Cargando...' : 'Cargar más'}
-                  </button>
-                </div>
-              )}
-            </section>
+                    )}
+                  </>
+                ) : (
+                  <div onScroll={onRowScroll(restaurantsList, restShown, setRestShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                    {restaurantsList.slice(0, restShown).map((item, idx) => renderCard(item, idx, 'row'))}
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* Guías y artículos */}
             {experiences.length > 0 && (
