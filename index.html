@@ -28,20 +28,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
 
-    <!-- SEO básico -->
-    <title>CityMap — Dónde comer, qué hacer y eventos en tu ciudad</title>
-    <meta name="description" content="Descubre dónde comer, qué hacer y qué está pasando en tu ciudad. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap." />
-    <meta name="keywords" content="citymap, que hacer en guadalajara, que hacer en mi ciudad, donde comer, eventos cerca, mejores restaurantes, experiencias locales, actividades turisticas, vida nocturna, planes fin de semana" />
+    <!-- SEO básico — portada global: todas las ciudades -->
+    <title>CityMap — Descubre negocios, lugares y eventos de todas las ciudades</title>
+    <meta name="description" content="Descubre negocios, lugares, artículos y eventos de todas nuestras ciudades: Guadalajara, Tepic, Puerto Vallarta, Zapopan, Ciudad de México y más. Encuentra dónde comer, qué hacer y qué está pasando con CityMap." />
+    <meta name="keywords" content="citymap, que hacer en guadalajara, que hacer en tepic, que hacer en puerto vallarta, que hacer en mi ciudad, donde comer, eventos cerca, mejores restaurantes, experiencias locales, actividades turisticas, vida nocturna, planes fin de semana" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="author" content="CityMap" />
+    <link rel="canonical" href="https://citymap.mx/" />
     <!-- SEO and Dynamic Meta Handled entirely by React in App.jsx -->
 
     <!-- Open Graph (WhatsApp, Facebook, LinkedIn) -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://citymap.world" />
-    <meta property="og:title" content="CityMap — Dónde comer, qué hacer y eventos en tu ciudad" />
-    <meta property="og:description" content="Descubre dónde comer, qué hacer y qué está pasando en tu ciudad. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap." />
-    <meta property="og:image" content="https://citymap.world/og-image.png" />
+    <meta property="og:url" content="https://citymap.mx/" />
+    <meta property="og:title" content="CityMap — Descubre negocios, lugares y eventos de todas las ciudades" />
+    <meta property="og:description" content="Descubre negocios, lugares, artículos y eventos de todas nuestras ciudades: Guadalajara, Tepic, Puerto Vallarta, Zapopan, Ciudad de México y más. Encuentra dónde comer, qué hacer y qué está pasando con CityMap." />
+    <meta property="og:image" content="https://citymap.mx/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="es" />
@@ -49,9 +50,32 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="CityMap — Dónde comer, qué hacer y eventos en tu ciudad" />
-    <meta name="twitter:description" content="Descubre dónde comer, qué hacer y qué está pasando en tu ciudad. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap." />
-    <meta name="twitter:image" content="https://citymap.world/og-image.png" />
+    <meta name="twitter:title" content="CityMap — Descubre negocios, lugares y eventos de todas las ciudades" />
+    <meta name="twitter:description" content="Descubre negocios, lugares, artículos y eventos de todas nuestras ciudades: Guadalajara, Tepic, Puerto Vallarta, Zapopan, Ciudad de México y más. Encuentra dónde comer, qué hacer y qué está pasando con CityMap." />
+    <meta name="twitter:image" content="https://citymap.mx/og-image.png" />
+
+    <!-- Datos estructurados (los ve Google aunque no ejecute JavaScript) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "name": "CityMap",
+          "url": "https://citymap.mx/",
+          "description": "Descubre negocios, lugares, artículos y eventos de todas nuestras ciudades: Guadalajara, Tepic, Puerto Vallarta, Zapopan, Ciudad de México y más.",
+          "inLanguage": "es"
+        },
+        {
+          "@type": "Organization",
+          "name": "CityMap",
+          "url": "https://citymap.mx/",
+          "logo": "https://citymap.mx/citymap.mx.png",
+          "description": "Descubre dónde comer, qué hacer y qué está pasando en múltiples ciudades. Explora experiencias locales y organiza tu próximo plan con CityMap."
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <main id="root"></main>

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /manage
+Disallow: /cuenta
+Disallow: /wallet
+Disallow: /scan
+
+Sitemap: https://citymap.mx/sitemap.xml

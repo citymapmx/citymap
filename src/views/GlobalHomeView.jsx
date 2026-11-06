@@ -9,8 +9,12 @@ import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
 import SlidingCategoryTrack from '../components/ui/SlidingCategoryTrack.jsx';
 import Footer from '../components/Footer.jsx';
 
-const BIZ_PAGE = 60;
-const FEED_STEP = 12;
+const COUNTRY_NAMES = { mx: 'México', us: 'Estados Unidos', es: 'España', fr: 'Francia', ar: 'Argentina', ca: 'Canadá' };
+
+function flagEmoji(code) {
+  if (!code || code.length !== 2) return '🌍';
+  return String.fromCodePoint(...[...code.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)));
+}
 
 // Categorías del inicio, como en las páginas de ciudad.
 const HOME_CATS = [
@@ -355,6 +359,18 @@ export default function GlobalHomeView() {
     } catch { return d; }
   };
 
+  // Exploración por país: se agrupa por country_code (la columna country dice
+  // "México" en todas las ciudades, pero el código sí es correcto: mx, us, es, fr...).
+  const countries = useMemo(() => {
+    const map = new Map();
+    sortedCities.forEach((c) => {
+      const code = (c.country_code || 'mx').toLowerCase();
+      if (!map.has(code)) map.set(code, { code, name: COUNTRY_NAMES[code] || code.toUpperCase(), cities: [] });
+      map.get(code).cities.push(c);
+    });
+    return [...map.values()].sort((a, b) => b.cities.length - a.cities.length);
+  }, [sortedCities]);
+
   const shownCities = showAllCities ? sortedCities : sortedCities.slice(0, 5);
   const isSearching = query.trim().length >= 2;
 
@@ -612,6 +628,35 @@ export default function GlobalHomeView() {
               </section>
             )}
 
+            {/* Explora por país */}
+            {countries.length > 1 && (
+              <section style={{ marginTop: 6, marginBottom: 30 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Explora por país</h2>
+                {countries.map((country) => (
+                  <div key={country.code} style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 20 }}>{flagEmoji(country.code)}</span>
+                      <h3 style={{ fontSize: 16, fontWeight: 800, color: T.text, margin: 0 }}>{country.name}</h3>
+                      <span style={{ fontSize: 13, color: T.sub }}>{country.cities.length} {country.cities.length === 1 ? 'ciudad' : 'ciudades'}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+                      {country.cities.map((city) => (
+                        <button
+                          key={city.id || city.slug}
+                          onClick={() => navigate(`/${city.slug}`)}
+                          style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px 8px 8px', borderRadius: 999, border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer' }}
+                        >
+                          {city.bg_image && <img src={city.bg_image} alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />}
+                          <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{city.name}</span>
+                          {popCounts[city.slug] && <span style={{ fontSize: 12, color: T.sub }}>{popCounts[city.slug].total}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            )}
+
             {/* Lo más reciente */}
             <section style={{ marginBottom: 32 }}>
               <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Lo más reciente en CityMap</h2>
@@ -667,6 +712,52 @@ export default function GlobalHomeView() {
                 </div>
               )}
             </section>
+
+            {/* Guías y artículos */}
+            {experiences.length > 0 && (
+              <section style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Guías y artículos</h2>
+                  <button onClick={() => navigate('/revista')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    Ver todas las guías →
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                  {experiences.map((exp) => {
+                    const gallery = parseGallery(exp);
+                    const img = gallery[0]?.url || gallery[0] || null;
+                    const saved = savedExpIds?.includes(exp.id);
+                    return (
+                      <article
+                        key={`g-${exp.id}`}
+                        onClick={() => navigate(`/revista/${exp.city_slug || ''}/${createSlug(exp.title || '')}`)}
+                        style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
+                      >
+                        <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#1A7A5E,#22a876)' }}>
+                          {typeof img === 'string' && img
+                            ? <OptimizedImage src={img} alt={exp.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>📝</div>}
+                          <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>Guía</span>
+                          <button
+                            aria-label="Guardar"
+                            onClick={(e) => { e.stopPropagation(); const ids = savedExpIds || []; const nw = ids.includes(exp.id) ? ids.filter((x) => x !== exp.id) : [...ids, exp.id]; setSavedExpIds?.(nw); try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch {} }}
+                            style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
+                          >
+                            <Icon name={saved ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
+                          </button>
+                        </div>
+                        <div style={{ padding: '12px 14px 16px' }}>
+                          <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{exp.title}</h3>
+                          <p style={{ fontSize: 13, color: T.sub, margin: 0 }}>
+                            {cityBySlug.get(exp.city_slug)?.name || ''}{exp.duration ? ` · ⏱ ${exp.duration}` : ''}{exp.price > 0 ? ` · $${exp.price} MXN` : ' · Gratis'}
+                          </p>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </>
         )}
       </div>
