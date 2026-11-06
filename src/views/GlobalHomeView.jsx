@@ -659,7 +659,7 @@ export default function GlobalHomeView() {
                     >
                       <div style={{ position: 'relative', height: 168, background: 'linear-gradient(135deg,#111,#333)' }}>
                         {item.img
-                          ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={400} priority={idx === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={600} priority={idx === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{item.kind === 'eventos' ? '🎟️' : item.kind === 'articulos' ? '📝' : '📍'}</div>}
                         <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>{item.badge}</span>
                         <button
@@ -711,7 +711,7 @@ export default function GlobalHomeView() {
                       >
                         <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>
                           {typeof img === 'string' && img
-                            ? <OptimizedImage src={img} alt={exp.title || ''} widthRequest={400} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            ? <OptimizedImage src={img} alt={exp.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>📝</div>}
                           <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>Guía</span>
                           <button
