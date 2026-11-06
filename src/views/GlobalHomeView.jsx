@@ -36,6 +36,120 @@ function bizImage(b) {
   return b.banner_url || b.logo_url || null;
 }
 
+// Frases del buscador del muro, con animación de máquina de escribir:
+// se escribe una, se espera, se borra y sigue la siguiente.
+const SEARCH_HINTS = [
+  'Buscar taquerías',
+  'Buscar pizzas',
+  'Buscar lugares increíbles',
+  'Buscar cafeterías',
+  'Buscar eventos hoy',
+  'Buscar mariscos',
+  'Buscar un hotel',
+  'Buscar bares',
+];
+
+function useTypewriter(phrases) {
+  const [text, setText] = useState('');
+  useEffect(() => {
+    let phraseIdx = 0;
+    let charIdx = 0;
+    let deleting = false;
+    let timer = null;
+    let alive = true;
+    const step = () => {
+      if (!alive) return;
+      const phrase = phrases[phraseIdx % phrases.length];
+      if (!deleting) {
+        charIdx += 1;
+        setText(`${phrase.slice(0, charIdx)}▏`);
+        if (charIdx >= phrase.length) { deleting = true; timer = setTimeout(step, 1800); }
+        else timer = setTimeout(step, 75);
+      } else {
+        charIdx -= 1;
+        setText(charIdx > 0 ? `${phrase.slice(0, charIdx)}▏` : '');
+        if (charIdx <= 0) { deleting = false; phraseIdx = (phraseIdx + 1) % phrases.length; timer = setTimeout(step, 400); }
+        else timer = setTimeout(step, 30);
+      }
+    };
+    timer = setTimeout(step, 600);
+    return () => { alive = false; clearTimeout(timer); };
+  }, [phrases]);
+  return text;
+}
+
+// Buscador del muro en su propio componente: el placeholder con máquina de
+// escribir cambia cada ~75 ms y así solo se vuelve a dibujar esta zona,
+// no todo el muro.
+function HeroSearchBar({ dark, query, setQuery }) {
+  const { detectCity, locating, navigate } = useAppContext();
+  const hint = useTypewriter(SEARCH_HINTS);
+  const handleLocate = () => {
+    if (locating) return;
+    // Igual que "Encontrar lugares cerca de mí" del seleccionador de ciudad:
+    // detecta por GPS, actualiza la ciudad activa y abre esa ciudad.
+    detectCity({
+      showToast: true,
+      onDone: (slug) => { if (slug) navigate(`/${slug}`); },
+    });
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: query ? 76 : 20, zIndex: 10 }}>
+      <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+        <style>{`
+          .hero-search-magic-container {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 100px;
+            overflow: hidden;
+            z-index: 1;
+            pointer-events: none;
+          }
+          .hero-search-magic-inner {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 100px;
+            background: ${dark ? '#2D2D31' : '#F8FAFC'};
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow: ${dark ? 'inset 0 1px 1px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.1)' : 'inset 0 1px 2px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.02)'};
+            z-index: 2;
+            border: ${dark ? '1px solid #3F3F46' : '1px solid #ECEFF2'};
+          }
+          .hero-search-input {
+            position: relative;
+            z-index: 3;
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            background: transparent !important;
+            color: ${dark ? '#F4F4F5' : '#111'} !important;
+          }
+          .hero-search-input::placeholder {
+            color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
+            -webkit-text-fill-color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
+            opacity: 1;
+            letter-spacing: 0.2px;
+          }
+          .hero-search-input:focus {
+            outline: 2px solid ${dark ? '#A1A1AA' : '#71717A'} !important;
+            outline-offset: 2px;
+            box-shadow: none !important;
+          }
+        `}</style>
+        <div className="hero-search-magic-container">
+          <div className="hero-search-magic-inner"></div>
+        </div>
+        <DebouncedSearchBar initialValue={query} onSearch={(v) => setQuery(v)} placeholder={hint || 'Buscar en CityMap'} dark={dark} />
+      </div>
+
+      {!query && (
+        <button type="button" aria-label="Encontrar lugares cerca de mí" title="Cerca de mí" disabled={locating} onClick={handleLocate}
+          style={{ width: 44, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: locating ? 'default' : 'pointer', fontSize: 23, opacity: locating ? 0.5 : 1 }}>📍</button>
+      )}
+    </div>
+  );
+}
+
 export default function GlobalHomeView() {
   const { T, dark, user, toast$, handleCardTap, handleEventTap, navigate, favIds, toggleFav, globalFavCounts, savedEventIds, setSavedEventIds, savedExpIds, setSavedExpIds, toggleSaveEvent } = useAppContext();
   const setShowAuth = useAuthStore((s) => s.setShowAuth);
@@ -385,60 +499,7 @@ export default function GlobalHomeView() {
             </div>
           )}
 
-          {/* Buscador, igual que en las ciudades */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: query ? 76 : 20, zIndex: 10 }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-              <style>{`
-                .hero-search-magic-container {
-                  position: absolute;
-                  top: 0; left: 0; right: 0; bottom: 0;
-                  border-radius: 100px;
-                  overflow: hidden;
-                  z-index: 1;
-                  pointer-events: none;
-                }
-                .hero-search-magic-inner {
-                  position: absolute;
-                  top: 0; left: 0; right: 0; bottom: 0;
-                  border-radius: 100px;
-                  background: ${dark ? '#2D2D31' : '#F8FAFC'};
-                  backdrop-filter: blur(24px);
-                  -webkit-backdrop-filter: blur(24px);
-                  box-shadow: ${dark ? 'inset 0 1px 1px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.1)' : 'inset 0 1px 2px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.02)'};
-                  z-index: 2;
-                  border: ${dark ? '1px solid #3F3F46' : '1px solid #ECEFF2'};
-                }
-                .hero-search-input {
-                  position: relative;
-                  z-index: 3;
-                  -webkit-appearance: none !important;
-                  appearance: none !important;
-                  background: transparent !important;
-                  color: ${dark ? '#F4F4F5' : '#111'} !important;
-                }
-                .hero-search-input::placeholder {
-                  color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
-                  -webkit-text-fill-color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
-                  opacity: 1;
-                  letter-spacing: 0.2px;
-                }
-                .hero-search-input:focus {
-                  outline: 2px solid ${dark ? '#A1A1AA' : '#71717A'} !important;
-                  outline-offset: 2px;
-                  box-shadow: none !important;
-                }
-              `}</style>
-              <div className="hero-search-magic-container">
-                <div className="hero-search-magic-inner"></div>
-              </div>
-              <DebouncedSearchBar initialValue={query} onSearch={(v) => setQuery(v)} placeholder="Buscar en CityMap" dark={dark} />
-            </div>
-
-            {!query && (
-              <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={() => { if (feed.length > 0) openItem(feed[Math.floor(Math.random() * feed.length)]); }}
-                style={{ width: 44, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: 'pointer', fontSize: 23 }}>🎲</button>
-            )}
-          </div>
+          <HeroSearchBar dark={dark} query={query} setQuery={setQuery} />
 
         </div>
       </div>
