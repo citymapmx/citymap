@@ -3,35 +3,16 @@ import { useAppContext } from '../context/AppContext';
 import { useDataStore } from '../store/useDataStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
-import { createSlug } from '../lib/utils.js';
+import { createSlug, getThumbUrl } from '../lib/utils.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
-import SlidingCategoryTrack from '../components/ui/SlidingCategoryTrack.jsx';
 import Footer from '../components/Footer.jsx';
 
 const BIZ_PAGE = 60;
-const FEED_STEP = 12;
-
-// Categorías del inicio, como en las páginas de ciudad.
-const HOME_CATS = [
-  { id: 'restaurantes', label: 'Restaurantes' },
-  { id: 'cafeterias', label: 'Cafeterías' },
-  { id: 'bares', label: 'Bares' },
-  { id: 'hoteles', label: 'Hoteles' },
-  { id: 'lugares', label: 'Lugares' },
-  { id: 'eventos', label: 'Eventos' },
-  { id: 'articulos', label: 'Artículos' },
-  { id: 'mas', label: 'Más' },
-];
-
-const FEED_FILTERS = [
-  { id: 'todo', label: 'Todo' },
-  { id: 'negocios', label: 'Negocios' },
-  { id: 'lugares', label: 'Lugares' },
-  { id: 'articulos', label: 'Artículos' },
-  { id: 'eventos', label: 'Eventos' },
-];
+// Cada sección del muro muestra 5 tarjetas y al deslizar hasta el final
+// agrega 5 más, para no cargar/renderizar todo de golpe.
+const SECTION_STEP = 5;
 
 // Categorías de la tabla businesses que son lugares (no negocios): así se
 // clasifican en el filtro "Lugares" del muro, además de is_place.
@@ -60,8 +41,6 @@ export default function GlobalHomeView() {
   const setShowAuth = useAuthStore((s) => s.setShowAuth);
   const cities = useDataStore((s) => s.cities);
   const [biz, setBiz] = useState([]);
-  const [bizOffset, setBizOffset] = useState(0);
-  const [hasMoreBiz, setHasMoreBiz] = useState(true);
   const [events, setEvents] = useState([]);
   const [experiences, setExperiences] = useState([]);
   const [allCities, setAllCities] = useState([]);
@@ -70,13 +49,13 @@ export default function GlobalHomeView() {
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [query, setQuery] = useState('');
-  const [feedFilter, setFeedFilter] = useState('todo');
-  const [homeCat, setHomeCat] = useState(null);
-  const [showAllCats, setShowAllCats] = useState(false);
   const [showAllCities, setShowAllCities] = useState(false);
-  const [visibleFeed, setVisibleFeed] = useState(FEED_STEP);
+  // Tarjetas visibles por sección (5 al inicio, 5 más al llegar al final
+  // del deslizamiento).
+  const [eventsShown, setEventsShown] = useState(SECTION_STEP);
+  const [placesShown, setPlacesShown] = useState(SECTION_STEP);
+  const [restShown, setRestShown] = useState(SECTION_STEP);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +65,7 @@ export default function GlobalHomeView() {
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const [bizRes, evRes, exRes, citiesRes, placesRes] = await Promise.all([
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=0`).catch(() => []),
-          sb.get('events', `?select=id,title,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,category,biz_id,price,price_type,booking_config,website&status=eq.approved&order=date.asc&limit=60`).catch(() => []),
+          sb.get('events', `?select=id,title,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved&order=date.asc&limit=60`).catch(() => []),
           sb.get('experiences', `?select=id,title,city_slug,price,duration,people,gallery,created_at&status=eq.approved&order=created_at.desc&limit=12`).catch(() => []),
           (cities && cities.length > 0)
             ? Promise.resolve(cities)
@@ -101,14 +80,14 @@ export default function GlobalHomeView() {
         const placeRows = Array.isArray(placesRes) ? placesRes : [];
         const bizIds = new Set(bizRows.map((b) => b.id));
         setBiz([...bizRows, ...placeRows.filter((b) => !bizIds.has(b.id))]);
-        setBizOffset(bizRows.length);
-        setHasMoreBiz(bizRows.length === BIZ_PAGE);
         const evRows = (Array.isArray(evRes) ? evRes : []).filter((ev) => {
           if (!ev || !ev.date) return false;
           if (ev.end_date) return ev.end_date >= todayStr;
           return ev.date >= todayStr;
         });
-        setEvents(evRows.slice(0, 12));
+        // Sin recorte: la hilera "Próximos eventos" carga de 5 en 5, así que
+        // guarda todos los próximos (hasta 60) en vez de solo los primeros 12.
+        setEvents(evRows);
         setExperiences(Array.isArray(exRes) ? exRes : []);
         const cityList = Array.isArray(citiesRes) ? citiesRes : [];
         setAllCities(cityList);
@@ -164,7 +143,7 @@ export default function GlobalHomeView() {
       try {
         const [b, e, x] = await Promise.all([
           sb.get('businesses', `?select=id,name,slug,category,city_slug,photos,logo_url,banner_url,is_place,created_at&status=eq.approved&plan=neq.menu&or=(name.ilike.*${enc}*,category.ilike.*${enc}*,tagline.ilike.*${enc}*)&order=plan.desc,rating.desc.nullslast&limit=15`).catch(() => []),
-          sb.get('events', `?select=id,title,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,category,biz_id,price,price_type,booking_config,website&status=eq.approved&title=ilike.*${enc}*&order=date.asc&limit=10`).catch(() => []),
+          sb.get('events', `?select=id,title,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved&title=ilike.*${enc}*&order=date.asc&limit=10`).catch(() => []),
           sb.get('experiences', `?select=id,title,city_slug,gallery,created_at&status=eq.approved&title=ilike.*${enc}*&order=created_at.desc&limit=10`).catch(() => []),
         ]);
         if (cancelled) return;
@@ -264,62 +243,58 @@ export default function GlobalHomeView() {
     return items;
   }, [biz, experiences, events, cityBySlug]);
 
-  const allBizCats = useMemo(() => {
-    const counts = new Map();
-    biz.forEach((b) => {
-      const c = (b.category || 'otros').toLowerCase();
-      counts.set(c, (counts.get(c) || 0) + 1);
-    });
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }));
-  }, [biz]);
+  // Secciones del muro (opción A): cada una con sus propios items, sin mezclar.
+  // Eventos por fecha (los más cercanos primero); lugares y restaurantes por
+  // calificación (los mejores primero).
+  const upcomingEvents = useMemo(() => feed.filter((it) => it.kind === 'eventos').slice().sort((a, b) => String(a.date || '').localeCompare(String(b.date || ''))), [feed]);
+  const byRating = (a, b) => (b.raw.rating ?? -1) - (a.raw.rating ?? -1) || String(b.date || '').localeCompare(String(a.date || ''));
+  const placesList = useMemo(() => feed.filter((it) => it.kind === 'lugares').slice().sort(byRating), [feed]);
+  const restaurantsList = useMemo(() => feed.filter((it) => it.kind === 'negocios' && normCat(it.raw.category) === 'restaurantes').slice().sort(byRating), [feed]);
 
-  const filteredFeed = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return feed.filter((item) => {
-      if (feedFilter !== 'todo' && item.kind !== feedFilter) return false;
-      if (homeCat === 'restaurantes' && !(item.kind === 'negocios' && (item.raw.category || '').toLowerCase().includes('restaurante'))) return false;
-      if (homeCat === 'cafeterias' && !(item.kind === 'negocios' && /caf|coffee/i.test(item.raw.category || ''))) return false;
-      if (homeCat === 'bares' && !(item.kind === 'negocios' && /bar|antro/i.test(item.raw.category || item.raw.type || ''))) return false;
-      if (homeCat === 'hoteles' && !(item.kind === 'negocios' && /hotel|hospedaje/i.test(item.raw.category || ''))) return false;
-      if (homeCat === 'lugares' && item.kind !== 'lugares') return false;
-      if (homeCat === 'eventos' && item.kind !== 'eventos') return false;
-      if (homeCat === 'articulos' && item.kind !== 'articulos') return false;
-      if (!q) return true;
-      return `${item.title} ${item.subtitle} ${cityBySlug.get(item.citySlug)?.name || ''}`.toLowerCase().includes(q);
-    });
-  }, [feed, feedFilter, homeCat, query, cityBySlug]);
-
-  const shownFeed = filteredFeed.slice(0, visibleFeed);
-
-  const loadMoreFeed = async () => {
-    if (visibleFeed < filteredFeed.length) { setVisibleFeed((v) => v + FEED_STEP); return; }
-    if (!hasMoreBiz || loadingMore || feedFilter === 'eventos' || feedFilter === 'articulos') return;
-    setLoadingMore(true);
-    try {
-      const rows = await sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=${bizOffset}`);
-      const list = Array.isArray(rows) ? rows : [];
-      setBiz((prev) => {
-        const ids = new Set(prev.map((b) => b.id));
-        return [...prev, ...list.filter((b) => !ids.has(b.id))];
-      });
-      setBizOffset((o) => o + list.length);
-      setHasMoreBiz(list.length === BIZ_PAGE);
-      setVisibleFeed((v) => v + FEED_STEP);
-    } catch (e) {
-      console.warn('Error cargando más negocios', e);
-    } finally {
-      setLoadingMore(false);
+  // Al llegar al final del deslizamiento de una hilera, se agregan 5 tarjetas
+  // más (los datos ya están cargados; esto limita lo que se renderiza).
+  const onRowScroll = (list, shown, setShown) => (e) => {
+    const el = e.currentTarget;
+    if (shown >= list.length) return;
+    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 80) {
+      setShown((v) => Math.min(v + SECTION_STEP, list.length));
     }
   };
 
-  const onHomeCat = (id) => {
-    if (id === 'mas') { setShowAllCats((v) => !v); return; }
-    if (homeCat === id) { setHomeCat(null); setFeedFilter('todo'); }
-    else {
-      setHomeCat(id);
-      setFeedFilter(id === 'lugares' ? 'lugares' : id === 'eventos' ? 'eventos' : id === 'articulos' ? 'articulos' : 'negocios');
-    }
-    setVisibleFeed(FEED_STEP);
+  // Tarjeta a sangre completa (sin barra blanca ni etiquetas), igual que el
+  // feed: el nombre y la ciudad van sobre la foto con degradado. En hilera
+  // tiene ancho fijo (póster vertical para eventos, horizontal para el resto).
+  const renderCard = (item, idx) => {
+    const isPoster = item.kind === 'eventos';
+    return (
+      <article
+        key={item.key}
+        onClick={() => openItem(item)}
+        style={{ flex: isPoster ? '0 0 170px' : '0 0 240px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: '#111', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
+      >
+        <div style={{ position: 'relative', ...(isPoster ? { aspectRatio: '3 / 4' } : { height: 168 }), background: 'linear-gradient(135deg,#111,#333)' }}>
+          {item.img
+            ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={600} priority={idx === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{isPoster ? '🎟️' : '📍'}</div>}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)' }} />
+          <button
+            aria-label="Guardar"
+            onClick={(e) => toggleSave(e, item)}
+            style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
+          >
+            <Icon name={isSaved(item) ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
+          </button>
+          {isPoster ? (
+            <span style={{ position: 'absolute', left: 12, right: 12, bottom: 10, color: '#fff', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{cityBySlug.get(item.citySlug)?.name || ''}</span>
+          ) : (
+            <div style={{ position: 'absolute', left: 12, right: 12, bottom: 10 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: '0 0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h3>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cityBySlug.get(item.citySlug)?.name || ''}</p>
+            </div>
+          )}
+        </div>
+      </article>
+    );
   };
 
   const openItem = (item) => {
@@ -374,7 +349,9 @@ export default function GlobalHomeView() {
                 <img
                   src="/citymap.mx.png"
                   alt="CityMap"
-                  style={{ height: 38, objectFit: 'contain', filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)', display: 'block', margin: '0 auto' }}
+                  width={127}
+                  height={38}
+                  style={{ height: 38, width: 127, objectFit: 'contain', filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)', display: 'block', margin: '0 auto' }}
                 />
               </div>
               <style>{`
@@ -453,57 +430,34 @@ export default function GlobalHomeView() {
               <div className="hero-search-magic-container">
                 <div className="hero-search-magic-inner"></div>
               </div>
-              <DebouncedSearchBar initialValue={query} onSearch={(v) => { setQuery(v); setVisibleFeed(FEED_STEP); }} placeholder="Buscar en CityMap" dark={dark} />
+              <DebouncedSearchBar initialValue={query} onSearch={(v) => setQuery(v)} placeholder="Buscar en CityMap" dark={dark} />
             </div>
 
             {!query && (
-              <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={() => { const pool = filteredFeed.length > 0 ? filteredFeed : feed; if (pool.length > 0) openItem(pool[Math.floor(Math.random() * pool.length)]); }}
+              <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={() => { if (feed.length > 0) openItem(feed[Math.floor(Math.random() * feed.length)]); }}
                 style={{ width: 44, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: 'pointer', fontSize: 23 }}>🎲</button>
             )}
           </div>
 
-          {/* Categorías en texto, igual que en las ciudades */}
-          {!query && (
-            <div style={{ margin: '12px -20px 0' }}>
-              <SlidingCategoryTrack dark={dark} selectedKey={homeCat || 'explorar'} variant="dot" className="home-category-track" style={{ display: 'flex', alignItems: 'stretch', overflowX: 'auto', paddingTop: 8, paddingBottom: 2, paddingLeft: 20, paddingRight: 20, gap: 24, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-                <style>{`.home-category-track > .sliding-category-indicator { display: none; }`}</style>
-                {[{ id: 'explorar', label: 'Explorar' }, ...HOME_CATS].map((c) => {
-                  const isActive = (homeCat || 'explorar') === c.id;
-                  return (
-                    <button
-                      type="button"
-                      key={c.id}
-                      aria-current={isActive ? 'page' : undefined}
-                      onClick={() => { if (c.id === 'explorar') { setHomeCat(null); setFeedFilter('todo'); setVisibleFeed(FEED_STEP); } else onHomeCat(c.id); }}
-                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, minHeight: 44, boxSizing: 'border-box', padding: '10px 0', border: 'none', borderBottom: `2px solid ${isActive ? (dark ? '#FFFFFF' : '#000000') : 'transparent'}`, background: 'transparent', color: isActive ? (dark ? '#FFFFFF' : '#000000') : (dark ? '#A3AFBF' : '#788496'), fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: '20px', whiteSpace: 'nowrap', cursor: 'pointer', transition: 'color 180ms ease, border-color 180ms ease' }}
-                    >
-                      {c.label}
-                    </button>
-                  );
-                })}
-              </SlidingCategoryTrack>
-            </div>
-          )}
         </div>
       </div>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px' }}>
-        {showAllCats && allBizCats.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 0 4px' }}>
-            {allBizCats.map(({ name, count }) => (
-              <button
-                key={name}
-                onClick={() => { setHomeCat(null); setFeedFilter('negocios'); setQuery(name); setVisibleFeed(FEED_STEP); }}
-                style={{ padding: '8px 14px', borderRadius: 999, border: `1px solid ${T.border}`, background: 'transparent', color: T.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' }}
-              >
-                {name} ({count})
-              </button>
-            ))}
-          </div>
-        )}
-
         {loading && (
-          <p style={{ color: T.sub, textAlign: 'center', padding: '32px 0' }}>Cargando lo mejor de todas las ciudades...</p>
+          /* Esqueleto con las mismas medidas de la sección "Explora por ciudad":
+             reserva el espacio mientras cargan las ciudades para que nada
+             brinque cuando aparecen (CLS 0.707 en PageSpeed) */
+          <section style={{ marginTop: 22, marginBottom: 30 }} aria-hidden="true">
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Explora por ciudad</h2>
+              <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, whiteSpace: 'nowrap' }}>Ver todas las ciudades →</span>
+            </div>
+            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} style={{ flex: '0 0 168px', height: 132, borderRadius: 16, background: dark ? '#1e1e1e' : '#f1f1f1' }} />
+              ))}
+            </div>
+          </section>
         )}
         {error && !loading && (
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
@@ -525,7 +479,7 @@ export default function GlobalHomeView() {
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {searchResults.cities.map((c) => (
                     <button key={c.slug} onClick={() => navigate(`/${c.slug}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px 8px 8px', borderRadius: 999, border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer' }}>
-                      {c.bg_image && <img src={c.bg_image} alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />}
+                      {c.bg_image && <img src={getThumbUrl(c.bg_image, 100)} alt="" width={30} height={30} style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />}
                       <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{c.name}</span>
                     </button>
                   ))}
@@ -538,7 +492,7 @@ export default function GlobalHomeView() {
                 {searchResults.biz.map((b) => (
                   <button key={`sb-${b.id}`} onClick={() => handleCardTap(b)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 0', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
                     <span style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', background: '#e8f5ef', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-                      {bizImage(b) ? <img src={bizImage(b)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📍'}
+                      {bizImage(b) ? <img src={getThumbUrl(bizImage(b), 200)} alt="" width={52} height={52} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📍'}
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</span>
@@ -554,7 +508,7 @@ export default function GlobalHomeView() {
                 {searchResults.events.map((ev) => (
                   <button key={`se-${ev.id}`} onClick={() => handleEventTap(ev)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 0', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
                     <span style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', background: '#e8f5ef', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-                      {ev.img_url || ev.img ? <img src={ev.img_url || ev.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🎟️'}
+                      {ev.img_url || ev.img ? <img src={getThumbUrl(ev.img_url || ev.img, 200)} alt="" width={52} height={52} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🎟️'}
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</span>
@@ -573,7 +527,7 @@ export default function GlobalHomeView() {
                   return (
                     <button key={`sx-${exp.id}`} onClick={() => navigate(`/revista/${exp.city_slug || ''}/${createSlug(exp.title || '')}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 0', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
                       <span style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', background: '#e8f5ef', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-                        {typeof img === 'string' && img ? <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📝'}
+                        {typeof img === 'string' && img ? <img src={getThumbUrl(img, 200)} alt="" width={52} height={52} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📝'}
                       </span>
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{exp.title}</span>
@@ -605,73 +559,48 @@ export default function GlobalHomeView() {
                       onClick={() => navigate(`/${city.slug}`)}
                       style={{ flex: '0 0 168px', position: 'relative', height: 132, borderRadius: 16, overflow: 'hidden', border: 'none', padding: 0, cursor: 'pointer', background: '#111', textAlign: 'left' }}
                     >
-                      {city.bg_image && <img src={city.bg_image} alt={city.name} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                      {city.bg_image && <OptimizedImage src={city.bg_image} alt={city.name} widthRequest={400} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.65), transparent 60%)' }} />
-                      <span style={{ position: 'absolute', left: 12, bottom: popCounts[city.slug] ? 26 : 10, color: '#fff', fontSize: 16, fontWeight: 800 }}>{city.name}</span>
-                      {popCounts[city.slug] && (
-                        <span style={{ position: 'absolute', left: 12, bottom: 8, color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 600 }}>{popCounts[city.slug].biz} negocios · {popCounts[city.slug].ev} eventos</span>
-                      )}
+                      {/* bottom fijo en 26 y línea de conteos siempre reservada:
+                          antes el nombre saltaba de bottom 10 a 26 cuando llegaban
+                          los conteos (parte del CLS 0.707) */}
+                      <span style={{ position: 'absolute', left: 12, bottom: 26, color: '#fff', fontSize: 16, fontWeight: 800 }}>{city.name}</span>
+                      <span style={{ position: 'absolute', left: 12, bottom: 8, color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 600 }}>{popCounts[city.slug] ? `${popCounts[city.slug].biz} negocios · ${popCounts[city.slug].ev} eventos` : ' '}</span>
                     </button>
                   ))}
                 </div>
               </section>
             )}
 
-            {/* Lo más reciente */}
-            <section style={{ marginBottom: 32 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Lo más reciente en CityMap</h2>
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 14, scrollbarWidth: 'none' }}>
-                {FEED_FILTERS.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => { setFeedFilter(f.id); setVisibleFeed(FEED_STEP); }}
-                    style={{ flex: '0 0 auto', padding: '9px 20px', borderRadius: 999, border: 'none', background: feedFilter === f.id ? '#111' : (dark ? '#1e1e1e' : '#f1f1f1'), color: feedFilter === f.id ? '#fff' : T.text, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-              {shownFeed.length === 0 ? (
-                <p style={{ color: T.sub }}>No encontramos nada con ese filtro.</p>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-                  {shownFeed.map((item) => (
-                    <article
-                      key={item.key}
-                      onClick={() => openItem(item)}
-                      style={{ borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
-                    >
-                      <div style={{ position: 'relative', height: 168, background: 'linear-gradient(135deg,#111,#333)' }}>
-                        {item.img
-                          ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={600} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{item.kind === 'eventos' ? '🎟️' : item.kind === 'articulos' ? '📝' : '📍'}</div>}
-                        <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>{item.badge}</span>
-                        <button
-                          aria-label="Guardar"
-                          onClick={(e) => toggleSave(e, item)}
-                          style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
-                        >
-                          <Icon name={isSaved(item) ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
-                        </button>
-                      </div>
-                      <div style={{ padding: '12px 14px 16px' }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{item.title}</h3>
-                        <p style={{ fontSize: 13, color: T.sub, margin: 0, lineHeight: 1.45 }}>
-                          {item.kind === 'eventos' ? `📅 ${fmtDate(item.raw.date)}${item.subtitle.includes('·') ? ` · ${item.subtitle.split('·').slice(1).join('·').trim()}` : ''}` : item.subtitle}
-                        </p>
-                      </div>
-                    </article>
-                  ))}
+            {/* Próximos eventos: hilera deslizable, los más cercanos primero */}
+            {upcomingEvents.length > 0 && (
+              <section style={{ marginBottom: 32 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Próximos eventos</h2>
+                <div onScroll={onRowScroll(upcomingEvents, eventsShown, setEventsShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                  {upcomingEvents.slice(0, eventsShown).map((item, idx) => renderCard(item, idx))}
                 </div>
-              )}
-              {(visibleFeed < filteredFeed.length || (!query && !homeCat && hasMoreBiz && feedFilter !== 'eventos' && feedFilter !== 'articulos')) && (
-                <div style={{ textAlign: 'center', marginTop: 22 }}>
-                  <button onClick={loadMoreFeed} disabled={loadingMore} style={{ padding: '12px 28px', borderRadius: 999, border: 0, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, cursor: loadingMore ? 'wait' : 'pointer', opacity: loadingMore ? 0.7 : 1 }}>
-                    {loadingMore ? 'Cargando...' : 'Cargar más'}
-                  </button>
+              </section>
+            )}
+
+            {/* Lugares increíbles: puntos de interés, unidades deportivas y playas */}
+            {placesList.length > 0 && (
+              <section style={{ marginBottom: 32 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Lugares increíbles</h2>
+                <div onScroll={onRowScroll(placesList, placesShown, setPlacesShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                  {placesList.slice(0, placesShown).map((item, idx) => renderCard(item, idx))}
                 </div>
-              )}
-            </section>
+              </section>
+            )}
+
+            {/* Restaurantes que debes conocer: los mejor calificados */}
+            {restaurantsList.length > 0 && (
+              <section style={{ marginBottom: 32 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Restaurantes que debes conocer</h2>
+                <div onScroll={onRowScroll(restaurantsList, restShown, setRestShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                  {restaurantsList.slice(0, restShown).map((item, idx) => renderCard(item, idx))}
+                </div>
+              </section>
+            )}
 
             {/* Guías y artículos */}
             {experiences.length > 0 && (

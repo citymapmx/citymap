@@ -141,7 +141,9 @@ export default memo(function HomeHero({
                 <img 
                   src="/citymap.mx.png" 
                   alt="CityMap" 
-                  style={{ height: 38, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", display: "block", margin: "0 auto" }} 
+                  width={127}
+                  height={38}
+                  style={{ height: 38, width: 127, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", display: "block", margin: "0 auto" }} 
                 />
               </div>
               <style>{`

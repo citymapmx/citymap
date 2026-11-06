@@ -265,6 +265,10 @@ export default function CityGuide() {
   const [requireCitySelection, setRequireCitySelection] = useState(() => !initialParams.current.citySlug && !["lealtad", "wallet", "scan"].includes(initialView) && window.location.pathname !== "/");
   const [hasOnboarded, setHasOnboarded] = useState(() => localStorage.getItem('citymap_onboarded') === 'true');
   const lastScrollY = useRef(0);
+  // Sección pendiente tras elegir ciudad en el muro global: cuando se toca
+  // Eventos/Mapa/Revista en "/" se abre el seleccionador y, al elegir la
+  // ciudad, se abre esa sección en esa ciudad (no la ciudad guardada).
+  const pendingSectionRef = useRef(null);
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
@@ -551,7 +555,28 @@ useEffect(() => {
   useAppSEO({ city });
 
   // ── HISTORY API & NAVIGATION ──────────────────────────────────────────────
-  const navigate = v => { 
+  // Secciones del menú que dependen de una ciudad (Eventos, Mapa, Revista).
+  const CITY_SECTIONS = ['map', 'mapa', 'events', 'eventos', 'explorar', 'mis-planes', 'revista', 'experiencias'];
+  // Abre una sección (Eventos/Mapa/Revista) en la ciudad indicada: se usa al
+  // elegir ciudad en el seleccionador desde el muro global.
+  const goToSectionInCity = (v, citySlug) => {
+    const path = v === 'map' || v === 'mapa' ? `/mapa/${citySlug}`
+      : v === 'events' || v === 'eventos' || v === 'explorar' ? `/eventos/${citySlug}`
+      : `/revista/${citySlug}`;
+    routerNavigate(path, { viewTransition: true });
+    setFade(true);
+    window.scrollTo(0, 0);
+  };
+  const navigate = v => {
+    // En el muro global ("/") no hay ciudad elegida en esta visita: una
+    // sección que depende de ciudad pide primero el seleccionador y al
+    // elegirla abre esa sección en esa ciudad, en vez de saltar a la
+    // ciudad guardada en el teléfono sin preguntar.
+    if (location.pathname === '/' && CITY_SECTIONS.includes(v)) {
+      pendingSectionRef.current = v;
+      setShowCountryPicker(true);
+      return;
+    }
     const city = activeCity || "";
     const cityPrefix = buildCityPath(city, cities); // e.g. "/cancun" or "/mx/cancun"
     let path = cityPrefix;
@@ -1200,10 +1225,10 @@ useEffect(() => {
             show={showCountryPicker || (requireCitySelection && hasOnboarded)}
             cities={cities} 
             activeCity={activeCity} 
-            onSelectCity={(city) => { handleCitySelect(city); setRequireCitySelection(false); setShowCountryPicker(false); }} 
-            onDetectCity={() => { if (!locating) detectCity({ showToast: true, onDone: (slug) => { const found = cities.find(c => c.slug === slug); if (found) handleCitySelect(found); setRequireCitySelection(false); } }); setShowCountryPicker(false); }}
+            onSelectCity={(city) => { handleCitySelect(city); setRequireCitySelection(false); setShowCountryPicker(false); const pending = pendingSectionRef.current; pendingSectionRef.current = null; if (pending && city?.slug) goToSectionInCity(pending, city.slug); }} 
+            onDetectCity={() => { if (!locating) detectCity({ showToast: true, onDone: (slug) => { const found = cities.find(c => c.slug === slug); if (found) handleCitySelect(found); setRequireCitySelection(false); const pending = pendingSectionRef.current; pendingSectionRef.current = null; if (pending && slug) goToSectionInCity(pending, slug); } }); setShowCountryPicker(false); }}
             locating={locating}
-            onClose={() => { if(!requireCitySelection) setShowCountryPicker(false); }} 
+            onClose={() => { if(!requireCitySelection) { pendingSectionRef.current = null; setShowCountryPicker(false); } }} 
             dark={dark}
             isWelcome={requireCitySelection} 
           />
@@ -1329,8 +1354,11 @@ useEffect(() => {
                 src="/citymap.mx.png" 
                 alt="CityMap" 
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                width={113}
+                height={34}
                 style={{ 
                   height: 34, 
+                  width: 113,
                   objectFit: "contain",
                   cursor: "pointer",
                   filter: !dark ? "brightness(0)" : "drop-shadow(0 2px 8px rgba(56, 189, 248, 0.3))" 
