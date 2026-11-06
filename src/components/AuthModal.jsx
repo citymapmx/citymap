@@ -23,6 +23,7 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
 
   const dialogRef = useRef(null);
   const googleBtnRef = useRef(null);
+  const recaptchaPromiseRef = useRef(null);
   const [gisRendered, setGisRendered] = useState(false);
 
   const isNativeApp = Capacitor.isNativePlatform();
@@ -33,9 +34,32 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
   const pwAllValid = pwResults.every(r => r.ok);
   const showPwHints = authMode === "register" && pw.length > 0;
 
-  /* ── reCAPTCHA v3 invisible ── */
+  /* ── reCAPTCHA v3 invisible: se carga solo cuando se abre el login/registro,
+     no en cada carga de la página (antes se cargaba global en index.html y
+     costaba ~700 KB + 700 ms en el hilo principal) ── */
+  const loadRecaptcha = () => {
+    if (window.grecaptcha?.execute) return Promise.resolve(true);
+    if (recaptchaPromiseRef.current) return recaptchaPromiseRef.current;
+    recaptchaPromiseRef.current = new Promise((resolve) => {
+      const s = document.createElement('script');
+      s.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+      s.async = true;
+      s.defer = true;
+      s.onload = () => {
+        if (window.grecaptcha?.ready) window.grecaptcha.ready(() => resolve(true));
+        else resolve(!!window.grecaptcha?.execute);
+      };
+      s.onerror = () => resolve(false);
+      document.head.appendChild(s);
+      // No bloquear el login si el script tarda: fail-open a los 8 s
+      setTimeout(() => resolve(!!window.grecaptcha?.execute), 8000);
+    });
+    return recaptchaPromiseRef.current;
+  };
+
   const getRecaptchaToken = async (action = 'auth') => {
     try {
+      await loadRecaptcha();
       if (window.grecaptcha?.execute) {
         return await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
       }
@@ -64,6 +88,9 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
       setGisRendered(false);
       return;
     }
+
+    // Precargar reCAPTCHA en segundo plano para que esté listo al enviar
+    loadRecaptcha();
 
     const initGsi = () => {
       if (window.google?.accounts?.id && googleBtnRef.current) {

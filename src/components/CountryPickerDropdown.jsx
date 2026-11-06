@@ -205,7 +205,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
         {isWelcome ? (
           <div style={{ padding: "0 0 24px 0", textAlign: "center", position: "relative", flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
-              <img src="/citymap.mx.png" alt="CityMap" style={{ height: 40, filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
+              <img src="/citymap.mx.png" alt="CityMap" width={133} height={40} style={{ height: 40, width: 133, filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
             </div>
             <div style={{ textAlign: 'center', padding: '0 32px', marginBottom: 24 }}>
               <h1 style={{ fontSize: 32, fontWeight: 900, color: dark ? "#fff" : "#0f172a", lineHeight: 1.1, margin: '0 0 16px 0', letterSpacing: '-1px' }}>
@@ -221,7 +221,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
           </div>
         ) : (
           <div onTouchMove={e => e.preventDefault()} style={{ padding: '24px 20px', borderBottom: `1px solid ${dark ? T.border : '#F1F5F9'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0 }}>
-            <img src="/citymap.mx.png" alt="CityMap" style={{ height: 32, filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
+            <img src="/citymap.mx.png" alt="CityMap" width={107} height={32} style={{ height: 32, width: 107, filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
             <button onClick={onClose} style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: dark ? "#f8fafc" : "#0f172a" }}>
               <Icon name="x" size={24} color={dark ? "#f8fafc" : "#0f172a"} />
             </button>

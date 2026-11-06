@@ -3,7 +3,7 @@ import { useAppContext } from '../context/AppContext';
 import { useDataStore } from '../store/useDataStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
-import { createSlug } from '../lib/utils.js';
+import { createSlug, getThumbUrl } from '../lib/utils.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
@@ -374,7 +374,9 @@ export default function GlobalHomeView() {
                 <img
                   src="/citymap.mx.png"
                   alt="CityMap"
-                  style={{ height: 38, objectFit: 'contain', filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)', display: 'block', margin: '0 auto' }}
+                  width={127}
+                  height={38}
+                  style={{ height: 38, width: 127, objectFit: 'contain', filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)', display: 'block', margin: '0 auto' }}
                 />
               </div>
               <style>{`
@@ -503,7 +505,20 @@ export default function GlobalHomeView() {
         )}
 
         {loading && (
-          <p style={{ color: T.sub, textAlign: 'center', padding: '32px 0' }}>Cargando lo mejor de todas las ciudades...</p>
+          /* Esqueleto con las mismas medidas de la sección "Explora por ciudad":
+             reserva el espacio mientras cargan las ciudades para que nada
+             brinque cuando aparecen (CLS 0.707 en PageSpeed) */
+          <section style={{ marginTop: 22, marginBottom: 30 }} aria-hidden="true">
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Explora por ciudad</h2>
+              <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, whiteSpace: 'nowrap' }}>Ver todas las ciudades →</span>
+            </div>
+            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} style={{ flex: '0 0 168px', height: 132, borderRadius: 16, background: dark ? '#1e1e1e' : '#f1f1f1' }} />
+              ))}
+            </div>
+          </section>
         )}
         {error && !loading && (
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
@@ -525,7 +540,7 @@ export default function GlobalHomeView() {
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {searchResults.cities.map((c) => (
                     <button key={c.slug} onClick={() => navigate(`/${c.slug}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px 8px 8px', borderRadius: 999, border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer' }}>
-                      {c.bg_image && <img src={c.bg_image} alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />}
+                      {c.bg_image && <img src={getThumbUrl(c.bg_image, 100)} alt="" width={30} height={30} style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />}
                       <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{c.name}</span>
                     </button>
                   ))}
@@ -538,7 +553,7 @@ export default function GlobalHomeView() {
                 {searchResults.biz.map((b) => (
                   <button key={`sb-${b.id}`} onClick={() => handleCardTap(b)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 0', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
                     <span style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', background: '#e8f5ef', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-                      {bizImage(b) ? <img src={bizImage(b)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📍'}
+                      {bizImage(b) ? <img src={getThumbUrl(bizImage(b), 200)} alt="" width={52} height={52} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📍'}
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</span>
@@ -554,7 +569,7 @@ export default function GlobalHomeView() {
                 {searchResults.events.map((ev) => (
                   <button key={`se-${ev.id}`} onClick={() => handleEventTap(ev)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 0', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
                     <span style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', background: '#e8f5ef', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-                      {ev.img_url || ev.img ? <img src={ev.img_url || ev.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🎟️'}
+                      {ev.img_url || ev.img ? <img src={getThumbUrl(ev.img_url || ev.img, 200)} alt="" width={52} height={52} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🎟️'}
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</span>
@@ -573,7 +588,7 @@ export default function GlobalHomeView() {
                   return (
                     <button key={`sx-${exp.id}`} onClick={() => navigate(`/revista/${exp.city_slug || ''}/${createSlug(exp.title || '')}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 0', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
                       <span style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', background: '#e8f5ef', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-                        {typeof img === 'string' && img ? <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📝'}
+                        {typeof img === 'string' && img ? <img src={getThumbUrl(img, 200)} alt="" width={52} height={52} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📝'}
                       </span>
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{exp.title}</span>
@@ -605,12 +620,13 @@ export default function GlobalHomeView() {
                       onClick={() => navigate(`/${city.slug}`)}
                       style={{ flex: '0 0 168px', position: 'relative', height: 132, borderRadius: 16, overflow: 'hidden', border: 'none', padding: 0, cursor: 'pointer', background: '#111', textAlign: 'left' }}
                     >
-                      {city.bg_image && <img src={city.bg_image} alt={city.name} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                      {city.bg_image && <OptimizedImage src={city.bg_image} alt={city.name} widthRequest={400} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.65), transparent 60%)' }} />
-                      <span style={{ position: 'absolute', left: 12, bottom: popCounts[city.slug] ? 26 : 10, color: '#fff', fontSize: 16, fontWeight: 800 }}>{city.name}</span>
-                      {popCounts[city.slug] && (
-                        <span style={{ position: 'absolute', left: 12, bottom: 8, color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 600 }}>{popCounts[city.slug].biz} negocios · {popCounts[city.slug].ev} eventos</span>
-                      )}
+                      {/* bottom fijo en 26 y línea de conteos siempre reservada:
+                          antes el nombre saltaba de bottom 10 a 26 cuando llegaban
+                          los conteos (parte del CLS 0.707) */}
+                      <span style={{ position: 'absolute', left: 12, bottom: 26, color: '#fff', fontSize: 16, fontWeight: 800 }}>{city.name}</span>
+                      <span style={{ position: 'absolute', left: 12, bottom: 8, color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 600 }}>{popCounts[city.slug] ? `${popCounts[city.slug].biz} negocios · ${popCounts[city.slug].ev} eventos` : ' '}</span>
                     </button>
                   ))}
                 </div>
@@ -635,7 +651,7 @@ export default function GlobalHomeView() {
                 <p style={{ color: T.sub }}>No encontramos nada con ese filtro.</p>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-                  {shownFeed.map((item) => (
+                  {shownFeed.map((item, idx) => (
                     <article
                       key={item.key}
                       onClick={() => openItem(item)}
@@ -643,7 +659,7 @@ export default function GlobalHomeView() {
                     >
                       <div style={{ position: 'relative', height: 168, background: 'linear-gradient(135deg,#111,#333)' }}>
                         {item.img
-                          ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={600} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={400} priority={idx === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{item.kind === 'eventos' ? '🎟️' : item.kind === 'articulos' ? '📝' : '📍'}</div>}
                         <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>{item.badge}</span>
                         <button
@@ -695,7 +711,7 @@ export default function GlobalHomeView() {
                       >
                         <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>
                           {typeof img === 'string' && img
-                            ? <OptimizedImage src={img} alt={exp.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            ? <OptimizedImage src={img} alt={exp.title || ''} widthRequest={400} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>📝</div>}
                           <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>Guía</span>
                           <button

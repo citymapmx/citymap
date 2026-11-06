@@ -467,7 +467,9 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
             <img
               src="/citymap.mx.png"
               alt="CityMap"
-              style={{ height: 38, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", display: "block" }}
+              width={127}
+              height={38}
+              style={{ height: 38, width: 127, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", display: "block" }}
             />
             <span style={{ 
               fontSize: 10, 

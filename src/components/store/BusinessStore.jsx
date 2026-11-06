@@ -804,7 +804,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               Aviso legal: Los precios, imágenes y descripciones son administrados por cada negocio y pueden cambiar. CityMap no se responsabiliza por diferencias al momento de la compra.
             </p>
             <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', opacity: 1 }}>
-              <img src="/citymap.mx.png" alt="CityMap" style={{ height: 60, filter: "brightness(0)" }} />
+              <img src="/citymap.mx.png" alt="CityMap" width={200} height={60} style={{ height: 60, width: 200, filter: "brightness(0)" }} />
             </div>
           </div>
         )}

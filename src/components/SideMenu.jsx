@@ -54,7 +54,7 @@ export default function SideMenu({ isOpen, onClose, T, dark, navigate, routerNav
             }}
           >
             <div style={{ padding: '24px 20px', borderBottom: `1px solid ${dark ? T.border : '#F1F5F9'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-              <img src="/citymap.mx.png" alt="CityMap" style={{ height: 40, filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
+              <img src="/citymap.mx.png" alt="CityMap" width={133} height={40} style={{ height: 40, width: 133, filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
               <button aria-label="Cerrar menú" onClick={onClose} style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: T.text }}>
                 <Icon name="x" size={24} color={T.text} />
               </button>

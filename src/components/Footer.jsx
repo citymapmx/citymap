@@ -28,7 +28,7 @@ export default function Footer() {
         
         {/* Brand Info */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src="/citymap.mx.png" alt="CityMap" style={{ height: 32, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", marginBottom: 16 }} />
+          <img src="/citymap.mx.png" alt="CityMap" width={107} height={32} style={{ height: 32, width: 107, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", marginBottom: 16 }} />
           <p style={{ fontSize: 13, color: T.sub, margin: "0 0 20px 0", lineHeight: 1.6, maxWidth: 350 }}>
             Tu guía local para descubrir lo mejor de la ciudad. Encuentra lugares increíbles, eventos y experiencias cerca de ti.
           </p>

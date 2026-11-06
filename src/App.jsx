@@ -1329,8 +1329,11 @@ useEffect(() => {
                 src="/citymap.mx.png" 
                 alt="CityMap" 
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                width={113}
+                height={34}
                 style={{ 
                   height: 34, 
+                  width: 113,
                   objectFit: "contain",
                   cursor: "pointer",
                   filter: !dark ? "brightness(0)" : "drop-shadow(0 2px 8px rgba(56, 189, 248, 0.3))" 
