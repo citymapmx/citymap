@@ -118,6 +118,8 @@ export default function MapView() {
               <img
                 src="/citymap.mx.png"
                 alt="CityMap"
+                width={127}
+                height={38}
                 style={{ height: 38, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", display: "block", margin: "0 auto 4px" }}
               />
               <p className="exp-subtitle-anim section-category-subtitle" style={{ margin: 0, fontSize: 13, fontWeight: 600, color: T.sub, lineHeight: 1.4 }}>
