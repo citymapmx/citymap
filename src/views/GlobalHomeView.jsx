@@ -4,6 +4,7 @@ import { useDataStore } from '../store/useDataStore.js';
 import { sb } from '../lib/supabase.js';
 import { createSlug } from '../lib/utils.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
+import Icon from '../components/ui/Icon.jsx';
 import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
 import SlidingCategoryTrack from '../components/ui/SlidingCategoryTrack.jsx';
 import Footer from '../components/Footer.jsx';
@@ -425,7 +426,7 @@ export default function GlobalHomeView() {
               <div className="hero-search-magic-container">
                 <div className="hero-search-magic-inner"></div>
               </div>
-              <DebouncedSearchBar initialValue={query} onSearch={(v) => { setQuery(v); setVisibleFeed(FEED_STEP); }} placeholder="Buscar negocios, lugares, artículos y eventos" dark={dark} />
+              <DebouncedSearchBar initialValue={query} onSearch={(v) => { setQuery(v); setVisibleFeed(FEED_STEP); }} placeholder="Buscar en CityMap" dark={dark} />
             </div>
 
             {!query && (
@@ -621,9 +622,9 @@ export default function GlobalHomeView() {
                         <button
                           aria-label="Guardar"
                           onClick={(e) => toggleSave(e, item)}
-                          style={{ position: 'absolute', top: 8, right: 8, width: 34, height: 34, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.45)', color: isSaved(item) ? '#ff4d6d' : '#fff', fontSize: 17, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
                         >
-                          {isSaved(item) ? '♥' : '♡'}
+                          <Icon name={isSaved(item) ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
                         </button>
                       </div>
                       <div style={{ padding: '12px 14px 16px' }}>

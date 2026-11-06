@@ -42,7 +42,7 @@ export default function DebouncedSearchBar({ initialValue, onSearch, placeholder
         onChange={event => setLocalSearch(event.target.value)}
         onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); submit(event.currentTarget.value.trim()); } }}
       />
-      {!localSearch && <span aria-hidden="true" style={{gridArea:'1 / 1',alignSelf:'center',minWidth:0,padding:'12px 16px 12px 44px',zIndex:4,pointerEvents:'none',fontSize:'clamp(14px, 3.8vw, 16px)',fontWeight:500,lineHeight:'20px',whiteSpace:'normal',overflowWrap:'anywhere',color:dark?'#A1A1AA':'#6B7280'}}>{focusedPlaceholder || placeholder}</span>}
+      {!localSearch && <span aria-hidden="true" style={{gridArea:'1 / 1',alignSelf:'center',minWidth:0,maxWidth:'100%',padding:'12px 16px 12px 44px',zIndex:4,pointerEvents:'none',fontSize:'clamp(14px, 3.8vw, 16px)',fontWeight:500,lineHeight:'20px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',color:dark?'#A1A1AA':'#6B7280'}}>{focusedPlaceholder || placeholder}</span>}
       <span style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", zIndex: 5, pointerEvents: "none", display: "flex" }}>
         <Icon name="search" size={19} color={dark ? "#A1A1AA" : "#6B7280"} />
       </span>
