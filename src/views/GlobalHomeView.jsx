@@ -607,9 +607,6 @@ export default function GlobalHomeView() {
                           ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={600} priority={idx === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{item.kind === 'eventos' ? '🎟️' : item.kind === 'articulos' ? '📝' : '📍'}</div>}
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)' }} />
-                        {feedFilter !== 'eventos' && (
-                          <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>{item.badge}</span>
-                        )}
                         <button
                           aria-label="Guardar"
                           onClick={(e) => toggleSave(e, item)}
@@ -623,7 +620,11 @@ export default function GlobalHomeView() {
                           <div style={{ position: 'absolute', left: 12, right: 12, bottom: 10 }}>
                             <h3 style={{ fontSize: 15, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: '0 0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h3>
                             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {item.kind === 'eventos' ? `📅 ${fmtDate(item.raw.date)}${item.subtitle.includes('·') ? ` · ${item.subtitle.split('·').slice(1).join('·').trim()}` : ''}` : item.subtitle}
+                              {item.kind === 'eventos'
+                                ? `📅 ${fmtDate(item.raw.date)}${item.subtitle.includes('·') ? ` · ${item.subtitle.split('·').slice(1).join('·').trim()}` : ''}`
+                                : (item.kind === 'negocios' || item.kind === 'lugares')
+                                  ? (cityBySlug.get(item.citySlug)?.name || '')
+                                  : item.subtitle}
                             </p>
                           </div>
                         )}
