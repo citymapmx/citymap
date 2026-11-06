@@ -16,6 +16,9 @@ function flagEmoji(code) {
   return String.fromCodePoint(...[...code.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)));
 }
 
+const BIZ_PAGE = 60;
+const FEED_STEP = 12;
+
 // Categorías del inicio, como en las páginas de ciudad.
 const HOME_CATS = [
   { id: 'restaurantes', label: 'Restaurantes' },
@@ -334,7 +337,7 @@ export default function GlobalHomeView() {
       const isFav = guestFavIds.includes(item.raw.id);
       const nw = isFav ? guestFavIds.filter((x) => x !== item.raw.id) : [...guestFavIds, item.raw.id];
       setGuestFavIds(nw);
-      try { localStorage.setItem('cg_guest_favs', JSON.stringify(nw)); } catch {}
+      try { localStorage.setItem('cg_guest_favs', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ }
       if (toast$) toast$(isFav ? 'Eliminado de favoritos' : 'Guardado en favoritos en este dispositivo');
       return;
     }
@@ -343,14 +346,14 @@ export default function GlobalHomeView() {
       const ids = savedEventIds || [];
       const nw = ids.includes(item.raw.id) ? ids.filter((x) => x !== item.raw.id) : [...ids, item.raw.id];
       setSavedEventIds?.(nw);
-      try { localStorage.setItem('cg_saved_ev', JSON.stringify(nw)); } catch {}
+      try { localStorage.setItem('cg_saved_ev', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ }
       return;
     }
     if (!setSavedExpIds) return;
     const ids = savedExpIds || [];
     const nw = ids.includes(item.raw.id) ? ids.filter((x) => x !== item.raw.id) : [...ids, item.raw.id];
     setSavedExpIds(nw);
-    try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch {}
+    try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ }
   };
 
   const fmtDate = (d) => {
@@ -740,7 +743,7 @@ export default function GlobalHomeView() {
                           <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>Guía</span>
                           <button
                             aria-label="Guardar"
-                            onClick={(e) => { e.stopPropagation(); const ids = savedExpIds || []; const nw = ids.includes(exp.id) ? ids.filter((x) => x !== exp.id) : [...ids, exp.id]; setSavedExpIds?.(nw); try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch {} }}
+                            onClick={(e) => { e.stopPropagation(); const ids = savedExpIds || []; const nw = ids.includes(exp.id) ? ids.filter((x) => x !== exp.id) : [...ids, exp.id]; setSavedExpIds?.(nw); try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ } }}
                             style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
                           >
                             <Icon name={saved ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
