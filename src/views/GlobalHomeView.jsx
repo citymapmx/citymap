@@ -36,6 +36,77 @@ function bizImage(b) {
   return b.banner_url || b.logo_url || null;
 }
 
+// Buscador del muro en su propio componente: el placeholder con máquina de
+// escribir cambia cada ~75 ms y así solo se vuelve a dibujar esta zona,
+// no todo el muro.
+function HeroSearchBar({ dark, query, setQuery }) {
+  const { detectCity, locating, navigate } = useAppContext();
+  const handleLocate = () => {
+    if (locating) return;
+    // Igual que "Encontrar lugares cerca de mí" del seleccionador de ciudad:
+    // detecta por GPS, actualiza la ciudad activa y abre esa ciudad.
+    detectCity({
+      showToast: true,
+      onDone: (slug) => { if (slug) navigate(`/${slug}`); },
+    });
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: query ? 76 : 20, zIndex: 10 }}>
+      <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+        <style>{`
+          .hero-search-magic-container {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 100px;
+            overflow: hidden;
+            z-index: 1;
+            pointer-events: none;
+          }
+          .hero-search-magic-inner {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 100px;
+            background: ${dark ? '#2D2D31' : '#F8FAFC'};
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow: ${dark ? 'inset 0 1px 1px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.1)' : 'inset 0 1px 2px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.02)'};
+            z-index: 2;
+            border: ${dark ? '1px solid #3F3F46' : '1px solid #ECEFF2'};
+          }
+          .hero-search-input {
+            position: relative;
+            z-index: 3;
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            background: transparent !important;
+            color: ${dark ? '#F4F4F5' : '#111'} !important;
+          }
+          .hero-search-input::placeholder {
+            color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
+            -webkit-text-fill-color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
+            opacity: 1;
+            letter-spacing: 0.2px;
+          }
+          .hero-search-input:focus {
+            outline: 2px solid ${dark ? '#A1A1AA' : '#71717A'} !important;
+            outline-offset: 2px;
+            box-shadow: none !important;
+          }
+        `}</style>
+        <div className="hero-search-magic-container">
+          <div className="hero-search-magic-inner"></div>
+        </div>
+        <DebouncedSearchBar initialValue={query} onSearch={(v) => setQuery(v)} placeholder="Buscar en CityMap" dark={dark} />
+      </div>
+
+      {!query && (
+        <button type="button" aria-label="Encontrar lugares cerca de mí" title="Cerca de mí" disabled={locating} onClick={handleLocate}
+          style={{ width: 44, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: locating ? 'default' : 'pointer', fontSize: 23, opacity: locating ? 0.5 : 1 }}>📍</button>
+      )}
+    </div>
+  );
+}
+
 export default function GlobalHomeView() {
   const { T, dark, user, toast$, handleCardTap, handleEventTap, navigate, favIds, toggleFav, globalFavCounts, savedEventIds, setSavedEventIds, savedExpIds, setSavedExpIds, toggleSaveEvent } = useAppContext();
   const setShowAuth = useAuthStore((s) => s.setShowAuth);
@@ -134,7 +205,9 @@ export default function GlobalHomeView() {
   // Etapa 2: buscador global en vivo (Supabase, todas las ciudades).
   // DebouncedSearchBar ya espera 300 ms antes de avisar, así que aquí se busca directo.
   useEffect(() => {
-    const q = query.trim();
+    // Si el usuario escribe lo que sugiere el buscador ("Buscar tacos"),
+    // se quita el verbo para buscar solo el término: "tacos".
+    const q = query.trim().replace(/^(buscar|busca)\s+/i, '').trim();
     if (q.length < 2) { setSearchResults(null); setSearching(false); return; }
     setSearching(true);
     let cancelled = false;
@@ -385,60 +458,7 @@ export default function GlobalHomeView() {
             </div>
           )}
 
-          {/* Buscador, igual que en las ciudades */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: query ? 76 : 20, zIndex: 10 }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-              <style>{`
-                .hero-search-magic-container {
-                  position: absolute;
-                  top: 0; left: 0; right: 0; bottom: 0;
-                  border-radius: 100px;
-                  overflow: hidden;
-                  z-index: 1;
-                  pointer-events: none;
-                }
-                .hero-search-magic-inner {
-                  position: absolute;
-                  top: 0; left: 0; right: 0; bottom: 0;
-                  border-radius: 100px;
-                  background: ${dark ? '#2D2D31' : '#F8FAFC'};
-                  backdrop-filter: blur(24px);
-                  -webkit-backdrop-filter: blur(24px);
-                  box-shadow: ${dark ? 'inset 0 1px 1px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.1)' : 'inset 0 1px 2px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.02)'};
-                  z-index: 2;
-                  border: ${dark ? '1px solid #3F3F46' : '1px solid #ECEFF2'};
-                }
-                .hero-search-input {
-                  position: relative;
-                  z-index: 3;
-                  -webkit-appearance: none !important;
-                  appearance: none !important;
-                  background: transparent !important;
-                  color: ${dark ? '#F4F4F5' : '#111'} !important;
-                }
-                .hero-search-input::placeholder {
-                  color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
-                  -webkit-text-fill-color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
-                  opacity: 1;
-                  letter-spacing: 0.2px;
-                }
-                .hero-search-input:focus {
-                  outline: 2px solid ${dark ? '#A1A1AA' : '#71717A'} !important;
-                  outline-offset: 2px;
-                  box-shadow: none !important;
-                }
-              `}</style>
-              <div className="hero-search-magic-container">
-                <div className="hero-search-magic-inner"></div>
-              </div>
-              <DebouncedSearchBar initialValue={query} onSearch={(v) => setQuery(v)} placeholder="Buscar en CityMap" dark={dark} />
-            </div>
-
-            {!query && (
-              <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={() => { if (feed.length > 0) openItem(feed[Math.floor(Math.random() * feed.length)]); }}
-                style={{ width: 44, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: 'pointer', fontSize: 23 }}>🎲</button>
-            )}
-          </div>
+          <HeroSearchBar dark={dark} query={query} setQuery={setQuery} />
 
         </div>
       </div>
