@@ -53,6 +53,9 @@ export default function GlobalHomeView() {
   const [events, setEvents] = useState([]);
   const [experiences, setExperiences] = useState([]);
   const [allCities, setAllCities] = useState([]);
+  const [popCounts, setPopCounts] = useState({});
+  const [searchResults, setSearchResults] = useState(null);
+  const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -89,7 +92,20 @@ export default function GlobalHomeView() {
         });
         setEvents(evRows.slice(0, 12));
         setExperiences(Array.isArray(exRes) ? exRes : []);
-        setAllCities(Array.isArray(citiesRes) ? citiesRes : []);
+        const cityList = Array.isArray(citiesRes) ? citiesRes : [];
+        setAllCities(cityList);
+        // Popularidad por ciudad: negocios + eventos registrados (conteos exactos).
+        if (cityList.length > 0) {
+          Promise.all(cityList.map(async (c) => {
+            const [b, e] = await Promise.all([
+              sb.count('businesses', `?status=eq.approved&plan=neq.menu&city_slug=eq.${c.slug}`).catch(() => 0),
+              sb.count('events', `?status=eq.approved&city_slug=like.*${c.slug}*`).catch(() => 0),
+            ]);
+            return [c.slug, { biz: b, ev: e, total: b + e }];
+          })).then((entries) => {
+            if (!cancelled) setPopCounts(Object.fromEntries(entries));
+          });
+        }
       } catch (e) {
         console.warn('Error cargando muro global', e);
         if (!cancelled) setError(true);
@@ -105,6 +121,49 @@ export default function GlobalHomeView() {
     (allCities || []).forEach((c) => map.set(c.slug, c));
     return map;
   }, [allCities]);
+
+  // Ciudades ordenadas de la más popular a la menos: negocios + eventos registrados.
+  const sortedCities = useMemo(() => {
+    const list = [...(allCities || [])];
+    list.sort((a, b) => {
+      const pa = popCounts[a.slug]?.total ?? 0;
+      const pb = popCounts[b.slug]?.total ?? 0;
+      if (pb !== pa) return pb - pa;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+    return list;
+  }, [allCities, popCounts]);
+
+  // Etapa 2: buscador global en vivo (Supabase, todas las ciudades).
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) { setSearchResults(null); setSearching(false); return; }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      const enc = encodeURIComponent(q);
+      try {
+        const [b, e, x] = await Promise.all([
+          sb.get('businesses', `?select=id,name,slug,category,city_slug,photos,logo_url,banner_url,is_place,created_at&status=eq.approved&plan=neq.menu&or=(name.ilike.*${enc}*,category.ilike.*${enc}*,tagline.ilike.*${enc}*)&order=plan.desc,rating.desc.nullslast&limit=15`).catch(() => []),
+          sb.get('events', `?select=id,title,slug,date,venue_name,city_slug,img_url,img&status=eq.approved&title=ilike.*${enc}*&order=date.asc&limit=10`).catch(() => []),
+          sb.get('experiences', `?select=id,title,city_slug,gallery,created_at&status=eq.approved&title=ilike.*${enc}*&order=created_at.desc&limit=10`).catch(() => []),
+        ]);
+        const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const qn = norm(q);
+        setSearchResults({
+          cities: (allCities || []).filter((c) => norm(c.name).includes(qn)),
+          biz: Array.isArray(b) ? b : [],
+          events: Array.isArray(e) ? e : [],
+          exps: Array.isArray(x) ? x : [],
+        });
+      } catch (err) {
+        console.warn('Error en búsqueda global', err);
+        setSearchResults({ cities: [], biz: [], events: [], exps: [] });
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [query, allCities]);
 
   const heroImg = useMemo(() => {
     const gdl = (allCities || []).find((c) => c.slug === 'guadalajara' && c.bg_image);
@@ -253,7 +312,8 @@ export default function GlobalHomeView() {
     } catch { return d; }
   };
 
-  const shownCities = showAllCities ? allCities : allCities.slice(0, 5);
+  const shownCities = showAllCities ? sortedCities : sortedCities.slice(0, 5);
+  const isSearching = query.trim().length >= 2;
 
   return (
     <div style={{ background: dark ? 'transparent' : '#fff', minHeight: '100vh', paddingBottom: 90 }}>
@@ -319,7 +379,82 @@ export default function GlobalHomeView() {
           </div>
         )}
 
-        {!loading && !error && (
+        {!loading && !error && isSearching && (
+          <section style={{ marginTop: 22, marginBottom: 32 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 4px' }}>Resultados para “{query.trim()}”</h2>
+            <p style={{ fontSize: 13, color: T.sub, margin: '0 0 16px' }}>{searching ? 'Buscando en todas las ciudades...' : 'Buscamos en negocios, eventos y artículos de todas las ciudades.'}</p>
+            {searchResults && searchResults.cities.length === 0 && searchResults.biz.length === 0 && searchResults.events.length === 0 && searchResults.exps.length === 0 && !searching && (
+              <p style={{ color: T.sub }}>No encontramos nada con esa búsqueda. Prueba con otra palabra.</p>
+            )}
+            {searchResults && searchResults.cities.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>Ciudades</h3>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {searchResults.cities.map((c) => (
+                    <button key={c.slug} onClick={() => navigate(`/${c.slug}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px 8px 8px', borderRadius: 999, border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer' }}>
+                      {c.bg_image && <img src={c.bg_image} alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />}
+                      <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {searchResults && searchResults.biz.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>Negocios y lugares</h3>
+                {searchResults.biz.map((b) => (
+                  <button key={`sb-${b.id}`} onClick={() => handleCardTap(b)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 0', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
+                    <span style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', background: '#e8f5ef', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                      {bizImage(b) ? <img src={bizImage(b)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📍'}
+                    </span>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</span>
+                      <span style={{ display: 'block', fontSize: 13, color: T.sub }}>{b.category || 'Negocio'} · {cityBySlug.get(b.city_slug)?.name || ''}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {searchResults && searchResults.events.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>Eventos</h3>
+                {searchResults.events.map((ev) => (
+                  <button key={`se-${ev.id}`} onClick={() => handleEventTap(ev)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 0', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
+                    <span style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', background: '#e8f5ef', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                      {ev.img_url || ev.img ? <img src={ev.img_url || ev.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🎟️'}
+                    </span>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</span>
+                      <span style={{ display: 'block', fontSize: 13, color: T.sub }}>📅 {fmtDate(ev.date)}{ev.venue_name ? ` · ${ev.venue_name}` : ''}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {searchResults && searchResults.exps.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>Artículos y guías</h3>
+                {searchResults.exps.map((exp) => {
+                  const g = parseGallery(exp);
+                  const img = g[0]?.url || g[0] || null;
+                  return (
+                    <button key={`sx-${exp.id}`} onClick={() => navigate(`/revista/${exp.city_slug || ''}/${createSlug(exp.title || '')}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 0', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
+                      <span style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', background: '#e8f5ef', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                        {typeof img === 'string' && img ? <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📝'}
+                      </span>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{exp.title}</span>
+                        <span style={{ display: 'block', fontSize: 13, color: T.sub }}>Guía de viaje{cityBySlug.get(exp.city_slug)?.name ? ` · ${cityBySlug.get(exp.city_slug).name}` : ''}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+
+        {!loading && !error && !isSearching && (
           <>
             {/* Explora por ciudad */}
             {allCities.length > 0 && (
@@ -339,7 +474,10 @@ export default function GlobalHomeView() {
                     >
                       {city.bg_image && <img src={city.bg_image} alt={city.name} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.65), transparent 60%)' }} />
-                      <span style={{ position: 'absolute', left: 12, bottom: 10, color: '#fff', fontSize: 16, fontWeight: 800 }}>{city.name}</span>
+                      <span style={{ position: 'absolute', left: 12, bottom: popCounts[city.slug] ? 26 : 10, color: '#fff', fontSize: 16, fontWeight: 800 }}>{city.name}</span>
+                      {popCounts[city.slug] && (
+                        <span style={{ position: 'absolute', left: 12, bottom: 8, color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 600 }}>{popCounts[city.slug].biz} negocios · {popCounts[city.slug].ev} eventos</span>
+                      )}
                     </button>
                   ))}
                 </div>
