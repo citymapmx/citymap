@@ -1,0 +1,193 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { useAuthStore } from '../store/useAuthStore.js';
+import { sb } from '../lib/supabase.js';
+
+// Mismo cliente de Google que el botón de la web (AuthModal.jsx).
+// El botón oficial de Google (GIS) solo funciona sobre un origen https
+// autorizado (citymap.mx): por eso existe esta página. La app nativa la abre
+// en un Custom Tab y Google muestra "Ir a citymap.mx" en vez de la
+// dirección larga de Supabase; al terminar, la sesión vuelve a la app por
+// deep link (mx.citymap.app://login#access_token=...), que la app ya sabe
+// recibir (setSessionFromUrl + listener appUrlOpen).
+const GOOGLE_CLIENT_ID = "128467245162-fjpgeqiqhr4f0p5f430ti0v41jlmuovm.apps.googleusercontent.com";
+const APP_DEEP_LINK = 'mx.citymap.app://login';
+
+export default function AppLoginView({ T, dark, navigate }) {
+  const googleBtnRef = useRef(null);
+  const [gisReady, setGisReady] = useState(false);
+  const [gisTimedOut, setGisTimedOut] = useState(false);
+  const [status, setStatus] = useState('idle'); // idle | signing | done | error
+  const [error, setError] = useState('');
+  const [deepLink, setDeepLink] = useState('');
+  const handleGoogleIdToken = useAuthStore((s) => s.handleGoogleIdToken);
+
+  const fromApp = new URLSearchParams(window.location.search).get('from') === 'app';
+
+  useEffect(() => {
+    const initGsi = () => {
+      if (!window.google?.accounts?.id || !googleBtnRef.current) return false;
+      try {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: async (response) => {
+            if (!response?.credential) return;
+            setStatus('signing');
+            setError('');
+            const uid = await handleGoogleIdToken(response.credential);
+            if (!uid) {
+              setStatus('error');
+              setError('No se pudo iniciar sesión con Google. Inténtalo de nuevo.');
+              return;
+            }
+            if (fromApp) {
+              const at = localStorage.getItem('cg_t');
+              const rt = localStorage.getItem('cg_r');
+              if (!at) {
+                setStatus('error');
+                setError('Se inició sesión pero no se pudo pasar a la app. Inténtalo de nuevo.');
+                return;
+              }
+              const link = `${APP_DEEP_LINK}#access_token=${encodeURIComponent(at)}${rt ? `&refresh_token=${encodeURIComponent(rt)}` : ''}`;
+              setDeepLink(link);
+              setStatus('done');
+              window.location.href = link;
+            } else {
+              setStatus('done');
+              navigate('/');
+            }
+          },
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+
+        googleBtnRef.current.innerHTML = '';
+        const btnWidth = Math.min(Math.max((googleBtnRef.current.parentElement?.offsetWidth || 340) - 4, 280), 380);
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: dark ? 'filled_black' : 'outline',
+          size: 'large',
+          shape: 'pill',
+          text: 'continue_with',
+          locale: 'es',
+          width: btnWidth,
+          logo_alignment: 'left',
+        });
+        setGisReady(true);
+        return true;
+      } catch (e) {
+        console.warn('GIS render error:', e);
+        return false;
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      initGsi();
+      return;
+    }
+    const interval = setInterval(() => {
+      if (window.google?.accounts?.id) {
+        clearInterval(interval);
+        initGsi();
+      }
+    }, 100);
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+      setGisTimedOut(true);
+    }, 8000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [dark, handleGoogleIdToken, navigate, fromApp]);
+
+  const handleFallbackGoogle = async () => {
+    // Si el botón oficial no cargó: en la app, recargar la página para
+    // reintentarlo; en web, usar el inicio por Supabase como antes.
+    if (fromApp) {
+      window.location.reload();
+      return;
+    }
+    setError('');
+    try {
+      await sb.signInWithOAuth('google');
+    } catch (err) {
+      setError('Error con Google: ' + err.message);
+    }
+  };
+
+  const handleCancel = () => {
+    if (fromApp) {
+      // Vuelve a la app (el listener appUrlOpen cierra esta pestaña).
+      window.location.href = 'mx.citymap.app://';
+    } else {
+      navigate('/');
+    }
+  };
+
+  return (
+    <div style={{ minHeight: '100dvh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ width: '100%', maxWidth: 400, background: dark ? '#1e1e1e' : '#fff', border: `1px solid ${T.border}`, borderRadius: 20, padding: '28px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', textAlign: 'center' }}>
+        <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.5px', color: T.text, marginBottom: 6 }}>
+          📍CityMap
+        </div>
+        <p style={{ color: T.sub, margin: '0 0 24px', fontWeight: 500, fontSize: 14 }}>
+          Inicia sesión para continuar
+        </p>
+
+        {status === 'signing' && (
+          <p style={{ color: T.sub, fontSize: 14, margin: '0 0 16px' }}>Conectando con Google…</p>
+        )}
+
+        {status === 'done' && fromApp && (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>Sesión iniciada. Volviendo a la app…</p>
+            {deepLink && (
+              <a href={deepLink} style={{ display: 'inline-block', padding: '12px 28px', borderRadius: 999, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+                Volver a la app
+              </a>
+            )}
+          </div>
+        )}
+
+        {status === 'done' && !fromApp && (
+          <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: '0 0 16px' }}>Sesión iniciada. Redirigiendo…</p>
+        )}
+
+        {status !== 'done' && (
+          <>
+            <div style={{ width: '100%', display: gisReady ? 'flex' : 'none', justifyContent: 'center', minHeight: 44, marginBottom: 8 }}>
+              <div ref={googleBtnRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} />
+            </div>
+            {!gisReady && !gisTimedOut && status !== 'signing' && (
+              <p style={{ color: T.sub, fontSize: 14, margin: '0 0 16px' }}>Cargando el botón de Google…</p>
+            )}
+            {gisTimedOut && !gisReady && (
+              <button
+                onClick={handleFallbackGoogle}
+                style={{ width: '100%', padding: '13px 16px', marginBottom: 8, background: dark ? 'rgba(255,255,255,0.06)' : '#fff', border: `1.5px solid ${dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)'}`, borderRadius: 999, fontWeight: 700, fontSize: 15, color: T.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                <svg width="22" height="22" viewBox="0 0 48 48" style={{ flexShrink: 0 }}>
+                  <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.9 2.5 30.3 0 24 0 14.7 0 6.7 5.5 2.9 13.6l7.8 6C12.5 13.1 17.8 9.5 24 9.5z" />
+                  <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z" />
+                  <path fill="#FBBC05" d="M10.7 28.4A14.5 14.5 0 0 1 9.5 24c0-1.5.3-3 .7-4.4l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.5 10.8l8.2-6.4z" />
+                  <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.2 1.5-5 2.4-8.4 2.4-6.2 0-11.5-4.2-13.4-9.8l-8.2 6.4C6.7 42.5 14.7 48 24 48z" />
+                </svg>
+                <span>Continuar con Google</span>
+              </button>
+            )}
+          </>
+        )}
+
+        {status === 'error' && error && (
+          <p style={{ color: '#dc2626', fontSize: 14, fontWeight: 600, margin: '0 0 16px' }}>{error}</p>
+        )}
+
+        <button
+          onClick={handleCancel}
+          style={{ background: 'none', border: 'none', color: T.sub, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}

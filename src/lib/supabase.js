@@ -218,9 +218,12 @@ const sb = {
       const isNative = Capacitor.isNativePlatform();
 
       if (isNative) {
-        // Abrir Chrome Custom Tab con redirect a esquema personalizado
-        const redirectTo = encodeURIComponent('mx.citymap.app://login');
-        const url = `${_AUTH}/authorize?provider=${provider}&redirect_to=${redirectTo}`;
+        // En la app nativa: abrir la página de login de citymap.mx en un
+        // Custom Tab. Ahí el botón oficial de Google (GIS) muestra
+        // "Ir a citymap.mx" en vez de la dirección larga de Supabase, y al
+        // terminar devuelve la sesión a la app por deep link
+        // (mx.citymap.app://login#access_token=...).
+        const url = 'https://citymap.mx/login?from=app';
         const { Browser } = await import('@capacitor/browser');
         // Listener de fallback por si el deep link no dispara
         Browser.addListener('browserFinished', async () => {

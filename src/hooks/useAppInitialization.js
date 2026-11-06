@@ -49,7 +49,7 @@ export function useAppInitialization() {
     let expSlug = null;
     let storedCity = localStorage.getItem("cg_city_slug");
     
-    const SYSTEM_ROUTES = ["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "explorar", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "explorer", "itinerarios", "revista", "experiencias", "manage", "stats", "itinerario", "plan", "evento", "precios", "lealtad", "wallet", "scan"];
+    const SYSTEM_ROUTES = ["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "explorar", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "explorer", "itinerarios", "revista", "experiencias", "manage", "stats", "itinerario", "plan", "evento", "precios", "lealtad", "wallet", "scan", "login"];
 
     if (storedCity && (SYSTEM_ROUTES.includes(storedCity) || storedCity.includes("/"))) {
       localStorage.removeItem("cg_city_slug");
