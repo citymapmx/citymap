@@ -9,13 +9,6 @@ import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
 import SlidingCategoryTrack from '../components/ui/SlidingCategoryTrack.jsx';
 import Footer from '../components/Footer.jsx';
 
-const COUNTRY_NAMES = { mx: 'México', us: 'Estados Unidos', es: 'España', fr: 'Francia', ar: 'Argentina', ca: 'Canadá' };
-
-function flagEmoji(code) {
-  if (!code || code.length !== 2) return '🌍';
-  return String.fromCodePoint(...[...code.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)));
-}
-
 const BIZ_PAGE = 60;
 const FEED_STEP = 12;
 
@@ -362,18 +355,6 @@ export default function GlobalHomeView() {
     } catch { return d; }
   };
 
-  // Exploración por país: se agrupa por country_code (la columna country dice
-  // "México" en todas las ciudades, pero el código sí es correcto: mx, us, es, fr...).
-  const countries = useMemo(() => {
-    const map = new Map();
-    sortedCities.forEach((c) => {
-      const code = (c.country_code || 'mx').toLowerCase();
-      if (!map.has(code)) map.set(code, { code, name: COUNTRY_NAMES[code] || code.toUpperCase(), cities: [] });
-      map.get(code).cities.push(c);
-    });
-    return [...map.values()].sort((a, b) => b.cities.length - a.cities.length);
-  }, [sortedCities]);
-
   const shownCities = showAllCities ? sortedCities : sortedCities.slice(0, 5);
   const isSearching = query.trim().length >= 2;
 
@@ -628,35 +609,6 @@ export default function GlobalHomeView() {
                     </button>
                   ))}
                 </div>
-              </section>
-            )}
-
-            {/* Explora por país */}
-            {countries.length > 1 && (
-              <section style={{ marginTop: 6, marginBottom: 30 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Explora por país</h2>
-                {countries.map((country) => (
-                  <div key={country.code} style={{ marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                      <span style={{ fontSize: 20 }}>{flagEmoji(country.code)}</span>
-                      <h3 style={{ fontSize: 16, fontWeight: 800, color: T.text, margin: 0 }}>{country.name}</h3>
-                      <span style={{ fontSize: 13, color: T.sub }}>{country.cities.length} {country.cities.length === 1 ? 'ciudad' : 'ciudades'}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
-                      {country.cities.map((city) => (
-                        <button
-                          key={city.id || city.slug}
-                          onClick={() => navigate(`/${city.slug}`)}
-                          style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px 8px 8px', borderRadius: 999, border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer' }}
-                        >
-                          {city.bg_image && <img src={city.bg_image} alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />}
-                          <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{city.name}</span>
-                          {popCounts[city.slug] && <span style={{ fontSize: 12, color: T.sub }}>{popCounts[city.slug].total}</span>}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
               </section>
             )}
 
