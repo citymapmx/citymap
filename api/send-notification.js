@@ -1,3 +1,4 @@
+/* global process */
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 
@@ -93,23 +94,10 @@ export default async function handler(req, res) {
     const image = safeUrl(imageUrl);
     if (imageUrl && !image) return res.status(400).json({ error: 'La imagen debe usar HTTPS' });
 
-    // 1. Si hay user_id, insertar notificacion en DB (bypass RLS)
-    if (user_id) {
-      const inboxResult = await fetch(`${supabaseUrl}/rest/v1/notifications`, {
-        method: 'POST',
-        headers: {
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ user_id, title, body, type, read: false })
-      });
-      if (!inboxResult.ok) throw new Error("No se pudo guardar la notificación en la bandeja");
-    }
-
-    // 2. Fetch push tokens
+    // 1. Fetch push tokens (con su user_id para la bandeja de notificaciones)
     let tokens = [];
-    let queryUrl = `${supabaseUrl}/rest/v1/push_tokens?select=token`;
+    let inboxUserIds = new Set();
+    let queryUrl = `${supabaseUrl}/rest/v1/push_tokens?select=token,user_id`;
     if (user_id) {
       // Fetch SOLO los tokens de ese usuario específico
       queryUrl += `&user_id=eq.${user_id}`;
@@ -124,9 +112,34 @@ export default async function handler(req, res) {
       const data = await r.json();
       if (!Array.isArray(data)) throw new Error('Respuesta de dispositivos inválida');
       tokens.push(...data.map(t => t.token).filter(token => typeof token === 'string' && token.length));
+      data.forEach(t => { if (typeof t.user_id === 'string' && t.user_id) inboxUserIds.add(t.user_id); });
       if (data.length < 1000) break;
     }
     tokens = [...new Set(tokens)];
+
+    // 2. Guardar copia en la bandeja de notificaciones (bypass RLS con service role).
+    // Envío a un usuario: una fila para él. Envío masivo o por ciudad: una fila por
+    // cada usuario con token en el destino, con el enlace para abrir el destino.
+    const saveInbox = async (rows) => fetch(`${supabaseUrl}/rest/v1/notifications`, {
+      method: 'POST',
+      headers: {
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(rows)
+    });
+    if (user_id) {
+      const inboxResult = await saveInbox([{ user_id, title, body, type, read: false, deep_link: link || null }]);
+      if (!inboxResult.ok) throw new Error("No se pudo guardar la notificación en la bandeja");
+    } else if (inboxUserIds.size > 0) {
+      try {
+        const inboxResult = await saveInbox([...inboxUserIds].map(uid => ({ user_id: uid, title, body, type, read: false, deep_link: link || null })));
+        if (!inboxResult.ok) console.error("No se pudo guardar la bandeja de notificaciones:", inboxResult.status);
+      } catch (err) {
+        console.error("No se pudo guardar la bandeja de notificaciones:", err);
+      }
+    }
 
     if (!tokens || tokens.length === 0) {
       return res.status(200).json({ message: 'No hay tokens registrados para enviar push', successCount: 0, failureCount: 0 });
