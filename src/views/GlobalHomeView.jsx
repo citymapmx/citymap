@@ -33,6 +33,13 @@ const FEED_FILTERS = [
   { id: 'eventos', label: 'Eventos' },
 ];
 
+// Categorías de la tabla businesses que son lugares (no negocios): así se
+// clasifican en el filtro "Lugares" del muro, además de is_place.
+const PLACE_CATEGORIES = ['lugares', 'unidad deportiva', 'playa'];
+const PLACE_LABELS = { lugares: 'Puntos de interés', 'unidad deportiva': 'Unidad Deportiva', playa: 'Playa' };
+const normCat = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+const isPlaceBiz = (b) => !!b.is_place || PLACE_CATEGORIES.includes(normCat(b.category));
+
 function parseGallery(exp) {
   if (Array.isArray(exp.gallery)) return exp.gallery;
   if (typeof exp.gallery === 'string') {
@@ -77,17 +84,23 @@ export default function GlobalHomeView() {
       try {
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const [bizRes, evRes, exRes, citiesRes] = await Promise.all([
+        const [bizRes, evRes, exRes, citiesRes, placesRes] = await Promise.all([
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=0`).catch(() => []),
           sb.get('events', `?select=id,title,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,category,biz_id,price,price_type,booking_config,website&status=eq.approved&order=date.asc&limit=60`).catch(() => []),
           sb.get('experiences', `?select=id,title,city_slug,price,duration,people,gallery,created_at&status=eq.approved&order=created_at.desc&limit=12`).catch(() => []),
           (cities && cities.length > 0)
             ? Promise.resolve(cities)
             : sb.get('cities', '?active=eq.true&select=id,name,slug,state,country,country_code,bg_image&order=name.asc').catch(() => []),
+          // Lugares (puntos de interés, unidad deportiva, playas): consulta propia
+          // para que el filtro "Lugares" tenga contenido desde el inicio y no
+          // dependa de que aparezcan en la paginación de negocios.
+          sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&or=(category.eq.lugares,category.eq.unidad%20deportiva,category.eq.playa,is_place.eq.true)&order=plan.desc,rating.desc.nullslast,id.desc&limit=60`).catch(() => []),
         ]);
         if (cancelled) return;
         const bizRows = Array.isArray(bizRes) ? bizRes : [];
-        setBiz(bizRows);
+        const placeRows = Array.isArray(placesRes) ? placesRes : [];
+        const bizIds = new Set(bizRows.map((b) => b.id));
+        setBiz([...bizRows, ...placeRows.filter((b) => !bizIds.has(b.id))]);
         setBizOffset(bizRows.length);
         setHasMoreBiz(bizRows.length === BIZ_PAGE);
         const evRows = (Array.isArray(evRes) ? evRes : []).filter((ev) => {
@@ -201,13 +214,14 @@ export default function GlobalHomeView() {
     biz.forEach((b) => {
       if (seen.has(`b-${b.id}`)) return;
       seen.add(`b-${b.id}`);
-      const isPlace = !!b.is_place;
+      const isPlace = isPlaceBiz(b);
+      const catLabel = PLACE_LABELS[normCat(b.category)] || b.category || 'Negocio';
       items.push({
         key: `b-${b.id}`,
         kind: isPlace ? 'lugares' : 'negocios',
         badge: isPlace ? 'Lugar' : 'Negocio',
         title: b.name,
-        subtitle: `${(b.category || 'Negocio')} · ${cityBySlug.get(b.city_slug)?.name || ''}`.replace(/ · $/, ''),
+        subtitle: `${catLabel} · ${cityBySlug.get(b.city_slug)?.name || ''}`.replace(/ · $/, ''),
         img: bizImage(b),
         date: b.created_at || '',
         citySlug: b.city_slug,
@@ -589,7 +603,7 @@ export default function GlobalHomeView() {
                     <button
                       key={city.id || city.slug}
                       onClick={() => navigate(`/${city.slug}`)}
-                      style={{ flex: '0 0 168px', position: 'relative', height: 132, borderRadius: 16, overflow: 'hidden', border: 'none', padding: 0, cursor: 'pointer', background: '#1A7A5E', textAlign: 'left' }}
+                      style={{ flex: '0 0 168px', position: 'relative', height: 132, borderRadius: 16, overflow: 'hidden', border: 'none', padding: 0, cursor: 'pointer', background: '#111', textAlign: 'left' }}
                     >
                       {city.bg_image && <img src={city.bg_image} alt={city.name} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.65), transparent 60%)' }} />
@@ -627,7 +641,7 @@ export default function GlobalHomeView() {
                       onClick={() => openItem(item)}
                       style={{ borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
                     >
-                      <div style={{ position: 'relative', height: 168, background: 'linear-gradient(135deg,#1A7A5E,#22a876)' }}>
+                      <div style={{ position: 'relative', height: 168, background: 'linear-gradient(135deg,#111,#333)' }}>
                         {item.img
                           ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={600} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{item.kind === 'eventos' ? '🎟️' : item.kind === 'articulos' ? '📝' : '📍'}</div>}
@@ -652,7 +666,7 @@ export default function GlobalHomeView() {
               )}
               {(visibleFeed < filteredFeed.length || (!query && !homeCat && hasMoreBiz && feedFilter !== 'eventos' && feedFilter !== 'articulos')) && (
                 <div style={{ textAlign: 'center', marginTop: 22 }}>
-                  <button onClick={loadMoreFeed} disabled={loadingMore} style={{ padding: '12px 28px', borderRadius: 999, border: 0, background: '#1A7A5E', color: '#fff', fontSize: 14, fontWeight: 700, cursor: loadingMore ? 'wait' : 'pointer', opacity: loadingMore ? 0.7 : 1 }}>
+                  <button onClick={loadMoreFeed} disabled={loadingMore} style={{ padding: '12px 28px', borderRadius: 999, border: 0, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, cursor: loadingMore ? 'wait' : 'pointer', opacity: loadingMore ? 0.7 : 1 }}>
                     {loadingMore ? 'Cargando...' : 'Cargar más'}
                   </button>
                 </div>
@@ -679,7 +693,7 @@ export default function GlobalHomeView() {
                         onClick={() => navigate(`/revista/${exp.city_slug || ''}/${createSlug(exp.title || '')}`)}
                         style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
                       >
-                        <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#1A7A5E,#22a876)' }}>
+                        <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>
                           {typeof img === 'string' && img
                             ? <OptimizedImage src={img} alt={exp.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>📝</div>}
