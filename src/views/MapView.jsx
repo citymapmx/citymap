@@ -3,7 +3,7 @@ import { Suspense, useEffect, useState, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { FONT_BIZ } from "../lib/constants.js";
 
-import { getThumbUrl, getScheduleStatus, isNear, getKm, isOpenNow, CAT_EMOJI } from "../lib/utils";
+import { getThumbUrl, getScheduleStatus, isNear, getKm, isOpenNow, CAT_EMOJI, iconFile } from "../lib/utils";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
@@ -134,7 +134,7 @@ export default function MapView() {
                    return (
                      <button key={c.id} className="press" aria-pressed={isSel} onClick={() => setActiveCat(c.id === "todas" ? "explorar" : c.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", background: isSel ? (dark ? "#FFFFFF" : "#0F172A") : "transparent", color: isSel ? (dark ? "#18181B" : "#FFFFFF") : T.sub, border: "none", borderRadius: 9999, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", flexShrink: 0 }}>
                        {(() => {
-                         let iconVal = c.icon || "📍";
+                         let iconVal = iconFile(c.icon) || "📍";
                          let cleanIcon = typeof iconVal === 'string' ? iconVal.trim() : iconVal;
                          let isImg = typeof cleanIcon === 'string' && (cleanIcon.toLowerCase().endsWith('.svg') || cleanIcon.toLowerCase().endsWith('.png'));
                          return isImg ? <img src={`/${cleanIcon}`} alt="" style={{ width: 14, height: 14, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>{cleanIcon}</span>;
@@ -284,7 +284,7 @@ export default function MapView() {
                   ? <img src={getThumbUrl(mapPin.photos[0].url, 400, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>
                       {(() => {
-                        let emojiVal = mapPin.emoji || cats.find(c => c.id === mapPin.category)?.icon || CAT_EMOJI[mapPin.category] || "📍";
+                        let emojiVal = mapPin.emoji || iconFile(cats.find(c => c.id === mapPin.category)?.icon) || CAT_EMOJI[mapPin.category] || "📍";
                         let cleanEmoji = typeof emojiVal === 'string' ? emojiVal.trim() : emojiVal;
                         let isImg = typeof cleanEmoji === 'string' && (cleanEmoji.toLowerCase().endsWith('.svg') || cleanEmoji.toLowerCase().endsWith('.png'));
                         return isImg ? <img src={`/${cleanEmoji}`} alt="" style={{ width: 64, height: 64, objectFit: "contain" }} /> : cleanEmoji;

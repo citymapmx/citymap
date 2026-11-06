@@ -3,6 +3,7 @@ import Icon from '../ui/Icon';
 import Uploader from '../Uploader';
 import OptimizedImage from '../ui/OptimizedImage';
 import { useDataStore } from '../../store/useDataStore.js';
+import { iconFile } from '../../lib/utils';
 
 export default function AdminCategoriesTab({
   data,
@@ -160,7 +161,7 @@ export default function AdminCategoriesTab({
             </button>
           </div>
           {(() => {
-            let cleanIcon = typeof c.icon === 'string' ? c.icon.trim() : c.icon;
+            let cleanIcon = iconFile(typeof c.icon === 'string' ? c.icon.trim() : c.icon);
             let isImg = typeof cleanIcon === 'string' && (cleanIcon.toLowerCase().endsWith('.svg') || cleanIcon.toLowerCase().endsWith('.png'));
             return (
               <div className="text-xl" style={{ width: 36, height: 36, borderRadius: 10, background: "#EAF4F0", display: "flex", alignItems: "center", justifyContent: "center" }}>
