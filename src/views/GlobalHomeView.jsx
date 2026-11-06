@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useDataStore } from '../store/useDataStore.js';
+import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
 import { createSlug } from '../lib/utils.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
@@ -48,10 +49,8 @@ function bizImage(b) {
 }
 
 export default function GlobalHomeView() {
-  const { T, dark, user, toast$, handleCardTap, handleEventTap, navigate, favIds, toggleFav, globalFavCounts, savedEventIds, setSavedEventIds, savedExpIds, setSavedExpIds } = useAppContext();
-  // Favoritos de invitado (sin sesión): el toggleFav de la app pide iniciar sesión,
-  // así que en el muro global el corazón guarda en este dispositivo.
-  const [guestFavIds, setGuestFavIds] = useState(() => { try { return JSON.parse(localStorage.getItem('cg_guest_favs') || '[]'); } catch { return []; } });
+  const { T, dark, user, toast$, handleCardTap, handleEventTap, navigate, favIds, toggleFav, globalFavCounts, savedEventIds, setSavedEventIds, savedExpIds, setSavedExpIds, toggleSaveEvent } = useAppContext();
+  const setShowAuth = useAuthStore((s) => s.setShowAuth);
   const cities = useDataStore((s) => s.cities);
   const [biz, setBiz] = useState([]);
   const [bizOffset, setBizOffset] = useState(0);
@@ -80,7 +79,7 @@ export default function GlobalHomeView() {
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const [bizRes, evRes, exRes, citiesRes] = await Promise.all([
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=0`).catch(() => []),
-          sb.get('events', `?select=id,title,slug,date,end_date,venue_name,city_slug,img_url,img,status&status=eq.approved&order=date.asc&limit=60`).catch(() => []),
+          sb.get('events', `?select=id,title,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,category,biz_id,price,price_type,booking_config,website&status=eq.approved&order=date.asc&limit=60`).catch(() => []),
           sb.get('experiences', `?select=id,title,city_slug,price,duration,people,gallery,created_at&status=eq.approved&order=created_at.desc&limit=12`).catch(() => []),
           (cities && cities.length > 0)
             ? Promise.resolve(cities)
@@ -152,7 +151,7 @@ export default function GlobalHomeView() {
       try {
         const [b, e, x] = await Promise.all([
           sb.get('businesses', `?select=id,name,slug,category,city_slug,photos,logo_url,banner_url,is_place,created_at&status=eq.approved&plan=neq.menu&or=(name.ilike.*${enc}*,category.ilike.*${enc}*,tagline.ilike.*${enc}*)&order=plan.desc,rating.desc.nullslast&limit=15`).catch(() => []),
-          sb.get('events', `?select=id,title,slug,date,venue_name,city_slug,img_url,img&status=eq.approved&title=ilike.*${enc}*&order=date.asc&limit=10`).catch(() => []),
+          sb.get('events', `?select=id,title,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,category,biz_id,price,price_type,booking_config,website&status=eq.approved&title=ilike.*${enc}*&order=date.asc&limit=10`).catch(() => []),
           sb.get('experiences', `?select=id,title,city_slug,gallery,created_at&status=eq.approved&title=ilike.*${enc}*&order=created_at.desc&limit=10`).catch(() => []),
         ]);
         if (cancelled) return;
@@ -316,30 +315,22 @@ export default function GlobalHomeView() {
   };
 
   const isSaved = (item) => {
-    if (item.kind === 'negocios' || item.kind === 'lugares') return favIds?.includes(item.raw.id) || guestFavIds.includes(item.raw.id);
+    if (item.kind === 'negocios' || item.kind === 'lugares') return favIds?.includes(item.raw.id);
     if (item.kind === 'eventos') return savedEventIds?.includes(item.raw.id);
     return savedExpIds?.includes(item.raw.id);
   };
 
   const toggleSave = (e, item) => {
     e.stopPropagation();
+    // Sin sesión el corazón pide iniciar sesión para que se guarde de verdad (como en el resto de la app).
+    if (!user) { setShowAuth(true); return; }
     if (item.kind === 'negocios' || item.kind === 'lugares') {
       // Con sesión: favoritos de la cuenta (como en el resto de la app).
-      if (user) { toggleFav?.(item.raw.id, e); return; }
-      // Sin sesión: se guarda en este dispositivo y el corazón se llena al momento.
-      const isFav = guestFavIds.includes(item.raw.id);
-      const nw = isFav ? guestFavIds.filter((x) => x !== item.raw.id) : [...guestFavIds, item.raw.id];
-      setGuestFavIds(nw);
-      try { localStorage.setItem('cg_guest_favs', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ }
-      if (toast$) toast$(isFav ? 'Eliminado de favoritos' : 'Guardado en favoritos en este dispositivo');
+      toggleFav?.(item.raw.id, e);
       return;
     }
     if (item.kind === 'eventos') {
-      // toggleSaveEvent de la app es un stub vacío: se guarda como en EventsView.
-      const ids = savedEventIds || [];
-      const nw = ids.includes(item.raw.id) ? ids.filter((x) => x !== item.raw.id) : [...ids, item.raw.id];
-      setSavedEventIds?.(nw);
-      try { localStorage.setItem('cg_saved_ev', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ }
+      toggleSaveEvent?.(item.raw.id, e);
       return;
     }
     if (!setSavedExpIds) return;
@@ -695,7 +686,7 @@ export default function GlobalHomeView() {
                           <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>Guía</span>
                           <button
                             aria-label="Guardar"
-                            onClick={(e) => { e.stopPropagation(); const ids = savedExpIds || []; const nw = ids.includes(exp.id) ? ids.filter((x) => x !== exp.id) : [...ids, exp.id]; setSavedExpIds?.(nw); try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ } }}
+                            onClick={(e) => { e.stopPropagation(); if (!user) { setShowAuth(true); return; } const ids = savedExpIds || []; const nw = ids.includes(exp.id) ? ids.filter((x) => x !== exp.id) : [...ids, exp.id]; setSavedExpIds?.(nw); try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ } }}
                             style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
                           >
                             <Icon name={saved ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />

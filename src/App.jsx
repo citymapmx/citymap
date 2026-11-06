@@ -280,7 +280,7 @@ export default function CityGuide() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   
-  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ activeCity, cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === "/" || location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/"); if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true, viewTransition: true }); } } });
+  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ activeCity, cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/"); if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true, viewTransition: true }); } } });
   const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites({ sb, user, setShowAuth });
   
   useEffect(() => {
@@ -1133,10 +1133,16 @@ useEffect(() => {
 
 
   
-  // Stubs for collection and event functions to prevent crashes
-
-  const toggleSaveEvent = () => {};
-  
+  // Guardar/quitar evento de guardados: sin sesión pide iniciar sesión (como toggleFav).
+  const toggleSaveEvent = (id, e) => {
+    if (e) e.stopPropagation();
+    if (!user) { setShowAuth(true); return; }
+    const isSaved = (savedEventIds || []).includes(id);
+    const nw = isSaved ? savedEventIds.filter((x) => x !== id) : [...(savedEventIds || []), id];
+    setSavedEventIds(nw);
+    try { localStorage.setItem('cg_saved_ev', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ }
+    if (toast$) toast$(isSaved ? 'Evento eliminado de guardados' : 'Evento guardado');
+  };
 
   const homeHighlights = useDataStore(s => s.homeHighlights);
   const rankedBusinesses = useMemo(() => Array.from(new Map([...mapPins, ...homeHighlights].map(b => [b.id, b])).values()), [mapPins, homeHighlights]);
