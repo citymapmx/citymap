@@ -280,7 +280,7 @@ export default function CityGuide() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   
-  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ activeCity, cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/"); if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true, viewTransition: true }); } } });
+  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ activeCity, cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname !== "/" && (location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/")); if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true, viewTransition: true }); } } });
   const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites({ sb, user, setShowAuth });
   
   useEffect(() => {
@@ -533,7 +533,7 @@ useEffect(() => {
         const isNonHome = nonHomePrefixes.some(p => currentPath.startsWith(p));
         const segments = currentPath.split('/').filter(Boolean);
         const isDetailOrCategory = segments.length >= 2; // e.g. /tepic/emilianos or /tepic/c/restaurantes
-        if (!isNonHome && !isDetailOrCategory) {
+        if (!isNonHome && !isDetailOrCategory && currentPath !== "/") {
           navigate("home");
         }
         // else: stay on current path — AppRouter already shows the right view
@@ -585,7 +585,8 @@ useEffect(() => {
       setSelected(null);
       setSelectedEvent(null);
       setMapPin(null);
-      path = cityPrefix;
+      // En el muro global ("/"), Inicio se queda en el muro, no salta a la ciudad.
+      path = location.pathname === "/" ? "/" : cityPrefix;
 
       if (location.pathname !== path || location.search) {
         routerNavigate(path, { replace: false, viewTransition: true });
