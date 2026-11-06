@@ -4,6 +4,8 @@ import { useDataStore } from '../store/useDataStore.js';
 import { sb } from '../lib/supabase.js';
 import { createSlug } from '../lib/utils.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
+import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
+import SlidingCategoryTrack from '../components/ui/SlidingCategoryTrack.jsx';
 import Footer from '../components/Footer.jsx';
 
 const BIZ_PAGE = 60;
@@ -11,14 +13,14 @@ const FEED_STEP = 12;
 
 // Categorías del inicio, como en las páginas de ciudad.
 const HOME_CATS = [
-  { id: 'restaurantes', label: 'Restaurantes', icon: '🍽️' },
-  { id: 'cafeterias', label: 'Cafeterías', icon: '☕' },
-  { id: 'bares', label: 'Bares', icon: '🍸' },
-  { id: 'hoteles', label: 'Hoteles', icon: '🏨' },
-  { id: 'lugares', label: 'Lugares', icon: '📍' },
-  { id: 'eventos', label: 'Eventos', icon: '🎟️' },
-  { id: 'articulos', label: 'Artículos', icon: '📝' },
-  { id: 'mas', label: 'Más', icon: '⊞' },
+  { id: 'restaurantes', label: 'Restaurantes' },
+  { id: 'cafeterias', label: 'Cafeterías' },
+  { id: 'bares', label: 'Bares' },
+  { id: 'hoteles', label: 'Hoteles' },
+  { id: 'lugares', label: 'Lugares' },
+  { id: 'eventos', label: 'Eventos' },
+  { id: 'articulos', label: 'Artículos' },
+  { id: 'mas', label: 'Más' },
 ];
 
 const FEED_FILTERS = [
@@ -135,11 +137,13 @@ export default function GlobalHomeView() {
   }, [allCities, popCounts]);
 
   // Etapa 2: buscador global en vivo (Supabase, todas las ciudades).
+  // DebouncedSearchBar ya espera 300 ms antes de avisar, así que aquí se busca directo.
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) { setSearchResults(null); setSearching(false); return; }
     setSearching(true);
-    const t = setTimeout(async () => {
+    let cancelled = false;
+    (async () => {
       const enc = encodeURIComponent(q);
       try {
         const [b, e, x] = await Promise.all([
@@ -147,6 +151,7 @@ export default function GlobalHomeView() {
           sb.get('events', `?select=id,title,slug,date,venue_name,city_slug,img_url,img&status=eq.approved&title=ilike.*${enc}*&order=date.asc&limit=10`).catch(() => []),
           sb.get('experiences', `?select=id,title,city_slug,gallery,created_at&status=eq.approved&title=ilike.*${enc}*&order=created_at.desc&limit=10`).catch(() => []),
         ]);
+        if (cancelled) return;
         const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const qn = norm(q);
         setSearchResults({
@@ -157,19 +162,34 @@ export default function GlobalHomeView() {
         });
       } catch (err) {
         console.warn('Error en búsqueda global', err);
-        setSearchResults({ cities: [], biz: [], events: [], exps: [] });
+        if (!cancelled) setSearchResults({ cities: [], biz: [], events: [], exps: [] });
       } finally {
-        setSearching(false);
+        if (!cancelled) setSearching(false);
       }
-    }, 350);
-    return () => clearTimeout(t);
+    })();
+    return () => { cancelled = true; };
   }, [query, allCities]);
 
-  const heroImg = useMemo(() => {
-    const gdl = (allCities || []).find((c) => c.slug === 'guadalajara' && c.bg_image);
-    if (gdl) return gdl.bg_image;
-    return (allCities || []).find((c) => c.bg_image)?.bg_image || null;
-  }, [allCities]);
+  // Saludo y mensaje del día, igual que en los inicios de ciudad.
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const day = days[new Date().getDay()];
+    if (h >= 5 && h < 12) return `¡Buen ${day}!`;
+    if (h >= 12 && h < 19) return `¡Excelente ${day}!`;
+    return '¡Linda noche!';
+  }, []);
+
+  const contextMessage = useMemo(() => {
+    const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    return rand([
+      'Descubre qué hay hoy en todas las ciudades',
+      'Negocios, lugares, artículos y eventos de todas nuestras ciudades',
+      'Lo mejor de Guadalajara, Tepic, Vallarta y más',
+      '¿Qué plan hay hoy? Explora todas las ciudades',
+      'Encuentra dónde comer, qué visitar y qué hacer',
+    ]);
+  }, []);
 
   // Feed unificado: negocios, lugares, artículos y eventos, lo más reciente primero.
   const feed = useMemo(() => {
@@ -317,44 +337,129 @@ export default function GlobalHomeView() {
 
   return (
     <div style={{ background: dark ? 'transparent' : '#fff', minHeight: '100vh', paddingBottom: 90 }}>
-      {/* Hero con foto, como en los inicios de ciudad */}
-      <div style={{ position: 'relative', minHeight: 340, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '48px 20px 36px', color: '#fff', overflow: 'hidden', background: '#1A7A5E' }}>
-        {heroImg && <img src={heroImg} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.25), rgba(0,0,0,0.55))' }} />
-        <div style={{ position: 'relative', maxWidth: 680, margin: '0 auto', width: '100%' }}>
-          <h1 style={{ fontSize: 34, fontWeight: 900, margin: '0 0 10px', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-            Descubre el mundo<br />con CityMap
-          </h1>
-          <p style={{ fontSize: 15, opacity: 0.95, margin: '0 0 20px', lineHeight: 1.5, maxWidth: 460 }}>
-            Negocios, lugares, artículos y eventos de todas nuestras ciudades.
-          </p>
-          <div style={{ position: 'relative', maxWidth: 560 }}>
-            <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 17 }}>🔍</span>
-            <input
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setVisibleFeed(FEED_STEP); }}
-              placeholder="Buscar negocios, lugares, artículos y eventos"
-              aria-label="Buscar en CityMap"
-              style={{ width: '100%', padding: '14px 16px 14px 46px', border: 'none', borderRadius: 100, color: '#111', fontSize: 15, fontWeight: 500, outline: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.25)' }}
-            />
+      {/* Hero igual que en los inicios de ciudad: logo, saludo con gradiente, buscador y categorías en texto */}
+      <div style={{ position: 'relative', padding: 'calc(env(safe-area-inset-top, 0px) + 10px) 20px 0px', minHeight: query ? 'auto' : 220, display: 'flex', flexDirection: 'column', background: 'transparent' }}>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
+          {!query && (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: 0, paddingTop: 0, paddingLeft: 10, paddingRight: 10, textAlign: 'center', position: 'relative', zIndex: 10 }}>
+              <div style={{ marginBottom: 4 }}>
+                <img
+                  src="/citymap.mx.png"
+                  alt="CityMap"
+                  style={{ height: 38, objectFit: 'contain', filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)', display: 'block', margin: '0 auto' }}
+                />
+              </div>
+              <style>{`
+                @keyframes heroGradientFlow {
+                  0% { background-position: 0% center; }
+                  50% { background-position: 100% center; }
+                  100% { background-position: 0% center; }
+                }
+                .animated-city {
+                  display: inline-block;
+                  font-family: 'Montserrat', sans-serif;
+                  font-size: 1.1em;
+                  font-weight: 800;
+                  line-height: 1;
+                  letter-spacing: normal;
+                  padding-right: 8px;
+                  background: linear-gradient(90deg, #34D399 0%, #38BDF8 25%, #818CF8 50%, #38BDF8 75%, #34D399 100%);
+                  background-size: 200% auto;
+                  -webkit-background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  animation: heroGradientFlow 8s ease-in-out infinite;
+                }
+              `}</style>
+              <h1 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 'clamp(22px, 5.5vw, 28px)', fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: '-0.5px', color: dark ? '#fff' : T.text }}>
+                {greeting} <span className="animated-city">CityMap</span>
+              </h1>
+              <p style={{ margin: '6px 0 0 0', fontSize: 14, fontWeight: 600, color: dark ? 'rgba(255,255,255,0.7)' : '#6B7280' }}>
+                {contextMessage}
+              </p>
+            </div>
+          )}
+
+          {/* Buscador, igual que en las ciudades */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: query ? 76 : 20, zIndex: 10 }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+              <style>{`
+                .hero-search-magic-container {
+                  position: absolute;
+                  top: 0; left: 0; right: 0; bottom: 0;
+                  border-radius: 100px;
+                  overflow: hidden;
+                  z-index: 1;
+                  pointer-events: none;
+                }
+                .hero-search-magic-inner {
+                  position: absolute;
+                  top: 0; left: 0; right: 0; bottom: 0;
+                  border-radius: 100px;
+                  background: ${dark ? '#2D2D31' : '#F8FAFC'};
+                  backdrop-filter: blur(24px);
+                  -webkit-backdrop-filter: blur(24px);
+                  box-shadow: ${dark ? 'inset 0 1px 1px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.1)' : 'inset 0 1px 2px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.02)'};
+                  z-index: 2;
+                  border: ${dark ? '1px solid #3F3F46' : '1px solid #ECEFF2'};
+                }
+                .hero-search-input {
+                  position: relative;
+                  z-index: 3;
+                  -webkit-appearance: none !important;
+                  appearance: none !important;
+                  background: transparent !important;
+                  color: ${dark ? '#F4F4F5' : '#111'} !important;
+                }
+                .hero-search-input::placeholder {
+                  color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
+                  -webkit-text-fill-color: ${dark ? '#A1A1AA' : '#6B7280'} !important;
+                  opacity: 1;
+                  letter-spacing: 0.2px;
+                }
+                .hero-search-input:focus {
+                  outline: 2px solid ${dark ? '#A1A1AA' : '#71717A'} !important;
+                  outline-offset: 2px;
+                  box-shadow: none !important;
+                }
+              `}</style>
+              <div className="hero-search-magic-container">
+                <div className="hero-search-magic-inner"></div>
+              </div>
+              <DebouncedSearchBar initialValue={query} onSearch={(v) => { setQuery(v); setVisibleFeed(FEED_STEP); }} placeholder="Buscar negocios, lugares, artículos y eventos" dark={dark} />
+            </div>
+
+            {!query && (
+              <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={() => { const pool = filteredFeed.length > 0 ? filteredFeed : feed; if (pool.length > 0) openItem(pool[Math.floor(Math.random() * pool.length)]); }}
+                style={{ width: 44, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: 'pointer', fontSize: 23 }}>🎲</button>
+            )}
           </div>
+
+          {/* Categorías en texto, igual que en las ciudades */}
+          {!query && (
+            <div style={{ margin: '12px -20px 0' }}>
+              <SlidingCategoryTrack dark={dark} selectedKey={homeCat || 'explorar'} variant="dot" className="home-category-track" style={{ display: 'flex', alignItems: 'stretch', overflowX: 'auto', paddingTop: 8, paddingBottom: 2, paddingLeft: 20, paddingRight: 20, gap: 24, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+                <style>{`.home-category-track > .sliding-category-indicator { display: none; }`}</style>
+                {[{ id: 'explorar', label: 'Explorar' }, ...HOME_CATS].map((c) => {
+                  const isActive = (homeCat || 'explorar') === c.id;
+                  return (
+                    <button
+                      type="button"
+                      key={c.id}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={() => { if (c.id === 'explorar') { setHomeCat(null); setFeedFilter('todo'); setVisibleFeed(FEED_STEP); } else onHomeCat(c.id); }}
+                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, minHeight: 44, boxSizing: 'border-box', padding: '10px 0', border: 'none', borderBottom: `2px solid ${isActive ? (dark ? '#FFFFFF' : '#000000') : 'transparent'}`, background: 'transparent', color: isActive ? (dark ? '#FFFFFF' : '#000000') : (dark ? '#A3AFBF' : '#788496'), fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: '20px', whiteSpace: 'nowrap', cursor: 'pointer', transition: 'color 180ms ease, border-color 180ms ease' }}
+                    >
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </SlidingCategoryTrack>
+            </div>
+          )}
         </div>
       </div>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px' }}>
-        {/* Categorías con iconos */}
-        <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '18px 2px 6px', scrollbarWidth: 'none' }}>
-          {HOME_CATS.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => onHomeCat(cat.id)}
-              style={{ flex: '0 0 auto', width: 82, padding: '12px 4px 10px', borderRadius: 16, border: `1px solid ${homeCat === cat.id ? '#1A7A5E' : T.border}`, background: homeCat === cat.id ? '#e8f5ef' : (dark ? '#1e1e1e' : '#fff'), cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
-            >
-              <div style={{ fontSize: 26, lineHeight: 1 }}>{cat.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginTop: 8, whiteSpace: 'nowrap' }}>{cat.label}</div>
-            </button>
-          ))}
-        </div>
         {showAllCats && allBizCats.length > 0 && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 0 4px' }}>
             {allBizCats.map(({ name, count }) => (
