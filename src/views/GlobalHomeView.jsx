@@ -48,7 +48,10 @@ function bizImage(b) {
 }
 
 export default function GlobalHomeView() {
-  const { T, dark, handleCardTap, handleEventTap, navigate, favIds, toggleFav, globalFavCounts, savedEventIds, toggleSaveEvent, savedExpIds, setSavedExpIds } = useAppContext();
+  const { T, dark, user, toast$, handleCardTap, handleEventTap, navigate, favIds, toggleFav, globalFavCounts, savedEventIds, setSavedEventIds, savedExpIds, setSavedExpIds } = useAppContext();
+  // Favoritos de invitado (sin sesión): el toggleFav de la app pide iniciar sesión,
+  // así que en el muro global el corazón guarda en este dispositivo.
+  const [guestFavIds, setGuestFavIds] = useState(() => { try { return JSON.parse(localStorage.getItem('cg_guest_favs') || '[]'); } catch { return []; } });
   const cities = useDataStore((s) => s.cities);
   const [biz, setBiz] = useState([]);
   const [bizOffset, setBizOffset] = useState(0);
@@ -313,18 +316,37 @@ export default function GlobalHomeView() {
   };
 
   const isSaved = (item) => {
-    if (item.kind === 'negocios' || item.kind === 'lugares') return favIds?.includes(item.raw.id);
+    if (item.kind === 'negocios' || item.kind === 'lugares') return favIds?.includes(item.raw.id) || guestFavIds.includes(item.raw.id);
     if (item.kind === 'eventos') return savedEventIds?.includes(item.raw.id);
     return savedExpIds?.includes(item.raw.id);
   };
 
   const toggleSave = (e, item) => {
     e.stopPropagation();
-    if (item.kind === 'negocios' || item.kind === 'lugares') { toggleFav?.(item.raw.id); return; }
-    if (item.kind === 'eventos') { toggleSaveEvent?.(item.raw); return; }
+    if (item.kind === 'negocios' || item.kind === 'lugares') {
+      // Con sesión: favoritos de la cuenta (como en el resto de la app).
+      if (user) { toggleFav?.(item.raw.id, e); return; }
+      // Sin sesión: se guarda en este dispositivo y el corazón se llena al momento.
+      const isFav = guestFavIds.includes(item.raw.id);
+      const nw = isFav ? guestFavIds.filter((x) => x !== item.raw.id) : [...guestFavIds, item.raw.id];
+      setGuestFavIds(nw);
+      try { localStorage.setItem('cg_guest_favs', JSON.stringify(nw)); } catch {}
+      if (toast$) toast$(isFav ? 'Eliminado de favoritos' : 'Guardado en favoritos en este dispositivo');
+      return;
+    }
+    if (item.kind === 'eventos') {
+      // toggleSaveEvent de la app es un stub vacío: se guarda como en EventsView.
+      const ids = savedEventIds || [];
+      const nw = ids.includes(item.raw.id) ? ids.filter((x) => x !== item.raw.id) : [...ids, item.raw.id];
+      setSavedEventIds?.(nw);
+      try { localStorage.setItem('cg_saved_ev', JSON.stringify(nw)); } catch {}
+      return;
+    }
     if (!setSavedExpIds) return;
     const ids = savedExpIds || [];
-    setSavedExpIds(ids.includes(item.raw.id) ? ids.filter((x) => x !== item.raw.id) : [...ids, item.raw.id]);
+    const nw = ids.includes(item.raw.id) ? ids.filter((x) => x !== item.raw.id) : [...ids, item.raw.id];
+    setSavedExpIds(nw);
+    try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch {}
   };
 
   const fmtDate = (d) => {
