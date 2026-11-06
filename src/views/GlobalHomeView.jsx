@@ -41,8 +41,6 @@ export default function GlobalHomeView() {
   const setShowAuth = useAuthStore((s) => s.setShowAuth);
   const cities = useDataStore((s) => s.cities);
   const [biz, setBiz] = useState([]);
-  const [bizOffset, setBizOffset] = useState(0);
-  const [hasMoreBiz, setHasMoreBiz] = useState(true);
   const [events, setEvents] = useState([]);
   const [experiences, setExperiences] = useState([]);
   const [allCities, setAllCities] = useState([]);
@@ -51,15 +49,13 @@ export default function GlobalHomeView() {
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [query, setQuery] = useState('');
   const [showAllCities, setShowAllCities] = useState(false);
   // Tarjetas visibles por sección (5 al inicio, 5 más al llegar al final
-  // del deslizamiento) y sección expandida en cuadrícula ("Ver todo").
+  // del deslizamiento).
   const [eventsShown, setEventsShown] = useState(SECTION_STEP);
   const [placesShown, setPlacesShown] = useState(SECTION_STEP);
   const [restShown, setRestShown] = useState(SECTION_STEP);
-  const [expanded, setExpanded] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,8 +80,6 @@ export default function GlobalHomeView() {
         const placeRows = Array.isArray(placesRes) ? placesRes : [];
         const bizIds = new Set(bizRows.map((b) => b.id));
         setBiz([...bizRows, ...placeRows.filter((b) => !bizIds.has(b.id))]);
-        setBizOffset(bizRows.length);
-        setHasMoreBiz(bizRows.length === BIZ_PAGE);
         const evRows = (Array.isArray(evRes) ? evRes : []).filter((ev) => {
           if (!ev || !ev.date) return false;
           if (ev.end_date) return ev.end_date >= todayStr;
@@ -267,37 +261,16 @@ export default function GlobalHomeView() {
     }
   };
 
-  // Pide la siguiente página de negocios al servidor (para el "Cargar más"
-  // de la vista expandida de Restaurantes).
-  const loadMoreBiz = async () => {
-    if (!hasMoreBiz || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      const rows = await sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=${bizOffset}`);
-      const list = Array.isArray(rows) ? rows : [];
-      setBiz((prev) => {
-        const ids = new Set(prev.map((b) => b.id));
-        return [...prev, ...list.filter((b) => !ids.has(b.id))];
-      });
-      setBizOffset((o) => o + list.length);
-      setHasMoreBiz(list.length === BIZ_PAGE);
-    } catch (e) {
-      console.warn('Error cargando más negocios', e);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
   // Tarjeta a sangre completa (sin barra blanca ni etiquetas), igual que el
   // feed: el nombre y la ciudad van sobre la foto con degradado. En hilera
-  // tiene ancho fijo; en cuadrícula (vista expandida) ocupa su celda.
-  const renderCard = (item, idx, layout) => {
+  // tiene ancho fijo (póster vertical para eventos, horizontal para el resto).
+  const renderCard = (item, idx) => {
     const isPoster = item.kind === 'eventos';
     return (
       <article
         key={item.key}
         onClick={() => openItem(item)}
-        style={{ ...(layout === 'row' ? { flex: isPoster ? '0 0 170px' : '0 0 240px' } : {}), borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: '#111', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
+        style={{ flex: isPoster ? '0 0 170px' : '0 0 240px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: '#111', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
       >
         <div style={{ position: 'relative', ...(isPoster ? { aspectRatio: '3 / 4' } : { height: 168 }), background: 'linear-gradient(135deg,#111,#333)' }}>
           {item.img
@@ -602,14 +575,9 @@ export default function GlobalHomeView() {
             {/* Próximos eventos: hilera deslizable, los más cercanos primero */}
             {upcomingEvents.length > 0 && (
               <section style={{ marginBottom: 32 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Próximos eventos</h2>
-                  <button onClick={() => navigate('/eventos')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    Ver todo →
-                  </button>
-                </div>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Próximos eventos</h2>
                 <div onScroll={onRowScroll(upcomingEvents, eventsShown, setEventsShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
-                  {upcomingEvents.slice(0, eventsShown).map((item, idx) => renderCard(item, idx, 'row'))}
+                  {upcomingEvents.slice(0, eventsShown).map((item, idx) => renderCard(item, idx))}
                 </div>
               </section>
             )}
@@ -617,51 +585,20 @@ export default function GlobalHomeView() {
             {/* Lugares increíbles: puntos de interés, unidades deportivas y playas */}
             {placesList.length > 0 && (
               <section style={{ marginBottom: 32 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Lugares increíbles</h2>
-                  <button onClick={() => setExpanded(expanded === 'lugares' ? null : 'lugares')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    {expanded === 'lugares' ? 'Ver menos ←' : 'Ver todo →'}
-                  </button>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Lugares increíbles</h2>
+                <div onScroll={onRowScroll(placesList, placesShown, setPlacesShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                  {placesList.slice(0, placesShown).map((item, idx) => renderCard(item, idx))}
                 </div>
-                {expanded === 'lugares' ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                    {placesList.map((item, idx) => renderCard(item, idx, 'grid'))}
-                  </div>
-                ) : (
-                  <div onScroll={onRowScroll(placesList, placesShown, setPlacesShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
-                    {placesList.slice(0, placesShown).map((item, idx) => renderCard(item, idx, 'row'))}
-                  </div>
-                )}
               </section>
             )}
 
             {/* Restaurantes que debes conocer: los mejor calificados */}
             {restaurantsList.length > 0 && (
               <section style={{ marginBottom: 32 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Restaurantes que debes conocer</h2>
-                  <button onClick={() => setExpanded(expanded === 'restaurantes' ? null : 'restaurantes')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    {expanded === 'restaurantes' ? 'Ver menos ←' : 'Ver todo →'}
-                  </button>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Restaurantes que debes conocer</h2>
+                <div onScroll={onRowScroll(restaurantsList, restShown, setRestShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                  {restaurantsList.slice(0, restShown).map((item, idx) => renderCard(item, idx))}
                 </div>
-                {expanded === 'restaurantes' ? (
-                  <>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                      {restaurantsList.map((item, idx) => renderCard(item, idx, 'grid'))}
-                    </div>
-                    {hasMoreBiz && (
-                      <div style={{ textAlign: 'center', marginTop: 22 }}>
-                        <button onClick={loadMoreBiz} disabled={loadingMore} style={{ padding: '12px 28px', borderRadius: 999, border: 0, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, cursor: loadingMore ? 'wait' : 'pointer', opacity: loadingMore ? 0.7 : 1 }}>
-                          {loadingMore ? 'Cargando...' : 'Cargar más'}
-                        </button>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div onScroll={onRowScroll(restaurantsList, restShown, setRestShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
-                    {restaurantsList.slice(0, restShown).map((item, idx) => renderCard(item, idx, 'row'))}
-                  </div>
-                )}
               </section>
             )}
 
