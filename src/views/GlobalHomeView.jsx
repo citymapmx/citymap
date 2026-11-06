@@ -7,23 +7,10 @@ import { createSlug, getThumbUrl } from '../lib/utils.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
-import SlidingCategoryTrack from '../components/ui/SlidingCategoryTrack.jsx';
 import Footer from '../components/Footer.jsx';
 
 const BIZ_PAGE = 60;
 const FEED_STEP = 12;
-
-// Categorías del inicio, como en las páginas de ciudad.
-const HOME_CATS = [
-  { id: 'restaurantes', label: 'Restaurantes' },
-  { id: 'cafeterias', label: 'Cafeterías' },
-  { id: 'bares', label: 'Bares' },
-  { id: 'hoteles', label: 'Hoteles' },
-  { id: 'lugares', label: 'Lugares' },
-  { id: 'eventos', label: 'Eventos' },
-  { id: 'articulos', label: 'Artículos' },
-  { id: 'mas', label: 'Más' },
-];
 
 const FEED_FILTERS = [
   { id: 'todo', label: 'Todo' },
@@ -73,8 +60,6 @@ export default function GlobalHomeView() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [query, setQuery] = useState('');
   const [feedFilter, setFeedFilter] = useState('todo');
-  const [homeCat, setHomeCat] = useState(null);
-  const [showAllCats, setShowAllCats] = useState(false);
   const [showAllCities, setShowAllCities] = useState(false);
   const [visibleFeed, setVisibleFeed] = useState(FEED_STEP);
 
@@ -264,30 +249,14 @@ export default function GlobalHomeView() {
     return items;
   }, [biz, experiences, events, cityBySlug]);
 
-  const allBizCats = useMemo(() => {
-    const counts = new Map();
-    biz.forEach((b) => {
-      const c = (b.category || 'otros').toLowerCase();
-      counts.set(c, (counts.get(c) || 0) + 1);
-    });
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }));
-  }, [biz]);
-
   const filteredFeed = useMemo(() => {
     const q = query.trim().toLowerCase();
     return feed.filter((item) => {
       if (feedFilter !== 'todo' && item.kind !== feedFilter) return false;
-      if (homeCat === 'restaurantes' && !(item.kind === 'negocios' && (item.raw.category || '').toLowerCase().includes('restaurante'))) return false;
-      if (homeCat === 'cafeterias' && !(item.kind === 'negocios' && /caf|coffee/i.test(item.raw.category || ''))) return false;
-      if (homeCat === 'bares' && !(item.kind === 'negocios' && /bar|antro/i.test(item.raw.category || item.raw.type || ''))) return false;
-      if (homeCat === 'hoteles' && !(item.kind === 'negocios' && /hotel|hospedaje/i.test(item.raw.category || ''))) return false;
-      if (homeCat === 'lugares' && item.kind !== 'lugares') return false;
-      if (homeCat === 'eventos' && item.kind !== 'eventos') return false;
-      if (homeCat === 'articulos' && item.kind !== 'articulos') return false;
       if (!q) return true;
       return `${item.title} ${item.subtitle} ${cityBySlug.get(item.citySlug)?.name || ''}`.toLowerCase().includes(q);
     });
-  }, [feed, feedFilter, homeCat, query, cityBySlug]);
+  }, [feed, feedFilter, query, cityBySlug]);
 
   const shownFeed = filteredFeed.slice(0, visibleFeed);
 
@@ -310,16 +279,6 @@ export default function GlobalHomeView() {
     } finally {
       setLoadingMore(false);
     }
-  };
-
-  const onHomeCat = (id) => {
-    if (id === 'mas') { setShowAllCats((v) => !v); return; }
-    if (homeCat === id) { setHomeCat(null); setFeedFilter('todo'); }
-    else {
-      setHomeCat(id);
-      setFeedFilter(id === 'lugares' ? 'lugares' : id === 'eventos' ? 'eventos' : id === 'articulos' ? 'articulos' : 'negocios');
-    }
-    setVisibleFeed(FEED_STEP);
   };
 
   const openItem = (item) => {
@@ -464,46 +423,10 @@ export default function GlobalHomeView() {
             )}
           </div>
 
-          {/* Categorías en texto, igual que en las ciudades */}
-          {!query && (
-            <div style={{ margin: '12px -20px 0' }}>
-              <SlidingCategoryTrack dark={dark} selectedKey={homeCat || 'explorar'} variant="dot" className="home-category-track" style={{ display: 'flex', alignItems: 'stretch', overflowX: 'auto', paddingTop: 8, paddingBottom: 2, paddingLeft: 20, paddingRight: 20, gap: 24, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-                <style>{`.home-category-track > .sliding-category-indicator { display: none; }`}</style>
-                {[{ id: 'explorar', label: 'Explorar' }, ...HOME_CATS].map((c) => {
-                  const isActive = (homeCat || 'explorar') === c.id;
-                  return (
-                    <button
-                      type="button"
-                      key={c.id}
-                      aria-current={isActive ? 'page' : undefined}
-                      onClick={() => { if (c.id === 'explorar') { setHomeCat(null); setFeedFilter('todo'); setVisibleFeed(FEED_STEP); } else onHomeCat(c.id); }}
-                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, minHeight: 44, boxSizing: 'border-box', padding: '10px 0', border: 'none', borderBottom: `2px solid ${isActive ? (dark ? '#FFFFFF' : '#000000') : 'transparent'}`, background: 'transparent', color: isActive ? (dark ? '#FFFFFF' : '#000000') : (dark ? '#A3AFBF' : '#788496'), fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: '20px', whiteSpace: 'nowrap', cursor: 'pointer', transition: 'color 180ms ease, border-color 180ms ease' }}
-                    >
-                      {c.label}
-                    </button>
-                  );
-                })}
-              </SlidingCategoryTrack>
-            </div>
-          )}
         </div>
       </div>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px' }}>
-        {showAllCats && allBizCats.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 0 4px' }}>
-            {allBizCats.map(({ name, count }) => (
-              <button
-                key={name}
-                onClick={() => { setHomeCat(null); setFeedFilter('negocios'); setQuery(name); setVisibleFeed(FEED_STEP); }}
-                style={{ padding: '8px 14px', borderRadius: 999, border: `1px solid ${T.border}`, background: 'transparent', color: T.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' }}
-              >
-                {name} ({count})
-              </button>
-            ))}
-          </div>
-        )}
-
         {loading && (
           /* Esqueleto con las mismas medidas de la sección "Explora por ciudad":
              reserva el espacio mientras cargan las ciudades para que nada
@@ -650,14 +573,14 @@ export default function GlobalHomeView() {
               {shownFeed.length === 0 ? (
                 <p style={{ color: T.sub }}>No encontramos nada con ese filtro.</p>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: feedFilter === 'eventos' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: feedFilter === 'eventos' ? 12 : 16 }}>
                   {shownFeed.map((item, idx) => (
                     <article
                       key={item.key}
                       onClick={() => openItem(item)}
                       style={{ borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
                     >
-                      <div style={{ position: 'relative', height: 168, background: 'linear-gradient(135deg,#111,#333)' }}>
+                      <div style={{ position: 'relative', ...(feedFilter === 'eventos' ? { aspectRatio: '3 / 4' } : { height: 168 }), background: 'linear-gradient(135deg,#111,#333)' }}>
                         {item.img
                           ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={600} priority={idx === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{item.kind === 'eventos' ? '🎟️' : item.kind === 'articulos' ? '📝' : '📍'}</div>}
@@ -670,17 +593,23 @@ export default function GlobalHomeView() {
                           <Icon name={isSaved(item) ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
                         </button>
                       </div>
-                      <div style={{ padding: '12px 14px 16px' }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{item.title}</h3>
-                        <p style={{ fontSize: 13, color: T.sub, margin: 0, lineHeight: 1.45 }}>
-                          {item.kind === 'eventos' ? `📅 ${fmtDate(item.raw.date)}${item.subtitle.includes('·') ? ` · ${item.subtitle.split('·').slice(1).join('·').trim()}` : ''}` : item.subtitle}
-                        </p>
-                      </div>
+                      {feedFilter === 'eventos' ? (
+                        <div style={{ padding: '10px 8px', textAlign: 'center' }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{cityBySlug.get(item.citySlug)?.name || ''}</span>
+                        </div>
+                      ) : (
+                        <div style={{ padding: '12px 14px 16px' }}>
+                          <h3 style={{ fontSize: 16, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{item.title}</h3>
+                          <p style={{ fontSize: 13, color: T.sub, margin: 0, lineHeight: 1.45 }}>
+                            {item.kind === 'eventos' ? `📅 ${fmtDate(item.raw.date)}${item.subtitle.includes('·') ? ` · ${item.subtitle.split('·').slice(1).join('·').trim()}` : ''}` : item.subtitle}
+                          </p>
+                        </div>
+                      )}
                     </article>
                   ))}
                 </div>
               )}
-              {(visibleFeed < filteredFeed.length || (!query && !homeCat && hasMoreBiz && feedFilter !== 'eventos' && feedFilter !== 'articulos')) && (
+              {(visibleFeed < filteredFeed.length || (!query && hasMoreBiz && feedFilter !== 'eventos' && feedFilter !== 'articulos')) && (
                 <div style={{ textAlign: 'center', marginTop: 22 }}>
                   <button onClick={loadMoreFeed} disabled={loadingMore} style={{ padding: '12px 28px', borderRadius: 999, border: 0, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, cursor: loadingMore ? 'wait' : 'pointer', opacity: loadingMore ? 0.7 : 1 }}>
                     {loadingMore ? 'Cargando...' : 'Cargar más'}
