@@ -261,10 +261,11 @@ export default function GlobalHomeView() {
     }
   };
 
-  // Tarjeta a sangre completa (sin barra blanca ni etiquetas), igual que el
-  // feed: el nombre y la ciudad van sobre la foto con degradado. En hilera
-  // tiene ancho fijo (póster vertical para eventos, horizontal para el resto).
-  const renderCard = (item, idx) => {
+  // Las tarjetas de las hileras se ven a 170-240 px (340-480 px en retina):
+  // 400 px alcanza y pesa ~la mitad que 800 px (PageSpeed: 515 KiB de ahorro).
+  // Solo las 2 primeras de "Próximos eventos" llevan prioridad: son las que
+  // se ven al abrir el muro y el LCP era una foto sin prioridad.
+  const renderCard = (item, idx, isPriority = false) => {
     const isPoster = item.kind === 'eventos';
     return (
       <article
@@ -274,7 +275,7 @@ export default function GlobalHomeView() {
       >
         <div style={{ position: 'relative', ...(isPoster ? { aspectRatio: '3 / 4' } : { height: 168 }), background: 'linear-gradient(135deg,#111,#333)' }}>
           {item.img
-            ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={600} priority={idx === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={400} priority={isPriority} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{isPoster ? '🎟️' : '📍'}</div>}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)' }} />
           <button
@@ -444,20 +445,51 @@ export default function GlobalHomeView() {
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px' }}>
         {loading && (
-          /* Esqueleto con las mismas medidas de la sección "Explora por ciudad":
-             reserva el espacio mientras cargan las ciudades para que nada
-             brinque cuando aparecen (CLS 0.707 en PageSpeed) */
-          <section style={{ marginTop: 22, marginBottom: 30 }} aria-hidden="true">
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Explora por ciudad</h2>
-              <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, whiteSpace: 'nowrap' }}>Ver todas las ciudades →</span>
-            </div>
-            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <div key={i} style={{ flex: '0 0 168px', height: 132, borderRadius: 16, background: dark ? '#1e1e1e' : '#f1f1f1' }} />
-              ))}
-            </div>
-          </section>
+          <>
+            {/* Esqueleto con las mismas medidas de la sección "Explora por ciudad":
+               reserva el espacio mientras cargan las ciudades para que nada
+               brinque cuando aparecen (CLS 0.707 en PageSpeed) */}
+            <section style={{ marginTop: 22, marginBottom: 30 }} aria-hidden="true">
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Explora por ciudad</h2>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, whiteSpace: 'nowrap' }}>Ver todas las ciudades →</span>
+              </div>
+              <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={i} style={{ flex: '0 0 168px', height: 132, borderRadius: 16, background: dark ? '#1e1e1e' : '#f1f1f1' }} />
+                ))}
+              </div>
+            </section>
+            {/* Esqueletos de las secciones del muro con sus mismas medidas:
+               sin ellos el pie de página se movía cuando el contenido aparecía
+               (casi todo el CLS 0.44 del reporte nuevo) */}
+            <section style={{ marginBottom: 32 }} aria-hidden="true">
+              <div style={{ width: 220, height: 22, borderRadius: 8, background: dark ? '#1e1e1e' : '#f1f1f1', marginBottom: 14 }} />
+              <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} style={{ flex: '0 0 170px', aspectRatio: '3 / 4', borderRadius: 16, background: dark ? '#1e1e1e' : '#f1f1f1' }} />
+                ))}
+              </div>
+            </section>
+            {[0, 1].map((s) => (
+              <section key={s} style={{ marginBottom: 32 }} aria-hidden="true">
+                <div style={{ width: 220, height: 22, borderRadius: 8, background: dark ? '#1e1e1e' : '#f1f1f1', marginBottom: 14 }} />
+                <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} style={{ flex: '0 0 240px', height: 168, borderRadius: 16, background: dark ? '#1e1e1e' : '#f1f1f1' }} />
+                  ))}
+                </div>
+              </section>
+            ))}
+            <section style={{ marginBottom: 32 }} aria-hidden="true">
+              <div style={{ width: 220, height: 22, borderRadius: 8, background: dark ? '#1e1e1e' : '#f1f1f1', marginBottom: 14 }} />
+              <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                {[0, 1].map((i) => (
+                  <div key={i} style={{ flex: '0 0 260px', height: 150, borderRadius: 16, background: dark ? '#1e1e1e' : '#f1f1f1' }} />
+                ))}
+              </div>
+            </section>
+          </>
         )}
         {error && !loading && (
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
@@ -577,7 +609,7 @@ export default function GlobalHomeView() {
               <section style={{ marginBottom: 32 }}>
                 <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Próximos eventos</h2>
                 <div onScroll={onRowScroll(upcomingEvents, eventsShown, setEventsShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
-                  {upcomingEvents.slice(0, eventsShown).map((item, idx) => renderCard(item, idx))}
+                  {upcomingEvents.slice(0, eventsShown).map((item, idx) => renderCard(item, idx, idx < 2))}
                 </div>
               </section>
             )}
