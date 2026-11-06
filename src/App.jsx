@@ -572,7 +572,18 @@ useEffect(() => {
     else if (v.startsWith("itinerary_detail_")) path = `/itinerario/${v.replace("itinerary_detail_", "")}`;
     else if (v.startsWith("plan_")) path = `/plan/${v.replace("plan_", "")}`;
     else if (v.startsWith("manage/")) path = `/${v}`;
-    else if (v.startsWith("/")) path = v;
+    else if (v.startsWith("/")) {
+      path = v;
+      // Si la ruta es la página principal de una ciudad conocida, cambiar
+      // también la ciudad activa: sin esto la URL cambia pero HomeView sigue
+      // mostrando la ciudad guardada del dispositivo (por eso todas las
+      // tarjetas del muro abrían la misma ciudad).
+      const citySlug = cities.find((c) => buildCityPath(c.slug, cities) === v)?.slug;
+      if (citySlug && citySlug !== activeCity) {
+        setActiveCity(citySlug);
+        loadData(citySlug);
+      }
+    }
     else if (v === "home") {
       if (location.state?.background) {
         setSelected(null);
