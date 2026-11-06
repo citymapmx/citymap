@@ -2,7 +2,7 @@ import './CityArrivalSplash.css';
 import {getHomeVisualState} from '../lib/homeReadiness.js';
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 
-const MINIMUM_MS=2200;
+const MINIMUM_MS=600;
 
 export default function CityArrivalSplash({enabled,waitingForCity=false,citySlug,cityName,ready,error=false,dark,onRetry=()=>window.location.reload()}) {
   const [phase,setPhase]=useState(()=>enabled&&citySlug?'enter':'idle');

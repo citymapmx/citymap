@@ -902,7 +902,7 @@ useEffect(() => {
     }, () => { }, { enableHighAccuracy: true, timeout: 10000 }); 
   };
   useEffect(() => {
-    const cachedCity = localStorage.getItem("cg_city_slug");
+    const cachedCity = localStorage.getItem("cg_city_slug") || activeCity;
 
     if (!cachedCity && cities.length > 0) {
        
@@ -1221,7 +1221,7 @@ useEffect(() => {
   return (
     <AppContext.Provider value={appContextValue}>
       <OfflineScreen />
-      <CityArrivalSplash enabled={!requireCitySelection && isHomePath(location.pathname)} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && businessListReady && homeCoreCity===activeCity && homeSecondaryCity===activeCity} error={dbError || businessListError || homeCoreError || homeSecondaryError} dark={dark}/>
+      <CityArrivalSplash enabled={!requireCitySelection && isHomePath(location.pathname)} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && homeCoreCity===activeCity} error={dbError || businessListError || homeCoreError || homeSecondaryError} dark={dark}/>
 
       <div style={{ fontFamily: "'DM Sans',system-ui,sans-serif", background: dark ? "transparent" : T.bg, minHeight: "100vh", width: "100%", position: "relative", transition: "background .3s" }}>
         {dark && <CosmicBackground />}

@@ -1,33 +1,21 @@
 import { useState } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
-import Icon from '../ui/Icon.jsx';
 
 const SLIDES = [
   {
     id: 1,
     title: "Tu ciudad está llena de",
     highlight: "cosas por descubrir.",
-    desc: "Restaurantes, negocios, productos y servicios que quizá todavía no conoces.",
+    desc: "Restaurantes, negocios, eventos, experiencias y lugares para cada momento.",
     img: "/onboarding_1.jpg"
-  },
-  {
-    id: 2,
-    title: "Encuentra algo que vaya",
-    highlight: "contigo.",
-    desc: "Eventos, experiencias, lugares y actividades para cada momento.",
-    img: "/onboarding_2.jpg"
   }
 ];
 
 export default function OnboardingModal({ onComplete, T }) {
-  const [step, setStep] = useState(0);
+  const [step] = useState(0);
 
   const nextStep = () => {
-    if (step < SLIDES.length - 1) {
-      setStep(step + 1);
-    } else {
-      onComplete();
-    }
+    onComplete();
   };
 
   const skip = () => {
@@ -116,20 +104,16 @@ export default function OnboardingModal({ onComplete, T }) {
         <button 
           onClick={nextStep}
           style={{ 
-            height: 48, borderRadius: 24, padding: step === 2 ? '0 24px' : '0',
-            width: step === 2 ? 'auto' : 48,
-            background: step === 2 ? 'linear-gradient(90deg, #60A5FA, #8B5CF6)' : '#60A5FA', 
+            height: 48, borderRadius: 24, padding: '0 24px',
+            width: 'auto',
+            background: 'linear-gradient(90deg, #60A5FA, #8B5CF6)', 
             border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
             boxShadow: '0 8px 16px rgba(96, 165, 250, 0.4)',
             transition: 'all 0.3s ease',
             color: '#fff'
           }}
         >
-          {step === 2 ? (
-            <span style={{ fontSize: 15, fontWeight: 700 }}>Comenzar</span>
-          ) : (
-            <Icon name="arrow_right" size={24} color="#FFF" />
-          )}
+          <span style={{ fontSize: 15, fontWeight: 700 }}>Comenzar</span>
         </button>
       </div>
     </div>
