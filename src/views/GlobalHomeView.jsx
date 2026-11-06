@@ -258,10 +258,32 @@ export default function GlobalHomeView() {
     });
   }, [feed, feedFilter, query, cityBySlug]);
 
-  const shownFeed = filteredFeed.slice(0, visibleFeed);
+  // En "Todo" el feed se ordena en pares que se repiten: 2 negocios,
+  // 2 eventos, 2 lugares, 2 artículos, y otra vez (sin búsqueda).
+  const orderedFeed = useMemo(() => {
+    if (feedFilter !== 'todo' || query.trim()) return filteredFeed;
+    const kinds = ['negocios', 'eventos', 'lugares', 'articulos'];
+    const byKind = kinds.map((k) => filteredFeed.filter((it) => it.kind === k));
+    const out = [];
+    let round = 0;
+    for (;;) {
+      let added = false;
+      byKind.forEach((list) => {
+        const a = list[round * 2];
+        const b = list[round * 2 + 1];
+        if (a) { out.push(a); added = true; }
+        if (b) { out.push(b); added = true; }
+      });
+      if (!added) break;
+      round++;
+    }
+    return out;
+  }, [filteredFeed, feedFilter, query]);
+
+  const shownFeed = orderedFeed.slice(0, visibleFeed);
 
   const loadMoreFeed = async () => {
-    if (visibleFeed < filteredFeed.length) { setVisibleFeed((v) => v + FEED_STEP); return; }
+    if (visibleFeed < orderedFeed.length) { setVisibleFeed((v) => v + FEED_STEP); return; }
     if (!hasMoreBiz || loadingMore || feedFilter === 'eventos' || feedFilter === 'articulos') return;
     setLoadingMore(true);
     try {
@@ -573,18 +595,21 @@ export default function GlobalHomeView() {
               {shownFeed.length === 0 ? (
                 <p style={{ color: T.sub }}>No encontramos nada con ese filtro.</p>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: feedFilter === 'eventos' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: feedFilter === 'eventos' ? 12 : 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
                   {shownFeed.map((item, idx) => (
                     <article
                       key={item.key}
                       onClick={() => openItem(item)}
-                      style={{ borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
+                      style={{ borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: '#111', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
                     >
                       <div style={{ position: 'relative', ...(feedFilter === 'eventos' ? { aspectRatio: '3 / 4' } : { height: 168 }), background: 'linear-gradient(135deg,#111,#333)' }}>
                         {item.img
                           ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={600} priority={idx === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{item.kind === 'eventos' ? '🎟️' : item.kind === 'articulos' ? '📝' : '📍'}</div>}
-                        <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>{item.badge}</span>
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)' }} />
+                        {feedFilter !== 'eventos' && (
+                          <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>{item.badge}</span>
+                        )}
                         <button
                           aria-label="Guardar"
                           onClick={(e) => toggleSave(e, item)}
@@ -592,24 +617,22 @@ export default function GlobalHomeView() {
                         >
                           <Icon name={isSaved(item) ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
                         </button>
+                        {feedFilter === 'eventos' ? (
+                          <span style={{ position: 'absolute', left: 12, right: 12, bottom: 10, color: '#fff', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{cityBySlug.get(item.citySlug)?.name || ''}</span>
+                        ) : (
+                          <div style={{ position: 'absolute', left: 12, right: 12, bottom: 10 }}>
+                            <h3 style={{ fontSize: 15, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: '0 0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h3>
+                            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {item.kind === 'eventos' ? `📅 ${fmtDate(item.raw.date)}${item.subtitle.includes('·') ? ` · ${item.subtitle.split('·').slice(1).join('·').trim()}` : ''}` : item.subtitle}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      {feedFilter === 'eventos' ? (
-                        <div style={{ padding: '10px 8px', textAlign: 'center' }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{cityBySlug.get(item.citySlug)?.name || ''}</span>
-                        </div>
-                      ) : (
-                        <div style={{ padding: '12px 14px 16px' }}>
-                          <h3 style={{ fontSize: 16, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{item.title}</h3>
-                          <p style={{ fontSize: 13, color: T.sub, margin: 0, lineHeight: 1.45 }}>
-                            {item.kind === 'eventos' ? `📅 ${fmtDate(item.raw.date)}${item.subtitle.includes('·') ? ` · ${item.subtitle.split('·').slice(1).join('·').trim()}` : ''}` : item.subtitle}
-                          </p>
-                        </div>
-                      )}
                     </article>
                   ))}
                 </div>
               )}
-              {(visibleFeed < filteredFeed.length || (!query && hasMoreBiz && feedFilter !== 'eventos' && feedFilter !== 'articulos')) && (
+              {(visibleFeed < orderedFeed.length || (!query && hasMoreBiz && feedFilter !== 'eventos' && feedFilter !== 'articulos')) && (
                 <div style={{ textAlign: 'center', marginTop: 22 }}>
                   <button onClick={loadMoreFeed} disabled={loadingMore} style={{ padding: '12px 28px', borderRadius: 999, border: 0, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, cursor: loadingMore ? 'wait' : 'pointer', opacity: loadingMore ? 0.7 : 1 }}>
                     {loadingMore ? 'Cargando...' : 'Cargar más'}
