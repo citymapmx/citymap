@@ -69,6 +69,14 @@ export function getLocalIsoDate(d = new Date()) {
 
 export const CAT_EMOJI = { restaurantes: "🍽️", cafe: "☕", salud: "🏥", belleza: "💅", fitness: "💪", compras: "🛍️", tech: "💻", ocio: "🎭", hoteles: "🏨", educacion: "📚" };
 
+// El ícono "lugar.png" de la categoría Puntos de interés pesaba 447 KiB
+// (500×500) y se mostraba a 14-64 px. Se sustituyó por lugar.svg: el mismo
+// pin verde en vector, menos de 1 KiB y nítido a cualquier tamaño.
+export function iconFile(icon) {
+  if (typeof icon === 'string' && icon.trim().toLowerCase() === 'lugar.png') return 'lugar.svg';
+  return icon;
+}
+
 export function isOpenNow(b, tz, now) {
   const sch = b.schedule;
   if (!sch || typeof sch !== "object" || Object.keys(sch).length === 0) return !!b.open;

@@ -17,13 +17,6 @@ export default function useThirdPartyScripts(enabled=true) {
         analytics.async=true;
         document.head.appendChild(analytics);
       }
-      if(!document.getElementById('google-adsense-script')){
-        const ads=document.createElement('script');
-        ads.id='google-adsense-script';
-        ads.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6883476912475263';
-        ads.async=true;ads.crossOrigin='anonymous';
-        document.head.appendChild(ads);
-      }
     };
     const timer=setTimeout(()=>{
       if(window.requestIdleCallback)idle=window.requestIdleCallback(inject,{timeout:2000});
