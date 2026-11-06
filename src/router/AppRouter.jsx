@@ -14,9 +14,10 @@ const PlansPage = React.lazy(() => import('../components/PlansPage.jsx'));
 const WalletView = React.lazy(() => import('../views/WalletView.jsx'));
 const FavsView = React.lazy(() => import('../views/FavsView.jsx'));
 const NotFoundView = React.lazy(() => import('../views/NotFoundView.jsx'));
+const AppLoginView = React.lazy(() => import('../views/AppLoginView.jsx'));
 
 // Paths that are NOT the home/category view
-const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/mis-planes', '/revista', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan'];
+const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/mis-planes', '/revista', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
 
 function isCategoryPath(segments) {
   if (IS_WORLD) return segments.length === 4 && segments[2] === 'c';
@@ -169,6 +170,7 @@ export default function AppRouter(props) {
             <Route path="/revista/:city/:slug" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
 
             <Route path="/favoritos" element={<FavsView />} />
+            <Route path="/login" element={<AppLoginView T={T} dark={dark} navigate={navigate} />} />
             <Route path="/cuenta" element={<AccountView
               user={user} authChecked={authChecked} profile={profile} isAdmin={isAdmin} T={T} dark={dark} setDark={setDark}
               favIds={favIds} reviews={reviews} wallet={wallet} coupons={coupons} claimedCoupons={claimedCoupons}

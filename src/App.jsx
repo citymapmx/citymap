@@ -518,6 +518,7 @@ useEffect(() => {
         else if (v === "mis-planes" || v === "experiencias" || v === "revista") navigate("mis-planes");
         else if (v === "itinerarios") navigate("itineraries");
         else if (v === "wallet" || v === "lealtad" || v === "scan") { /* DO NOTHING, let AppRouter handle it */ }
+        else if (v === "login") { /* DO NOTHING, let AppRouter handle it */ }
         else if (v === "planes") { /* Removed section: let AppRouter render the 404 */ }
         else if (v === "menu_direct") { /* DO NOTHING, let AppRouter handle it */ }
         else navigate("home");
@@ -529,7 +530,7 @@ useEffect(() => {
         // If already on a detail/category/non-home path (e.g. hard refresh on /tepic/restaurante),
         // do NOT navigate away — let AppRouter handle the URL as-is.
         const currentPath = window.location.pathname;
-        const nonHomePrefixes = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan'];
+        const nonHomePrefixes = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
         const isNonHome = nonHomePrefixes.some(p => currentPath.startsWith(p));
         const segments = currentPath.split('/').filter(Boolean);
         const isDetailOrCategory = segments.length >= 2; // e.g. /tepic/emilianos or /tepic/c/restaurantes
