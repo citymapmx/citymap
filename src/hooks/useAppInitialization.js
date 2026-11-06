@@ -150,7 +150,7 @@ export function useAppInitialization() {
       }
     }
     
-    return { b, ev, vista, cat, manage, planId, joinToken, expSlug, citySlug: localStorage.getItem("cg_city_slug") };
+    return { b, ev, vista, cat, manage, planId, joinToken, expSlug, citySlug: localStorage.getItem("cg_city_slug") || "guadalajara" };
   })());
 
   const initialBizParam = useRef(initialParams.current.b);
