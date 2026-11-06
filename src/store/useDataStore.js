@@ -134,6 +134,9 @@ export const useDataStore = create((set, get) => ({
   fetchMoreBiz: async ({ targetCity, query, category, offset = 0, limit = 20, onBatch }) => {
     try {
       if (!targetCity) return null;
+      // Si el usuario escribe lo que sugiere el buscador ("Buscar tacos"),
+      // se quita el verbo para buscar solo el término.
+      query = (query || '').replace(/^(buscar|busca)\s+/i, '').trim();
       const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url,description,is_catalog";
       
       let filters = `status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}`;

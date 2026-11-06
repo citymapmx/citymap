@@ -36,54 +36,11 @@ function bizImage(b) {
   return b.banner_url || b.logo_url || null;
 }
 
-// Frases del buscador del muro, con animación de máquina de escribir:
-// se escribe una, se espera, se borra y sigue la siguiente.
-const SEARCH_HINTS = [
-  'Buscar taquerías',
-  'Buscar pizzas',
-  'Buscar lugares increíbles',
-  'Buscar cafeterías',
-  'Buscar eventos hoy',
-  'Buscar mariscos',
-  'Buscar un hotel',
-  'Buscar bares',
-];
-
-function useTypewriter(phrases) {
-  const [text, setText] = useState('');
-  useEffect(() => {
-    let phraseIdx = 0;
-    let charIdx = 0;
-    let deleting = false;
-    let timer = null;
-    let alive = true;
-    const step = () => {
-      if (!alive) return;
-      const phrase = phrases[phraseIdx % phrases.length];
-      if (!deleting) {
-        charIdx += 1;
-        setText(`${phrase.slice(0, charIdx)}▏`);
-        if (charIdx >= phrase.length) { deleting = true; timer = setTimeout(step, 1800); }
-        else timer = setTimeout(step, 75);
-      } else {
-        charIdx -= 1;
-        setText(charIdx > 0 ? `${phrase.slice(0, charIdx)}▏` : '');
-        if (charIdx <= 0) { deleting = false; phraseIdx = (phraseIdx + 1) % phrases.length; timer = setTimeout(step, 400); }
-        else timer = setTimeout(step, 30);
-      }
-    };
-    timer = setTimeout(step, 600);
-    return () => { alive = false; clearTimeout(timer); };
-  }, [phrases]);
-  return text;
-}
-
 // Buscador del muro en su propio componente: el placeholder con máquina de
 // escribir cambia cada ~75 ms y así solo se vuelve a dibujar esta zona,
 // no todo el muro.
 function HeroSearchBar({ dark, query, setQuery }) {
   const { detectCity, locating, navigate } = useAppContext();
-  const hint = useTypewriter(SEARCH_HINTS);
   const handleLocate = () => {
     if (locating) return;
     // Igual que "Encontrar lugares cerca de mí" del seleccionador de ciudad:
@@ -139,7 +96,7 @@ function HeroSearchBar({ dark, query, setQuery }) {
         <div className="hero-search-magic-container">
           <div className="hero-search-magic-inner"></div>
         </div>
-        <DebouncedSearchBar initialValue={query} onSearch={(v) => setQuery(v)} placeholder={hint || 'Buscar en CityMap'} dark={dark} />
+        <DebouncedSearchBar initialValue={query} onSearch={(v) => setQuery(v)} placeholder="Buscar en CityMap" dark={dark} />
       </div>
 
       {!query && (
@@ -248,7 +205,9 @@ export default function GlobalHomeView() {
   // Etapa 2: buscador global en vivo (Supabase, todas las ciudades).
   // DebouncedSearchBar ya espera 300 ms antes de avisar, así que aquí se busca directo.
   useEffect(() => {
-    const q = query.trim();
+    // Si el usuario escribe lo que sugiere el buscador ("Buscar tacos"),
+    // se quita el verbo para buscar solo el término: "tacos".
+    const q = query.trim().replace(/^(buscar|busca)\s+/i, '').trim();
     if (q.length < 2) { setSearchResults(null); setSearching(false); return; }
     setSearching(true);
     let cancelled = false;
