@@ -357,6 +357,24 @@ useEffect(() => {
         console.log("Caché limpiado por actualización de versión.");
       }
 
+      // Entrada rápida a la ciudad guardada: decidir ANTES de cargar datos,
+      // con la lista de ciudades del caché, para no mostrar el muro segundos
+      // mientras carga. Sin hash (el regreso de Google OAuth lo necesita
+      // intacto) ni query (los enlaces profundos usan ?b=, ?vista=, etc.).
+      // Si no hay caché válido, cae al redirect tardío de la rama final.
+      if (window.location.pathname === "/" && !window.location.hash && !window.location.search) {
+        const savedCity = localStorage.getItem("cg_city_slug");
+        if (savedCity) {
+          try {
+            const cached = JSON.parse(localStorage.getItem(`cg_data_${savedCity}_v4`) || "null");
+            const knownCities = Array.isArray(cached?.ci) ? cached.ci : [];
+            if (knownCities.some((c) => c.slug === savedCity)) {
+              routerNavigate(buildCityPath(savedCity, knownCities), { replace: true });
+            }
+          } catch { /* sin caché válido: lo decide la rama final tras cargar */ }
+        }
+      }
+
       // Parsear token de Google OAuth si viene en la URL
       sb.parseOAuthHash();
       // Cargar sesión y datos en paralelo
