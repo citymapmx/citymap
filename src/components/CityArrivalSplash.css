@@ -11,3 +11,31 @@
 @keyframes city-arrival-lift{from{transform:translateY(0) scale(1)}to{transform:translateY(-28px) scale(.97)}}
 @keyframes city-arrival-glow-out{from{transform:scale(1);opacity:1}to{transform:scale(1.22);opacity:0}}
 @media(prefers-reduced-motion:reduce){.city-arrival-exit .city-arrival-content,.city-arrival-exit .city-arrival-glow{animation:none}}
+
+/* Globo con vuelo: la esfera gira hasta la ciudad nueva y cae el pin. */
+.city-arrival-globe-wrap{position:relative;width:132px;height:132px;margin:0 auto 2px}
+.city-arrival-globe{position:absolute;left:6px;top:6px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7cc0f5,#2f7fc9 45%,#174a7a 100%);box-shadow:inset -8px -10px 24px rgba(0,0,0,.28),0 10px 24px rgba(23,106,170,.18);overflow:hidden}
+.city-arrival-globe-spin{position:absolute;inset:0;transform-style:preserve-3d;animation:city-arrival-globe-fly 900ms cubic-bezier(.22,1,.36,1) both}
+.city-arrival-globe-meridian{position:absolute;inset:0;border:1px solid rgba(255,255,255,.45);border-radius:50%}
+.city-arrival-globe-meridian:nth-child(1){transform:rotateY(0deg)}
+.city-arrival-globe-meridian:nth-child(2){transform:rotateY(60deg)}
+.city-arrival-globe-meridian:nth-child(3){transform:rotateY(120deg)}
+.city-arrival-globe-latitude{position:absolute;left:0;width:100%;border:1px solid rgba(255,255,255,.28);border-radius:50%}
+.city-arrival-globe-latitude--mid{top:31%;height:38%}
+.city-arrival-globe-latitude--top{top:10%;height:22%}
+.city-arrival-ring{position:absolute;inset:14px;border:1px solid rgba(67,155,228,.24);border-radius:50%;animation:city-arrival-ripple 1700ms cubic-bezier(.2,.6,.3,1) infinite}
+.city-arrival-pin{position:absolute;left:50%;top:-2px;width:30px;height:37px;filter:drop-shadow(0 6px 10px rgba(24,106,170,.25));animation:city-arrival-pin-drop 700ms 350ms cubic-bezier(.16,1,.3,1) both}
+@keyframes city-arrival-globe-fly{from{transform:rotateY(-160deg)}to{transform:rotateY(0deg)}}
+@keyframes city-arrival-ripple{0%{transform:scale(.62);opacity:0}25%{opacity:.8}100%{transform:scale(1.3);opacity:0}}
+@keyframes city-arrival-pin-drop{0%{opacity:0;transform:translateX(-50%) translateY(-18px) scale(.7)}55%{opacity:1;transform:translateX(-50%) translateY(2px) scale(1.06)}75%{transform:translateX(-50%) translateY(-2px) scale(1)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+
+/* Rueda 3D de ciudades: tambor con una cara por ciudad, gira de la anterior a la nueva. */
+.city-arrival-wheel{position:relative;height:56px;margin:8px auto 2px;overflow:visible}
+.city-arrival-drum{position:relative;width:100%;height:100%;transform-style:preserve-3d}
+.city-arrival-wheel-face{position:absolute;left:50%;top:50%;width:132px;height:46px;margin:-23px 0 0 -66px;display:grid;place-items:center;border-radius:999px;background:rgba(255,255,255,.78);border:1px solid rgba(23,32,45,.08);box-shadow:0 6px 18px rgba(23,32,45,.08);font-size:15px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backface-visibility:hidden}
+.city-arrival--dark .city-arrival-wheel-face{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);box-shadow:none}
+
+/* Nombre de la ciudad: entra borroso y se aclara, como el hero de QuePlan. */
+.city-arrival-name{animation:city-arrival-name-in 600ms ease-out both}
+@keyframes city-arrival-name-in{from{filter:blur(10px);opacity:0;transform:translateY(8px)}to{filter:blur(0);opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.city-arrival-globe-spin,.city-arrival-pin,.city-arrival-ring,.city-arrival-name{animation:none}}
