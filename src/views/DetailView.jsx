@@ -16,6 +16,7 @@ import { useNavigate, useNavigationType } from "react-router-dom";
 
 import { m, AnimatePresence } from "framer-motion";
 import { getBizTier } from '../lib/gamification';
+import { displayRating, formatReviewCount } from '../lib/googleRatings.js';
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
@@ -65,6 +66,7 @@ export default function DetailView() {
   const reviews = useDataStore(s => s.reviews);
   const setReviews = useDataStore(s => s.setReviews);
   const globalFavCounts = useDataStore(s => s.globalFavCounts);
+  const googleRatings = useDataStore(s => s.googleRatings);
   const raffles = useDataStore(s => s.raffles);
   const setRaffles = useDataStore(s => s.setRaffles);
 
@@ -301,17 +303,24 @@ export default function DetailView() {
 
                     <div className="press" onClick={() => { if (!user) { setShowAuth(true); return; } setShowReview(true); }} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
                       {(() => {
-                        const rCount = selected.review_count > 0 ? selected.review_count : reviews.length;
-                        const rRating = selected.rating > 0 
-                            ? Number(selected.rating).toFixed(1)
+                        // Con dato vigente en caché se muestra el conteo de
+                        // Google; si no, el conteo propio de CityMap (o el
+                        // promedio de las reseñas locales si aún no hay).
+                        const disp = displayRating(selected, googleRatings);
+                        const rCount = disp.count > 0 ? disp.count : reviews.length;
+                        const rRating = disp.rating != null && disp.rating > 0
+                            ? disp.rating.toFixed(1)
                             : (reviews.length > 0 ? (reviews.reduce((acc, r) => acc + (r.stars || 0), 0) / reviews.length).toFixed(1) : 0);
-                        
+
                         if (rCount > 0) {
                           return (
                             <>
                               <Icon name="star_f" size={16} color={dText} style={{ marginTop: -2 }} />
                               <span className="text-sm" style={{ fontWeight: 800, color: dText }}>{rRating > 0 ? rRating : "Nuevo"}</span>
-                              <span className="text-xs" style={{ color: dSub }}>({rCount})</span>
+                              <span className="text-xs" style={{ color: dSub }}>({formatReviewCount(rCount)})</span>
+                              {disp.source === "google" && (
+                                <img src="/googlelogo.svg" alt="Google" style={{ width: 14, height: 14, objectFit: "contain" }} />
+                              )}
                             </>
                           );
                         } else {

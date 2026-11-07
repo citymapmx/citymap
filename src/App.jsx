@@ -387,6 +387,10 @@ useEffect(() => {
           } else {
             await useDataStore.getState().refreshCities();
           }
+          // Calificaciones de Google en caché (para las tarjetas); sin
+          // await, no frena el arranque. Sin dato, la tarjeta usa el
+          // conteo propio de CityMap.
+          useDataStore.getState().loadGoogleRatings();
         })()
       ]);
 
