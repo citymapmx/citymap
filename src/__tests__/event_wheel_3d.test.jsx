@@ -34,11 +34,11 @@ function renderWheel(props = {}) {
 describe('event wheel 3D', () => {
   it('renders one drum face per event with the first one in front', () => {
     const html = renderWheel();
-    expect(html.match(/event-wheel-face/g)).toHaveLength(8);
-    // 8 faces -> 45 deg per face, radius 229 px; the first event is in front.
-    expect(html).toContain('rotateY(0deg) translateZ(229px)');
-    expect(html).toContain('rotateY(45deg) translateZ(229px)');
-    expect(html).toContain('rotateY(315deg) translateZ(229px)');
+    expect(html.match(/event-wheel-face/g)).toHaveLength(5);
+    // 5 faces -> 72 deg per face, radius 131 px; the first event is in front.
+    expect(html).toContain('rotateY(0deg) translateZ(131px)');
+    expect(html).toContain('rotateY(72deg) translateZ(131px)');
+    expect(html).toContain('rotateY(288deg) translateZ(131px)');
   });
 
   it('shows the detail card of the front event with dots and counter', () => {
@@ -46,8 +46,8 @@ describe('event wheel 3D', () => {
     expect(html).toContain('Evento 1');
     expect(html).toContain('10 de nov');
     expect(html).toContain('Recinto 1 · Guadalajara');
-    expect(html).toContain('01/08');
-    expect(html.match(/Ir al evento/g)).toHaveLength(8);
+    expect(html).toContain('01/05');
+    expect(html.match(/Ir al evento/g)).toHaveLength(5);
     expect(html).toContain('Ver detalles');
   });
 
@@ -55,7 +55,7 @@ describe('event wheel 3D', () => {
     const noImg = [{ ...makeEvent(0), img: null }, ...events.slice(1)];
     const html = renderWheel({ events: noImg });
     expect(html).toContain('Evento 1');
-    expect(html.match(/event-wheel-face/g)).toHaveLength(8);
+    expect(html.match(/event-wheel-face/g)).toHaveLength(5);
   });
 
   it('renders a plain row without a drum when there are fewer than 3 events', () => {

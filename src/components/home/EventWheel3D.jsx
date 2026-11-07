@@ -5,9 +5,9 @@ import Icon from '../ui/Icon.jsx';
 import EventPosterFallback from './EventPosterFallback.jsx';
 
 // Rueda 3D de eventos para el inicio global, como el "Museo de eventos" de
-// QuePlan: los pósters forman un tambor que gira solo, con la ficha del
-// evento al frente sincronizada. Se pausa al tocarlo o arrastrarlo.
-const MAX_FACES = 8;
+// QuePlan: 5 pósters en un tambor que gira solo, con la ficha del evento al
+// frente sincronizada. Se pausa al tocarlo o arrastrarlo.
+const MAX_FACES = 5;
 const FACE_W = 190;
 const AUTO_MS = 4000;
 
@@ -119,14 +119,14 @@ export default function EventWheel3D({ events, onSelect, onToggleSave, isSaved, 
   }
 
   const current = items[index];
-  const drumTransition = reducedMotion || dragging ? 'none' : 'transform 1000ms cubic-bezier(.22,1,.36,1)';
+  const drumTransition = reducedMotion || dragging ? 'none' : 'transform 1100ms cubic-bezier(.25,.7,.25,1)';
 
   return (
     <section className="event-wheel" aria-label="Próximos eventos">
       <h2 className="event-wheel-title">Próximos eventos</h2>
       <div
         className={`event-wheel-viewport${dragging ? ' event-wheel-dragging' : ''}`}
-        style={{ perspective: '1100px' }}
+        style={{ perspective: '1000px' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
