@@ -497,7 +497,7 @@ export default function HomeView({ isBackground }) {
           })()}
 
           {/* ── EVENTOS ── */}
-          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} cityImg={cityImg} handleEventTap={handleEventTap} T={T} city={city} />}
+          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} handleEventTap={handleEventTap} T={T} city={city} />}
 
           {/* ── LUGAR DEL DÍA (Recomendación) ── */}
           {/* Esqueleto del spotlight mientras cargan los negocios: misma altura (240 px)

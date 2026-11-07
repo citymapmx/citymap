@@ -37,6 +37,13 @@ describe.each([['Vite',EventCoverflow],['Next',NextCoverflow]])('%s event coverf
     expect(html).not.toContain('Evento siguiente');
     expect(html).not.toContain('Invalid Date');
   });
+  it('shows a black poster with the white title for events without an image',()=>{
+    const html=renderToStaticMarkup(<Carousel events={[{id:'noimg',title:'Festival sin foto',date:'2099-11-20',venue_name:'Teatro Diana'}]} T={T} onOpen={()=>{}}/>);
+    expect(html).not.toContain('<img ');
+    expect(html).toContain('Festival sin foto');
+    expect(html).toContain('background:#111');
+    expect(html).toContain('color:#fff');
+  });
   it('uses the same poster layout with distinct labels and long-event dates',()=>{
     const html=renderToStaticMarkup(<Carousel events={[{id:'month',title:'Festival de octubre',poster_url:'https://example.org/poster.jpg'}]} T={T} label="Carrusel de eventos de larga duración" formatEventMeta={()=>'Hasta el 2 nov · Guadalajara'}/>);
     expect(html).toContain('aria-label="Carrusel de eventos de larga duración"');
