@@ -51,7 +51,7 @@ function HeroSearchBar({ dark, query, setQuery }) {
     });
   };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: query ? 76 : 20, zIndex: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: query ? 76 : 10, zIndex: 10 }}>
       <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
         <style>{`
           .hero-search-magic-container {
@@ -418,7 +418,7 @@ export default function GlobalHomeView() {
       <div style={{ position: 'relative', padding: 'calc(env(safe-area-inset-top, 0px) + 10px) 20px 0px', minHeight: query ? 'auto' : 220, display: 'flex', flexDirection: 'column', background: 'transparent' }}>
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
           {!query && (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: 0, paddingTop: 0, paddingLeft: 10, paddingRight: 10, textAlign: 'center', position: 'relative', zIndex: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: 0, paddingTop: 0, paddingLeft: 10, paddingRight: 10, textAlign: 'center', position: 'relative', zIndex: 10 }}>
               <div style={{ marginBottom: 4 }}>
                 <img
                   src="/citymap.mx.png"

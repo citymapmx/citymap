@@ -130,7 +130,7 @@ export default memo(function HomeHero({
 
   return (
     <>
-    <div style={{ position: "relative", padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 14px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "transparent" }}>
+    <div style={{ position: "relative", padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 8px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "transparent" }}>
 
       {/* Foto de la ciudad como fondo, optimizada a este espacio (800 px WebP),
           con degradado oscuro para que el saludo y el buscador se lean */}
@@ -148,7 +148,7 @@ export default memo(function HomeHero({
         {/* ── Fila 2: Título Hero ── */}
         {!search && (() => {
           return (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 0, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", marginBottom: 0, paddingTop: 0, paddingLeft: 10, paddingRight: 10, textAlign: "center", position: "relative", zIndex: 10 }}>
               <div style={{ marginBottom: 4 }}>
                 <img 
                   src="/citymap.mx.png" 
@@ -194,7 +194,7 @@ export default memo(function HomeHero({
         })()}
 
         {/* ── Fila 3: Search Bar ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: search ? 76 : 20, zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginTop: search ? 76 : 10, zIndex: 10 }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
             <style>{`
               @keyframes magicBorderSpin {
@@ -256,7 +256,7 @@ export default memo(function HomeHero({
     </div>
 
     {/* Categorías debajo de la foto, sobre el fondo de la página */}
-    {!search && <div style={{ margin: "10px 0 0" }}>
+    {!search && <div style={{ margin: "0" }}>
           <SlidingCategoryTrack dark={dark} selectedKey={activeCat} variant="dot" className="home-category-track" style={{ display: "flex", alignItems: "stretch", overflowX: "auto", paddingTop: 8, paddingBottom: 2, paddingLeft: 20, paddingRight: 20, gap: 24, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
             <style>{`.home-category-track > .sliding-category-indicator { display: none; }`}</style>
             {!dbReady ? [1, 2, 3, 4, 5].map(i => <Sk key={i} w={76} h={16} r={4} dark={dark} style={{ flexShrink: 0, marginTop: 14, marginBottom: 14 }} />)
