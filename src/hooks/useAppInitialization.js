@@ -53,15 +53,21 @@ export function useAppInitialization() {
 
     if (storedCity && (SYSTEM_ROUTES.includes(storedCity) || storedCity.includes("/"))) {
       localStorage.removeItem("cg_city_slug");
-      storedCity = "";
     }
-    let currentCity = storedCity || "";
+    // La ciudad se deduce de la URL en cada rama (sin valor inicial: en
+    // ninguna rama se lee antes de asignarse).
+    let currentCity;
 
     if (segments.length === 2) {
       if (segments[0] === "evento") {
+        // La URL ya trae el slug completo (`<ciudad>-<titulo>`, p. ej.
+        // `tepic-alfredo-olivas-en-tepic`). NO anteponer la ciudad guardada:
+        // si el evento es de otra ciudad, el slug quedaba corrupto
+        // (`tlaquepaque-tepic-alfredo-olivas-en-tepic`), la búsqueda no lo
+        // encontraba y la app caía en la lista de eventos de la ciudad
+        // guardada. El slug corto sin ciudad se resuelve en App.jsx: tras
+        // buscarlo tal cual, reintenta con la ciudad guardada.
         ev = getIdFromSlug(segments[1]);
-        const isUUID = ev && ev.length === 36 && ev.split('-').length === 5;
-        if (!isUUID && ev && currentCity && !ev.startsWith(currentCity + "-")) ev = currentCity + "-" + ev;
       } else if (segments[0] === "mapa") {
         vista = "map";
         const cSlug = segments[1].toLowerCase();

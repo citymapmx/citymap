@@ -503,6 +503,14 @@ useEffect(() => {
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(urlEv);
           let r = await dbService.getEvents(isUUID ? `?id=eq.${urlEv}` : `?slug=eq.${urlEv}`);
           if (!r?.[0] && !isUUID) {
+            // Slug corto sin ciudad (p. ej. `?ev=alfredo-olivas-en-tepic`):
+            // reintentar con la ciudad guardada antes de buscar por título.
+            const citySlug = initialParams.current.citySlug;
+            if (citySlug && !urlEv.startsWith(citySlug + "-")) {
+              r = await dbService.getEvents(`?slug=eq.${citySlug}-${urlEv}`);
+            }
+          }
+          if (!r?.[0] && !isUUID) {
             const searchName = urlEv.split("-").join("%25");
             r = await dbService.getEvents(`?title=ilike.*${searchName}*&status=eq.approved`);
           }
