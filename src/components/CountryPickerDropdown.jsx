@@ -9,7 +9,7 @@ const FLAG_MAP = Object.fromEntries(
   Object.entries(COUNTRY_NAMES).map(([code, name]) => [name, COUNTRY_FLAGS[code] || '🌍'])
 );
 
-export default function CountryPickerDropdown({ show, cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark, isWelcome }) {
+export default function CountryPickerDropdown({ show, cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark, isWelcome, onGoToWall }) {
   const T = getT(dark);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCountry, setExpandedCountry] = useState(null);
@@ -264,7 +264,18 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
               <span>{locating ? "Buscando..." : "Encontrar lugares cerca de mí"}</span>
             </button>
 
-
+            {/* Inicio global: el muro de todas las ciudades (solo fuera de la bienvenida) */}
+            {!isWelcome && onGoToWall && (
+              <button
+                onClick={() => { onGoToWall(); onClose(); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: dark ? "rgba(255,255,255,0.05)" : "#ffffff", border: `1px solid ${dark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`, borderRadius: 10, cursor: "pointer", color: dark ? "#f8fafc" : "#0f172a", boxShadow: dark ? "none" : "0 2px 4px rgba(0,0,0,0.02)", fontSize: 14, fontWeight: 600, textAlign: "left", transition: "all 0.2s", marginBottom: 12 }}
+                onMouseOver={e => { e.currentTarget.style.background = dark ? "rgba(255,255,255,0.08)" : "#f8fafc"; }}
+                onMouseOut={e => { e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "#ffffff"; }}
+              >
+                <span style={{ fontSize: 16 }}>🌐</span>
+                <span>Inicio global — todas las ciudades</span>
+              </button>
+            )}
 
             {/* Popular cities */}
             {!isSearching && (

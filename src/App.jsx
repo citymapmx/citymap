@@ -544,6 +544,14 @@ useEffect(() => {
         const isDetailOrCategory = segments.length >= 2; // e.g. /tepic/emilianos or /tepic/c/restaurantes
         if (!isNonHome && !isDetailOrCategory && currentPath !== "/") {
           navigate("home");
+        } else if (currentPath === "/" && !window.location.hash) {
+          // Segunda entrada: abrir directo la ciudad guardada en vez del muro.
+          // Sin hash (el regreso de Google OAuth lo necesita intacto).
+          const savedCity = localStorage.getItem("cg_city_slug");
+          const knownCities = useDataStore.getState().cities;
+          if (savedCity && knownCities.some((c) => c.slug === savedCity)) {
+            routerNavigate(buildCityPath(savedCity, knownCities), { replace: true });
+          }
         }
         // else: stay on current path — AppRouter already shows the right view
       }
@@ -1233,6 +1241,7 @@ useEffect(() => {
             onDetectCity={() => { if (!locating) detectCity({ showToast: true, onDone: (slug) => { const found = cities.find(c => c.slug === slug); if (found) handleCitySelect(found); setRequireCitySelection(false); const pending = pendingSectionRef.current; pendingSectionRef.current = null; if (pending && slug) goToSectionInCity(pending, slug); } }); setShowCountryPicker(false); }}
             locating={locating}
             onClose={() => { if(!requireCitySelection) { pendingSectionRef.current = null; setShowCountryPicker(false); } }} 
+            onGoToWall={() => { setShowCountryPicker(false); routerNavigate("/", { viewTransition: true }); setFade(true); window.scrollTo(0, 0); }}
             dark={dark}
             isWelcome={requireCitySelection} 
           />
