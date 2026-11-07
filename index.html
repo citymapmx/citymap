@@ -75,23 +75,26 @@
   <body>
     <!-- Pantalla de arranque: se ve desde el primer pintado, antes de que
          cargue React. Es la misma vista que BrandSplash (fondo negro, logo
-         oficial e infinito morphing en blanco). React la quita al terminar la
+         oficial y tres puntos en blanco). React la quita al terminar la
          carga inicial (App.jsx); el temporizador es un respaldo por si el JS
-         falla. Las formas del infinito son las mismas de MorphingInfinity.jsx. -->
-    <div id="boot-splash" style="position:fixed;inset:0;z-index:9999999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center">
-      <img src="/logo-brand.png" alt="CityMap" style="width:200px;max-width:60%;object-fit:contain;display:block" />
+         falla. Los puntos se animan solo con `transform`, que sí funciona
+         en Safari/iPhone (el morph de infinito con CSS `d: path()` no). -->
+    <div id="boot-splash" style="position:fixed;inset:0;height:100vh;height:100dvh;z-index:9999999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <img src="/logo-brand.svg" alt="CityMap" style="width:200px;max-width:60%;object-fit:contain;display:block" />
       <div style="height:24px" aria-hidden="true"></div>
-      <svg width="64" height="64" viewBox="0 0 100 100" fill="none" role="status" aria-label="Cargando" style="display:block">
+      <div role="status" aria-label="Cargando" style="display:flex;align-items:center;gap:8px">
         <style>
-          @keyframes boot-splash-morph {
-            0%, 100% { d: path("M 50 15 C 69.33 15 85 30.67 85 50 C 85 69.33 69.33 85 50 85 C 30.67 85 15 69.33 15 50 C 15 30.67 30.67 15 50 15 Z"); }
-            50% { d: path("M 50 50 C 50 25 85 25 85 50 C 85 75 50 75 50 50 C 50 25 15 25 15 50 C 15 75 50 75 50 50 Z"); }
+          @keyframes boot-splash-dot {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
           }
-          .boot-splash-path { animation: boot-splash-morph 2.4s ease-in-out infinite; }
-          @media (prefers-reduced-motion: reduce) { .boot-splash-path { animation: none; } }
+          .boot-splash-dot { animation: boot-splash-dot 1.2s ease-in-out infinite; }
+          @media (prefers-reduced-motion: reduce) { .boot-splash-dot { animation: none; } }
         </style>
-        <path class="boot-splash-path" d="M 50 15 C 69.33 15 85 30.67 85 50 C 85 69.33 69.33 85 50 85 C 30.67 85 15 69.33 15 50 C 15 30.67 30.67 15 50 15 Z" stroke="#fff" stroke-width="6" stroke-linecap="round" />
-      </svg>
+        <span class="boot-splash-dot" style="width:10px;height:10px;border-radius:50%;background:#fff;display:block;animation-delay:0s"></span>
+        <span class="boot-splash-dot" style="width:10px;height:10px;border-radius:50%;background:#fff;display:block;animation-delay:0.15s"></span>
+        <span class="boot-splash-dot" style="width:10px;height:10px;border-radius:50%;background:#fff;display:block;animation-delay:0.3s"></span>
+      </div>
     </div>
     <script>
       setTimeout(function () { var s = document.getElementById("boot-splash"); if (s) s.remove(); }, 15000);

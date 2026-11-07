@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import MorphingInfinity from "./MorphingInfinity.jsx";
+import ThreeDots from "./ThreeDots.jsx";
 
-// Pantalla de carga de marca: fondo negro, logo oficial centrado y el
-// infinito morphing en blanco debajo. Es la vista que se ve al entrar a la
-// app y al cambiar de ciudad, para que la carga no se note: la ciudad aparece
-// directo con todo cargado. `message` y `showRetry` solo se usan cuando la
-// carga tarda o falla (nunca en el caso normal).
+// Pantalla de carga de marca: fondo negro, logo oficial centrado y tres
+// puntos en blanco debajo. Es la vista que se ve al entrar a la app y al
+// cambiar de ciudad, para que la carga no se note: la ciudad aparece directo
+// con todo cargado. `message` y `showRetry` solo se usan cuando la carga
+// tarda o falla (nunca en el caso normal).
 export default function BrandSplash({
   zIndex = 9999,
   fading = false,
@@ -27,6 +27,10 @@ export default function BrandSplash({
       style={{
         position: "fixed",
         inset: 0,
+        // Altura de la ventana visible (dvh): en el iPhone con la barra del
+        // navegador, inset:0 solo cubre el área grande y el contenido queda
+        // corrido hacia arriba; dvh lo centra en lo que sí se ve.
+        height: "100dvh",
         zIndex,
         display: "flex",
         flexDirection: "column",
@@ -42,13 +46,13 @@ export default function BrandSplash({
       }}
     >
       <img
-        src="/logo-brand.png"
+        src="/logo-brand.svg"
         alt="CityMap"
         width={200}
         style={{ width: 200, maxWidth: "60%", objectFit: "contain", display: "block" }}
       />
       <div style={{ height: 24 }} aria-hidden="true" />
-      <MorphingInfinity size={64} color="#fff" strokeWidth={6} />
+      <ThreeDots size={10} gap={8} color="#fff" />
       {message ? (
         <p
           style={{

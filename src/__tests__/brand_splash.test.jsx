@@ -4,12 +4,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import BrandSplash from '../components/ui/BrandSplash.jsx';
 
 describe('BrandSplash', () => {
-  it('renders a black screen with the official logo and the white infinity', () => {
+  it('renders a black screen with the official logo and three white dots', () => {
     const html = renderToStaticMarkup(<BrandSplash />);
     expect(html).toContain('background:#000');
-    expect(html).toContain('src="/logo-brand.png"');
-    expect(html).toContain('morphing-infinity-morph');
-    expect(html).toContain('stroke="#fff"');
+    expect(html).toContain('src="/logo-brand.svg"');
+    expect(html).toContain('three-dots-bounce');
+    expect(html).toContain('background:#fff');
     expect(html).toContain('role="status"');
   });
 
