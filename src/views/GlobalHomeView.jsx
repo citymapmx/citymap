@@ -7,6 +7,7 @@ import { createSlug, getThumbUrl } from '../lib/utils.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
+import TravelAffiliateRow from '../components/home/TravelAffiliateRow.jsx';
 import Footer from '../components/Footer.jsx';
 
 const BIZ_PAGE = 60;
@@ -459,6 +460,7 @@ export default function GlobalHomeView() {
           )}
 
           <HeroSearchBar dark={dark} query={query} setQuery={setQuery} />
+          {!query && <TravelAffiliateRow T={T} dark={dark} />}
 
         </div>
       </div>
