@@ -27,6 +27,10 @@ export default function BrandSplash({
       style={{
         position: "fixed",
         inset: 0,
+        // Altura de la ventana visible (dvh): en el iPhone con la barra del
+        // navegador, inset:0 solo cubre el área grande y el contenido queda
+        // corrido hacia arriba; dvh lo centra en lo que sí se ve.
+        height: "100dvh",
         zIndex,
         display: "flex",
         flexDirection: "column",
@@ -42,13 +46,13 @@ export default function BrandSplash({
       }}
     >
       <img
-        src="/logo-brand.png"
+        src="/logo-brand.svg"
         alt="CityMap"
         width={200}
         style={{ width: 200, maxWidth: "60%", objectFit: "contain", display: "block" }}
       />
       <div style={{ height: 24 }} aria-hidden="true" />
-      <MorphingInfinity size={64} color="#fff" strokeWidth={6} />
+      <MorphingInfinity size={48} color="#fff" strokeWidth={6} />
       {message ? (
         <p
           style={{

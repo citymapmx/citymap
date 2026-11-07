@@ -7,7 +7,7 @@ describe('BrandSplash', () => {
   it('renders a black screen with the official logo and the white infinity', () => {
     const html = renderToStaticMarkup(<BrandSplash />);
     expect(html).toContain('background:#000');
-    expect(html).toContain('src="/logo-brand.png"');
+    expect(html).toContain('src="/logo-brand.svg"');
     expect(html).toContain('morphing-infinity-morph');
     expect(html).toContain('stroke="#fff"');
     expect(html).toContain('role="status"');
