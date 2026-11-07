@@ -5,6 +5,7 @@ import OptimizedImage from '../ui/OptimizedImage';
 import FI from './FI';
 import BookingManager from '../BookingManager';
 import { createSlug } from '../../lib/utils.js';
+import { POST_TYPES, POST_THEMES, normalizeExperience, isEditorialType } from '../../lib/postTaxonomy.js';
 import { cloudDeleteBatch } from '../../lib/supabase.js';
 import RichTextEditor from './RichTextEditor.jsx';
 
@@ -78,7 +79,7 @@ export default function AdminExperiencesTab({
       {!expForm && <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>{experiences.filter(e => e.status !== "pending").length} experiencias</div>
-          <button onClick={() => setExpForm({ _new: true, title: "", activity_type: "Tour", description: "", price: 0, duration: "", people: "", meeting_point: "", languages: "", includes: [], not_includes: [], faq: [], affiliate_products: [], gallery: [], city_slug: "all", status: "approved", active: true })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nueva</button>
+          <button onClick={() => setExpForm({ _new: true, title: "", activity_type: "Tour", theme: null, description: "", price: 0, duration: "", people: "", meeting_point: "", languages: "", includes: [], not_includes: [], faq: [], affiliate_products: [], gallery: [], city_slug: "all", status: "approved", active: true })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nueva</button>
         </div>
 
         <div style={{ position: "relative" }}>
@@ -107,7 +108,7 @@ export default function AdminExperiencesTab({
                   onToast("Experiencia aprobada"); 
                   await load(); 
                 }} style={{ background: "#DCFCE7", color: "#16A34A", border: "none", borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>}
-              {!isPending && <button onClick={() => setExpForm({ ...exp })} style={{ background: "#EEF2F6", color: "#1A7A5E", border: "none", borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Editar</button>}
+              {!isPending && <button onClick={() => setExpForm(normalizeExperience({ ...exp }))} style={{ background: "#EEF2F6", color: "#1A7A5E", border: "none", borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Editar</button>}
               <button onClick={async () => { if (!window.confirm("¿Eliminar experiencia?")) return; if (exp.gallery?.length) await cloudDeleteBatch(exp.gallery); await sb.del("experiences", exp.id); onToast("Eliminada"); await load(); }} style={{ background: "#FFF5F5", border: "none", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="trash" size={14} color="#D94F3D" /></button>
             </div>
           </div>;
@@ -139,25 +140,28 @@ export default function AdminExperiencesTab({
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div>
-                <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Tipo de Actividad</label>
+                <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Tipo de publicación</label>
                 <div style={{ position: "relative" }}>
                   <select value={expForm.activity_type || ""} onChange={(e) => setExpForm(f => ({ ...f, activity_type: e.target.value }))} style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit", appearance: "none" }}>
                     <option value="">Selecciona un tipo...</option>
-                    <option value="✨ Experiencias">✨ Experiencias</option>
-                    <option value="🗺️ Tours">🗺️ Tours</option>
-                    <option value="🌿 Naturaleza">🌿 Naturaleza</option>
-                    <option value="🏛️ Cultura">🏛️ Cultura</option>
-                    <option value="🏃 Deportes">🏃 Deportes</option>
-                    <option value="🥳 Entretenimiento">🥳 Entretenimiento</option>
-                    <option value="🎟️ Boleto">🎟️ Boleto</option>
-                    <option value="📝 Blog">📝 Blog</option>
-                    <option value="📖 Guía">📖 Guía</option>
+                    {POST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <Icon name="chevron-down" size={14} color="#94A3B8" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
                 </div>
               </div>
-              <FI label="Nombre (Ej. Tour a Islas Marietas)" field="title" src={expForm} set={setExpForm} />
+              <div>
+                <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Temática</label>
+                <div style={{ position: "relative" }}>
+                  <select value={expForm.theme || ""} onChange={(e) => setExpForm(f => ({ ...f, theme: e.target.value || null }))} style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", background: "#fff", fontFamily: "inherit", appearance: "none" }}>
+                    <option value="">Sin temática</option>
+                    {POST_THEMES.map(t => <option key={t.slug} value={t.slug}>{t.emoji} {t.label}</option>)}
+                  </select>
+                  <Icon name="chevron-down" size={14} color="#94A3B8" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                </div>
+              </div>
             </div>
+
+            <FI label="Nombre (Ej. Tour a Islas Marietas)" field="title" src={expForm} set={setExpForm} />
 
             <div>
               <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Autor / Organización</label>
@@ -204,7 +208,7 @@ export default function AdminExperiencesTab({
           </div>
 
           {/* Tarjeta 2: LOGÍSTICA (Oculta para Blog/Guía) */}
-          {!(expForm.activity_type && (expForm.activity_type.toLowerCase().includes("blog") || expForm.activity_type.toLowerCase().includes("guía") || expForm.activity_type.toLowerCase().includes("guia"))) && (
+          {!isEditorialType(expForm.activity_type) && (
             <>
             <div style={{ border: "1px solid #E4E8E4", borderRadius: 12, padding: 16, background: "#F9FAFB", display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: "#0F1A14", textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>⏱️ Logística y Detalles</div>
@@ -548,6 +552,7 @@ export default function AdminExperiencesTab({
                 title: expForm.title, 
                 slug: newSlug, 
                 activity_type: expForm.activity_type || "Experiencia",
+                theme: expForm.theme || null,
                 description: expForm.description, 
                 price: Number(expForm.price) || 0,
                 duration: expForm.duration,

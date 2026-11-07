@@ -1,4 +1,5 @@
 import {MOODS, isValidMatch, loadSurpriseCandidates} from '../lib/surpriseSelection.js';
+import { typeLabel } from '../lib/postTaxonomy.js';
 import {sb} from '../lib/supabase.js';
 import {CITY_TZ} from '../lib/constants.js';
 import React, { useState, useRef, useEffect } from 'react';
@@ -366,7 +367,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
               {!pick.isEvent && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />}
               <div style={{ position: pick.isEvent ? 'relative' : 'absolute', bottom: 0, left: 0, right: 0, padding: pick.isEvent ? '14px 16px 16px' : '20px 16px 16px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: pick.isEvent ? dSub : 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-                  {pick.isEvent ? 'EVENTO' : pick.isExperience ? (pick.activity_type || 'EXPERIENCIA') : pick.category}
+                  {pick.isEvent ? 'EVENTO' : pick.isExperience ? (typeLabel(pick.activity_type) || 'EXPERIENCIA') : pick.category}
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: pick.isEvent ? dText : '#fff', lineHeight: 1.1 }}>{pick.title || pick.name}</div>
                 {pick.isEvent || pick.isExperience
@@ -470,7 +471,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 15, fontWeight: 800, color: dText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title || b.name}</div>
-                        <div style={{ fontSize: 12, color: dSub, marginTop: 2 }}>{b.activity_type || b.category} {b.rating > 0 ? `· ⭐ ${b.rating}` : ''}</div>
+                        <div style={{ fontSize: 12, color: dSub, marginTop: 2 }}>{typeLabel(b.activity_type) || b.category} {b.rating > 0 ? `· ⭐ ${b.rating}` : ''}</div>
                       </div>
                       <div style={{ fontSize: 18, color: dSub }}>›</div>
                     </div>

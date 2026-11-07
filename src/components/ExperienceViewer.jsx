@@ -11,6 +11,7 @@ import { useUIStore } from '../store/useUIStore';
 import { useDataStore } from '../store/useDataStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, createSlug } from '../lib/utils';
+import { typeLabel } from '../lib/postTaxonomy.js';
 import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
 
 const Gallery = lazy(() => import('./Gallery').catch(() => {
@@ -322,7 +323,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {/* Title Area */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, color: T.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
-            {exp.activity_type || "Experiencia"}
+            {typeLabel(exp.activity_type) || "Experiencia"}
           </div>
           <h1 style={{ fontSize: 32, fontWeight: 900, color: T.text, margin: "0 0 12px 0", lineHeight: 1.1 }}>
             {exp.title}

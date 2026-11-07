@@ -12,6 +12,7 @@ import { useAppContext } from "../context/AppContext";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { createSlug } from "../lib/utils.js";
+import { matchesPostFilter, themeLabel } from "../lib/postTaxonomy.js";
 import { getThumbUrl, METRO_ZONES, isNear } from "../lib/utils.js";
 import CityEmptyState from "./CityEmptyState.jsx";
 import * as dbService from "../services/dbService.js";
@@ -374,12 +375,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     let filtered = experiences.filter(e => isNear(e, userCoords, activeCity));
     
     if (discoverFilter && discoverFilter !== "all" && discoverFilter !== "trending") {
-      const qFilter = discoverFilter.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      filtered = filtered.filter(p => {
-        if (!p.activity_type) return false;
-        const normAct = p.activity_type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        return normAct.includes(qFilter);
-      });
+      filtered = filtered.filter(p => matchesPostFilter(p, discoverFilter));
     }
     
     if (searchQ) {
@@ -387,7 +383,8 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
       filtered = filtered.filter(p => 
         (p.title && p.title.toLowerCase().includes(q)) || 
         (p.description && p.description.toLowerCase().includes(q)) ||
-        (p.activity_type && p.activity_type.toLowerCase().includes(q))
+        (p.activity_type && p.activity_type.toLowerCase().includes(q)) ||
+        (p.theme && ((themeLabel(p.theme) || "").toLowerCase().includes(q) || p.theme.toLowerCase().includes(q)))
       );
     }
     
@@ -405,12 +402,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     if (hasCivitatisWidget) validIds.add("tour");
     DISCOVER_FILTERS.forEach(f => {
       if (f.id === "all" || f.id === "trending") return;
-      const qFilter = f.id.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      if (cityExps.some(p => {
-        if (!p.activity_type) return false;
-        const normAct = p.activity_type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        return normAct.includes(qFilter);
-      })) {
+      if (cityExps.some(p => matchesPostFilter(p, f.id))) {
         validIds.add(f.id);
       }
     });
