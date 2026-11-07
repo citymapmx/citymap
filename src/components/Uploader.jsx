@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback } from "react";
 import { cloudUpload, cloudUploadPDF } from "../lib/supabase.js";
+import { resolveOptimizeOptions, shouldOptimizeImage } from "../lib/imageOptimize.js";
 import Icon from "./ui/Icon.jsx";
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from "../lib/cropImage.js";
 
-export default function Uploader({ onDone, label = "Subir foto", accept = "image/*", aspect = null, multiple = false, avatarMode = false }) {
+export default function Uploader({ onDone, label = "Subir foto", accept = "image/*", aspect = null, multiple = false, avatarMode = false, optimize = null }) {
   const [pct, setPct] = useState(-1); 
   const [err, setErr] = useState(""); 
   const ref = useRef();
@@ -62,31 +63,26 @@ export default function Uploader({ onDone, label = "Subir foto", accept = "image
       const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
       let fileToUpload = file;
 
-      if (!isPdf && file.type.startsWith("image/") && file.type !== "image/svg+xml") {
-        const targetMB = avatarMode ? 0.1 : 1.5;
-        // Solo comprimimos si el archivo es más pesado que nuestro límite
-        if (file.size > targetMB * 1024 * 1024) {
-          const options = avatarMode ? {
-            maxSizeMB: 0.1,
-            maxWidthOrHeight: 300,
-            useWebWorker: true,
-            initialQuality: 0.8,
-            fileType: 'image/webp'
-          } : {
-            maxSizeMB: 1.5,
-            maxWidthOrHeight: 2000,
-            useWebWorker: true,
-            initialQuality: 0.95,
-            fileType: 'image/webp'
-          };
-          try {
-            const imageCompression = (await import('browser-image-compression')).default;
-            const compressed = await imageCompression(file, options);
-            const newName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
-            fileToUpload = new File([compressed], newName, { type: 'image/webp' });
-          } catch (error) {
-            console.warn("Compression error, uploading original", error);
-          }
+      // Optimización antes de subir: redimensionar + convertir a WebP.
+      // Con el prop `optimize` se fijan tope de peso, tamaño máximo, calidad
+      // y si se optimiza siempre (foto del evento). Sin él, se mantiene el
+      // comportamiento histórico: solo si el archivo pasa de 1.5 MB.
+      const opt = resolveOptimizeOptions({ avatarMode, optimize });
+      if (shouldOptimizeImage(file, opt)) {
+        const options = {
+          maxSizeMB: opt.targetMB,
+          maxWidthOrHeight: opt.maxWidthOrHeight,
+          useWebWorker: true,
+          initialQuality: opt.initialQuality,
+          fileType: 'image/webp'
+        };
+        try {
+          const imageCompression = (await import('browser-image-compression')).default;
+          const compressed = await imageCompression(file, options);
+          const newName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
+          fileToUpload = new File([compressed], newName, { type: 'image/webp' });
+        } catch (error) {
+          console.warn("Compression error, uploading original", error);
         }
       }
 
@@ -134,7 +130,7 @@ export default function Uploader({ onDone, label = "Subir foto", accept = "image
       ) : (
         <div 
           onClick={() => ref.current.click()} 
-          onDrop={e => { e.preventDefault(); handleFileChange(e.dataTransfer.files[0]); }} 
+          onDrop={e => { e.preventDefault(); handleFileChange(e.dataTransfer.files); }} 
           onDragOver={e => e.preventDefault()} 
           style={{ border: "1.5px dashed #E4E8E4", borderRadius: 10, padding: "14px", textAlign: "center", cursor: "pointer" }} 
           onMouseEnter={e => { e.currentTarget.style.borderColor = "#1A7A5E"; e.currentTarget.style.background = "#EAF4F0"; }} 

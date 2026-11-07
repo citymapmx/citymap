@@ -221,19 +221,24 @@ export default function EventsView() {
                 <button
                   onClick={() => setShowCreateEvent(true)}
                   style={{
-                    background: "transparent",
+                    background: T.green,
                     border: "none",
-                    color: T.sub,
+                    color: dark ? "#18181B" : "#FFFFFF",
                     fontSize: 13,
-                    fontWeight: 700,
+                    fontWeight: 800,
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
-                    gap: 4
+                    gap: 6,
+                    padding: "10px 16px",
+                    borderRadius: 9999,
+                    fontFamily: "inherit",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    flexShrink: 0
                   }}
                 >
-                  <Icon name="plus" size={13} color={T.sub} />
-                  {t("crear_evento", "Crear")}
+                  <Icon name="plus" size={14} color={dark ? "#18181B" : "#FFFFFF"} />
+                  {t("crear_evento", "Crear evento")}
                 </button>
               ) : (
                 <span style={{ fontSize: 13, fontWeight: 700, color: T.sub }}>
