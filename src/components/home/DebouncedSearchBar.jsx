@@ -31,12 +31,12 @@ function useTypewriter(phrases) {
       const phrase = phrases[phraseIdx % phrases.length];
       if (!deleting) {
         charIdx += 1;
-        setText(`${phrase.slice(0, charIdx)}▏`);
+        setText(phrase.slice(0, charIdx));
         if (charIdx >= phrase.length) { deleting = true; timer = setTimeout(step, 3500); }
         else timer = setTimeout(step, 75);
       } else {
         charIdx -= 1;
-        setText(charIdx > 0 ? `${phrase.slice(0, charIdx)}▏` : '');
+        setText(charIdx > 0 ? phrase.slice(0, charIdx) : '');
         if (charIdx <= 0) { deleting = false; phraseIdx = (phraseIdx + 1) % phrases.length; timer = setTimeout(step, 400); }
         else timer = setTimeout(step, 30);
       }
@@ -85,6 +85,10 @@ export default function DebouncedSearchBar({ initialValue, onSearch, dark }) {
 
   return (
     <div style={{display:"grid",position:"relative",zIndex:3}}>
+      <style>{`
+        @keyframes heroCaretBlink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+        .hero-caret { color: #38BDF8; animation: heroCaretBlink 1s step-end infinite; }
+      `}</style>
       <input role="searchbox" aria-label="Buscar lugares y eventos" autoComplete="off" enterKeyHint="search"
         className="inp hero-search-input"
         style={{ width: "100%", minHeight: 40, boxSizing: "border-box", padding: "8px 48px 8px 44px", border: "none", borderRadius: 100, color: dark ? "#F4F4F5" : "#18181B", fontSize: 16, fontWeight: 500, gridArea:"1 / 1",height:"100%", textAlign: "left" }}
@@ -93,7 +97,7 @@ export default function DebouncedSearchBar({ initialValue, onSearch, dark }) {
         onChange={event => setLocalSearch(event.target.value)}
         onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); submit(event.currentTarget.value.trim()); } }}
       />
-      {!localSearch && <span aria-hidden="true" style={{gridArea:'1 / 1',alignSelf:'center',minWidth:0,maxWidth:'100%',padding:'8px 16px 8px 44px',zIndex:4,pointerEvents:'none',fontSize:'clamp(14px, 3.8vw, 16px)',fontWeight:500,lineHeight:'20px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textAlign:'left',color:dark?'#A1A1AA':'#6B7280'}}>{focusedPlaceholder ?? animatedHint}</span>}
+      {!localSearch && <span aria-hidden="true" style={{gridArea:'1 / 1',alignSelf:'center',minWidth:0,maxWidth:'100%',padding:'8px 16px 8px 44px',zIndex:4,pointerEvents:'none',fontSize:'clamp(14px, 3.8vw, 16px)',fontWeight:500,lineHeight:'20px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textAlign:'left',color:dark?'#A1A1AA':'#6B7280'}}>{focusedPlaceholder ?? animatedHint}<span className="hero-caret" aria-hidden="true">▏</span></span>}
       <span style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", zIndex: 5, pointerEvents: "none", display: "flex" }}>
         <Icon name="search" size={19} color={dark ? "#A1A1AA" : "#6B7280"} />
       </span>
