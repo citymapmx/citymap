@@ -1,6 +1,7 @@
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {afterEach,describe,expect,it,vi} from 'vitest';
+import {MemoryRouter} from 'react-router-dom';
 import {getCityDisplayName,useGeolocation} from '../hooks/useGeolocation.js';
 import HomeHero from '../components/home/HomeHero.jsx';
 import {getT} from '../lib/constants.js';
@@ -31,7 +32,15 @@ describe('city displayed after refresh',()=>{
  });
  it('keeps the greeting on the active city rather than an old detected town',()=>{
    vi.stubGlobal('window',{CITY_TZ:'America/Mazatlan'});
-   const html=renderToStaticMarkup(<HomeHero activeCity='tepic' city='Guadalajara, Jalisco' detectedTown='Guadalajara' cities={cities} dark={false} T={getT(false)} t={(key,fallback)=>fallback||key} search='' setSearch={()=>{}} cats={[]} activeCat='explorar' dbReady/>);
+   const html=renderToStaticMarkup(<MemoryRouter><HomeHero activeCity='tepic' city='Guadalajara, Jalisco' detectedTown='Guadalajara' cities={cities} dark={false} T={getT(false)} t={(key,fallback)=>fallback||key} search='' setSearch={()=>{}} cats={[]} activeCat='explorar' dbReady/></MemoryRouter>);
    expect(html).toContain('Tepic');expect(html).not.toContain('Guadalajara');
+ });
+ it('shows the city photo as hero background when the city has one',()=>{
+   vi.stubGlobal('window',{CITY_TZ:'America/Mazatlan'});
+   const heroProps={activeCity:'guadalajara',city:'Guadalajara, Jalisco',cities,dark:false,T:getT(false),t:(key,fallback)=>fallback||key,search:'',setSearch:()=>{},cats:[],activeCat:'explorar',dbReady:true};
+   const withPhoto=renderToStaticMarkup(<MemoryRouter><HomeHero {...heroProps} cityImg='https://example.com/guadalajara.jpg'/></MemoryRouter>);
+   expect(withPhoto).toContain('guadalajara.jpg');
+   const withoutPhoto=renderToStaticMarkup(<MemoryRouter><HomeHero {...heroProps}/></MemoryRouter>);
+   expect(withoutPhoto).not.toContain('guadalajara.jpg');
  });
 });

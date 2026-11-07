@@ -370,7 +370,7 @@ export default function HomeView({ isBackground }) {
   return (
     <div data-city-home={activeCity} style={{ paddingBottom: 84, position: "relative", ...viewStyle }}>
           {/* ── HERO HEADER ── */}
-          <HomeHero dark={dark} T={T} t={t} search={search} setSearch={setSearch} localizedPlaceholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dbReady={dbReady} cats={cats} activeCat={activeCat} setActiveCat={setActiveCat} activeCity={activeCity} city={city} cities={cities} haptic={haptic} detectedTown={detectedTown} onSurprise={() => { haptic("light"); setShowSurprise(true); }} navigate={navigate} />
+          <HomeHero dark={dark} T={T} t={t} search={search} setSearch={setSearch} localizedPlaceholders={localizedPlaceholders} phIdx={phIdx} locating={locating} detectCity={detectCity} userCoords={userCoords} dbReady={dbReady} cats={cats} activeCat={activeCat} setActiveCat={setActiveCat} activeCity={activeCity} city={city} cities={cities} haptic={haptic} detectedTown={detectedTown} onSurprise={() => { haptic("light"); setShowSurprise(true); }} navigate={navigate} cityImg={cityImg} />
           
 
           {/* ── EMPTY CITY STATE ── */}
