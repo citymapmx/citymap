@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
+import { ensureGoogleIdentityServices } from '../lib/googleIdentity.js';
 
 // Mismo cliente de Google que el botón de la web (AuthModal.jsx).
 // El botón oficial de Google (GIS) solo funciona sobre un origen https
@@ -24,6 +25,9 @@ export default function AppLoginView({ T, dark, navigate }) {
   const fromApp = new URLSearchParams(window.location.search).get('from') === 'app';
 
   useEffect(() => {
+    // El cliente de Google (GIS) ya no vive en index.html: se carga aquí,
+    // solo cuando se abre el login. El sondeo de abajo lo espera (máx. 8 s).
+    ensureGoogleIdentityServices();
     const initGsi = () => {
       if (!window.google?.accounts?.id || !googleBtnRef.current) return false;
       try {

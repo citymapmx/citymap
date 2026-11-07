@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { createSlug } from "../../lib/utils.js";
+import { createSlug, getThumbUrl } from "../../lib/utils.js";
 
 export default memo(function TopImperdibles({ experiences, T, city }) {
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ export default memo(function TopImperdibles({ experiences, T, city }) {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {top5.map((exp, index) => {
-          const imgUrl = exp.gallery?.[0];
+          const imgUrl = exp.gallery?.[0] ? getThumbUrl(exp.gallery[0], 800) : null;
           const slug = createSlug(exp.title) || exp.id;
           const cSlug = exp.city_slug ? exp.city_slug.split(',')[0] : (city?.slug || "");
           const href = `/revista/${cSlug}/${slug}`;

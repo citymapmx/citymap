@@ -1,5 +1,5 @@
 import React from "react";
-import { createSlug } from "../../lib/utils.js";
+import { createSlug, getThumbUrl } from "../../lib/utils.js";
 
 export default function TopImperdibles({ experiences, globalFavCounts, setViewingPlan, setIsViewing, T, FONT_BIZ, city }) {
   // Get top 5 sorted by likes
@@ -35,7 +35,7 @@ export default function TopImperdibles({ experiences, globalFavCounts, setViewin
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {top5.map((exp, index) => {
-          const imgUrl = exp.gallery?.[0];
+          const imgUrl = exp.gallery?.[0] ? getThumbUrl(exp.gallery[0], 800) : null;
           const slug = createSlug(exp.title) || exp.id;
           const cSlug = exp.city_slug ? exp.city_slug.split(',')[0] : (city?.slug || "");
           const href = `/revista/${cSlug}/${slug}`;

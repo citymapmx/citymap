@@ -405,7 +405,7 @@ export default memo(function BusinessCard({
            ? <ProgressiveImage 
                 variants={{ hover: { scale: 1.08 } }} 
                 transition={{ duration: 0.4, ease: "easeOut" }} 
-                src={getThumbUrl(thumb.url, 1200, 900)} 
+                src={getThumbUrl(thumb.url, 800, 600)} 
                 thumbSrc={getThumbUrl(thumb.url, 20, 20)}
                 alt={b.name} 
                 style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }} 

@@ -10,10 +10,10 @@ describe.each([['Vite',EventCoverflow],['Next',NextCoverflow]])('%s event coverf
     const html=renderToStaticMarkup(<Carousel events={events} T={T} onOpen={()=>{}}/>);
     const urls=[...html.matchAll(/<img[^>]+src="([^"]+)"/g)].map(match=>new URL(match[1].replaceAll('&amp;','&')));
     expect(urls).toHaveLength(8);
-    expect(html.match(/loading="eager"/g)).toHaveLength(7);
-    expect(html.match(/loading="lazy"/g)).toHaveLength(1);
+    expect(html.match(/loading="eager"/g)).toHaveLength(3);
+    expect(html.match(/loading="lazy"/g)).toHaveLength(5);
     expect(urls.every(url=>!url.searchParams.has('height'))).toBe(true);
-    expect(urls.every(url=>url.searchParams.get('width') === '800')).toBe(true);
+    expect(urls.every(url=>url.searchParams.get('width') === '400')).toBe(true);
     expect(html).toContain('object-fit: contain');
     expect(html).not.toContain('object-fit: cover');
     expect(html).toContain('aria-label="Ver evento: Festival 0"');

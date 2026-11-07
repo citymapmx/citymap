@@ -99,3 +99,55 @@ export function EventSk({ dark }) {
     </div>
   );
 }
+
+// Esqueleto con la misma altura que el carrusel de eventos (EventCoverflow):
+// escenario clamp(240px, 70vw, 326px) + título y subtítulo centrados.
+// Evita que el contenido de abajo salte cuando llegan los eventos.
+export function CoverflowSk({ dark }) {
+  return (
+    <div style={{ padding: "4px 0 0" }}>
+      <div style={{ height: "clamp(240px, 70vw, 326px)", padding: "0 20px" }}>
+        <Sk w="100%" h="100%" r={14} dark={dark} />
+      </div>
+      <div style={{ padding: "6px 20px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+        <Sk w="60%" h={17} r={6} dark={dark} />
+        <Sk w="40%" h={13} r={6} dark={dark} />
+      </div>
+    </div>
+  );
+}
+
+// Esqueleto de "Los 5 imperdibles": título + 5 tarjetas de 150 px.
+export function ImperdiblesSk({ dark }) {
+  return (
+    <div style={{ padding: "24px 20px 10px" }}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+        <Sk w="70%" h={22} r={6} dark={dark} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {[1, 2, 3, 4, 5].map(i => (
+          <Sk key={i} w="100%" h={150} r={16} dark={dark} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Esqueleto de la lista por horario (SquareCarousel): título + hilera de cuadros 90x90.
+export function TimeListSk({ dark }) {
+  return (
+    <div style={{ padding: "24px 0 0" }}>
+      <div style={{ display: "flex", justifyContent: "center", padding: "0 20px", marginBottom: 12 }}>
+        <Sk w="60%" h={22} r={6} dark={dark} />
+      </div>
+      <div style={{ display: "flex", gap: 10, paddingLeft: 20, paddingRight: 20, paddingBottom: 6, overflow: "hidden" }}>
+        {[1, 2, 3, 4, 5, 6].map(i => (
+          <div key={i} style={{ minWidth: 90, maxWidth: 90, flexShrink: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+            <Sk w={90} h={90} r={20} dark={dark} />
+            <Sk w="80%" h={11} r={4} dark={dark} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
