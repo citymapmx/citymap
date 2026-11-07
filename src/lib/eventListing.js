@@ -6,12 +6,36 @@ export function eventCalendarDay(now = Date.now(), timeZone) {
 
 const dateOnly = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value : null;
 
+// Last calendar day of an event (its end_date, or its date when it has none).
+export function eventLastDay(event) {
+  const start = dateOnly(event.date);
+  const end = dateOnly(event.end_date);
+  return end && (!start || end >= start) ? end : start;
+}
+
+// True when the event already ended (its last day is before today).
+export function isPastEvent(event, today) {
+  const lastDay = eventLastDay(event);
+  return Boolean(lastDay) && lastDay < today;
+}
+
+const cityList = value => String(value || '').split(',').map(slug => slug.trim().toLowerCase()).filter(Boolean);
+const eventCityMatches = (candidate, citySlug) =>
+  !citySlug || citySlug === 'all' || cityList(candidate.city_slug).includes('all') || cityList(candidate.city_slug).includes(citySlug);
+
+// Upcoming events in the same city as `event`, for the "this event already ended" section.
+export function upcomingEvents(allEvents, event, today, limit = 4) {
+  const citySlug = cityList(event.city_slug)[0];
+  return (allEvents || [])
+    .filter(candidate => candidate.id !== event.id && eventCityMatches(candidate, citySlug) && isListedEvent(candidate, today))
+    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
+    .slice(0, limit);
+}
+
 // Calendar dates stay in the event city's day, independent of a visitor's timezone.
 export function isListedEvent(event, today) {
   if (!event.active || ['pending', 'rejected'].includes(event.status)) return false;
-  const start = dateOnly(event.date);
-  const end = dateOnly(event.end_date);
-  const lastDay = end && (!start || end >= start) ? end : start;
+  const lastDay = eventLastDay(event);
   return !lastDay || lastDay >= today;
 }
 
