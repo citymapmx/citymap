@@ -28,6 +28,7 @@ const updateCityCache = (key, updates) => {
 };
 
 let businessLoadId = 0;
+let timeBasedLoadId = 0;
 const highlightRequests = new Map();
 
 export const useDataStore = create((set, get) => ({
@@ -128,6 +129,46 @@ export const useDataStore = create((set, get) => ({
       // Further rows are requested only by pagination or the map viewport.
     } catch (e) {
       console.warn("Error fetching map pins", e);
+    }
+  },
+
+  timeBasedBiz: [], setTimeBasedBiz: (val) => set(s => ({ timeBasedBiz: typeof val === 'function' ? val(s.timeBasedBiz) : val })),
+  timeBasedBizCity: null,
+
+  // Pool para las listas por horario de la home ("Para iniciar el día",
+  // "Hora de comer", "Para cerrar el día"): TODOS los negocios aprobados
+  // de la ciudad (límite 200; la ciudad más grande, Tepic, tiene ~118),
+  // sin ordenar por plan, para que restaurantes y cafeterías free,
+  // destacados y premium compitan en igualdad. loadMapPins solo trae los
+  // primeros 20 ordenados por plan, por eso antes solo salían premium.
+  loadTimeBasedBiz: async (targetCity) => {
+    if (!targetCity) return;
+    const requestId = ++timeBasedLoadId;
+    set({ timeBasedBizCity: targetCity, timeBasedBiz: [] });
+    try {
+      let selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url,is_catalog";
+      const processBatch = (batch) => Array.isArray(batch) ? batch.map(b => ({
+        ...b,
+        schedule: get().parseJSON(b.schedule),
+        social_links: get().parseJSON(b.social_links),
+        photos: get().parseJSON(b.photos)
+      })) : [];
+
+      let rows;
+      try {
+        rows = await sb.get("businesses", `?select=${selectCols},subcategory&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=id.asc&limit=200`);
+      } catch (err) {
+        if (err?.message?.includes("subcategory") || err?.message?.includes("column")) {
+          rows = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=id.asc&limit=200`);
+        } else {
+          throw err;
+        }
+      }
+      if (requestId !== timeBasedLoadId) return;
+      if (get().timeBasedBizCity !== targetCity) return;
+      set({ timeBasedBiz: processBatch(rows) });
+    } catch (e) {
+      console.warn("Error fetching time-based businesses", e);
     }
   },
 
@@ -342,6 +383,7 @@ export const useDataStore = create((set, get) => ({
         
         const cacheKey = `cg_data_${targetCity}_v4`;
         const pPins = get().loadMapPins(targetCity);
+        const pTimeBiz = get().loadTimeBasedBiz(targetCity);
       
       
       // Secondary fetches (Non-blocking)
@@ -423,7 +465,7 @@ export const useDataStore = create((set, get) => ({
       const pCities = currentCities && currentCities.length > 0 ? Promise.resolve(currentCities) : sb.get("cities", "?order=name.asc").catch(() => []);
       const pFavs = sb.rpc("get_global_favs").catch(() => sb.get("favorites")).catch(() => []);
 
-      const [bn, ca, cc, ci, globalFavs] = await Promise.all([pBanners, pCats, pCityCats, pCities, pFavs, pPins]);
+      const [bn, ca, cc, ci, globalFavs] = await Promise.all([pBanners, pCats, pCityCats, pCities, pFavs, pPins, pTimeBiz]);
       
       if (ci && Array.isArray(ci)) {
         updateMetroZones(ci);
