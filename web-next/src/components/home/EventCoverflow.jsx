@@ -17,6 +17,13 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
 }
 
+function formatTagDate(value) {
+  if (!value) return '';
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }).replace('.', '').toUpperCase();
+}
+
 function CoverflowPoster({ src, title, priority }) {
   const [ready, setReady] = useState(false);
   const [original, setOriginal] = useState(false);
@@ -37,7 +44,7 @@ function CoverflowPoster({ src, title, priority }) {
   </>;
 }
 
-export default function EventCoverflow({ events = [], onOpen, T, label = 'Eventos destacados', formatEventMeta }) {
+export default function EventCoverflow({ events = [], onOpen, T, label = 'Eventos destacados', heading, formatEventMeta, formatEventTag }) {
   const [selectedId, setSelectedId] = useState(null);
   const gesture = useRef(null);
   const stageRef = useRef(null);
@@ -86,7 +93,24 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
       }
     }}>
       <style>{`
-        .event-coverflow { padding: 0 0 4px; }
+        .event-coverflow { padding: 0 0 4px; position: relative; }
+        .event-coverflow-date-tag {
+          position: absolute;
+          top: 14px;
+          left: 14px;
+          z-index: 5;
+          padding: 5px 9px;
+          border-radius: 999px;
+          background: rgba(0,0,0,0.78);
+          border: 1px solid rgba(255,255,255,0.28);
+          color: #fff;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: .4px;
+          line-height: 1;
+          white-space: nowrap;
+          pointer-events: none;
+        }
         .event-coverflow-viewport { position: relative; }
         .event-coverflow-arrow {
           position: absolute;
@@ -181,6 +205,9 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
         .event-coverflow-card:focus-visible { outline: 3px solid #1A7A5E; outline-offset: -3px; border-radius: 16px; }
         @media (prefers-reduced-motion: reduce) { .event-coverflow-card { transition: none; } }
       `}</style>
+      {heading && <header style={{ margin: '0 20px 12px', textAlign: 'center' }}>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: T.text }}>{heading}</h2>
+      </header>}
       <div className="event-coverflow-viewport" style={{ color: T.text, '--rail-icon-halo': T.dark ? 'rgba(0,0,0,.8)' : 'rgba(255,255,255,.9)' }}>
       <div className="event-coverflow-stage" ref={stageRef}
         onPointerDown={event => {
@@ -331,6 +358,7 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
           .map(({ event, offset }) => {
             const isSelected = offset === 0;
             const image = event.img_url || event.img || event.poster_url;
+            const tag = formatEventTag ? formatEventTag(event) : formatTagDate(event.date);
             return <button key={event.id} type="button" className="event-coverflow-card"
               aria-label={isSelected ? `Ver evento: ${event.title}` : `Mostrar evento: ${event.title}`}
               aria-current={isSelected ? 'true' : undefined}
@@ -343,6 +371,7 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
               }}
               style={{ '--offset': offset, pointerEvents: Math.abs(offset) > 1 ? 'none' : 'auto' }}>
               {image ? <CoverflowPoster key={image} src={image} title={event.title} priority={isSelected ? 'center' : Math.abs(offset) <= 1} /> : <EventPosterFallback title={event.title} />}
+              {tag && <span aria-hidden="true" className="event-coverflow-date-tag">{tag}</span>}
             </button>;
           })}
 
@@ -360,9 +389,10 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
       ))}
       </div>
 
-      <div aria-live="polite" aria-atomic="true" style={{ padding: '6px 20px 0', textAlign: 'center', color: T.text }}>
-        <h3 style={{ fontSize: 17, fontWeight: 800, margin: '0 0 4px', lineHeight: 1.3 }}>{current.title}</h3>
-        <p style={{ color: T.sub, fontSize: 13, margin: 0, lineHeight: 1.5 }}>{formatEventMeta ? formatEventMeta(current) : [formatDate(current.date), current.venue_name].filter(Boolean).join(' · ')}</p>
+      {/* Título y fecha del evento seleccionado, solo para lectores de pantalla: abajo del carrusel ya no se muestra nada. */}
+      <div aria-live="polite" aria-atomic="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
+        <span>{current.title}</span>{' · '}
+        <span>{formatEventMeta ? formatEventMeta(current) : [formatDate(current.date), current.venue_name].filter(Boolean).join(' · ')}</span>
       </div>
     </div>
   );

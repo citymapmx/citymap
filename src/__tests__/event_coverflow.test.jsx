@@ -44,6 +44,19 @@ describe.each([['Vite',EventCoverflow],['Next',NextCoverflow]])('%s event coverf
     expect(html).toContain('background:#111');
     expect(html).toContain('color:#fff');
   });
+  it('shows the heading above the carousel and a date tag on each card',()=>{
+    const html=renderToStaticMarkup(<Carousel events={events} heading="Próximos eventos" T={T} onOpen={()=>{}}/>);
+    expect(html).toContain('Próximos eventos');
+    expect(html).toContain('event-coverflow-date-tag');
+    expect(html).toContain('18 OCT');
+    expect(html).toContain('aria-live="polite"');
+    expect(html).toContain('Teatro de Tepic');
+  });
+  it('shows a date range tag when formatEventTag is provided',()=>{
+    const html=renderToStaticMarkup(<Carousel events={[{id:'m',title:'Feria',date:'2099-11-28',end_date:'2099-12-06'}]} T={T} onOpen={()=>{}} formatEventTag={()=>'28 NOV — 6 DIC'}/>);
+    expect(html).toContain('28 NOV — 6 DIC');
+    expect(html).not.toContain('Próximos eventos');
+  });
   it('uses the same poster layout with distinct labels and long-event dates',()=>{
     const html=renderToStaticMarkup(<Carousel events={[{id:'month',title:'Festival de octubre',poster_url:'https://example.org/poster.jpg'}]} T={T} label="Carrusel de eventos de larga duración" formatEventMeta={()=>'Hasta el 2 nov · Guadalajara'}/>);
     expect(html).toContain('aria-label="Carrusel de eventos de larga duración"');
