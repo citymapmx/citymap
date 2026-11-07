@@ -360,7 +360,14 @@ export default function GlobalHomeView() {
             <Icon name={isSaved(item) ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
           </button>
           {isPoster ? (
-            <span style={{ position: 'absolute', left: 12, right: 12, bottom: 10, color: '#fff', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{cityBySlug.get(item.citySlug)?.name || ''}</span>
+            item.img ? (
+              <span style={{ position: 'absolute', left: 12, right: 12, bottom: 10, color: '#fff', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{cityBySlug.get(item.citySlug)?.name || ''}</span>
+            ) : (
+              <div style={{ position: 'absolute', left: 12, right: 12, bottom: 10, textAlign: 'center' }}>
+                <h3 style={{ fontSize: 14, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: '0 0 2px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h3>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4 }}>{cityBySlug.get(item.citySlug)?.name || ''}</p>
+              </div>
+            )
           ) : (
             <div style={{ position: 'absolute', left: 12, right: 12, bottom: 10 }}>
               <h3 style={{ fontSize: 15, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: '0 0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h3>
