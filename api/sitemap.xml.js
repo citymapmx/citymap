@@ -10,9 +10,11 @@ function asArray(value) {
   if (Array.isArray(value)) return value;
   try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
 }
-function imagesXml(values) {
+function imagesXml(values, title) {
+  const cleanTitle = typeof title === 'string' ? title.trim() : '';
+  const titleXml = cleanTitle ? `<image:title>${esc(cleanTitle)}</image:title>` : '';
   return [...new Set(values.map(value => typeof value === 'string' ? value : value?.url).filter(value => /^https?:\/\//i.test(value || '')))]
-    .slice(0, 10).map(url => `<image:image><image:loc>${esc(url)}</image:loc></image:image>`).join('');
+    .slice(0, 10).map(url => `<image:image><image:loc>${esc(url)}</image:loc>${titleXml}</image:image>`).join('');
 }
 
 export default async function handler(req) {
@@ -31,10 +33,10 @@ export default async function handler(req) {
       }
     }
     const [businesses, events, cities, experiences] = await Promise.all([
-      rows('businesses', 'status=eq.approved&select=slug,id,city_slug,category,updated_at,logo_url,photos'),
-      rows('events', 'status=eq.approved&select=slug,id,city_slug,updated_at,img_url,img'),
-      rows('cities', 'select=id,slug,name,country_code'),
-      rows('experiences', 'status=eq.approved&select=slug,id,city_slug,updated_at,gallery'),
+      rows('businesses', 'status=eq.approved&select=slug,id,city_slug,category,updated_at,logo_url,photos,name'),
+      rows('events', 'status=eq.approved&select=slug,id,city_slug,updated_at,img_url,img,title'),
+      rows('cities', 'select=id,slug,name,country_code,bg_image'),
+      rows('experiences', 'status=eq.approved&select=slug,id,city_slug,updated_at,gallery,title'),
     ]);
     const byCity = new Map(cities.map(city => [city.slug, city]));
     const allowedCity = slug => byCity.has(slug) && (isWorld || (byCity.get(slug).country_code || 'mx').toLowerCase() === 'mx');
@@ -42,14 +44,14 @@ export default async function handler(req) {
     const cityList = value => String(value || '').split(',').map(slug => slug.trim().toLowerCase()).filter(Boolean);
     const belongs = value => !value || value === 'all' || cityList(value).some(allowedCity);
     const urls = new Map();
-    const add = (path, images = [], modified) => {
+    const add = (path, images = [], modified, title) => {
       const date = modified && !Number.isNaN(Date.parse(modified)) ? new Date(modified).toISOString() : null;
-      urls.set(origin + path, { images: imagesXml(images), date });
+      urls.set(origin + path, { images: imagesXml(images, title), date });
     };
     ['/', '/mapa', '/eventos', '/revista', '/about', '/privacy', '/terms'].forEach(path => add(path));
     const categories = ['restaurantes', 'cafe', 'salud', 'belleza', 'fitness', 'compras', 'tech', 'ocio', 'hoteles', 'educacion'];
     for (const city of cities.filter(city => allowedCity(city.slug))) {
-      add(cityPath(city.slug));
+      add(cityPath(city.slug), city.bg_image ? [city.bg_image] : [], undefined, city.name);
       categories.forEach(category => add(`${cityPath(city.slug)}/${category}`));
       add(`/revista/${city.slug}`);
     }
@@ -60,15 +62,15 @@ export default async function handler(req) {
       if (!slug) continue;
       const path = `${cityPath(city)}/${slug}`;
       const photos = asArray(business.photos);
-      add(path, [business.logo_url, ...photos], business.updated_at);
+      add(path, [business.logo_url, ...photos], business.updated_at, business.name);
       if (['restaurantes', 'cafe'].includes(business.category)) add(`${path}/menu`, [], business.updated_at);
     }
     for (const event of events.filter(event => belongs(event.city_slug))) {
-      if (event.slug || event.id) add(`/evento/${event.slug || event.id}`, [event.img_url || event.img], event.updated_at);
+      if (event.slug || event.id) add(`/evento/${event.slug || event.id}`, [event.img_url || event.img], event.updated_at, event.title);
     }
     for (const experience of experiences.filter(experience => belongs(experience.city_slug))) {
       const city = cityList(experience.city_slug).find(allowedCity) || (byCity.has('tepic') ? 'tepic' : cities.find(city => allowedCity(city.slug))?.slug);
-      if (city && (experience.slug || experience.id)) add(`/revista/${city}/${experience.slug || experience.id}`, asArray(experience.gallery), experience.updated_at);
+      if (city && (experience.slug || experience.id)) add(`/revista/${city}/${experience.slug || experience.id}`, asArray(experience.gallery), experience.updated_at, experience.title);
     }
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">

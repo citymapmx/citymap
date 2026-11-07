@@ -6,14 +6,14 @@ import middleware from '../../middleware.js';
 import og from '../../api/og.js';
 
 const cities = [
-  { id: 'mx-city', slug: 'tepic', country_code: 'mx' },
+  { id: 'mx-city', slug: 'tepic', name: 'Tepic', country_code: 'mx', bg_image: 'https://images.test/tepic.webp' },
   { id: 'us-city', slug: 'san-diego', country_code: 'us' },
 ];
 const records = {
   cities,
   businesses: [{ id: 'biz', slug: 'tepic-cafe', city_slug: 'tepic', category: 'restaurantes', name: 'Café & pan', description: 'Comida local', photos: JSON.stringify([{ url: 'https://images.test/food.webp?a=1&b=2' }]), logo_url: 'https://images.test/logo.png', updated_at: '2026-10-01T12:00:00Z' }, { id: 'us-biz', slug: 'san-diego-place', city_slug: 'san-diego', photos: [] }],
-  events: [{ id: 'event', slug: 'festival', city_slug: 'tepic,san-diego', img_url: 'https://images.test/event.webp' }],
-  experiences: [{ id: 'article', slug: 'laguna', city_slug: 'tepic', gallery: JSON.stringify(['https://images.test/laguna.webp']) }],
+  events: [{ id: 'event', slug: 'festival', city_slug: 'tepic,san-diego', title: 'Festival de Tepic', img_url: 'https://images.test/event.webp' }],
+  experiences: [{ id: 'article', slug: 'laguna', city_slug: 'tepic', title: 'Guía de la laguna', gallery: JSON.stringify(['https://images.test/laguna.webp']) }],
 };
 const request = (path, host = 'citymap.mx', agent = 'Googlebot') => new Request(`https://${host}${path}`, { headers: { 'user-agent': agent } });
 const json = data => new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json' } });
@@ -36,6 +36,10 @@ describe('public dynamic SEO endpoints', () => {
     expect(xml).toContain(`<loc>${origin}/</loc>`);
     expect(xml).toContain('https://images.test/food.webp?a=1&amp;b=2');
     expect(xml).toContain('<image:loc>https://images.test/laguna.webp</image:loc>');
+    expect(xml).toContain('<image:title>Café &amp; pan</image:title>');
+    expect(xml).toContain('<image:title>Festival de Tepic</image:title>');
+    expect(xml).toContain('<image:title>Guía de la laguna</image:title>');
+    expect(xml).toContain('<image:loc>https://images.test/tepic.webp</image:loc><image:title>Tepic</image:title>');
     expect(xml).toContain(`${origin}/revista/tepic/laguna`);
     expect(xml).not.toContain('/experiencias/');
     expect(xml).not.toContain('/c/');
