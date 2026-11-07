@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { eventCalendarDay, isListedEvent, formatEventCardDate } from '../lib/eventListing.js';
+import { eventCalendarDay, isListedEvent, isPastEvent, eventLastDay, upcomingEvents, formatEventCardDate } from '../lib/eventListing.js';
 describe('event listings', () => {
   const today = '2026-10-18';
   it('removes expired events with database times that contain seconds', () => {
@@ -24,5 +24,26 @@ describe('event listings', () => {
   it('gives undated and today events clear labels', () => {
     expect(formatEventCardDate({})).toBe('Fecha por confirmar');
     expect(formatEventCardDate({date:today},{today})).toBe('Hoy');
+  });
+  it('detects past events by their last day', () => {
+    expect(eventLastDay({date:'2026-10-01',end_date:'2026-10-03'})).toBe('2026-10-03');
+    expect(eventLastDay({date:'2026-10-01'})).toBe('2026-10-01');
+    expect(isPastEvent({date:'2026-10-17'}, today)).toBe(true);
+    expect(isPastEvent({date:'2026-10-01',end_date:today}, today)).toBe(false);
+    expect(isPastEvent({date:today}, today)).toBe(false);
+    expect(isPastEvent({date:'2026-10-19'}, today)).toBe(false);
+    expect(isPastEvent({}, today)).toBe(false);
+  });
+  it('picks upcoming events in the same city, excluding the past one', () => {
+    const past = {id:1,active:true,date:'2026-10-10',city_slug:'tepic'};
+    const all = [
+      past,
+      {id:2,active:true,date:'2026-10-19',city_slug:'tepic',title:'A'},
+      {id:3,active:true,date:'2026-10-18',city_slug:'tepic',title:'B'},
+      {id:4,active:true,date:'2026-10-20',city_slug:'guadalajara',title:'C'},
+      {id:5,active:true,date:'2026-10-15',city_slug:'tepic',title:'D'},
+      {id:6,active:true,date:'2026-10-21',city_slug:'all',title:'E'},
+    ];
+    expect(upcomingEvents(all, past, today).map(e => e.id)).toEqual([3, 2, 6]);
   });
 });

@@ -1,9 +1,11 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useUIStore } from '../../store/useUIStore';
-import { getT, FONT_BIZ } from '../../lib/constants';
+import { getT, FONT_BIZ, CITY_TZ } from '../../lib/constants';
 import { createSlug, getThumbUrl } from '../../lib/utils';
+import { eventCalendarDay, isPastEvent, upcomingEvents, formatEventCardDate } from '../../lib/eventListing';
+import { sb } from '../../lib/supabase';
 import Icon from '../ui/Icon';
 import EventPoster from '../detail/EventPoster.jsx';
 import EventInformation from '../detail/EventInformation.jsx';
@@ -15,10 +17,21 @@ export default function EventDetailModal() {
   const { selectedEvent, setSelectedEvent, activeCity, dark, toast$ } = useUIStore();
   const { handleCardTap } = useAppContext();
   const mapPins = useDataStore(s => s.mapPins);
+  const cities = useDataStore(s => s.cities);
+  const [upcoming, setUpcoming] = useState([]);
+  const evCitySlug = String(selectedEvent?.city_slug || '').split(',').map(s => s.trim()).filter(Boolean)[0] || '';
+  const cityTimeZone = (cities.find(c => c.slug === evCitySlug)?.timezone || CITY_TZ[evCitySlug] || 'America/Mexico_City').split(';')[0];
+  const todayLocal = eventCalendarDay(Date.now(), cityTimeZone);
+  const isPast = selectedEvent ? isPastEvent(selectedEvent, todayLocal) : false;
+  const cityName = cities.find(c => c.slug === evCitySlug)?.name || (evCitySlug ? evCitySlug.charAt(0).toUpperCase() + evCitySlug.slice(1) : '');
   const T = getT(dark);
   const reduceMotion = useReducedMotion();
   const location = useLocation();
   const routerNavigate = useNavigate();
+  const exploreEvents = useCallback(() => {
+    setSelectedEvent(null);
+    routerNavigate(evCitySlug ? `/eventos/${evCitySlug}` : '/eventos', { replace: true });
+  }, [setSelectedEvent, routerNavigate, evCitySlug]);
   const dialog = useRef(null);
   const closeEvent = useCallback(() => {
     setSelectedEvent(null);
@@ -29,6 +42,7 @@ export default function EventDetailModal() {
   closeRef.current = closeEvent;
   useEffect(() => {
     if (!selectedEvent?.id) return;
+    dialog.current?.scrollTo(0, 0);
     const previousFocus = document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -42,6 +56,14 @@ export default function EventDetailModal() {
       if (previousFocus?.isConnected) previousFocus.focus?.({ preventScroll:true });
     };
   }, [selectedEvent?.id]);
+  useEffect(() => {
+    if (!selectedEvent?.id || !isPast) { setUpcoming([]); return; }
+    let cancelled = false;
+    sb.get('events', '?select=id,title,slug,date,end_date,time,venue_name,venue_address,city_slug,img_url,img,status,active&status=eq.approved&order=date.asc&limit=40')
+      .then(rows => { if (!cancelled) setUpcoming(upcomingEvents(Array.isArray(rows) ? rows : [], selectedEvent, todayLocal, 4)); })
+      .catch(() => { if (!cancelled) setUpcoming([]); });
+    return () => { cancelled = true; };
+  }, [selectedEvent, isPast, todayLocal]);
 
   return (
     <AnimatePresence>
@@ -106,6 +128,39 @@ export default function EventDetailModal() {
 
                 
                 <EventInformation event={ev} associatedBiz={associatedBiz} T={T} />
+
+                {/* --- EVENTO PASADO: aviso + próximos eventos --- */}
+                {isPast && (
+                  <div style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#FEF3C7', border: `1px solid ${dark ? 'rgba(255,255,255,0.12)' : '#FDE68A'}`, borderRadius: 16, padding: 16, margin: '4px 0 20px 0' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>Este evento ya terminó</div>
+                    <div style={{ fontSize: 14, color: T.sub, marginBottom: 12 }}>Pero hay más cosas pasando{cityName ? ` en ${cityName}` : ''}. Explora los próximos eventos.</div>
+                    <button onClick={exploreEvents} className="press" style={{ background: '#1A7A5E', color: '#fff', border: 'none', borderRadius: 9999, padding: '10px 18px', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Explora nuevos eventos</button>
+                  </div>
+                )}
+                {isPast && upcoming.length > 0 && (
+                  <div style={{ margin: '0 0 24px 0' }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>Próximos eventos{cityName ? ` en ${cityName}` : ''}</div>
+                    {upcoming.map(u => {
+                      const thumb = u.img_url || u.img;
+                      return (
+                        <div key={u.id} onClick={() => setSelectedEvent(u)} className="press" style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: `1px solid ${T.border}`, cursor: 'pointer', alignItems: 'center' }}>
+                          {thumb ? (
+                            <img src={getThumbUrl(thumb, 200)} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', backgroundColor: T.border, flexShrink: 0 }} />
+                          ) : (
+                            <div style={{ width: 56, height: 56, borderRadius: 12, background: T.border, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <Icon name="calendar" size={24} color={T.sub} />
+                            </div>
+                          )}
+                          <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.title}</div>
+                            <div style={{ fontSize: 13, color: T.sub }}>{formatEventCardDate(u, { today: todayLocal, lang: 'es' })}{u.venue_name ? ` · ${u.venue_name}` : ''}</div>
+                          </div>
+                          <Icon name="chevron_right" size={16} color={T.sub} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* --- ASOCIADO CON --- */}
                 {associatedBiz && (
