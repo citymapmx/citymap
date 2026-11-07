@@ -7,6 +7,7 @@ import { createSlug, getThumbUrl } from '../lib/utils.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
+import EventWheel3D from '../components/home/EventWheel3D.jsx';
 import TravelAffiliateRow from '../components/home/TravelAffiliateRow.jsx';
 import Footer from '../components/Footer.jsx';
 
@@ -125,7 +126,6 @@ export default function GlobalHomeView() {
   const [showAllCities, setShowAllCities] = useState(false);
   // Tarjetas visibles por sección (5 al inicio, 5 más al llegar al final
   // del deslizamiento).
-  const [eventsShown, setEventsShown] = useState(SECTION_STEP);
   const [placesShown, setPlacesShown] = useState(SECTION_STEP);
   const [restShown, setRestShown] = useState(SECTION_STEP);
 
@@ -633,14 +633,15 @@ export default function GlobalHomeView() {
               </section>
             )}
 
-            {/* Próximos eventos: hilera deslizable, los más cercanos primero */}
+            {/* Próximos eventos: rueda 3D que gira sola, como el Museo de QuePlan */}
             {upcomingEvents.length > 0 && (
-              <section style={{ marginBottom: 32 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Próximos eventos</h2>
-                <div onScroll={onRowScroll(upcomingEvents, eventsShown, setEventsShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
-                  {upcomingEvents.slice(0, eventsShown).map((item, idx) => renderCard(item, idx, idx < 2))}
-                </div>
-              </section>
+              <EventWheel3D
+                events={upcomingEvents}
+                onSelect={(item) => openItem(item)}
+                onToggleSave={toggleSave}
+                isSaved={isSaved}
+                cityName={(slug) => cityBySlug.get(slug)?.name || ''}
+              />
             )}
 
             {/* Lugares increíbles: puntos de interés, unidades deportivas y playas */}
