@@ -19,7 +19,7 @@ export default memo(function HomeEvents({events = [], activeCity, userCoords, db
   const shortDate = value => new Date(`${value}T12:00:00Z`).toLocaleDateString('es-MX',{day:'numeric',month:'short',timeZone:'UTC'});
   const tagDate = value => new Date(`${value}T12:00:00Z`).toLocaleDateString('es-MX',{day:'numeric',month:'short',timeZone:'UTC'}).replace('.','').toUpperCase();
   return <div style={{padding:'4px 0 0'}}>
-    {featured.length > 0 && <EventCoverflow events={featured} onOpen={handleEventTap} T={T} heading="Próximos eventos"/>}
+    {featured.length > 0 && <EventCoverflow events={featured} onOpen={handleEventTap} T={T} heading="Próximos eventos" subheading="Los eventos que vienen en tu ciudad"/>}
     {seasonal.length > 0 && <section aria-label="Eventos de larga duración" style={{marginTop:featured.length ? 28 : 0,paddingTop:featured.length ? 22 : 0,borderTop:featured.length ? `1px solid ${T.border}` : 'none'}}>
       <header style={{margin:'0 20px 16px',textAlign:'center'}}>
         <h2 style={{margin:'0 0 5px',fontSize:16,fontWeight:800,color:T.text}}>Eventos de larga duración</h2>

@@ -183,7 +183,7 @@ export default memo(function HomeHero({
                 
               `}</style>
               <h1  style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(22px, 5.5vw, 28px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: (dark || hasBg) ? "#fff" : T.text }}>
-                {getGreeting()} <span className="animated-city">{cityName}</span>
+                {getGreeting()} <span className={hasBg ? undefined : "animated-city"}>{cityName}</span>
 
               </h1>
               <p style={{ margin: "6px 0 0 0", fontSize: 14, fontWeight: 600, color: hasBg ? "rgba(255,255,255,0.85)" : (dark ? "rgba(255,255,255,0.7)" : "#6B7280") }}>

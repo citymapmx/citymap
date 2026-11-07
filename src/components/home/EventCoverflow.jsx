@@ -44,7 +44,7 @@ function CoverflowPoster({ src, title, priority }) {
   </>;
 }
 
-export default function EventCoverflow({ events = [], onOpen, T, label = 'Eventos destacados', heading, formatEventMeta, formatEventTag }) {
+export default function EventCoverflow({ events = [], onOpen, T, label = 'Eventos destacados', heading, subheading, formatEventMeta, formatEventTag }) {
   const [selectedId, setSelectedId] = useState(null);
   const gesture = useRef(null);
   const stageRef = useRef(null);
@@ -205,8 +205,9 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
         .event-coverflow-card:focus-visible { outline: 3px solid #1A7A5E; outline-offset: -3px; border-radius: 16px; }
         @media (prefers-reduced-motion: reduce) { .event-coverflow-card { transition: none; } }
       `}</style>
-      {heading && <header style={{ margin: '0 20px 12px', textAlign: 'center' }}>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: T.text }}>{heading}</h2>
+      {heading && <header style={{ margin: '0 20px 16px', textAlign: 'center' }}>
+        <h2 style={{ margin: subheading ? '0 0 5px' : 0, fontSize: 16, fontWeight: 800, color: T.text }}>{heading}</h2>
+        {subheading && <p style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: T.sub }}>{subheading}</p>}
       </header>}
       <div className="event-coverflow-viewport" style={{ color: T.text, '--rail-icon-halo': T.dark ? 'rgba(0,0,0,.8)' : 'rgba(255,255,255,.9)' }}>
       <div className="event-coverflow-stage" ref={stageRef}

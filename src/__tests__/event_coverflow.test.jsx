@@ -45,8 +45,9 @@ describe.each([['Vite',EventCoverflow],['Next',NextCoverflow]])('%s event coverf
     expect(html).toContain('color:#fff');
   });
   it('shows the heading above the carousel and a date tag on each card',()=>{
-    const html=renderToStaticMarkup(<Carousel events={events} heading="Próximos eventos" T={T} onOpen={()=>{}}/>);
+    const html=renderToStaticMarkup(<Carousel events={events} heading="Próximos eventos" subheading="Los eventos que vienen en tu ciudad" T={T} onOpen={()=>{}}/>);
     expect(html).toContain('Próximos eventos');
+    expect(html).toContain('Los eventos que vienen en tu ciudad');
     expect(html).toContain('event-coverflow-date-tag');
     expect(html).toContain('18 OCT');
     expect(html).toContain('aria-live="polite"');
