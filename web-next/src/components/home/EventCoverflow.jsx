@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { getThumbUrl } from '../../lib/utils.js';
+import EventPosterFallback from './EventPosterFallback.jsx';
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -36,7 +37,7 @@ function CoverflowPoster({ src, title, priority }) {
   </>;
 }
 
-export default function EventCoverflow({ events = [], fallbackImage, onOpen, T, label = 'Eventos destacados', formatEventMeta }) {
+export default function EventCoverflow({ events = [], onOpen, T, label = 'Eventos destacados', formatEventMeta }) {
   const [selectedId, setSelectedId] = useState(null);
   const gesture = useRef(null);
   const stageRef = useRef(null);
@@ -169,8 +170,8 @@ export default function EventCoverflow({ events = [], fallbackImage, onOpen, T, 
           padding: 20px; 
           box-sizing: border-box; 
           border-radius: 14px; 
-          background: var(--poster-placeholder, #F1F5F9); 
-          color: var(--poster-text, #64748B); 
+          background: #111; 
+          color: #fff; 
           font-family: inherit; 
           font-size: 14px; 
           line-height: 1.4; 
@@ -329,7 +330,7 @@ export default function EventCoverflow({ events = [], fallbackImage, onOpen, T, 
         {events.map((event, index) => ({ event, index, offset: relativePosition(index, selected, events.length) }))
           .map(({ event, offset }) => {
             const isSelected = offset === 0;
-            const image = event.img_url || event.img || event.poster_url || fallbackImage;
+            const image = event.img_url || event.img || event.poster_url;
             return <button key={event.id} type="button" className="event-coverflow-card"
               aria-label={isSelected ? `Ver evento: ${event.title}` : `Mostrar evento: ${event.title}`}
               aria-current={isSelected ? 'true' : undefined}
@@ -340,8 +341,8 @@ export default function EventCoverflow({ events = [], fallbackImage, onOpen, T, 
                 if (isSelected) open(event);
                 else if (!suppressClick.current) setSelectedId(event.id);
               }}
-              style={{ '--offset': offset, pointerEvents: Math.abs(offset) > 1 ? 'none' : 'auto', '--poster-placeholder': T.border || '#F1F5F9', '--poster-text': T.sub || T.text }}>
-              {image ? <CoverflowPoster key={image} src={image} title={event.title} priority={isSelected ? 'center' : Math.abs(offset) <= 1} /> : <span style={{ color: T.text, '--rail-icon-halo': T.dark ? 'rgba(0,0,0,.8)' : 'rgba(255,255,255,.9)' }}>{event.title}</span>}
+              style={{ '--offset': offset, pointerEvents: Math.abs(offset) > 1 ? 'none' : 'auto' }}>
+              {image ? <CoverflowPoster key={image} src={image} title={event.title} priority={isSelected ? 'center' : Math.abs(offset) <= 1} /> : <EventPosterFallback title={event.title} />}
             </button>;
           })}
 

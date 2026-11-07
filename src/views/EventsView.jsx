@@ -8,6 +8,7 @@ import { useDataStore } from "../store/useDataStore.js";
 import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon.jsx";
 import OptimizedImage from "../components/ui/OptimizedImage.jsx";
+import EventPosterFallback from "../components/home/EventPosterFallback.jsx";
 import Footer from "../components/Footer.jsx";
 import { haptic } from "../lib/utils";
 import useTimeStore from "../store/useTimeStore.js";
@@ -309,7 +310,7 @@ export default function EventsView() {
                       <button type="button" onClick={() => handleEventTap(ev)} aria-label={`${ev.title || 'Evento'}. ${fmtCardDate(ev)}`} className="event-list-card" style={{ display:'block', width:'100%', textAlign:'left', border:0, padding:0, background:'transparent', color:T.text, cursor:'pointer', fontFamily:'inherit' }}>
                         <div style={{ aspectRatio:'5 / 7', position:'relative', overflow:'hidden', background:dark ? '#23252b' : '#edf0f4' }}>
                           {imgSrc ? <OptimizedImage src={imgSrc} alt={ev.title || 'Evento'} widthRequest={600} priority={index < 2} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
-                            : <div style={{ height:'100%', display:'grid', placeItems:'center' }}><Icon name="calendar" size={32} color={T.sub} /></div>}
+                            : <EventPosterFallback title={ev.title || 'Evento'} radius={0} />}
                         </div>
                         <div style={{ padding:'12px 12px 14px' }}>
                           <div style={{ fontSize:12, fontWeight:600, color:T.sub, marginBottom:6 }}>{fmtCardDate(ev)}</div>
