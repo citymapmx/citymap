@@ -96,7 +96,7 @@ function HeroSearchBar({ dark, query, setQuery }) {
         <div className="hero-search-magic-container">
           <div className="hero-search-magic-inner"></div>
         </div>
-        <DebouncedSearchBar initialValue={query} onSearch={(v) => setQuery(v)} placeholder="Buscar en CityMap" dark={dark} />
+        <DebouncedSearchBar initialValue={query} onSearch={(v) => setQuery(v)} dark={dark} />
       </div>
 
       {!query && (

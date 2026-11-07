@@ -45,13 +45,15 @@ function useTypewriter(phrases) {
   return text;
 }
 
-export default function DebouncedSearchBar({ initialValue, onSearch, placeholder = "¿Qué buscas?", dark }) {
+export default function DebouncedSearchBar({ initialValue, onSearch, dark }) {
   const [localSearch, setLocalSearch] = React.useState(initialValue || "");
   const [focusedPlaceholder, setFocusedPlaceholder] = React.useState(null);
   const lastSubmitted = React.useRef(initialValue || "");
   const pendingSearch = React.useRef(null);
   // La frase animada vive aquí, así el muro y las ciudades comparten el
   // mismo diseño y la animación solo vuelve a dibujar este buscador.
+  // Sin frase fija: cuando la máquina de escribir borra una frase, el
+  // buscador queda vacío en vez de mostrar un texto genérico.
   const animatedHint = useTypewriter(SEARCH_HINTS);
 
   React.useEffect(() => {
@@ -85,11 +87,11 @@ export default function DebouncedSearchBar({ initialValue, onSearch, placeholder
         className="inp hero-search-input"
         style={{ width: "100%", minHeight: 48, boxSizing: "border-box", padding: "12px 48px 12px 44px", border: "none", borderRadius: 100, color: dark ? "#F4F4F5" : "#18181B", fontSize: 16, fontWeight: 500, gridArea:"1 / 1",height:"100%", textAlign: "left" }}
         placeholder="" value={localSearch}
-        onFocus={() => setFocusedPlaceholder(animatedHint || placeholder)} onBlur={() => setFocusedPlaceholder(null)}
+        onFocus={() => setFocusedPlaceholder(animatedHint)} onBlur={() => setFocusedPlaceholder(null)}
         onChange={event => setLocalSearch(event.target.value)}
         onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); submit(event.currentTarget.value.trim()); } }}
       />
-      {!localSearch && <span aria-hidden="true" style={{gridArea:'1 / 1',alignSelf:'center',minWidth:0,maxWidth:'100%',padding:'12px 16px 12px 44px',zIndex:4,pointerEvents:'none',fontSize:'clamp(14px, 3.8vw, 16px)',fontWeight:500,lineHeight:'20px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textAlign:'left',color:dark?'#A1A1AA':'#6B7280'}}>{focusedPlaceholder || animatedHint || placeholder}</span>}
+      {!localSearch && <span aria-hidden="true" style={{gridArea:'1 / 1',alignSelf:'center',minWidth:0,maxWidth:'100%',padding:'12px 16px 12px 44px',zIndex:4,pointerEvents:'none',fontSize:'clamp(14px, 3.8vw, 16px)',fontWeight:500,lineHeight:'20px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textAlign:'left',color:dark?'#A1A1AA':'#6B7280'}}>{focusedPlaceholder ?? animatedHint}</span>}
       <span style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", zIndex: 5, pointerEvents: "none", display: "flex" }}>
         <Icon name="search" size={19} color={dark ? "#A1A1AA" : "#6B7280"} />
       </span>
