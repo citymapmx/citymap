@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { faceBrightness, normalizeAngleDeg, springSettled, springStep } from '../lib/spring.js';
+import { faceBrightness, normalizeAngleDeg, shortestDelta, springSettled, springStep } from '../lib/spring.js';
 import { computeFlipMoves } from '../lib/flip.js';
 
 describe('spring', () => {
@@ -63,5 +63,18 @@ describe('flip', () => {
     const moves = computeFlipMoves(prev, next);
     expect(moves.get('b')).toEqual({ enter: true });
     expect(moves.size).toBe(1);
+  });
+});
+
+describe('shortestDelta', () => {
+  it('measures from the decimal position, not the rounded card', () => {
+    // A mitad de paso de la 4 a la 5 (≡ 0): el delta a la 0 es +0.4 y el
+    // resorte termina el paso, no se queda parado a 4.6.
+    expect(shortestDelta(0, 4.6, 5)).toBeCloseTo(0.4, 5);
+    expect(shortestDelta(3, 2.6, 5)).toBeCloseTo(0.4, 5);
+    expect(shortestDelta(0, 4.0, 5)).toBeCloseTo(1, 5);
+    expect(shortestDelta(0, 2.4, 5)).toBeCloseTo(-2.4, 5);
+    expect(shortestDelta(4, 0.1, 5)).toBeCloseTo(-1.1, 5);
+    expect(shortestDelta(1, 4.9, 5)).toBeCloseTo(1.1, 5);
   });
 });
