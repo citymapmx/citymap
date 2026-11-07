@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getThumbUrl } from '../../lib/utils.js';
-import { springSettled, springStep } from '../../lib/spring.js';
+import { shortestDelta, springSettled, springStep } from '../../lib/spring.js';
 import EventPosterFallback from './EventPosterFallback.jsx';
 
 const AUTO_MS = 4000;
@@ -141,11 +141,10 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
     const currentTarget = targetRef.current;
     if (currentTarget && currentTarget.index === nextIndex && rafRef.current) return;
     if (!rafRef.current && nextIndex === selected) return;
-    // Delta envuelto más corto: de la 7 a la 0 es +1, no -7.
-    let delta = nextIndex - Math.round(floatRef.current);
-    delta = ((delta % n) + n) % n;
-    if (delta > n / 2) delta -= n;
-    const targetFloat = floatRef.current + delta;
+    // Delta envuelto más corto: de la 7 a la 0 es +1, no -7. Se mide desde
+    // la posición decimal actual, no desde la tarjeta redondeada, para no
+    // quedarse parado a mitad de paso si el objetivo cambia en pleno giro.
+    const targetFloat = floatRef.current + shortestDelta(nextIndex, floatRef.current, n);
     targetRef.current = { index: nextIndex, float: targetFloat };
     // Si el resorte ya va en marcha, conserva su velocidad; solo se fija
     // v0 al arrancar parado.
