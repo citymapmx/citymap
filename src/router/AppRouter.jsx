@@ -2,9 +2,10 @@ import React, { Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
+import MorphingInfinity from '../components/ui/MorphingInfinity.jsx';
 import { IS_WORLD } from '../lib/domain.js';
 
-const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:30,height:30,border:"3px solid #E4E8E4",borderTop:"3px solid #000000",borderRadius:"50%",animation:"spin .8s linear infinite"}}/></div>;
+const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}><MorphingInfinity size={64} color="#0F172A" /><span style={{fontSize:14,fontWeight:600,color:"#64748B",fontFamily:"'DM Sans',system-ui,sans-serif"}}>Cargando…</span></div>;
 
 const ItinerariesList = React.lazy(() => import('../views/ItinerariesList.jsx'));
 const ItineraryDetail = React.lazy(() => import('../views/ItineraryDetail.jsx'));

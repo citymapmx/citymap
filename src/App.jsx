@@ -23,6 +23,7 @@ import { CITY_TZ, FONT_BIZ, EVENT_CATS, getT } from './lib/constants.js';
 import { fuzzyMatch } from './lib/utils.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
 import Icon from './components/ui/Icon.jsx';
+import MorphingInfinity from './components/ui/MorphingInfinity.jsx';
 
 import { getEventStatus, CAT_EMOJI, isOpenNow, createSlug, parseMenuUrls, cleanCityPrefix, isNear } from './lib/utils.js';
 const ClaimModal = lazy(() => import('./components/ClaimModal.jsx'));
@@ -92,7 +93,7 @@ const FloatingParticles = ({ dark }) => {
 import CountryPickerDropdown from "./components/CountryPickerDropdown.jsx";
 import CosmicBackground from "./components/ui/CosmicBackground.jsx";
 
-const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:30,height:30,border:"3px solid #E4E8E4",borderTop:"3px solid #000000",borderRadius:"50%",animation:"spin .8s linear infinite"}}/></div>;
+const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}><MorphingInfinity size={64} color="#0F172A" /><span style={{fontSize:14,fontWeight:600,color:"#64748B",fontFamily:"'DM Sans',system-ui,sans-serif"}}>Cargando…</span></div>;
 const PAGE_LOAD_SEED = Math.random();
 
 
