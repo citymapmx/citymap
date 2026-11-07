@@ -12,6 +12,7 @@ import { useAuthStore } from "../store/useAuthStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear, METRO_ZONES } from "../lib/utils";
+import { getTimeSlot, spotForSlot, isFoodSpot, seededRand, shuffleBySeed } from "../lib/timeBasedLists.js";
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
 import { PageLogo } from "../components/Brand.jsx";
@@ -36,16 +37,8 @@ const CURRENT_SEED = (() => {
   return d.getFullYear() * 100000 + (d.getMonth() + 1) * 1000 + d.getDate() * 10 + period;
 })();
 
-// Seeded pseudo-random: deterministic per (id, seed) pair so order is stable
-function seededRand(id, seed) {
-  let h = seed ^ 0xdeadbeef;
-  const s = String(id || "");
-  for (let i = 0; i < s.length; i++) {
-    h = Math.imul(h ^ s.charCodeAt(i), 0x9e3779b9);
-    h ^= h >>> 16;
-  }
-  return (h >>> 0) / 0xffffffff;
-}
+// seededRand vive ahora en lib/timeBasedLists.js (lo usa también el
+// spotlight y el orden aleatorio de las listas por horario).
 
 // Caché de spotlight a nivel de módulo: persiste entre re-mounts y múltiples
 // actualizaciones de mapPins. Clave: "SPOTLIGHT_PERIOD:city_slug" → biz.id
@@ -115,7 +108,16 @@ export default function HomeView({ isBackground }) {
   const cities = useDataStore(s => s.cities);
   const experiences = useDataStore(s => s.experiences);
   const mapPins = useDataStore(s => s.mapPins);
+  const timeBasedBiz = useDataStore(s => s.timeBasedBiz);
   const pinsLoading = useDataStore(s => s.initialBizCount === null);
+
+  // Semilla aleatoria por carga de la app: cada visita mezcla distinto las
+  // listas por horario, pero el orden no cambia mientras se navega (sin
+  // parpadeo al resolver el GPS o al llegar más datos).
+  const timeListSeedRef = React.useRef(null);
+  if (timeListSeedRef.current === null) {
+    timeListSeedRef.current = Math.floor(Math.random() * 1e9);
+  }
 
   const user = useAuthStore(s => s.user);
   const setShowAuth = useAuthStore(s => s.setShowAuth);
@@ -252,49 +254,26 @@ export default function HomeView({ isBackground }) {
 
   const timeBasedListsMemo = React.useMemo(() => {
     const h = new Date().getHours();
-    let listTitle;
-    let timeList;
+    const { key: slotKey, title: listTitle } = getTimeSlot(h);
 
-    if (h >= 17 || h < 4) {
-      listTitle = "Para cerrar el día";
-      timeList = mapPins.filter(b => {
-        if (!isNear(b, userCoords, activeCity)) return false;
-        const isNight = ["bar", "antros", "club", "cerveceria"].includes(b.category) || 
-                        (b.tags && Array.isArray(b.tags) && b.tags.some(t => typeof t === 'string' && t.toLowerCase() === 'cenas'));
-        if (!isNight && b.category !== "restaurante") return false;
-        return getMinutesToClose(b) > 0;
-      });
-    } else if (h >= 12 && h < 17) {
-      listTitle = "Hora de comer";
-      timeList = mapPins.filter(b => {
-        if (!isNear(b, userCoords, activeCity)) return false;
-        const isFood = ["restaurantes", "restaurante", "comida rapida", "mariscos", "tacos", "pizzeria"].includes(b.category) || 
-                       (b.tags && Array.isArray(b.tags) && b.tags.some(t => typeof t === 'string' && t.toLowerCase() === 'comidas'));
-        if (!isFood) return false;
-        return getMinutesToClose(b) > 0;
-      });
-    } else {
-      listTitle = "Para iniciar el día";
-      timeList = mapPins.filter(b => {
-        if (!isNear(b, userCoords, activeCity)) return false;
-        const isCafe = b.category === "cafe";
-        const isFood = ["restaurantes", "restaurante", "comida rapida", "mariscos", "tacos", "pizzeria", "comida"].includes(b.category);
-        const hasDesayunosTag = b.tags && Array.isArray(b.tags) && b.tags.some(t => typeof t === 'string' && t.toLowerCase() === 'desayunos');
-        if (!isCafe && !hasDesayunosTag && !isFood) return false;
-        return getMinutesToClose(b) > 0;
-      });
-    }
+    // El pool es la lista por horario (todos los negocios de la ciudad, sin
+    // ordenar por plan); mientras carga, se usa mapPins como respaldo.
+    const pool = timeBasedBiz.length > 0 ? timeBasedBiz : mapPins;
+
+    // Franja según la hora + abiertos ahora (según su horario).
+    let timeList = pool.filter(b => {
+      if (!isNear(b, userCoords, activeCity)) return false;
+      if (!spotForSlot(b, slotKey)) return false;
+      return getMinutesToClose(b) > 0;
+    });
 
     if (timeList.length === 0) {
-       timeList = mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "restaurantes" || b.category === "restaurante") && getMinutesToClose(b) > 0);
+      timeList = pool.filter(b => isNear(b, userCoords, activeCity) && isFoodSpot(b) && getMinutesToClose(b) > 0);
     }
 
-    // Sort by plan tier first, then stable daily seed within same tier — no flicker on GPS load
-    timeList = timeList.sort((a, b) => {
-      const planDiff = (b.plan || 0) - (a.plan || 0);
-      if (planDiff !== 0) return planDiff;
-      return seededRand(a.id, CURRENT_SEED) - seededRand(b.id, CURRENT_SEED);
-    }).slice(0, 8);
+    // Sin plan: todos los negocios compiten en igualdad; orden aleatorio
+    // con la semilla de esta carga y solo 8 en pantalla.
+    timeList = shuffleBySeed(timeList, timeListSeedRef.current).slice(0, 8);
 
     const sportsList = mapPins.filter(b => isNear(b, userCoords, activeCity) && (b.category === "fitness" || b.category === "unidad deportiva")).sort((a, b) => {
       const planDiff = (b.plan || 0) - (a.plan || 0);
@@ -306,7 +285,7 @@ export default function HomeView({ isBackground }) {
 
     return { listTitle, timeList, sportsList, showActiva };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapPins, activeCity]);
+  }, [mapPins, timeBasedBiz, activeCity]);
 
   const spotlightBiz = React.useMemo(() => {
     if (!mapPins || mapPins.length === 0) return null;
