@@ -218,11 +218,11 @@ export default function MapView() {
               }}
               onClick={() => { setOpenedFromMap(true); setSelectedEvent(mapPin); setMapPin(null); }}
             >
-              <div style={{ width: "100%", height: 320, background: T.bg, position: "relative" }}>
+              <div style={{ width: "100%", height: 373, background: "#111", position: "relative" }}>
                 <button onClick={(e) => { e.stopPropagation(); setMapPin(null); }} style={{ position: "absolute", top: 12, left: 12, zIndex: 5, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="x" size={14} color="#fff" />
                 </button>
-                <img src={getThumbUrl(mapPin.img_url || mapPin.img, 400, 600)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={getThumbUrl(mapPin.img_url || mapPin.img, 800, 1067)} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                 {(() => {
                   let countdownStr = "";
                   if (mapPin.date) {
