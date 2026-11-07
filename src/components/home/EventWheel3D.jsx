@@ -16,9 +16,9 @@ import { faceBrightness, normalizeAngleDeg, springSettled, springStep } from '..
 // La cara del frente brilla más y las vecinas se apagan un poco, como en
 // el Coverflow.
 const MAX_FACES = 10;
-const FACE_W = 190;
+const FACE_W = 160;
 const AUTO_MS = 4000;
-// La cara del frente se ve a ~219 px CSS y en el teléfono a 3x son ~660 px
+// La cara del frente se ve a ~212 px CSS y en el teléfono a 3x son ~640 px
 // de dispositivo: a 400 px el póster se veía blando. A 800 px se ve nítido.
 const WHEEL_IMG_W = 800;
 

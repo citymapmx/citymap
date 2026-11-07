@@ -34,10 +34,10 @@ describe('event wheel 3D', () => {
   it('renders one drum face per event, capped at the next 10', () => {
     const html = renderWheel();
     expect(html.match(/event-wheel-face/g)).toHaveLength(10);
-    // 10 faces -> 36 deg per face, radius 292 px; the first event is in front.
-    expect(html).toContain('rotateY(0deg) translateZ(292px)');
-    expect(html).toContain('rotateY(36deg) translateZ(292px)');
-    expect(html).toContain('rotateY(324deg) translateZ(292px)');
+    // 10 faces -> 36 deg per face, radius 246 px; the first event is in front.
+    expect(html).toContain('rotateY(0deg) translateZ(246px)');
+    expect(html).toContain('rotateY(36deg) translateZ(246px)');
+    expect(html).toContain('rotateY(324deg) translateZ(246px)');
     // The 11th and 12th events stay out of the drum.
     expect(html).not.toContain('Evento 11');
     expect(html).not.toContain('Evento 12');
