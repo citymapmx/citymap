@@ -134,7 +134,7 @@ export default memo(function HomeHero({
       {/* Foto de la ciudad como fondo, optimizada a este espacio (800 px WebP),
           con degradado oscuro para que el saludo y el buscador se lean */}
       {hasBg && (
-        <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "0 0 28px 28px", zIndex: 0 }}>
+        <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 0 }}>
           <OptimizedImage src={cityImg} alt="" widthRequest={800} priority style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.20) 45%, rgba(0,0,0,0.55) 100%)" }} />
         </div>
@@ -248,7 +248,7 @@ export default memo(function HomeHero({
         </div>
 
         {!search && onSurprise && <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={onSurprise}
-          style={{ width: 44, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: 'pointer', fontSize: 23 }}>🎲</button>}
+          style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: 'pointer', fontSize: 23 }}>🎲</button>}
         </div>
 
         {/* Fila 4: Carrusel de Categorías */}

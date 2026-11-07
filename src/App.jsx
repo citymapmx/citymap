@@ -317,6 +317,10 @@ export default function CityGuide() {
 
   const T = getT(dark);
   const cityImg = cities.find(c => c.slug === activeCity)?.bg_image || null;
+  // El encabezado de la ciudad tiene la foto de fondo: mientras no se haya
+  // hecho scroll, los iconos del encabezado fijo van en blanco para que se vean
+  // sobre la foto; al bajar, el encabezado toma fondo sólido y vuelven a su color.
+  const onCityHero = Boolean(cityImg) && (location.pathname === `/${activeCity}` || location.pathname.startsWith(`/${activeCity}/c/`));
   const rawTz = cities.find(c => c.slug === activeCity)?.timezone || CITY_TZ[activeCity] || "America/Mexico_City";
   const cityTz = rawTz.includes(";") ? rawTz.split(";")[0] : rawTz;
   if (typeof window !== "undefined") {
@@ -1333,10 +1337,10 @@ useEffect(() => {
                 style={{ 
                   background: "transparent", border: "none", outline: "none", cursor: "pointer", 
                   display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 0",
-                  color: !dark ? T.text : "#ffffff"
+                  color: (dark || (!scrolled && onCityHero)) ? "#ffffff" : T.text
                 }}
               >
-                <Icon name="menu" size={24} color={!dark ? T.text : "#ffffff"} />
+                <Icon name="menu" size={24} color={(dark || (!scrolled && onCityHero)) ? "#ffffff" : T.text} />
               </button>
             </div>
 
@@ -1375,11 +1379,11 @@ useEffect(() => {
                 style={{ 
                   background: "transparent", border: "none", outline: "none", cursor: "pointer", 
                   display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 0",
-                  color: !dark ? T.text : "#ffffff", 
+                  color: (dark || (!scrolled && onCityHero)) ? "#ffffff" : T.text, 
                   transition: "all 0.2s" 
                 }}
               >
-                <Icon name="globe" size={20} color={!dark ? T.text : "#ffffff"} />
+                <Icon name="globe" size={20} color={(dark || (!scrolled && onCityHero)) ? "#ffffff" : T.text} />
               </button>
             </div>
           </div>

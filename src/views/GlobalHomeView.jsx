@@ -101,7 +101,7 @@ function HeroSearchBar({ dark, query, setQuery }) {
 
       {!query && (
         <button type="button" aria-label="Encontrar lugares cerca de mí" title="Cerca de mí" disabled={locating} onClick={handleLocate}
-          style={{ width: 44, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: locating ? 'default' : 'pointer', fontSize: 23, opacity: locating ? 0.5 : 1 }}>📍</button>
+          style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: locating ? 'default' : 'pointer', fontSize: 23, opacity: locating ? 0.5 : 1 }}>📍</button>
       )}
     </div>
   );
