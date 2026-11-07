@@ -6,7 +6,7 @@ import FI from './FI';
 import BookingManager from '../BookingManager';
 import { createSlug } from '../../lib/utils.js';
 import { cloudDeleteBatch } from '../../lib/supabase.js';
-import BlogVisualEditor from './BlogVisualEditor.jsx';
+import RichTextEditor from './RichTextEditor.jsx';
 
 export default function AdminExperiencesTab({
   data,
@@ -159,15 +159,6 @@ export default function AdminExperiencesTab({
               <FI label="Nombre (Ej. Tour a Islas Marietas)" field="title" src={expForm} set={setExpForm} />
             </div>
 
-            {(() => {
-              const isBlogOrGuia = expForm.activity_type && (
-                expForm.activity_type.toLowerCase().includes("blog") || 
-                expForm.activity_type.toLowerCase().includes("guía") || 
-                expForm.activity_type.toLowerCase().includes("guia")
-              );
-              return null;
-            })()}
-
             <div>
               <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Autor / Organización</label>
               <input type="text" placeholder="Ej. CityMap Tepic" value={expForm.author_name || ""} onChange={e => setExpForm(f => ({ ...f, author_name: e.target.value }))} style={{ width: "100%", padding: "9px 12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", outline: "none", background: "#fff", fontFamily: "inherit" }} />
@@ -175,41 +166,17 @@ export default function AdminExperiencesTab({
 
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 6 }}>
-                <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8 }}>Descripción {expForm.activity_type && (expForm.activity_type.toLowerCase().includes("blog") || expForm.activity_type.toLowerCase().includes("guía") || expForm.activity_type.toLowerCase().includes("guia")) ? (expForm.activity_type.toLowerCase().includes("guía") || expForm.activity_type.toLowerCase().includes("guia") ? "(Contenido de la Guía)" : "(Contenido del Blog)") : ""}</label>
-                <button type="button" onClick={async () => {
-                  if(!expForm.title) return onToast("Primero escribe un título");
-                  setExpForm(f => ({ ...f, _generating: true }));
-                  try {
-                    const res = await fetch("https://hook.us1.make.com/w8q3945v43u05z2eox54t1953255p8n1", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${import.meta.env.VITE_ADMIN_SECRET}` },
-                      body: JSON.stringify({ title: expForm.title, planType: expForm.activity_type || "experiencia" })
-                    });
-                    if (!res.ok) throw new Error("Error en la IA");
-                    const d = await res.json();
-                    setExpForm(f => ({ ...f, description: d.description, _generating: false }));
-                    onToast("Descripción generada ✨");
-                  } catch(e) {
-                    console.error(e);
-                    setExpForm(f => ({ ...f, _generating: false }));
-                    onToast("Error al generar: " + e.message);
-                  }
-                }} style={{ background: "linear-gradient(135deg, #A855F7, #EC4899)", color: "#fff", border: "none", borderRadius: 6, padding: "4px 8px", fontSize: 10, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>{expForm._generating ? "Generando..." : "✨ Autocompletar con IA"}</button>
+                <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8 }}>Descripción</label>
               </div>
-              {expForm.activity_type && (expForm.activity_type.toLowerCase().includes("blog") || expForm.activity_type.toLowerCase().includes("guía") || expForm.activity_type.toLowerCase().includes("guia")) ? (
-                <BlogVisualEditor
-                  key={expForm.id || "new"}
-                  value={expForm.description || ""}
-                  onChange={(val) => setExpForm(f => ({ ...f, description: val }))}
-                  expTitle={expForm.title || ""}
-                  authorName={expForm.author_name || ""}
-                  coverUrl={(expForm.gallery && expForm.gallery[0]) || ""}
-                  expId={expForm.id || "new"}
-                  onToast={onToast}
-                />
-              ) : (
-                <textarea placeholder="Describe la experiencia en detalle..." value={expForm.description || ""} onChange={e => setExpForm(f => ({ ...f, description: e.target.value }))} style={{ width: "100%", padding: "12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 13, color: "#0F1A14", outline: "none", background: "#fff", fontFamily: "inherit", minHeight: 120, resize: "vertical" }} />
-              )}
+              <RichTextEditor
+                key={expForm.id || "new"}
+                value={expForm.description || ""}
+                onChange={(val) => setExpForm(f => ({ ...f, description: val }))}
+                expTitle={expForm.title || ""}
+                authorName={expForm.author_name || ""}
+                coverUrl={(expForm.gallery && expForm.gallery[0]) || ""}
+                onToast={onToast}
+              />
             </div>
 
             <div>

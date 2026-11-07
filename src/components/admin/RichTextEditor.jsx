@@ -2,14 +2,20 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Icon from '../ui/Icon.jsx';
 import { cloudUpload } from '../../lib/supabase.js';
 import { sanitizeHtml, parsePastedContent, isHtmlContent, markdownToHtml, looksLikeMarkdown } from './blogSanitizer.js';
+import { clearLegacyDrafts } from './legacyDrafts.js';
 
-export default function BlogVisualEditor({
+// Editor enriquecido único de CityMap: lo usan todas las categorías de
+// publicaciones (Blog, Guía, Tours, Experiencias, Naturaleza, Cultura,
+// Deportes, Entretenimiento, Boleto y las que vengan). Sin herramientas de
+// IA y sin autoguardado: el contenido solo se guarda con el botón Guardar
+// del panel de Administración.
+
+export default function RichTextEditor({
   value = "",
   onChange,
   expTitle = "",
   authorName = "",
   coverUrl = "",
-  expId = "new",
   onToast = () => {}
 }) {
   const editorRef = useRef(null);
@@ -31,10 +37,6 @@ export default function BlogVisualEditor({
   const [selectedImgNode, setSelectedImgNode] = useState(null);
   const [imageModal, setImageModal] = useState(null); // { imgNode, alt, caption }
   const [linkModal, setLinkModal] = useState(null); // { url, text, existingRange }
-  const [hasRestorableDraft, setHasRestorableDraft] = useState(false);
-  const [lastSavedDraftTime, setLastSavedDraftTime] = useState(null);
-
-  const draftKey = `citymap_blog_draft_${expId}`;
   const lastEmittedValue = useRef(null);
   const isInitialized = useRef(false);
 
@@ -64,70 +66,19 @@ export default function BlogVisualEditor({
     }
   }, [value]);
 
-  // Check localStorage for auto-draft
+  // Limpieza única de los borradores del sistema anterior al montar.
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(draftKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.html && parsed.html !== value && parsed.html.length > 20) {
-          setHasRestorableDraft(true);
-          setLastSavedDraftTime(parsed.time);
-        }
-      }
-    } catch {
-      // Ignorar error de lectura de draft
-    }
-  }, [draftKey, value]);
+    clearLegacyDrafts();
+  }, []);
 
-  // Emit change to parent and update localStorage auto-draft
+  // Emit change to parent (sin autoguardado: solo se guarda con Guardar)
   const emitChange = useCallback(() => {
     if (!editorRef.current) return;
     const html = editorRef.current.innerHTML;
     const clean = sanitizeHtml(html);
     lastEmittedValue.current = clean;
     if (onChange) onChange(clean);
-
-    // Guardar borrador local
-    try {
-      localStorage.setItem(draftKey, JSON.stringify({
-        html: clean,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }));
-    } catch {
-      // Ignorar cuota excedida de localStorage
-    }
-  }, [onChange, draftKey]);
-
-  // Restore draft
-  const handleRestoreDraft = () => {
-    try {
-      const saved = localStorage.getItem(draftKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.html && editorRef.current) {
-          const clean = sanitizeHtml(parsed.html);
-          editorRef.current.innerHTML = clean;
-          lastEmittedValue.current = clean;
-          onChange(clean);
-          onToast("Borrador restaurado con éxito ✨");
-        }
-      }
-    } catch {
-      onToast("No se pudo restaurar el borrador");
-    }
-    setHasRestorableDraft(false);
-  };
-
-  const handleDiscardDraft = () => {
-    try {
-      localStorage.removeItem(draftKey);
-    } catch {
-      // Ignorar
-    }
-    setHasRestorableDraft(false);
-    onToast("Borrador descartado");
-  };
+  }, [onChange]);
 
   // Helper to execute document commands keeping selection
   const execCmd = (cmd, val = null) => {
@@ -359,23 +310,6 @@ export default function BlogVisualEditor({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-      {/* Aviso de borrador recuperable */}
-      {hasRestorableDraft && (
-        <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-          <div style={{ fontSize: 12, color: "#1E40AF", fontWeight: 600 }}>
-            📝 Hay un borrador no guardado ({lastSavedDraftTime || "reciente"}).
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" onClick={handleRestoreDraft} style={{ background: "#2563EB", color: "#fff", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-              Restaurar
-            </button>
-            <button type="button" onClick={handleDiscardDraft} style={{ background: "transparent", color: "#64748B", border: "1px solid #CBD5E1", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
-              Descartar
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Editor Container Card */}
       <div style={{
         background: "#fff",
@@ -476,6 +410,46 @@ export default function BlogVisualEditor({
             style={{ width: 38, height: 38, background: "#fff", border: "1px solid #CBD5E1", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontStyle: "italic", fontWeight: 700, color: "#0F1A14", cursor: "pointer", flexShrink: 0 }}
           >
             I
+          </button>
+          <button
+            type="button"
+            title="Subrayado"
+            onMouseDown={(e) => { e.preventDefault(); execCmd('underline'); }}
+            onTouchStart={(e) => { e.preventDefault(); execCmd('underline'); }}
+            style={{ width: 38, height: 38, background: "#fff", border: "1px solid #CBD5E1", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, textDecoration: "underline", color: "#0F1A14", cursor: "pointer", flexShrink: 0 }}
+          >
+            U
+          </button>
+
+          <div style={{ width: 1, height: 24, background: "#CBD5E1", margin: "0 2px", flexShrink: 0 }} />
+
+          {/* Headings: Título (H2), Subtítulo (H3), Párrafo */}
+          <button
+            type="button"
+            title="Título"
+            onMouseDown={(e) => { e.preventDefault(); execCmd('formatBlock', 'h2'); }}
+            onTouchStart={(e) => { e.preventDefault(); execCmd('formatBlock', 'h2'); }}
+            style={{ width: 38, height: 38, background: "#fff", border: "1px solid #CBD5E1", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: "#0F1A14", cursor: "pointer", flexShrink: 0 }}
+          >
+            H2
+          </button>
+          <button
+            type="button"
+            title="Subtítulo"
+            onMouseDown={(e) => { e.preventDefault(); execCmd('formatBlock', 'h3'); }}
+            onTouchStart={(e) => { e.preventDefault(); execCmd('formatBlock', 'h3'); }}
+            style={{ width: 38, height: 38, background: "#fff", border: "1px solid #CBD5E1", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#0F1A14", cursor: "pointer", flexShrink: 0 }}
+          >
+            H3
+          </button>
+          <button
+            type="button"
+            title="Párrafo"
+            onMouseDown={(e) => { e.preventDefault(); execCmd('formatBlock', 'p'); }}
+            onTouchStart={(e) => { e.preventDefault(); execCmd('formatBlock', 'p'); }}
+            style={{ width: 38, height: 38, background: "#fff", border: "1px solid #CBD5E1", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "#0F1A14", cursor: "pointer", flexShrink: 0 }}
+          >
+            ¶
           </button>
 
           <div style={{ width: 1, height: 24, background: "#CBD5E1", margin: "0 2px", flexShrink: 0 }} />
@@ -685,7 +659,7 @@ export default function BlogVisualEditor({
       {/* Helper text */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#64748B", padding: "0 4px" }}>
         <span>💡 Puedes pegar artículos desde ChatGPT con formato, subtítulos e imágenes.</span>
-        <span>Guardado local activo</span>
+        <span>Los cambios se guardan manualmente</span>
       </div>
 
       {/* Modal: Insert / Edit Link */}
