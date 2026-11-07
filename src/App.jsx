@@ -23,7 +23,7 @@ import { CITY_TZ, FONT_BIZ, EVENT_CATS, getT } from './lib/constants.js';
 import { fuzzyMatch } from './lib/utils.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
 import Icon from './components/ui/Icon.jsx';
-import MorphingInfinity from './components/ui/MorphingInfinity.jsx';
+import BrandSplash from './components/ui/BrandSplash.jsx';
 
 import { getEventStatus, CAT_EMOJI, isOpenNow, createSlug, parseMenuUrls, cleanCityPrefix, isNear } from './lib/utils.js';
 const ClaimModal = lazy(() => import('./components/ClaimModal.jsx'));
@@ -93,7 +93,7 @@ const FloatingParticles = ({ dark }) => {
 import CountryPickerDropdown from "./components/CountryPickerDropdown.jsx";
 import CosmicBackground from "./components/ui/CosmicBackground.jsx";
 
-const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}><MorphingInfinity size={64} color="#0F172A" /><span style={{fontSize:14,fontWeight:600,color:"#64748B",fontFamily:"'DM Sans',system-ui,sans-serif"}}>Cargando…</span></div>;
+const LoaderFallback = () => <BrandSplash />;
 const PAGE_LOAD_SEED = Math.random();
 
 
@@ -389,6 +389,10 @@ useEffect(() => {
           }
         })()
       ]);
+
+      // La carga inicial terminó: quitar la pantalla de arranque (index.html).
+      // Desde aquí cubre la pantalla React (BrandSplash / splash de ciudad).
+      document.getElementById("boot-splash")?.remove();
       
       if (u?.id) {
          
@@ -1298,7 +1302,7 @@ useEffect(() => {
   return (
     <AppContext.Provider value={appContextValue}>
       <OfflineScreen />
-      <CityArrivalSplash enabled={!requireCitySelection && isHomePath(location.pathname) && location.pathname !== '/'} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} cities={cities} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && homeCoreCity===activeCity} error={dbError || businessListError || homeCoreError || homeSecondaryError} dark={dark}/>
+      <CityArrivalSplash enabled={!requireCitySelection && isHomePath(location.pathname) && location.pathname !== '/'} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && homeCoreCity===activeCity} error={dbError || businessListError || homeCoreError || homeSecondaryError} />
 
       <div style={{ fontFamily: "'DM Sans',system-ui,sans-serif", background: dark ? "transparent" : T.bg, minHeight: "100vh", width: "100%", position: "relative", transition: "background .3s" }}>
         {dark && <CosmicBackground />}
