@@ -17,6 +17,7 @@ const getCityFilterOr = (city) => {
 let inFlightLoadPromise = null;
 let inFlightCity = null;
 let citiesRefreshPromise = null;
+let googleRatingsInFlight = null;
 
 const updateCityCache = (key, updates) => {
   try {
@@ -42,6 +43,30 @@ export const useDataStore = create((set, get) => ({
   cats: [], setCats: (val) => set(s => ({ cats: typeof val === 'function' ? val(s.cats) : val })),
   cityCats: [],
   cities: [], setCities: (val) => set(s => ({ cities: typeof val === 'function' ? val(s.cities) : val })),
+  // Caché de calificaciones de Google (rating + conteo, refresco mensual en
+  // servidor). Solo filas vigentes; sin dato, la tarjeta usa el conteo de CityMap.
+  googleRatings: {},
+  googleRatingsLoaded: false,
+  loadGoogleRatings: async () => {
+    if (get().googleRatingsLoaded || googleRatingsInFlight) return googleRatingsInFlight;
+    googleRatingsInFlight = (async () => {
+      try {
+        const now = new Date().toISOString();
+        const rows = await sb.get("google_ratings_cache", `?select=business_id,rating,review_count&expires_at=gt.${encodeURIComponent(now)}`);
+        const map = {};
+        (Array.isArray(rows) ? rows : []).forEach(r => {
+          if (!r?.business_id) return;
+          map[r.business_id] = { rating: r.rating != null ? Number(r.rating) : null, count: Number(r.review_count) || 0 };
+        });
+        set({ googleRatings: map, googleRatingsLoaded: true });
+      } catch (err) {
+        console.warn("Could not load Google ratings cache", err);
+      } finally {
+        googleRatingsInFlight = null;
+      }
+    })();
+    return googleRatingsInFlight;
+  },
   refreshCities: async () => {
     if(citiesRefreshPromise) return citiesRefreshPromise;
     citiesRefreshPromise=(async()=>{

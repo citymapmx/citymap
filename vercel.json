@@ -4,6 +4,10 @@
     {
       "path": "/api/limpiar-imagenes-pasadas",
       "schedule": "0 15 1 * *"
+    },
+    {
+      "path": "/api/actualizar-calificaciones-google",
+      "schedule": "0 10 1 * *"
     }
   ],
   "redirects": [

@@ -6,6 +6,8 @@ import { FONT_BIZ } from "../../lib/constants.js";
 import { CAT_EMOJI, isOpenNow, getScheduleStatus, getThumbUrl, haptic } from "../../lib/utils.js";
 import ProgressiveImage from "../ProgressiveImage.jsx";
 import { useTranslation } from "../../hooks/useTranslation.js";
+import { useDataStore } from "../../store/useDataStore.js";
+import { displayRating, formatReviewCount } from "../../lib/googleRatings.js";
 
 // Funciones de renderizado directo para evitar sobrecarga de instanciación de componentes en el Virtual DOM
 const renderFavoriteButton = (isFav, onClick, showPlus, overlay = false, T) => {
@@ -61,20 +63,26 @@ const renderFavoriteButton = (isFav, onClick, showPlus, overlay = false, T) => {
   );
 };
 
-const renderRatingRow = (b, realFavs, hideReviews, hideFavs, T, starStyle = {}, textStyle = {}) => {
+const renderRatingRow = (b, realFavs, hideReviews, hideFavs, T, starStyle = {}, textStyle = {}, googleRatings = null) => {
   if (hideReviews) return null;
-  
+  // Con dato vigente en caché se muestra el conteo de Google; si no,
+  // el conteo propio de CityMap (displayRating decide).
+  const disp = displayRating(b, googleRatings);
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-      {b.review_count > 0 ? (
+      {disp.count > 0 ? (
         <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
           <Icon name="star_f" size={14} color={textStyle.color || T.text} style={{ marginTop: -2, ...starStyle }} />
           <span style={{ fontSize: 12, fontWeight: 700, color: T.text, ...textStyle }}>
-            {b.rating && !isNaN(parseFloat(String(b.rating).replace(',', '.'))) 
-              ? parseFloat(String(b.rating).replace(',', '.')).toFixed(1) 
+            {disp.rating != null
+              ? disp.rating.toFixed(1)
               : "N/A"}
           </span>
-          <span style={{ fontSize: 12, color: T.sub, fontWeight: 700, ...textStyle }}>({b.review_count})</span>
+          <span style={{ fontSize: 12, color: T.sub, fontWeight: 700, ...textStyle }}>({formatReviewCount(disp.count)})</span>
+          {disp.source === "google" && (
+            <img src="/googlelogo.svg" alt="Google" style={{ width: 12, height: 12, objectFit: "contain" }} />
+          )}
           {!hideFavs && realFavs > 0 && (
             <>
               <span style={{ fontSize: 10, color: T.border, margin: "0 2px" }}>·</span>
@@ -166,6 +174,7 @@ export default memo(function BusinessCard({
   const thumb = b.photos?.[0] || (b.banner_url ? { url: b.banner_url } : null) || (b.logo_url ? { url: b.logo_url } : null);
   const [showPlus, setShowPlus] = useState(false);
   const { t } = useTranslation();
+  const googleRatings = useDataStore(s => s.googleRatings);
 
   const handleFav = (e) => {
     e.stopPropagation();
@@ -271,7 +280,7 @@ export default memo(function BusinessCard({
             </h3>
             
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
-              {renderRatingRow(b, realFavs, hideReviews, hideFavs, T)}
+              {renderRatingRow(b, realFavs, hideReviews, hideFavs, T, {}, {}, googleRatings)}
 
               {!hideSchedule && (!hideReviews || (!hideFavs && realFavs > 0)) && (
                 <div style={{ width: 4, height: 4, borderRadius: "50%", background: T.border }} />
@@ -363,7 +372,7 @@ export default memo(function BusinessCard({
           
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {renderRatingRow(b, realFavs, hideReviews, hideFavs, T, { width: 16, height: 16 }, { fontSize: 13 })}
+              {renderRatingRow(b, realFavs, hideReviews, hideFavs, T, { width: 16, height: 16 }, { fontSize: 13 }, googleRatings)}
               
               <span style={{ fontSize: 10, color: T.border }}>·</span>
               {renderScheduleRow(b, T, t)}
@@ -454,7 +463,8 @@ export default memo(function BusinessCard({
                     hideFavs, 
                     T, 
                     { filter: "brightness(0) invert(1) drop-shadow(0px 1px 2px rgba(0,0,0,0.5))" }, 
-                    { color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.8)" }
+                    { color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.8)" },
+                    googleRatings
                   )
                 ) : (
                   realFavs > 0 ? (

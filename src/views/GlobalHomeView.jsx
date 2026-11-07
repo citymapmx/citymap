@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useDataStore } from '../store/useDataStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
 import { createSlug, getThumbUrl } from '../lib/utils.js';
+import { displayRating } from '../lib/googleRatings.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
@@ -113,6 +114,7 @@ export default function GlobalHomeView() {
   const { T, dark, user, toast$, handleCardTap, handleEventTap, navigate, favIds, toggleFav, globalFavCounts, savedEventIds, setSavedEventIds, savedExpIds, setSavedExpIds, toggleSaveEvent } = useAppContext();
   const setShowAuth = useAuthStore((s) => s.setShowAuth);
   const cities = useDataStore((s) => s.cities);
+  const googleRatings = useDataStore((s) => s.googleRatings);
   const [biz, setBiz] = useState([]);
   const [events, setEvents] = useState([]);
   const [experiences, setExperiences] = useState([]);
@@ -321,9 +323,11 @@ export default function GlobalHomeView() {
   // Eventos por fecha (los más cercanos primero); lugares y restaurantes por
   // calificación (los mejores primero).
   const upcomingEvents = useMemo(() => feed.filter((it) => it.kind === 'eventos').slice().sort((a, b) => String(a.date || '').localeCompare(String(b.date || ''))), [feed]);
-  const byRating = (a, b) => (b.raw.rating ?? -1) - (a.raw.rating ?? -1) || String(b.date || '').localeCompare(String(a.date || ''));
-  const placesList = useMemo(() => feed.filter((it) => it.kind === 'lugares').slice().sort(byRating), [feed]);
-  const restaurantsList = useMemo(() => feed.filter((it) => it.kind === 'negocios' && normCat(it.raw.category) === 'restaurantes').slice().sort(byRating), [feed]);
+  // El orden sigue el número que se muestra en la tarjeta (Google si hay
+  // dato en caché, si no el de CityMap).
+  const byRating = useCallback((a, b) => (displayRating(b.raw, googleRatings).rating ?? -1) - (displayRating(a.raw, googleRatings).rating ?? -1) || String(b.date || '').localeCompare(String(a.date || '')), [googleRatings]);
+  const placesList = useMemo(() => feed.filter((it) => it.kind === 'lugares').slice().sort(byRating), [feed, byRating]);
+  const restaurantsList = useMemo(() => feed.filter((it) => it.kind === 'negocios' && normCat(it.raw.category) === 'restaurantes').slice().sort(byRating), [feed, byRating]);
 
   // Al llegar al final del deslizamiento de una hilera, se agregan 5 tarjetas
   // más (los datos ya están cargados; esto limita lo que se renderiza).
