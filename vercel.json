@@ -1,5 +1,11 @@
 {
   "trailingSlash": false,
+  "crons": [
+    {
+      "path": "/api/limpiar-imagenes-pasadas",
+      "schedule": "0 15 1 * *"
+    }
+  ],
   "redirects": [
     {
       "source": "/:path+/",
