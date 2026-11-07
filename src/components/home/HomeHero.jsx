@@ -130,7 +130,7 @@ export default memo(function HomeHero({
 
   return (
     <>
-    <div style={{ position: "relative", padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 8px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "transparent" }}>
+    <div style={{ position: "relative", padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 8px", display: "flex", flexDirection: "column", background: "transparent" }}>
 
       {/* Foto de la ciudad como fondo, optimizada a este espacio (800 px WebP),
           con degradado oscuro para que el saludo y el buscador se lean */}
