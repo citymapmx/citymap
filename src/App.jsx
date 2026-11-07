@@ -23,6 +23,7 @@ import { CITY_TZ, FONT_BIZ, EVENT_CATS, getT } from './lib/constants.js';
 import { fuzzyMatch } from './lib/utils.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
 import Icon from './components/ui/Icon.jsx';
+import MorphingInfinity from './components/ui/MorphingInfinity.jsx';
 
 import { getEventStatus, CAT_EMOJI, isOpenNow, createSlug, parseMenuUrls, cleanCityPrefix, isNear } from './lib/utils.js';
 const ClaimModal = lazy(() => import('./components/ClaimModal.jsx'));
@@ -92,7 +93,7 @@ const FloatingParticles = ({ dark }) => {
 import CountryPickerDropdown from "./components/CountryPickerDropdown.jsx";
 import CosmicBackground from "./components/ui/CosmicBackground.jsx";
 
-const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:30,height:30,border:"3px solid #E4E8E4",borderTop:"3px solid #000000",borderRadius:"50%",animation:"spin .8s linear infinite"}}/></div>;
+const LoaderFallback = () => <div style={{position:"fixed",inset:0,background:"#F7F8F6",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}><MorphingInfinity size={64} color="#0F172A" /><span style={{fontSize:14,fontWeight:600,color:"#64748B",fontFamily:"'DM Sans',system-ui,sans-serif"}}>Cargando…</span></div>;
 const PAGE_LOAD_SEED = Math.random();
 
 
@@ -354,6 +355,24 @@ useEffect(() => {
          
         localStorage.setItem("cg_app_version", APP_VERSION);
         console.log("Caché limpiado por actualización de versión.");
+      }
+
+      // Entrada rápida a la ciudad guardada: decidir ANTES de cargar datos,
+      // con la lista de ciudades del caché, para no mostrar el muro segundos
+      // mientras carga. Sin hash (el regreso de Google OAuth lo necesita
+      // intacto) ni query (los enlaces profundos usan ?b=, ?vista=, etc.).
+      // Si no hay caché válido, cae al redirect tardío de la rama final.
+      if (window.location.pathname === "/" && !window.location.hash && !window.location.search) {
+        const savedCity = localStorage.getItem("cg_city_slug");
+        if (savedCity) {
+          try {
+            const cached = JSON.parse(localStorage.getItem(`cg_data_${savedCity}_v4`) || "null");
+            const knownCities = Array.isArray(cached?.ci) ? cached.ci : [];
+            if (knownCities.some((c) => c.slug === savedCity)) {
+              routerNavigate(buildCityPath(savedCity, knownCities), { replace: true });
+            }
+          } catch { /* sin caché válido: lo decide la rama final tras cargar */ }
+        }
       }
 
       // Parsear token de Google OAuth si viene en la URL
