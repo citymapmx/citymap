@@ -222,7 +222,8 @@ export default function MapView() {
                 <button onClick={(e) => { e.stopPropagation(); setMapPin(null); }} style={{ position: "absolute", top: 12, left: 12, zIndex: 5, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="x" size={14} color="#fff" />
                 </button>
-                <img src={getThumbUrl(mapPin.img_url || mapPin.img, 800, 1067)} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                {/* Sin alto: con alto el servicio recorta el póster a 3:4 en el servidor (resize=cover) y se pierde arriba/abajo; solo con ancho lo escala proporcional (resize=contain) y el póster sale completo. */}
+                <img src={getThumbUrl(mapPin.img_url || mapPin.img, 800)} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                 {(() => {
                   let countdownStr = "";
                   if (mapPin.date) {
@@ -235,7 +236,7 @@ export default function MapView() {
                     else if (diff > 1) countdownStr = `Faltan ${diff} días`;
                   }
                   return countdownStr ? (
-                    <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 5, background: "#111111", color: "#fff", padding: "4px 10px", borderRadius: 10, fontSize: 9, fontWeight: 800, textTransform: "uppercase", lineHeight: 1.2, letterSpacing: 0.5, boxShadow: "0 2px 8px rgba(0, 0, 0, 0.5)" }}>
+                    <div style={{ position: "absolute", bottom: 88, left: "50%", transform: "translateX(-50%)", zIndex: 5, background: "#111111", color: "#fff", padding: "4px 10px", borderRadius: 10, fontSize: 9, fontWeight: 800, textTransform: "uppercase", lineHeight: 1.2, letterSpacing: 0.5, boxShadow: "0 2px 8px rgba(0, 0, 0, 0.5)" }}>
                       {countdownStr}
                     </div>
                   ) : null;
