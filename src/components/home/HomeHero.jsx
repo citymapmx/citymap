@@ -4,15 +4,19 @@ import SlidingCategoryTrack from '../ui/SlidingCategoryTrack.jsx';
 import {getCityDisplayName} from '../../hooks/useGeolocation.js';
 import React, { useEffect, memo } from 'react';
 import DebouncedSearchBar from './DebouncedSearchBar.jsx';
+import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { Sk } from '../ui/Skeleton.jsx';
 
 export default memo(function HomeHero({
   dark, T, t, search, setSearch, localizedPlaceholders, phIdx, 
   locating, detectCity, userCoords, dbReady, cats, activeCat, setActiveCat, 
-  activeCity, city, haptic, detectedTown, cities, onSurprise, navigate
+  activeCity, city, haptic, detectedTown, cities, onSurprise, navigate, cityImg
 }) {
   const routerNavigate = useNavigate();
   const cityName = getCityDisplayName(activeCity, cities, city || detectedTown).split(",")[0];
+  // Fondo con la foto de la ciudad (la misma que sube Jonathan, bg_image):
+  // solo cuando la ciudad tiene foto; las demás se quedan como hoy.
+  const hasBg = Boolean(cityImg);
 
   
 
@@ -127,6 +131,14 @@ export default memo(function HomeHero({
   return (
     <div style={{ position: "relative", padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 0px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "transparent" }}>
 
+      {/* Foto de la ciudad como fondo, optimizada a este espacio (800 px WebP),
+          con degradado oscuro para que el saludo y el buscador se lean */}
+      {hasBg && (
+        <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "0 0 28px 28px", zIndex: 0 }}>
+          <OptimizedImage src={cityImg} alt="" widthRequest={800} priority style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.20) 45%, rgba(0,0,0,0.55) 100%)" }} />
+        </div>
+      )}
 
       {/* Contenido Header (Por encima del fondo) */}
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", flex: 1 }}>
@@ -142,7 +154,7 @@ export default memo(function HomeHero({
                   alt="CityMap" 
                   width={127}
                   height={38}
-                  style={{ height: 38, width: 127, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", display: "block", margin: "0 auto" }} 
+                  style={{ height: 38, width: 127, objectFit: "contain", filter: (dark || hasBg) ? "brightness(0) invert(1)" : "brightness(0)", display: "block", margin: "0 auto" }} 
                 />
               </div>
               <style>{`
@@ -169,11 +181,11 @@ export default memo(function HomeHero({
                 }
                 
               `}</style>
-              <h1  style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(22px, 5.5vw, 28px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: dark ? "#fff" : T.text }}>
+              <h1  style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(22px, 5.5vw, 28px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: (dark || hasBg) ? "#fff" : T.text }}>
                 {getGreeting()} <span className="animated-city">{cityName}</span>
 
               </h1>
-              <p style={{ margin: "6px 0 0 0", fontSize: 14, fontWeight: 600, color: dark ? "rgba(255,255,255,0.7)" : "#6B7280" }}>
+              <p style={{ margin: "6px 0 0 0", fontSize: 14, fontWeight: 600, color: hasBg ? "rgba(255,255,255,0.85)" : (dark ? "rgba(255,255,255,0.7)" : "#6B7280") }}>
                 {contextMessage}
               </p>
             </div>
@@ -264,7 +276,7 @@ export default memo(function HomeHero({
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }
                     }} 
-                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0, minHeight: 44, boxSizing: "border-box", padding: "10px 0", borderBottom: `2px solid ${isActive ? (dark ? "#FFFFFF" : "#000000") : "transparent"}`, color: isActive ? (dark ? "#FFFFFF" : "#000000") : (dark ? "#A3AFBF" : "#788496"), fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: "20px", whiteSpace: "nowrap", transition: "color 180ms ease, border-color 180ms ease" }}
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0, minHeight: 44, boxSizing: "border-box", padding: "10px 0", borderBottom: `2px solid ${isActive ? ((dark || hasBg) ? "#FFFFFF" : "#000000") : "transparent"}`, color: isActive ? ((dark || hasBg) ? "#FFFFFF" : "#000000") : (hasBg ? "rgba(255,255,255,0.75)" : (dark ? "#A3AFBF" : "#788496")), fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: "20px", whiteSpace: "nowrap", transition: "color 180ms ease, border-color 180ms ease" }}
                   >
                     {c.label}
                   </a>
