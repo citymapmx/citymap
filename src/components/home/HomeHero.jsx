@@ -129,12 +129,13 @@ export default memo(function HomeHero({
 
 
   return (
-    <div style={{ position: "relative", padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 0px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "transparent" }}>
+    <>
+    <div style={{ position: "relative", padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 14px", minHeight: search ? "auto" : 220, display: "flex", flexDirection: "column", background: "transparent" }}>
 
       {/* Foto de la ciudad como fondo, optimizada a este espacio (800 px WebP),
           con degradado oscuro para que el saludo y el buscador se lean */}
       {hasBg && (
-        <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "0 0 28px 28px", zIndex: 0 }}>
+        <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 0 }}>
           <OptimizedImage src={cityImg} alt="" widthRequest={800} priority style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.20) 45%, rgba(0,0,0,0.55) 100%)" }} />
         </div>
@@ -248,11 +249,14 @@ export default memo(function HomeHero({
         </div>
 
         {!search && onSurprise && <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={onSurprise}
-          style={{ width: 44, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: 'pointer', fontSize: 23 }}>🎲</button>}
+          style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: 'pointer', fontSize: 23 }}>🎲</button>}
         </div>
 
-        {/* Fila 4: Carrusel de Categorías */}
-        {!search && <div style={{ margin: "12px -20px 0" }}>
+      </div>
+    </div>
+
+    {/* Categorías debajo de la foto, sobre el fondo de la página */}
+    {!search && <div style={{ margin: "10px 0 0" }}>
           <SlidingCategoryTrack dark={dark} selectedKey={activeCat} variant="dot" className="home-category-track" style={{ display: "flex", alignItems: "stretch", overflowX: "auto", paddingTop: 8, paddingBottom: 2, paddingLeft: 20, paddingRight: 20, gap: 24, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
             <style>{`.home-category-track > .sliding-category-indicator { display: none; }`}</style>
             {!dbReady ? [1, 2, 3, 4, 5].map(i => <Sk key={i} w={76} h={16} r={4} dark={dark} style={{ flexShrink: 0, marginTop: 14, marginBottom: 14 }} />)
@@ -276,7 +280,7 @@ export default memo(function HomeHero({
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }
                     }} 
-                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0, minHeight: 44, boxSizing: "border-box", padding: "10px 0", borderBottom: `2px solid ${isActive ? ((dark || hasBg) ? "#FFFFFF" : "#000000") : "transparent"}`, color: isActive ? ((dark || hasBg) ? "#FFFFFF" : "#000000") : (hasBg ? "rgba(255,255,255,0.75)" : (dark ? "#A3AFBF" : "#788496")), fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: "20px", whiteSpace: "nowrap", transition: "color 180ms ease, border-color 180ms ease" }}
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0, minHeight: 44, boxSizing: "border-box", padding: "10px 0", borderBottom: `2px solid ${isActive ? (dark ? "#FFFFFF" : "#000000") : "transparent"}`, color: isActive ? (dark ? "#FFFFFF" : "#000000") : (dark ? "#A3AFBF" : "#788496"), fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: "20px", whiteSpace: "nowrap", transition: "color 180ms ease, border-color 180ms ease" }}
                   >
                     {c.label}
                   </a>
@@ -284,8 +288,6 @@ export default memo(function HomeHero({
               })}
           </SlidingCategoryTrack>
         </div>}
-
-      </div>
-    </div>
+    </>
   );
 });
