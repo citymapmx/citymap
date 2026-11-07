@@ -49,6 +49,9 @@ describe('event wheel 3D', () => {
     expect(html).toContain('01/05');
     expect(html.match(/Ir al evento/g)).toHaveLength(5);
     expect(html).toContain('Ver detalles');
+    // El giro lo mueve un resorte por requestAnimationFrame, no una
+    // transición CSS: el tambor solo lleva el transform.
+    expect(html).toContain('class="event-wheel-drum" style="transform:rotateY(0deg)"');
   });
 
   it('shows the black fallback with the title for events without a poster', () => {

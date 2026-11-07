@@ -11,6 +11,7 @@ import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import EventPosterFallback from "../components/home/EventPosterFallback.jsx";
 import Footer from "../components/Footer.jsx";
 import { haptic } from "../lib/utils";
+import { useFlipList } from "../lib/useFlipList.js";
 import useTimeStore from "../store/useTimeStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 
@@ -132,6 +133,10 @@ export default function EventsView() {
     const q = eventCategoryFilter.toLowerCase();
     return visibleEvents.filter(ev => matchesCategory(ev, q));
   }, [visibleEvents, eventCategoryFilter]);
+
+  // Idea 2 de motion.dev: al cambiar de categoría, las tarjetas se
+  // deslizan a su nuevo lugar y las nuevas entran con un fundido.
+  const registerFlip = useFlipList(filteredEvents.map((ev) => ev.id).join(','));
 
   // Handle saving/unsaving events
   const handleToggleSaveEvent = (ev, e) => {
@@ -306,7 +311,7 @@ export default function EventsView() {
                   const imgSrc = ev.img_url || ev.img;
 
                   return (
-                    <article key={ev.id} style={{ minWidth: 0, position:'relative', borderRadius:18, overflow:'hidden', background:T.white, border:`1px solid ${T.border}` }}>
+                    <article key={ev.id} ref={registerFlip(ev.id)} style={{ minWidth: 0, position:'relative', borderRadius:18, overflow:'hidden', background:T.white, border:`1px solid ${T.border}` }}>
                       <button type="button" onClick={() => handleEventTap(ev)} aria-label={`${ev.title || 'Evento'}. ${fmtCardDate(ev)}`} className="event-list-card" style={{ display:'block', width:'100%', textAlign:'left', border:0, padding:0, background:'transparent', color:T.text, cursor:'pointer', fontFamily:'inherit' }}>
                         <div style={{ aspectRatio:'5 / 7', position:'relative', overflow:'hidden', background:dark ? '#23252b' : '#edf0f4' }}>
                           {imgSrc ? <OptimizedImage src={imgSrc} alt={ev.title || 'Evento'} widthRequest={600} priority={index < 2} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />

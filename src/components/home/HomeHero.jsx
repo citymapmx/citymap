@@ -18,7 +18,50 @@ export default memo(function HomeHero({
   // solo cuando la ciudad tiene foto; las demás se quedan como hoy.
   const hasBg = Boolean(cityImg);
 
-  
+  const heroRef = React.useRef(null);
+  const bgImgRef = React.useRef(null);
+  const contentRef = React.useRef(null);
+
+  // Idea 8 de motion.dev: parallax suave en el hero de ciudad. Al bajar,
+  // la foto se mueve más despacio que el contenido (se retrasa ~22 px) y
+  // el saludo se desvanece un poco. Solo con foto de ciudad y sin
+  // prefers-reduced-motion. Solo transform y opacidad.
+  useEffect(() => {
+    if (!hasBg) return;
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const heroEl = heroRef.current;
+    const imgEl = bgImgRef.current;
+    const contentEl = contentRef.current;
+    if (!heroEl || !imgEl) return;
+    let raf = 0;
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const h = heroEl.offsetHeight || 1;
+      const progress = Math.max(0, Math.min(1, window.scrollY / h));
+      imgEl.style.transform = `translate3d(0, ${(progress * 22).toFixed(1)}px, 0)`;
+      if (contentEl) {
+        contentEl.style.opacity = String(1 - progress * 0.3);
+        contentEl.style.transform = `translate3d(0, ${(-progress * 6).toFixed(1)}px, 0)`;
+      }
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(raf);
+      imgEl.style.transform = '';
+      if (contentEl) {
+        contentEl.style.opacity = '';
+        contentEl.style.transform = '';
+      }
+    };
+  }, [hasBg]);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -130,19 +173,23 @@ export default memo(function HomeHero({
 
   return (
     <>
-    <div style={{ position: "relative", padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 20px", display: "flex", flexDirection: "column", background: "transparent" }}>
+    <div ref={heroRef} style={{ position: "relative", padding: "calc(env(safe-area-inset-top, 0px) + 10px) 20px 20px", display: "flex", flexDirection: "column", background: "transparent" }}>
 
       {/* Foto de la ciudad como fondo, optimizada a este espacio (800 px WebP),
-          con degradado oscuro para que el saludo y el buscador se lean */}
+          con degradado oscuro para que el saludo y el buscador se lean.
+          La foto vive en un marco un 18% más alto que el hero para que el
+          parallax no deje huecos en los bordes. */}
       {hasBg && (
         <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 0 }}>
-          <OptimizedImage src={cityImg} alt="" widthRequest={800} priority style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          <div ref={bgImgRef} style={{ position: "absolute", left: 0, right: 0, top: "-9%", height: "118%" }}>
+            <OptimizedImage src={cityImg} alt="" widthRequest={800} priority style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.20) 45%, rgba(0,0,0,0.55) 100%)" }} />
         </div>
       )}
 
       {/* Contenido Header (Por encima del fondo) */}
-      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", flex: 1 }}>
+      <div ref={contentRef} style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", flex: 1 }}>
         
 
         {/* ── Fila 2: Título Hero ── */}
