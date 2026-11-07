@@ -13,7 +13,6 @@ export default memo(function HomeHero({
 }) {
   const routerNavigate = useNavigate();
   const cityName = getCityDisplayName(activeCity, cities, city || detectedTown).split(",")[0];
-  const searchPlaceholder = "Buscar lugares y eventos";
 
   
 
@@ -233,7 +232,7 @@ export default memo(function HomeHero({
             <div className="hero-search-magic-container">
               <div className="hero-search-magic-inner"></div>
             </div>
-            <DebouncedSearchBar initialValue={search} onSearch={setSearch} placeholder={searchPlaceholder} dark={dark} />
+            <DebouncedSearchBar initialValue={search} onSearch={setSearch} dark={dark} />
         </div>
 
         {!search && onSurprise && <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={onSurprise}
