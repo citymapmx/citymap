@@ -26,6 +26,10 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
   const googleBtnRef = useRef(null);
   const recaptchaPromiseRef = useRef(null);
   const [gisRendered, setGisRendered] = useState(false);
+  // Tema con el que ya se dibujó el botón oficial de Google: si el efecto
+  // vuelve a correr con el mismo tema, no se vuelve a dibujar (evita que
+  // queden dos botones y que el modal salte). Se limpia al cerrar el modal.
+  const gisThemeRef = useRef(null);
 
   const isNativeApp = Capacitor.isNativePlatform();
 
@@ -87,6 +91,7 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
 
     if (!showAuth) {
       setGisRendered(false);
+      gisThemeRef.current = null;
       return;
     }
 
@@ -99,6 +104,14 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
 
     const initGsi = () => {
       if (window.google?.accounts?.id && googleBtnRef.current) {
+        // Si el botón oficial ya está dibujado con este tema, no se vuelve
+        // a dibujar: renderButton mete su iframe de forma asíncrona y un
+        // segundo dibujo puede dejar dos botones visibles.
+        const theme = dark ? "filled_black" : "outline";
+        if (gisThemeRef.current === theme && googleBtnRef.current.childElementCount > 0) {
+          setGisRendered(true);
+          return;
+        }
         try {
           window.google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
@@ -120,7 +133,7 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
           const btnWidth = Math.min(Math.max((googleBtnRef.current.parentElement?.offsetWidth || 340) - 4, 280), 380);
 
           window.google.accounts.id.renderButton(googleBtnRef.current, {
-            theme: dark ? "filled_black" : "outline",
+            theme,
             size: "large",
             shape: "pill",
             text: "continue_with",
@@ -129,6 +142,7 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
             logo_alignment: "left"
           });
 
+          gisThemeRef.current = theme;
           setGisRendered(true);
         } catch (e) {
           console.warn("GIS render error:", e);
@@ -215,14 +229,15 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
         </button>
       ) : (
         /* En Web (Mac, Windows, Android Chrome, iPhone Safari): Botón oficial visible de Google GIS */
-        <div style={{ width: "100%", marginBottom: 20, display: "flex", justifyContent: "center" }}>
+        <div style={{ width: "100%", height: 48, marginBottom: 20, display: "flex", justifyContent: "center", alignItems: "center" }}>
           <div 
             ref={googleBtnRef} 
             style={{ 
-              width: "100%", 
+              width: "100%",
+              height: 48,
               display: gisRendered ? "flex" : "none", 
               justifyContent: "center",
-              minHeight: 44
+              alignItems: "center"
             }} 
           />
           {!gisRendered && (
