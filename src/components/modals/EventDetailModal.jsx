@@ -32,6 +32,13 @@ export default function EventDetailModal() {
     setSelectedEvent(null);
     routerNavigate(evCitySlug ? `/eventos/${evCitySlug}` : '/eventos', { replace: true });
   }, [setSelectedEvent, routerNavigate, evCitySlug]);
+  const shareEvent = useCallback(() => {
+    const ev = selectedEvent;
+    if (!ev) return;
+    const evUrl = `${window.location.origin}/evento/${createSlug(ev.title)}_${ev.id}`;
+    if (navigator.share) navigator.share({ title: ev.title, text: 'Échale un vistazo a este evento:', url: evUrl });
+    else { navigator.clipboard?.writeText(evUrl); toast$('Enlace copiado'); }
+  }, [selectedEvent, toast$]);
   const dialog = useRef(null);
   const closeEvent = useCallback(() => {
     setSelectedEvent(null);
@@ -71,7 +78,6 @@ export default function EventDetailModal() {
         const ev = selectedEvent;
         const associatedBiz = ev.biz_id ? mapPins.find(b => b.id === ev.biz_id) : null;
         const imgSrc = ev.img_url || ev.img;
-        const evShareMsg = `Échale un vistazo a este evento:`;
         
         return (
           <m.div
@@ -85,7 +91,17 @@ export default function EventDetailModal() {
           >
             <div style={{ width: "100%", maxWidth: 460, margin: "0 auto", padding: 0, display: "flex", flexDirection: "column", minHeight: "100%" }}>
               
-              {/* --- HERO IMAGE SECTION --- */}
+              {/* --- HERO IMAGE SECTION (solo eventos vigentes; los pasados van sin foto grande) --- */}
+              {isPast ? (
+                <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "calc(env(safe-area-inset-top, 0px) + 12px) 16px 4px" }}>
+                  <button aria-label="Volver" onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                    <Icon name="arrow_left" size={22} color={T.text} />
+                  </button>
+                  <button aria-label="Compartir evento" onClick={(e) => { e.stopPropagation(); shareEvent(); }} style={{ width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                    <Icon name="share" size={20} color={T.text} />
+                  </button>
+                </div>
+              ) : (
               <div style={{ position: "relative", width: "100%", background: "transparent", overflow: "hidden" }}>
                 {imgSrc ? (
                   <EventPoster key={imgSrc} src={imgSrc} alt={ev.title || ""} />
@@ -101,13 +117,23 @@ export default function EventDetailModal() {
                 </button>
                 
                 {/* Floating Share Button */}
-                <button aria-label="Compartir evento" onClick={(e) => { e.stopPropagation(); const evUrl = `${window.location.origin}/evento/${createSlug(ev.title)}_${ev.id}`; if (navigator.share) navigator.share({ title: ev.title, text: evShareMsg, url: evUrl }); else { navigator.clipboard?.writeText(evUrl); toast$("Enlace copiado"); } }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
+                <button aria-label="Compartir evento" onClick={(e) => { e.stopPropagation(); shareEvent(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
                   <Icon name="share" size={20} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
                 </button>
               </div>
+              )}
 
               {/* --- CONTENT CARD (No overlap) --- */}
               <div style={{ position: "relative", zIndex: 2, background: T.bg, padding: "20px 20px 40px", flex: 1, display: "flex", flexDirection: "column" }}>
+
+                {/* --- EVENTO PASADO: el aviso va primero, antes que el título --- */}
+                {isPast && (
+                  <div style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#FEF3C7', border: `1px solid ${dark ? 'rgba(255,255,255,0.12)' : '#FDE68A'}`, borderRadius: 16, padding: 16, margin: '0 0 20px 0' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>Este evento ya terminó</div>
+                    <div style={{ fontSize: 14, color: T.sub, marginBottom: 12 }}>Pero hay más cosas pasando{cityName ? ` en ${cityName}` : ''}. Explora los próximos eventos.</div>
+                    <button onClick={exploreEvents} className="press" style={{ background: '#1A7A5E', color: '#fff', border: 'none', borderRadius: 9999, padding: '10px 18px', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Explora nuevos eventos</button>
+                  </div>
+                )}
 
                 <h1 style={{ fontFamily: FONT_BIZ, fontSize: 26, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: (ev.event_category || ev.category) ? 10 : 14, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
                 
@@ -126,17 +152,7 @@ export default function EventDetailModal() {
                   </div>
                 )}
 
-                
-                <EventInformation event={ev} associatedBiz={associatedBiz} T={T} />
-
-                {/* --- EVENTO PASADO: aviso + próximos eventos --- */}
-                {isPast && (
-                  <div style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#FEF3C7', border: `1px solid ${dark ? 'rgba(255,255,255,0.12)' : '#FDE68A'}`, borderRadius: 16, padding: 16, margin: '4px 0 20px 0' }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>Este evento ya terminó</div>
-                    <div style={{ fontSize: 14, color: T.sub, marginBottom: 12 }}>Pero hay más cosas pasando{cityName ? ` en ${cityName}` : ''}. Explora los próximos eventos.</div>
-                    <button onClick={exploreEvents} className="press" style={{ background: '#1A7A5E', color: '#fff', border: 'none', borderRadius: 9999, padding: '10px 18px', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Explora nuevos eventos</button>
-                  </div>
-                )}
+                {/* --- EVENTO PASADO: próximos eventos antes que los datos viejos --- */}
                 {isPast && upcoming.length > 0 && (
                   <div style={{ margin: '0 0 24px 0' }}>
                     <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>Próximos eventos{cityName ? ` en ${cityName}` : ''}</div>
@@ -161,6 +177,9 @@ export default function EventDetailModal() {
                     })}
                   </div>
                 )}
+
+                {/* --- Datos del evento (en los pasados van abajo y sin entradas, que ya no se pueden comprar) --- */}
+                <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} />
 
                 {/* --- ASOCIADO CON --- */}
                 {associatedBiz && (

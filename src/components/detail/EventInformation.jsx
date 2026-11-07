@@ -15,9 +15,10 @@ function timeLabel(value) {
   return `${hours % 12 || 12}:${String(minutes).padStart(2, '0')} ${hours >= 12 ? 'p. m.' : 'a. m.'}`;
 }
 
-export default function EventInformation({ event, associatedBiz, T }) {
+export default function EventInformation({ event, associatedBiz, T, hideTickets = false }) {
   const price = getEventPrice(event);
   const links = getEventLinks(event);
+  const showLinks = !hideTickets && links.length > 0;
   const start = dateLabel(event.date, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
   const end = event.end_date > event.date ? dateLabel(event.end_date, { day: 'numeric', month: 'long', year: 'numeric' }) : '';
   const times = [timeLabel(event.time), timeLabel(event.end_time)].filter(Boolean).join(' – ');
@@ -28,7 +29,7 @@ export default function EventInformation({ event, associatedBiz, T }) {
   const rowStyle = { display: 'flex', gap: 12, padding: '14px 0', borderBottom: `1px solid ${T.border}`, textAlign: 'left' };
   const labelStyle = { fontSize: 12, color: T.sub, fontWeight: 600, margin: '0 0 4px' };
   return <>
-    <div style={{ marginBottom: event.description || links.length ? 22 : 0 }}>
+    <div style={{ marginBottom: event.description || showLinks ? 22 : 0 }}>
       {(start || times) && <div style={rowStyle}>
         <Icon name="calendar" size={21} color={T.sub} style={{ flexShrink: 0, marginTop: 2 }} />
         <div style={{ minWidth: 0 }}><p style={labelStyle}>Cuándo</p>
@@ -44,12 +45,12 @@ export default function EventInformation({ event, associatedBiz, T }) {
           <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 36, marginTop: 2, color: T.text, fontSize: 13, fontWeight: 600, textUnderlineOffset: 3 }}>Cómo llegar ↗</a>
         </div>
       </div>}
-      {price && <div style={rowStyle}>
+      {price && !hideTickets && <div style={rowStyle}>
         <Icon name="ticket" size={21} color={T.sub} style={{ flexShrink: 0, marginTop: 2 }} />
         <div><p style={labelStyle}>Entradas</p><p style={{ margin: 0, color: T.text, fontSize: 15, lineHeight: 1.5, fontWeight: 650 }}>{price.text}</p></div>
       </div>}
     </div>
-    {links.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+    {showLinks && <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
       {links.map((link, index) => {
         const ticketSeller = ['tiqets', 'comprar_entradas'].includes(link.platform);
         const label = link.platform === 'whatsapp' ? 'Consultar por WhatsApp' : ticketSeller && price && !price.free ? 'Comprar boletos' : 'Consultar entradas';

@@ -5,7 +5,7 @@ import { getEventPrice, getEventLinks, normalizeEventLink } from '../lib/eventDe
 import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
-const render=event=>renderToStaticMarkup(<EventInformation event={event} T={T}/>);
+const render=(event,hideTickets)=>renderToStaticMarkup(<EventInformation event={event} T={T} hideTickets={hideTickets}/>);
 
 describe('Event entry information',()=>{
   it.each([undefined,null,'','   ','Desde',false])('omits an absent amount %s instead of leaving Desde alone',price=>{
@@ -32,6 +32,14 @@ describe('Event entry information',()=>{
   });
   it('offers ticket purchase when an amount and a valid seller are available',()=>{
     expect(render({price:150,booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'tickets.example.com/event'}]}})).toContain('Comprar boletos');
+  });
+  it('hides price and ticket links for past events',()=>{
+    const event={price:150,price_type:'paid',booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'https://tickets.example.com/event'}]}};
+    const past=render(event,true);
+    expect(past).not.toContain('Entradas');
+    expect(past).not.toContain('Comprar boletos');
+    expect(past).not.toContain('Consultar entradas');
+    expect(render(event)).toContain('Comprar boletos');
   });
 });
 describe('Event links and schedule',()=>{
