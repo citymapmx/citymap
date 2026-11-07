@@ -153,6 +153,21 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const [activeFaq, setActiveFaq] = useState(null);
   const [fullGalleryIdx, setFullGalleryIdx] = useState(null);
   const [showAllReviews, setShowAllReviews] = useState(false);
+
+  // Foto del héroe: empieza con la versión a 800 px (la misma que ya cargó
+  // la tarjeta, sale al instante desde caché) y sube a 1200 px cuando está
+  // descargada, para que nunca se vea el rectángulo negro ni aparezca de golpe.
+  const coverUrl = exp?.gallery?.[0] || null;
+  const [heroSrc, setHeroSrc] = useState(() => (coverUrl ? getThumbUrl(coverUrl, 800) : null));
+  useEffect(() => {
+    setHeroSrc(coverUrl ? getThumbUrl(coverUrl, 800) : null);
+    if (!coverUrl) return undefined;
+    const hiResUrl = getThumbUrl(coverUrl, 1200);
+    const hiRes = new Image();
+    hiRes.onload = () => setHeroSrc(hiResUrl);
+    hiRes.src = hiResUrl;
+    return () => { hiRes.onload = null; };
+  }, [coverUrl]);
   
   const { handleCardTap, reviews, loadExperienceReviews, postExperienceReview, showReview, setShowReview, reviewStar, setReviewStar, reviewText, setReviewText, reviewImgFile, setReviewImgFile, reviewImgLoading, toggleLikeReview, sb, isAdmin, toast$ } = useAppContext();
   const { setSelected } = useUIStore(useShallow(s => ({ setSelected: s.setSelected })));
@@ -236,11 +251,13 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const cityName = formatCityName(exp.city_slug);
   const metaTitle = cityName ? `${exp.title} | Revista CityMap ${cityName}` : `${exp.title} | Revista CityMap`;
 
+  // Sin fundido de opacidad al entrar: con opacity 0→1 la página de atrás
+  // (la foto de la tarjeta tocada) se seguía viendo por un momento.
   return createPortal(
     <m.div
       data-article-viewer
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ y: 50 }}
+      animate={{ y: 0 }}
       exit={{ opacity: 0, y: 50 }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
       style={{ position: 'fixed', inset: 0, bottom: 'calc(57px + env(safe-area-inset-bottom, 8px))', zIndex: 40, background: T.bg, overflowY: "auto", fontFamily: "inherit" }}
@@ -260,7 +277,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
       <div style={{ position: "relative", width: "100%", background: dark ? "#111" : "#000", overflow: "hidden" }}>
         {cover ? (
           <img 
-            src={getThumbUrl(cover, 1200)} 
+            src={heroSrc} 
             alt={exp.title || ""} 
             style={{ 
               width: "100%", 
