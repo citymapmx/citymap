@@ -280,8 +280,8 @@ export default function MapView() {
                 <button onClick={() => setMapPin(null)} style={{ position: "absolute", top: 12, left: 12, zIndex: 5, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.3)", backdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="x" size={14} color="#fff" />
                 </button>
-                {mapPin.photos?.[0]?.url
-                  ? <img src={getThumbUrl(mapPin.photos[0].url, 400, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+                {(mapPin.photos?.[0]?.url || mapPin.logo_url || mapPin.banner_url)
+                  ? <img src={getThumbUrl(mapPin.photos?.[0]?.url || mapPin.logo_url || mapPin.banner_url, 400, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>
                       {(() => {
                         let emojiVal = mapPin.emoji || iconFile(cats.find(c => c.id === mapPin.category)?.icon) || CAT_EMOJI[mapPin.category] || "📍";
@@ -403,13 +403,16 @@ export default function MapView() {
                         {renderedNearby.map(b => {
                           const hasRating = b.review_count > 0 && b.rating;
                           const ratingStr = hasRating ? parseFloat(String(b.rating).replace(',', '.')).toFixed(1) : null;
+                          // Foto de la tarjeta: primera foto, y si no tiene, el logo o el banner
+                          // (hay negocios como Taquería el Rojo que solo tienen logo).
+                          const cardImg = b.photos?.[0]?.url || b.logo_url || b.banner_url;
                           return (
                           <div key={b.id} className="press" onClick={() => setMapPin(b)}
                             style={{ minWidth: 108, maxWidth: 108, height: "max-content", flexShrink: 0, background: T.white, borderRadius: 12, overflow: "hidden", border: `2px solid ${mapPin?.id === b.id ? T.green : "transparent"}`, boxShadow: T.shadow, transition: "all .2s", cursor: "pointer" }}>
                             {/* Photo */}
                             <div style={{ height: 68, overflow: "hidden", position: "relative", background: T.border }}>
-                              {b.photos?.[0]?.url
-                                ? <img src={getThumbUrl(b.photos[0].url, 200, 200)} alt={b.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              {cardImg
+                                ? <img src={getThumbUrl(cardImg, 200, 200)} alt={b.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                 : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{(b.emoji || CAT_EMOJI[b.category]) || "📍"}</div>
                               }
                             </div>
