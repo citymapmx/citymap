@@ -26,6 +26,7 @@ const queryClient = new QueryClient({
 // Import failures propagate to a boundary or the startup fallback; they do not
 // trigger a cache purge/reload merely because the connection failed.
 const renderStartupFailure = error => {
+  document.getElementById('boot-splash')?.remove();
   createRoot(document.getElementById('root')).render(<LoadFailureView error={error} fullPage/>);
 };
 
