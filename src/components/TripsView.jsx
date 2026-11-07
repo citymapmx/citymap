@@ -12,7 +12,7 @@ import { useAppContext } from "../context/AppContext";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { createSlug } from "../lib/utils.js";
-import { matchesPostFilter, themeLabel } from "../lib/postTaxonomy.js";
+import { POST_TYPES, POST_THEMES, filterPostsByTypeAndTheme, themeBySlug, themeLabel } from "../lib/postTaxonomy.js";
 import { getThumbUrl, METRO_ZONES, isNear } from "../lib/utils.js";
 import CityEmptyState from "./CityEmptyState.jsx";
 import * as dbService from "../services/dbService.js";
@@ -183,29 +183,11 @@ function TiqetsParisWidget({ T, dark }) {
   );
 }
 
-const DISCOVER_FILTERS = [
-  { id: "all", label: "✨ Todos" },
-  { id: "tour", label: "🗺️ Tours" },
-  { id: "blog", label: "📝 Blog" },
-  { id: "guia", label: "📖 Guías" },
-  { id: "senderismo", label: "🥾 Senderismo" },
-  { id: "evento", label: "🎟️ Eventos" },
-  { id: "parque", label: "🎡 Parques" },
-  { id: "experiencia", label: "🌟 Experiencias" },
-  { id: "show", label: "🎭 Shows" },
-  { id: "obra", label: "🎬 Teatro" },
-  { id: "clase", label: "🎨 Clases" },
-  { id: "gastronómica", label: "🌮 Gastronomía" },
-  { id: "urbana", label: "🏙️ Urbana" },
-  { id: "playa", label: "🏖️ Playa" },
-  { id: "aventura", label: "🧗 Aventura" },
-  { id: "retiro", label: "🧘‍♀️ Bienestar" },
-];
-
 function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark }) {
   const { t } = useTranslation();
   const photos = Array.isArray(exp.gallery) ? exp.gallery : [];
   const priceFormatted = exp.price > 0 ? `$${exp.price} MXN` : t("gratis", "Gratis");
+  const theme = themeBySlug(exp.theme);
 
   const showGrid = photos.length >= 3;
 
@@ -253,6 +235,18 @@ function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark }) 
       </div>
 
       <div style={{ padding: "14px 16px", textAlign: "left" }}>
+        {exp.activity_type && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", padding: "3px 8px", borderRadius: 6, background: dark ? "#FFFFFF" : "#0F172A", color: dark ? "#18181B" : "#FFFFFF", lineHeight: 1.4 }}>
+              {exp.activity_type.toUpperCase()}
+            </span>
+            {theme && (
+              <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", padding: "3px 8px", borderRadius: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.sub, lineHeight: 1.4 }}>
+                {theme.label.toUpperCase()}
+              </span>
+            )}
+          </div>
+        )}
         <h3 style={{ margin: 0, fontFamily: "var(--heading)", fontWeight: 900, fontSize: 19, color: T.text, lineHeight: 1.1, letterSpacing: "-0.5px" }}>
           {exp.title}
         </h3>
@@ -350,18 +344,22 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     };
   }, [routeSlug, experiences]);
 
-  const [discoverFilter, setDiscoverFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [themeFilter, setThemeFilter] = useState(null);
   const [searchQ, setSearchQ] = useState("");
   const [visibleCount, setVisibleCount] = useState(6);
+
+  const clearFilters = () => { setTypeFilter("all"); setThemeFilter(null); };
+  const hasActiveFilters = typeFilter !== "all" || Boolean(themeFilter);
   
   useEffect(() => {
      
     setVisibleCount(6);
-  }, [discoverFilter, searchQ]);
+  }, [typeFilter, themeFilter, searchQ]);
 
   const widgetCode = cities.find(c => c.slug === activeCity)?.civitatis_widget_code || '';
   const hasCivitatisWidget = Boolean(getCivitatisWidgetSrc(widgetCode));
-  const showCivitatisWidget = discoverFilter === 'tour' && hasCivitatisWidget;
+  const showCivitatisWidget = typeFilter === 'Tour' && hasCivitatisWidget;
   const cityName = cities.find(c => c.slug === activeCity)?.name || (activeCity ? activeCity.charAt(0).toUpperCase() + activeCity.slice(1) : t("tu_ciudad", "tu ciudad"));
 
   const toggleSaveExp = (exp) => {
@@ -374,9 +372,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
   const filteredDiscover = useMemo(() => {
     let filtered = experiences.filter(e => isNear(e, userCoords, activeCity));
     
-    if (discoverFilter && discoverFilter !== "all" && discoverFilter !== "trending") {
-      filtered = filtered.filter(p => matchesPostFilter(p, discoverFilter));
-    }
+    filtered = filterPostsByTypeAndTheme(filtered, typeFilter, themeFilter);
     
     if (searchQ) {
       const q = searchQ.toLowerCase();
@@ -394,24 +390,18 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
       const dateB = new Date(b.created_at || 0).getTime();
       return dateB - dateA;
     });
-  }, [experiences, searchQ, activeCity, discoverFilter, userCoords]);
+  }, [experiences, searchQ, activeCity, typeFilter, themeFilter, userCoords]);
 
-  const availableFilters = useMemo(() => {
+  // Temáticas con publicaciones en la ciudad actual (las vacías no se muestran).
+  const availableThemes = useMemo(() => {
     const cityExps = experiences.filter(e => isNear(e, userCoords, activeCity));
-    const validIds = new Set(["all", "trending"]);
-    if (hasCivitatisWidget) validIds.add("tour");
-    DISCOVER_FILTERS.forEach(f => {
-      if (f.id === "all" || f.id === "trending") return;
-      if (cityExps.some(p => matchesPostFilter(p, f.id))) {
-        validIds.add(f.id);
-      }
-    });
-    return DISCOVER_FILTERS.filter(f => validIds.has(f.id));
-  }, [experiences, activeCity, userCoords, hasCivitatisWidget]);
+    const present = new Set(cityExps.map(e => e.theme).filter(Boolean));
+    return POST_THEMES.filter(t => present.has(t.slug));
+  }, [experiences, activeCity, userCoords]);
 
   useEffect(() => {
-    if (!availableFilters.some(filter => filter.id === discoverFilter)) setDiscoverFilter('all');
-  }, [availableFilters, discoverFilter]);
+    if (themeFilter && !availableThemes.some(t => t.slug === themeFilter)) setThemeFilter(null);
+  }, [availableThemes, themeFilter]);
 
   const shortCity = cityName.split(",")[0];
 
@@ -488,32 +478,28 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
             100% { background-position: 0% 50%; }
           }
         `}</style>
-        {availableFilters.length > 1 && (
-          <SectionCategoryBar dark={dark} selectedKey={discoverFilter} style={{ margin: "0 20px 12px" }}>
-            {availableFilters.map(f => {
-              const isActive = discoverFilter === f.id;
-              const transLabels = {
-                all: t("todos_filter", "✨ Todos"),
-                tour: t("tours_filter", "🗺️ Tours"),
-                blog: t("blog_filter", "📝 Blog"),
-                guia: t("guias_filter", "📖 Guías"),
-                senderismo: t("senderismo_filter", "🥾 Senderismo"),
-                evento: t("eventos_filter", "🎟️ Eventos"),
-                parque: t("parques_filter", "🎡 Parques"),
-                experiencia: t("experiencias_filter", "🌟 Experiencias"),
-                show: t("shows_filter", "🎭 Shows"),
-                obra: t("teatro_filter", "🎬 Teatro"),
-                clase: t("clases_filter", "🎨 Clases"),
-                gastronómica: t("gastronomia_filter", "🌮 Gastronomía"),
-                urbana: t("urbana_filter", "🏙️ Urbana"),
-                playa: t("playa_filter", "🏖️ Playa"),
-                aventura: t("aventura_filter", "🧗 Aventura"),
-                retiro: t("bienestar_filter", "🧘‍♀️ Bienestar")
-              };
-              const fLabel = transLabels[f.id] || f.label;
+        <SectionCategoryBar dark={dark} selectedKey={typeFilter} style={{ margin: "0 20px 8px" }}>
+          {[{ value: "all", label: t("todos_filter", "✨ Todos"), plural: t("todos_filter", "✨ Todos") }, ...POST_TYPES].map(f => {
+            const isActive = typeFilter === f.value;
+            return (
+              <button key={f.value} onClick={() => setTypeFilter(f.value)} className="press" aria-pressed={isActive} style={{ padding: "8px 16px", background: isActive ? (dark ? "#FFFFFF" : "#0F172A") : "transparent", color: isActive ? (dark ? "#18181B" : "#FFFFFF") : T.sub, border: "none", borderRadius: 9999, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.2s" }}>
+                {f.plural}
+              </button>
+            );
+          })}
+          {hasActiveFilters && (
+            <button key="clear" onClick={clearFilters} className="press" style={{ padding: "8px 16px", background: "transparent", color: T.sub, border: `1px solid ${T.border}`, borderRadius: 9999, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.2s" }}>
+              ✕ {t("limpiar_filtros", "Limpiar")}
+            </button>
+          )}
+        </SectionCategoryBar>
+        {availableThemes.length > 0 && (
+          <SectionCategoryBar dark={dark} selectedKey={themeFilter || ""} style={{ margin: "0 20px 12px" }}>
+            {availableThemes.map(th => {
+              const isActive = themeFilter === th.slug;
               return (
-                <button key={f.id} onClick={() => setDiscoverFilter(f.id)} className="press" aria-pressed={isActive} style={{ padding: "8px 16px", background: isActive ? (dark ? "#FFFFFF" : "#0F172A") : "transparent", color: isActive ? (dark ? "#18181B" : "#FFFFFF") : T.sub, border: "none", borderRadius: 9999, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.2s" }}>
-                  {fLabel}
+                <button key={th.slug} onClick={() => setThemeFilter(isActive ? null : th.slug)} className="press" aria-pressed={isActive} style={{ padding: "8px 16px", background: isActive ? (dark ? "#FFFFFF" : "#0F172A") : "transparent", color: isActive ? (dark ? "#18181B" : "#FFFFFF") : T.sub, border: "none", borderRadius: 9999, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.2s" }}>
+                  {th.emoji} {th.label}
                 </button>
               );
             })}
@@ -605,8 +591,13 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
           !showCivitatisWidget && ![ "ciudad-de-mexico", "puerto-vallarta", "los-angeles", "madrid", "paris"].includes(activeCity) && (
             <div style={{ textAlign: "center", padding: "60px 20px", color: T.sub }}>
               <span style={{ fontSize: 48 }}>🌅</span>
-              <h3 style={{ marginTop: 16, fontWeight: 800, color: T.text }}>{searchQ ? t("no_resultados", "No hay resultados") : t("pronto_experiencias", "Pronto habrá experiencias")}</h3>
-              <p style={{ fontSize: 14, lineHeight: 1.6 }}>{searchQ ? t("buscar_otras_palabras", "Intenta buscando con otras palabras.") : `${t("preparando_experiencias", "Estamos preparando las mejores experiencias en")} ${cityName}.`}</p>
+              <h3 style={{ marginTop: 16, fontWeight: 800, color: T.text }}>{(searchQ || hasActiveFilters) ? t("no_resultados", "No hay resultados") : t("pronto_experiencias", "Pronto habrá experiencias")}</h3>
+              <p style={{ fontSize: 14, lineHeight: 1.6 }}>{searchQ ? t("buscar_otras_palabras", "Intenta buscando con otras palabras.") : hasActiveFilters ? t("prueba_otros_filtros", "Prueba con otros filtros o limpia la selección.") : `${t("preparando_experiencias", "Estamos preparando las mejores experiencias en")} ${cityName}.`}</p>
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="press" style={{ marginTop: 16, padding: "12px 24px", background: dark ? "#FFFFFF" : "#0F172A", color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 24, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                  ✕ {t("limpiar_filtros", "Limpiar filtros")}
+                </button>
+              )}
             </div>
           )
         )}

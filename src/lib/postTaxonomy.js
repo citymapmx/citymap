@@ -6,10 +6,10 @@
 // Las temáticas se guardan en `experiences.theme` (slug, o null = sin temática).
 
 export const POST_TYPES = [
-  { value: 'Blog', label: '📝 Blog' },
-  { value: 'Guía', label: '📖 Guía' },
-  { value: 'Tour', label: '🗺️ Tour' },
-  { value: 'Experiencia', label: '✨ Experiencia' },
+  { value: 'Blog', label: '📝 Blog', plural: '📝 Blogs' },
+  { value: 'Guía', label: '📖 Guía', plural: '📖 Guías' },
+  { value: 'Tour', label: '🗺️ Tour', plural: '🗺️ Tours' },
+  { value: 'Experiencia', label: '✨ Experiencia', plural: '✨ Experiencias' },
 ];
 
 export const POST_THEMES = [
@@ -91,6 +91,16 @@ export function normalizeExperience(exp) {
     : (POST_TYPES.some(p => p.value === exp.activity_type) ? exp.activity_type : 'Experiencia');
   const theme = exp.theme || (mapped ? mapped.theme : null);
   return { ...exp, activity_type: type, theme };
+}
+
+// Filtra publicaciones por tipo y temática (ambos opcionales).
+// typeFilter 'all' (o vacío) no filtra por tipo; themeFilter null no filtra por tema.
+export function filterPostsByTypeAndTheme(posts, typeFilter, themeFilter) {
+  return (posts || []).filter(p => {
+    if (typeFilter && typeFilter !== 'all' && normText(p.activity_type) !== normText(typeFilter)) return false;
+    if (themeFilter && p.theme !== themeFilter) return false;
+    return true;
+  });
 }
 
 // ¿Coincide la publicación con un filtro de Revista (id de DISCOVER_FILTERS)?

@@ -10,6 +10,7 @@ import {
   isEditorialType,
   normalizeExperience,
   matchesPostFilter,
+  filterPostsByTypeAndTheme,
 } from '../lib/postTaxonomy.js';
 
 // Valores reales de activity_type en la base de datos (62 filas, nov 2026).
@@ -37,6 +38,7 @@ const LEGACY_CASES = [
 describe('Taxonomía de publicaciones', () => {
   it('tiene exactamente los 4 tipos de publicación del encargo', () => {
     expect(POST_TYPES.map(t => t.value)).toEqual(['Blog', 'Guía', 'Tour', 'Experiencia']);
+    expect(POST_TYPES.map(t => t.plural)).toEqual(['📝 Blogs', '📖 Guías', '🗺️ Tours', '✨ Experiencias']);
   });
 
   it('tiene exactamente las 8 temáticas del encargo', () => {
@@ -123,6 +125,27 @@ describe('Taxonomía de publicaciones', () => {
     expect(matchesPostFilter({ activity_type: 'Experiencia', theme: 'naturaleza' }, 'naturaleza')).toBe(true);
     expect(matchesPostFilter({ activity_type: 'Blog', theme: null }, 'tour')).toBe(false);
     expect(matchesPostFilter({ activity_type: null, theme: null }, 'tour')).toBe(false);
+  });
+
+  it('filtra publicaciones por tipo y temática combinados', () => {
+    const posts = [
+      { id: 1, activity_type: 'Guía', theme: 'viajeros' },
+      { id: 2, activity_type: 'Blog', theme: 'gastronomia' },
+      { id: 3, activity_type: 'Tour', theme: 'naturaleza' },
+      { id: 4, activity_type: 'Experiencia', theme: 'entretenimiento' },
+      { id: 5, activity_type: 'Blog', theme: null },
+      { id: 6, activity_type: '📝 Blog', theme: null },
+    ];
+    expect(filterPostsByTypeAndTheme(posts, 'all', null).map(p => p.id)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(filterPostsByTypeAndTheme(posts, 'Guía', null).map(p => p.id)).toEqual([1]);
+    expect(filterPostsByTypeAndTheme(posts, 'Blog', null).map(p => p.id)).toEqual([2, 5, 6]);
+    expect(filterPostsByTypeAndTheme(posts, 'all', 'naturaleza').map(p => p.id)).toEqual([3]);
+    expect(filterPostsByTypeAndTheme(posts, 'Blog', 'gastronomia').map(p => p.id)).toEqual([2]);
+    expect(filterPostsByTypeAndTheme(posts, 'Tour', 'naturaleza').map(p => p.id)).toEqual([3]);
+    expect(filterPostsByTypeAndTheme(posts, 'Tour', 'gastronomia')).toEqual([]);
+    expect(filterPostsByTypeAndTheme(posts, 'Experiencia', 'entretenimiento').map(p => p.id)).toEqual([4]);
+    expect(filterPostsByTypeAndTheme(null, 'Blog', null)).toEqual([]);
+    expect(filterPostsByTypeAndTheme([], 'Blog', null)).toEqual([]);
   });
 
   it('resuelve etiquetas de temática', () => {
