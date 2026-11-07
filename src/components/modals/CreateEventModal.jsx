@@ -6,22 +6,41 @@ import { useUIStore } from '../../store/useUIStore';
 import { sb } from '../../lib/supabase';
 import { getT, EVENT_CATEGORIES } from '../../lib/constants';
 import { createSlug } from '../../lib/utils';
+import { EVENT_IMAGE_OPTIMIZE } from '../../lib/imageOptimize.js';
 import Icon from '../ui/Icon';
 import Uploader from '../Uploader';
+
+const STEPS = [
+  { n: 1, label: 'El evento' },
+  { n: 2, label: 'Cuándo y dónde' },
+  { n: 3, label: 'Entradas y contacto' },
+];
+
+const EMPTY_FORM = {
+  title: "", description: "", date: "", time: "",
+  price_type: "gratis", price: "",
+  event_category: "", venue_name: "", venue_address: "",
+  whatsapp: "", website: "", img_url: "", lat: null, lng: null
+};
 
 export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }) {
   const { user } = useAuthStore();
   const { events } = useDataStore();
   const { activeCity, dark, toast$ } = useUIStore();
-  
+
   const T = getT(dark);
 
-  
   const mapsOk = useGMaps();
   const venueRef = useRef(null);
-  
+
+  const [step, setStep] = useState(1);
+  const [showManualAddr, setShowManualAddr] = useState(false);
+  const [createEvForm, setCreateEvForm] = useState(EMPTY_FORM);
+
+  // El autocompletado de Google solo existe en el paso 2 (ahí se renderiza
+  // el input del lugar), así que se (re)inicializa cuando cambia el paso.
   useEffect(() => {
-    console.log("CreateEventModal hook:", {mapsOk, venueRef: !!venueRef.current, showCreateEvent}); if (!mapsOk || !venueRef.current || !showCreateEvent) return;
+    if (!mapsOk || !venueRef.current || !showCreateEvent) return;
 
     let styleEl = document.getElementById("pac-z-fix-events-modal");
     if (!styleEl) {
@@ -41,12 +60,12 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
         ac.addListener("place_changed", () => {
           const place = ac.getPlace();
           if (place && place.name) {
-            setCreateEvForm(prev => ({ 
-              ...prev, 
+            setCreateEvForm(prev => ({
+              ...prev,
               venue_name: place.name,
               venue_address: place.formatted_address || place.name,
               lat: place.geometry?.location?.lat() || null,
-              lng: place.geometry?.location?.lng() || null 
+              lng: place.geometry?.location?.lng() || null
             }));
           }
         });
@@ -54,162 +73,255 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
         console.warn("Google Maps Autocomplete error:", e);
       }
     };
-    
-    const timer = setTimeout(init, 100);
-    return () => clearTimeout(timer);
-  }, [mapsOk, showCreateEvent]);
 
-  const [showManualAddr, setShowManualAddr] = useState(false);
-  const [createEvForm, setCreateEvForm] = useState({ 
-    title: "", description: "", date: "", time: "", 
-    end_date: "", end_time: "", price_type: "gratis", price: "", 
-    event_category: "", venue_name: "", venue_address: "", 
-    whatsapp: "", website: "", img_url: "", lat: null, lng: null 
-  });
+    const timer = setTimeout(init, 100);
+    return () => {
+      clearTimeout(timer);
+      if (ac && window.google?.maps?.event) window.google.maps.event.clearInstanceListeners(ac);
+    };
+  }, [mapsOk, showCreateEvent, step]);
+
+  // Al abrir el modal siempre se empieza en el paso 1 (el borrador se conserva).
+  useEffect(() => {
+    if (showCreateEvent) setStep(1);
+  }, [showCreateEvent]);
 
   if (!showCreateEvent) return null;
 
+  const close = () => { setShowCreateEvent(false); setStep(1); };
+
+  const canContinue = () => {
+    if (step === 1 && !createEvForm.title.trim()) { toast$("El título es obligatorio"); return false; }
+    if (step === 2 && !createEvForm.date) { toast$("La fecha es obligatoria"); return false; }
+    return true;
+  };
+
+  const submitEvent = async () => {
+    if (!createEvForm.title.trim()) { toast$("El título es obligatorio"); return; }
+    try {
+      let baseSlug = createSlug(createEvForm.title);
+      if (!baseSlug.startsWith(activeCity + "-")) baseSlug = `${activeCity}-${baseSlug}`;
+      let newSlug = baseSlug;
+      let counter = 1;
+      while (events.some(e => e.slug === newSlug)) { newSlug = `${baseSlug}-${counter++}`; }
+
+      await sb.post("events", { ...createEvForm, slug: newSlug, city_slug: activeCity, user_id: user.id, status: "pending", active: false });
+      toast$("Evento enviado para revisión");
+      close();
+      setCreateEvForm(EMPTY_FORM);
+      setShowManualAddr(false);
+    } catch (e) {
+      toast$("Error: " + e.message);
+    }
+  };
+
+  const formattedDate = () => {
+    if (!createEvForm.date) return "";
+    try {
+      return new Date(createEvForm.date + "T00:00:00").toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+    } catch {
+      return createEvForm.date;
+    }
+  };
+
+  const labelStyle = { fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 };
+
   return (
-    <div className="ov" onClick={() => setShowCreateEvent(false)}>
-      <div className="sh" style={{ maxHeight: "92vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: T.border, margin: "0 auto 16px" }} />
+    <div
+      onClick={close}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(8px)",
+        zIndex: 999999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: 480, maxHeight: "calc(100vh - 32px)", overflowY: "auto",
+          background: T.white, borderRadius: 24, padding: "24px 20px 20px",
+          boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+        }}
+      >
+        {/* ── Encabezado ── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
           <div>
             <h2 className="text-xl" style={{ fontFamily: "var(--heading)", color: T.text, marginBottom: 4 }}>Crear evento</h2>
             <p className="text-sm" style={{ color: T.sub }}>Se publicará tras la aprobación del admin</p>
           </div>
-          <button onClick={() => setShowCreateEvent(false)} style={{ width: 44, height: 44, borderRadius: "50%", background: T.border, color: T.text, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="x" size={18} /></button>
+          <button onClick={close} style={{ width: 44, height: 44, borderRadius: "50%", background: T.border, color: T.text, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="x" size={18} /></button>
         </div>
+
+        {/* ── Indicador de pasos ── */}
+        <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 20 }}>
+          {STEPS.map((s, i) => {
+            const done = step > s.n;
+            const active = step === s.n;
+            return (
+              <React.Fragment key={s.n}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 0 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 13, fontWeight: 800,
+                    background: done || active ? T.green : T.border,
+                    color: done || active ? (dark ? "#18181B" : "#FFFFFF") : T.sub,
+                  }}>
+                    {done ? "✓" : s.n}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: active ? 800 : 600, color: active ? T.text : T.sub, textAlign: "center", whiteSpace: "nowrap" }}>{s.label}</div>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div style={{ flex: 1, height: 2, background: step > s.n ? T.green : T.border, marginTop: 13, marginLeft: 6, marginRight: 6, borderRadius: 2 }} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Imagen del evento</div>
-            <Uploader onDone={url => setCreateEvForm(f => ({ ...f, img_url: url }))} />
-            {createEvForm.img_url && <img src={createEvForm.img_url} alt="" style={{ width: "100%", height: 110, objectFit: "cover", borderRadius: 10, marginTop: 8 }} loading="lazy" />}
-          </div>
-          <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Título</div><input className="inp" placeholder="Nombre del evento" value={createEvForm.title} onChange={e => setCreateEvForm(f => ({ ...f, title: e.target.value }))} /></div>
-          <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Descripción</div><textarea className="inp" placeholder="Describe el evento..." rows={3} value={createEvForm.description} onChange={e => setCreateEvForm(f => ({ ...f, description: e.target.value }))} style={{ resize: "none", height: 80 }} /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>1ra Fecha</div><input type="date" value={createEvForm.date} onChange={e => setCreateEvForm(f => ({ ...f, date: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.text, fontFamily: "inherit" }} /></div>
-            <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Hora</div><input type="time" value={createEvForm.time} onChange={e => setCreateEvForm(f => ({ ...f, time: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.text, fontFamily: "inherit" }} /></div>
-            <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>2da Fecha / Fin <span className="text-micro" style={{ opacity: 0.6 }}>(Opc.)</span></div><input type="date" value={createEvForm.end_date} onChange={e => setCreateEvForm(f => ({ ...f, end_date: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.text, fontFamily: "inherit" }} /></div>
-            <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Hora 2da Fecha <span className="text-micro" style={{ opacity: 0.6 }}>(Opc.)</span></div><input type="time" value={createEvForm.end_time} onChange={e => setCreateEvForm(f => ({ ...f, end_time: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.text, fontFamily: "inherit" }} /></div>
-          </div>
-          <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 8 }}>Precio</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {["gratis", "paid"].map(pt => <button key={pt} onClick={() => setCreateEvForm(f => ({ ...f, price_type: pt }))} style={{ flex: 1, padding: "10px 0", border: `1.5px solid ${createEvForm.price_type === pt ? T.green : T.border}`, borderRadius: 10, fontSize: 13, fontWeight: 700, background: createEvForm.price_type === pt ? T.greenL : T.white, color: createEvForm.price_type === pt ? T.green : T.sub, cursor: "pointer", fontFamily: "inherit" }}>{pt === "gratis" ? "Gratis" : "De pago"}</button>)}
-            </div>
-            {createEvForm.price_type === "paid" && <input className="inp" placeholder="Ej: $200" value={createEvForm.price} onChange={e => setCreateEvForm(f => ({ ...f, price: e.target.value }))} style={{ marginTop: 8 }} />}
-          </div>
-          <div>
-            <div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 8 }}>
-              Categoría
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 8 }}>
-              {EVENT_CATEGORIES.map(cat => {
-                const isPreset = EVENT_CATEGORIES.filter(c => c !== "Otro").includes(createEvForm.event_category);
-                const isSelected = createEvForm.event_category === cat || (cat === "Otro" && createEvForm.event_category && !isPreset);
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => {
-                      if (cat === "Otro") {
-                        setCreateEvForm(f => ({ ...f, event_category: isPreset ? "" : f.event_category }));
-                      } else {
-                        setCreateEvForm(f => ({ ...f, event_category: cat }));
-                      }
-                    }}
-                    style={{
-                      padding: "8px 14px",
-                      borderRadius: 9999,
-                      border: isSelected ? "none" : `1.5px solid ${T.border}`,
-                      background: isSelected ? (dark ? "#FFFFFF" : "#0F172A") : (dark ? "rgba(255,255,255,0.06)" : "#F8FAFC"),
-                      color: isSelected ? (dark ? "#000000" : "#FFFFFF") : T.text,
-                      fontSize: 12,
-                      fontWeight: isSelected ? 800 : 600,
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                      fontFamily: "inherit"
-                    }}
-                  >
-                    {cat}
-                  </button>
-                );
-              })}
-            </div>
-            {(!createEvForm.event_category || !EVENT_CATEGORIES.filter(c => c !== "Otro").includes(createEvForm.event_category)) && (
-              <input
-                className="inp"
-                placeholder="Escribe otra categoría..."
-                value={createEvForm.event_category || ""}
-                onChange={e => setCreateEvForm(f => ({ ...f, event_category: e.target.value }))}
-                style={{ marginTop: 4 }}
-              />
+          {/* ── PASO 1: El evento ── */}
+          {step === 1 && (
+            <>
+              <div>
+                <div className="text-xs" style={labelStyle}>Imagen del evento</div>
+                <Uploader onDone={url => setCreateEvForm(f => ({ ...f, img_url: url }))} optimize={EVENT_IMAGE_OPTIMIZE} />
+                {createEvForm.img_url && <img src={createEvForm.img_url} alt="" style={{ width: "100%", height: 110, objectFit: "cover", borderRadius: 10, marginTop: 8 }} loading="lazy" />}
+              </div>
+              <div><div className="text-xs" style={labelStyle}>Título</div><input className="inp" placeholder="Nombre del evento" value={createEvForm.title} onChange={e => setCreateEvForm(f => ({ ...f, title: e.target.value }))} /></div>
+              <div><div className="text-xs" style={labelStyle}>Descripción</div><textarea className="inp" placeholder="Describe el evento..." rows={3} value={createEvForm.description} onChange={e => setCreateEvForm(f => ({ ...f, description: e.target.value }))} style={{ resize: "none", height: 80 }} /></div>
+              <div>
+                <div className="text-xs" style={{ ...labelStyle, marginBottom: 8 }}>Categoría</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 8 }}>
+                  {EVENT_CATEGORIES.map(cat => {
+                    const isPreset = EVENT_CATEGORIES.filter(c => c !== "Otro").includes(createEvForm.event_category);
+                    const isSelected = createEvForm.event_category === cat || (cat === "Otro" && createEvForm.event_category && !isPreset);
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => {
+                          if (cat === "Otro") {
+                            setCreateEvForm(f => ({ ...f, event_category: isPreset ? "" : f.event_category }));
+                          } else {
+                            setCreateEvForm(f => ({ ...f, event_category: cat }));
+                          }
+                        }}
+                        style={{
+                          padding: "8px 14px",
+                          borderRadius: 9999,
+                          border: isSelected ? "none" : `1.5px solid ${T.border}`,
+                          background: isSelected ? (dark ? "#FFFFFF" : "#0F172A") : (dark ? "rgba(255,255,255,0.06)" : "#F8FAFC"),
+                          color: isSelected ? (dark ? "#000000" : "#FFFFFF") : T.text,
+                          fontSize: 12,
+                          fontWeight: isSelected ? 800 : 600,
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                          fontFamily: "inherit"
+                        }}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+                {(!createEvForm.event_category || !EVENT_CATEGORIES.filter(c => c !== "Otro").includes(createEvForm.event_category)) && (
+                  <input
+                    className="inp"
+                    placeholder="Escribe otra categoría..."
+                    value={createEvForm.event_category || ""}
+                    onChange={e => setCreateEvForm(f => ({ ...f, event_category: e.target.value }))}
+                    style={{ marginTop: 4 }}
+                  />
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── PASO 2: Cuándo y dónde ── */}
+          {step === 2 && (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div><div className="text-xs" style={labelStyle}>Fecha</div><input type="date" value={createEvForm.date} onChange={e => setCreateEvForm(f => ({ ...f, date: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.text, fontFamily: "inherit" }} /></div>
+                <div><div className="text-xs" style={labelStyle}>Hora</div><input type="time" value={createEvForm.time} onChange={e => setCreateEvForm(f => ({ ...f, time: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.text, fontFamily: "inherit" }} /></div>
+              </div>
+              <div>
+                <div className="text-xs" style={{ ...labelStyle, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    Lugar del Evento {mapsOk && <img src="/googlelogo.svg" style={{ height: 12 }} alt="Google" />}
+                  </div>
+                  {!showManualAddr && (
+                    <button
+                      onClick={(e) => { e.preventDefault(); setShowManualAddr(true); }}
+                      style={{ background: "transparent", border: "none", color: "#1A7A5E", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
+                    >
+                      ¿Ingresar manual?
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={venueRef}
+                  className="inp"
+                  placeholder="Ej: Auditorio Telmex (Buscar con Google)..."
+                  value={createEvForm.venue_name || ""}
+                  onChange={e => {
+                    setCreateEvForm(f => ({ ...f, venue_name: e.target.value }));
+                    if (!showManualAddr) setCreateEvForm(f => ({ ...f, venue_address: e.target.value }));
+                  }}
+                />
+              </div>
+              {showManualAddr && (
+                <div style={{ animation: "fadeIn 0.3s ease" }}>
+                  <div className="text-xs" style={{ ...labelStyle, display: "flex", justifyContent: "space-between" }}>
+                    Dirección Manual
+                    <button
+                      onClick={(e) => { e.preventDefault(); setShowManualAddr(false); setCreateEvForm(f => ({ ...f, venue_address: f.venue_name })); }}
+                      style={{ background: "transparent", border: "none", color: "#D94F3D", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
+                    >
+                      Ocultar
+                    </button>
+                  </div>
+                  <input
+                    className="inp"
+                    placeholder="Av. México 123, Colonia Centro..."
+                    value={createEvForm.venue_address}
+                    onChange={e => setCreateEvForm(f => ({ ...f, venue_address: e.target.value }))}
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── PASO 3: Entradas y contacto ── */}
+          {step === 3 && (
+            <>
+              <div><div className="text-xs" style={{ ...labelStyle, marginBottom: 8 }}>Precio</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {["gratis", "paid"].map(pt => <button key={pt} onClick={() => setCreateEvForm(f => ({ ...f, price_type: pt }))} style={{ flex: 1, padding: "10px 0", border: `1.5px solid ${createEvForm.price_type === pt ? T.green : T.border}`, borderRadius: 10, fontSize: 13, fontWeight: 700, background: createEvForm.price_type === pt ? T.greenL : T.white, color: createEvForm.price_type === pt ? T.green : T.sub, cursor: "pointer", fontFamily: "inherit" }}>{pt === "gratis" ? "Gratis" : "De pago"}</button>)}
+                </div>
+                {createEvForm.price_type === "paid" && <input className="inp" placeholder="Ej: $200" value={createEvForm.price} onChange={e => setCreateEvForm(f => ({ ...f, price: e.target.value }))} style={{ marginTop: 8 }} />}
+              </div>
+              <div><div className="text-xs" style={labelStyle}>WhatsApp de contacto</div><input className="inp" placeholder="3111234567" value={createEvForm.whatsapp} onChange={e => setCreateEvForm(f => ({ ...f, whatsapp: e.target.value }))} /></div>
+              <div><div className="text-xs" style={labelStyle}>Sitio web / Boletos <span className="text-micro" style={{ opacity: 0.6 }}>(Opcional)</span></div><input className="inp" placeholder="https://..." value={createEvForm.website || ""} onChange={e => setCreateEvForm(f => ({ ...f, website: e.target.value }))} /></div>
+              <div style={{ background: T.greenL, borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: .6 }}>Tu evento</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{createEvForm.title || "Sin título"}</div>
+                {formattedDate() && <div style={{ fontSize: 13, color: T.sub }}>{formattedDate()}{createEvForm.time ? ` · ${createEvForm.time}` : ""}</div>}
+                {createEvForm.venue_name && <div style={{ fontSize: 13, color: T.sub }}>{createEvForm.venue_name}</div>}
+                {createEvForm.event_category && <div style={{ fontSize: 13, color: T.sub }}>{createEvForm.event_category}</div>}
+              </div>
+            </>
+          )}
+
+          {/* ── Navegación ── */}
+          <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+            {step > 1 && (
+              <button onClick={() => setStep(s => s - 1)} style={{ padding: "15px 20px", background: "transparent", border: `1.5px solid ${T.border}`, borderRadius: 14, fontSize: 15, fontWeight: 700, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>Atrás</button>
+            )}
+            {step < 3 ? (
+              <button onClick={() => { if (canContinue()) setStep(s => s + 1); }} style={{ flex: 1, padding: 15, background: T.green, border: "none", borderRadius: 14, fontSize: 15, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>Continuar</button>
+            ) : (
+              <button onClick={submitEvent} style={{ flex: 1, padding: 15, background: T.green, border: "none", borderRadius: 14, fontSize: 15, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>Enviar evento</button>
             )}
           </div>
-<div>
-            <div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                Lugar del Evento {mapsOk && <img src="/googlelogo.svg" style={{height: 12}} alt="Google" />}
-              </div>
-              {!showManualAddr && (
-                <button 
-                  onClick={(e) => { e.preventDefault(); setShowManualAddr(true); }}
-                  style={{ background: "transparent", border: "none", color: "#1A7A5E", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
-                >
-                  ¿Ingresar manual?
-                </button>
-              )}
-            </div>
-            <input 
-              ref={venueRef}
-              className="inp" 
-              placeholder="Ej: Auditorio Telmex (Buscar con Google)..." 
-              value={createEvForm.venue_name || ""} 
-              onChange={e => {
-                 setCreateEvForm(f => ({ ...f, venue_name: e.target.value }));
-                 if (!showManualAddr) setCreateEvForm(f => ({ ...f, venue_address: e.target.value }));
-              }} 
-            />
-          </div>
-          {showManualAddr && (
-            <div style={{ animation: "fadeIn 0.3s ease" }}>
-              <div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
-                Dirección Manual
-                <button 
-                  onClick={(e) => { e.preventDefault(); setShowManualAddr(false); setCreateEvForm(f => ({...f, venue_address: f.venue_name})); }}
-                  style={{ background: "transparent", border: "none", color: "#D94F3D", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
-                >
-                  Ocultar
-                </button>
-              </div>
-              <input 
-                className="inp" 
-                placeholder="Av. México 123, Colonia Centro..." 
-                value={createEvForm.venue_address} 
-                onChange={e => setCreateEvForm(f => ({ ...f, venue_address: e.target.value }))} 
-              />
-            </div>
-          )}
-          <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>WhatsApp de contacto</div><input className="inp" placeholder="3111234567" value={createEvForm.whatsapp} onChange={e => setCreateEvForm(f => ({ ...f, whatsapp: e.target.value }))} /></div>
-          <div><div className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Sitio web / Boletos <span className="text-micro" style={{ opacity: 0.6 }}>(Opcional)</span></div><input className="inp" placeholder="https://..." value={createEvForm.website || ""} onChange={e => setCreateEvForm(f => ({ ...f, website: e.target.value }))} /></div>
-          <button onClick={async () => { 
-            if (!createEvForm.title) { toast$("El título es obligatorio"); return; } 
-            try { 
-              let baseSlug = createSlug(createEvForm.title);
-              if (!baseSlug.startsWith(activeCity + "-")) baseSlug = `${activeCity}-${baseSlug}`;
-              let newSlug = baseSlug;
-              let counter = 1;
-              while (events.some(e => e.slug === newSlug)) { newSlug = `${baseSlug}-${counter++}`; }
-              
-              await sb.post("events", { ...createEvForm, slug: newSlug, city_slug: activeCity, user_id: user.id, status: "pending", active: false }); 
-              toast$("Evento enviado para revisión"); 
-              setShowCreateEvent(false); 
-              setCreateEvForm({ title: "", description: "", date: "", time: "", end_date: "", end_time: "", price_type: "gratis", price: "", event_category: "", venue_name: "", venue_address: "", whatsapp: "", website: "", img_url: "", lat: null, lng: null }); 
-            } catch(e) { 
-              toast$("Error: " + e.message); 
-            } 
-          }} style={{ padding: 15, background: T.green, border: "none", borderRadius: 14, fontSize: 15, fontWeight: 800, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>Enviar evento</button>
         </div>
       </div>
     </div>
