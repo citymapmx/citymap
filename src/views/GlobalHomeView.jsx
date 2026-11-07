@@ -415,7 +415,7 @@ export default function GlobalHomeView() {
   return (
     <div style={{ background: dark ? 'transparent' : '#fff', minHeight: '100vh', paddingBottom: 90 }}>
       {/* Hero igual que en los inicios de ciudad: logo, saludo con gradiente, buscador y categorías en texto */}
-      <div style={{ position: 'relative', padding: 'calc(env(safe-area-inset-top, 0px) + 10px) 20px 0px', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
+      <div style={{ position: 'relative', padding: 'calc(env(safe-area-inset-top, 0px) + 10px) 20px 20px', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
           {!query && (
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: 0, paddingTop: 0, paddingLeft: 10, paddingRight: 10, textAlign: 'center', position: 'relative', zIndex: 10 }}>
