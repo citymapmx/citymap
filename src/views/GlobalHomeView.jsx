@@ -633,14 +633,13 @@ export default function GlobalHomeView() {
               </section>
             )}
 
-            {/* Próximos eventos: rueda 3D que gira sola, como el Museo de QuePlan */}
+            {/* Próximos eventos: rueda 3D que gira sola, con el diseño claro del carrusel de ciudad */}
             {upcomingEvents.length > 0 && (
               <EventWheel3D
                 events={upcomingEvents}
                 onSelect={(item) => openItem(item)}
-                onToggleSave={toggleSave}
-                isSaved={isSaved}
                 cityName={(slug) => cityBySlug.get(slug)?.name || ''}
+                T={T}
               />
             )}
 

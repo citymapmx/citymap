@@ -1,37 +1,30 @@
 import './EventWheel3D.css';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
-import Icon from '../ui/Icon.jsx';
 import EventPosterFallback from './EventPosterFallback.jsx';
 import { faceBrightness, normalizeAngleDeg, springSettled, springStep } from '../../lib/spring.js';
 
 // Rueda 3D de eventos para el inicio global, como el "Museo de eventos" de
-// QuePlan: 5 pósters en un tambor que gira solo, con la ficha del evento al
-// frente sincronizada. Se pausa al tocarlo o arrastrarlo.
+// QuePlan: los próximos 10 eventos en un tambor que gira solo, con el
+// diseño claro del carrusel de ciudad: sin banda oscura ni ficha debajo,
+// solo el tambor con el título encima. Cada póster lleva una etiqueta
+// discreta con el nombre de su ciudad.
 //
 // Idea 6 de motion.dev (Coverflow): el giro no es una transición CSS de
 // cara en cara, sino un resorte físico — el tambor lleva velocidad e
 // inercia, se puede lanzar con el dedo y se asienta con un leve sobrepaso.
 // La cara del frente brilla más y las vecinas se apagan un poco, como en
-// el Coverflow. La ficha cambia cuando el póster casi llegó al frente,
-// no al arrancar el giro.
-const MAX_FACES = 5;
+// el Coverflow.
+const MAX_FACES = 10;
 const FACE_W = 190;
 const AUTO_MS = 4000;
 // La cara del frente se ve a ~219 px CSS y en el teléfono a 3x son ~660 px
 // de dispositivo: a 400 px el póster se veía blando. A 800 px se ve nítido.
 const WHEEL_IMG_W = 800;
 
-function fmtDate(d) {
-  try {
-    return new Date(`${d}T12:00:00`).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
-  } catch { return d; }
-}
-
-export default function EventWheel3D({ events, onSelect, onToggleSave, isSaved, cityName }) {
+export default function EventWheel3D({ events, onSelect, cityName, T = {} }) {
   const items = (events || []).slice(0, MAX_FACES);
   const n = items.length;
-  const [index, setIndex] = useState(0);
   const [rotation, setRotation] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -72,10 +65,9 @@ export default function EventWheel3D({ events, onSelect, onToggleSave, isSaved, 
       rotationRef.current = s.x;
       velocityRef.current = s.v;
       setRotation(s.x);
-      // La ficha cambia cuando el póster casi llegó al frente.
+      // La cara del frente se confirma cuando el póster casi llegó.
       if (Math.abs(s.x - t.rotation) < 8 && indexRef.current !== t.index) {
         indexRef.current = t.index;
-        setIndex(t.index);
       }
       if (springSettled(s.x, s.v, t.rotation)) {
         rotationRef.current = t.rotation;
@@ -83,7 +75,6 @@ export default function EventWheel3D({ events, onSelect, onToggleSave, isSaved, 
         setRotation(t.rotation);
         if (indexRef.current !== t.index) {
           indexRef.current = t.index;
-          setIndex(t.index);
         }
         rafRef.current = null;
         return;
@@ -115,7 +106,6 @@ export default function EventWheel3D({ events, onSelect, onToggleSave, isSaved, 
       velocityRef.current = 0;
       indexRef.current = nextIndex;
       setRotation(snapped);
-      setIndex(nextIndex);
       return;
     }
     startSpring();
@@ -186,18 +176,34 @@ export default function EventWheel3D({ events, onSelect, onToggleSave, isSaved, 
     goTo(target, v0);
   };
 
+  // Encabezado igual que el carrusel de ciudad: título centrado y subtítulo.
+  const header = (
+    <header style={{ margin: '0 20px 16px', textAlign: 'center' }}>
+      <h2 style={{ margin: '0 0 5px', fontSize: 16, fontWeight: 800, color: T.text }}>Próximos eventos</h2>
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: T.sub }}>Los eventos que vienen en todas las ciudades</p>
+    </header>
+  );
+
+  // Etiqueta discreta con la ciudad del evento, centrada al pie del póster.
+  const cityPill = (item) => {
+    const name = cityName?.(item.citySlug);
+    if (!name) return null;
+    return <span className="event-wheel-city" aria-hidden="true">{name}</span>;
+  };
+
   if (n === 0) return null;
 
   // Con menos de 3 eventos no hay tambor: hilera simple con los pósters.
   if (n < 3) {
     return (
       <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 14px' }}>Próximos eventos</h2>
+        {header}
         <div style={{ display: 'flex', gap: 12 }}>
           {items.map((item) => (
             <article key={item.key} onClick={() => onSelect?.(item)} style={{ flex: '0 0 170px', borderRadius: 16, overflow: 'hidden', background: '#111', cursor: 'pointer' }}>
               <div style={{ position: 'relative', aspectRatio: '3 / 4' }}>
                 {item.img ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <EventPosterFallback title={item.title} radius={0} />}
+                {cityPill(item)}
               </div>
             </article>
           ))}
@@ -206,11 +212,9 @@ export default function EventWheel3D({ events, onSelect, onToggleSave, isSaved, 
     );
   }
 
-  const current = items[index];
-
   return (
     <section className="event-wheel" aria-label="Próximos eventos">
-      <h2 className="event-wheel-title">Próximos eventos</h2>
+      {header}
       <div
         className={`event-wheel-viewport${dragging ? ' event-wheel-dragging' : ''}`}
         style={{ perspective: '1000px' }}
@@ -229,32 +233,12 @@ export default function EventWheel3D({ events, onSelect, onToggleSave, isSaved, 
                 {item.img
                   ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} priority={i === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   : <EventPosterFallback title={item.title} radius={12} />}
+                {cityPill(item)}
               </div>
             );
           })}
         </div>
       </div>
-      <div className="event-wheel-nav">
-        <div className="event-wheel-dots" role="tablist" aria-label="Eventos">
-          {items.map((item, i) => (
-            <button key={item.key} role="tab" aria-selected={i === index} aria-label={`Ir al evento ${i + 1}: ${item.title}`} onClick={() => goTo(i)} className={`event-wheel-dot${i === index ? ' event-wheel-dot--active' : ''}`} />
-          ))}
-        </div>
-        <span className="event-wheel-counter">{String(index + 1).padStart(2, '0')}/{String(n).padStart(2, '0')}</span>
-      </div>
-      <article key={current.key} className="event-wheel-detail">
-        <div className="event-wheel-detail-text">
-          <span className="event-wheel-date">{fmtDate(current.date)}</span>
-          <h3>{current.title}</h3>
-          <p>{[current.raw?.venue_name, cityName?.(current.citySlug)].filter(Boolean).join(' · ')}</p>
-        </div>
-        <div className="event-wheel-detail-actions">
-          <button aria-label="Guardar" onClick={(e) => onToggleSave?.(e, current)} className="event-wheel-heart">
-            <Icon name={isSaved?.(current) ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
-          </button>
-          <button onClick={() => onSelect?.(current)} className="event-wheel-cta">Ver detalles</button>
-        </div>
-      </article>
     </section>
   );
 }
