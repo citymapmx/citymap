@@ -137,6 +137,15 @@ export default async function EventPage({ params }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       <BackButton citySlug={ev.city_slug !== 'all' ? ev.city_slug : ''} />
       
+      {isPast ? (
+        <div style={{ maxWidth: 680, margin: '0 auto', padding: '28px 20px 0' }}>
+          <h1 style={{ fontSize: 28, fontWeight: 900, margin: '0 0 8px', lineHeight: 1.2, letterSpacing: '-0.5px' }}>{ev.title}</h1>
+          <div style={{ display: 'flex', gap: 16, fontSize: 14, color: '#6b7280' }}>
+            <span>📍 {ev.location || cityLabel}</span>
+            {ev.date && <span>📅 {new Date(ev.date).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}</span>}
+          </div>
+        </div>
+      ) : (
       <div style={{ position: 'relative', width: '100%', height: 320, background: '#111' }}>
         {ev.image_url && (
           <Image src={ev.image_url} alt={ev.title} fill style={{ objectFit: 'cover', opacity: 0.8 }} priority sizes="100vw" unoptimized={ev.image_url.startsWith('data:')}/>
@@ -156,6 +165,7 @@ export default async function EventPage({ params }) {
           </div>
         </div>
       </div>
+      )}
 
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '32px 20px 80px' }}>
         <div style={{ background: '#fff', borderRadius: 20, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9' }}>
