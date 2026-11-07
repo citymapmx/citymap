@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
-import BlogVisualEditor from '../components/admin/BlogVisualEditor.jsx';
+import RichTextEditor from '../components/admin/RichTextEditor.jsx';
+import { clearLegacyDrafts } from '../components/admin/legacyDrafts.js';
 
 // Ensure DOMParser and XMLSerializer are globally available for Node.js test environment
 globalThis.DOMParser = DOMParser;
@@ -18,7 +19,7 @@ import {
   stripHtmlToPlainText
 } from '../components/admin/blogSanitizer.js';
 
-describe('Blog Visual Editor & Public Renderer - 15 Verification Scenarios', () => {
+describe('Rich Text Editor & Public Renderer - 15 Verification Scenarios', () => {
 
   // Scenario 1: Normal text with paragraphs
   describe('Scenario 1: Normal text with paragraphs', () => {
@@ -200,19 +201,34 @@ Para más información visita [CityMap](https://citymap.mx).
   });
 
   // Scenario 11: History and Auto-Drafting
-  describe('Scenario 11: Auto-drafting persistence', () => {
-    it('creates and parses localStorage drafts properly', () => {
-      const draftKey = 'citymap_blog_draft_exp123';
-      const draftData = {
-        html: '<p>Contenido guardado automáticamente</p>',
-        time: '14:30'
+  // Scenario 11: Sin autoguardado ni borradores automáticos
+  describe('Scenario 11: Sin autoguardado ni borradores automáticos', () => {
+    it('limpia las claves de borradores viejos sin tocar otros datos', () => {
+      const store = new Map([
+        ['citymap_blog_draft_exp123', JSON.stringify({ html: '<p>Viejo</p>', time: '14:30' })],
+        ['citymap_blog_draft_new', JSON.stringify({ html: '<p>Otro</p>', time: '15:00' })],
+        ['otra_clave', 'conservar'],
+      ]);
+      const fakeStorage = {
+        get length() { return store.size; },
+        key(i) { return [...store.keys()][i] ?? null; },
+        getItem(k) { return store.get(k) ?? null; },
+        setItem(k, v) { store.set(k, v); },
+        removeItem(k) { store.delete(k); },
       };
+      expect(clearLegacyDrafts(fakeStorage)).toBe(2);
+      expect(fakeStorage.getItem('citymap_blog_draft_exp123')).toBe(null);
+      expect(fakeStorage.getItem('citymap_blog_draft_new')).toBe(null);
+      expect(fakeStorage.getItem('otra_clave')).toBe('conservar');
+    });
 
-      const serialized = JSON.stringify(draftData);
-      const deserialized = JSON.parse(serialized);
-
-      expect(deserialized.html).toBe('<p>Contenido guardado automáticamente</p>');
-      expect(deserialized.time).toBe('14:30');
+    it('no muestra aviso de borrador ni botones de IA', () => {
+      const html = renderToStaticMarkup(<RichTextEditor />);
+      expect(html).not.toContain('borrador');
+      expect(html).not.toContain('Restaurar');
+      expect(html).not.toContain('Descartar');
+      expect(html).not.toContain('Autocompletar');
+      expect(html).not.toContain('con IA');
     });
   });
 
@@ -306,13 +322,18 @@ describe('Fixed article typography and alignment', () => {
     expect(clean).not.toContain('font-family');
   });
   it('replaces typography controls with four accessible alignment buttons', () => {
-    const html = renderToStaticMarkup(<BlogVisualEditor />);
+    const html = renderToStaticMarkup(<RichTextEditor />);
     for (const label of ['Alinear a la izquierda', 'Centrar texto', 'Alinear a la derecha', 'Justificar texto']) {
       expect(html).toContain(`aria-label="${label}"`);
     }
     expect(html).not.toContain('Párrafo normal');
     expect(html).not.toContain('Subtítulo Principal (H2)');
     expect(html).not.toContain('Subtítulo Secundario (H3)');
+    // Herramientas exigidas: subrayado y encabezados
+    expect(html).toContain('title="Subrayado"');
+    expect(html).toContain('title="Título"');
+    expect(html).toContain('title="Subtítulo"');
+    expect(html).toContain('title="Párrafo"');
     expect(html).toContain('blog-editor-content');
     expect(html).toContain('var(--sans, system-ui, sans-serif)');
   });
