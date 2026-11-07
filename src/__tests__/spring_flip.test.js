@@ -78,3 +78,18 @@ describe('shortestDelta', () => {
     expect(shortestDelta(1, 4.9, 5)).toBeCloseTo(1.1, 5);
   });
 });
+
+describe('springSettled tolerances', () => {
+  it('does not settle a card spring 0.37 cards away from the target', () => {
+    // El caso del coverflow con las tolerancias de la rueda (0.4 y 8):
+    // a 0.625 camino a 1, con velocidad 5, se daba por asentado y el
+    // resto del paso era un salto.
+    expect(springSettled(0.625, 5, 1)).toBe(true);
+    expect(springSettled(0.625, 5, 1, 0.01, 0.2)).toBe(false);
+    expect(springSettled(0.99, 0.1, 1, 0.01, 0.2)).toBe(false);
+    expect(springSettled(0.995, 0.1, 1, 0.01, 0.2)).toBe(true);
+    // La rueda sigue con sus tolerancias en grados.
+    expect(springSettled(-72.3, 5, -72)).toBe(true);
+    expect(springSettled(-70, 5, -72)).toBe(false);
+  });
+});

@@ -12,8 +12,13 @@ export function springStep(x, v, target, dt, stiffness = 140, damping = 17) {
   return { x: x + nv * dt, v: nv };
 }
 
-export function springSettled(x, v, target) {
-  return Math.abs(x - target) < 0.4 && Math.abs(v) < 8;
+// Asentado: cerca del objetivo y casi sin velocidad. Las tolerancias se
+// dan en las unidades del objetivo: en la rueda el paso es 72° (0.4° es
+// 0.5% del paso); en el coverflow el paso es 1 tarjeta, así que ahí se
+// pasan tolerancias mucho más chicas (0.01 y 0.2). Con las de la rueda,
+// el coverflow se daba por asentado a 0.37 tarjetas y el resto era un salto.
+export function springSettled(x, v, target, posTol = 0.4, velTol = 8) {
+  return Math.abs(x - target) < posTol && Math.abs(v) < velTol;
 }
 
 // Delta más corto de la posición actual (decimal, puede ir a mitad de
