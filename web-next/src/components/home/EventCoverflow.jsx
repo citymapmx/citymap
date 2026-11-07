@@ -1,13 +1,18 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getThumbUrl } from '../../lib/utils.js';
+import { springSettled, springStep } from '../../lib/spring.js';
 import EventPosterFallback from './EventPosterFallback.jsx';
 
-const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+const AUTO_MS = 4000;
 
-function relativePosition(index, selected, count) {
-  let offset = index - selected;
+// Posición relativa de una tarjeta respecto a la seleccionada, con
+// envoltura: con 8 eventos, la tarjeta 7 queda a -1 de la 0. Acepta una
+// posición seleccionada decimal (a mitad de giro) para que el movimiento
+// sea continuo.
+function relativePositionFloat(index, floatSelected, count) {
+  let offset = index - floatSelected;
+  offset = ((offset % count) + count) % count;
   if (offset > count / 2) offset -= count;
-  if (offset < -count / 2) offset += count;
   return offset;
 }
 
@@ -46,35 +51,137 @@ function CoverflowPoster({ src, title, priority }) {
 
 export default function EventCoverflow({ events = [], onOpen, T, label = 'Eventos destacados', heading, subheading, formatEventMeta, formatEventTag }) {
   const [selectedId, setSelectedId] = useState(null);
+  // Posición seleccionada continua: 0, 1, 2… pero a mitad de giro puede
+  // ser 1.4. Es lo que anima el carrusel; el índice entero se confirma
+  // cuando el resorte casi llega a su objetivo.
+  const [floatPos, setFloatPos] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [tabHidden, setTabHidden] = useState(false);
+  const [canHover] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(hover: hover) and (pointer: fine)').matches));
+  const [reducedMotion] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches));
   const gesture = useRef(null);
   const stageRef = useRef(null);
-  const frameRef = useRef(null);
-  const animTimeoutRef = useRef(null);
-  const isAnimating = useRef(false);
+  const rafRef = useRef(null);
+  const floatRef = useRef(0);
+  const velocityRef = useRef(0);
+  const targetRef = useRef(null);
   const suppressClick = useRef(false);
+  const eventsRef = useRef(events);
+  eventsRef.current = events;
+  const selectedIdRef = useRef(null);
+  selectedIdRef.current = selectedId;
 
   useEffect(() => {
     return () => {
-      cancelAnimationFrame(frameRef.current);
-      clearTimeout(animTimeoutRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, []);
 
   const selected = Math.max(0, events.findIndex(event => event.id === selectedId));
   const current = events[selected];
 
-  useIsomorphicLayoutEffect(() => {
-    if (stageRef.current) {
-      stageRef.current.style.setProperty('--drag-progress', '0');
-    }
-    isAnimating.current = false;
-  }, [selectedId]);
+  // Al cambiar la lista (otra ciudad), vuelve a la primera tarjeta.
+  const firstId = events[0]?.id;
+  useEffect(() => {
+    floatRef.current = 0;
+    velocityRef.current = 0;
+    targetRef.current = null;
+    setFloatPos(0);
+  }, [firstId]);
 
-  if (!current) return null;
+  const stopSpring = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+  }, []);
+
+  // Bucle del resorte: integra hasta asentarse sobre la tarjeta objetivo.
+  // La selección se confirma cuando el póster casi llegó al frente.
+  const startSpring = useCallback(() => {
+    if (rafRef.current || reducedMotion) return;
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      const t = targetRef.current;
+      if (!t) {
+        rafRef.current = null;
+        return;
+      }
+      const s = springStep(floatRef.current, velocityRef.current, t.float, dt);
+      floatRef.current = s.x;
+      velocityRef.current = s.v;
+      setFloatPos(s.x);
+      if (Math.abs(s.x - t.float) < 0.08) {
+        const id = eventsRef.current[t.index]?.id;
+        if (id && id !== selectedIdRef.current) setSelectedId(id);
+      }
+      if (springSettled(s.x, s.v, t.float)) {
+        floatRef.current = t.float;
+        velocityRef.current = 0;
+        setFloatPos(t.float);
+        const id = eventsRef.current[t.index]?.id;
+        if (id && id !== selectedIdRef.current) setSelectedId(id);
+        rafRef.current = null;
+        return;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  }, [reducedMotion]);
+
+  // Ir a la tarjeta target por el camino más corto, desde donde esté el
+  // carrusel (puede ir a mitad de giro). v0 es la velocidad inicial en
+  // tarjetas por segundo: 0 en un paso normal, la del lanzamiento al soltar.
+  const goToIndex = useCallback((target, v0 = 0) => {
+    const list = eventsRef.current;
+    const n = list.length;
+    if (n < 2) return;
+    const nextIndex = ((target % n) + n) % n;
+    const currentTarget = targetRef.current;
+    if (currentTarget && currentTarget.index === nextIndex && rafRef.current) return;
+    if (!rafRef.current && nextIndex === selected) return;
+    // Delta envuelto más corto: de la 7 a la 0 es +1, no -7.
+    let delta = nextIndex - Math.round(floatRef.current);
+    delta = ((delta % n) + n) % n;
+    if (delta > n / 2) delta -= n;
+    const targetFloat = floatRef.current + delta;
+    targetRef.current = { index: nextIndex, float: targetFloat };
+    // Si el resorte ya va en marcha, conserva su velocidad; solo se fija
+    // v0 al arrancar parado.
+    if (!rafRef.current) velocityRef.current = v0;
+    if (reducedMotion) {
+      floatRef.current = targetFloat;
+      velocityRef.current = 0;
+      setFloatPos(targetFloat);
+      const id = list[nextIndex]?.id;
+      if (id) setSelectedId(id);
+      return;
+    }
+    startSpring();
+  }, [selected, reducedMotion, startSpring]);
+
+  // Avance automático: se mueve solo cada 4 s. En pausa al arrastrar,
+  // al pasar el mouse (escritorio) o al esconder la pestaña. Con
+  // reduced-motion no gira solo.
+  useEffect(() => {
+    if (events.length < 2 || paused || dragging || tabHidden || reducedMotion) return;
+    const t = setInterval(() => {
+      const base = targetRef.current?.index ?? selected;
+      goToIndex(base + 1);
+    }, AUTO_MS);
+    return () => clearInterval(t);
+  }, [events.length, paused, dragging, tabHidden, reducedMotion, selected, goToIndex]);
+
+  useEffect(() => {
+    const onVis = () => setTabHidden(document.hidden);
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
 
   const move = direction => {
-    const next = (selected + direction + events.length) % events.length;
-    setSelectedId(events[next].id);
+    const base = targetRef.current?.index ?? selected;
+    goToIndex(base + direction);
   };
 
   const open = event => {
@@ -85,11 +192,13 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
     onOpen(event);
   };
 
+  if (!current) return null;
+
   return (
     <div className="event-coverflow" role="region" aria-roledescription="carrusel" aria-label={label} onKeyDown={event => {
       if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
         event.preventDefault();
-        if (!isAnimating.current) move(event.key === 'ArrowRight' ? 1 : -1);
+        move(event.key === 'ArrowRight' ? 1 : -1);
       }
     }}>
       <style>{`
@@ -132,73 +241,69 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
         }
         .event-coverflow-arrow svg { filter: drop-shadow(0 1px 2px var(--rail-icon-halo, rgba(255,255,255,.9))); }
         .event-coverflow-arrow:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; }
-        .event-coverflow-stage { 
-          position: relative; 
-          height: clamp(240px, 70vw, 326px); 
-          perspective: 1000px; 
+        .event-coverflow-stage {
+          position: relative;
+          height: clamp(240px, 70vw, 326px);
+          perspective: 1000px;
           overflow: clip;
-          -webkit-mask-image: linear-gradient(to right, transparent, #000 24px);
-          mask-image: linear-gradient(to right, transparent, #000 24px);
-          touch-action: pan-y pinch-zoom; 
-          cursor: grab; 
+          touch-action: pan-y pinch-zoom;
+          cursor: grab;
           user-select: none;
           -webkit-user-select: none;
         }
         .event-coverflow-stage[data-dragging="true"] { cursor: grabbing; }
-        .event-coverflow-stage[data-dragging="true"] .event-coverflow-card { transition: none !important; cursor: grabbing; }
         .event-coverflow-card {
-          --position: calc(var(--offset) + var(--drag-progress, 0));
+          --position: var(--offset);
           --distance: max(var(--position), calc(-1 * var(--position)));
           opacity: min(clamp(0, calc(2 - var(--distance)), 1), clamp(0, calc(1 + var(--position) * .35), 1));
           z-index: calc(100 - var(--distance) * 10);
           transform: translateX(calc(-50% + var(--position) * 76%)) translateZ(calc(var(--distance) * -90px)) rotateY(calc(var(--position) * -23deg)) scale(clamp(.76, calc(1 - var(--distance) * .12), 1));
         }
-        .event-coverflow-card { 
-          position: absolute; 
-          top: 0; 
-          left: 50%; 
-          width: clamp(170px, 54%, 245px); 
-          height: 100%; 
-          box-sizing: border-box; 
-          padding: 6px 0 12px; 
-          border: 0; 
-          background: transparent; 
-          cursor: pointer; 
-          display: flex; 
-          align-items: center; 
-          justify-content: center; 
-          transform-origin: center; 
-          transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease, z-index 200ms linear;
+        .event-coverflow-card {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          width: clamp(170px, 54%, 245px);
+          height: 100%;
+          box-sizing: border-box;
+          padding: 6px 0 12px;
+          border: 0;
+          background: transparent;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transform-origin: center;
           touch-action: pan-y pinch-zoom;
           -webkit-tap-highlight-color: transparent;
         }
-        .event-coverflow-card img { 
-          display: block; 
-          width: auto; 
-          height: auto; 
-          max-width: 100%; 
-          max-height: 100%; 
-          object-fit: contain; 
-          border-radius: 14px; 
-          filter: drop-shadow(0 3px 4px rgba(0,0,0,.12)); 
-          user-select: none; 
+        .event-coverflow-card img {
+          display: block;
+          width: auto;
+          height: auto;
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+          border-radius: 14px;
+          filter: drop-shadow(0 3px 4px rgba(0,0,0,.12));
+          user-select: none;
           -webkit-user-drag: none;
           pointer-events: none;
         }
-        .event-coverflow-loading { 
-          position: absolute; 
-          inset: 6px 12px; 
-          display: flex; 
-          align-items: center; 
-          justify-content: center; 
-          padding: 20px; 
-          box-sizing: border-box; 
-          border-radius: 14px; 
-          background: #111; 
-          color: #fff; 
-          font-family: inherit; 
-          font-size: 14px; 
-          line-height: 1.4; 
+        .event-coverflow-loading {
+          position: absolute;
+          inset: 6px 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          box-sizing: border-box;
+          border-radius: 14px;
+          background: #111;
+          color: #fff;
+          font-family: inherit;
+          font-size: 14px;
+          line-height: 1.4;
           text-align: center;
           pointer-events: none;
         }
@@ -211,9 +316,13 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
       </header>}
       <div className="event-coverflow-viewport" style={{ color: T.text, '--rail-icon-halo': T.dark ? 'rgba(0,0,0,.8)' : 'rgba(255,255,255,.9)' }}>
       <div className="event-coverflow-stage" ref={stageRef}
+        onMouseEnter={() => { if (canHover) setPaused(true); }}
+        onMouseLeave={() => { if (canHover) setPaused(false); }}
         onPointerDown={event => {
-          if (event.button !== 0 || events.length < 2 || gesture.current || isAnimating.current) return;
-          cancelAnimationFrame(frameRef.current);
+          if (event.button !== 0 || events.length < 2 || gesture.current) return;
+          stopSpring();
+          targetRef.current = null;
+          velocityRef.current = 0;
           suppressClick.current = false;
           const width = event.currentTarget.querySelector('[aria-current="true"]')?.offsetWidth || 220;
           gesture.current = {
@@ -223,7 +332,9 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
             step: width * 0.76,
             pointerId: event.pointerId,
             pointerType: event.pointerType,
-            axis: null
+            axis: null,
+            float: floatRef.current,
+            v: 0
           };
         }}
         onPointerMove={event => {
@@ -254,6 +365,8 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
             if (isMouse || absX > absY * 1.3) {
               start.axis = 'x';
               suppressClick.current = true;
+              setDragging(true);
+              setPaused(true);
               const stage = event.currentTarget;
               stage.dataset.dragging = 'true';
               try {
@@ -268,18 +381,21 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
 
           if (start.axis !== 'x') return;
 
-          const stage = event.currentTarget;
-          const progress = Math.max(-1.3, Math.min(1.3, dx / start.step));
-          cancelAnimationFrame(frameRef.current);
-          frameRef.current = requestAnimationFrame(() => {
-            stage.style.setProperty('--drag-progress', String(progress));
-          });
+          const now = event.timeStamp;
+          const next = start.float - dx / start.step;
+          const dt = Math.max(1, now - start.time);
+          // Velocidad en tarjetas por segundo (suavizada): es la inercia
+          // con la que el carrusel sigue al soltar.
+          const instV = ((next - floatRef.current) / dt) * 1000;
+          start.v = start.v * 0.6 + instV * 0.4;
+          start.time = now;
+          floatRef.current = next;
+          setFloatPos(next);
         }}
         onPointerUp={event => {
           const start = gesture.current;
           if (!start || start.pointerId !== event.pointerId) return;
           gesture.current = null;
-          cancelAnimationFrame(frameRef.current);
 
           const stage = event.currentTarget;
           try {
@@ -290,45 +406,23 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
 
           if (start.axis !== 'x') {
             stage.removeAttribute('data-dragging');
-            void stage.offsetWidth;
-            stage.style.setProperty('--drag-progress', '0');
             return;
           }
 
+          setDragging(false);
+          setPaused(false);
           const dx = event.clientX - start.x;
-          const dt = Math.max(1, event.timeStamp - start.time);
-          const velocity = dx / dt;
-          const progress = dx / start.step;
 
-          // Highly responsive: 24px threshold or gentle 0.18px/ms flick
-          let dir = 0;
-          if (dx < -24 || progress < -0.12 || velocity < -0.18) {
-            dir = 1; // Advance to next card
-          } else if (dx > 24 || progress > 0.12 || velocity > 0.18) {
-            dir = -1; // Return to previous card
+          // Con un lanzamiento, el carrusel sigue por inercia y cae en la
+          // tarjeta más cercana; sin él, vuelve a la tarjeta actual.
+          const v0 = Math.max(-10, Math.min(10, start.v));
+          let target = Math.round(floatRef.current);
+          if (Math.abs(dx) > 24 || Math.abs(start.v) > 1.5) {
+            const projected = floatRef.current + v0 * 0.22;
+            target = Math.round(projected);
           }
-
-          // Restore CSS transitions before setting target progress so it NEVER snaps abruptly
           stage.removeAttribute('data-dragging');
-          void stage.offsetWidth; // Force reflow so transition is guaranteed active
-
-          if (dir !== 0) {
-            const targetProgress = dir === 1 ? -1 : 1;
-            stage.style.setProperty('--drag-progress', String(targetProgress));
-            isAnimating.current = true;
-
-            clearTimeout(animTimeoutRef.current);
-            animTimeoutRef.current = setTimeout(() => {
-              move(dir);
-              if (stageRef.current) {
-                stageRef.current.style.setProperty('--drag-progress', '0');
-              }
-              isAnimating.current = false;
-            }, 200);
-          } else {
-            // Smoothly glide back to center with transition
-            stage.style.setProperty('--drag-progress', '0');
-          }
+          goToIndex(target, v0);
 
           setTimeout(() => {
             suppressClick.current = false;
@@ -336,9 +430,7 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
         }}
         onPointerCancel={event => {
           gesture.current = null;
-          cancelAnimationFrame(frameRef.current);
-          clearTimeout(animTimeoutRef.current);
-          isAnimating.current = false;
+          stopSpring();
           const stage = event.currentTarget;
           if (stage) {
             try {
@@ -347,17 +439,17 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
               }
             } catch (_) { /* La captura del puntero es opcional; si falla, el gesto sigue. */ }
             stage.removeAttribute('data-dragging');
-            void stage.offsetWidth;
-            stage.style.setProperty('--drag-progress', '0');
           }
+          setDragging(false);
+          setPaused(false);
           setTimeout(() => {
             suppressClick.current = false;
           }, 60);
         }}
       >
-        {events.map((event, index) => ({ event, index, offset: relativePosition(index, selected, events.length) }))
+        {events.map((event, index) => ({ event, index, offset: relativePositionFloat(index, floatPos, events.length) }))
           .map(({ event, offset }) => {
-            const isSelected = offset === 0;
+            const isSelected = Math.abs(offset) < 0.5;
             const image = event.img_url || event.img || event.poster_url;
             const tag = formatEventTag ? formatEventTag(event) : formatTagDate(event.date);
             return <button key={event.id} type="button" className="event-coverflow-card"
@@ -366,9 +458,8 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
               tabIndex={isSelected ? 0 : -1}
               aria-hidden={Math.abs(offset) > 2 ? 'true' : undefined}
               onClick={() => {
-                if (isAnimating.current) return;
                 if (isSelected) open(event);
-                else if (!suppressClick.current) setSelectedId(event.id);
+                else if (!suppressClick.current) goToIndex(events.findIndex(e => e.id === event.id));
               }}
               style={{ '--offset': offset, pointerEvents: Math.abs(offset) > 1 ? 'none' : 'auto' }}>
               {image ? <CoverflowPoster key={image} src={image} title={event.title} priority={isSelected ? 'center' : Math.abs(offset) <= 1} /> : <EventPosterFallback title={event.title} />}
@@ -381,7 +472,7 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
       {events.length > 1 && [-1, 1].map(direction => (
         <button key={direction} type="button" className="event-coverflow-arrow"
           aria-label={direction === -1 ? 'Mostrar evento anterior' : 'Mostrar evento siguiente'}
-          onClick={() => { if (!isAnimating.current) move(direction); }}
+          onClick={() => { move(direction); }}
           style={direction === -1 ? { left: 4 } : { right: 4 }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d={direction === -1 ? 'M14 6l-6 6 6 6' : 'M10 6l6 6-6 6'} />

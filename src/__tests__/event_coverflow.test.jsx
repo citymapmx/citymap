@@ -24,7 +24,7 @@ describe.each([['Vite',EventCoverflow],['Next',NextCoverflow]])('%s event coverf
     expect(html).not.toContain('aria-label="Evento siguiente"');
     expect(html).not.toContain('aria-label="Evento 1 de 8"');
     expect(html).toContain('event-coverflow-loading');
-    expect(html).toContain('--drag-progress');
+    expect(html).not.toContain('mask-image');
     expect(html).toContain('Teatro de Tepic');
     expect(html).toContain('18 de octubre');
     expect(html).toContain('aria-live="polite"');
