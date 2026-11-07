@@ -231,10 +231,12 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const cityName = formatCityName(exp.city_slug);
   const metaTitle = cityName ? `${exp.title} | Revista CityMap ${cityName}` : `${exp.title} | Revista CityMap`;
 
+  // Sin fundido de opacidad al entrar: con opacity 0→1 la página de atrás
+  // (la foto de la tarjeta tocada) se seguía viendo por un momento.
   return (
     <m.div
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ y: 50 }}
+      animate={{ y: 0 }}
       exit={{ opacity: 0, y: 50 }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
       style={{ position: 'fixed', inset: 0, zIndex: 99999, background: T.bg, overflowY: "auto", fontFamily: "inherit" }}
