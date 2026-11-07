@@ -16,39 +16,44 @@ function makeEvent(i) {
   };
 }
 
-const events = Array.from({ length: 8 }, (_, i) => makeEvent(i));
+const events = Array.from({ length: 12 }, (_, i) => makeEvent(i));
 
 function renderWheel(props = {}) {
   return renderToStaticMarkup(
     <EventWheel3D
       events={events}
       onSelect={() => {}}
-      onToggleSave={() => {}}
-      isSaved={() => false}
       cityName={() => 'Guadalajara'}
+      T={{ text: '#111', sub: '#666' }}
       {...props}
     />,
   );
 }
 
 describe('event wheel 3D', () => {
-  it('renders one drum face per event with the first one in front', () => {
+  it('renders one drum face per event, capped at the next 10', () => {
     const html = renderWheel();
-    expect(html.match(/event-wheel-face/g)).toHaveLength(5);
-    // 5 faces -> 72 deg per face, radius 131 px; the first event is in front.
-    expect(html).toContain('rotateY(0deg) translateZ(131px)');
-    expect(html).toContain('rotateY(72deg) translateZ(131px)');
-    expect(html).toContain('rotateY(288deg) translateZ(131px)');
+    expect(html.match(/event-wheel-face/g)).toHaveLength(10);
+    // 10 faces -> 36 deg per face, radius 292 px; the first event is in front.
+    expect(html).toContain('rotateY(0deg) translateZ(292px)');
+    expect(html).toContain('rotateY(36deg) translateZ(292px)');
+    expect(html).toContain('rotateY(324deg) translateZ(292px)');
+    // The 11th and 12th events stay out of the drum.
+    expect(html).not.toContain('Evento 11');
+    expect(html).not.toContain('Evento 12');
   });
 
-  it('shows the detail card of the front event with dots and counter', () => {
+  it('shows the city heading, a city pill on each poster and no detail card below', () => {
     const html = renderWheel();
-    expect(html).toContain('Evento 1');
-    expect(html).toContain('10 de nov');
-    expect(html).toContain('Recinto 1 · Guadalajara');
-    expect(html).toContain('01/05');
-    expect(html.match(/Ir al evento/g)).toHaveLength(5);
-    expect(html).toContain('Ver detalles');
+    expect(html).toContain('Próximos eventos');
+    expect(html).toContain('Los eventos que vienen en todas las ciudades');
+    expect(html.match(/event-wheel-city/g)).toHaveLength(10);
+    expect(html).toContain('Guadalajara');
+    // Sin banda oscura: ni ficha con fecha/título/corazón, ni puntos ni contador.
+    expect(html).not.toContain('event-wheel-detail');
+    expect(html).not.toContain('event-wheel-dot');
+    expect(html).not.toContain('01/10');
+    expect(html).not.toContain('Ver detalles');
     // El giro lo mueve un resorte por requestAnimationFrame, no una
     // transición CSS: el tambor solo lleva el transform.
     expect(html).toContain('class="event-wheel-drum" style="transform:rotateY(0deg)"');
@@ -58,7 +63,8 @@ describe('event wheel 3D', () => {
     const noImg = [{ ...makeEvent(0), img: null }, ...events.slice(1)];
     const html = renderWheel({ events: noImg });
     expect(html).toContain('Evento 1');
-    expect(html.match(/event-wheel-face/g)).toHaveLength(5);
+    expect(html.match(/event-wheel-face/g)).toHaveLength(10);
+    expect(html.match(/event-wheel-city/g)).toHaveLength(10);
   });
 
   it('renders a plain row without a drum when there are fewer than 3 events', () => {
@@ -66,6 +72,7 @@ describe('event wheel 3D', () => {
     expect(html).not.toContain('event-wheel-drum');
     expect(html).toContain('Evento 1');
     expect(html).toContain('Evento 2');
+    expect(html).toContain('Próximos eventos');
   });
 
   it('renders nothing without events', () => {
