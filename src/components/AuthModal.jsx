@@ -5,6 +5,7 @@ import { useUIStore } from '../store/useUIStore.js';
 import { useShallow } from 'zustand/react/shallow';
 import { sb } from '../lib/supabase.js';
 import { Capacitor } from '@capacitor/core';
+import { ensureGoogleIdentityServices } from '../lib/googleIdentity.js';
 
 const GOOGLE_CLIENT_ID = "128467245162-fjpgeqiqhr4f0p5f430ti0v41jlmuovm.apps.googleusercontent.com";
 const RECAPTCHA_SITE_KEY = "6LdK_PItAAAAAAKJNfLuCzIVHInRQ8HJVi9LK5_-";
@@ -91,6 +92,10 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
 
     // Precargar reCAPTCHA en segundo plano para que esté listo al enviar
     loadRecaptcha();
+
+    // El cliente de Google (GIS) ya no vive en index.html: se carga aquí,
+    // solo cuando se abre el login. El sondeo de abajo lo espera.
+    ensureGoogleIdentityServices();
 
     const initGsi = () => {
       if (window.google?.accounts?.id && googleBtnRef.current) {

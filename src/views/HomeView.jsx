@@ -16,7 +16,7 @@ import { getTimeSlot, spotForSlot, isFoodSpot, seededRand, shuffleBySeed } from 
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
 import { PageLogo } from "../components/Brand.jsx";
-import { Sk, CardSk, DuoSk, EventSk } from "../components/ui/Skeleton.jsx";
+import { Sk, CardSk, DuoSk, EventSk, ImperdiblesSk, TimeListSk } from "../components/ui/Skeleton.jsx";
 import FeaturedCard from "../components/cards/FeaturedCard.jsx";
 import DestacadoCard from "../components/cards/DestacadoCard.jsx";
 import CompactCard from "../components/cards/CompactCard.jsx";
@@ -500,6 +500,14 @@ export default function HomeView({ isBackground }) {
           {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} cityImg={cityImg} handleEventTap={handleEventTap} T={T} city={city} />}
 
           {/* ── LUGAR DEL DÍA (Recomendación) ── */}
+          {/* Esqueleto del spotlight mientras cargan los negocios: misma altura (240 px)
+              para que nada de abajo se mueva cuando aparece la tarjeta. */}
+          {!search && activeCat === "explorar" && !spotlightBiz && (pinsLoading || !dbReady) && (
+            <div style={{ padding: "16px 20px 0 20px" }}>
+              <Sk w="100%" h={240} r={20} dark={dark} />
+            </div>
+          )}
+
           {!search && activeCat === "explorar" && spotlightBiz && (
             <div style={{ padding: "16px 20px 0 20px" }}>
               <div 
@@ -524,6 +532,7 @@ export default function HomeView({ isBackground }) {
                         src={src} 
                         alt={spotlightBiz.name}
                         widthRequest={800} heightRequest={600}
+                        priority
                         style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}
                       />
                     );
@@ -568,13 +577,15 @@ export default function HomeView({ isBackground }) {
           {!search && activeCat === "explorar" && <div id="explorar-section">
             {(() => {
               const { listTitle, timeList } = timeBasedListsMemo;
-              if (timeList.length === 0) return null;
+              if (timeList.length === 0) return (pinsLoading || !dbReady) ? <TimeListSk dark={dark} /> : null;
               return (
                 <SquareCarousel title={listTitle} list={timeList} handleCardTap={handleCardTap} getThumbUrl={getThumbUrl} CAT_EMOJI={CAT_EMOJI} T={T} FONT_BIZ={FONT_BIZ} />
               );
             })()}
 
-            <TopImperdibles experiences={experiences} T={T} FONT_BIZ={FONT_BIZ} city={city} />
+            {(experiences?.length || 0) > 0
+              ? <TopImperdibles experiences={experiences} T={T} FONT_BIZ={FONT_BIZ} city={city} />
+              : ((pinsLoading || !dbReady) ? <ImperdiblesSk dark={dark} /> : null)}
 
           </div>}
 

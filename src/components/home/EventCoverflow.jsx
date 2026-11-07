@@ -20,7 +20,7 @@ function CoverflowPoster({ src, title, priority }) {
   const [ready, setReady] = useState(false);
   const [original, setOriginal] = useState(false);
   const [failed, setFailed] = useState(false);
-  const source = original ? src : getThumbUrl(src, 800);
+  const source = original ? src : getThumbUrl(src, 400);
   return <>
     {!ready && <span className="event-coverflow-loading" aria-hidden="true">{title}</span>}
     {!failed && <img src={source} alt={title || 'Póster del evento'}
@@ -231,7 +231,7 @@ export default function EventCoverflow({ events = [], fallbackImage, onOpen, T, 
                 if (!stage.hasPointerCapture(event.pointerId)) {
                   stage.setPointerCapture(event.pointerId);
                 }
-              } catch (_) {}
+              } catch (_) { /* La captura del puntero es opcional; si falla, el gesto sigue. */ }
             } else {
               return;
             }
@@ -257,7 +257,7 @@ export default function EventCoverflow({ events = [], fallbackImage, onOpen, T, 
             if (stage.hasPointerCapture(event.pointerId)) {
               stage.releasePointerCapture(event.pointerId);
             }
-          } catch (_) {}
+          } catch (_) { /* La captura del puntero es opcional; si falla, el gesto sigue. */ }
 
           if (start.axis !== 'x') {
             stage.removeAttribute('data-dragging');
@@ -316,7 +316,7 @@ export default function EventCoverflow({ events = [], fallbackImage, onOpen, T, 
               if (stage.hasPointerCapture(event.pointerId)) {
                 stage.releasePointerCapture(event.pointerId);
               }
-            } catch (_) {}
+            } catch (_) { /* La captura del puntero es opcional; si falla, el gesto sigue. */ }
             stage.removeAttribute('data-dragging');
             void stage.offsetWidth;
             stage.style.setProperty('--drag-progress', '0');
@@ -341,7 +341,7 @@ export default function EventCoverflow({ events = [], fallbackImage, onOpen, T, 
                 else if (!suppressClick.current) setSelectedId(event.id);
               }}
               style={{ '--offset': offset, pointerEvents: Math.abs(offset) > 1 ? 'none' : 'auto', '--poster-placeholder': T.border || '#F1F5F9', '--poster-text': T.sub || T.text }}>
-              {image ? <CoverflowPoster key={image} src={image} title={event.title} priority={isSelected ? 'center' : Math.abs(offset) <= 3} /> : <span style={{ color: T.text, '--rail-icon-halo': T.dark ? 'rgba(0,0,0,.8)' : 'rgba(255,255,255,.9)' }}>{event.title}</span>}
+              {image ? <CoverflowPoster key={image} src={image} title={event.title} priority={isSelected ? 'center' : Math.abs(offset) <= 1} /> : <span style={{ color: T.text, '--rail-icon-halo': T.dark ? 'rgba(0,0,0,.8)' : 'rgba(255,255,255,.9)' }}>{event.title}</span>}
             </button>;
           })}
 

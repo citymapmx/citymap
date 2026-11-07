@@ -2,7 +2,7 @@ import React, {memo, useEffect, useState} from 'react';
 import {isNear} from '../../lib/utils.js';
 import {CITY_TZ} from '../../lib/constants.js';
 import {eventDayKey, selectHomeEvents} from '../../lib/homeEventSelection.js';
-import {EventSk} from '../ui/Skeleton.jsx';
+import {EventSk, CoverflowSk} from '../ui/Skeleton.jsx';
 import EventCoverflow from './EventCoverflow.jsx';
 
 export default memo(function HomeEvents({events = [], activeCity, userCoords, dbReady, dark, cityImg, handleEventTap, T}) {
@@ -15,7 +15,7 @@ export default memo(function HomeEvents({events = [], activeCity, userCoords, db
     return () => clearInterval(interval);
   }, [timeZone]);
   const {featured, seasonal} = selectHomeEvents(events.filter(event => isNear(event, userCoords, activeCity)), today);
-  if (!featured.length && !seasonal.length) return !dbReady ? <div style={{padding:'4px 0 0'}}><EventSk dark={dark}/></div> : null;
+  if (!featured.length && !seasonal.length) return !dbReady ? <CoverflowSk dark={dark}/> : null;
   const shortDate = value => new Date(`${value}T12:00:00Z`).toLocaleDateString('es-MX',{day:'numeric',month:'short',timeZone:'UTC'});
   return <div style={{padding:'4px 0 0'}}>
     {featured.length > 0 && <EventCoverflow events={featured} fallbackImage={cityImg} onOpen={handleEventTap} T={T}/>}
