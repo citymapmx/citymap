@@ -1,9 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { getThumbUrl } from '../../lib/utils.js';
 import { shortestDelta, springSettled, springStep } from '../../lib/spring.js';
 import EventPosterFallback from './EventPosterFallback.jsx';
 
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
 const AUTO_MS = 4000;
+
+// Tolerancias de asentamiento del resorte en tarjetas (el paso es 1):
+// con las de la rueda (0.4 y 8, pensadas para grados) el resorte se daba
+// por asentado a 0.37 tarjetas del objetivo y el resto era un salto.
+export const COVERFLOW_SETTLE_POS = 0.01;
+export const COVERFLOW_SETTLE_VEL = 0.2;
 
 // Posición relativa de una tarjeta respecto a la seleccionada, con
 // envoltura: con 8 eventos, la tarjeta 7 queda a -1 de la 0. Acepta una
@@ -71,6 +79,25 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
   eventsRef.current = events;
   const selectedIdRef = useRef(null);
   selectedIdRef.current = selectedId;
+  // Referencias a las tarjetas para moverlas directo en el DOM: la
+  // posición en vivo NO pasa por el estado de React (con 15 tarjetas, un
+  // render por fotograma se sentía pesado). React solo pinta la posición
+  // de la tarjeta confirmada; el resorte y el arrastre escriben --offset
+  // directo en cada tarjeta, y este efecto lo reaplica tras cada render.
+  const cardRefs = useRef([]);
+
+  const applyFloat = useCallback((value) => {
+    const list = eventsRef.current;
+    const cards = cardRefs.current;
+    for (let i = 0; i < list.length; i++) {
+      const el = cards[i];
+      if (el) el.style.setProperty('--offset', String(relativePositionFloat(i, value, list.length)));
+    }
+  }, []);
+
+  useIsomorphicLayoutEffect(() => {
+    applyFloat(floatRef.current);
+  });
 
   useEffect(() => {
     return () => {
@@ -111,12 +138,12 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
       const s = springStep(floatRef.current, velocityRef.current, t.float, dt);
       floatRef.current = s.x;
       velocityRef.current = s.v;
-      setFloatPos(s.x);
+      applyFloat(s.x);
       if (Math.abs(s.x - t.float) < 0.08) {
         const id = eventsRef.current[t.index]?.id;
         if (id && id !== selectedIdRef.current) setSelectedId(id);
       }
-      if (springSettled(s.x, s.v, t.float)) {
+      if (springSettled(s.x, s.v, t.float, COVERFLOW_SETTLE_POS, COVERFLOW_SETTLE_VEL)) {
         floatRef.current = t.float;
         velocityRef.current = 0;
         setFloatPos(t.float);
@@ -128,7 +155,7 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
-  }, [reducedMotion]);
+  }, [reducedMotion, applyFloat]);
 
   // Ir a la tarjeta target por el camino más corto, desde donde esté el
   // carrusel (puede ir a mitad de giro). v0 es la velocidad inicial en
@@ -140,11 +167,14 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
     const nextIndex = ((target % n) + n) % n;
     const currentTarget = targetRef.current;
     if (currentTarget && currentTarget.index === nextIndex && rafRef.current) return;
-    if (!rafRef.current && nextIndex === selected) return;
     // Delta envuelto más corto: de la 7 a la 0 es +1, no -7. Se mide desde
     // la posición decimal actual, no desde la tarjeta redondeada, para no
     // quedarse parado a mitad de paso si el objetivo cambia en pleno giro.
     const targetFloat = floatRef.current + shortestDelta(nextIndex, floatRef.current, n);
+    // Ya está ahí: solo se salta el resorte si el carrusel ya está (casi)
+    // en la posición objetivo. Si quedó descentrado tras un arrastre
+    // corto, el resorte lo vuelve al centro en vez de dejarlo torcido.
+    if (!rafRef.current && Math.abs(targetFloat - floatRef.current) < 0.005) return;
     targetRef.current = { index: nextIndex, float: targetFloat };
     // Si el resorte ya va en marcha, conserva su velocidad; solo se fija
     // v0 al arrancar parado.
@@ -158,7 +188,7 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
       return;
     }
     startSpring();
-  }, [selected, reducedMotion, startSpring]);
+  }, [reducedMotion, startSpring]);
 
   // Avance automático: se mueve solo cada 4 s. En pausa al arrastrar,
   // al pasar el mouse (escritorio) o al esconder la pestaña. Con
@@ -389,7 +419,7 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
           start.v = start.v * 0.6 + instV * 0.4;
           start.time = now;
           floatRef.current = next;
-          setFloatPos(next);
+          applyFloat(next);
         }}
         onPointerUp={event => {
           const start = gesture.current;
@@ -441,17 +471,21 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
           }
           setDragging(false);
           setPaused(false);
+          // Como soltar tras un arrastre: vuelve a la tarjeta más cercana
+          // en vez de quedarse a mitad de paso.
+          goToIndex(Math.round(floatRef.current), 0);
           setTimeout(() => {
             suppressClick.current = false;
           }, 60);
         }}
       >
         {events.map((event, index) => ({ event, index, offset: relativePositionFloat(index, floatPos, events.length) }))
-          .map(({ event, offset }) => {
+          .map(({ event, index, offset }) => {
             const isSelected = Math.abs(offset) < 0.5;
             const image = event.img_url || event.img || event.poster_url;
             const tag = formatEventTag ? formatEventTag(event) : formatTagDate(event.date);
             return <button key={event.id} type="button" className="event-coverflow-card"
+              ref={el => { cardRefs.current[index] = el; }}
               aria-label={isSelected ? `Ver evento: ${event.title}` : `Mostrar evento: ${event.title}`}
               aria-current={isSelected ? 'true' : undefined}
               tabIndex={isSelected ? 0 : -1}

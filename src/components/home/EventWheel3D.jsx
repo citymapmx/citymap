@@ -101,8 +101,11 @@ export default function EventWheel3D({ events, onSelect, onToggleSave, isSaved, 
     const nextIndex = ((target % n) + n) % n;
     const currentTarget = targetRef.current;
     if (currentTarget && currentTarget.index === nextIndex && rafRef.current) return;
-    if (!rafRef.current && nextIndex === indexRef.current) return;
     const snapped = -nextIndex * step + 360 * Math.round((rotationRef.current + nextIndex * step) / 360);
+    // Ya está ahí: solo se salta el resorte si el tambor ya está (casi) en
+    // la rotación objetivo. Si quedó descentrado tras un arrastre corto,
+    // el resorte lo vuelve al centro en vez de dejarlo torcido.
+    if (!rafRef.current && Math.abs(snapped - rotationRef.current) < 0.5) return;
     targetRef.current = { index: nextIndex, rotation: snapped };
     // Si el resorte ya va en marcha, conserva su velocidad (el giro sigue
     // fluido al cambiar de objetivo); solo se fija v0 al arrancar parado.
