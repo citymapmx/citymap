@@ -52,6 +52,16 @@ export function matchesPriceFilter(event, filter) {
   return true;
 }
 
+// Reproductor de música del evento: solo conciertos (la categoría dice si
+// hay artista). El título del evento suele ser el artista, así que la
+// búsqueda de YouTube usa el título.
+export function getEventMusicQuery(event) {
+  if (!event || !event.title || !String(event.title).trim()) return null;
+  const category = String(event.event_category || event.category || '').trim().toLowerCase();
+  if (!category.startsWith('concierto')) return null;
+  return String(event.title).trim();
+}
+
 // Valor numérico para ordenar por precio: gratis = 0, con precio = monto,
 // sin precio publicado = al final.
 export function priceSortValue(event) {
@@ -105,4 +115,5 @@ export function splitDescription(value) {
   }
   return { lead, paragraphs };
 }
+
 
