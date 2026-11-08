@@ -228,6 +228,7 @@ export default memo(function BusinessCard({
 
   // 2. COMPACT LAYOUT (Horizontal list card)
   if (variant === "compact") {
+    const schedHidden = getScheduleStatus(b, isOpenNow(b), true).hidden;
     return (
       <m.div 
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -253,8 +254,6 @@ export default memo(function BusinessCard({
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
         <div style={{ display: "flex", alignItems: "stretch", flex: 1, position: "relative" }}>
-          {distStr && <div style={{ position: "absolute", top: 12, right: 12, fontSize: 10, fontWeight: 700, color: T.sub, padding: "2px 6px", zIndex: 2 }}>{distStr}</div>}
-          
           {/* Thumbnail */}
           <div style={{ width: 135, flexShrink: 0, position: "relative", background: T.border, overflow: "hidden", borderRadius: 12 }}>
             {thumb?.url
@@ -272,22 +271,30 @@ export default memo(function BusinessCard({
           </div>
 
           <div style={{ flex: 1, padding: "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4 }}>
-            <h3 style={{ fontFamily: FONT_BIZ, fontSize: 16, color: T.text, lineHeight: 1.2, fontWeight: 800, letterSpacing: 0, marginBottom: 0, paddingRight: distStr ? 40 : 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", flexShrink: 0 }}>
+            <h3 style={{ fontFamily: FONT_BIZ, fontSize: 16, color: T.text, lineHeight: 1.2, fontWeight: 800, letterSpacing: 0, marginBottom: 0, paddingRight: !hideFavs ? 44 : 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", flexShrink: 0 }}>
               {b.name}
               {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
                 <img src="/verificado.png" alt="Verificado" width="18" height="18" style={{ marginLeft: 6, flexShrink: 0 }} />
               )}
             </h3>
             
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "nowrap", overflow: "hidden" }}>
               {renderRatingRow(b, realFavs, hideReviews, hideFavs, T, {}, {}, googleRatings)}
-
-              {!hideSchedule && (!hideReviews || (!hideFavs && realFavs > 0)) && (
-                <div style={{ width: 4, height: 4, borderRadius: "50%", background: T.border }} />
-              )}
-
-              {!hideSchedule && renderScheduleRow(b, T, t)}
             </div>
+
+            {(distStr || (!hideSchedule && !schedHidden)) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" }}>
+                {distStr && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 700, color: T.sub, flexShrink: 0 }}>
+                    <Icon name="pin" size={12} color={T.sub} />{distStr}
+                  </span>
+                )}
+                {distStr && !hideSchedule && !schedHidden && (
+                  <div style={{ width: 4, height: 4, borderRadius: "50%", background: T.border, flexShrink: 0 }} />
+                )}
+                {!hideSchedule && renderScheduleRow(b, T, t)}
+              </div>
+            )}
 
             {showDirections && (
               <div style={{ marginTop: 8 }}>
@@ -309,7 +316,7 @@ export default memo(function BusinessCard({
 
         {/* Fav button */}
         {!hideFavs && (
-          <div style={{ position: "absolute", bottom: -2, right: 4, zIndex: 10 }}>
+          <div style={{ position: "absolute", top: 8, right: 8, zIndex: 10, width: 36, height: 36, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             {renderFavoriteButton(isFav, handleFav, showPlus, false, T)}
           </div>
         )}
