@@ -1,6 +1,8 @@
 // Confirmaciones (RSVP) de un evento privado. Los invitados no tienen
 // cuenta: solo escriben su nombre y confirman. Si cambian de opinión,
 // confirman de nuevo y se queda la más reciente (ver summarizeRsvps).
+// Tras confirmar, el formulario se minimiza a una línea con su respuesta
+// (y se recuerda en este dispositivo, para que no tenga que repetirla).
 import { useEffect, useState, useCallback } from 'react';
 import { sb } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -11,13 +13,25 @@ const STATUS_OPTIONS = [
   { value: 'quizas', label: 'Quizás' },
   { value: 'no', label: 'No voy' },
 ];
+const STATUS_LABEL = { voy: 'Vas', quizas: 'Quizás', no: 'No voy' };
 
-export default function PrivateEventRsvp({ event, T, toast$ }) {
+const storageKey = (eventId) => `cg_rsvp_${eventId}`;
+function readStored(eventId) {
+  try {
+    if (typeof window === 'undefined' || !eventId) return null;
+    const parsed = JSON.parse(window.localStorage.getItem(storageKey(eventId)) || 'null');
+    if (!parsed || typeof parsed.name !== 'string' || !parsed.name.trim()) return null;
+    return parsed;
+  } catch { return null; }
+}
+
+export default function PrivateEventRsvp({ event, T, dark, toast$ }) {
   const { user } = useAuthStore();
   const [rows, setRows] = useState([]);
   const [name, setName] = useState('');
   const [status, setStatus] = useState('voy');
   const [companions, setCompanions] = useState(0);
+  const [collapsed, setCollapsed] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(() => {
@@ -29,20 +43,32 @@ export default function PrivateEventRsvp({ event, T, toast$ }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Al abrir, recuperar la confirmación guardada en este dispositivo.
+  useEffect(() => {
+    const stored = readStored(event?.id);
+    setName(stored?.name || '');
+    setStatus(stored?.status || 'voy');
+    setCompanions(stored?.companions || 0);
+    setCollapsed(Boolean(stored));
+  }, [event?.id]);
+
   const summary = summarizeRsvps(rows);
   const isHost = user?.id && event?.user_id && user.id === event.user_id;
 
   const submit = async () => {
     if (!name.trim()) { toast$('Escribe tu nombre para confirmar'); return; }
+    const companionsToSave = status === 'voy' ? companions : 0;
     setSaving(true);
     try {
       await sb.post('event_rsvps', {
         event_id: event.id,
         guest_name: name.trim(),
         status,
-        companions: status === 'voy' ? companions : 0,
+        companions: companionsToSave,
       });
+      try { window.localStorage.setItem(storageKey(event.id), JSON.stringify({ name: name.trim(), status, companions: companionsToSave })); } catch { /* sin almacenamiento */ }
       toast$('Confirmación guardada');
+      setCollapsed(true);
       load();
     } catch (e) {
       toast$('Error: ' + e.message);
@@ -53,54 +79,59 @@ export default function PrivateEventRsvp({ event, T, toast$ }) {
 
   return (
     <div style={{ margin: '0 0 24px 0', textAlign: 'left' }}>
-      <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>🔒 Evento privado</div>
-      <div style={{ fontSize: 13, color: T.sub, marginBottom: 16 }}>
-        Solo quien tenga el enlace puede verlo. Confirma si vas y revisa quién más va.
-      </div>
-
-      {/* ── Confirmar asistencia ── */}
-      <div style={{ background: T.greenL, borderRadius: 16, padding: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 10 }}>¿Vas al evento?</div>
-        <input
-          className="inp"
-          placeholder="Tu nombre"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          style={{ marginBottom: 10 }}
-        />
-        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-          {STATUS_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setStatus(opt.value)}
-              style={{
-                flex: 1, padding: '10px 0', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                border: `1.5px solid ${status === opt.value ? T.green : T.border}`,
-                background: status === opt.value ? T.greenL : T.white,
-                color: status === opt.value ? T.green : T.sub,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        {status === 'voy' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-            <span style={{ fontSize: 13, color: T.sub, flex: 1 }}>¿Llevas acompañantes?</span>
-            <button aria-label="Menos acompañantes" onClick={() => setCompanions(c => Math.max(0, c - 1))} style={{ width: 36, height: 36, borderRadius: '50%', border: `1.5px solid ${T.border}`, background: T.white, color: T.text, fontSize: 18, cursor: 'pointer' }}>−</button>
-            <span style={{ fontSize: 15, fontWeight: 800, color: T.text, minWidth: 20, textAlign: 'center' }}>{companions}</span>
-            <button aria-label="Más acompañantes" onClick={() => setCompanions(c => Math.min(10, c + 1))} style={{ width: 36, height: 36, borderRadius: '50%', border: `1.5px solid ${T.border}`, background: T.white, color: T.text, fontSize: 18, cursor: 'pointer' }}>+</button>
+      {/* ── Confirmar asistencia: tras confirmar se minimiza a una línea ── */}
+      {collapsed ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: T.greenL, borderRadius: 12, padding: '12px 14px', marginBottom: 16 }}>
+          <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: T.text, textAlign: 'left' }}>
+            ✓ {STATUS_LABEL[status] || 'Confirmado'} · {name}
+            {status === 'voy' && companions > 0 ? ` +${companions}` : ''}
           </div>
-        )}
-        <button
-          onClick={submit}
-          disabled={saving}
-          style={{ width: '100%', padding: '12px 0', background: T.green, border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 800, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}
-        >
-          {saving ? 'Guardando…' : 'Confirmar asistencia'}
-        </button>
-      </div>
+          <button onClick={() => setCollapsed(false)} style={{ padding: '8px 14px', background: 'transparent', border: `1.5px solid ${T.border}`, borderRadius: 9999, fontSize: 13, fontWeight: 700, color: T.text, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>Cambiar</button>
+        </div>
+      ) : (
+        <div style={{ background: T.greenL, borderRadius: 16, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 10 }}>¿Vas al evento?</div>
+          <input
+            className="inp"
+            placeholder="Tu nombre"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            style={{ marginBottom: 10 }}
+          />
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            {STATUS_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setStatus(opt.value)}
+                style={{
+                  flex: 1, padding: '10px 0', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                  border: `1.5px solid ${status === opt.value ? T.green : T.border}`,
+                  background: status === opt.value ? T.greenL : T.white,
+                  color: status === opt.value ? T.green : T.sub,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {status === 'voy' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+              <span style={{ fontSize: 13, color: T.sub, flex: 1 }}>¿Llevas acompañantes?</span>
+              <button aria-label="Menos acompañantes" onClick={() => setCompanions(c => Math.max(0, c - 1))} style={{ width: 36, height: 36, borderRadius: '50%', border: `1.5px solid ${T.border}`, background: T.white, color: T.text, fontSize: 18, cursor: 'pointer' }}>−</button>
+              <span style={{ fontSize: 15, fontWeight: 800, color: T.text, minWidth: 20, textAlign: 'center' }}>{companions}</span>
+              <button aria-label="Más acompañantes" onClick={() => setCompanions(c => Math.min(10, c + 1))} style={{ width: 36, height: 36, borderRadius: '50%', border: `1.5px solid ${T.border}`, background: T.white, color: T.text, fontSize: 18, cursor: 'pointer' }}>+</button>
+            </div>
+          )}
+          <button
+            onClick={submit}
+            disabled={saving}
+            style={{ width: '100%', padding: '12px 0', background: T.green, border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 800, color: dark ? '#18181B' : '#FFFFFF', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? 'Guardando…' : 'Confirmar asistencia'}
+          </button>
+        </div>
+      )}
 
       {/* ── Quién va ── */}
       <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 8 }}>
@@ -137,6 +168,8 @@ export default function PrivateEventRsvp({ event, T, toast$ }) {
           Copiar enlace secreto
         </button>
       )}
+
+      <div style={{ marginTop: 16, fontSize: 12, color: T.sub, textAlign: 'center' }}>🔒 Evento privado · solo visible con el enlace</div>
     </div>
   );
 }

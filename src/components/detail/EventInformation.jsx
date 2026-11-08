@@ -1,6 +1,7 @@
 import React from 'react';
 import Icon from '../ui/Icon.jsx';
 import { getEventPrice, getEventLinks } from '../../lib/eventDetails.js';
+import { isPrivateEvent } from '../../lib/privateEvents.js';
 
 function dateLabel(value, options) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return '';
@@ -45,7 +46,7 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
           <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 36, marginTop: 2, color: T.text, fontSize: 13, fontWeight: 600, textUnderlineOffset: 3 }}>Cómo llegar ↗</a>
         </div>
       </div>}
-      {price && !hideTickets && <div style={rowStyle}>
+      {price && !hideTickets && !(isPrivateEvent(event) && price.free) && <div style={rowStyle}>
         <Icon name="ticket" size={21} color={T.sub} style={{ flexShrink: 0, marginTop: 2 }} />
         <div><p style={labelStyle}>Entradas</p><p style={{ margin: 0, color: T.text, fontSize: 15, lineHeight: 1.5, fontWeight: 650 }}>{price.text}</p></div>
       </div>}
