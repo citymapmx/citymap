@@ -248,6 +248,15 @@ export default function CityGuide() {
   const [savedExpIds, setSavedExpIds] = useState(() => { try { return JSON.parse(localStorage.getItem("cg_saved_exp") || "[]"); } catch { return []; } });
   const [addBizForm, setAddBizForm] = useState({ name: "", category: "", emoji: "", description: "", address: "", phone: "", whatsapp: "", website: "", video_url: "", lat: "", lng: "", photos: [], facebook: "", instagram: "", tiktok: "", schedule: {} });
   const [editBizId, setEditBizId] = useState(null);
+
+  // Plan de pago pendiente: cuando alguien elige Destacado/Premium sin tener
+  // negocio, el plan queda guardado y el flujo sigue al login o al registro
+  // del negocio; al volver, los planes se reabren con ese plan elegido.
+  const [pendingPlan, setPendingPlan] = useState(null);
+  const pendingPlanHandledRef = useRef(null);
+  // Regreso de Stripe: ?success=true o ?canceled=true en la URL.
+  const [payStatus, setPayStatus] = useState(null);
+  const payReturnRef = useRef(null);
   
   const [activeTab, setActiveTab] = useState("descubrir");
   const [search, setSearch] = useState(() => {
@@ -285,6 +294,69 @@ export default function CityGuide() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Iniciar un plan de pago: con negocio, el modal se abre en PlansPage;
+  // sin negocio, se guarda el plan y se sigue al login o al registro.
+  const startPaidPlan = (plan, billing) => {
+    setPendingPlan({ key: plan.key, billing });
+    if (!user) { setShowPlans(false); setShowAuth(true); return; }
+    if (!myBizList?.length) { setShowPlans(false); setShowAddBiz(true); return; }
+    setShowPlans(true);
+  };
+
+  // Tras el login con un plan pendiente: abrir el registro del negocio
+  // (o los planes, si ya tiene uno). Se consulta la lista fresca para no
+  // abrir el registro a quien ya tiene negocio.
+  useEffect(() => {
+    if (!pendingPlan || !user || pendingPlanHandledRef.current === pendingPlan) return;
+    pendingPlanHandledRef.current = pendingPlan;
+    (async () => {
+      const list = await loadMyBiz(user.id);
+      if (list?.length) setShowPlans(true);
+      else setShowAddBiz(true);
+    })();
+  }, [user, pendingPlan, loadMyBiz, setShowPlans, setShowAddBiz]);
+
+  // Tras crear el negocio, volver a los planes con el plan elegido.
+  useEffect(() => {
+    if (!pendingPlan || !myBizList?.length) return;
+    setShowPlans(true);
+  }, [pendingPlan, myBizList, setShowPlans]);
+
+  // Regreso de Stripe: leer ?success=true / ?canceled=true una sola vez y
+  // limpiar la URL para no repetir el aviso al recargar.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'true') {
+      payReturnRef.current = { success: true, trial: params.get('trial') === '1' };
+    } else if (params.get('canceled') === 'true') {
+      toast$('Pago cancelado. Tu plan no cambió.');
+    } else {
+      return;
+    }
+    window.history.replaceState({}, '', window.location.pathname);
+  }, [toast$]);
+
+  // Confirmar el pago al volver: recargar los negocios y ver si el plan ya
+  // quedó activo (el webhook puede tardar unos segundos).
+  useEffect(() => {
+    const ret = payReturnRef.current;
+    if (!ret?.success || !user) return;
+    payReturnRef.current = null;
+    (async () => {
+      setPayStatus({ state: 'confirming', trial: ret.trial });
+      let plan = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const list = await loadMyBiz(user.id);
+        plan = list?.[0]?.plan;
+        if (plan === 'pro' || plan === 'elite' || plan === 'destacado' || plan === 'premium') break;
+        await new Promise(r => setTimeout(r, 4000));
+      }
+      if (plan === 'pro' || plan === 'destacado') setPayStatus({ state: 'active', planName: 'Destacado', trial: ret.trial });
+      else if (plan === 'elite' || plan === 'premium') setPayStatus({ state: 'active', planName: 'Premium', trial: ret.trial });
+      else setPayStatus({ state: 'pending', trial: ret.trial });
+    })();
+  }, [user, loadMyBiz]);
   
   const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ activeCity, cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname !== "/" && (location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/")); if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true, viewTransition: true }); } } });
   const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites({ sb, user, setShowAuth });
@@ -1444,7 +1516,29 @@ useEffect(() => {
 
         {/* Removed CityPicker */}        {showAdmin && <Suspense fallback={<LoaderFallback/>}><AdminPanel onClose={() => { setShowAdmin(false); loadData(); }} onToast={toast$} T={T} onOpenStoreAdmin={(biz) => setAdminStoreBiz(biz)} /></Suspense>}
         {adminStoreBiz && <Suspense fallback={<LoaderFallback/>}><StoreAdminPanel business={adminStoreBiz} onClose={() => setAdminStoreBiz(null)} T={T} /></Suspense>}
-        {showPlans && <Suspense fallback={<LoaderFallback/>}><PlansPage T={T} onClose={() => setShowPlans(false)} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowPlans(false); setShowAddBiz(true); }} /></Suspense>}
+        {showPlans && <Suspense fallback={<LoaderFallback/>}><PlansPage T={T} onClose={() => setShowPlans(false)} myBizList={myBizList} user={user} pendingPlan={pendingPlan} onConsumePendingPlan={() => setPendingPlan(null)} onStartPaidPlan={startPaidPlan} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowPlans(false); setShowAddBiz(true); }} /></Suspense>}
+        {payStatus && (
+          <div role="dialog" aria-modal="true" aria-label="Confirmación de pago" style={{ position: 'fixed', inset: 0, zIndex: 100001, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 20 }}>
+            <div style={{ background: T.bg, color: T.text, width: '100%', maxWidth: 340, borderRadius: 24, padding: 24, textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
+              {payStatus.state === 'confirming' && (<>
+                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Confirmando tu pago…</div>
+                <p style={{ fontSize: 14, color: T.sub, margin: '0 0 20px' }}>Esto tarda unos segundos.</p>
+                <button onClick={() => setPayStatus(null)} style={{ width: '100%', padding: 14, background: 'transparent', border: `1px solid ${T.border}`, borderRadius: 999, fontWeight: 700, fontSize: 15, color: T.text, cursor: 'pointer' }}>Cerrar</button>
+              </>)}
+              {payStatus.state === 'active' && (<>
+                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>¡Tu plan {payStatus.planName} está activo!</div>
+                <p style={{ fontSize: 14, color: T.sub, margin: '0 0 20px' }}>{payStatus.trial ? 'Tienes 7 días gratis. El primer cobro es después de la prueba.' : 'Tu pago se recibió y tu negocio ya tiene el plan.'}</p>
+                <button onClick={() => setPayStatus(null)} style={{ width: '100%', padding: 14, background: T.text, border: 'none', borderRadius: 999, fontWeight: 800, fontSize: 15, color: T.bg, cursor: 'pointer' }}>Entendido</button>
+              </>)}
+              {payStatus.state === 'pending' && (<>
+                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Tu pago se recibió</div>
+                <p style={{ fontSize: 14, color: T.sub, margin: '0 0 20px' }}>Estamos activando tu plan. Si en unos minutos no se refleja, escríbenos por WhatsApp.</p>
+                <button onClick={() => window.open('https://wa.me/523223792428?text=Hola, pagué un plan y aún no se refleja en mi negocio.', '_blank')} style={{ width: '100%', padding: 14, background: T.text, border: 'none', borderRadius: 999, fontWeight: 800, fontSize: 15, color: T.bg, cursor: 'pointer', marginBottom: 10 }}>Hablar por WhatsApp</button>
+                <button onClick={() => setPayStatus(null)} style={{ width: '100%', padding: 14, background: 'transparent', border: `1px solid ${T.border}`, borderRadius: 999, fontWeight: 700, fontSize: 15, color: T.text, cursor: 'pointer' }}>Entendido</button>
+              </>)}
+            </div>
+          </div>
+        )}
         {claimBiz && <Suspense fallback={<LoaderFallback/>}><ClaimModal biz={claimBiz} user={user} onClaim={doClaim} onClose={() => setClaimBiz(null)} /></Suspense>}
 
         {/* SIDE MENU */}

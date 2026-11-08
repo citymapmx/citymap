@@ -1,3 +1,4 @@
+/* global process */
 import Stripe from 'stripe';
 
 export default async function handler(req, res) {
@@ -50,13 +51,17 @@ export default async function handler(req, res) {
         unit_amount = interval === 'year' ? 99000 : 9900; // $990 MXN o $99 MXN
       } else if (plan_id === 'elite') {
         name = "Plan Premium";
-        unit_amount = interval === 'year' ? 199000 : 19900; // $1,990 MXN o $199 MXN
+        unit_amount = interval === 'year' ? 249000 : 24900; // $2,490 MXN o $249 MXN
       }
     }
 
     if (unit_amount === 0) {
       return res.status(400).json({ error: 'Plan o combinación no válidos' });
     }
+
+    // Prueba gratis de 7 días solo en Destacado mensual: la tarjeta se
+    // registra hoy y el primer cobro es después de la prueba.
+    const trialDays = plan_id === 'pro' && interval === 'month' ? 7 : 0;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -78,7 +83,8 @@ export default async function handler(req, res) {
         },
       ],
       mode: 'subscription',
-      success_url: `${host_url}/perfil?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      ...(trialDays ? { subscription_data: { trial_period_days: trialDays } } : {}),
+      success_url: `${host_url}/cuenta?success=true&session_id={CHECKOUT_SESSION_ID}${trialDays ? '&trial=1' : ''}`,
       cancel_url: `${host_url}/precios?canceled=true`,
       client_reference_id: biz_id, // Para saber a qué negocio aplicar el plan
       metadata: {
