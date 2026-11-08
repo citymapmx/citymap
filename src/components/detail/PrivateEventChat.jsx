@@ -242,21 +242,21 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
         </div>
       )}
 
-      {/* ── Contenedor del chat: claro, con textura sutil, sombra suave y borde fino ── */}
+      {/* ── Contenedor del chat estilo referencia: plano, sin borde ni sombra ── */}
       {/* El campo para escribir vive dentro del contenedor, fijo abajo. */}
       <div
         style={{
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          background: luma ? '#F8FAF9' : (dark ? 'rgba(255,255,255,0.05)' : '#FFFFFF'),
+          background: luma ? 'transparent' : (dark ? 'rgba(255,255,255,0.05)' : '#FFFFFF'),
           backgroundImage: luma ? 'none' : (dark
             ? 'radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)'
             : 'radial-gradient(rgba(15,23,42,0.045) 1px, transparent 1px)'),
           backgroundSize: '18px 18px',
-          border: luma ? '1px solid #E7EBE8' : `1px solid ${T.border}`,
+          border: luma ? 'none' : `1px solid ${T.border}`,
           borderRadius: 24,
-          boxShadow: luma ? '0 12px 32px rgba(15,23,42,0.08)' : '0 10px 32px rgba(15,23,42,0.10)',
+          boxShadow: luma ? 'none' : '0 10px 32px rgba(15,23,42,0.10)',
           overflow: 'hidden',
           marginBottom: 8,
         }}
@@ -285,12 +285,14 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
             const isHostMessage = m.user_id && event?.user_id && m.user_id === event.user_id;
             const count = likesFor(m.id).length;
             const liked = Boolean(myLike(m.id));
-            // Rediseño Luma en claro: burbujas de color — verde suave las
-            // propias, blancas con sombra leve las demás (sin trazo negro).
-            // En oscuro se queda el estilo anterior (tono píldora + trazo).
-            const bubbleBg = luma ? (own ? '#D9EEE3' : '#FFFFFF') : (dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9');
-            const bubbleBorder = luma ? (own ? 'none' : '1px solid #E7EBE8') : (dark ? '1.5px solid rgba(255,255,255,0.28)' : '1.5px solid #111111');
-            const bubbleShadow = luma ? '0 1px 3px rgba(15,23,42,0.08)' : 'none';
+            // Estilo referencia en claro: burbujas planas y redondeadas —
+            // las propias en oscuro (#0F172A, texto blanco), las demás en
+            // gris claro, sin borde ni sombra. En oscuro se queda el estilo
+            // anterior (tono píldora + trazo).
+            const bubbleBg = luma ? (own ? '#0F172A' : '#F1F5F9') : (dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9');
+            const bubbleBorder = luma ? 'none' : (dark ? '1.5px solid rgba(255,255,255,0.28)' : '1.5px solid #111111');
+            const bubbleShadow = 'none';
+            const bubbleColor = luma && own ? '#FFFFFF' : T.text;
             return (
               <div key={m.id}>
                 {showDay && (
@@ -298,11 +300,11 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
                     <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 9999, background: luma ? '#FFFFFF' : (dark ? 'rgba(255,255,255,0.08)' : '#F1F5F9'), border: luma ? '1px solid #E7EBE8' : 'none', color: T.sub }}>{formatChatDay(m.created_at)}</span>
                   </div>
                 )}
-                {showDivider && <div style={{ height: 1, background: dark ? '#52525B' : '#D4D4D8', margin: '4px 0' }} />}
+                {showDivider && !luma && <div style={{ height: 1, background: dark ? '#52525B' : '#D4D4D8', margin: '4px 0' }} />}
                 {own ? (
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <div style={{ maxWidth: '85%', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: bubbleShadow, borderRadius: 16, borderBottomRightRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' }}>{m.body}</div>
+                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: bubbleShadow, borderRadius: 20, borderBottomRightRadius: 6, padding: '8px 12px', fontSize: 14, color: bubbleColor, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' }}>{m.body}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <span style={{ fontSize: 11, color: T.sub }}>{formatMessageTime(m.created_at)}</span>
                         {m.pinned && <span title="Mensaje fijado" style={{ fontSize: 12 }}>📌</span>}
@@ -339,7 +341,7 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
                           {m.pinned && <span title="Mensaje fijado" style={{ fontSize: 12 }}>📌</span>}
                         </div>
                       )}
-                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: bubbleShadow, borderRadius: 16, borderBottomLeftRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
+                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: bubbleShadow, borderRadius: 20, borderBottomLeftRadius: 6, padding: '8px 12px', fontSize: 14, color: bubbleColor, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <button aria-label={liked ? 'Quitar me gusta' : 'Me gusta'} onClick={() => toggleLike(m)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px 2px 0', fontSize: 13, fontWeight: 700, color: T.sub, fontFamily: 'inherit' }}>
                           <Icon name={liked ? 'heart_overlay_f' : 'heart_overlay'} size={16} />
@@ -376,7 +378,9 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
       </div>
 
       {/* ── Campo para escribir, dentro del contenedor ── */}
-      <div style={{ borderTop: `1px solid ${T.border}` }}>
+      {/* Estilo referencia en claro: píldora blanca con el botón de enviar
+          en círculo oscuro con avioncito, sin línea divisoria encima. */}
+      <div style={{ borderTop: luma ? 'none' : `1px solid ${T.border}` }}>
         <form onSubmit={send} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px 12px' }}>
           {!user && (
             <input
@@ -387,7 +391,7 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
               style={{ padding: '10px 14px' }}
             />
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={luma ? { display: 'flex', gap: 8, alignItems: 'center', background: '#FFFFFF', border: '1px solid #E7EBE8', borderRadius: 9999, padding: '4px 4px 4px 16px' } : { display: 'flex', gap: 8 }}>
             <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
               <input
                 className="inp"
@@ -396,10 +400,10 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
                 value={body}
                 maxLength={MAX_BODY}
                 onChange={e => setBody(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', caretColor: body ? 'auto' : 'transparent' }}
+                style={luma ? { width: '100%', padding: '10px 0', border: 'none', background: 'transparent', boxShadow: 'none', caretColor: body ? 'auto' : 'transparent' } : { width: '100%', padding: '10px 14px', caretColor: body ? 'auto' : 'transparent' }}
               />
               {body === '' && (
-                <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 3, fontSize: 15 }}>
+                <div style={{ position: 'absolute', left: luma ? 0 : 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 3, fontSize: 15 }}>
                   <span className="chat-caret" style={{ color: '#38BDF8', fontSize: 20, lineHeight: 1 }}>|</span>
                   <span style={{ color: T.sub }}>Mensaje</span>
                 </div>
@@ -409,9 +413,9 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
               type="submit"
               disabled={sending || !body.trim()}
               aria-label="Enviar mensaje"
-              style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.35)', background: dark ? 'rgba(244,244,245,0.72)' : 'rgba(0,0,0,0.68)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: dark ? '#18181B' : '#FFFFFF', fontSize: 19, cursor: 'pointer', flexShrink: 0, opacity: sending || !body.trim() ? 0.5 : 1, boxShadow: '0 6px 18px rgba(15,23,42,0.22), inset 0 1px 0 rgba(255,255,255,0.25)' }}
+              style={luma ? { width: 36, height: 36, borderRadius: '50%', border: 'none', background: '#0F172A', color: '#FFFFFF', cursor: 'pointer', flexShrink: 0, opacity: sending || !body.trim() ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' } : { width: 44, height: 44, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.35)', background: dark ? 'rgba(244,244,245,0.72)' : 'rgba(0,0,0,0.68)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: dark ? '#18181B' : '#FFFFFF', fontSize: 19, cursor: 'pointer', flexShrink: 0, opacity: sending || !body.trim() ? 0.5 : 1, boxShadow: '0 6px 18px rgba(15,23,42,0.22), inset 0 1px 0 rgba(255,255,255,0.25)' }}
             >
-              ➤
+              {luma ? <Icon name="send" size={18} /> : '➤'}
             </button>
           </div>
         </form>
