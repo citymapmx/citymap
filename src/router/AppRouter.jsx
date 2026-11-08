@@ -1,9 +1,10 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import BrandSplash from '../components/ui/BrandSplash.jsx';
 import { IS_WORLD } from '../lib/domain.js';
+import { parseRevistaPath } from '../lib/revistaRoute.js';
 
 const LoaderFallback = () => <BrandSplash />;
 
@@ -118,6 +119,16 @@ export default function AppRouter(props) {
   // La raíz "/" es el muro global (todas las ciudades); "/:ciudad" sigue siendo el inicio de esa ciudad.
   const isGlobalHome = contentLocation.pathname === '/';
 
+  // ── REVISTA (keep-alive) ──────────────────────────────────────────
+  // TripsView se mantiene montada una vez visitada: al salir de la sección
+  // y volver no se remontan las tarjetas ni se vuelven a pedir las fotos.
+  // Vive fuera de <Routes> (por eso la ciudad y el artículo llegan por
+  // props desde la URL), y se oculta con display:none cuando no es su ruta.
+  const revistaRoute = parseRevistaPath(contentLocation.pathname);
+  const isRevistaPath = Boolean(revistaRoute);
+  const [revistaMounted, setRevistaMounted] = useState(isRevistaPath);
+  useEffect(() => { if (isRevistaPath && !revistaMounted) setRevistaMounted(true); }, [isRevistaPath, revistaMounted]);
+
   // Show detail overlay on top of HomeView
   return (
     <ErrorBoundary>
@@ -129,6 +140,16 @@ export default function AppRouter(props) {
             bug that occurred when pressing back from a detail view.
         ──────────────────────────────────────────────────────────────── */}
         {showHomeView && (isGlobalHome ? <GlobalHomeView /> : <div inert={showDetail || undefined}><HomeView isBackground={showDetail} /></div>)}
+
+        {/* ── REVISTA (keep-alive) ────────────────────────────────────
+            Montada una vez visitada y oculta al salir, para que las fotos
+            queden en caché y no parpadeen al volver a la sección.
+        ──────────────────────────────────────────────────────────────── */}
+        {revistaMounted && (
+          <div style={{ display: isRevistaPath ? undefined : 'none' }} inert={showDetail || undefined}>
+            <TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} routeCity={revistaRoute?.city || undefined} routeSlug={revistaRoute?.slug || undefined} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />
+          </div>
+        )}
 
         {/* ── DETAIL OVERLAY ────────────────────────────────────────── */}
         <AnimatePresence>
@@ -163,12 +184,10 @@ export default function AppRouter(props) {
             <Route path="/planes" element={<NotFoundView />} />
             <Route path="/planes/*" element={<NotFoundView />} />
 
-            <Route path="/mis-planes" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
-            <Route path="/experiencias/:city" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
-            <Route path="/experiencias/:city/:slug" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
-            <Route path="/revista" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
-            <Route path="/revista/:city" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
-            <Route path="/revista/:city/:slug" element={<TripsView T={T} dark={dark} navigate={navigate} mapPins={mapPins} activeCity={activeCity} cities={cities} user={user} userCoords={userCoords} profile={profile} initialPlanId={initialPlanParam?.current} initialJoinToken={initialJoinParam?.current} onInitialPlanOpened={() => { if(initialPlanParam) initialPlanParam.current = null; if(initialJoinParam) initialJoinParam.current = null; }} />} />
+            {/* Revista vive fuera de <Routes> (keep-alive); estas rutas solo evitan que el "*" de abajo redirija a "/". */}
+            <Route path="/mis-planes" element={null} />
+            <Route path="/revista/*" element={null} />
+            <Route path="/experiencias/*" element={null} />
 
             <Route path="/favoritos" element={<FavsView />} />
             <Route path="/login" element={<AppLoginView T={T} dark={dark} navigate={navigate} />} />
