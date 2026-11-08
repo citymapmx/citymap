@@ -5,7 +5,8 @@ import { useDataStore } from '../../store/useDataStore';
 import { useUIStore } from '../../store/useUIStore';
 import { sb } from '../../lib/supabase';
 import { getT, EVENT_CATEGORIES } from '../../lib/constants';
-import { createSlug } from '../../lib/utils';
+import { createSlug, randomToken } from '../../lib/utils';
+import { privateEventUrl } from '../../lib/privateEvents.js';
 import { EVENT_IMAGE_OPTIMIZE } from '../../lib/imageOptimize.js';
 import Icon from '../ui/Icon';
 import Uploader from '../Uploader';
@@ -26,7 +27,7 @@ const EMPTY_FORM = {
 export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }) {
   const { user } = useAuthStore();
   const { events } = useDataStore();
-  const { activeCity, dark, toast$ } = useUIStore();
+  const { activeCity, dark, toast$, setSelectedEvent } = useUIStore();
 
   const T = getT(dark);
 
@@ -36,6 +37,8 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
   const [step, setStep] = useState(1);
   const [showManualAddr, setShowManualAddr] = useState(false);
   const [createEvForm, setCreateEvForm] = useState(EMPTY_FORM);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [createdPrivate, setCreatedPrivate] = useState(null);
 
   // El autocompletado de Google solo existe en el paso 2 (ahí se renderiza
   // el input del lugar), así que se (re)inicializa cuando cambia el paso.
@@ -88,7 +91,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
 
   if (!showCreateEvent) return null;
 
-  const close = () => { setShowCreateEvent(false); setStep(1); };
+  const close = () => { setShowCreateEvent(false); setStep(1); setIsPrivate(false); setCreatedPrivate(null); };
 
   const canContinue = () => {
     if (step === 1 && !createEvForm.title.trim()) { toast$("El título es obligatorio"); return false; }
@@ -101,11 +104,30 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
     try {
       let baseSlug = createSlug(createEvForm.title);
       if (!baseSlug.startsWith(activeCity + "-")) baseSlug = `${activeCity}-${baseSlug}`;
+      // El enlace secreto ES la URL: el slug del privado lleva un sufijo
+      // aleatorio que nadie puede adivinar.
+      if (isPrivate) baseSlug = `${baseSlug}-${randomToken(6)}`;
       let newSlug = baseSlug;
       let counter = 1;
       while (events.some(e => e.slug === newSlug)) { newSlug = `${baseSlug}-${counter++}`; }
 
-      await sb.post("events", { ...createEvForm, slug: newSlug, city_slug: activeCity, user_id: user.id, status: "pending", active: false });
+      // El privado no pasa por aprobación (nunca sale en público): queda
+      // activo de inmediato y solo se abre con su enlace.
+      const rows = await sb.post("events", {
+        ...createEvForm,
+        slug: newSlug,
+        city_slug: activeCity,
+        user_id: user.id,
+        visibility: isPrivate ? "private" : "public",
+        status: isPrivate ? "approved" : "pending",
+        active: isPrivate ? true : false,
+      });
+      if (isPrivate) {
+        const created = Array.isArray(rows) && rows[0] ? rows[0] : { ...createEvForm, slug: newSlug, city_slug: activeCity, visibility: "private" };
+        setCreatedPrivate(created);
+        toast$("Evento privado creado");
+        return;
+      }
       toast$("Evento enviado para revisión");
       close();
       setCreateEvForm(EMPTY_FORM);
@@ -146,12 +168,25 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
           <div>
             <h2 className="text-xl" style={{ fontFamily: "var(--heading)", color: T.text, marginBottom: 4 }}>Crear evento</h2>
-            <p className="text-sm" style={{ color: T.sub }}>Se publicará tras la aprobación del admin</p>
+            <p className="text-sm" style={{ color: T.sub }}>{isPrivate ? "Solo visible con el enlace secreto · sin aprobación" : "Se publicará tras la aprobación del admin"}</p>
           </div>
           <button onClick={close} style={{ width: 36, height: 36, borderRadius: "50%", background: T.border, color: T.text, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {createdPrivate && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 4 }}>
+            <div style={{ textAlign: "center", padding: "8px 0 0" }}>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>🔒</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>¡Tu evento privado está listo!</div>
+              <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>Solo quien tenga este enlace podrá verlo. No sale en público.</div>
+            </div>
+            <div style={{ background: T.bg, border: `1.5px solid ${T.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 13, color: T.text, wordBreak: "break-all", textAlign: "left" }}>{privateEventUrl(createdPrivate)}</div>
+            <button onClick={() => { navigator.clipboard?.writeText(privateEventUrl(createdPrivate)); toast$("Enlace secreto copiado"); }} style={{ padding: "13px 0", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>Copiar enlace secreto</button>
+            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Te invito a mi evento privado: ${createdPrivate.title || "Evento"} ${privateEventUrl(createdPrivate)}`)}`, "_blank")} style={{ padding: "13px 0", background: "#25D366", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>Compartir por WhatsApp</button>
+            <button onClick={() => { const ev = createdPrivate; close(); setCreateEvForm(EMPTY_FORM); setShowManualAddr(false); setSelectedEvent(ev); }} style={{ padding: "13px 0", background: "transparent", border: `1.5px solid ${T.border}`, borderRadius: 14, fontSize: 14, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>Abrir evento</button>
+          </div>
+        )}
+        {!createdPrivate && (<div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {/* ── PASO 1: El evento ── */}
           {step === 1 && (
             <>
@@ -161,6 +196,15 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
                 {createEvForm.img_url && <img src={createEvForm.img_url} alt="" style={{ width: "100%", height: 110, objectFit: "cover", borderRadius: 10, marginTop: 8 }} loading="lazy" />}
               </div>
               <div><div className="text-xs" style={labelStyle}>Título</div><input className="inp" placeholder="Nombre del evento" value={createEvForm.title} onChange={e => setCreateEvForm(f => ({ ...f, title: e.target.value }))} /></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.greenL, borderRadius: 12, padding: "10px 12px" }}>
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>🔒 Evento privado</div>
+                  <div style={{ fontSize: 12, color: T.sub }}>Solo quien tenga el enlace podrá verlo. No sale en público ni necesita aprobación.</div>
+                </div>
+                <button type="button" role="switch" aria-checked={isPrivate} aria-label="Evento privado" onClick={() => setIsPrivate(v => !v)} style={{ width: 48, height: 28, borderRadius: 9999, border: "none", background: isPrivate ? T.green : T.border, position: "relative", cursor: "pointer", flexShrink: 0, padding: 0 }}>
+                  <span style={{ position: "absolute", top: 3, left: isPrivate ? 23 : 3, width: 22, height: 22, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.3)", transition: "left .15s ease" }} />
+                </button>
+              </div>
               <div><div className="text-xs" style={labelStyle}>Descripción</div><textarea className="inp" placeholder="Describe el evento..." rows={3} value={createEvForm.description} onChange={e => setCreateEvForm(f => ({ ...f, description: e.target.value }))} style={{ resize: "none", height: 64 }} /></div>
               <div>
                 <div className="text-xs" style={{ ...labelStyle, marginBottom: 6 }}>Categoría</div>
@@ -281,6 +325,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
                 {formattedDate() && <div style={{ fontSize: 13, color: T.sub }}>{formattedDate()}{createEvForm.time ? ` · ${createEvForm.time}` : ""}</div>}
                 {createEvForm.venue_name && <div style={{ fontSize: 13, color: T.sub }}>{createEvForm.venue_name}</div>}
                 {createEvForm.event_category && <div style={{ fontSize: 13, color: T.sub }}>{createEvForm.event_category}</div>}
+                {isPrivate && <div style={{ fontSize: 13, color: T.sub }}>🔒 Privado · solo con el enlace secreto</div>}
               </div>
             </>
           )}
@@ -300,10 +345,10 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
             {step < 3 ? (
               <button onClick={() => { if (canContinue()) setStep(s => s + 1); }} style={{ padding: "13px 18px", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>Continuar<Icon name="arrow_right" size={16} /></button>
             ) : (
-              <button onClick={submitEvent} style={{ padding: "13px 18px", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Enviar evento</button>
+              <button onClick={submitEvent} style={{ padding: "13px 18px", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>{isPrivate ? "Crear evento privado" : "Enviar evento"}</button>
             )}
           </div>
-        </div>
+        </div>)}
       </div>
     </div>
   );

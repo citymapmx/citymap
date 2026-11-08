@@ -156,6 +156,7 @@ export default function GlobalHomeView() {
         setBiz([...bizRows, ...placeRows.filter((b) => !bizIds.has(b.id))]);
         const evRows = (Array.isArray(evRes) ? evRes : []).filter((ev) => {
           if (!ev || !ev.date) return false;
+          if (ev.visibility === 'private') return false;
           if (ev.end_date) return ev.end_date >= todayStr;
           return ev.date >= todayStr;
         });
@@ -228,7 +229,7 @@ export default function GlobalHomeView() {
         setSearchResults({
           cities: (allCities || []).filter((c) => norm(c.name).includes(qn)),
           biz: Array.isArray(b) ? b : [],
-          events: Array.isArray(e) ? e : [],
+          events: Array.isArray(e) ? e.filter((ev) => ev.visibility !== 'private') : [],
           exps: Array.isArray(x) ? x : [],
         });
       } catch (err) {

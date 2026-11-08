@@ -9,6 +9,8 @@ import { sb } from '../../lib/supabase';
 import Icon from '../ui/Icon';
 import EventPoster from '../detail/EventPoster.jsx';
 import EventInformation from '../detail/EventInformation.jsx';
+import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
+import { isPrivateEvent } from '../../lib/privateEvents';
 
 import { useAppContext } from '../../context/AppContext';
 import { useDataStore } from '../../store/useDataStore';
@@ -180,6 +182,9 @@ export default function EventDetailModal() {
 
                 {/* --- Datos del evento (en los pasados van abajo y sin entradas, que ya no se pueden comprar) --- */}
                 <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} />
+
+                {/* --- Evento privado: confirmaciones (RSVP) --- */}
+                {isPrivateEvent(ev) && !isPast && <PrivateEventRsvp event={ev} T={T} toast$={toast$} />}
 
                 {/* --- ASOCIADO CON --- */}
                 {associatedBiz && (

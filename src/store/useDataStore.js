@@ -431,6 +431,8 @@ export const useDataStore = create((set, get) => ({
           if (Array.isArray(e)) {
             const validEvents = e.filter(ev => {
               if (!ev || !ev.date) return false;
+              // Los eventos privados no entran al store: solo se abren con su enlace.
+              if (ev.visibility === 'private') return false;
               if (ev.end_date) return ev.end_date >= todayStr;
               return ev.date >= todayStr;
             }).map(ev => {

@@ -14,6 +14,10 @@ describe('event listings', () => {
     expect(isListedEvent({active:false}, today)).toBe(false);
     expect(isListedEvent({active:true}, today)).toBe(true);
   });
+  it('excludes private events even when approved and active', () => {
+    expect(isListedEvent({active:true,status:'approved',visibility:'private',date:'2026-12-20'}, today)).toBe(false);
+    expect(isListedEvent({active:true,status:'approved',visibility:'public',date:'2026-12-20'}, today)).toBe(true);
+  });
   it('uses the city day when a visitor is in another timezone', () => {
     expect(eventCalendarDay(Date.parse('2026-10-19T01:00:00Z'), 'America/Mazatlan')).toBe(today);
   });

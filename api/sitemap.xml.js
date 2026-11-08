@@ -65,7 +65,7 @@ export default async function handler(req) {
       add(path, [business.logo_url, ...photos], business.updated_at, business.name);
       if (['restaurantes', 'cafe'].includes(business.category)) add(`${path}/menu`, [], business.updated_at);
     }
-    for (const event of events.filter(event => belongs(event.city_slug))) {
+    for (const event of events.filter(event => belongs(event.city_slug) && event.visibility !== 'private')) {
       if (event.slug || event.id) add(`/evento/${event.slug || event.id}`, [event.img_url || event.img], event.updated_at, event.title);
     }
     for (const experience of experiences.filter(experience => belongs(experience.city_slug))) {
