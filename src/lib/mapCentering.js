@@ -53,3 +53,9 @@ export function screenPixelDistance(a, b, zoom) {
 export function hasCloseNeighbor(target, others, zoom, thresholdPx = 44) {
   return (others || []).some((o) => screenPixelDistance(target, o, zoom) < thresholdPx);
 }
+
+// Al abrir la tarjeta de un pin, acercar hasta 15 si el mapa está lejos,
+// pero nunca alejar si el usuario ya está cerca.
+export function selectionZoom(currentZoom) {
+  return Math.max(currentZoom || 13, 15);
+}

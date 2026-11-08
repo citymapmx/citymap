@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getCityCenter, DEFAULT_MAP_CENTER, hasCloseNeighbor, screenPixelDistance } from '../lib/mapCentering.js';
+import { getCityCenter, DEFAULT_MAP_CENTER, hasCloseNeighbor, screenPixelDistance, selectionZoom } from '../lib/mapCentering.js';
 
 describe('map centering', () => {
   it('uses the city coordinates when present', () => {
@@ -65,5 +65,21 @@ describe('close neighbors on screen', () => {
 
   it('returns false without other pins', () => {
     expect(hasCloseNeighbor(target, [], 13)).toBe(false);
+  });
+});
+
+describe('selection zoom', () => {
+  it('zooms in to 15 when the map is far', () => {
+    expect(selectionZoom(13)).toBe(15);
+  });
+
+  it('never zooms out when the user is already close', () => {
+    expect(selectionZoom(17)).toBe(17);
+    expect(selectionZoom(18)).toBe(18);
+  });
+
+  it('defaults to 15 without a current zoom', () => {
+    expect(selectionZoom(undefined)).toBe(15);
+    expect(selectionZoom(15)).toBe(15);
   });
 });
