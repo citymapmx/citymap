@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
-import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery } from '../lib/eventDetails.js';
+import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, buildItunesSearchUrl } from '../lib/eventDetails.js';
 import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
@@ -159,11 +159,15 @@ describe('filtro por precio y orden por precio', () => {
 describe('reproductor de música del evento', () => {
   it('usa el título como búsqueda solo en conciertos', () => {
     expect(getEventMusicQuery({ title: 'Omar Camacho', event_category: 'Concierto' })).toBe('Omar Camacho');
-    expect(getEventMusicQuery({ title: 'Alfredo Olivas en Tepic', event_category: 'Concierto ' })).toBe('Alfredo Olivas en Tepic');
+    expect(getEventMusicQuery({ title: 'Alfredo Olivas en Tepic', event_category: 'Concierto ' })).toBe('Alfredo Olivas');
     expect(getEventMusicQuery({ title: 'Tributo a Queen', event_category: 'Concierto tributo' })).toBe('Tributo a Queen');
     expect(getEventMusicQuery({ title: 'Festival Pixelatl 2026', event_category: 'Festival' })).toBeNull();
     expect(getEventMusicQuery({ title: 'Calaverandia 2026', event_category: 'Show familiar' })).toBeNull();
     expect(getEventMusicQuery({ title: 'Omar Camacho' })).toBeNull();
     expect(getEventMusicQuery({ event_category: 'Concierto' })).toBeNull();
+  });
+  it('arma la búsqueda de iTunes con el artista y límite de canciones', () => {
+    expect(buildItunesSearchUrl('Omar Camacho')).toBe('https://itunes.apple.com/search?term=Omar%20Camacho&media=music&entity=song&limit=5');
+    expect(buildItunesSearchUrl('Alfredo Olivas', 3)).toContain('limit=3');
   });
 });
