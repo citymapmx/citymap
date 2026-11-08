@@ -1,4 +1,4 @@
-import { eventCalendarDay, isListedEvent, formatEventCardDate } from '../lib/eventListing.js';
+import { eventCalendarDay, isListedEvent, formatEventCardDate, matchesDateFilter, matchesEventSearch, groupEventsByMonth } from '../lib/eventListing.js';
 import { CITY_TZ } from '../lib/constants.js';
 import React, { useState, useMemo, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
@@ -15,6 +15,15 @@ import { useFlipList } from "../lib/useFlipList.js";
 import useTimeStore from "../store/useTimeStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 
+const PAGE_SIZE = 20;
+const DATE_FILTERS = [
+  { key: "todos", label: "Todos" },
+  { key: "hoy", label: "Hoy" },
+  { key: "manana", label: "Mañana" },
+  { key: "finde", label: "Este finde" },
+  { key: "mes", label: "Este mes" },
+];
+
 export default function EventsView() {
   const { t, lang } = useTranslation();
   const ctx = useAppContext();
@@ -30,6 +39,10 @@ export default function EventsView() {
 
   // Secondary sub-filters
   const [eventCategoryFilter, setEventCategoryFilter] = useState("Todos");
+  // Buscador, filtro rápido por fecha y paginación ("Cargar más")
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState("todos");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // City Name calculation
   const cityName = useMemo(() => {
@@ -129,14 +142,70 @@ export default function EventsView() {
   }, [availableCategoryChips, eventCategoryFilter]);
 
   const filteredEvents = useMemo(() => {
-    if (eventCategoryFilter === "Todos") return visibleEvents;
-    const q = eventCategoryFilter.toLowerCase();
-    return visibleEvents.filter(ev => matchesCategory(ev, q));
-  }, [visibleEvents, eventCategoryFilter]);
+    let list = visibleEvents;
+    if (eventCategoryFilter !== "Todos") {
+      const q = eventCategoryFilter.toLowerCase();
+      list = list.filter(ev => matchesCategory(ev, q));
+    }
+    list = list.filter(ev => matchesDateFilter(ev, dateFilter, todayLocal));
+    if (searchQuery.trim()) list = list.filter(ev => matchesEventSearch(ev, searchQuery));
+    return list;
+  }, [visibleEvents, eventCategoryFilter, dateFilter, searchQuery, todayLocal]);
+
+  // Al cambiar cualquier filtro se vuelve a mostrar desde los primeros 20.
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchQuery, eventCategoryFilter, dateFilter]);
+
+  // Solo se renderizan los primeros visibleCount; el resto llega con "Ver más".
+  const renderedEvents = useMemo(() => filteredEvents.slice(0, visibleCount), [filteredEvents, visibleCount]);
+  // Secciones por mes de lo ya cargado, y totales por mes del filtro completo.
+  const monthGroups = useMemo(() => groupEventsByMonth(renderedEvents), [renderedEvents]);
+  const allMonthGroups = useMemo(() => groupEventsByMonth(filteredEvents), [filteredEvents]);
+  const monthTotal = useMemo(() => new Map(allMonthGroups.map(g => [g.key, g.events.length])), [allMonthGroups]);
+
+  const hasActiveFilters = searchQuery.trim() !== "" || dateFilter !== "todos" || eventCategoryFilter !== "Todos";
+  const clearFilters = () => { setSearchQuery(""); setDateFilter("todos"); setEventCategoryFilter("Todos"); };
+
+  // Saltar a un mes: carga lo necesario para que exista y baja hasta su título.
+  const jumpToMonth = (key) => {
+    let last = -1;
+    filteredEvents.forEach((ev, i) => {
+      if (((ev.date || "").slice(0, 7) || "sin-fecha") === key) last = i;
+    });
+    if (last < 0) return;
+    setVisibleCount(c => Math.max(c, last + 1));
+    setTimeout(() => {
+      document.getElementById(`mes-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
+  // Estilo compartido de las píldoras (fecha y categoría se ven igual).
+  const chipStyle = (selected) => ({
+    padding: "8px 16px",
+    borderRadius: 9999,
+    border: selected ? "none" : `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+    background: selected ? (dark ? "#FFFFFF" : "#0F172A") : (dark ? "rgba(255,255,255,0.04)" : "#F8FAFC"),
+    color: selected ? (dark ? "#000000" : "#FFFFFF") : T.sub,
+    fontWeight: selected ? 800 : 600,
+    fontSize: 13,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    transition: "all 0.2s",
+    fontFamily: "inherit",
+  });
+  // Fila de píldoras con desvanecido a la derecha (se ve que hay más).
+  const chipRowStyle = {
+    display: "flex",
+    gap: 8,
+    overflowX: "auto",
+    paddingBottom: 4,
+    scrollbarWidth: "none",
+    WebkitMaskImage: "linear-gradient(90deg, #000 88%, transparent)",
+    maskImage: "linear-gradient(90deg, #000 88%, transparent)",
+  };
 
   // Idea 2 de motion.dev: al cambiar de categoría, las tarjetas se
   // deslizan a su nuevo lugar y las nuevas entran con un fundido.
-  const registerFlip = useFlipList(filteredEvents.map((ev) => ev.id).join(','));
+  const registerFlip = useFlipList(renderedEvents.map((ev) => ev.id).join(','));
 
   // Handle saving/unsaving events
   const handleToggleSaveEvent = (ev, e) => {
@@ -253,15 +322,37 @@ export default function EventsView() {
               )}
             </div>
 
+            {/* Buscador por nombre o lugar (sin importar mayúsculas ni acentos) */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: dark ? "rgba(255,255,255,0.06)" : "#F1F5F9", border: `1px solid ${T.border}`, borderRadius: 9999, padding: "10px 14px" }}>
+              <Icon name="search" size={18} color={T.sub} />
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Buscar evento o lugar…"
+                aria-label="Buscar eventos"
+                style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", color: T.text, fontSize: 15, fontFamily: "inherit" }}
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} aria-label="Limpiar búsqueda" style={{ border: "none", background: "transparent", color: T.sub, fontSize: 20, lineHeight: 1, cursor: "pointer", padding: 0 }}>×</button>
+              )}
+            </div>
+
+            {/* Filtro rápido por fecha */}
+            <div style={chipRowStyle}>
+              {DATE_FILTERS.map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => { haptic(); setDateFilter(f.key); }}
+                  style={chipStyle(dateFilter === f.key)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
             {/* Category Filter Chips: Only show when there are active categories with events */}
             {visibleEvents.length > 0 && availableCategoryChips.length > 1 && (
-              <div style={{
-                display: "flex",
-                gap: 8,
-                overflowX: "auto",
-                paddingBottom: 4,
-                scrollbarWidth: "none"
-              }}>
+              <div style={chipRowStyle}>
                 {availableCategoryChips.map(chip => {
                   const isSelected = eventCategoryFilter === chip;
                   return (
@@ -271,23 +362,27 @@ export default function EventsView() {
                         haptic();
                         setEventCategoryFilter(chip);
                       }}
-                      style={{
-                        padding: "8px 16px",
-                        borderRadius: 9999,
-                        border: isSelected ? "none" : `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
-                        background: isSelected ? (dark ? "#FFFFFF" : "#0F172A") : (dark ? "rgba(255,255,255,0.04)" : "#F8FAFC"),
-                        color: isSelected ? (dark ? "#000000" : "#FFFFFF") : T.sub,
-                        fontWeight: isSelected ? 800 : 600,
-                        fontSize: 13,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        transition: "all 0.2s"
-                      }}
+                      style={chipStyle(isSelected)}
                     >
                       {chip}
                     </button>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Salto por mes (solo cuando hay más de un mes en los resultados) */}
+            {allMonthGroups.length > 1 && (
+              <div style={chipRowStyle}>
+                {allMonthGroups.map(g => (
+                  <button
+                    key={g.key}
+                    onClick={() => { haptic(); jumpToMonth(g.key); }}
+                    style={chipStyle(false)}
+                  >
+                    {g.label} · {g.events.length}
+                  </button>
+                ))}
               </div>
             )}
 
@@ -297,16 +392,26 @@ export default function EventsView() {
                 <div style={{ width: 60, height: 60, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.05)" : "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
                   <Icon name="calendar" size={28} color={T.sub} />
                 </div>
-                <div style={{ fontWeight: 800, fontSize: 16, color: T.text }}>{t("sin_eventos", "Sin eventos por ahora")}</div>
-                <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{t("sin_eventos_desc", "Pronto habrá novedades en tu ciudad")}</div>
+                <div style={{ fontWeight: 800, fontSize: 16, color: T.text }}>{hasActiveFilters ? "Sin resultados" : t("sin_eventos", "Sin eventos por ahora")}</div>
+                <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{hasActiveFilters ? "Prueba con otra búsqueda o quita los filtros" : t("sin_eventos_desc", "Pronto habrá novedades en tu ciudad")}</div>
+                {hasActiveFilters && (
+                  <button onClick={clearFilters} className="press" style={{ marginTop: 16, padding: "10px 18px", borderRadius: 9999, border: `1px solid ${T.border}`, background: T.white, color: T.text, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Limpiar filtros</button>
+                )}
               </div>
             ) : (
-              <div className="event-list-grid" style={{
-                display: "grid",
-                gridTemplateColumns: "var(--event-grid-columns, repeat(2, minmax(0, 1fr)))",
-                gap: 12
-              }}>
-                {filteredEvents.map((ev, index) => {
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                {monthGroups.map(group => (
+                  <div key={group.key} id={`mes-${group.key}`} style={{ scrollMarginTop: 120 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+                      <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.3px" }}>{group.label}</h3>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: T.sub }}>{monthTotal.get(group.key) ?? group.events.length} {(monthTotal.get(group.key) ?? group.events.length) === 1 ? "evento" : "eventos"}</span>
+                    </div>
+                    <div className="event-list-grid" style={{
+                      display: "grid",
+                      gridTemplateColumns: "var(--event-grid-columns, repeat(2, minmax(0, 1fr)))",
+                      gap: 12
+                    }}>
+                      {group.events.map((ev, index) => {
                   const isSaved = savedEventIds.includes(ev.id);
                   const imgSrc = ev.img_url || ev.img;
 
@@ -327,7 +432,15 @@ export default function EventsView() {
                       </button>
                     </article>
                   );
-                })}
+                      })}
+                    </div>
+                  </div>
+                ))}
+                {filteredEvents.length > visibleCount && (
+                  <button onClick={() => { haptic(); setVisibleCount(c => c + PAGE_SIZE); }} className="press" style={{ width: "100%", minHeight: 48, background: T.green, color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, cursor: "pointer", fontFamily: "inherit" }}>
+                    Ver más eventos ({filteredEvents.length - visibleCount} restantes)
+                  </button>
+                )}
               </div>
             )}
           </div>
