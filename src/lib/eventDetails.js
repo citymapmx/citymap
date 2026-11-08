@@ -33,3 +33,46 @@ export function getEventLinks(event) {
   }
   return links.filter((link, index) => links.findIndex(other => other.url === link.url) === index);
 }
+
+// Divide un texto en frases: corta después de . ! ? cuando sigue una
+// mayúscula (o el final), para no partir abreviaturas como "p. m.".
+function splitSentences(text) {
+  const out = [];
+  let start = 0;
+  const re = /[.!?…]+(?=\s+(?:[A-ZÁÉÍÓÚÑ0-9¡¿"“'([])|$)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const end = m.index + m[0].length;
+    out.push(text.slice(start, end).trim());
+    start = end;
+  }
+  const tail = text.slice(start).trim();
+  if (tail) out.push(tail);
+  return out.filter(Boolean);
+}
+
+// Parte la descripción de un evento en párrafos cortos (máximo 2 frases
+// por párrafo) para que no se lea como un muro de texto. Si la primera
+// frase es una exclamación corta, se devuelve aparte como frase destacada.
+export function splitDescription(value) {
+  const text = String(value || '').trim();
+  if (!text) return { lead: null, paragraphs: [] };
+  const paragraphs = [];
+  for (const block of text.split(/\n+/)) {
+    const sentences = splitSentences(block.trim());
+    for (let i = 0; i < sentences.length; i += 2) {
+      paragraphs.push(sentences.slice(i, i + 2).join(' '));
+    }
+  }
+  let lead = null;
+  if (paragraphs.length > 0) {
+    const first = splitSentences(paragraphs[0])[0] || '';
+    if (/[!?]$/.test(first) && first.length <= 90) {
+      lead = first;
+      const rest = paragraphs[0].slice(first.length).trim();
+      if (rest) paragraphs[0] = rest;
+      else paragraphs.shift();
+    }
+  }
+  return { lead, paragraphs };
+}
