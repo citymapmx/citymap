@@ -11,17 +11,23 @@ import EventPoster from '../detail/EventPoster.jsx';
 import EventInformation from '../detail/EventInformation.jsx';
 import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
 import PrivateEventChat from '../detail/PrivateEventChat.jsx';
-import { isPrivateEvent } from '../../lib/privateEvents';
+import { isPrivateEvent, privateEventUrl } from '../../lib/privateEvents';
+import { useAuthStore } from '../../store/useAuthStore';
 
 import { useAppContext } from '../../context/AppContext';
 import { useDataStore } from '../../store/useDataStore';
 
 export default function EventDetailModal() {
   const { selectedEvent, setSelectedEvent, activeCity, dark, toast$ } = useUIStore();
+  const { user } = useAuthStore();
   const { handleCardTap } = useAppContext();
   const mapPins = useDataStore(s => s.mapPins);
   const cities = useDataStore(s => s.cities);
   const [upcoming, setUpcoming] = useState([]);
+  // Pestañas del evento privado: chat (default), detalles, invitados.
+  const [privateTab, setPrivateTab] = useState('chat');
+  const [chatCount, setChatCount] = useState(0);
+  const [guestCount, setGuestCount] = useState(0);
   const evCitySlug = String(selectedEvent?.city_slug || '').split(',').map(s => s.trim()).filter(Boolean)[0] || '';
   const cityTimeZone = (cities.find(c => c.slug === evCitySlug)?.timezone || CITY_TZ[evCitySlug] || 'America/Mexico_City').split(';')[0];
   const todayLocal = eventCalendarDay(Date.now(), cityTimeZone);
@@ -52,6 +58,9 @@ export default function EventDetailModal() {
   closeRef.current = closeEvent;
   useEffect(() => {
     if (!selectedEvent?.id) return;
+    setPrivateTab('chat');
+    setChatCount(0);
+    setGuestCount(0);
     dialog.current?.scrollTo(0, 0);
     const previousFocus = document.activeElement;
     const previousOverflow = document.body.style.overflow;
@@ -181,12 +190,55 @@ export default function EventDetailModal() {
                   </div>
                 )}
 
-                {/* --- Datos del evento (en los pasados van abajo y sin entradas, que ya no se pueden comprar) --- */}
-                <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} />
+                {/* --- Evento privado: pestañas Chat / Detalles / Invitados --- */}
+                {isPrivateEvent(ev) && !isPast ? (
+                  <>
+                    <div style={{ display: 'flex', gap: 4, background: dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', borderRadius: 9999, padding: 4, margin: '0 0 20px 0' }}>
+                      {[
+                        { key: 'chat', label: '💬 Chat del evento', count: chatCount },
+                        { key: 'detalles', label: 'ℹ️ Detalles', count: 0 },
+                        { key: 'invitados', label: '👥 Invitados', count: guestCount },
+                      ].map(tab => {
+                        const active = privateTab === tab.key;
+                        return (
+                          <button
+                            key={tab.key}
+                            onClick={() => setPrivateTab(tab.key)}
+                            style={{
+                              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                              padding: '10px 6px', borderRadius: 9999, border: 'none', cursor: 'pointer',
+                              background: active ? T.green : 'transparent',
+                              color: active ? (dark ? '#18181B' : '#FFFFFF') : T.text,
+                              fontSize: 13, fontWeight: 800, fontFamily: 'inherit', whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {tab.label}
+                            {tab.count > 0 && (
+                              <span style={{ fontSize: 11, fontWeight: 800, padding: '1px 7px', borderRadius: 9999, background: active ? 'rgba(255,255,255,0.35)' : T.green, color: '#FFFFFF' }}>{tab.count}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
 
-                {/* --- Evento privado: confirmaciones (RSVP) y chat --- */}
-                {isPrivateEvent(ev) && !isPast && <PrivateEventRsvp event={ev} T={T} dark={dark} toast$={toast$} />}
-                {isPrivateEvent(ev) && !isPast && <PrivateEventChat event={ev} T={T} dark={dark} toast$={toast$} />}
+                    {privateTab === 'chat' && <PrivateEventChat event={ev} T={T} dark={dark} toast$={toast$} onCountChange={setChatCount} />}
+                    {privateTab === 'detalles' && <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={false} />}
+                    {privateTab === 'invitados' && <PrivateEventRsvp event={ev} T={T} dark={dark} toast$={toast$} onCountChange={setGuestCount} />}
+
+                    {user?.id && ev.user_id && user.id === ev.user_id && (
+                      <button
+                        onClick={() => { navigator.clipboard?.writeText(privateEventUrl(ev)); toast$('Enlace secreto copiado'); }}
+                        style={{ width: '100%', margin: '0 0 16px 0', padding: '12px 0', background: 'transparent', border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, fontWeight: 800, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        🔗 Copiar enlace secreto
+                      </button>
+                    )}
+                    <div style={{ margin: '0 0 8px 0', fontSize: 12, color: T.sub, textAlign: 'center' }}>🔒 Evento privado · solo visible con el enlace</div>
+                  </>
+                ) : (
+                  /* --- Datos del evento (en los pasados van abajo y sin entradas, que ya no se pueden comprar) --- */
+                  <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} />
+                )}
 
                 {/* --- ASOCIADO CON --- */}
                 {associatedBiz && (

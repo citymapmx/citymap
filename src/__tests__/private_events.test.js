@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { randomToken } from '../lib/utils.js';
-import { isPrivateEvent, privateEventUrl, summarizeRsvps, formatMessageTime } from '../lib/privateEvents.js';
+import { isPrivateEvent, privateEventUrl, summarizeRsvps, formatMessageTime, formatChatDay, avatarColor } from '../lib/privateEvents.js';
 import { isListedEvent } from '../lib/eventListing.js';
 
 describe('private events', () => {
@@ -52,5 +52,20 @@ describe('private events', () => {
     expect(formatMessageTime('2026-11-07T22:38:00Z')).toMatch(/^\d{1,2}:\d{2}\s?[ap]\.?\s?m\.?$/i);
     expect(formatMessageTime('')).toBe('');
     expect(formatMessageTime('no-es-fecha')).toBe('');
+  });
+
+  it('labels chat days as Hoy, Ayer or a date', () => {
+    const noon = new Date(); noon.setHours(12, 0, 0, 0);
+    expect(formatChatDay(noon.toISOString())).toBe('Hoy');
+    const yesterday = new Date(noon); yesterday.setDate(yesterday.getDate() - 1);
+    expect(formatChatDay(yesterday.toISOString())).toBe('Ayer');
+    expect(formatChatDay('2026-01-05T12:00:00')).toMatch(/^5 \w+ 2026$/);
+    expect(formatChatDay('')).toBe('');
+  });
+
+  it('gives a stable avatar color per name', () => {
+    expect(avatarColor('Jonathan')).toBe(avatarColor('Jonathan'));
+    expect(avatarColor('Jonathan')).toMatch(/^#[0-9A-F]{6}$/i);
+    expect(avatarColor('')).toMatch(/^#[0-9A-F]{6}$/i);
   });
 });

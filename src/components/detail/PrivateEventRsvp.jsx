@@ -6,7 +6,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { sb } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
-import { summarizeRsvps, privateEventUrl } from '../../lib/privateEvents';
+import { summarizeRsvps } from '../../lib/privateEvents';
 
 const STATUS_OPTIONS = [
   { value: 'voy', label: 'Voy' },
@@ -25,7 +25,7 @@ function readStored(eventId) {
   } catch { return null; }
 }
 
-export default function PrivateEventRsvp({ event, T, dark, toast$ }) {
+export default function PrivateEventRsvp({ event, T, dark, toast$, onCountChange }) {
   const { user } = useAuthStore();
   const [rows, setRows] = useState([]);
   const [name, setName] = useState('');
@@ -53,7 +53,9 @@ export default function PrivateEventRsvp({ event, T, dark, toast$ }) {
   }, [event?.id]);
 
   const summary = summarizeRsvps(rows);
-  const isHost = user?.id && event?.user_id && user.id === event.user_id;
+
+  // Contador de personas que van, para la píldora de la pestaña.
+  useEffect(() => { onCountChange?.(summary.guests); }, [summary.guests, onCountChange]);
 
   const submit = async () => {
     if (!name.trim()) { toast$('Escribe tu nombre para confirmar'); return; }
@@ -158,18 +160,6 @@ export default function PrivateEventRsvp({ event, T, dark, toast$ }) {
           </div>
         ))
       )}
-
-      {/* ── Herramientas del anfitrión ── */}
-      {isHost && (
-        <button
-          onClick={() => { navigator.clipboard?.writeText(privateEventUrl(event)); toast$('Enlace secreto copiado'); }}
-          style={{ width: '100%', marginTop: 16, padding: '12px 0', background: 'transparent', border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, fontWeight: 800, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}
-        >
-          Copiar enlace secreto
-        </button>
-      )}
-
-      <div style={{ marginTop: 16, fontSize: 12, color: T.sub, textAlign: 'center' }}>🔒 Evento privado · solo visible con el enlace</div>
     </div>
   );
 }

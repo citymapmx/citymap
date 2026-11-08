@@ -39,3 +39,27 @@ export function formatMessageTime(value) {
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
 }
+
+// Etiqueta del día de un mensaje del chat: "Hoy", "Ayer" o "7 nov 2026".
+export function formatChatDay(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((today - day) / 86400000);
+  if (diffDays === 0) return 'Hoy';
+  if (diffDays === 1) return 'Ayer';
+  return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+const AVATAR_COLORS = ['#1A7A5E', '#7C3AED', '#B45309', '#0E7490', '#BE185D'];
+
+// Color estable del círculo con la inicial de un invitado (por su nombre).
+export function avatarColor(name) {
+  const text = String(name || '').trim();
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
