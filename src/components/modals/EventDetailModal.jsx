@@ -250,15 +250,6 @@ export default function EventDetailModal() {
               {/* --- CONTENT CARD (No overlap) --- */}
               <div style={{ position: "relative", zIndex: 2, background: luma ? "transparent" : T.bg, padding: "16px 16px 32px", flex: 1, display: "flex", flexDirection: "column" }}>
 
-                {/* --- EVENTO PASADO: el aviso va primero, antes que el título --- */}
-                {isPast && (
-                  <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, margin: '0 0 20px 0', boxShadow: T.shadow }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>Este evento ya terminó</div>
-                    <div style={{ fontSize: 14, color: T.sub, marginBottom: 12 }}>Pero hay más cosas pasando{cityName ? ` en ${cityName}` : ''}. Explora los próximos eventos.</div>
-                    <button onClick={exploreEvents} className="press" style={{ background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 9999, padding: '10px 18px', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Explora nuevos eventos</button>
-                  </div>
-                )}
-
                 {/* En el rediseño Luma el título ya va sobre la foto del héroe. */}
                 {!heroLuma && (
                   <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: showTopRow ? 8 : 12, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
@@ -277,6 +268,15 @@ export default function EventDetailModal() {
                         {topPriceLabel}
                       </span>
                     )}
+                  </div>
+                )}
+
+                {/* --- EVENTO PASADO: el aviso va después del nombre y la categoría --- */}
+                {isPast && (
+                  <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, margin: '0 0 20px 0', boxShadow: T.shadow }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>Este evento ya terminó</div>
+                    <div style={{ fontSize: 14, color: T.sub, marginBottom: 12 }}>Pero hay más cosas pasando{cityName ? ` en ${cityName}` : ''}. Explora los próximos eventos.</div>
+                    <button onClick={exploreEvents} className="press" style={{ background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 9999, padding: '10px 18px', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Explora nuevos eventos</button>
                   </div>
                 )}
 
@@ -303,6 +303,7 @@ export default function EventDetailModal() {
                         </div>
                       );
                     })}
+                    <button onClick={exploreEvents} className="press" style={{ width: '100%', marginTop: 16, minHeight: 48, background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, cursor: 'pointer', fontFamily: 'inherit' }}>Ver todos los eventos</button>
                   </div>
                 )}
 
@@ -396,4 +397,5 @@ export default function EventDetailModal() {
     </AnimatePresence>
   );
 }
+
 
