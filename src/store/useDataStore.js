@@ -408,18 +408,17 @@ export const useDataStore = create((set, get) => ({
         
         const cacheKey = `cg_data_${targetCity}_v4`;
         const pPins = get().loadMapPins(targetCity);
-        const pTimeBiz = get().loadTimeBasedBiz(targetCity);
+        // La lista completa para las secciones por horario corre en fondo
+        // y se actualiza sola; HomeView usa mapPins mientras tanto.
+        get().loadTimeBasedBiz(targetCity);
       
       
       // Secondary fetches (Non-blocking)
       const fetchSecondary = async () => {
         try {
-          const [e, ex, r, p, c] = await Promise.all([
+          const [e, ex] = await Promise.all([
             sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
             sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
-            sb.get("raffles", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => null),
-            sb.get("promos", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => null),
-            sb.get("coupons", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => null)
           ]);
           
           const now = new Date();
@@ -456,6 +455,22 @@ export const useDataStore = create((set, get) => ({
             updates.experiences = ex;
             cacheUpdates.ex = ex;
           }
+
+          // El muro ya tiene eventos y experiencias: publicarlos ahora,
+          // sin esperar a rifas, promos y cupones.
+          if (get().mapPinsCity === targetCity) {
+            set(updates);
+            if (Object.keys(cacheUpdates).length > 0) {
+              updateCityCache(cacheKey, cacheUpdates);
+            }
+          }
+
+          const [r, p, c] = await Promise.all([
+            sb.get("raffles", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => null),
+            sb.get("promos", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => null),
+            sb.get("coupons", `?select=*,businesses!inner(city_slug)&businesses.city_slug=eq.${targetCity}`).catch(() => null)
+          ]);
+
           if (Array.isArray(r)) {
             updates.raffles = r;
           }
@@ -492,7 +507,11 @@ export const useDataStore = create((set, get) => ({
       const pCities = currentCities && currentCities.length > 0 ? Promise.resolve(currentCities) : sb.get("cities", "?order=name.asc").catch(() => []);
       const pFavs = sb.rpc("get_global_favs").catch(() => sb.get("favorites")).catch(() => []);
 
-      const [bn, ca, cc, ci, globalFavs] = await Promise.all([pBanners, pCats, pCityCats, pCities, pFavs, pPins, pTimeBiz]);
+      // Solo lo que necesita la primera pantalla: banners, categorías,
+      // ciudades, favoritos y los primeros 20 negocios. El resto (la lista
+      // de 200 para las secciones por horario, rifas, promos y cupones)
+      // llega después, sin frenar el muro.
+      const [bn, ca, cc, ci, globalFavs] = await Promise.all([pBanners, pCats, pCityCats, pCities, pFavs, pPins]);
       
       if (ci && Array.isArray(ci)) {
         updateMetroZones(ci);
@@ -576,4 +595,5 @@ export const useDataStore = create((set, get) => ({
     return [];
   }
 }));
+
 
