@@ -64,6 +64,9 @@ export default function AdminEventsTab({
 }) {
   const [evForm, setEvForm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [evSearch, setEvSearch] = useState("");
+  const [evCityFilter, setEvCityFilter] = useState("all");
+  const [evStatusFilter, setEvStatusFilter] = useState("all");
 
   const mapsOk = useGMaps();
   const venueRef = useRef(null);
@@ -131,14 +134,43 @@ export default function AdminEventsTab({
     return (b.time || "").localeCompare(a.time || "");
   });
 
+  const filteredEvents = sortedEvents.filter(ev => {
+    if (evCityFilter !== "all" && !(ev.city_slug === "all" || (ev.city_slug && ev.city_slug.split(",").includes(evCityFilter)))) return false;
+    const isFinished = getEventStatus(ev).lbl === "Finalizado";
+    if (evStatusFilter === "upcoming" && isFinished) return false;
+    if (evStatusFilter === "past" && !isFinished) return false;
+    if (evSearch.trim()) {
+      const q = evSearch.trim().toLowerCase();
+      const hay = [ev.title, ev.venue_name, ev.event_category].filter(Boolean).join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
   return (
     <>
       {!evForm && <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>{sortedEvents.length} eventos</span>
+          <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>{filteredEvents.length}{filteredEvents.length !== sortedEvents.length ? ` de ${sortedEvents.length}` : ""} eventos</span>
           <button onClick={() => setEvForm({ _new: true, biz_id: "", title: "", description: "", date: "", time: "", price_type: "gratis", price: "", event_category: "", venue_name: "", venue_address: "", whatsapp: "", img_url: "", city_slug: "all", status: "approved", active: true })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo</button>
         </div>
-        {sortedEvents.map(ev => {
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><Icon name="search" size={16} color="#9CA3AF" /></div>
+          <input type="text" placeholder="Buscar evento por nombre, lugar o categoría..." value={evSearch} onChange={e => setEvSearch(e.target.value)} style={{ width: "100%", padding: "12px 16px 12px 38px", border: "1.5px solid #E2E8F0", borderRadius: 12, fontSize: 14, color: "#0F1A14", outline: "none", background: "#fff", fontFamily: "inherit", boxSizing: "border-box" }} />
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+          <button type="button" onClick={() => setEvCityFilter("all")} style={{ padding: "6px 12px", border: `1.5px solid ${evCityFilter === "all" ? "#1A7A5E" : "#E4E8E4"}`, borderRadius: 20, fontSize: 12, fontWeight: 700, background: evCityFilter === "all" ? "#EAF4F0" : "#fff", color: evCityFilter === "all" ? "#1A7A5E" : "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Todas</button>
+          {(data.cities || []).map(c => (
+            <button key={c.slug} type="button" onClick={() => setEvCityFilter(c.slug)} style={{ padding: "6px 12px", border: `1.5px solid ${evCityFilter === c.slug ? "#1A7A5E" : "#E4E8E4"}`, borderRadius: 20, fontSize: 12, fontWeight: 700, background: evCityFilter === c.slug ? "#EAF4F0" : "#fff", color: evCityFilter === c.slug ? "#1A7A5E" : "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>{c.name}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+          {[["all", "Todos"], ["upcoming", "Vigentes"], ["past", "Pasados"]].map(([v, lbl]) => (
+            <button key={v} type="button" onClick={() => setEvStatusFilter(v)} style={{ padding: "6px 12px", border: `1.5px solid ${evStatusFilter === v ? "#1A7A5E" : "#E4E8E4"}`, borderRadius: 20, fontSize: 12, fontWeight: 700, background: evStatusFilter === v ? "#EAF4F0" : "#fff", color: evStatusFilter === v ? "#1A7A5E" : "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>{lbl}</button>
+          ))}
+        </div>
+        {filteredEvents.length === 0 && <div style={{ padding: "20px", color: "#5A6872", fontSize: 13, textAlign: "center", background: "#fff", borderRadius: 12 }}>Sin resultados para estos filtros</div>}
+        {filteredEvents.map(ev => {
           const st = getEventStatus(ev);
           const isPending = ev.status === "pending" || !ev.active;
           const thumb = ev.img_url || ev.img;
@@ -334,3 +366,4 @@ export default function AdminEventsTab({
     </>
   );
 }
+
