@@ -9,16 +9,18 @@ import { CITY_TZ } from '../../lib/constants.js';
 import { useDataStore } from '../../store/useDataStore.js';
 import { isCatalogBusiness } from '../../lib/storePresentation.js';
 import { eventCalendarDay, eventCoversDay, isListedEvent, formatEventCardDate } from '../../lib/eventListing.js';
+import { useAppContext } from '../../context/AppContext';
 
 // Lo que ve quien llega a /:ciudad/:negocio/menu cuando ese negocio aún no
 // tiene menú digital visible: en vez de un callejón sin salida, la página
 // convierte la visita (que llega de Google) en puerta de entrada al sitio:
-// aviso + WhatsApp del negocio, los eventos de hoy en esa ciudad y los
-// restaurantes cercanos que sí tienen menú. Las dos secciones se ocultan
+// aviso + WhatsApp del negocio, los restaurantes cercanos que sí tienen
+// menú y, debajo, los eventos de hoy en esa ciudad. Las dos secciones se
 // si no hay nada que mostrar; si no hay ni eventos ni menús, queda el
 // botón para explorar la ciudad.
 export default function NoMenuLanding({ business, T, dark, onBack }) {
   const navigate = useNavigate();
+  const { handleEventTap } = useAppContext();
   const cities = useDataStore(s => s.cities);
   const city = business?.city_slug || 'tepic';
   const cityName = cities.find(c => c.slug === city)?.name
@@ -91,36 +93,8 @@ export default function NoMenuLanding({ business, T, dark, onBack }) {
         <button onClick={() => onBack && onBack()} style={{ padding: '12px 28px', background: dark ? '#F4F4F5' : '#18181B', color: dark ? '#18181B' : '#fff', border: 'none', borderRadius: 24, fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Ver perfil del negocio</button>
       </div>
 
-      {eventsToShow && eventsToShow.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 560, marginTop: 36, textAlign: 'left' }}>
-          <h3 style={{ fontSize: 18, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', margin: '0 0 4px' }}>{eventsTitle}</h3>
-          <p style={{ fontSize: 13, color: dark ? '#A1A1AA' : '#71717A', margin: '0 0 14px' }}>Mientras tanto, esto hay en {cityName}.</p>
-          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
-            {eventsToShow.map(ev => {
-              const img = ev.img_url || ev.img;
-              return (
-                <div key={ev.id} onClick={() => navigate(`/evento/${ev.slug || ev.id}`)} className="press" style={{ flexShrink: 0, width: 248, background: dark ? '#232326' : '#FFFFFF', border: `1px solid ${dark ? '#3F3F46' : '#E5E7EB'}`, borderRadius: 16, overflow: 'hidden', cursor: 'pointer', boxShadow: dark ? '0 2px 10px rgba(0,0,0,0.2)' : '0 2px 12px rgba(0,0,0,0.04)' }}>
-                  {img ? (
-                    <OptimizedImage src={getThumbUrl(img, 400)} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} alt="" />
-                  ) : (
-                    <div style={{ width: '100%', height: 120, background: dark ? '#3F3F46' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="image" size={28} color={dark ? '#71717A' : '#D4D4D8'} />
-                    </div>
-                  )}
-                  <div style={{ padding: 12 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#FAFAFA' : '#111111', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 4 }}>{ev.title}</div>
-                    <div style={{ fontSize: 12, color: dark ? '#A1A1AA' : '#6B7280', fontWeight: 600 }}>{formatEventCardDate(ev, { today })}{ev.venue_name ? ` · ${ev.venue_name}` : ''}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <button onClick={() => navigate(`/eventos/${city}`)} style={{ marginTop: 6, padding: 0, background: 'none', border: 'none', color: dark ? '#FAFAFA' : '#18181B', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>Ver todos los eventos en {cityName}</button>
-        </div>
-      )}
-
       {nearbyMenus && nearbyMenus.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 560, marginTop: 32, textAlign: 'left' }}>
+        <div style={{ width: '100%', maxWidth: 560, marginTop: 36, textAlign: 'left' }}>
           <h3 style={{ fontSize: 18, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', margin: '0 0 4px' }}>{isCatalog ? 'Catálogos cerca de ti' : 'Restaurantes con menú cerca'}</h3>
           <p style={{ fontSize: 13, color: dark ? '#A1A1AA' : '#71717A', margin: '0 0 14px' }}>Estos lugares en {cityName} sí tienen su {storeLabel} publicado.</p>
           <div style={{ display: 'flex', flexDirection: 'column', background: dark ? '#232326' : '#FFFFFF', borderRadius: 20, border: `1px solid ${dark ? '#3F3F46' : '#F3F4F6'}`, overflow: 'hidden', boxShadow: dark ? '0 2px 10px rgba(0,0,0,0.2)' : '0 2px 12px rgba(0,0,0,0.04)' }}>
@@ -144,6 +118,34 @@ export default function NoMenuLanding({ business, T, dark, onBack }) {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {eventsToShow && eventsToShow.length > 0 && (
+        <div style={{ width: '100%', maxWidth: 560, marginTop: 32, textAlign: 'left' }}>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', margin: '0 0 4px' }}>{eventsTitle}</h3>
+          <p style={{ fontSize: 13, color: dark ? '#A1A1AA' : '#71717A', margin: '0 0 14px' }}>Mientras tanto, esto hay en {cityName}.</p>
+          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
+            {eventsToShow.map(ev => {
+              const img = ev.img_url || ev.img;
+              return (
+                <div key={ev.id} onClick={() => handleEventTap(ev)} className="press" style={{ flexShrink: 0, width: 248, background: dark ? '#232326' : '#FFFFFF', border: `1px solid ${dark ? '#3F3F46' : '#E5E7EB'}`, borderRadius: 16, overflow: 'hidden', cursor: 'pointer', boxShadow: dark ? '0 2px 10px rgba(0,0,0,0.2)' : '0 2px 12px rgba(0,0,0,0.04)' }}>
+                  {img ? (
+                    <OptimizedImage src={getThumbUrl(img, 400)} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} alt="" />
+                  ) : (
+                    <div style={{ width: '100%', height: 120, background: dark ? '#3F3F46' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="image" size={28} color={dark ? '#71717A' : '#D4D4D8'} />
+                    </div>
+                  )}
+                  <div style={{ padding: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#FAFAFA' : '#111111', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 4 }}>{ev.title}</div>
+                    <div style={{ fontSize: 12, color: dark ? '#A1A1AA' : '#6B7280', fontWeight: 600 }}>{formatEventCardDate(ev, { today })}{ev.venue_name ? ` · ${ev.venue_name}` : ''}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button onClick={() => navigate(`/eventos/${city}`)} style={{ marginTop: 6, padding: 0, background: 'none', border: 'none', color: dark ? '#FAFAFA' : '#18181B', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>Ver todos los eventos en {cityName}</button>
         </div>
       )}
 
