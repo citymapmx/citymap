@@ -110,7 +110,7 @@ export default function EventDetailModal() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ type: "tween", duration: reduceMotion ? 0 : 0.15 }}
-            style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 100000, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior:"contain", outline:"none", fontFamily: "inherit" }}
+            style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 100000, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", overscrollBehavior:"contain", outline:"none", fontFamily: "inherit" }}
           >
             <div style={{ width: "100%", maxWidth: 460, margin: "0 auto", padding: 0, display: "flex", flexDirection: "column", minHeight: "100%" }}>
               
@@ -125,12 +125,12 @@ export default function EventDetailModal() {
                   </button>
                 </div>
               ) : (
-              <div style={{ position: "relative", width: "100%", background: "transparent", overflow: "hidden" }}>
+              <div style={{ position: "relative", width: "100%", maxHeight: 200, background: "transparent", overflow: "hidden" }}>
                 {imgSrc ? (
                   <EventPoster key={imgSrc} src={imgSrc} alt={ev.title || ""} />
                 ) : (
-                  <div style={{ width: "100%", height: "100%", minHeight: 200, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent" }}>
-                    <Icon name="calendar" size={48} color={T.sub} />
+                  <div style={{ width: "100%", height: "100%", minHeight: 120, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent" }}>
+                    <Icon name="calendar" size={36} color={T.sub} />
                   </div>
                 )}
                 
@@ -147,7 +147,7 @@ export default function EventDetailModal() {
               )}
 
               {/* --- CONTENT CARD (No overlap) --- */}
-              <div style={{ position: "relative", zIndex: 2, background: T.bg, padding: "20px 20px 40px", flex: 1, display: "flex", flexDirection: "column" }}>
+              <div style={{ position: "relative", zIndex: 2, background: T.bg, padding: "16px 16px 32px", flex: 1, display: "flex", flexDirection: "column" }}>
 
                 {/* --- EVENTO PASADO: el aviso va primero, antes que el título --- */}
                 {isPast && (
@@ -158,7 +158,7 @@ export default function EventDetailModal() {
                   </div>
                 )}
 
-                <h1 style={{ fontFamily: FONT_BIZ, fontSize: 26, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: (ev.event_category || ev.category) ? 10 : 14, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
+                <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: (ev.event_category || ev.category) ? 8 : 12, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
                 
                 {(ev.event_category || ev.category) && (
                   <div style={{ display: "flex", marginBottom: 8 }}>
@@ -204,11 +204,11 @@ export default function EventDetailModal() {
                 {/* --- Evento privado: pestañas Chat / Detalles / Invitados --- */}
                 {isPrivateEvent(ev) && !isPast ? (
                   <>
-                    <div style={{ display: 'flex', gap: 4, background: dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', borderRadius: 9999, padding: 4, margin: '0 0 20px 0' }}>
+                    <div style={{ display: 'flex', gap: 4, background: dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', borderRadius: 9999, padding: 4, margin: '0 0 14px 0', minWidth: 0 }}>
                       {[
-                        { key: 'chat', label: '💬 Chat del evento', count: chatCount },
-                        { key: 'detalles', label: 'ℹ️ Detalles', count: 0 },
-                        { key: 'invitados', label: '👥 Invitados', count: guestCount },
+                        { key: 'chat', label: 'Chat del evento', count: chatCount },
+                        { key: 'detalles', label: 'Detalles', count: 0 },
+                        { key: 'invitados', label: 'Invitados', count: guestCount },
                       ].map(tab => {
                         const active = privateTab === tab.key;
                         return (
@@ -216,16 +216,16 @@ export default function EventDetailModal() {
                             key={tab.key}
                             onClick={() => setPrivateTab(tab.key)}
                             style={{
-                              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                              padding: '10px 6px', borderRadius: 9999, border: 'none', cursor: 'pointer',
+                              flex: '1 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                              padding: '8px 6px', borderRadius: 9999, border: 'none', cursor: 'pointer',
                               background: active ? T.green : 'transparent',
                               color: active ? (dark ? '#18181B' : '#FFFFFF') : T.text,
                               fontSize: 13, fontWeight: 800, fontFamily: 'inherit', whiteSpace: 'nowrap',
                             }}
                           >
-                            {tab.label}
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{tab.label}</span>
                             {tab.count > 0 && (
-                              <span style={{ fontSize: 11, fontWeight: 800, padding: '1px 7px', borderRadius: 9999, background: active ? 'rgba(255,255,255,0.35)' : T.green, color: '#FFFFFF' }}>{tab.count}</span>
+                              <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 800, padding: '1px 7px', borderRadius: 9999, background: active ? 'rgba(255,255,255,0.35)' : T.green, color: '#FFFFFF' }}>{tab.count}</span>
                             )}
                           </button>
                         );
@@ -239,7 +239,7 @@ export default function EventDetailModal() {
                     {user?.id && ev.user_id && user.id === ev.user_id && (
                       <button
                         onClick={() => { navigator.clipboard?.writeText(privateEventUrl(ev)); toast$('Enlace secreto copiado'); }}
-                        style={{ width: '100%', margin: '0 0 16px 0', padding: '12px 0', background: 'transparent', border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, fontWeight: 800, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}
+                        style={{ width: '100%', margin: '0 0 12px 0', padding: '10px 0', background: 'transparent', border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, fontWeight: 800, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}
                       >
                         🔗 Copiar enlace secreto
                       </button>
