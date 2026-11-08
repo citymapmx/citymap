@@ -13,7 +13,7 @@ import EventInformation from '../detail/EventInformation.jsx';
 import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
 import PrivateEventChat from '../detail/PrivateEventChat.jsx';
 import { isPrivateEvent, privateEventUrl, summarizeRsvps, heroDateParts } from '../../lib/privateEvents';
-import { getEventPrice, getEventPriceAmount } from '../../lib/eventDetails.js';
+import { getEventPrice, getEventPriceAmount, getEventMusicQuery } from '../../lib/eventDetails.js';
 import { SPRING_UI } from '../../lib/spring.js';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -161,6 +161,8 @@ export default function EventDetailModal() {
         const topPriceLabel = !isPrivateEvent(ev) && !isPast && price ? (price.free ? 'Entrada gratuita' : (priceAmount ? `Boletos desde: ${priceAmount}` : null)) : null;
         const category = ev.event_category || ev.category;
         const showTopRow = !isPrivateEvent(ev) && Boolean(category || topPriceLabel);
+        // Reproductor de música: solo conciertos vigentes y públicos.
+        const musicQuery = !isPast && !isPrivateEvent(ev) ? getEventMusicQuery(ev) : null;
 
         return (
           <m.div
@@ -208,12 +210,15 @@ export default function EventDetailModal() {
                       )}
                       <div style={{ fontFamily: FONT_BIZ, fontSize: 30, fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.5px", color: imgSrc ? "#FFFFFF" : T.text, textShadow: imgSrc ? "0 2px 12px rgba(0,0,0,0.35)" : "none" }}>{ev.title}</div>
                       {ev.venue_name && (
-                        <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6, color: imgSrc ? "rgba(255,255,255,0.92)" : T.sub }}>{ev.venue_name}</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6, color: imgSrc ? "rgba(255,255,255,0.92)" : T.sub, textShadow: imgSrc ? "0 1px 8px rgba(0,0,0,0.45)" : "none" }}>{ev.venue_name}</div>
                       )}
                     </div>
                   </>
                 )}
-                
+
+                {/* Desvanecido sutil del borde inferior de la foto hacia el fondo de la página (en claro y en oscuro). Va por encima del degradado oscuro y por debajo del título. */}
+                <div aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 40, background: `linear-gradient(180deg, transparent 0%, ${T.bg} 100%)`, zIndex: 5, pointerEvents: "none" }} />
+
                 {/* Floating Back Button */}
                 <button aria-label="Volver" onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
                   <Icon name="arrow_left" size={22} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
@@ -358,6 +363,22 @@ export default function EventDetailModal() {
                   !isPast && <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />
                 )}
 
+                {/* --- MÚSICA DEL ARTISTA (solo conciertos vigentes y públicos) --- */}
+                {musicQuery && (
+                  <div style={{ margin: '0 0 24px 0' }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>Música del artista</div>
+                    <div style={{ fontSize: 13, color: T.sub, marginBottom: 10 }}>Escucha sus canciones sin salir de aquí.</div>
+                    <iframe
+                      title={`Música de ${ev.title}`}
+                      src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(musicQuery)}`}
+                      loading="lazy"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      style={{ width: '100%', aspectRatio: '16 / 9', border: 0, borderRadius: 12, background: '#000', display: 'block' }}
+                    />
+                  </div>
+                )}
+
                 {/* --- ASOCIADO CON --- */}
                 {associatedBiz && (
                   <div 
@@ -398,6 +419,7 @@ export default function EventDetailModal() {
     </AnimatePresence>
   );
 }
+
 
 
 

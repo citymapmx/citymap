@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
-import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue } from '../lib/eventDetails.js';
+import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery } from '../lib/eventDetails.js';
 import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
@@ -153,5 +153,17 @@ describe('filtro por precio y orden por precio', () => {
       { price: 150 },
     ].sort((a, b) => priceSortValue(a) - priceSortValue(b));
     expect(sorted.map(e => priceSortValue(e))).toEqual([0, 150, 600, Number.POSITIVE_INFINITY]);
+  });
+});
+
+describe('reproductor de música del evento', () => {
+  it('usa el título como búsqueda solo en conciertos', () => {
+    expect(getEventMusicQuery({ title: 'Omar Camacho', event_category: 'Concierto' })).toBe('Omar Camacho');
+    expect(getEventMusicQuery({ title: 'Alfredo Olivas en Tepic', event_category: 'Concierto ' })).toBe('Alfredo Olivas en Tepic');
+    expect(getEventMusicQuery({ title: 'Tributo a Queen', event_category: 'Concierto tributo' })).toBe('Tributo a Queen');
+    expect(getEventMusicQuery({ title: 'Festival Pixelatl 2026', event_category: 'Festival' })).toBeNull();
+    expect(getEventMusicQuery({ title: 'Calaverandia 2026', event_category: 'Show familiar' })).toBeNull();
+    expect(getEventMusicQuery({ title: 'Omar Camacho' })).toBeNull();
+    expect(getEventMusicQuery({ event_category: 'Concierto' })).toBeNull();
   });
 });
