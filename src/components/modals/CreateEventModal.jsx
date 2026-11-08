@@ -131,53 +131,27 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
       onClick={close}
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(8px)",
-        zIndex: 999999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        zIndex: 999999, display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: 480, maxHeight: "calc(100vh - 32px)", overflowY: "auto",
-          background: T.white, borderRadius: 24, padding: "24px 20px 20px",
+          width: "100%", maxWidth: 440, maxHeight: "calc(100dvh - 48px)", overflowY: "auto",
+          background: T.white, borderRadius: 24, padding: "20px 18px 16px",
           boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
         }}
       >
         {/* ── Encabezado ── */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
           <div>
             <h2 className="text-xl" style={{ fontFamily: "var(--heading)", color: T.text, marginBottom: 4 }}>Crear evento</h2>
             <p className="text-sm" style={{ color: T.sub }}>Se publicará tras la aprobación del admin</p>
           </div>
-          <button onClick={close} style={{ width: 44, height: 44, borderRadius: "50%", background: T.border, color: T.text, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="x" size={18} /></button>
+          <button onClick={close} style={{ width: 36, height: 36, borderRadius: "50%", background: T.border, color: T.text, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
 
-        {/* ── Indicador de pasos ── */}
-        <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 20 }}>
-          {STEPS.map((s, i) => {
-            const done = step > s.n;
-            const active = step === s.n;
-            return (
-              <React.Fragment key={s.n}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 0 }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 13, fontWeight: 800,
-                    background: done || active ? T.green : T.border,
-                    color: done || active ? (dark ? "#18181B" : "#FFFFFF") : T.sub,
-                  }}>
-                    {done ? "✓" : s.n}
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: active ? 800 : 600, color: active ? T.text : T.sub, textAlign: "center", whiteSpace: "nowrap" }}>{s.label}</div>
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div style={{ flex: 1, height: 2, background: step > s.n ? T.green : T.border, marginTop: 13, marginLeft: 6, marginRight: 6, borderRadius: 2 }} />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {/* ── PASO 1: El evento ── */}
           {step === 1 && (
             <>
@@ -187,10 +161,10 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
                 {createEvForm.img_url && <img src={createEvForm.img_url} alt="" style={{ width: "100%", height: 110, objectFit: "cover", borderRadius: 10, marginTop: 8 }} loading="lazy" />}
               </div>
               <div><div className="text-xs" style={labelStyle}>Título</div><input className="inp" placeholder="Nombre del evento" value={createEvForm.title} onChange={e => setCreateEvForm(f => ({ ...f, title: e.target.value }))} /></div>
-              <div><div className="text-xs" style={labelStyle}>Descripción</div><textarea className="inp" placeholder="Describe el evento..." rows={3} value={createEvForm.description} onChange={e => setCreateEvForm(f => ({ ...f, description: e.target.value }))} style={{ resize: "none", height: 80 }} /></div>
+              <div><div className="text-xs" style={labelStyle}>Descripción</div><textarea className="inp" placeholder="Describe el evento..." rows={3} value={createEvForm.description} onChange={e => setCreateEvForm(f => ({ ...f, description: e.target.value }))} style={{ resize: "none", height: 64 }} /></div>
               <div>
-                <div className="text-xs" style={{ ...labelStyle, marginBottom: 8 }}>Categoría</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 8 }}>
+                <div className="text-xs" style={{ ...labelStyle, marginBottom: 6 }}>Categoría</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
                   {EVENT_CATEGORIES.map(cat => {
                     const isPreset = EVENT_CATEGORIES.filter(c => c !== "Otro").includes(createEvForm.event_category);
                     const isSelected = createEvForm.event_category === cat || (cat === "Otro" && createEvForm.event_category && !isPreset);
@@ -206,7 +180,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
                           }
                         }}
                         style={{
-                          padding: "8px 14px",
+                          padding: "6px 12px",
                           borderRadius: 9999,
                           border: isSelected ? "none" : `1.5px solid ${T.border}`,
                           background: isSelected ? (dark ? "#FFFFFF" : "#0F172A") : (dark ? "rgba(255,255,255,0.06)" : "#F8FAFC"),
@@ -311,15 +285,22 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
             </>
           )}
 
-          {/* ── Navegación ── */}
-          <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-            {step > 1 && (
-              <button onClick={() => setStep(s => s - 1)} style={{ padding: "15px 20px", background: "transparent", border: `1.5px solid ${T.border}`, borderRadius: 14, fontSize: 15, fontWeight: 700, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>Atrás</button>
-            )}
-            {step < 3 ? (
-              <button onClick={() => { if (canContinue()) setStep(s => s + 1); }} style={{ flex: 1, padding: 15, background: T.green, border: "none", borderRadius: 14, fontSize: 15, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>Continuar</button>
+          {/* ── Navegación: flecha atrás, puntos, continuar ── */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
+            {step > 1 ? (
+              <button aria-label="Atrás" onClick={() => setStep(s => s - 1)} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: `1.5px solid ${T.border}`, color: T.text, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="arrow_left" size={18} /></button>
             ) : (
-              <button onClick={submitEvent} style={{ flex: 1, padding: 15, background: T.green, border: "none", borderRadius: 14, fontSize: 15, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>Enviar evento</button>
+              <div style={{ width: 44, height: 44, flexShrink: 0 }} />
+            )}
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+              {STEPS.map(s => (
+                <span key={s.n} style={{ width: step === s.n ? 22 : 8, height: 8, borderRadius: 9999, background: step >= s.n ? T.green : T.border, transition: "width .2s ease" }} />
+              ))}
+            </div>
+            {step < 3 ? (
+              <button onClick={() => { if (canContinue()) setStep(s => s + 1); }} style={{ padding: "13px 18px", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>Continuar<Icon name="arrow_right" size={16} /></button>
+            ) : (
+              <button onClick={submitEvent} style={{ padding: "13px 18px", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Enviar evento</button>
             )}
           </div>
         </div>
