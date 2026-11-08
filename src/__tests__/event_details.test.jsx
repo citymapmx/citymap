@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
-import { getEventPrice, getEventLinks, normalizeEventLink } from '../lib/eventDetails.js';
+import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription } from '../lib/eventDetails.js';
 import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
@@ -58,5 +58,37 @@ describe('Event links and schedule',()=>{
     expect(html).toContain('6:30 p. m. – 11:00 p. m.');
     expect(html).toContain('Cómo llegar');
     expect(html).toContain('destination=Centro%2C%20Tepic');
+  });
+  it('shows no Cuándo/Dónde/Entradas labels, only the data',()=>{
+    const html=render({date:'2026-11-29',time:'13:00',venue_name:'Titanes',venue_address:'Zapopan, Jal.',price:1208,price_type:'paid'});
+    expect(html).not.toContain('Cuándo');
+    expect(html).not.toContain('Dónde');
+    expect(html).not.toContain('Entradas');
+    expect(html).toContain('29 de noviembre de 2026');
+    expect(html).toContain('Titanes');
+    expect(html).toContain('Entrada: $1208');
+  });
+  it('hides the venue name in the row when the hero already shows it',()=>{
+    const event={venue_name:'Titanes',venue_address:'Zapopan, Jal.'};
+    expect(renderToStaticMarkup(<EventInformation event={event} T={T} heroShowsVenue />)).not.toContain('>Titanes<');
+    expect(renderToStaticMarkup(<EventInformation event={event} T={T} heroShowsVenue />)).toContain('Zapopan, Jal.');
+    expect(renderToStaticMarkup(<EventInformation event={event} T={T} />)).toContain('>Titanes<');
+  });
+  it('splits long descriptions into short paragraphs with a lead line',()=>{
+    const text='¡El día más bonito del año ya está aquí! Este 2026, la tarde se pinta de dorado con Arcade Fire. Santa Pirata presenta su show, la magia de Chet Faker llega por primera vez. Bándalos Chinos y Kakkmaddafakka cierran la noche con todo. Trae a tus amigos y llega temprano para agarrar buen lugar. Habrá comida, bebidas y muchas sorpresas durante toda la tarde.';
+    const { lead, paragraphs } = splitDescription(text);
+    expect(lead).toBe('¡El día más bonito del año ya está aquí!');
+    expect(paragraphs).toHaveLength(3);
+    expect(paragraphs.every(p => p.split('. ').length <= 2)).toBe(true);
+    const html=render({description:text});
+    expect(html).toContain('Leer más');
+    expect(html).toContain('¡El día más bonito del año ya está aquí!');
+  });
+  it('keeps short descriptions whole without a lead or a Leer más button',()=>{
+    const { lead, paragraphs } = splitDescription('Una noche de música en vivo bajo las estrellas.');
+    expect(lead).toBe(null);
+    expect(paragraphs).toEqual(['Una noche de música en vivo bajo las estrellas.']);
+    const html=render({description:'Una noche de música en vivo bajo las estrellas.'});
+    expect(html).not.toContain('Leer más');
   });
 });

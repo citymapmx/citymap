@@ -327,7 +327,7 @@ export default function EventDetailModal() {
                     </div>
 
                     {privateTab === 'chat' && <PrivateEventChat event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setChatCount} />}
-                    {privateTab === 'detalles' && <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={false} />}
+                    {privateTab === 'detalles' && <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={false} heroShowsVenue={heroLuma} />}
                     {privateTab === 'invitados' && <PrivateEventRsvp event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setGuestCount} />}
 
                     {user?.id && ev.user_id && user.id === ev.user_id && (
@@ -342,7 +342,7 @@ export default function EventDetailModal() {
                   </>
                 ) : (
                   /* --- Datos del evento (en los pasados van abajo y sin entradas, que ya no se pueden comprar) --- */
-                  <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} />
+                  <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={heroLuma} />
                 )}
 
                 {/* --- ASOCIADO CON --- */}
