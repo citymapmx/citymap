@@ -407,13 +407,13 @@ export default function EventDetailModal() {
 
                 {/* --- MÚSICA DEL ARTISTA (adelantos de iTunes; si no hay canciones no se muestra nada) --- */}
                 {musicQuery && musicTracks && musicTracks.length > 0 && (
-                  <div style={{ margin: '0 0 24px 0' }}>
+                  <div style={{ margin: '0 0 24px 0', background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, boxShadow: T.shadow }}>
                     <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>Música del artista</div>
                     <div style={{ fontSize: 13, color: T.sub, marginBottom: 10 }}>Escucha un adelanto de sus canciones sin salir de aquí.</div>
-                    {musicTracks.map(track => {
+                    {musicTracks.map((track, i) => {
                       const playing = playingTrackId === track.id;
                       return (
-                        <div key={track.id} onClick={() => toggleMusicTrack(track)} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${T.border}`, cursor: 'pointer' }}>
+                        <div key={track.id} onClick={() => toggleMusicTrack(track)} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? `1px solid ${T.border}` : 'none', cursor: 'pointer' }}>
                           <img src={track.artwork} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', background: T.border, flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                             <div style={{ fontSize: 15, fontWeight: 800, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.name}</div>
@@ -484,6 +484,9 @@ export default function EventDetailModal() {
                         );
                       })}
                     </div>
+                    <div style={{ padding: '0 16px', marginTop: 4 }}>
+                      <button onClick={exploreEvents} className="press" style={{ width: '100%', minHeight: 48, background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, cursor: 'pointer', fontFamily: 'inherit' }}>Ver todos los eventos</button>
+                    </div>
                   </div>
                 )}
 
@@ -495,6 +498,7 @@ export default function EventDetailModal() {
     </AnimatePresence>
   );
 }
+
 
 
 
