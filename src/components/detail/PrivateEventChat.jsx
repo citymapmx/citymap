@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { sb } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
+import Icon from '../ui/Icon.jsx';
 import { formatMessageTime, formatChatDay, avatarColor } from '../../lib/privateEvents';
 
 const POLL_MS = 5000;
@@ -41,7 +42,12 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
   const [name, setName] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
+  const [showNew, setShowNew] = useState(false);
   const listRef = useRef(null);
+  // Scroll inteligente: nearBottomRef dice si el usuario está al final;
+  // forceScrollRef obliga a bajar (al enviar un mensaje).
+  const nearBottomRef = useRef(true);
+  const forceScrollRef = useRef(false);
 
   const load = useCallback(() => {
     if (!event?.id) return;
@@ -73,16 +79,37 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
   useEffect(() => { onCountChange?.(messages.length); }, [messages.length, onCountChange]);
 
   // Bajar al último mensaje cuando llegan nuevos (si ya estabas abajo).
+  // Si estás leyendo arriba, no te mueve: te avisa con la píldora.
   const prevCount = useRef(0);
   useEffect(() => {
     const el = listRef.current;
     if (!el) { prevCount.current = messages.length; return; }
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-    if (messages.length > prevCount.current && (nearBottom || prevCount.current === 0)) {
-      el.scrollTop = el.scrollHeight;
+    if (messages.length > prevCount.current) {
+      if (forceScrollRef.current || nearBottomRef.current || prevCount.current === 0) {
+        el.scrollTop = el.scrollHeight;
+        setShowNew(false);
+      } else {
+        setShowNew(true);
+      }
     }
+    forceScrollRef.current = false;
     prevCount.current = messages.length;
   }, [messages]);
+
+  const handleScroll = () => {
+    const el = listRef.current;
+    if (!el) return;
+    nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (nearBottomRef.current) setShowNew(false);
+  };
+
+  const scrollToBottom = () => {
+    const el = listRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    nearBottomRef.current = true;
+    setShowNew(false);
+  };
 
   const loggedName = user?.user_metadata?.name || user?.email?.split('@')[0] || '';
   const authorName = user ? loggedName : name.trim();
@@ -115,6 +142,7 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
         try { window.localStorage.setItem(`cg_rsvp_${event.id}`, JSON.stringify({ name: authorName })); } catch { /* sin almacenamiento */ }
       }
       setBody('');
+      forceScrollRef.current = true;
       load();
     } catch (err) {
       toast$('Error: ' + err.message);
@@ -193,9 +221,27 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
         </div>
       )}
 
+      {/* ── Contenedor del chat: claro, con textura sutil, sombra suave y borde fino ── */}
+      <div
+        style={{
+          position: 'relative',
+          background: dark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+          backgroundImage: dark
+            ? 'radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)'
+            : 'radial-gradient(rgba(15,23,42,0.045) 1px, transparent 1px)',
+          backgroundSize: '18px 18px',
+          border: `1px solid ${T.border}`,
+          borderRadius: 24,
+          boxShadow: '0 10px 32px rgba(15,23,42,0.10)',
+          overflow: 'hidden',
+          marginBottom: 12,
+        }}
+      >
       <div
         ref={listRef}
-        style={{ maxHeight: 340, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 2px 12px' }}
+        onScroll={handleScroll}
+        className="chat-scroll"
+        style={{ maxHeight: 340, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 10px 16px 16px' }}
       >
         {messages.length === 0 ? (
           <div style={{ fontSize: 13, color: T.sub }}>Aún no hay mensajes. ¡Sé la primera persona en escribir!</div>
@@ -230,8 +276,9 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
                     </div>
                     <div style={{ display: 'inline-block', maxWidth: '100%', background: T.greenL, borderRadius: 16, borderBottomLeftRadius: 4, padding: '10px 14px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                      <button aria-label="Me gusta" onClick={() => toggleLike(m)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px 2px 0', fontSize: 13, fontWeight: 700, color: liked ? '#E11D48' : T.sub, fontFamily: 'inherit' }}>
-                        {liked ? '❤️' : '🤍'}{count > 0 ? ` ${count}` : ''}
+                      <button aria-label={liked ? 'Quitar me gusta' : 'Me gusta'} onClick={() => toggleLike(m)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px 2px 0', fontSize: 13, fontWeight: 700, color: T.sub, fontFamily: 'inherit' }}>
+                        <Icon name={liked ? 'heart_overlay_f' : 'heart_overlay'} size={16} />
+                        {count > 0 && <span>{count}</span>}
                       </button>
                       {isHost && (
                         <>
@@ -245,6 +292,15 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
               </div>
             );
           })
+        )}
+      </div>
+        {showNew && (
+          <button
+            onClick={scrollToBottom}
+            style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 9999, padding: '8px 16px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(15,23,42,0.25)', whiteSpace: 'nowrap' }}
+          >
+            ↓ Nuevos mensajes
+          </button>
         )}
       </div>
 
