@@ -1,4 +1,5 @@
-import { eventCalendarDay, isListedEvent, formatEventCardDate, matchesDateFilter, matchesEventSearch, groupEventsByMonth } from '../lib/eventListing.js';
+import { eventCalendarDay, isListedEvent, formatEventCardDate, matchesDateFilter, matchesEventSearch, groupEventsByMonth, eventCoversDay } from '../lib/eventListing.js';
+import { matchesPriceFilter, priceSortValue } from '../lib/eventDetails.js';
 import { CITY_TZ } from '../lib/constants.js';
 import React, { useState, useMemo, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
@@ -23,6 +24,11 @@ const DATE_FILTERS = [
   { key: "finde", label: "Este finde" },
   { key: "mes", label: "Este mes" },
 ];
+const PRICE_FILTERS = [
+  { key: "todos", label: "Todos" },
+  { key: "gratis", label: "Gratis" },
+  { key: "pago", label: "De pago" },
+];
 
 export default function EventsView() {
   const { t, lang } = useTranslation();
@@ -42,7 +48,16 @@ export default function EventsView() {
   // Buscador, filtro rápido por fecha y paginación ("Cargar más")
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("todos");
+  const [customDate, setCustomDate] = useState("");
+  const [priceFilter, setPriceFilter] = useState("todos");
+  const [sortBy, setSortBy] = useState("fecha");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Tarjeta de filtros: se edita en borrador y se aplica con "Mostrar eventos".
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [draftDate, setDraftDate] = useState("todos");
+  const [draftCustomDate, setDraftCustomDate] = useState("");
+  const [draftPrice, setDraftPrice] = useState("todos");
+  const [draftSort, setDraftSort] = useState("fecha");
 
   // City Name calculation
   const cityName = useMemo(() => {
@@ -147,13 +162,22 @@ export default function EventsView() {
       const q = eventCategoryFilter.toLowerCase();
       list = list.filter(ev => matchesCategory(ev, q));
     }
-    list = list.filter(ev => matchesDateFilter(ev, dateFilter, todayLocal));
+    if (dateFilter === "custom") list = list.filter(ev => eventCoversDay(ev, customDate));
+    else list = list.filter(ev => matchesDateFilter(ev, dateFilter, todayLocal));
     if (searchQuery.trim()) list = list.filter(ev => matchesEventSearch(ev, searchQuery));
+    list = list.filter(ev => matchesPriceFilter(ev, priceFilter));
+    if (sortBy === "precio") {
+      list = [...list].sort((a, b) => {
+        const diff = priceSortValue(a) - priceSortValue(b);
+        if (diff !== 0) return diff;
+        return (a.date || "").localeCompare(b.date || "") || (a.time || "").localeCompare(b.time || "");
+      });
+    }
     return list;
-  }, [visibleEvents, eventCategoryFilter, dateFilter, searchQuery, todayLocal]);
+  }, [visibleEvents, eventCategoryFilter, dateFilter, customDate, searchQuery, priceFilter, sortBy, todayLocal]);
 
   // Al cambiar cualquier filtro se vuelve a mostrar desde los primeros 20.
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchQuery, eventCategoryFilter, dateFilter]);
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchQuery, eventCategoryFilter, dateFilter, customDate, priceFilter, sortBy]);
 
   // Solo se renderizan los primeros visibleCount; el resto llega con "Ver más".
   const renderedEvents = useMemo(() => filteredEvents.slice(0, visibleCount), [filteredEvents, visibleCount]);
@@ -162,20 +186,24 @@ export default function EventsView() {
   const allMonthGroups = useMemo(() => groupEventsByMonth(filteredEvents), [filteredEvents]);
   const monthTotal = useMemo(() => new Map(allMonthGroups.map(g => [g.key, g.events.length])), [allMonthGroups]);
 
-  const hasActiveFilters = searchQuery.trim() !== "" || dateFilter !== "todos" || eventCategoryFilter !== "Todos";
-  const clearFilters = () => { setSearchQuery(""); setDateFilter("todos"); setEventCategoryFilter("Todos"); };
+  const hasActiveFilters = searchQuery.trim() !== "" || dateFilter !== "todos" || eventCategoryFilter !== "Todos" || priceFilter !== "todos" || sortBy !== "fecha";
+  const activeFilterCount = (dateFilter !== "todos" ? 1 : 0) + (eventCategoryFilter !== "Todos" ? 1 : 0) + (priceFilter !== "todos" ? 1 : 0) + (sortBy !== "fecha" ? 1 : 0);
+  const clearFilters = () => { setSearchQuery(""); setDateFilter("todos"); setCustomDate(""); setEventCategoryFilter("Todos"); setPriceFilter("todos"); setSortBy("fecha"); };
 
-  // Saltar a un mes: carga lo necesario para que exista y baja hasta su título.
-  const jumpToMonth = (key) => {
-    let last = -1;
-    filteredEvents.forEach((ev, i) => {
-      if (((ev.date || "").slice(0, 7) || "sin-fecha") === key) last = i;
-    });
-    if (last < 0) return;
-    setVisibleCount(c => Math.max(c, last + 1));
-    setTimeout(() => {
-      document.getElementById(`mes-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
+  // La tarjeta abre con los filtros actuales en borrador; "Mostrar eventos" los aplica.
+  const openSheet = () => {
+    setDraftDate(dateFilter);
+    setDraftCustomDate(customDate);
+    setDraftPrice(priceFilter);
+    setDraftSort(sortBy);
+    setSheetOpen(true);
+  };
+  const applySheet = () => {
+    setDateFilter(draftDate);
+    setCustomDate(draftDate === "custom" ? draftCustomDate : "");
+    setPriceFilter(draftPrice);
+    setSortBy(draftSort);
+    setSheetOpen(false);
   };
 
   // Estilo compartido de las píldoras (fecha y categoría se ven igual).
@@ -201,6 +229,20 @@ export default function EventsView() {
     scrollbarWidth: "none",
     WebkitMaskImage: "linear-gradient(90deg, #000 88%, transparent)",
     maskImage: "linear-gradient(90deg, #000 88%, transparent)",
+  };
+  // Campo desplegable de la tarjeta de filtros (categoría y orden).
+  const selectStyle = {
+    width: "100%",
+    appearance: "none",
+    WebkitAppearance: "none",
+    border: `1px solid ${T.border}`,
+    borderRadius: 12,
+    padding: "12px 40px 12px 14px",
+    background: dark ? "rgba(255,255,255,0.04)" : "#F8FAFC",
+    color: T.text,
+    fontSize: 15,
+    fontFamily: "inherit",
+    cursor: "pointer",
   };
 
   // Idea 2 de motion.dev: al cambiar de categoría, las tarjetas se
@@ -245,6 +287,10 @@ export default function EventsView() {
         }
         .exp-subtitle-anim {
           animation: expFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes sheetUp {
+          from { opacity: 0; transform: translateY(24px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
       <div style={{
@@ -323,7 +369,7 @@ export default function EventsView() {
             </div>
 
             {/* Buscador por nombre o lugar (sin importar mayúsculas ni acentos) */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: dark ? "rgba(255,255,255,0.06)" : "#F1F5F9", border: `1px solid ${T.border}`, borderRadius: 9999, padding: "10px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: dark ? "rgba(255,255,255,0.06)" : "#F1F5F9", border: `1px solid ${T.border}`, borderRadius: 9999, padding: "6px 6px 6px 14px" }}>
               <Icon name="search" size={18} color={T.sub} />
               <input
                 value={searchQuery}
@@ -335,22 +381,15 @@ export default function EventsView() {
               {searchQuery && (
                 <button onClick={() => setSearchQuery("")} aria-label="Limpiar búsqueda" style={{ border: "none", background: "transparent", color: T.sub, fontSize: 20, lineHeight: 1, cursor: "pointer", padding: 0 }}>×</button>
               )}
+              <button onClick={openSheet} aria-label="Filtros de eventos" className="press" style={{ position: "relative", flexShrink: 0, width: 36, height: 36, borderRadius: "50%", border: "none", background: T.green, display: "grid", placeItems: "center", cursor: "pointer" }}>
+                <Icon name="sliders" size={18} color={dark ? "#18181B" : "#FFFFFF"} />
+                {activeFilterCount > 0 && (
+                  <span style={{ position: "absolute", top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9999, background: "#D94F3D", color: "#FFFFFF", fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 4px", border: `2px solid ${T.bg}` }}>{activeFilterCount}</span>
+                )}
+              </button>
             </div>
 
-            {/* Filtro rápido por fecha */}
-            <div style={chipRowStyle}>
-              {DATE_FILTERS.map(f => (
-                <button
-                  key={f.key}
-                  onClick={() => { haptic(); setDateFilter(f.key); }}
-                  style={chipStyle(dateFilter === f.key)}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Category Filter Chips: Only show when there are active categories with events */}
+            {/* Piedras de categorías (se quedan en la página) */}
             {visibleEvents.length > 0 && availableCategoryChips.length > 1 && (
               <div style={chipRowStyle}>
                 {availableCategoryChips.map(chip => {
@@ -368,21 +407,6 @@ export default function EventsView() {
                     </button>
                   );
                 })}
-              </div>
-            )}
-
-            {/* Salto por mes (solo cuando hay más de un mes en los resultados) */}
-            {allMonthGroups.length > 1 && (
-              <div style={chipRowStyle}>
-                {allMonthGroups.map(g => (
-                  <button
-                    key={g.key}
-                    onClick={() => { haptic(); jumpToMonth(g.key); }}
-                    style={chipStyle(false)}
-                  >
-                    {g.label} · {g.events.length}
-                  </button>
-                ))}
               </div>
             )}
 
@@ -451,7 +475,85 @@ export default function EventsView() {
       </div>
 
       <Footer />
+
+      {/* ── TARJETA DE FILTROS (abre desde el botón del buscador) ── */}
+      {sheetOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200 }}>
+          <div onClick={() => setSheetOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)" }} />
+          <div role="dialog" aria-modal="true" aria-label="Filtros de eventos" style={{ position: "absolute", left: 0, right: 0, bottom: 0, maxWidth: 460, margin: "0 auto", background: T.bg, borderRadius: "24px 24px 0 0", padding: "12px 20px calc(env(safe-area-inset-bottom, 0px) + 20px)", maxHeight: "85dvh", overflowY: "auto", boxShadow: "0 -8px 40px rgba(0,0,0,0.25)", animation: "sheetUp 0.25s ease-out" }}>
+            <div style={{ width: 40, height: 4, borderRadius: 9999, background: T.border, margin: "0 auto 12px" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.3px" }}>Filtros de eventos</h2>
+              <button onClick={() => setSheetOpen(false)} aria-label="Cerrar filtros" style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", color: T.text, fontSize: 20, lineHeight: 1, cursor: "pointer" }}>×</button>
+            </div>
+
+            {/* Fecha */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <Icon name="calendar" size={20} color={T.text} />
+                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>Fecha</span>
+              </div>
+              <div style={chipRowStyle}>
+                {DATE_FILTERS.map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => { haptic(); setDraftDate(f.key); setDraftCustomDate(""); }}
+                    style={chipStyle(draftDate === f.key)}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, border: `1px solid ${draftDate === "custom" ? T.green : T.border}`, borderRadius: 12, padding: "4px 6px 4px 14px", background: dark ? "rgba(255,255,255,0.04)" : "#F8FAFC" }}>
+                <Icon name="calendar" size={18} color={T.sub} />
+                <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: T.text }}>Fecha personalizada</span>
+                <input type="date" value={draftCustomDate} onChange={e => { setDraftCustomDate(e.target.value); if (e.target.value) setDraftDate("custom"); }} aria-label="Fecha personalizada" style={{ border: "none", outline: "none", background: "transparent", color: T.text, fontSize: 14, fontFamily: "inherit", maxWidth: 150 }} />
+              </div>
+            </div>
+
+            {/* Precio */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <Icon name="tag" size={20} color={T.text} />
+                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>Precio</span>
+              </div>
+              <div style={chipRowStyle}>
+                {PRICE_FILTERS.map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => { haptic(); setDraftPrice(f.key); }}
+                    style={chipStyle(draftPrice === f.key)}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Ordenar por */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 18, fontWeight: 800, color: T.text, lineHeight: 1 }}>↑↓</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>Ordenar por</span>
+              </div>
+              <div style={{ position: "relative" }}>
+                <select value={draftSort} onChange={e => setDraftSort(e.target.value)} aria-label="Ordenar por" style={selectStyle}>
+                  <option value="fecha">Próximos eventos</option>
+                  <option value="precio">Precio: menor a mayor</option>
+                </select>
+                <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%) rotate(90deg)", pointerEvents: "none", display: "flex" }}>
+                  <Icon name="chevron" size={18} color={T.sub} />
+                </span>
+              </div>
+            </div>
+
+            <button onClick={applySheet} className="press" style={{ width: "100%", minHeight: 52, background: T.green, color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 9999, fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Mostrar eventos</button>
+            <button onClick={() => { clearFilters(); setSheetOpen(false); }} style={{ display: "block", margin: "14px auto 0", border: "none", background: "transparent", color: T.sub, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Limpiar filtros</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 

@@ -42,6 +42,27 @@ export function getEventPriceAmount(event) {
   return price.text.replace(/^(Entrada:|Desde)\s*/i, '') || null;
 }
 
+// Filtro por precio de la página de Eventos: 'todos' | 'gratis' | 'pago'.
+// Sin precio publicado no es ni gratis ni de pago.
+export function matchesPriceFilter(event, filter) {
+  if (!filter || filter === 'todos') return true;
+  const price = getEventPrice(event);
+  if (filter === 'gratis') return Boolean(price?.free);
+  if (filter === 'pago') return Boolean((price && !price.free) || event.price_type === 'paid');
+  return true;
+}
+
+// Valor numérico para ordenar por precio: gratis = 0, con precio = monto,
+// sin precio publicado = al final.
+export function priceSortValue(event) {
+  const price = getEventPrice(event);
+  if (!price) return Number.POSITIVE_INFINITY;
+  if (price.free) return 0;
+  const amount = getEventPriceAmount(event);
+  const num = parseFloat(String(amount || '').replace(/[^0-9,.]/g, '').replace(/,/g, ''));
+  return Number.isFinite(num) ? num : Number.POSITIVE_INFINITY;
+}
+
 // Divide un texto en frases: corta después de . ! ? cuando sigue una
 // mayúscula (o el final), para no partir abreviaturas como "p. m.".
 function splitSentences(text) {
@@ -84,3 +105,4 @@ export function splitDescription(value) {
   }
   return { lead, paragraphs };
 }
+

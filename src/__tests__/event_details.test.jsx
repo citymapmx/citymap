@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
-import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount } from '../lib/eventDetails.js';
+import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue } from '../lib/eventDetails.js';
 import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
@@ -127,5 +127,31 @@ describe('Event links and schedule',()=>{
     const darkT={...T,dark:true,greenD:'#E4E4E7'};
     const html=renderToStaticMarkup(<EventInformation event={{price:150,booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'https://tickets.example.com/event'}]}}} T={darkT} />);
     expect(html).toContain('background:#E4E4E7');
+  });
+});
+
+describe('filtro por precio y orden por precio', () => {
+  it('distingue gratis, de pago y sin precio publicado', () => {
+    expect(matchesPriceFilter({ price_type: 'gratis', price: '' }, 'gratis')).toBe(true);
+    expect(matchesPriceFilter({ price_type: 'gratis', price: '' }, 'pago')).toBe(false);
+    expect(matchesPriceFilter({ price: 150 }, 'pago')).toBe(true);
+    expect(matchesPriceFilter({ price: 150 }, 'gratis')).toBe(false);
+    expect(matchesPriceFilter({ price_type: 'paid', price: '' }, 'pago')).toBe(true);
+    expect(matchesPriceFilter({}, 'gratis')).toBe(false);
+    expect(matchesPriceFilter({}, 'pago')).toBe(false);
+    expect(matchesPriceFilter({ price: 150 }, 'todos')).toBe(true);
+  });
+  it('ordena gratis primero, luego por monto y al final sin precio', () => {
+    expect(priceSortValue({ price_type: 'gratis', price: '' })).toBe(0);
+    expect(priceSortValue({ price: 150 })).toBe(150);
+    expect(priceSortValue({ price: '$1,200' })).toBe(1200);
+    expect(priceSortValue({})).toBe(Number.POSITIVE_INFINITY);
+    const sorted = [
+      { price: 600 },
+      { price_type: 'gratis', price: '' },
+      {},
+      { price: 150 },
+    ].sort((a, b) => priceSortValue(a) - priceSortValue(b));
+    expect(sorted.map(e => priceSortValue(e))).toEqual([0, 150, 600, Number.POSITIVE_INFINITY]);
   });
 });
