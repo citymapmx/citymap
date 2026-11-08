@@ -21,7 +21,8 @@ function timeLabel(value) {
 // El botón de entradas queda fijo abajo mientras se lee la descripción.
 // heroShowsVenue: el héroe ya muestra el lugar, así que la fila solo
 // lleva la dirección (si no hay dirección, se muestra el lugar).
-export default function EventInformation({ event, associatedBiz, T, hideTickets = false, heroShowsVenue = false }) {
+// hidePriceRow: el precio ya se muestra en la fila superior del modal.
+export default function EventInformation({ event, associatedBiz, T, hideTickets = false, heroShowsVenue = false, hidePriceRow = false }) {
   const price = getEventPrice(event);
   const links = getEventLinks(event);
   const showLinks = !hideTickets && links.length > 0;
@@ -33,7 +34,7 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
   const coordinates = event.lat !== null && event.lat !== undefined && event.lat !== '' && event.lng !== null && event.lng !== undefined && event.lng !== '' && Number.isFinite(Number(event.lat)) && Number.isFinite(Number(event.lng));
   const destination = coordinates ? `${event.lat},${event.lng}` : [venue, address].filter(Boolean).join(', ');
   const showVenueLine = venue && (!heroShowsVenue || !address);
-  const showPriceRow = Boolean(price && !hideTickets && !(isPrivateEvent(event) && price.free));
+  const showPriceRow = Boolean(price && !hideTickets && !(isPrivateEvent(event) && price.free) && !hidePriceRow);
   const hasInfo = Boolean((start || times) || (venue || address || coordinates) || showPriceRow);
   const { lead, paragraphs } = splitDescription(event.description);
   const [expanded, setExpanded] = useState(false);

@@ -13,6 +13,7 @@ import EventInformation from '../detail/EventInformation.jsx';
 import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
 import PrivateEventChat from '../detail/PrivateEventChat.jsx';
 import { isPrivateEvent, privateEventUrl, summarizeRsvps, heroDateParts } from '../../lib/privateEvents';
+import { getEventPrice, getEventPriceAmount } from '../../lib/eventDetails.js';
 import { useAuthStore } from '../../store/useAuthStore';
 
 // Rediseño claro estilo Luma (solo eventos privados vigentes en modo claro;
@@ -150,6 +151,14 @@ export default function EventDetailModal() {
         // el distintivo de fecha (la fecha se queda como está, en Cuándo).
         const heroLuma = !isPast && !dark;
         const heroDate = luma ? heroDateParts(ev.date) : null;
+        // Fila superior (solo públicos): categoría en mayúsculas a la
+        // izquierda y el precio a la derecha, sin aspecto de botón. El
+        // precio se quita de la tarjeta de datos de abajo.
+        const price = getEventPrice(ev);
+        const priceAmount = getEventPriceAmount(ev);
+        const topPriceLabel = !isPrivateEvent(ev) && !isPast && price ? (price.free ? 'Entrada gratuita' : (priceAmount ? `Boletos desde: ${priceAmount}` : null)) : null;
+        const category = ev.event_category || ev.category;
+        const showTopRow = !isPrivateEvent(ev) && Boolean(category || topPriceLabel);
 
         return (
           <m.div
@@ -251,21 +260,22 @@ export default function EventDetailModal() {
 
                 {/* En el rediseño Luma el título ya va sobre la foto del héroe. */}
                 {!heroLuma && (
-                  <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: (ev.event_category || ev.category) ? 8 : 12, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
+                  <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: showTopRow ? 8 : 12, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
                 )}
-                
-                {!isPrivateEvent(ev) && (ev.event_category || ev.category) && (
-                  <div style={{ display: "flex", marginBottom: 8 }}>
-                    <span style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      padding: "4px 14px",
-                      borderRadius: 9999,
-                      background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9",
-                      color: dark ? "#FFFFFF" : "#0F172A"
-                    }}>
-                      {ev.event_category || ev.category}
-                    </span>
+
+                {/* Fila superior: categoría en mayúsculas y precio, sin botón. */}
+                {showTopRow && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+                    {category && (
+                      <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", color: T.text, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {category}
+                      </span>
+                    )}
+                    {topPriceLabel && (
+                      <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", color: T.text, flexShrink: 0, whiteSpace: "nowrap", textAlign: "right" }}>
+                        {topPriceLabel}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -327,7 +337,7 @@ export default function EventDetailModal() {
                     </div>
 
                     {privateTab === 'chat' && <PrivateEventChat event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setChatCount} />}
-                    {privateTab === 'detalles' && <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={false} heroShowsVenue={heroLuma} />}
+                    {privateTab === 'detalles' && <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={false} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />}
                     {privateTab === 'invitados' && <PrivateEventRsvp event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setGuestCount} />}
 
                     {user?.id && ev.user_id && user.id === ev.user_id && (
@@ -342,7 +352,7 @@ export default function EventDetailModal() {
                   </>
                 ) : (
                   /* --- Datos del evento (en los pasados van abajo y sin entradas, que ya no se pueden comprar) --- */
-                  <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={heroLuma} />
+                  <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />
                 )}
 
                 {/* --- ASOCIADO CON --- */}

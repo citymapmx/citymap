@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
-import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription } from '../lib/eventDetails.js';
+import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount } from '../lib/eventDetails.js';
 import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
@@ -90,5 +90,17 @@ describe('Event links and schedule',()=>{
     expect(paragraphs).toEqual(['Una noche de música en vivo bajo las estrellas.']);
     const html=render({description:'Una noche de música en vivo bajo las estrellas.'});
     expect(html).not.toContain('Leer más');
+  });
+  it.each([[150,'$150'],['$150','$150'],['Desde $150','$150'],['$150 - $300','$150']])('returns only the amount %s', (price,expected)=>{
+    expect(getEventPriceAmount({price_type:'paid',price})).toBe(expected);
+  });
+  it('returns no amount for free or missing prices',()=>{
+    expect(getEventPriceAmount({price_type:'gratis',price:''})).toBeNull();
+    expect(getEventPriceAmount({price_type:'paid',price:''})).toBeNull();
+  });
+  it('hides the price row when the modal already shows it on top',()=>{
+    const event={price:1208,price_type:'paid'};
+    expect(render(event)).toContain('Entrada: $1208');
+    expect(renderToStaticMarkup(<EventInformation event={event} T={T} hidePriceRow />)).not.toContain('Entrada: $1208');
   });
 });

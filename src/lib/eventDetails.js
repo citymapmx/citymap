@@ -34,6 +34,14 @@ export function getEventLinks(event) {
   return links.filter((link, index) => links.findIndex(other => other.url === link.url) === index);
 }
 
+// Solo el monto del precio ("$600"), sin el prefijo "Entrada:" / "Desde".
+// Null si es gratis o no hay precio.
+export function getEventPriceAmount(event) {
+  const price = getEventPrice(event);
+  if (!price || price.free) return null;
+  return price.text.replace(/^(Entrada:|Desde)\s*/i, '') || null;
+}
+
 // Divide un texto en frases: corta después de . ! ? cuando sigue una
 // mayúscula (o el final), para no partir abreviaturas como "p. m.".
 function splitSentences(text) {
