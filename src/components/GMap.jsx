@@ -4,6 +4,7 @@ import MapCompass from "./map/MapCompass.jsx";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { GMAPS_KEY } from "../lib/supabase.js";
 import { CAT_EMOJI, getThumbUrl, iconFile } from "../lib/utils.js";
+import { hasCloseNeighbor } from "../lib/mapCentering.js";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useGMaps() {
@@ -65,6 +66,29 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
   const utilityPins = useRef([]);
   const ok = useGMaps();
   const [mapReady, setMapReady] = useState(false);
+
+  // Al tocar un pin con otros pegados en pantalla, acercar el mapa en vez de
+  // abrir la tarjeta: los pines se separan y ya se puede tocar el que se quiere.
+  // Si ya está muy cerca (zoom 17) o no hay vecinos, se abre la tarjeta normal.
+  const zoomIntoDensePin = (marker) => {
+    const mapInstance = map.current;
+    if (!mapInstance || !marker?.getPosition) return false;
+    const zoom = mapInstance.getZoom() || 13;
+    if (zoom >= 17) return false;
+    const pos = marker.getPosition();
+    const target = { lat: pos.lat(), lng: pos.lng() };
+    const others = (pins.current || [])
+      .filter((other) => other && other !== marker && other.getPosition)
+      .filter((other) => !other.getMap || other.getMap())
+      .map((other) => {
+        const p = other.getPosition();
+        return p ? { lat: p.lat(), lng: p.lng() } : null;
+      })
+      .filter(Boolean);
+    if (!hasCloseNeighbor(target, others, zoom)) return false;
+    flyToLocation(mapInstance, target.lat, target.lng, Math.min(zoom + 2, 17));
+    return true;
+  };
 
   // A new map instance is needed when Google's initial color scheme changes.
   useEffect(()=>()=>{
@@ -413,14 +437,20 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
           content,
           biz.name,
           sel ? 999 : 1,
-          () => onPin(biz)
+          () => {
+            if (selected?.id !== biz.id && zoomIntoDensePin(m)) return;
+            onPin(biz);
+          }
         );
         markerCache.current.set(cacheKey, m);
       } else {
         // Asegurar que el zIndex se mantiene correcto aunque reciclemos
         m.div.style.zIndex = sel ? 999 : 1;
         // Solo para estar seguros de llamar a la última función onPin
-        m.onMarkerClick = () => onPin(biz);
+        m.onMarkerClick = () => {
+          if (selected?.id !== biz.id && zoomIntoDensePin(m)) return;
+          onPin(biz);
+        };
         m.div.onclick = null; // Clean up old double-firing listener if any
       }
       
@@ -469,7 +499,9 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         content.appendChild(eDiv);
 
         content.addEventListener("click", () => {
-          if (onPin) onPin({ ...ev, _isEvent: true });
+          if (!onPin) return;
+          if (selected?.id !== ev.id && zoomIntoDensePin(m)) return;
+          onPin({ ...ev, _isEvent: true });
         });
 
         m = new HTMLMarker(new window.google.maps.LatLng(ev.lat, ev.lng), content);
