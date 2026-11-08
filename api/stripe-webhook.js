@@ -1,3 +1,4 @@
+/* global process, Buffer */
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
@@ -78,14 +79,16 @@ export default async function handler(req, res) {
       case 'customer.subscription.deleted':
       case 'customer.subscription.updated': {
         const subscription = event.data.object;
-        const status = subscription.status; // active, past_due, canceled, unpaid
+        const status = subscription.status; // active, trialing, past_due, canceled, unpaid
         const customer_id = subscription.customer;
 
-        // Buscar el negocio por customer_id y actualizar su estado
+        // Buscar el negocio por customer_id y actualizar su estado.
+        // 'trialing' es un plan activo (prueba gratis): no debe marcarse
+        // como vencido cuando Stripe avisa del cambio de estado.
         const { error } = await supabase
           .from('businesses')
           .update({
-            plan_status: status === 'active' ? 'active' : (status === 'canceled' || status === 'unpaid' ? 'canceled' : 'past_due')
+            plan_status: status === 'active' || status === 'trialing' ? 'active' : (status === 'canceled' || status === 'unpaid' ? 'canceled' : 'past_due')
           })
           .eq('stripe_customer_id', customer_id);
 

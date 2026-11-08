@@ -7,8 +7,9 @@ import FeaturedCard from "./cards/FeaturedCard.jsx";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import { getCountryCode } from "../lib/domain.js";
+import { isTrialSelection } from "../lib/plans.js";
 
-export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
+export default function PlansPage({ myBizList, onAddBiz, onStartPaidPlan, pendingPlan, onConsumePendingPlan, user, T, dark, onClose }) {
   const activeCity = useUIStore(s => s.activeCity);
   const cities = useDataStore(s => s.cities);
   const countryCode = getCountryCode(activeCity, cities);
@@ -190,7 +191,30 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
     ['Estadísticas y soporte prioritario',false,false,true]
   ];
   const isCurrent=p=>Boolean(myBizList?.length)&&p.key===currentPlanKey;
-  const choosePlan=p=>{if(isCurrent(p))return;if(p.key==='free'){if(!myBizList?.length)onAddBiz?.();}else setSelectedPlan({plan:p,billing});};
+  const choosePlan=p=>{
+    if(isCurrent(p))return;
+    if(p.key==='free'){if(!myBizList?.length)onAddBiz?.();return;}
+    // Con negocio, el pago se abre aquí mismo. Sin negocio, el plan queda
+    // pendiente y el flujo sigue al login o al registro del negocio; al
+    // volver, el modal de pago se abre solo con el plan elegido.
+    if(myBizList?.length){setSelectedPlan({plan:p,billing});return;}
+    onStartPaidPlan?.(p,billing);
+  };
+  // Al volver del registro del negocio (o del login) con un plan pendiente,
+  // abrir el modal de pago con ese plan. Sin negocio todavía, no hace nada:
+  // el plan pendiente espera al siguiente intento.
+  useEffect(()=>{
+    if(!pendingPlan||!myBizList?.length)return;
+    const plan=plans.find(x=>x.key===pendingPlan.key);
+    if(!plan)return;
+    setSelectedPlan({plan,billing:pendingPlan.billing==='annual'?'annual':'monthly'});
+    onConsumePendingPlan?.();
+  // El plan pendiente se consume cuando cambia pendingPlan o myBizList; la
+  // lista `plans` se reconstruye en cada render y no es una dependencia.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[pendingPlan,myBizList,onConsumePendingPlan]);
+  const bizId = myBizList?.[0]?.id;
+  const isTrialPlan = isTrialSelection(selectedPlan?.plan?.key, selectedPlan?.billing);
   return (
     <div className="business-plans" style={{position:'fixed',inset:0,zIndex:9999,overflowY:'auto',background:pageBg,color:ink,fontFamily:'inherit',letterSpacing:0,'--plans-accent':accent,'--plans-line':line,'--plans-surface':surface}}>
       <style>{`
@@ -243,7 +267,7 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
             <h2 style={{fontFamily:'inherit',fontSize:22,fontWeight:700,letterSpacing:'-.015em',lineHeight:1.2,margin:'0 0 7px'}}>{p.name}</h2>
             <p style={{fontSize:14,lineHeight:1.5,color:muted,margin:'0 0 20px'}}>{summaries[p.key]}</p>
             <div style={{display:'flex',alignItems:'baseline',flexWrap:'wrap',gap:6}}><strong style={{fontSize:36,fontWeight:800,lineHeight:1.1,letterSpacing:'-.05em',fontVariantNumeric:'tabular-nums'}}>{billing==='annual'?p.priceAnnual:p.priceMonthly}</strong><span style={{fontSize:12,color:muted}}>{pricing.currency} / {billing==='annual'?'año':'mes'}</span></div>
-            <p style={{minHeight:34,margin:'7px 0 18px',fontSize:12,lineHeight:1.5,color:muted}}>{p.key==='free'?'Sin costo de suscripción.':billing==='annual'?`Equivale a ${monthlyEquivalent(p)} al mes. Se cobra el total anual.`:'Facturación mensual.'}</p>
+            <p style={{minHeight:34,margin:'7px 0 18px',fontSize:12,lineHeight:1.5,color:muted}}>{p.key==='free'?'Sin costo de suscripción.':billing==='annual'?`Equivale a ${monthlyEquivalent(p)} al mes. Se cobra el total anual.`:p.key==='pro'?`7 días gratis. Luego ${p.priceMonthly} al mes. Cancela cuando quieras.`:'Facturación mensual.'}</p>
             <button className="plans-action" disabled={isCurrent(p)||(p.key==='free'&&Boolean(myBizList?.length))} onClick={()=>choosePlan(p)} style={{background:p.key==='pro'?accent:'transparent',border:`1px solid ${p.key==='pro'?accent:line}`,color:p.key==='pro'?(dark?'#101827':'#FFFFFF'):ink}}>{isCurrent(p)?'Tu plan actual':p.key==='free'?(myBizList?.length?'Incluido sin costo':'Crear perfil gratis'):`Elegir ${p.name}`}</button>
             <div style={{display:'flex',flexDirection:'column',gap:12,paddingTop:22,marginTop:22,borderTop:`1px solid ${line}`}}>{p.features.map(f=><div className="plans-feature" key={f}><span aria-hidden="true" style={{color:p.key==='pro'?accent:muted,fontSize:15}}>✓</span><span>{f}</span></div>)}</div>
             <section aria-label={`Vista previa del plan ${p.name}`} style={{marginTop:24,paddingTop:20,borderTop:`1px solid ${line}`,color:muted}}><h3 style={{fontSize:13,fontWeight:600,textAlign:"center",margin:"0 0 12px"}}>Así se verá tu negocio</h3><div style={{pointerEvents:'none',borderRadius:14,overflow:'hidden',marginTop:12}}>{p.key==='free'?<CompactCard b={mockFree} T={T} favIds={[]} toggleFav={()=>{}} distStr="1.6 km" realFavs={4}/>:p.key==='pro'?<DestacadoCard b={mockPro} T={T} favIds={[]} toggleFav={()=>{}} distStr="1.6 km" realFavs={12}/>:<FeaturedCard b={mockElite} T={T} favIds={[]} toggleFav={()=>{}} distStr="1.6 km" realFavs={45} showStars={false}/>}</div>{p.screenshots&&<div style={{display:'flex',gap:8,overflowX:'auto',marginTop:14}}>{p.screenshots.map((shot,index)=><button key={shot.url} aria-label={`Ampliar ${shot.label}`} onClick={()=>setLightbox({items:p.screenshots,index})} style={{flex:'0 0 100px',background:'transparent',border:0,padding:0,cursor:'pointer',color:muted}}><img src={shot.url} alt={shot.label} style={{width:'100%',borderRadius:10}}/><span style={{fontSize:11}}>{shot.label}</span></button>)}</div>}</section>
@@ -257,7 +281,7 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
           <h2 style={{fontFamily:'inherit',fontSize:26,fontWeight:600,letterSpacing:'-.035em',textAlign:'center',margin:'0 0 22px'}}>Antes de elegir.</h2>
           {[
             ['¿Cuál es la diferencia entre los planes?','Gratuito incluye tu información básica. Destacado añade visibilidad, fotos y contacto directo. Premium incorpora el menú interactivo, el carrito por WhatsApp y herramientas para gestionar clientes.'],
-            ['¿Cómo se realiza el pago?','Al elegir un plan de pago se muestra el importe y el periodo de facturación. El pago con tarjeta se realiza a través de Stripe.'],
+            ['¿Cómo se realiza el pago?','Al elegir un plan de pago se muestra el importe y el periodo de facturación. El pago con tarjeta se realiza a través de Stripe. El plan Destacado mensual incluye 7 días gratis: registras tu tarjeta y el primer cobro es después de la prueba; puedes cancelar cuando quieras.'],
             ['¿Cómo funciona el pago anual?','Se cobra el importe completo de un año en un solo pago. El equivalente mensual se muestra como referencia para que puedas comparar.'],
             ['¿Todavía no tengo un negocio registrado?','Puedes crear tu perfil con el plan Gratuito. Si necesitas ayuda para registrarlo o elegir un plan, contacta a un asesor.']
           ].map(([q,a])=><details className="plans-faq" key={q} style={{padding:'20px 0',borderBottom:`1px solid ${line}`}}><summary>{q}</summary><p style={{fontSize:14,lineHeight:1.65,color:muted,margin:'12px 26px 0 0'}}>{a}</p></details>)}
@@ -296,21 +320,13 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
                   <span style={{ fontSize: 36, fontWeight: 600, color: ink, letterSpacing: -0.5 }}>{selectedPlan.billing === "monthly" ? selectedPlan.plan.priceMonthly : selectedPlan.plan.priceAnnual}</span>
                   <span style={{ fontSize: 16, color: T.sub, fontWeight: 500 }}>{pricing.currency}/{selectedPlan.billing === "monthly" ? "mes" : "año"}</span>
                 </div>
-                <p style={{ fontSize: 12, color: T.sub, margin: 0 }}>{selectedPlan.billing === "monthly" ? "Se cobra cada mes." : "Se cobra el importe completo del año."}</p>
+                <p style={{ fontSize: 12, color: T.sub, margin: 0 }}>{isTrialPlan ? "Prueba gratis por 7 días. Luego se cobra cada mes." : selectedPlan.billing === "monthly" ? "Se cobra cada mes." : "Se cobra el importe completo del año."}</p>
               </div>
 
+              {bizId ? (
               <button 
                 onClick={async () => {
                   try {
-                    const biz_id = myBizList?.[0]?.id;
-                    if (!biz_id) {
-                      if (window.confirm("Para activar un plan, primero debes crear tu negocio en la plataforma. ¿Te gustaría chatear con un asesor por WhatsApp para ayudarte a registrar tu negocio y activar tu plan de inmediato?")) {
-                        const planName = selectedPlan?.plan?.name || "";
-                        window.open(`https://wa.me/523223792428?text=Hola, me interesa adquirir el Plan ${planName} para mi negocio y necesito ayuda para registrarlo.`, "_blank");
-                      }
-                      return;
-                    }
-                    
                     const apiUrl = window.location.origin.includes('localhost') || window.location.origin.includes('capacitor') 
                       ? 'https://citymap.mx/api/stripe-checkout' 
                       : '/api/stripe-checkout';
@@ -319,7 +335,7 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
-                        biz_id: biz_id,
+                        biz_id: bizId,
                         plan_id: selectedPlan.plan.key, // 'pro' o 'elite'
                         interval: selectedPlan.billing === "monthly" ? "month" : "year",
                         host_url: 'https://citymap.mx',
@@ -345,9 +361,21 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
                 }} 
                 style={{ width: "100%", padding: 16, background: accent, color: dark?"#101827":"#fff", borderRadius: 999, fontWeight: 800, fontSize: 16, border: "none", cursor: "pointer", boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 10 }}
               >
-                Pagar con Tarjeta (Stripe)
+                {isTrialPlan ? "Empezar 7 días gratis" : "Pagar con Tarjeta (Stripe)"}
               </button>
-              <p style={{ fontSize: 11, color: T.sub, textAlign: "center", margin: 0 }}>🔒 Pago 100% seguro y encriptado</p>
+              ) : (
+              <>
+                <p style={{ fontSize: 13, lineHeight: 1.5, color: T.sub, textAlign: "center", margin: "0 0 12px" }}>Para activar un plan primero crea tu negocio. Al terminar, regresas aquí mismo a pagar.</p>
+                <button
+                  onClick={() => onStartPaidPlan?.(selectedPlan.plan, selectedPlan.billing)}
+                  style={{ width: "100%", padding: 16, background: accent, color: dark?"#101827":"#fff", borderRadius: 999, fontWeight: 800, fontSize: 16, border: "none", cursor: "pointer", boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 10 }}
+                >
+                  {user ? "Crear mi negocio y continuar" : "Entrar y crear mi negocio"}
+                </button>
+                <button onClick={() => window.open(`https://wa.me/523223792428?text=Hola, me interesa el Plan ${selectedPlan?.plan?.name || ""} para mi negocio y necesito ayuda para registrarlo.`, "_blank")} style={{ width: "100%", padding: 10, background: "transparent", border: "none", color: accent, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>¿Necesitas ayuda? Habla con un asesor</button>
+              </>
+              )}
+              <p style={{ fontSize: 11, color: T.sub, textAlign: "center", margin: 0 }}>{isTrialPlan ? `Hoy no pagas nada. Después de 7 días se cobra ${selectedPlan.plan.priceMonthly} al mes. Cancela cuando quieras.` : "🔒 Pago 100% seguro y encriptado"}</p>
             </m.div>
           </m.div>
         )}
