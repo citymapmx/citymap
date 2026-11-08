@@ -148,9 +148,10 @@ export default function EventDetailModal() {
         const isHost = Boolean(user?.id && ev.user_id && user.id === ev.user_id);
         // Rediseño Luma en claro: solo privados vigentes en modo claro.
         const luma = isPrivateEvent(ev) && !isPast && !dark;
-        // Héroe estilo Luma también en públicos vigentes en claro, pero sin
-        // el distintivo de fecha (la fecha se queda como está, en Cuándo).
-        const heroLuma = !isPast && !dark;
+        // Héroe estilo Luma en vigentes, en claro y en oscuro: título y
+        // lugar sobre la foto con degradado (sin distintivo de fecha; la
+        // fecha se queda como está, en Cuándo).
+        const heroLuma = !isPast;
         const heroDate = luma ? heroDateParts(ev.date) : null;
         // Fila superior (solo públicos): categoría en mayúsculas a la
         // izquierda y el precio a la derecha, sin aspecto de botón. El
@@ -397,5 +398,6 @@ export default function EventDetailModal() {
     </AnimatePresence>
   );
 }
+
 
 
