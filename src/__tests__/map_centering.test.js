@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getCityCenter, DEFAULT_MAP_CENTER } from '../lib/mapCentering.js';
+import { getCityCenter, DEFAULT_MAP_CENTER, hasCloseNeighbor, screenPixelDistance } from '../lib/mapCentering.js';
 
 describe('map centering', () => {
   it('uses the city coordinates when present', () => {
@@ -32,5 +32,38 @@ describe('map centering', () => {
 
   it('falls back to the Tepic default without city or pins', () => {
     expect(getCityCenter(undefined, [])).toEqual(DEFAULT_MAP_CENTER);
+  });
+});
+
+describe('close neighbors on screen', () => {
+  // En Tepic (lat 21.5): 0.001° de longitud son ~104 m; 0.01° son ~1,036 m.
+  const target = { lat: 21.5, lng: -104.9 };
+  const near = { lat: 21.5, lng: -104.899 };
+  const far = { lat: 21.5, lng: -104.89 };
+
+  it('measures screen distance in pixels for the current zoom', () => {
+    const d = screenPixelDistance(target, near, 13);
+    expect(d).toBeGreaterThan(5);
+    expect(d).toBeLessThan(7);
+  });
+
+  it('finds a neighbor about 100 m away at zoom 13', () => {
+    expect(hasCloseNeighbor(target, [near], 13)).toBe(true);
+  });
+
+  it('does not find a neighbor about 1 km away at zoom 13', () => {
+    expect(hasCloseNeighbor(target, [far], 13)).toBe(false);
+  });
+
+  it('the same 100 m pair stops being close when zooming to 17', () => {
+    expect(hasCloseNeighbor(target, [near], 17)).toBe(false);
+  });
+
+  it('respects a custom threshold', () => {
+    expect(hasCloseNeighbor(target, [near], 13, 5)).toBe(false);
+  });
+
+  it('returns false without other pins', () => {
+    expect(hasCloseNeighbor(target, [], 13)).toBe(false);
   });
 });

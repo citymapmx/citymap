@@ -29,3 +29,27 @@ export function getCityCenter(city, pins) {
 
   return { ...DEFAULT_MAP_CENTER };
 }
+
+// Distancia en píxeles de pantalla entre dos coordenadas al zoom actual,
+// con la misma proyección Mercator que usa Google Maps (mundo de 256 px en zoom 0).
+export function latLngToWorldPoint(lat, lng) {
+  const sin = Math.sin((lat * Math.PI) / 180);
+  const x = ((lng + 180) / 360) * 256;
+  const y = (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * 256;
+  return { x, y };
+}
+
+export function screenPixelDistance(a, b, zoom) {
+  const pa = latLngToWorldPoint(a.lat, a.lng);
+  const pb = latLngToWorldPoint(b.lat, b.lng);
+  const scale = Math.pow(2, zoom);
+  const dx = (pb.x - pa.x) * scale;
+  const dy = (pb.y - pa.y) * scale;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// ¿Hay otro pin pegado a este en pantalla? Sirve para decidir si al tocar
+// un pin conviene acercar el mapa en vez de abrir su tarjeta.
+export function hasCloseNeighbor(target, others, zoom, thresholdPx = 44) {
+  return (others || []).some((o) => screenPixelDistance(target, o, zoom) < thresholdPx);
+}
