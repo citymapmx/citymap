@@ -1,4 +1,5 @@
 import { getT } from '../lib/constants.js';
+import { SPRING_UI } from '../lib/spring.js';
 import { m } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import Icon from './ui/Icon.jsx';
@@ -33,6 +34,7 @@ export default function BottomNav({ dark, navigate }) {
             <Icon name={n.icon} size={20} color={isActive ? (dark ? T.text : "#000000") : (dark ? T.sub : "rgba(17,24,39,0.5)")} sw={isActive ? 2.2 : 1.8} />
           </div>
           <span className="text-micro" style={{ position: "relative", zIndex: 1, fontWeight: isActive ? 800 : 600, color: isActive ? (dark ? T.text : "#000000") : (dark ? T.sub : "rgba(17,24,39,0.5)"), whiteSpace: "nowrap", transition: "color .2s" }}>{n.label}</span>
+          {isActive && <m.span layoutId="bottomnav-dot" transition={SPRING_UI} style={{ width: 4, height: 4, borderRadius: "50%", background: dark ? T.text : "#000000", marginTop: 1 }} />}
         </m.button>;
       })}
     </nav>

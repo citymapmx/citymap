@@ -1,10 +1,11 @@
-export default function EventPosterFallback({ title, radius = 14 }) {
+export default function EventPosterFallback({ title, radius = 14, dark = false }) {
   return (
     <div aria-hidden="true" style={{
       width: '100%',
       height: '100%',
       boxSizing: 'border-box',
-      background: '#111',
+      background: dark ? '#232326' : '#111',
+      border: dark ? '1px solid #3F3F46' : 'none',
       borderRadius: radius,
       display: 'flex',
       alignItems: 'center',
