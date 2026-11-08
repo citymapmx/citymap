@@ -334,3 +334,7 @@ iframe[id^="credential_picker"] {
 .chat-scroll::-webkit-scrollbar { width: 6px; }
 .chat-scroll::-webkit-scrollbar-track { background: transparent; }
 .chat-scroll::-webkit-scrollbar-thumb { background: #A1A1AA; border-radius: 9999px; }
+
+/* ── Chat de evento privado: cursor palpitante del campo vacío ── */
+@keyframes chatCaretBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.chat-caret { animation: chatCaretBlink 1.1s step-end infinite; }
