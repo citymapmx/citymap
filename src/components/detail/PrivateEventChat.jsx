@@ -214,10 +214,10 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
 
   let lastDay = '';
   return (
-    <div style={{ margin: '0 0 24px 0', textAlign: 'left' }}>
+    <div style={{ margin: '0 0 16px 0', textAlign: 'left' }}>
       {/* ── Mensaje fijado ── */}
       {pinned && (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: T.greenL, borderRadius: 12, padding: '10px 12px', marginBottom: 12 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: T.greenL, borderRadius: 12, padding: '8px 10px', marginBottom: 8 }}>
           <span style={{ fontSize: 14 }}>📌</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 11, fontWeight: 800, color: T.green, marginBottom: 2 }}>Mensaje fijado · {pinned.guest_name}</div>
@@ -245,7 +245,7 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
           borderRadius: 24,
           boxShadow: '0 10px 32px rgba(15,23,42,0.10)',
           overflow: 'hidden',
-          marginBottom: 12,
+          marginBottom: 8,
         }}
       >
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
@@ -253,7 +253,7 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
         ref={listRef}
         onScroll={handleScroll}
         className="chat-scroll"
-        style={{ maxHeight: 340, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, padding: '16px 10px 16px 16px' }}
+        style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 10px 12px 12px' }}
       >
         {messages.length === 0 ? (
           <div style={{ fontSize: 13, color: T.sub }}>Aún no hay mensajes. ¡Sé la primera persona en escribir!</div>
@@ -272,20 +272,21 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
             const isHostMessage = m.user_id && event?.user_id && m.user_id === event.user_id;
             const count = likesFor(m.id).length;
             const liked = Boolean(myLike(m.id));
-            const bubbleBg = own ? (dark ? 'rgba(26,122,94,0.35)' : '#D9EEE3') : T.greenL;
+            const bubbleBg = own ? (dark ? 'rgba(26,122,94,0.35)' : '#D9EEE3') : (dark ? 'rgba(255,255,255,0.08)' : '#E9E9EC');
+            const bubbleBorder = own ? (dark ? '1px solid rgba(26,122,94,0.45)' : '1px solid #BFE3D2') : (dark ? '1px solid rgba(255,255,255,0.10)' : '1px solid #DDDDDE');
             return (
               <div key={m.id}>
                 {showDay && (
                   <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 2px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 9999, background: dark ? 'rgba(255,255,255,0.08)' : '#F1F5F9', color: T.sub }}>{formatChatDay(m.created_at)}</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 9999, background: dark ? 'rgba(255,255,255,0.08)' : '#F1F5F9', color: T.sub }}>{formatChatDay(m.created_at)}</span>
                   </div>
                 )}
-                {showDivider && <div style={{ height: 1, background: T.border, opacity: 0.7 }} />}
+                {showDivider && <div style={{ height: 1, background: dark ? '#52525B' : '#D4D4D8', margin: '4px 0' }} />}
                 {own ? (
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <div style={{ maxWidth: '85%', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, borderRadius: 16, borderBottomRightRadius: 4, padding: '10px 14px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' }}>{m.body}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: '0 1px 2px rgba(15,23,42,0.06)', borderRadius: 16, borderBottomRightRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' }}>{m.body}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <span style={{ fontSize: 11, color: T.sub }}>{formatMessageTime(m.created_at)}</span>
                         {m.pinned && <span title="Mensaje fijado" style={{ fontSize: 12 }}>📌</span>}
                         <button aria-label={liked ? 'Quitar me gusta' : 'Me gusta'} onClick={() => toggleLike(m)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 0 2px 6px', fontSize: 13, fontWeight: 700, color: T.sub, fontFamily: 'inherit' }}>
@@ -304,16 +305,16 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
                 ) : (
                   <div style={{ display: 'flex', gap: 10 }}>
                     {!sameAuthor ? (
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: avatarColor(m.guest_name), color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, flexShrink: 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: avatarColor(m.guest_name), color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>
                         {String(m.guest_name || '?').trim().charAt(0).toUpperCase()}
                       </div>
                     ) : (
-                      <div style={{ width: 36, flexShrink: 0 }} />
+                      <div style={{ width: 32, flexShrink: 0 }} />
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {!sameAuthor && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: T.text }}>{m.guest_name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: T.text }}>{m.guest_name}</span>
                           {m.user_id && <span title="Usuario verificado" style={{ fontSize: 12, color: T.green, fontWeight: 800 }}>✓</span>}
                           {isHostMessage && (
                             <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 9999, background: T.greenL, color: T.green }}>Anfitrión</span>
@@ -321,8 +322,8 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
                           {m.pinned && <span title="Mensaje fijado" style={{ fontSize: 12 }}>📌</span>}
                         </div>
                       )}
-                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, borderRadius: 16, borderBottomLeftRadius: 4, padding: '10px 14px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: '0 1px 2px rgba(15,23,42,0.06)', borderRadius: 16, borderBottomLeftRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <button aria-label={liked ? 'Quitar me gusta' : 'Me gusta'} onClick={() => toggleLike(m)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px 2px 0', fontSize: 13, fontWeight: 700, color: T.sub, fontFamily: 'inherit' }}>
                           <Icon name={liked ? 'heart_overlay_f' : 'heart_overlay'} size={16} />
                           {count > 0 && <span>{count}</span>}
@@ -356,17 +357,18 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
 
       {/* ── Campo para escribir, dentro del contenedor ── */}
       <div style={{ borderTop: `1px solid ${T.border}` }}>
-        <form onSubmit={send} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 16px 16px' }}>
+        <form onSubmit={send} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px 12px' }}>
           {!user && (
             <input
               className="inp"
               placeholder="Tu nombre"
               value={name}
               onChange={e => setName(e.target.value)}
+              style={{ padding: '10px 14px' }}
             />
           )}
           <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ position: 'relative', flex: 1 }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
               <input
                 className="inp"
                 aria-label="Mensaje"
@@ -374,12 +376,12 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
                 value={body}
                 maxLength={MAX_BODY}
                 onChange={e => setBody(e.target.value)}
-                style={{ width: '100%', caretColor: body ? 'auto' : 'transparent' }}
+                style={{ width: '100%', padding: '10px 14px', caretColor: body ? 'auto' : 'transparent' }}
               />
               {body === '' && (
-                <div style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 2, fontSize: 15 }}>
+                <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 3, fontSize: 15 }}>
+                  <span className="chat-caret" style={{ color: '#38BDF8', fontSize: 20, lineHeight: 1 }}>|</span>
                   <span style={{ color: T.sub }}>Mensaje</span>
-                  <span className="chat-caret" style={{ color: T.text }}>|</span>
                 </div>
               )}
             </div>
@@ -387,7 +389,7 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
               type="submit"
               disabled={sending || !body.trim()}
               aria-label="Enviar mensaje"
-              style={{ width: 48, height: 48, borderRadius: '50%', border: 'none', background: T.green, color: dark ? '#18181B' : '#FFFFFF', fontSize: 20, cursor: 'pointer', flexShrink: 0, opacity: sending || !body.trim() ? 0.5 : 1 }}
+              style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.35)', background: dark ? 'rgba(244,244,245,0.72)' : 'rgba(0,0,0,0.68)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: dark ? '#18181B' : '#FFFFFF', fontSize: 19, cursor: 'pointer', flexShrink: 0, opacity: sending || !body.trim() ? 0.5 : 1, boxShadow: '0 6px 18px rgba(15,23,42,0.22), inset 0 1px 0 rgba(255,255,255,0.25)' }}
             >
               ➤
             </button>
