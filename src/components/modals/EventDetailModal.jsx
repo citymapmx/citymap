@@ -13,7 +13,7 @@ import EventInformation from '../detail/EventInformation.jsx';
 import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
 import PrivateEventChat from '../detail/PrivateEventChat.jsx';
 import { isPrivateEvent, privateEventUrl, summarizeRsvps, heroDateParts } from '../../lib/privateEvents';
-import { getEventPrice, getEventPriceAmount, getEventMusicQuery } from '../../lib/eventDetails.js';
+import { getEventPrice, getEventPriceAmount, getEventMusicQuery, buildItunesSearchUrl } from '../../lib/eventDetails.js';
 import { SPRING_UI } from '../../lib/spring.js';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -76,6 +76,8 @@ export default function EventDetailModal() {
   const cityTimeZone = (cities.find(c => c.slug === evCitySlug)?.timezone || CITY_TZ[evCitySlug] || 'America/Mexico_City').split(';')[0];
   const todayLocal = eventCalendarDay(Date.now(), cityTimeZone);
   const isPast = selectedEvent ? isPastEvent(selectedEvent, todayLocal) : false;
+  // Reproductor de música: solo conciertos vigentes y públicos.
+  const musicQuery = selectedEvent && !isPast && !isPrivateEvent(selectedEvent) ? getEventMusicQuery(selectedEvent) : null;
   const cityName = cities.find(c => c.slug === evCitySlug)?.name || (evCitySlug ? evCitySlug.charAt(0).toUpperCase() + evCitySlug.slice(1) : '');
   const T = getT(dark);
   const reduceMotion = useReducedMotion();
@@ -131,13 +133,55 @@ export default function EventDetailModal() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEvent?.id]);
   useEffect(() => {
-    if (!selectedEvent?.id || !isPast) { setUpcoming([]); return; }
+    if (!selectedEvent?.id) { setUpcoming([]); return; }
     let cancelled = false;
     sb.get('events', '?select=id,title,slug,date,end_date,time,venue_name,venue_address,city_slug,img_url,img,status,active&status=eq.approved&order=date.asc&limit=40')
       .then(rows => { if (!cancelled) setUpcoming(upcomingEvents(Array.isArray(rows) ? rows : [], selectedEvent, todayLocal, 4)); })
       .catch(() => { if (!cancelled) setUpcoming([]); });
     return () => { cancelled = true; };
-  }, [selectedEvent, isPast, todayLocal]);
+  }, [selectedEvent, todayLocal]);
+
+  // Música del artista: adelantos de 30 s desde iTunes (gratis, sin clave ni endpoint).
+  const [musicTracks, setMusicTracks] = useState(null);
+  const [playingTrackId, setPlayingTrackId] = useState(null);
+  const musicAudioRef = useRef(null);
+  useEffect(() => {
+    if (!musicQuery) { setMusicTracks(null); return; }
+    let cancelled = false;
+    setMusicTracks(null);
+    fetch(buildItunesSearchUrl(musicQuery, 5))
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (cancelled || !d) return;
+        setMusicTracks((d.results || []).filter(t => t.previewUrl).map(t => ({
+          id: t.trackId,
+          name: t.trackName,
+          artist: t.artistName,
+          artwork: t.artworkUrl100,
+          preview: t.previewUrl,
+          url: t.trackViewUrl,
+        })));
+      })
+      .catch(() => { if (!cancelled) setMusicTracks([]); });
+    return () => {
+      cancelled = true;
+      if (musicAudioRef.current) { musicAudioRef.current.pause(); musicAudioRef.current = null; }
+      setPlayingTrackId(null);
+    };
+  }, [musicQuery]);
+  const toggleMusicTrack = (track) => {
+    if (playingTrackId === track.id) {
+      musicAudioRef.current?.pause();
+      setPlayingTrackId(null);
+      return;
+    }
+    musicAudioRef.current?.pause();
+    const audio = new Audio(track.preview);
+    audio.onended = () => setPlayingTrackId(null);
+    musicAudioRef.current = audio;
+    setPlayingTrackId(track.id);
+    audio.play().catch(() => setPlayingTrackId(null));
+  };
 
   return (
     <AnimatePresence>
@@ -161,8 +205,6 @@ export default function EventDetailModal() {
         const topPriceLabel = !isPrivateEvent(ev) && !isPast && price ? (price.free ? 'Entrada gratuita' : (priceAmount ? `Boletos desde: ${priceAmount}` : null)) : null;
         const category = ev.event_category || ev.category;
         const showTopRow = !isPrivateEvent(ev) && Boolean(category || topPriceLabel);
-        // Reproductor de música: solo conciertos vigentes y públicos.
-        const musicQuery = !isPast && !isPrivateEvent(ev) ? getEventMusicQuery(ev) : null;
 
         return (
           <m.div
@@ -363,19 +405,25 @@ export default function EventDetailModal() {
                   !isPast && <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />
                 )}
 
-                {/* --- MÚSICA DEL ARTISTA (solo conciertos vigentes y públicos) --- */}
-                {musicQuery && (
+                {/* --- MÚSICA DEL ARTISTA (adelantos de iTunes; si no hay canciones no se muestra nada) --- */}
+                {musicQuery && musicTracks && musicTracks.length > 0 && (
                   <div style={{ margin: '0 0 24px 0' }}>
                     <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>Música del artista</div>
-                    <div style={{ fontSize: 13, color: T.sub, marginBottom: 10 }}>Escucha sus canciones sin salir de aquí.</div>
-                    <iframe
-                      title={`Música de ${ev.title}`}
-                      src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(musicQuery)}`}
-                      loading="lazy"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      style={{ width: '100%', aspectRatio: '16 / 9', border: 0, borderRadius: 12, background: '#000', display: 'block' }}
-                    />
+                    <div style={{ fontSize: 13, color: T.sub, marginBottom: 10 }}>Escucha un adelanto de sus canciones sin salir de aquí.</div>
+                    {musicTracks.map(track => {
+                      const playing = playingTrackId === track.id;
+                      return (
+                        <div key={track.id} onClick={() => toggleMusicTrack(track)} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${T.border}`, cursor: 'pointer' }}>
+                          <img src={track.artwork} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', background: T.border, flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.name}</div>
+                            <div style={{ fontSize: 13, color: T.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artist}</div>
+                          </div>
+                          <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: '50%', background: T.green, color: dark ? '#18181B' : '#FFFFFF', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800 }}>{playing ? '❚❚' : '▶'}</span>
+                        </div>
+                      );
+                    })}
+                    <a href={`https://music.apple.com/mx/search?term=${encodeURIComponent(musicQuery)}`} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: 10, fontSize: 13, fontWeight: 700, color: T.sub, textAlign: 'center', textDecoration: 'none' }}>Ver más en Apple Music ↗</a>
                   </div>
                 )}
 
@@ -411,6 +459,34 @@ export default function EventDetailModal() {
                 
 
 
+                {/* --- MÁS EVENTOS (abajo de todo, como "Nearby events") --- */}
+                {!isPast && upcoming.length > 0 && (
+                  <div style={{ margin: '0 -16px 8px' }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12, padding: '0 16px' }}>Más eventos{cityName ? ` en ${cityName}` : ''}</div>
+                    <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 16px 8px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+                      {upcoming.map(u => {
+                        const thumb = u.img_url || u.img;
+                        return (
+                          <div key={u.id} onClick={() => setSelectedEvent(u)} className="press" style={{ flex: '0 0 248px', display: 'flex', gap: 12, padding: 12, border: `1px solid ${T.border}`, borderRadius: 16, background: T.white, cursor: 'pointer', alignItems: 'center' }}>
+                            {thumb ? (
+                              <img src={getThumbUrl(thumb, 200)} alt="" style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover', background: T.border, flexShrink: 0 }} />
+                            ) : (
+                              <div style={{ width: 72, height: 72, borderRadius: 12, background: T.border, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <Icon name="calendar" size={24} color={T.sub} />
+                              </div>
+                            )}
+                            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{u.title}</div>
+                              <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{formatEventCardDate(u, { today: todayLocal, lang: 'es' })}</div>
+                              <div style={{ fontSize: 13, color: T.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.venue_name || cityName || ''}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
           </m.div>
@@ -419,6 +495,7 @@ export default function EventDetailModal() {
     </AnimatePresence>
   );
 }
+
 
 
 

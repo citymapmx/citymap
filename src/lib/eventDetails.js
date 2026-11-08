@@ -53,13 +53,20 @@ export function matchesPriceFilter(event, filter) {
 }
 
 // Reproductor de música del evento: solo conciertos (la categoría dice si
-// hay artista). El título del evento suele ser el artista, así que la
-// búsqueda de YouTube usa el título.
+// hay artista). El título del evento suele ser el artista; se quita un
+// " en <lugar>" final ("Alfredo Olivas en Tepic" → "Alfredo Olivas")
+// porque eso deja sin resultados la búsqueda.
 export function getEventMusicQuery(event) {
   if (!event || !event.title || !String(event.title).trim()) return null;
   const category = String(event.event_category || event.category || '').trim().toLowerCase();
   if (!category.startsWith('concierto')) return null;
-  return String(event.title).trim();
+  const title = String(event.title).trim();
+  return title.replace(/\s+en\s+[^,;|]+$/i, '').trim() || title;
+}
+
+// Búsqueda de canciones en iTunes (gratis, sin clave): adelantos de 30 s.
+export function buildItunesSearchUrl(query, limit = 5) {
+  return `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=${limit}`;
 }
 
 // Valor numérico para ordenar por precio: gratis = 0, con precio = monto,
@@ -115,5 +122,6 @@ export function splitDescription(value) {
   }
   return { lead, paragraphs };
 }
+
 
 
