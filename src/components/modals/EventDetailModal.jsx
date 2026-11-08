@@ -252,10 +252,10 @@ export default function EventDetailModal() {
 
                 {/* --- EVENTO PASADO: el aviso va primero, antes que el título --- */}
                 {isPast && (
-                  <div style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#FEF3C7', border: `1px solid ${dark ? 'rgba(255,255,255,0.12)' : '#FDE68A'}`, borderRadius: 16, padding: 16, margin: '0 0 20px 0' }}>
+                  <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, margin: '0 0 20px 0', boxShadow: T.shadow }}>
                     <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>Este evento ya terminó</div>
                     <div style={{ fontSize: 14, color: T.sub, marginBottom: 12 }}>Pero hay más cosas pasando{cityName ? ` en ${cityName}` : ''}. Explora los próximos eventos.</div>
-                    <button onClick={exploreEvents} className="press" style={{ background: '#1A7A5E', color: '#fff', border: 'none', borderRadius: 9999, padding: '10px 18px', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Explora nuevos eventos</button>
+                    <button onClick={exploreEvents} className="press" style={{ background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 9999, padding: '10px 18px', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Explora nuevos eventos</button>
                   </div>
                 )}
 
@@ -352,8 +352,8 @@ export default function EventDetailModal() {
                     <div style={{ margin: '0 0 8px 0', fontSize: 12, color: T.sub, textAlign: 'center' }}>🔒 Evento privado · solo visible con el enlace</div>
                   </>
                 ) : (
-                  /* --- Datos del evento (en los pasados van abajo y sin entradas, que ya no se pueden comprar) --- */
-                  <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />
+                  /* --- Datos del evento: en los pasados ya no se muestran (fecha, lugar y precio vencidos) --- */
+                  !isPast && <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />
                 )}
 
                 {/* --- ASOCIADO CON --- */}
@@ -396,3 +396,4 @@ export default function EventDetailModal() {
     </AnimatePresence>
   );
 }
+
