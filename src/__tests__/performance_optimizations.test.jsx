@@ -163,5 +163,53 @@ describe('Performance Optimizations - Banner & Event Loading', () => {
       await promise1;
       getSpy.mockRestore();
     });
+
+    it('marks the wall ready without waiting for the 200-business pool or raffles/promos/coupons', async () => {
+      useDataStore.setState({
+        dbReady: false, homeCoreCity: null, homeSecondaryCity: null, homeSecondaryError: false,
+        events: [], experiences: [], raffles: [], promos: [], coupons: [],
+        timeBasedBiz: [], mapPins: [], mapPinsCity: null, globalFavCounts: {}
+      });
+      let resolveSlowBiz;
+      let resolveSlowRest;
+      const slowBiz = new Promise(r => { resolveSlowBiz = r; });
+      const slowRest = new Promise(r => { resolveSlowRest = r; });
+      const getSpy = vi.spyOn(sb, 'get').mockImplementation(async (table, query = '') => {
+        if (table === 'cities') return [{ slug: 'guadalajara', name: 'Guadalajara' }];
+        if (table === 'businesses' && String(query).includes('limit=200')) return slowBiz;
+        if (table === 'events') return [{ id: 'ev-1', title: 'Evento rápido', date: '2099-12-31', status: 'approved' }];
+        if (table === 'raffles' || table === 'promos' || table === 'coupons') return slowRest;
+        return [];
+      });
+      const rpcSpy = vi.spyOn(sb, 'rpc').mockResolvedValue([]);
+
+      const loadPromise = useDataStore.getState().loadData('guadalajara');
+      await loadPromise;
+
+      // El muro quedó listo aunque el pool de 200 sigue pendiente.
+      expect(useDataStore.getState().dbReady).toBe(true);
+      expect(useDataStore.getState().homeCoreCity).toBe('guadalajara');
+      expect(useDataStore.getState().timeBasedBiz).toEqual([]);
+
+      // Eventos ya publicados, rifas/promos/cupones todavía no.
+      await new Promise(r => setTimeout(r, 25));
+      expect(useDataStore.getState().events.length).toBe(1);
+      expect(useDataStore.getState().raffles).toEqual([]);
+      expect(useDataStore.getState().homeSecondaryCity).toBe(null);
+
+      // Al resolver el resto, todo completa sin romper nada.
+      resolveSlowBiz([{ id: 'biz-1', name: 'Negocio lento' }]);
+      resolveSlowRest([{ id: 'x-1' }]);
+      await new Promise(r => setTimeout(r, 25));
+      expect(useDataStore.getState().timeBasedBiz.length).toBe(1);
+      expect(useDataStore.getState().raffles.length).toBe(1);
+      expect(useDataStore.getState().promos.length).toBe(1);
+      expect(useDataStore.getState().coupons.length).toBe(1);
+      expect(useDataStore.getState().homeSecondaryCity).toBe('guadalajara');
+
+      getSpy.mockRestore();
+      rpcSpy.mockRestore();
+    });
   });
 });
+
