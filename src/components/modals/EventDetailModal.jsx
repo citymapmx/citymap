@@ -146,6 +146,9 @@ export default function EventDetailModal() {
         const isHost = Boolean(user?.id && ev.user_id && user.id === ev.user_id);
         // Rediseño Luma en claro: solo privados vigentes en modo claro.
         const luma = isPrivateEvent(ev) && !isPast && !dark;
+        // Héroe estilo Luma también en públicos vigentes en claro, pero sin
+        // el distintivo de fecha (la fecha se queda como está, en Cuándo).
+        const heroLuma = !isPast && !dark;
         const heroDate = luma ? heroDateParts(ev.date) : null;
 
         return (
@@ -171,22 +174,22 @@ export default function EventDetailModal() {
                   </button>
                 </div>
               ) : (
-              <div style={{ position: "relative", width: "100%", maxHeight: luma ? 280 : 200, background: "transparent", overflow: "hidden" }}>
+              <div style={{ position: "relative", width: "100%", maxHeight: heroLuma ? 280 : 200, background: "transparent", overflow: "hidden" }}>
                 {imgSrc ? (
                   <EventPoster key={imgSrc} src={imgSrc} alt={ev.title || ""} />
                 ) : (
-                  <div style={{ width: "100%", height: "100%", minHeight: luma ? 200 : 120, display: "flex", alignItems: luma ? "flex-start" : "center", justifyContent: "center", background: "transparent", paddingTop: luma ? 44 : 0 }}>
+                  <div style={{ width: "100%", height: "100%", minHeight: heroLuma ? 200 : 120, display: "flex", alignItems: heroLuma ? "flex-start" : "center", justifyContent: "center", background: "transparent", paddingTop: heroLuma ? 44 : 0 }}>
                     <Icon name="calendar" size={36} color={T.sub} />
                   </div>
                 )}
 
                 {/* ── Héroe estilo Luma: título grande sobre la foto ── */}
-                {luma && (
+                {heroLuma && (
                   <>
                     {imgSrc && (
                       <div aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "62%", background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.75) 100%)", zIndex: 5, pointerEvents: "none" }} />
                     )}
-                    <div style={{ position: "absolute", left: 16, right: isHost ? 148 : 16, bottom: 14, zIndex: 6, textAlign: "left" }}>
+                    <div style={{ position: "absolute", left: 16, right: (isPrivateEvent(ev) && isHost) ? 148 : 16, bottom: 14, zIndex: 6, textAlign: "left" }}>
                       {heroDate && (
                         <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, letterSpacing: "0.4px", padding: "6px 10px", borderRadius: 9999, marginBottom: 8, background: imgSrc ? "rgba(255,255,255,0.22)" : "rgba(15,26,20,0.06)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: imgSrc ? "#FFFFFF" : T.text, border: imgSrc ? "1px solid rgba(255,255,255,0.35)" : "1px solid rgba(15,26,20,0.08)" }}>
                           {heroDate.dia} {heroDate.num} {heroDate.mes} {heroDate.year}
@@ -247,7 +250,7 @@ export default function EventDetailModal() {
                 )}
 
                 {/* En el rediseño Luma el título ya va sobre la foto del héroe. */}
-                {!luma && (
+                {!heroLuma && (
                   <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: (ev.event_category || ev.category) ? 8 : 12, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
                 )}
                 
