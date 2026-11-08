@@ -270,8 +270,8 @@ export default memo(function BusinessCard({
             {b.badge && <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.6)", borderRadius: 6, padding: "2px 6px", fontSize: 8, fontWeight: 800, color: "#fff", textTransform: "uppercase" }}>{b.badge}</div>}
           </div>
 
-          <div style={{ flex: 1, padding: "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4 }}>
-            <h3 style={{ fontFamily: FONT_BIZ, fontSize: 16, color: T.text, lineHeight: 1.2, fontWeight: 800, letterSpacing: 0, marginBottom: 0, paddingRight: !hideFavs ? 44 : 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", flexShrink: 0 }}>
+          <div style={{ flex: 1, padding: "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4, textAlign: "left" }}>
+            <h3 style={{ fontFamily: FONT_BIZ, fontSize: 15, color: T.text, lineHeight: 1.25, fontWeight: 700, letterSpacing: 0, marginBottom: 0, paddingRight: !hideFavs ? 44 : 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", flexShrink: 0, textAlign: "left" }}>
               {b.name}
               {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
                 <img src="/verificado.png" alt="Verificado" width="18" height="18" style={{ marginLeft: 6, flexShrink: 0 }} />
@@ -279,7 +279,7 @@ export default memo(function BusinessCard({
             </h3>
             
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "nowrap", overflow: "hidden" }}>
-              {renderRatingRow(b, realFavs, hideReviews, hideFavs, T, {}, {}, googleRatings)}
+              {renderRatingRow(b, realFavs, hideReviews, hideFavs, T, {}, { fontSize: 11 }, googleRatings)}
             </div>
 
             {(distStr || (!hideSchedule && !schedHidden)) && (
