@@ -1,9 +1,9 @@
-import {isCatalogBusiness} from '../lib/storePresentation.js';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import Icon from '../components/ui/Icon.jsx';
 import BusinessStore from '../components/store/BusinessStore.jsx';
+import NoMenuLanding from '../components/store/NoMenuLanding.jsx';
 import { isOpenNow, cleanCityPrefix } from '../lib/utils.js';
 import { Helmet } from 'react-helmet-async';
 import { useUIStore } from '../store/useUIStore.js';
@@ -41,7 +41,6 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
     staleTime: 5 * 60 * 1000,
   });
 
-  const storeTitle = isCatalogBusiness(biz) ? 'Catálogo' : 'Menú';
   const error = queryError ? "Negocio no encontrado" : null;
 
   useEffect(() => {
@@ -74,23 +73,11 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
 
   if (!isElite) {
     return (
-      <div style={{ minHeight: '100vh', background: dark ? '#18181B' : '#F4F4F5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: dark ? '#F4F4F5' : '#18181B', textAlign: 'center', padding: '0 32px' }}>
-        <Helmet>
-          <title>{storeTitle} no disponible - CityMap</title>
-        </Helmet>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', background: dark ? '#232326' : '#E4E4E7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-          <Icon name="store" size={32} color={dark ? '#71717A' : '#A1A1AA'} />
-        </div>
-        <h2 style={{ fontWeight: 800, fontSize: 20, margin: '0 0 10px', color: dark ? '#F4F4F5' : '#18181B' }}>{storeTitle} no disponible</h2>
-        <p style={{ fontSize: 14, color: dark ? '#A1A1AA' : '#71717A', lineHeight: 1.6, margin: '0 0 24px' }}>
-          Parece que <strong style={{ color: dark ? '#F4F4F5' : '#18181B' }}>{biz.name}</strong> aún no ha publicado su {storeTitle.toLowerCase()} digital o lo ha desactivado temporalmente.
-        </p>
-        <button onClick={() => {
-          const navCity = biz.city_slug || city;
-          const navSlug = cleanCityPrefix(biz.slug || '', navCity) || slug;
-          navigate(`/${navCity}/${navSlug}`);
-        }} style={{ padding: '12px 28px', background: dark ? '#F4F4F5' : '#18181B', color: dark ? '#18181B' : '#fff', border: 'none', borderRadius: 24, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Ver perfil del negocio</button>
-      </div>
+      <NoMenuLanding business={biz} T={T} dark={dark} onBack={() => {
+        const navCity = biz.city_slug || city;
+        const navSlug = cleanCityPrefix(biz.slug || '', navCity) || slug;
+        navigate(`/${navCity}/${navSlug}`);
+      }} />
     );
   }
 
@@ -162,3 +149,4 @@ function SkeletonMenu({ dark }) {
     </div>
   );
 }
+
