@@ -103,4 +103,17 @@ describe('Event links and schedule',()=>{
     expect(render(event)).toContain('Entrada: $1208');
     expect(renderToStaticMarkup(<EventInformation event={event} T={T} hidePriceRow />)).not.toContain('Entrada: $1208');
   });
+  it('shows plain bigger icons without the tinted circle',()=>{
+    const html=render({date:'2026-11-29',time:'20:00',venue_address:'Zapopan, Jal.'});
+    expect(html).toContain('width="26"');
+    expect(html).not.toContain('#EFF6F1');
+  });
+  it('shows the ticket button bigger, in uppercase and with a proper arrow icon',()=>{
+    const html=render({price:150,booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'https://tickets.example.com/event'}]}});
+    expect(html).toContain('Comprar boletos');
+    expect(html).toContain('text-transform:uppercase');
+    expect(html).toContain('font-size:16px');
+    expect(html).toContain('M5 12h14');
+    expect(html).not.toContain('↗');
+  });
 });
