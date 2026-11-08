@@ -135,6 +135,7 @@ const isEventsRoute = (pathname) => {
   return segments.length >= 1 && segments.length <= 2 && (segments[0] === 'eventos' || segments[0] === 'explorar');
 };
 import { categoryFromUrl } from './lib/categoryRouting.js';
+import { rankTopRated } from './lib/googleRatings.js';
 const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
 
 function isHomePath(pathname) {
@@ -1236,9 +1237,14 @@ useEffect(() => {
     return [...rankedBusinesses].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && globalFavCounts[b.id] > 0).sort((a, b) => (globalFavCounts[b.id] || 0) - (globalFavCounts[a.id] || 0)).slice(0, 10);
   }, [rankedBusinesses, activeCity, globalFavCounts, userCoords]);
 
+  const googleRatings = useDataStore((s) => s.googleRatings);
+
   const topRatedMemo = useMemo(() => {
-    return [...rankedBusinesses].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && b.review_count > 0).sort((a, b) => b.rating - a.rating || b.review_count - a.review_count).slice(0, 10);
-  }, [rankedBusinesses, activeCity, userCoords]);
+    return rankTopRated(
+      rankedBusinesses.filter((b) => isNear(b, userCoords, activeCity) && b.status === "approved"),
+      googleRatings
+    );
+  }, [rankedBusinesses, activeCity, userCoords, googleRatings]);
 
   const newBizMemo = useMemo(() => {
     return [...mapPins].filter(b => isNear(b, userCoords, activeCity) && b.status === "approved").sort((a, b) => new Date(b.created_at || 0).getTime() < new Date(a.created_at || 0).getTime() ? -1 : 1).slice(0, 8);
