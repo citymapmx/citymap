@@ -10,7 +10,7 @@ import { useDataStore } from "../../store/useDataStore.js";
 import { displayRating, formatReviewCount } from "../../lib/googleRatings.js";
 
 // Funciones de renderizado directo para evitar sobrecarga de instanciación de componentes en el Virtual DOM
-const renderFavoriteButton = (isFav, onClick, showPlus, overlay = false, T) => {
+const renderFavoriteButton = (isFav, onClick, showPlus, overlay = false, T, iconSize = null) => {
   return (
     <div style={{ position: "relative" }}>
       <m.button 
@@ -31,7 +31,7 @@ const renderFavoriteButton = (isFav, onClick, showPlus, overlay = false, T) => {
       >
         <Icon 
           name={overlay ? (isFav ? "heart_overlay_f" : "heart_overlay") : (isFav ? "heart_f" : "heart")} 
-          size={overlay ? 26 : 16} 
+          size={iconSize ?? (overlay ? 26 : 16)} 
           color={overlay ? "none" : (isFav ? "#F07060" : T.sub)} 
         />
       </m.button>
@@ -271,7 +271,7 @@ export default memo(function BusinessCard({
           </div>
 
           <div style={{ flex: 1, padding: "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4, textAlign: "left" }}>
-            <h3 style={{ fontFamily: FONT_BIZ, fontSize: 15, color: T.text, lineHeight: 1.25, fontWeight: 700, letterSpacing: 0, marginBottom: 0, paddingRight: !hideFavs ? 44 : 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", flexShrink: 0, textAlign: "left" }}>
+            <h3 style={{ fontFamily: FONT_BIZ, fontSize: 15, color: T.text, lineHeight: 1.25, fontWeight: 700, letterSpacing: 0, marginBottom: 0, paddingRight: !hideFavs ? 44 : 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", flexShrink: 0, textAlign: "left" }}>
               {b.name}
               {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
                 <img src="/verificado.png" alt="Verificado" width="18" height="18" style={{ marginLeft: 6, flexShrink: 0 }} />
@@ -316,8 +316,8 @@ export default memo(function BusinessCard({
 
         {/* Fav button */}
         {!hideFavs && (
-          <div style={{ position: "absolute", top: 8, right: 8, zIndex: 10, width: 36, height: 36, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {renderFavoriteButton(isFav, handleFav, showPlus, false, T)}
+          <div style={{ position: "absolute", top: 8, right: 8, zIndex: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {renderFavoriteButton(isFav, handleFav, showPlus, true, T, 16)}
           </div>
         )}
       </m.div>
