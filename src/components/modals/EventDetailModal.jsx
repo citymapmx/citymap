@@ -184,7 +184,7 @@ export default function EventDetailModal() {
                 <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} />
 
                 {/* --- Evento privado: confirmaciones (RSVP) --- */}
-                {isPrivateEvent(ev) && !isPast && <PrivateEventRsvp event={ev} T={T} toast$={toast$} />}
+                {isPrivateEvent(ev) && !isPast && <PrivateEventRsvp event={ev} T={T} dark={dark} toast$={toast$} />}
 
                 {/* --- ASOCIADO CON --- */}
                 {associatedBiz && (
