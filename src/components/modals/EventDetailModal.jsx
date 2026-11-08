@@ -5,7 +5,8 @@ import { useUIStore } from '../../store/useUIStore';
 import { getT, FONT_BIZ, CITY_TZ } from '../../lib/constants';
 import { createSlug, getThumbUrl } from '../../lib/utils';
 import { eventCalendarDay, isPastEvent, upcomingEvents, formatEventCardDate } from '../../lib/eventListing';
-import { sb } from '../../lib/supabase';
+import { sb, cloudUpload } from '../../lib/supabase';
+import { EVENT_IMAGE_OPTIMIZE, resolveOptimizeOptions, shouldOptimizeImage } from '../../lib/imageOptimize.js';
 import Icon from '../ui/Icon';
 import EventPoster from '../detail/EventPoster.jsx';
 import EventInformation from '../detail/EventInformation.jsx';
@@ -28,6 +29,42 @@ export default function EventDetailModal() {
   const [privateTab, setPrivateTab] = useState('chat');
   const [chatCount, setChatCount] = useState(0);
   const [guestCount, setGuestCount] = useState(0);
+  // Foto del evento (anfitrión del privado): subir y guardar.
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const photoInputRef = useRef(null);
+
+  // El anfitrión de un evento privado puede cambiar o agregar la foto.
+  const changePhoto = async (file) => {
+    const ev = selectedEvent;
+    if (!file || !ev?.id || photoBusy) return;
+    setPhotoBusy(true);
+    try {
+      let fileToUpload = file;
+      const opt = resolveOptimizeOptions({ optimize: EVENT_IMAGE_OPTIMIZE });
+      if (shouldOptimizeImage(file, opt)) {
+        try {
+          const imageCompression = (await import('browser-image-compression')).default;
+          const compressed = await imageCompression(file, {
+            maxSizeMB: opt.targetMB,
+            maxWidthOrHeight: opt.maxWidthOrHeight,
+            useWebWorker: true,
+            initialQuality: opt.initialQuality,
+            fileType: 'image/webp',
+          });
+          const newName = file.name.replace(/\.[^/.]+$/, '') + '.webp';
+          fileToUpload = new File([compressed], newName, { type: 'image/webp' });
+        } catch (e) { console.warn('Compression error, uploading original', e); }
+      }
+      const url = await cloudUpload(fileToUpload);
+      await sb.patch('events', ev.id, { img_url: url });
+      setSelectedEvent({ ...ev, img_url: url });
+      toast$('Foto actualizada');
+    } catch (err) {
+      toast$('No se pudo cambiar la foto: ' + err.message);
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
   const evCitySlug = String(selectedEvent?.city_slug || '').split(',').map(s => s.trim()).filter(Boolean)[0] || '';
   const cityTimeZone = (cities.find(c => c.slug === evCitySlug)?.timezone || CITY_TZ[evCitySlug] || 'America/Mexico_City').split(';')[0];
   const todayLocal = eventCalendarDay(Date.now(), cityTimeZone);
@@ -101,6 +138,7 @@ export default function EventDetailModal() {
         const ev = selectedEvent;
         const associatedBiz = ev.biz_id ? mapPins.find(b => b.id === ev.biz_id) : null;
         const imgSrc = ev.img_url || ev.img;
+        const isHost = Boolean(user?.id && ev.user_id && user.id === ev.user_id);
         
         return (
           <m.div
@@ -143,6 +181,28 @@ export default function EventDetailModal() {
                 <button aria-label="Compartir evento" onClick={(e) => { e.stopPropagation(); shareEvent(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
                   <Icon name="share" size={20} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
                 </button>
+
+                {/* El anfitrión del evento privado puede cambiar/agregar la foto */}
+                {isPrivateEvent(ev) && isHost && (
+                  <>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) changePhoto(f); }}
+                    />
+                    <button
+                      aria-label={imgSrc ? 'Cambiar foto del evento' : 'Agregar foto al evento'}
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={photoBusy}
+                      style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#FFFFFF', fontSize: 13, fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer', opacity: photoBusy ? 0.6 : 1, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}
+                    >
+                      <Icon name="camera" size={16} color="#fff" />
+                      {photoBusy ? 'Subiendo…' : (imgSrc ? 'Cambiar foto' : 'Agregar foto')}
+                    </button>
+                  </>
+                )}
               </div>
               )}
 
@@ -160,7 +220,7 @@ export default function EventDetailModal() {
 
                 <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: (ev.event_category || ev.category) ? 8 : 12, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
                 
-                {(ev.event_category || ev.category) && (
+                {!isPrivateEvent(ev) && (ev.event_category || ev.category) && (
                   <div style={{ display: "flex", marginBottom: 8 }}>
                     <span style={{
                       fontSize: 12,

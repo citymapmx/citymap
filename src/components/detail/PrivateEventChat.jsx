@@ -14,14 +14,6 @@ import { formatMessageTime, formatChatDay, avatarColor } from '../../lib/private
 const POLL_MS = 5000;
 const MAX_BODY = 500;
 
-function storedName(eventId) {
-  try {
-    if (typeof window === 'undefined' || !eventId) return '';
-    const parsed = JSON.parse(window.localStorage.getItem(`cg_rsvp_${eventId}`) || 'null');
-    return typeof parsed?.name === 'string' ? parsed.name : '';
-  } catch { return ''; }
-}
-
 function readLikedMap(eventId) {
   try {
     if (typeof window === 'undefined' || !eventId) return {};
@@ -43,6 +35,9 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  // Barra de desplazamiento propia: en iOS la nativa no se ve, así que el
+  // indicador es un div sincronizado con el scroll real de la lista.
+  const [scrollThumb, setScrollThumb] = useState(null);
   const listRef = useRef(null);
   // Scroll inteligente: nearBottomRef dice si el usuario está al final;
   // forceScrollRef obliga a bajar (al enviar un mensaje).
@@ -72,8 +67,9 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
     return () => clearInterval(timer);
   }, [load]);
 
-  // Nombre recordado (del RSVP) para invitados sin cuenta.
-  useEffect(() => { setName(storedName(event?.id)); }, [event?.id]);
+  // El campo del nombre empieza vacío: no se prellena con el nombre
+  // recordado del RSVP (en un teléfono compartido aparecía otro nombre,
+  // como Carlos, al abrir el evento).
 
   // Contador para la píldora de la pestaña.
   useEffect(() => { onCountChange?.(messages.length); }, [messages.length, onCountChange]);
@@ -94,13 +90,25 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
     }
     forceScrollRef.current = false;
     prevCount.current = messages.length;
+    updateScrollThumb();
   }, [messages]);
+
+  const updateScrollThumb = () => {
+    const el = listRef.current;
+    if (!el || el.scrollHeight <= el.clientHeight + 1) { setScrollThumb(null); return; }
+    const trackH = el.clientHeight - 16;
+    const thumbH = Math.max(24, (trackH * el.clientHeight) / el.scrollHeight);
+    const maxTop = trackH - thumbH;
+    const ratio = el.scrollHeight - el.clientHeight > 0 ? el.scrollTop / (el.scrollHeight - el.clientHeight) : 0;
+    setScrollThumb({ top: 8 + ratio * maxTop, height: thumbH });
+  };
 
   const handleScroll = () => {
     const el = listRef.current;
     if (!el) return;
     nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
     if (nearBottomRef.current) setShowNew(false);
+    updateScrollThumb();
   };
 
   const scrollToBottom = () => {
@@ -125,7 +133,7 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
   };
 
   // ¿Es un mensaje mío? Con sesión: por user_id. Sin sesión: por el nombre
-  // recordado (el mismo con el que confirmo asistencia).
+  // que escribo en el campo (el campo ya no se prellena).
   const isOwnMessage = (m) => {
     if (user) return Boolean(m.user_id && m.user_id === user.id);
     const mine = name.trim();
@@ -147,7 +155,12 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
         body: text.slice(0, MAX_BODY),
       });
       if (!user) {
-        try { window.localStorage.setItem(`cg_rsvp_${event.id}`, JSON.stringify({ name: authorName })); } catch { /* sin almacenamiento */ }
+        // Guardar el nombre sin borrar la confirmación de asistencia
+        // (status y acompañantes) que vive en la misma clave.
+        try {
+          const prev = JSON.parse(window.localStorage.getItem(`cg_rsvp_${event.id}`) || 'null') || {};
+          window.localStorage.setItem(`cg_rsvp_${event.id}`, JSON.stringify({ ...prev, name: authorName }));
+        } catch { /* sin almacenamiento */ }
       }
       setBody('');
       forceScrollRef.current = true;
@@ -272,8 +285,10 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
             const isHostMessage = m.user_id && event?.user_id && m.user_id === event.user_id;
             const count = likesFor(m.id).length;
             const liked = Boolean(myLike(m.id));
-            const bubbleBg = own ? (dark ? 'rgba(26,122,94,0.35)' : '#D9EEE3') : (dark ? 'rgba(255,255,255,0.08)' : '#E9E9EC');
-            const bubbleBorder = own ? (dark ? '1px solid rgba(26,122,94,0.45)' : '1px solid #BFE3D2') : (dark ? '1px solid rgba(255,255,255,0.10)' : '1px solid #DDDDDE');
+            // Todos los mensajes en el tono de la píldora no seleccionada,
+            // con trazo negro (en oscuro, trazo claro para que se vea).
+            const bubbleBg = dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9';
+            const bubbleBorder = dark ? '1.5px solid rgba(255,255,255,0.28)' : '1.5px solid #111111';
             return (
               <div key={m.id}>
                 {showDay && (
@@ -285,7 +300,7 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
                 {own ? (
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <div style={{ maxWidth: '85%', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: '0 1px 2px rgba(15,23,42,0.06)', borderRadius: 16, borderBottomRightRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' }}>{m.body}</div>
+                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, borderRadius: 16, borderBottomRightRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' }}>{m.body}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <span style={{ fontSize: 11, color: T.sub }}>{formatMessageTime(m.created_at)}</span>
                         {m.pinned && <span title="Mensaje fijado" style={{ fontSize: 12 }}>📌</span>}
@@ -322,7 +337,7 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
                           {m.pinned && <span title="Mensaje fijado" style={{ fontSize: 12 }}>📌</span>}
                         </div>
                       )}
-                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: '0 1px 2px rgba(15,23,42,0.06)', borderRadius: 16, borderBottomLeftRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
+                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, borderRadius: 16, borderBottomLeftRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <button aria-label={liked ? 'Quitar me gusta' : 'Me gusta'} onClick={() => toggleLike(m)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px 2px 0', fontSize: 13, fontWeight: 700, color: T.sub, fontFamily: 'inherit' }}>
                           <Icon name={liked ? 'heart_overlay_f' : 'heart_overlay'} size={16} />
@@ -345,6 +360,9 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
           })
         )}
       </div>
+        {scrollThumb && (
+          <div aria-hidden="true" style={{ position: 'absolute', right: 4, top: scrollThumb.top, width: 6, height: scrollThumb.height, borderRadius: 9999, background: '#A1A1AA', pointerEvents: 'none', zIndex: 2 }} />
+        )}
         {showNew && (
           <button
             onClick={scrollToBottom}
