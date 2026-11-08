@@ -327,7 +327,7 @@ export default memo(function HomeHero({
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }
                     }} 
-                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0, minHeight: 44, boxSizing: "border-box", padding: "10px 0", borderBottom: `2px solid ${isActive ? (dark ? "#FFFFFF" : "#000000") : "transparent"}`, color: isActive ? (dark ? "#FFFFFF" : "#000000") : (dark ? "#A3AFBF" : "#788496"), fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: "20px", whiteSpace: "nowrap", transition: "color 180ms ease, border-color 180ms ease" }}
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0, minHeight: 44, boxSizing: "border-box", padding: "10px 0", borderBottom: `2px solid ${isActive ? (dark ? "#FFFFFF" : "#000000") : "transparent"}`, color: isActive ? (dark ? "#FFFFFF" : "#000000") : (dark ? "#C2C7D1" : "#788496"), fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: "20px", whiteSpace: "nowrap", transition: "color 180ms ease, border-color 180ms ease" }}
                   >
                     {c.label}
                   </a>

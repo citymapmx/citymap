@@ -41,7 +41,15 @@ export function normalizeAngleDeg(deg) {
 
 // Brillo de cada cara según su ángulo respecto al frente: de frente 1,
 // de canto 0.7. Las vecinas se ven un poco más apagadas y el frente resalta.
-export function faceBrightness(angleDeg) {
+// Brillo de una cara según su ángulo respecto al frente: 1 al centro y
+// menos hacia los lados. En oscuro el piso es más alto (0.85 en vez de
+// 0.7): sobre fondo casi negro las caras laterales se veían casi ilegibles.
+export function faceBrightness(angleDeg, dark = false) {
   const a = Math.min(Math.abs(normalizeAngleDeg(angleDeg)), 90);
-  return 1 - 0.3 * (a / 90);
+  return 1 - (dark ? 0.15 : 0.3) * (a / 90);
 }
+
+// Preset de resorte para la interfaz (framer-motion): la misma física del
+// carrusel de eventos (resorte 140/17), pero más rígida y amortiguada para
+// que un modal o una transición de ruta no se bambolee como el tambor.
+export const SPRING_UI = { type: 'spring', stiffness: 320, damping: 32 };

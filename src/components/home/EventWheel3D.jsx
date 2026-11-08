@@ -232,10 +232,10 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
           {items.map((item, i) => {
             const angle = normalizeAngleDeg(i * step + rotation);
             return (
-              <div key={item.key} data-face={i} className="event-wheel-face" style={{ transform: `rotateY(${i * step}deg) translateZ(${radius}px)`, filter: `brightness(${faceBrightness(angle).toFixed(2)})` }}>
+              <div key={item.key} data-face={i} className="event-wheel-face" style={{ transform: `rotateY(${i * step}deg) translateZ(${radius}px)`, filter: `brightness(${faceBrightness(angle, T.dark).toFixed(2)})` }}>
                 {item.img
                   ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} priority={i === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                  : <EventPosterFallback title={item.title} radius={12} />}
+                  : <EventPosterFallback title={item.title} radius={12} dark={T.dark} />}
                 {pill(item)}
               </div>
             );

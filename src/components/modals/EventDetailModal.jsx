@@ -14,6 +14,7 @@ import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
 import PrivateEventChat from '../detail/PrivateEventChat.jsx';
 import { isPrivateEvent, privateEventUrl, summarizeRsvps, heroDateParts } from '../../lib/privateEvents';
 import { getEventPrice, getEventPriceAmount } from '../../lib/eventDetails.js';
+import { SPRING_UI } from '../../lib/spring.js';
 import { useAuthStore } from '../../store/useAuthStore';
 
 // Rediseño claro estilo Luma (solo eventos privados vigentes en modo claro;
@@ -164,10 +165,10 @@ export default function EventDetailModal() {
           <m.div
             key="event-modal"
             ref={dialog} role="dialog" aria-modal="true" aria-label={ev.title || "Evento"} tabIndex={-1}
-            initial={false}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ type: "tween", duration: reduceMotion ? 0 : 0.15 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 28, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 28, scale: 0.985 }}
+            transition={reduceMotion ? { type: "tween", duration: 0 } : SPRING_UI}
             style={{ position: "fixed", inset: 0, background: luma ? `linear-gradient(180deg, ${LUMA_TINT_TOP} 0%, #F7FAF8 220px, #FFFFFF 420px)` : T.bg, zIndex: 100000, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", overscrollBehavior:"contain", outline:"none", fontFamily: "inherit" }}
           >
             <div style={{ width: "100%", maxWidth: 460, margin: "0 auto", padding: 0, display: "flex", flexDirection: "column", minHeight: "100%" }}>
@@ -185,10 +186,10 @@ export default function EventDetailModal() {
               ) : (
               <div style={{ position: "relative", width: "100%", maxHeight: heroLuma ? 280 : 200, background: "transparent", overflow: "hidden" }}>
                 {imgSrc ? (
-                  <EventPoster key={imgSrc} src={imgSrc} alt={ev.title || ""} />
+                  <EventPoster key={imgSrc} src={imgSrc} alt={ev.title || ""} dark={dark} />
                 ) : (
-                  <div style={{ width: "100%", height: "100%", minHeight: heroLuma ? 200 : 120, display: "flex", alignItems: heroLuma ? "flex-start" : "center", justifyContent: "center", background: "transparent", paddingTop: heroLuma ? 44 : 0 }}>
-                    <Icon name="calendar" size={36} color={T.sub} />
+                  <div style={{ width: "100%", height: "100%", minHeight: heroLuma ? 200 : 120, display: "flex", alignItems: "center", justifyContent: "center", background: dark ? "#232326" : "#111", borderBottom: dark ? "1px solid #3F3F46" : "none", paddingTop: heroLuma ? 44 : 0 }}>
+                    <Icon name="calendar" size={44} color={dark ? "#71717A" : "rgba(255,255,255,0.55)"} />
                   </div>
                 )}
 

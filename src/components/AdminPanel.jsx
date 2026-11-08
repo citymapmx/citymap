@@ -649,7 +649,7 @@ function PushTab({ T, onToast }) {
       </div>
 
       <button type="button" onClick={() => handleSend(true)} disabled={loading} style={{ padding: "12px 16px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.white, color: T.text, fontWeight: 700, cursor: "pointer" }}>Enviar prueba a mi cuenta</button>
-      <button className="text-base" onClick={() => handleSend(false)} disabled={loading} style={{ background: T.green, color: "#fff", padding: "14px 20px", borderRadius: 12, border: "none", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "all 0.2s", marginTop: 6 }}>
+      <button className="text-base" onClick={() => handleSend(false)} disabled={loading} style={{ background: T.green, color: T.dark ? "#18181B" : "#FFFFFF", padding: "14px 20px", borderRadius: 12, border: "none", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "all 0.2s", marginTop: 6 }}>
         {loading ? "Enviando..." : "Enviar Notificación Masiva"}
       </button>
     </div>

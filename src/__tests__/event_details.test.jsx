@@ -54,7 +54,8 @@ describe('Event links and schedule',()=>{
   it('shows the full date range, times and directions even with only an address',()=>{
     const html=render({date:'2026-10-01',end_date:'2026-11-02',time:'18:30',end_time:'23:00',venue_address:'Centro, Tepic'});
     expect(html).toContain('1 de octubre de 2026');
-    expect(html).toContain('2 de noviembre de 2026');
+    expect(html).toContain('al 2 de noviembre');
+    expect(html).not.toContain('2 de noviembre de 2026');
     expect(html).toContain('6:30 p. m. – 11:00 p. m.');
     expect(html).toContain('Cómo llegar');
     expect(html).toContain('destination=Centro%2C%20Tepic');
@@ -115,5 +116,16 @@ describe('Event links and schedule',()=>{
     expect(html).toContain('font-size:16px');
     expect(html).toContain('M5 12h14');
     expect(html).not.toContain('↗');
+  });
+  it('does not repeat the year in a same-year date range',()=>{
+    const html=render({date:'2026-11-20',end_date:'2026-11-21',time:'20:00',venue_name:'Auditorio Telmex'});
+    expect(html).toContain(' al ');
+    expect((html.match(/2026/g) || []).length).toBe(1);
+    expect(html).not.toContain('21 de noviembre de 2026');
+  });
+  it('softens the ticket button in dark mode instead of a solid white pill',()=>{
+    const darkT={...T,dark:true,greenD:'#E4E4E7'};
+    const html=renderToStaticMarkup(<EventInformation event={{price:150,booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'https://tickets.example.com/event'}]}}} T={darkT} />);
+    expect(html).toContain('background:#E4E4E7');
   });
 });

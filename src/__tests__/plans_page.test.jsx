@@ -28,4 +28,9 @@ describe('plans page', () => {
     expect(html).toContain('El plan Destacado mensual incluye 7 días gratis');
     expect(html).not.toContain('window.confirm');
   });
+
+  it('renders the dark page in dark mode (the /precios white-on-white bug)', () => {
+    const html = renderPage({ dark: true });
+    expect(html).toContain('#161617');
+  });
 });

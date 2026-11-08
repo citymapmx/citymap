@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { getThumbUrl } from '../../lib/utils';
 
 // Both uncropped layers share the same grid cell and their natural proportions.
-export default function EventPoster({ src, alt = '' }) {
+export default function EventPoster({ src, alt = '', dark = false }) {
   const previewSrc = getThumbUrl(src, 400);
   const optimizedSrc = getThumbUrl(src, 800);
   const [useOriginal, setUseOriginal] = useState(false);
@@ -13,6 +13,8 @@ export default function EventPoster({ src, alt = '' }) {
   const imageStyle = {
     gridArea: '1 / 1', alignSelf: 'start', width: '100%', height: 'auto',
     display: 'block',
+    // En oscuro, los pósters de fondo blanco deslumbran: se atenúan un poco.
+    filter: dark ? 'brightness(0.85)' : 'none',
   };
 
   return (

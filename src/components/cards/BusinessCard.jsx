@@ -244,7 +244,7 @@ export default memo(function BusinessCard({
           display: "flex", 
           flexDirection: "column", 
           position: "relative", 
-          border: `1px solid ${T.border}`, 
+          border: `1px solid ${dark ? "#52525B" : T.border}`, 
           minHeight: 100, 
           cursor: onTap ? "pointer" : "default",
           contentVisibility: "auto",

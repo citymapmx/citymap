@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import CompactCard from '../cards/CompactCard.jsx';
+import { useFlipList } from '../../lib/useFlipList.js';
 import { useDataStore } from "../../store/useDataStore.js";
 import { useUIStore } from "../../store/useUIStore.js";
 import Icon from '../ui/Icon.jsx';
@@ -33,6 +34,9 @@ export default memo(function HomeTopGrids({
 
   const visibleFavs = topFavs.slice(0, showMoreTopFavs ? 10 : 5);
   const visibleRated = topRated.slice(0, showMoreTopRated ? 10 : 5);
+  // FLIP: cuando llegan las calificaciones de Google y la lista se
+  // reordena, las tarjetas se deslizan a su nuevo lugar en vez de saltar.
+  const registerRated = useFlipList(visibleRated.map(b => b.id).join(','));
 
   return (
     <div ref={sectionRef} style={{ minHeight: 1 }}>
@@ -92,7 +96,7 @@ export default memo(function HomeTopGrids({
               const pillBg = dark ? "#333" : "#F3F4F6";
 
               return (
-                <div key={b.id} style={{ position: "relative", paddingBottom: 0 }}>
+                <div key={b.id} ref={registerRated(b.id)} style={{ position: "relative", paddingBottom: 0 }}>
                   <div style={{ position: "absolute", top: index < 3 ? -2 : -2, left: index < 3 ? -2 : -2, width: index < 3 ? 38 : 34, height: index < 3 ? 38 : 34, borderRadius: "50%", background: index < 3 ? "transparent" : pillBg, color: numColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: index < 3 ? 32 : 15, fontWeight: 900, boxShadow: index < 3 ? "none" : "0 4px 10px rgba(0,0,0,0.15)", zIndex: 10, border: index < 3 ? "none" : `2.5px solid ${dark ? "#111" : "#f4f4f5"}`, filter: index < 3 ? "drop-shadow(0 4px 6px rgba(0,0,0,0.2))" : "none" }}>
                     {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
                   </div>

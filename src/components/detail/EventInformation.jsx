@@ -27,7 +27,11 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
   const links = getEventLinks(event);
   const showLinks = !hideTickets && links.length > 0;
   const start = dateLabel(event.date, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
-  const end = event.end_date > event.date ? dateLabel(event.end_date, { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  // El año del fin solo se repite si cambia de año: "vie, 20 de noviembre
+  // de 2026 al 21 de noviembre" en vez de repetir "de 2026" y partirse mal.
+  const endYear = event.end_date > event.date ? new Date(`${event.end_date}T12:00:00Z`).getUTCFullYear() : null;
+  const startYear = event.date ? new Date(`${event.date}T12:00:00Z`).getUTCFullYear() : null;
+  const end = event.end_date > event.date ? dateLabel(event.end_date, { day: 'numeric', month: 'long', ...(endYear !== startYear ? { year: 'numeric' } : {}) }) : '';
   const times = [timeLabel(event.time), timeLabel(event.end_time)].filter(Boolean).join(' – ');
   const venue = event.venue_name || associatedBiz?.name;
   const address = event.venue_address || associatedBiz?.address;
@@ -47,7 +51,7 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
       {(start || times) && <div style={rowStyle}>
         <Icon name="calendar" size={26} color={T.text} style={iconStyle} />
         <div style={{ minWidth: 0 }}>
-          {start && <p style={{ margin: 0, color: T.text, fontSize: 15, lineHeight: 1.5, fontWeight: 650 }}>{start}{end ? ` al ${end}` : ''}</p>}
+          {start && <p style={{ margin: 0, color: T.text, fontSize: 15, lineHeight: 1.5, fontWeight: 650, textWrap: 'balance' }}>{start}{end ? ` al ${end}` : ''}</p>}
           {times && <p style={{ margin: start ? '3px 0 0' : 0, color: T.sub, fontSize: 14, lineHeight: 1.5 }}>{times}</p>}
         </div>
       </div>}
@@ -69,7 +73,7 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
         {links.map((link, index) => {
           const ticketSeller = ['tiqets', 'comprar_entradas'].includes(link.platform);
           const label = link.platform === 'whatsapp' ? 'Consultar por WhatsApp' : ticketSeller && price && !price.free ? 'Comprar boletos' : 'Consultar entradas';
-          return <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, padding: '10px 14px', boxSizing: 'border-box', borderRadius: 12, border: index ? `1px solid ${T.border}` : 0, background: index ? 'transparent' : T.text, color: index ? T.text : T.bg, textDecoration: 'none', fontSize: 16, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>{label}{links.length > 1 ? ` · ${new URL(link.url).hostname.replace(/^www\./, '')}` : ''}<Icon name="arrow_right" size={18} /></a>;
+          return <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, padding: '10px 14px', boxSizing: 'border-box', borderRadius: 12, border: index ? `1px solid ${T.border}` : 0, background: index ? 'transparent' : (T.dark ? T.greenD : T.text), color: index ? T.text : T.bg, textDecoration: 'none', fontSize: 16, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>{label}{links.length > 1 ? ` · ${new URL(link.url).hostname.replace(/^www\./, '')}` : ''}<Icon name="arrow_right" size={18} /></a>;
         })}
       </div>
     </div>}

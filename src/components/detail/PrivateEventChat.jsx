@@ -289,7 +289,7 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
             // las propias en oscuro (#0F172A, texto blanco), las demás en
             // gris claro, sin borde ni sombra. En oscuro se queda el estilo
             // anterior (tono píldora + trazo).
-            const bubbleBg = luma ? (own ? '#0F172A' : '#F1F5F9') : (dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9');
+            const bubbleBg = luma ? (own ? '#0F172A' : '#F1F5F9') : (dark ? (own ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.06)') : '#F1F5F9');
             const bubbleBorder = luma ? 'none' : (dark ? '1.5px solid rgba(255,255,255,0.28)' : '1.5px solid #111111');
             const bubbleShadow = 'none';
             const bubbleColor = luma && own ? '#FFFFFF' : T.text;

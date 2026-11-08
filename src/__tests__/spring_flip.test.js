@@ -34,6 +34,12 @@ describe('spring', () => {
     expect(faceBrightness(180)).toBe(0.7);
     expect(faceBrightness(-72)).toBeCloseTo(0.76, 2);
   });
+
+  it('keeps side faces brighter in dark mode', () => {
+    expect(faceBrightness(0, true)).toBe(1);
+    expect(faceBrightness(72, true)).toBeCloseTo(0.88, 2);
+    expect(faceBrightness(180, true)).toBe(0.85);
+  });
 });
 
 describe('flip', () => {

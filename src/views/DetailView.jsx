@@ -217,7 +217,7 @@ export default function DetailView() {
         style={{ width: "100%", maxWidth: 600, height: "100%", overflowY: "auto", overflowX: "hidden", background: T.bg, position: "relative", boxShadow: "0 0 40px rgba(0,0,0,0.1)" }}
       >
         {/* Header Image Full Bleed */}
-            <div style={{ height: (selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) ? (isElite ? "40vh" : 220) : 64, position: "relative", background: "transparent", overflow: "hidden", flexShrink: 0 }}>
+            <div style={{ height: (selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) ? (isElite ? "40vh" : 220) : 64, position: "relative", background: dark ? "#232326" : "#E5E7EB", overflow: "hidden", flexShrink: 0 }}>
               {(selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) && <img src={getThumbUrl(selected.photos?.find(photo => photo?.url)?.url || selected.banner_url || selected.logo_url, 1200, 900)} alt={`Foto de ${selected.name}`} style={{ width: "100%", height: "100%", objectFit: "cover", backgroundColor: "transparent" }} />}
               {isElite && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(to top, #111111 0%, rgba(17,17,17,0) 100%)" }} />}
               <div style={{ position: "absolute", top: 16, left: 16, right: 16, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 20 }}>
