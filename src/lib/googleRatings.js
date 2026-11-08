@@ -19,3 +19,24 @@ export function displayRating(biz, googleMap) {
 // Conteo con separador de miles (8,824 en lugar de 8824).
 export const formatReviewCount = (n) =>
   new Intl.NumberFormat("es-MX").format(Number(n) || 0);
+
+// "Los más valorados": orden por la calificación que se muestra (Google en
+// caché cuando hay, si no la propia de CityMap), con mínimo de reseñas para
+// entrar. Sin mínimo, un 5.0 con 2 reseñas quedaría en #1 por encima de un
+// 4.7 con cientos (caso Café Drama: 5.0 interno con 2 reseñas, 2.5 en Google
+// con 82). Si no hay 10 con el mínimo, se completa con los mejores
+// restantes para que la lista no quede corta en ciudades chicas.
+export const TOP_RATED_MIN_REVIEWS = 50;
+
+export function rankTopRated(businesses, googleMap, minReviews = TOP_RATED_MIN_REVIEWS) {
+  const scored = (businesses || [])
+    .map((biz) => ({ biz, d: displayRating(biz, googleMap) }))
+    .filter(({ d }) => typeof d.rating === "number" && (d.count ?? 0) > 0)
+    .sort((x, y) => y.d.rating - x.d.rating || (y.d.count ?? 0) - (x.d.count ?? 0));
+  const qualified = scored.filter(({ d }) => (d.count ?? 0) >= minReviews);
+  const picked =
+    qualified.length >= 10
+      ? qualified
+      : [...qualified, ...scored.filter((s) => (s.d.count ?? 0) < minReviews)];
+  return picked.slice(0, 10).map(({ biz }) => biz);
+}
