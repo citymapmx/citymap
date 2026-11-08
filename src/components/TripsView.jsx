@@ -183,7 +183,7 @@ function TiqetsParisWidget({ T, dark }) {
   );
 }
 
-function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark }) {
+function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark, priority }) {
   const { t } = useTranslation();
   const photos = Array.isArray(exp.gallery) ? exp.gallery : [];
   const priceFormatted = exp.price > 0 ? `$${exp.price} MXN` : t("gratis", "Gratis");
@@ -193,16 +193,16 @@ function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark }) 
 
   return (
     <a href={href} onClick={(e) => { e.preventDefault(); onClick(); }} className="press" style={{ display: "block", textDecoration: "none", background: dark ? "rgba(255,255,255,0.03)" : "#fff", borderRadius: 20, overflow: "hidden", cursor: "pointer", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: `1px solid ${T.border}`, position: "relative" }}>
-      <div style={{ display: showGrid ? "grid" : "block", gridTemplateColumns: showGrid ? "1.5fr 1fr" : "none", gridTemplateRows: showGrid ? "1fr 1fr" : "none", aspectRatio: "21/9", width: "100%", gap: 3, position: "relative", background: "transparent" }}>
-        <div style={{ gridRow: showGrid ? "1 / 3" : "auto", height: showGrid ? "auto" : "100%", background: "transparent", position: "relative", overflow: "hidden" }}>
-          {photos[0] && <img src={getThumbUrl(photos[0], 900)} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+      <div style={{ display: showGrid ? "grid" : "block", gridTemplateColumns: showGrid ? "1.5fr 1fr" : "none", gridTemplateRows: showGrid ? "1fr 1fr" : "none", aspectRatio: "21/9", width: "100%", gap: 3, position: "relative", background: T.border }}>
+        <div style={{ gridRow: showGrid ? "1 / 3" : "auto", height: showGrid ? "auto" : "100%", background: T.border, position: "relative", overflow: "hidden" }}>
+          {photos[0] && <img src={getThumbUrl(photos[0], 800)} alt="" loading={priority ? "eager" : "lazy"} decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
         </div>
         {showGrid && (
           <>
-            <div style={{ background: "transparent", position: "relative", overflow: "hidden" }}>
+            <div style={{ background: T.border, position: "relative", overflow: "hidden" }}>
               {photos[1] && <img src={getThumbUrl(photos[1], 400)} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
             </div>
-            <div style={{ background: "transparent", position: "relative", overflow: "hidden" }}>
+            <div style={{ background: T.border, position: "relative", overflow: "hidden" }}>
               {photos[2] && <img src={getThumbUrl(photos[2], 400)} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
             </div>
           </>
@@ -255,7 +255,7 @@ function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark }) 
   );
 }
 
-export default function TripsView({ T, dark, navigate, mapPins = [], activeCity = "", cities = [], user, userCoords = null, profile, initialPlanId, initialJoinToken, onInitialPlanOpened }) {
+export default function TripsView({ T, dark, navigate, mapPins = [], activeCity = "", cities = [], user, userCoords = null, profile, initialPlanId, initialJoinToken, onInitialPlanOpened, routeCity: routeCityProp, routeSlug: routeSlugProp }) {
   const { t, lang } = useTranslation();
   const ctx = useAppContext();
   const isAdmin = ctx?.isAdmin || false;
@@ -266,7 +266,10 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
   const routerNavigate = useNavigate();
   const location = useLocation();
   const routeParams = useParams();
-  const routeSlug = routeParams?.slug;
+  // Cuando la vista vive fuera de <Routes> (keep-alive en AppRouter), la
+  // ciudad y el artículo llegan por props; useParams queda como respaldo.
+  const routeSlug = routeSlugProp ?? routeParams?.slug;
+  const routeCity = routeCityProp ?? routeParams?.city;
 
   const initialMatch = useMemo(() => {
     if (!routeSlug || !experiences || experiences.length === 0) return null;
@@ -558,13 +561,14 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
         {filteredDiscover.length > 0 ? (
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {filteredDiscover.slice(0, visibleCount).map(exp => {
+              {filteredDiscover.slice(0, visibleCount).map((exp, idx) => {
                 const href = `/revista/${activeCity}/${createSlug(exp.title)}`;
                 return (
                 <ExperienceCard 
                   key={exp.id} 
                   exp={exp} 
                   href={href}
+                  priority={idx < 2}
                   onClick={() => routerNavigate(href, { state: { articleOrigin: true } })} 
                   isSaved={savedExpIds.includes(exp.id)} 
                   onToggleSave={() => toggleSaveExp(exp)} 
@@ -628,7 +632,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
             dark={dark} 
             onClose={() => {
               if (location.state?.articleOrigin) routerNavigate(-1);
-              else routerNavigate(`/revista/${routeParams.city || activeCity || ''}`, { replace: true });
+              else routerNavigate(`/revista/${routeCity || activeCity || ''}`, { replace: true });
             }}
           />
         )}
