@@ -41,18 +41,18 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
   const shownParagraphs = expanded ? paragraphs : paragraphs.slice(0, 2);
   const needsMore = paragraphs.length > 2;
   const rowStyle = { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', textAlign: 'left' };
-  const iconCircle = { width: 36, height: 36, borderRadius: '50%', background: T.dark ? 'rgba(255,255,255,0.06)' : '#EFF6F1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
+  const iconStyle = { flexShrink: 0, marginTop: 2 };
   return <>
     {hasInfo && <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 20, padding: '2px 16px', boxShadow: T.shadow, marginBottom: event.description || showLinks ? 22 : 0 }}>
       {(start || times) && <div style={rowStyle}>
-        <div style={iconCircle}><Icon name="calendar" size={18} color={T.text} /></div>
+        <Icon name="calendar" size={26} color={T.text} style={iconStyle} />
         <div style={{ minWidth: 0 }}>
           {start && <p style={{ margin: 0, color: T.text, fontSize: 15, lineHeight: 1.5, fontWeight: 650 }}>{start}{end ? ` al ${end}` : ''}</p>}
           {times && <p style={{ margin: start ? '3px 0 0' : 0, color: T.sub, fontSize: 14, lineHeight: 1.5 }}>{times}</p>}
         </div>
       </div>}
       {(venue || address || coordinates) && <div style={rowStyle}>
-        <div style={iconCircle}><Icon name="map-pin" size={18} color={T.text} /></div>
+        <Icon name="map-pin" size={26} color={T.text} style={iconStyle} />
         <div style={{ minWidth: 0 }}>
           {showVenueLine && <p style={{ margin: 0, color: T.text, fontWeight: 650, fontSize: 15, lineHeight: 1.5 }}>{venue}</p>}
           {address && <p style={{ margin: showVenueLine ? '3px 0 0' : 0, color: T.sub, fontSize: 14, lineHeight: 1.5 }}>{address}</p>}
@@ -60,7 +60,7 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
         </div>
       </div>}
       {showPriceRow && <div style={rowStyle}>
-        <div style={iconCircle}><Icon name="ticket" size={18} color={T.text} /></div>
+        <Icon name="ticket" size={26} color={T.text} style={iconStyle} />
         <div><p style={{ margin: 0, color: T.text, fontSize: 15, lineHeight: 1.5, fontWeight: 650 }}>{price.text}</p></div>
       </div>}
     </div>}
@@ -69,7 +69,7 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
         {links.map((link, index) => {
           const ticketSeller = ['tiqets', 'comprar_entradas'].includes(link.platform);
           const label = link.platform === 'whatsapp' ? 'Consultar por WhatsApp' : ticketSeller && price && !price.free ? 'Comprar boletos' : 'Consultar entradas';
-          return <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, padding: '10px 14px', boxSizing: 'border-box', borderRadius: 12, border: index ? `1px solid ${T.border}` : 0, background: index ? 'transparent' : T.text, color: index ? T.text : T.bg, textDecoration: 'none', fontSize: 14, fontWeight: 700, textAlign: 'center' }}>{label}{links.length > 1 ? ` · ${new URL(link.url).hostname.replace(/^www\./, '')}` : ''}<span aria-hidden="true">↗</span></a>;
+          return <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, padding: '10px 14px', boxSizing: 'border-box', borderRadius: 12, border: index ? `1px solid ${T.border}` : 0, background: index ? 'transparent' : T.text, color: index ? T.text : T.bg, textDecoration: 'none', fontSize: 16, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>{label}{links.length > 1 ? ` · ${new URL(link.url).hostname.replace(/^www\./, '')}` : ''}<Icon name="arrow_right" size={18} /></a>;
         })}
       </div>
     </div>}
