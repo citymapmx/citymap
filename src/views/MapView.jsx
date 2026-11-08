@@ -1,9 +1,10 @@
 import SectionCategoryBar from '../components/ui/SectionCategoryBar.jsx';
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useMemo, useState, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { FONT_BIZ } from "../lib/constants.js";
 
 import { getThumbUrl, getScheduleStatus, isNear, getKm, isOpenNow, CAT_EMOJI, iconFile } from "../lib/utils";
+import { getCityCenter } from "../lib/mapCentering.js";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
@@ -76,6 +77,9 @@ export default function MapView() {
 
   const cityName = cities.find(c => c.slug === activeCity)?.name || (activeCity ? activeCity.charAt(0).toUpperCase() + activeCity.slice(1).replace(/-/g, ' ') : t("tu_ciudad", "tu ciudad"));
   const shortCity = cityName.split(",")[0];
+
+  // Centro del mapa: coordenadas de la ciudad activa (antes siempre Tepic).
+  const cityCenter = useMemo(() => getCityCenter(cities.find(c => c.slug === activeCity), mapPins), [cities, activeCity, mapPins]);
 
   const handleScroll = (e) => {
     const { scrollLeft, scrollWidth, clientWidth } = e.target;
@@ -157,7 +161,7 @@ export default function MapView() {
               <Icon name={mapFullScreen ? "minimize-2" : "maximize-2"} size={20} color={dark ? "#F4F4F5" : "#0F172A"} />
             </button>
 
-            <Suspense fallback={<LoaderFallback/>}><GMap events={(events||[]).filter(e => e.city_slug === activeCity || e.city_slug === 'all')} businesses={displayedPins} selected={mapPin} onPin={b => { setMapPin(p => p?.id === b.id ? null : b); }} userLocation={userCoords} onRequestLocation={requestLocation} categories={cats} radiusKm={null} onBoundsChanged={(bounds) => loadMapPinsByBounds(activeCity, bounds)} showRoute={mapFullScreen} /></Suspense>
+            <Suspense fallback={<LoaderFallback/>}><GMap events={(events||[]).filter(e => e.city_slug === activeCity || e.city_slug === 'all')} businesses={displayedPins} selected={mapPin} onPin={b => { setMapPin(p => p?.id === b.id ? null : b); }} userLocation={userCoords} onRequestLocation={requestLocation} categories={cats} radiusKm={null} onBoundsChanged={(bounds) => loadMapPinsByBounds(activeCity, bounds)} showRoute={mapFullScreen} cityCenter={cityCenter} cityKey={activeCity} /></Suspense>
 
             {/* GPS Overlay */}
             {!userCoords && (

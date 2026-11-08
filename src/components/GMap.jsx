@@ -53,7 +53,7 @@ function flyToLocation(mapInstance, lat, lng, targetZoom = 15) {
   setTimeout(() => smoothZoom(targetZoom, currentZoom), 200);
 }
 
-const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin, userLocation, onRequestLocation, categories = [], radiusKm, utilityFilter, onBoundsChanged, showRoute = false, dark = false, camera }) {
+const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin, userLocation, onRequestLocation, categories = [], radiusKm, utilityFilter, onBoundsChanged, showRoute = false, dark = false, camera, cityCenter, cityKey }) {
   const ref = useRef(); 
   const map = useRef(); 
   const pins = useRef([]); 
@@ -178,7 +178,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
     // Init map once
     if (!map.current) {
       map.current = new window.google.maps.Map(ref.current, {
-        center: camera?.current?.center || { lat: 21.5042, lng: -104.8944 },
+        center: camera?.current?.center || cityCenter || { lat: 21.5042, lng: -104.8944 },
         zoom: camera?.current?.zoom ?? 13,
         // Custom dark colors retain the same POI filtering as the light map.
         colorScheme: 'LIGHT',
@@ -539,7 +539,10 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
       clusterer.current = new MarkerClusterer({
         map: map.current,
         markers: pins.current,
-        renderer: renderer
+        renderer: renderer,
+        // Agrupar solo desde 4 lugares juntos: con el mínimo de 2 el mapa
+        // se veía vacío porque casi todo quedaba dentro de un grupo.
+        algorithmOptions: { minPoints: 4 }
       });
     }
 
@@ -600,6 +603,20 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ok, businesses, selected, userLocation, showRoute]);
+
+  // Recentrar cuando cambia la ciudad. Antes el mapa arrancaba siempre en
+  // Tepic porque la cámara guardada conservaba el centro anterior y nada
+  // lo movía a la ciudad activa. En la primera carga con GPS, el GPS manda.
+  const lastCenteredCity = useRef(null);
+  useEffect(() => {
+    if (!map.current || !cityCenter) return;
+    if (lastCenteredCity.current === cityKey) return;
+    const firstRun = lastCenteredCity.current === null;
+    lastCenteredCity.current = cityKey;
+    if (firstRun && userLocation?.lat && userLocation?.lng) return;
+    map.current.panTo(cityCenter);
+    map.current.setZoom(13);
+  }, [cityCenter, cityKey, userLocation]);
 
   if (!ok) return (
     <div style={{ width: "100%", height: "100%", background: dark ? "#18181B" : "#F2F4F2", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
@@ -681,7 +698,10 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
     prev.userLocation?.lat === next.userLocation?.lat &&
     prev.userLocation?.lng === next.userLocation?.lng &&
     prev.categories === next.categories &&
-    prev.utilityFilter === next.utilityFilter
+    prev.utilityFilter === next.utilityFilter &&
+    prev.cityKey === next.cityKey &&
+    prev.cityCenter?.lat === next.cityCenter?.lat &&
+    prev.cityCenter?.lng === next.cityCenter?.lng
   );
 });
 
