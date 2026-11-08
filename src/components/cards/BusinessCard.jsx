@@ -271,7 +271,7 @@ export default memo(function BusinessCard({
           </div>
 
           <div style={{ flex: 1, padding: "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4, textAlign: "left" }}>
-            <h3 style={{ fontFamily: FONT_BIZ, fontSize: 15, color: T.text, lineHeight: 1.25, fontWeight: 700, letterSpacing: 0, marginBottom: 0, paddingRight: !hideFavs ? 44 : 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", flexShrink: 0, textAlign: "left" }}>
+            <h3 style={{ fontFamily: FONT_BIZ, fontSize: 15, color: T.text, lineHeight: 1.25, fontWeight: 700, letterSpacing: 0, marginBottom: 0, paddingRight: !hideFavs ? 44 : 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", flexShrink: 0, textAlign: "left" }}>
               {b.name}
               {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
                 <img src="/verificado.png" alt="Verificado" width="18" height="18" style={{ marginLeft: 6, flexShrink: 0 }} />
@@ -279,22 +279,14 @@ export default memo(function BusinessCard({
             </h3>
             
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "nowrap", overflow: "hidden" }}>
-              {renderRatingRow(b, realFavs, hideReviews, hideFavs, T, {}, { fontSize: 11 }, googleRatings)}
+              {renderRatingRow(b, 0, hideReviews, hideFavs, T, {}, { fontSize: 11 }, googleRatings)}
+              {!hideSchedule && !schedHidden && (
+                <>
+                  {!hideReviews && <span style={{ fontSize: 10, color: T.border, margin: "0 2px", flexShrink: 0 }}>·</span>}
+                  {renderScheduleRow(b, T, t)}
+                </>
+              )}
             </div>
-
-            {(distStr || (!hideSchedule && !schedHidden)) && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" }}>
-                {distStr && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 700, color: T.sub, flexShrink: 0 }}>
-                    <Icon name="pin" size={12} color={T.sub} />{distStr}
-                  </span>
-                )}
-                {distStr && !hideSchedule && !schedHidden && (
-                  <div style={{ width: 4, height: 4, borderRadius: "50%", background: T.border, flexShrink: 0 }} />
-                )}
-                {!hideSchedule && renderScheduleRow(b, T, t)}
-              </div>
-            )}
 
             {showDirections && (
               <div style={{ marginTop: 8 }}>
