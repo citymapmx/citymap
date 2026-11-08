@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { randomToken } from '../lib/utils.js';
-import { isPrivateEvent, privateEventUrl, summarizeRsvps, formatMessageTime, formatChatDay, avatarColor } from '../lib/privateEvents.js';
+import { isPrivateEvent, privateEventUrl, summarizeRsvps, formatMessageTime, formatChatDay, avatarColor, heroDateParts } from '../lib/privateEvents.js';
 import { isListedEvent } from '../lib/eventListing.js';
 
 describe('private events', () => {
@@ -67,5 +67,12 @@ describe('private events', () => {
     expect(avatarColor('Jonathan')).toBe(avatarColor('Jonathan'));
     expect(avatarColor('Jonathan')).toMatch(/^#[0-9A-F]{6}$/i);
     expect(avatarColor('')).toMatch(/^#[0-9A-F]{6}$/i);
+  });
+
+  it('splits the hero date badge without timezone shifts', () => {
+    expect(heroDateParts('2026-12-10')).toEqual({ dia: 'JUE', num: '10', mes: 'DIC', year: '2026' });
+    expect(heroDateParts('2026-01-05')).toEqual({ dia: 'LUN', num: '5', mes: 'ENE', year: '2026' });
+    expect(heroDateParts('')).toBe(null);
+    expect(heroDateParts('no-es-fecha')).toBe(null);
   });
 });
