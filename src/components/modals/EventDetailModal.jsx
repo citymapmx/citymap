@@ -10,6 +10,7 @@ import Icon from '../ui/Icon';
 import EventPoster from '../detail/EventPoster.jsx';
 import EventInformation from '../detail/EventInformation.jsx';
 import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
+import PrivateEventChat from '../detail/PrivateEventChat.jsx';
 import { isPrivateEvent } from '../../lib/privateEvents';
 
 import { useAppContext } from '../../context/AppContext';
@@ -183,8 +184,9 @@ export default function EventDetailModal() {
                 {/* --- Datos del evento (en los pasados van abajo y sin entradas, que ya no se pueden comprar) --- */}
                 <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} />
 
-                {/* --- Evento privado: confirmaciones (RSVP) --- */}
+                {/* --- Evento privado: confirmaciones (RSVP) y chat --- */}
                 {isPrivateEvent(ev) && !isPast && <PrivateEventRsvp event={ev} T={T} dark={dark} toast$={toast$} />}
+                {isPrivateEvent(ev) && !isPast && <PrivateEventChat event={ev} T={T} dark={dark} toast$={toast$} />}
 
                 {/* --- ASOCIADO CON --- */}
                 {associatedBiz && (

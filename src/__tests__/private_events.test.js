@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { randomToken } from '../lib/utils.js';
-import { isPrivateEvent, privateEventUrl, summarizeRsvps } from '../lib/privateEvents.js';
+import { isPrivateEvent, privateEventUrl, summarizeRsvps, formatMessageTime } from '../lib/privateEvents.js';
 import { isListedEvent } from '../lib/eventListing.js';
 
 describe('private events', () => {
@@ -46,5 +46,11 @@ describe('private events', () => {
   it('handles empty RSVP lists', () => {
     const s = summarizeRsvps([]);
     expect(s).toEqual({ list: [], counts: { voy: 0, quizas: 0, no: 0 }, guests: 0, total: 0 });
+  });
+
+  it('formats chat times in 12 hours', () => {
+    expect(formatMessageTime('2026-11-07T22:38:00Z')).toMatch(/^\d{1,2}:\d{2}\s?[ap]\.?\s?m\.?$/i);
+    expect(formatMessageTime('')).toBe('');
+    expect(formatMessageTime('no-es-fecha')).toBe('');
   });
 });

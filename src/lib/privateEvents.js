@@ -31,3 +31,11 @@ export function summarizeRsvps(rows) {
   }
   return { list, counts, guests, total: list.length };
 }
+
+// Hora corta de un mensaje del chat ("10:38 p. m."), en 12 horas.
+export function formatMessageTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+}
