@@ -25,7 +25,7 @@ function readStored(eventId) {
   } catch { return null; }
 }
 
-export default function PrivateEventRsvp({ event, T, dark, toast$, onCountChange }) {
+export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCountChange }) {
   const { user } = useAuthStore();
   const [rows, setRows] = useState([]);
   const [name, setName] = useState('');
@@ -83,7 +83,7 @@ export default function PrivateEventRsvp({ event, T, dark, toast$, onCountChange
     <div style={{ margin: '0 0 24px 0', textAlign: 'left' }}>
       {/* ── Confirmar asistencia: tras confirmar se minimiza a una línea ── */}
       {collapsed ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: T.greenL, borderRadius: 12, padding: '12px 14px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: luma ? '#FFFFFF' : T.greenL, border: luma ? '1px solid #E7EBE8' : 'none', boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', borderRadius: luma ? 16 : 12, padding: '12px 14px', marginBottom: 16 }}>
           <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: T.text, textAlign: 'left' }}>
             ✓ {STATUS_LABEL[status] || 'Confirmado'} · {name}
             {status === 'voy' && companions > 0 ? ` +${companions}` : ''}
@@ -91,8 +91,8 @@ export default function PrivateEventRsvp({ event, T, dark, toast$, onCountChange
           <button onClick={() => setCollapsed(false)} style={{ padding: '8px 14px', background: 'transparent', border: `1.5px solid ${T.border}`, borderRadius: 9999, fontSize: 13, fontWeight: 700, color: T.text, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>Cambiar</button>
         </div>
       ) : (
-        <div style={{ background: T.greenL, borderRadius: 16, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 10 }}>¿Vas al evento?</div>
+        <div style={{ background: luma ? '#FFFFFF' : T.greenL, border: luma ? '1px solid #E7EBE8' : 'none', boxShadow: luma ? '0 12px 32px rgba(15,23,42,0.08)' : 'none', borderRadius: luma ? 24 : 16, padding: luma ? 18 : 16, marginBottom: 16 }}>
+          <div style={{ fontSize: luma ? 16 : 14, fontWeight: 800, color: T.text, marginBottom: 10 }}>¿Vas al evento?</div>
           <input
             className="inp"
             placeholder="Tu nombre"
@@ -107,9 +107,11 @@ export default function PrivateEventRsvp({ event, T, dark, toast$, onCountChange
                 onClick={() => setStatus(opt.value)}
                 style={{
                   flex: 1, padding: '10px 0', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                  border: `1.5px solid ${status === opt.value ? T.green : T.border}`,
-                  background: status === opt.value ? T.greenL : T.white,
-                  color: status === opt.value ? T.green : T.sub,
+                  // Rediseño Luma en claro: la opción elegida va en negro
+                  // (botón principal), las demás en gris muy claro.
+                  border: luma ? (status === opt.value ? '1.5px solid #000000' : '1.5px solid #E5E7EB') : `1.5px solid ${status === opt.value ? T.green : T.border}`,
+                  background: luma ? (status === opt.value ? '#000000' : '#F8FAF9') : (status === opt.value ? T.greenL : T.white),
+                  color: luma ? (status === opt.value ? '#FFFFFF' : T.sub) : (status === opt.value ? T.green : T.sub),
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
@@ -128,7 +130,7 @@ export default function PrivateEventRsvp({ event, T, dark, toast$, onCountChange
           <button
             onClick={submit}
             disabled={saving}
-            style={{ width: '100%', padding: '12px 0', background: T.green, border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 800, color: dark ? '#18181B' : '#FFFFFF', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}
+            style={{ width: '100%', padding: luma ? '15px 0' : '12px 0', background: T.green, border: 'none', borderRadius: luma ? 16 : 12, fontSize: luma ? 15 : 14, fontWeight: 800, color: dark ? '#18181B' : '#FFFFFF', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1, boxShadow: luma ? '0 8px 20px rgba(0,0,0,0.20)' : 'none' }}
           >
             {saving ? 'Guardando…' : 'Confirmar asistencia'}
           </button>
@@ -136,7 +138,7 @@ export default function PrivateEventRsvp({ event, T, dark, toast$, onCountChange
       )}
 
       {/* ── Quién va ── */}
-      <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 8 }}>
+      <div style={{ fontSize: luma ? 20 : 14, fontWeight: luma ? 900 : 800, color: T.text, marginBottom: 8 }}>
         Van {summary.guests} persona{summary.guests === 1 ? '' : 's'}
         {summary.counts.quizas > 0 && ` · ${summary.counts.quizas} quizás`}
         {summary.counts.no > 0 && ` · ${summary.counts.no} no van`}
@@ -146,6 +148,9 @@ export default function PrivateEventRsvp({ event, T, dark, toast$, onCountChange
       ) : (
         summary.list.map(row => (
           <div key={row.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', borderTop: `1px solid ${T.border}` }}>
+            {luma && (
+              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: row.status === 'voy' ? '#16A34A' : row.status === 'quizas' ? '#D97706' : '#9CA3AF' }} />
+            )}
             <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: T.text, textAlign: 'left' }}>
               {row.guest_name}
               {row.status === 'voy' && Number(row.companions) > 0 && <span style={{ fontWeight: 600, color: T.sub }}> +{row.companions}</span>}

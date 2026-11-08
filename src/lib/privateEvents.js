@@ -56,6 +56,20 @@ export function formatChatDay(value) {
 
 const AVATAR_COLORS = ['#1A7A5E', '#7C3AED', '#B45309', '#0E7490', '#BE185D'];
 
+// Partes de la fecha de un evento para el distintivo del héroe estilo Luma:
+// "JUE 10 DIC 2026". Se parsea la fecha como calendario local (año-mes-día)
+// para que no se mueva de día por la zona horaria.
+const MESES_CORTOS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+const DIAS_CORTOS = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+export function heroDateParts(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return null;
+  const parts = dateStr.split('-');
+  if (parts.length < 3) return null;
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  if (Number.isNaN(d.getTime())) return null;
+  return { dia: DIAS_CORTOS[d.getDay()], num: String(d.getDate()), mes: MESES_CORTOS[d.getMonth()], year: String(d.getFullYear()) };
+}
+
 // Color estable del círculo con la inicial de un invitado (por su nombre).
 export function avatarColor(name) {
   const text = String(name || '').trim();

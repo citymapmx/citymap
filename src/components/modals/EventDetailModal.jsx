@@ -12,8 +12,13 @@ import EventPoster from '../detail/EventPoster.jsx';
 import EventInformation from '../detail/EventInformation.jsx';
 import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
 import PrivateEventChat from '../detail/PrivateEventChat.jsx';
-import { isPrivateEvent, privateEventUrl, summarizeRsvps } from '../../lib/privateEvents';
+import { isPrivateEvent, privateEventUrl, summarizeRsvps, heroDateParts } from '../../lib/privateEvents';
 import { useAuthStore } from '../../store/useAuthStore';
+
+// Rediseño claro estilo Luma (solo eventos privados vigentes en modo claro;
+// el modo oscuro queda como estaba). El tinte del fondo vive en UNA sola
+// constante: cambiar LUMA_TINT_TOP cambia todo el degradado del modal.
+const LUMA_TINT_TOP = '#E7F1EA';
 
 import { useAppContext } from '../../context/AppContext';
 import { useDataStore } from '../../store/useDataStore';
@@ -139,7 +144,10 @@ export default function EventDetailModal() {
         const associatedBiz = ev.biz_id ? mapPins.find(b => b.id === ev.biz_id) : null;
         const imgSrc = ev.img_url || ev.img;
         const isHost = Boolean(user?.id && ev.user_id && user.id === ev.user_id);
-        
+        // Rediseño Luma en claro: solo privados vigentes en modo claro.
+        const luma = isPrivateEvent(ev) && !isPast && !dark;
+        const heroDate = luma ? heroDateParts(ev.date) : null;
+
         return (
           <m.div
             key="event-modal"
@@ -148,7 +156,7 @@ export default function EventDetailModal() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ type: "tween", duration: reduceMotion ? 0 : 0.15 }}
-            style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 100000, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", overscrollBehavior:"contain", outline:"none", fontFamily: "inherit" }}
+            style={{ position: "fixed", inset: 0, background: luma ? `linear-gradient(180deg, ${LUMA_TINT_TOP} 0%, #F7FAF8 220px, #FFFFFF 420px)` : T.bg, zIndex: 100000, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", overscrollBehavior:"contain", outline:"none", fontFamily: "inherit" }}
           >
             <div style={{ width: "100%", maxWidth: 460, margin: "0 auto", padding: 0, display: "flex", flexDirection: "column", minHeight: "100%" }}>
               
@@ -163,13 +171,33 @@ export default function EventDetailModal() {
                   </button>
                 </div>
               ) : (
-              <div style={{ position: "relative", width: "100%", maxHeight: 200, background: "transparent", overflow: "hidden" }}>
+              <div style={{ position: "relative", width: "100%", maxHeight: luma ? 280 : 200, background: "transparent", overflow: "hidden" }}>
                 {imgSrc ? (
                   <EventPoster key={imgSrc} src={imgSrc} alt={ev.title || ""} />
                 ) : (
-                  <div style={{ width: "100%", height: "100%", minHeight: 120, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent" }}>
+                  <div style={{ width: "100%", height: "100%", minHeight: luma ? 200 : 120, display: "flex", alignItems: luma ? "flex-start" : "center", justifyContent: "center", background: "transparent", paddingTop: luma ? 44 : 0 }}>
                     <Icon name="calendar" size={36} color={T.sub} />
                   </div>
+                )}
+
+                {/* ── Héroe estilo Luma: título grande sobre la foto ── */}
+                {luma && (
+                  <>
+                    {imgSrc && (
+                      <div aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "62%", background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.75) 100%)", zIndex: 5, pointerEvents: "none" }} />
+                    )}
+                    <div style={{ position: "absolute", left: 16, right: isHost ? 148 : 16, bottom: 14, zIndex: 6, textAlign: "left" }}>
+                      {heroDate && (
+                        <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, letterSpacing: "0.4px", padding: "6px 10px", borderRadius: 9999, marginBottom: 8, background: imgSrc ? "rgba(255,255,255,0.22)" : "rgba(15,26,20,0.06)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: imgSrc ? "#FFFFFF" : T.text, border: imgSrc ? "1px solid rgba(255,255,255,0.35)" : "1px solid rgba(15,26,20,0.08)" }}>
+                          {heroDate.dia} {heroDate.num} {heroDate.mes} {heroDate.year}
+                        </span>
+                      )}
+                      <div style={{ fontFamily: FONT_BIZ, fontSize: 30, fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.5px", color: imgSrc ? "#FFFFFF" : T.text, textShadow: imgSrc ? "0 2px 12px rgba(0,0,0,0.35)" : "none" }}>{ev.title}</div>
+                      {ev.venue_name && (
+                        <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6, color: imgSrc ? "rgba(255,255,255,0.92)" : T.sub }}>{ev.venue_name}</div>
+                      )}
+                    </div>
+                  </>
                 )}
                 
                 {/* Floating Back Button */}
@@ -207,7 +235,7 @@ export default function EventDetailModal() {
               )}
 
               {/* --- CONTENT CARD (No overlap) --- */}
-              <div style={{ position: "relative", zIndex: 2, background: T.bg, padding: "16px 16px 32px", flex: 1, display: "flex", flexDirection: "column" }}>
+              <div style={{ position: "relative", zIndex: 2, background: luma ? "transparent" : T.bg, padding: "16px 16px 32px", flex: 1, display: "flex", flexDirection: "column" }}>
 
                 {/* --- EVENTO PASADO: el aviso va primero, antes que el título --- */}
                 {isPast && (
@@ -218,7 +246,10 @@ export default function EventDetailModal() {
                   </div>
                 )}
 
-                <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: (ev.event_category || ev.category) ? 8 : 12, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
+                {/* En el rediseño Luma el título ya va sobre la foto del héroe. */}
+                {!luma && (
+                  <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: (ev.event_category || ev.category) ? 8 : 12, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
+                )}
                 
                 {!isPrivateEvent(ev) && (ev.event_category || ev.category) && (
                   <div style={{ display: "flex", marginBottom: 8 }}>
@@ -264,7 +295,7 @@ export default function EventDetailModal() {
                 {/* --- Evento privado: pestañas Chat / Detalles / Invitados --- */}
                 {isPrivateEvent(ev) && !isPast ? (
                   <>
-                    <div style={{ display: 'flex', gap: 4, background: dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', borderRadius: 9999, padding: 4, margin: '0 0 14px 0', minWidth: 0 }}>
+                    <div style={{ display: 'flex', gap: 4, background: luma ? '#FFFFFF' : (dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9'), border: luma ? '1px solid #E5E7EB' : 'none', boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', borderRadius: 9999, padding: 4, margin: '0 0 14px 0', minWidth: 0 }}>
                       {[
                         { key: 'chat', label: 'Chat del evento', count: chatCount },
                         { key: 'detalles', label: 'Detalles', count: 0 },
@@ -292,14 +323,14 @@ export default function EventDetailModal() {
                       })}
                     </div>
 
-                    {privateTab === 'chat' && <PrivateEventChat event={ev} T={T} dark={dark} toast$={toast$} onCountChange={setChatCount} />}
+                    {privateTab === 'chat' && <PrivateEventChat event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setChatCount} />}
                     {privateTab === 'detalles' && <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={false} />}
-                    {privateTab === 'invitados' && <PrivateEventRsvp event={ev} T={T} dark={dark} toast$={toast$} onCountChange={setGuestCount} />}
+                    {privateTab === 'invitados' && <PrivateEventRsvp event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setGuestCount} />}
 
                     {user?.id && ev.user_id && user.id === ev.user_id && (
                       <button
                         onClick={() => { navigator.clipboard?.writeText(privateEventUrl(ev)); toast$('Enlace secreto copiado'); }}
-                        style={{ width: '100%', margin: '0 0 12px 0', padding: '10px 0', background: 'transparent', border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, fontWeight: 800, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}
+                        style={{ width: '100%', margin: '0 0 12px 0', padding: luma ? '12px 0' : '10px 0', background: luma ? '#FFFFFF' : 'transparent', border: luma ? '1px solid #E5E7EB' : `1.5px solid ${T.border}`, borderRadius: luma ? 16 : 12, boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', fontSize: 14, fontWeight: 800, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}
                       >
                         🔗 Copiar enlace secreto
                       </button>

@@ -27,7 +27,7 @@ function dayKey(value) {
   return Number.isNaN(d.getTime()) ? '' : d.toDateString();
 }
 
-export default function PrivateEventChat({ event, T, dark, toast$, onCountChange }) {
+export default function PrivateEventChat({ event, T, dark, luma, toast$, onCountChange }) {
   const { user } = useAuthStore();
   const [messages, setMessages] = useState([]);
   const [likes, setLikes] = useState([]);
@@ -230,7 +230,7 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
     <div style={{ margin: '0 0 16px 0', textAlign: 'left' }}>
       {/* ── Mensaje fijado ── */}
       {pinned && (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: T.greenL, borderRadius: 12, padding: '8px 10px', marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: luma ? '#FFFFFF' : T.greenL, border: luma ? '1px solid #E7EBE8' : 'none', boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', borderRadius: 12, padding: '8px 10px', marginBottom: 8 }}>
           <span style={{ fontSize: 14 }}>📌</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 11, fontWeight: 800, color: T.green, marginBottom: 2 }}>Mensaje fijado · {pinned.guest_name}</div>
@@ -249,14 +249,14 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          background: dark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
-          backgroundImage: dark
+          background: luma ? '#F8FAF9' : (dark ? 'rgba(255,255,255,0.05)' : '#FFFFFF'),
+          backgroundImage: luma ? 'none' : (dark
             ? 'radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)'
-            : 'radial-gradient(rgba(15,23,42,0.045) 1px, transparent 1px)',
+            : 'radial-gradient(rgba(15,23,42,0.045) 1px, transparent 1px)'),
           backgroundSize: '18px 18px',
-          border: `1px solid ${T.border}`,
+          border: luma ? '1px solid #E7EBE8' : `1px solid ${T.border}`,
           borderRadius: 24,
-          boxShadow: '0 10px 32px rgba(15,23,42,0.10)',
+          boxShadow: luma ? '0 12px 32px rgba(15,23,42,0.08)' : '0 10px 32px rgba(15,23,42,0.10)',
           overflow: 'hidden',
           marginBottom: 8,
         }}
@@ -285,22 +285,24 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
             const isHostMessage = m.user_id && event?.user_id && m.user_id === event.user_id;
             const count = likesFor(m.id).length;
             const liked = Boolean(myLike(m.id));
-            // Todos los mensajes en el tono de la píldora no seleccionada,
-            // con trazo negro (en oscuro, trazo claro para que se vea).
-            const bubbleBg = dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9';
-            const bubbleBorder = dark ? '1.5px solid rgba(255,255,255,0.28)' : '1.5px solid #111111';
+            // Rediseño Luma en claro: burbujas de color — verde suave las
+            // propias, blancas con sombra leve las demás (sin trazo negro).
+            // En oscuro se queda el estilo anterior (tono píldora + trazo).
+            const bubbleBg = luma ? (own ? '#D9EEE3' : '#FFFFFF') : (dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9');
+            const bubbleBorder = luma ? (own ? 'none' : '1px solid #E7EBE8') : (dark ? '1.5px solid rgba(255,255,255,0.28)' : '1.5px solid #111111');
+            const bubbleShadow = luma ? '0 1px 3px rgba(15,23,42,0.08)' : 'none';
             return (
               <div key={m.id}>
                 {showDay && (
                   <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 2px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 9999, background: dark ? 'rgba(255,255,255,0.08)' : '#F1F5F9', color: T.sub }}>{formatChatDay(m.created_at)}</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 9999, background: luma ? '#FFFFFF' : (dark ? 'rgba(255,255,255,0.08)' : '#F1F5F9'), border: luma ? '1px solid #E7EBE8' : 'none', color: T.sub }}>{formatChatDay(m.created_at)}</span>
                   </div>
                 )}
                 {showDivider && <div style={{ height: 1, background: dark ? '#52525B' : '#D4D4D8', margin: '4px 0' }} />}
                 {own ? (
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <div style={{ maxWidth: '85%', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, borderRadius: 16, borderBottomRightRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' }}>{m.body}</div>
+                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: bubbleShadow, borderRadius: 16, borderBottomRightRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' }}>{m.body}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <span style={{ fontSize: 11, color: T.sub }}>{formatMessageTime(m.created_at)}</span>
                         {m.pinned && <span title="Mensaje fijado" style={{ fontSize: 12 }}>📌</span>}
@@ -337,7 +339,7 @@ export default function PrivateEventChat({ event, T, dark, toast$, onCountChange
                           {m.pinned && <span title="Mensaje fijado" style={{ fontSize: 12 }}>📌</span>}
                         </div>
                       )}
-                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, borderRadius: 16, borderBottomLeftRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
+                      <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: bubbleShadow, borderRadius: 16, borderBottomLeftRadius: 4, padding: '8px 12px', fontSize: 14, color: T.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <button aria-label={liked ? 'Quitar me gusta' : 'Me gusta'} onClick={() => toggleLike(m)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px 2px 0', fontSize: 13, fontWeight: 700, color: T.sub, fontFamily: 'inherit' }}>
                           <Icon name={liked ? 'heart_overlay_f' : 'heart_overlay'} size={16} />
