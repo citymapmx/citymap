@@ -18,6 +18,7 @@ function timeLabel(value) {
 
 // Información del evento: fecha, lugar y entradas en una sola tarjeta,
 // sin etiquetas ("Cuándo", "Dónde") — el icono ya dice qué es cada dato.
+// La descripción ("Acerca del evento") va primero, antes de la tarjeta.
 // El botón de entradas queda fijo abajo mientras se lee la descripción.
 // heroShowsVenue: el héroe ya muestra el lugar, así que la fila solo
 // lleva la dirección (si no hay dirección, se muestra el lugar).
@@ -47,6 +48,17 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
   const rowStyle = { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', textAlign: 'left' };
   const iconStyle = { flexShrink: 0, marginTop: 2 };
   return <>
+    {(lead || paragraphs.length > 0) && <section style={{ textAlign: 'left', margin: '16px 0 24px' }}><h2 style={{ margin: '0 0 8px', color: T.text, fontSize: 17, fontWeight: 800 }}>Acerca del evento</h2>
+      {lead && <p style={{ margin: '0 0 10px', color: T.text, fontSize: 16, lineHeight: 1.5, fontWeight: 700 }}>{lead}</p>}
+      {shownParagraphs.map((p, i) => (
+        <p key={i} style={{ margin: i === 0 ? 0 : '10px 0 0', color: T.text, fontSize: 15, lineHeight: 1.5 }}>{p}</p>
+      ))}
+      {needsMore && (
+        <button onClick={() => setExpanded(v => !v)} style={{ marginTop: 10, padding: 0, background: 'none', border: 'none', color: T.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+          {expanded ? 'Leer menos' : 'Leer más'}
+        </button>
+      )}
+    </section>}
     {hasInfo && <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 20, padding: '2px 16px', boxShadow: T.shadow, marginBottom: event.description || showLinks ? 22 : 0 }}>
       {(start || times) && <div style={rowStyle}>
         <Icon name="calendar" size={26} color={T.text} style={iconStyle} />
@@ -77,16 +89,6 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
         })}
       </div>
     </div>}
-    {(lead || paragraphs.length > 0) && <section style={{ textAlign: 'left', margin: '16px 0 24px' }}><h2 style={{ margin: '0 0 8px', color: T.text, fontSize: 17, fontWeight: 800 }}>Acerca del evento</h2>
-      {lead && <p style={{ margin: '0 0 10px', color: T.text, fontSize: 16, lineHeight: 1.5, fontWeight: 700 }}>{lead}</p>}
-      {shownParagraphs.map((p, i) => (
-        <p key={i} style={{ margin: i === 0 ? 0 : '10px 0 0', color: T.text, fontSize: 15, lineHeight: 1.5 }}>{p}</p>
-      ))}
-      {needsMore && (
-        <button onClick={() => setExpanded(v => !v)} style={{ marginTop: 10, padding: 0, background: 'none', border: 'none', color: T.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-          {expanded ? 'Leer menos' : 'Leer más'}
-        </button>
-      )}
-    </section>}
   </>;
 }
+
