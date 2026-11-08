@@ -9,6 +9,7 @@ import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 import ProductModal from './ProductModal.jsx';
 import CartDrawer from './CartDrawer.jsx';
+import NoMenuLanding from './NoMenuLanding.jsx';
 import { useCart } from '../../hooks/useCart.js';
 import { useUIStore } from '../../store/useUIStore.js';
 import { useDataStore } from '../../store/useDataStore.js';
@@ -18,7 +19,6 @@ import { AppContext } from '../../context/AppContext.jsx';
 import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic } from '../../lib/utils.js';
 import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
-import { Helmet } from 'react-helmet-async';
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
   const navigate = useNavigate();
@@ -183,26 +183,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
 
   if (activeCategories.length === 0) {
     if (inline) {
-      return (
-        <div style={{ flex: 1, height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center', background: dark ? '#18181B' : '#FAFAFA' }}>
-          <Helmet>
-            <meta name="robots" content="noindex, follow" />
-          </Helmet>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: dark ? '#232326' : '#E4E4E7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-            <Icon name="store" size={40} color={dark ? '#71717A' : '#A1A1AA'} />
-          </div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', margin: '0 0 12px 0', fontFamily: FONT_BIZ }}>{isCatalog?'Catálogo no disponible':'Menú no disponible'}</h2>
-          <p style={{ fontSize: 15, color: dark ? '#A1A1AA' : '#71717A', maxWidth: 300, margin: '0 auto 32px', lineHeight: 1.5 }}>
-            Parece que <strong>{business?.name}</strong> aún no ha publicado su {storeLabel} digital o lo ha desactivado temporalmente.
-          </p>
-          <button 
-            onClick={() => onBack && onBack()} 
-            style={{ background: T.green, color: '#fff', border: 'none', padding: '14px 28px', borderRadius: 30, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
-          >
-            Ver perfil del negocio
-          </button>
-        </div>
-      );
+      return <NoMenuLanding business={business} T={T} dark={dark} onBack={onBack} />;
     }
     return null; // Don't show anything if there is no menu and it's embedded in the profile
   }
@@ -884,3 +865,4 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
     </div>
   );
 }
+
