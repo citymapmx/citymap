@@ -251,12 +251,14 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const cityName = formatCityName(exp.city_slug);
   const metaTitle = cityName ? `${exp.title} | Revista CityMap ${cityName}` : `${exp.title} | Revista CityMap`;
 
-  // Sin fundido de opacidad al entrar: con opacity 0→1 la página de atrás
-  // (la foto de la tarjeta tocada) se seguía viendo por un momento.
+  // Sin animación al entrar: primero el fundido (opacity 0→1) dejaba ver la
+  // página de atrás, y luego el deslizamiento (y 50→0) dejaba ver por unos
+  // milisegundos la lista de Revista que queda detrás del visor. El visor
+  // aparece ya en su sitio; al cerrar sí conserva el deslizamiento.
   return createPortal(
     <m.div
       data-article-viewer
-      initial={{ y: 50 }}
+      initial={false}
       animate={{ y: 0 }}
       exit={{ opacity: 0, y: 50 }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
