@@ -4,7 +4,7 @@ import MapCompass from "./map/MapCompass.jsx";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { GMAPS_KEY } from "../lib/supabase.js";
 import { CAT_EMOJI, getThumbUrl, iconFile } from "../lib/utils.js";
-import { hasCloseNeighbor } from "../lib/mapCentering.js";
+import { hasCloseNeighbor, selectionZoom } from "../lib/mapCentering.js";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useGMaps() {
@@ -69,12 +69,12 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
 
   // Al tocar un pin con otros pegados en pantalla, acercar el mapa en vez de
   // abrir la tarjeta: los pines se separan y ya se puede tocar el que se quiere.
-  // Si ya está muy cerca (zoom 17) o no hay vecinos, se abre la tarjeta normal.
+  // Si ya está en el zoom máximo (18) o no hay vecinos, se abre la tarjeta normal.
   const zoomIntoDensePin = (marker) => {
     const mapInstance = map.current;
     if (!mapInstance || !marker?.getPosition) return false;
     const zoom = mapInstance.getZoom() || 13;
-    if (zoom >= 17) return false;
+    if (zoom >= 18) return false;
     const pos = marker.getPosition();
     const target = { lat: pos.lat(), lng: pos.lng() };
     const others = (pins.current || [])
@@ -86,7 +86,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
       })
       .filter(Boolean);
     if (!hasCloseNeighbor(target, others, zoom)) return false;
-    flyToLocation(mapInstance, target.lat, target.lng, Math.min(zoom + 2, 17));
+    flyToLocation(mapInstance, target.lat, target.lng, Math.min(zoom + 2, 18));
     return true;
   };
 
@@ -629,8 +629,10 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
           }
         );
       } else {
-        // Mini map mode: just pan to the pin without drawing a route
-        flyToLocation(map.current, dest.lat, dest.lng, 15);
+        // Mini map mode: just pan to the pin without drawing a route.
+        // Acercar hasta 15 si está lejos, pero nunca alejar si ya está cerca:
+        // antes cada toque forzaba zoom 15 y el mapa se alejaba 2-3 niveles.
+        flyToLocation(map.current, dest.lat, dest.lng, selectionZoom(map.current.getZoom()));
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
