@@ -518,6 +518,9 @@ useEffect(() => {
           if (!r?.[0] && !isUUID) {
             const searchName = urlEv.split("-").join("%25");
             r = await dbService.getEvents(`?title=ilike.*${searchName}*&status=eq.approved`);
+            // La búsqueda por título es aproximada: nunca debe abrir un evento
+            // privado (el privado solo se abre con su enlace exacto).
+            if (Array.isArray(r)) r = r.filter((ev) => ev.visibility !== 'private');
           }
            
           if (r?.[0]) {

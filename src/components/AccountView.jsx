@@ -12,6 +12,7 @@ import { useAppContext } from '../context/AppContext';
 import Footer from './Footer.jsx';
 import LoyaltyDesigner from './loyalty/LoyaltyDesigner.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
+import { privateEventUrl } from '../lib/privateEvents.js';
 export default function AccountView({
   user, profile, isAdmin, T, dark, favIds, reviews,
   wallet, coupons, claimedCoupons, biz, myBizList,
@@ -50,6 +51,20 @@ export default function AccountView({
       if (Array.isArray(res)) setMyClaims(res);
     });
   }, [user]);
+
+  // Mis eventos privados (no salen en el store: se leen directo por dueño).
+  const [myPrivateEvents, setMyPrivateEvents] = useState([]);
+  useEffect(() => {
+    if (!user) return;
+    sb.get("events", `?user_id=eq.${user.id}&visibility=eq.private&order=date.desc&limit=20`).then(res => {
+      if (Array.isArray(res)) setMyPrivateEvents(res);
+    }).catch(() => {});
+  }, [user]);
+
+  const formatPrivateDate = (ev) => {
+    if (!ev?.date) return "";
+    try { return new Date(ev.date + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }); } catch { return ev.date; }
+  };
 
   const startEditProfile = () => {
     setEditName(user?.user_metadata?.name || profile?.name || user.email?.split("@")[0] || "");
@@ -414,6 +429,29 @@ export default function AccountView({
                 </div>
               );
             })}
+          </div>
+        )}
+
+
+        {/* ── MIS EVENTOS PRIVADOS ── */}
+        {myPrivateEvents.length > 0 && (
+          <div style={{ padding: "16px 16px 0" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Mis eventos privados</div>
+            {myPrivateEvents.map(ev => (
+              <div key={ev.id} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", marginBottom: 8, border: `1px solid ${T.border}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>🔒 {ev.title}</div>
+                    <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{formatPrivateDate(ev)}{ev.time ? ` · ${ev.time}` : ""}{ev.venue_name ? ` · ${ev.venue_name}` : ""}</div>
+                  </div>
+                  <span style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>Privado</span>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => { navigator.clipboard?.writeText(privateEventUrl(ev)); toast$("Enlace secreto copiado"); }} style={{ flex: 1, padding: "9px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>Copiar enlace</button>
+                  <button onClick={() => setSelectedEvent(ev)} style={{ flex: 1, padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>Abrir evento</button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

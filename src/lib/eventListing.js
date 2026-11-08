@@ -35,6 +35,9 @@ export function upcomingEvents(allEvents, event, today, limit = 4) {
 // Calendar dates stay in the event city's day, independent of a visitor's timezone.
 export function isListedEvent(event, today) {
   if (!event.active || ['pending', 'rejected'].includes(event.status)) return false;
+  // Los eventos privados nunca salen en listas, buscador, muro ni sitemap:
+  // solo se abren con su enlace secreto.
+  if (event.visibility === 'private') return false;
   const lastDay = eventLastDay(event);
   return !lastDay || lastDay >= today;
 }

@@ -376,6 +376,17 @@ export function createSlug(name) {
   return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
+// Código aleatorio corto y legible (sin 0/O/1/l/I) para enlaces secretos.
+export function randomToken(length = 6) {
+  const chars = "abcdefghjkmnpqrstuvwxyz23456789";
+  const bytes = new Uint8Array(length);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) crypto.getRandomValues(bytes);
+  else for (let i = 0; i < length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  let out = "";
+  for (let i = 0; i < length; i++) out += chars[bytes[i] % chars.length];
+  return out;
+}
+
 export function getIdFromSlug(slugString) {
   if (!slugString) return null;
   const parts = slugString.split('_');
