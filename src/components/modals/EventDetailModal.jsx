@@ -11,7 +11,7 @@ import EventPoster from '../detail/EventPoster.jsx';
 import EventInformation from '../detail/EventInformation.jsx';
 import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
 import PrivateEventChat from '../detail/PrivateEventChat.jsx';
-import { isPrivateEvent, privateEventUrl } from '../../lib/privateEvents';
+import { isPrivateEvent, privateEventUrl, summarizeRsvps } from '../../lib/privateEvents';
 import { useAuthStore } from '../../store/useAuthStore';
 
 import { useAppContext } from '../../context/AppContext';
@@ -61,6 +61,16 @@ export default function EventDetailModal() {
     setPrivateTab('chat');
     setChatCount(0);
     setGuestCount(0);
+    // Contadores de las píldoras desde que se abre (los hijos solo
+    // reportan cuando su pestaña está montada).
+    if (isPrivateEvent(selectedEvent) && !isPast) {
+      sb.count('event_messages', `?event_id=eq.${selectedEvent.id}`)
+        .then(n => { if (typeof n === 'number') setChatCount(n); })
+        .catch(() => {});
+      sb.get('event_rsvps', `?event_id=eq.${selectedEvent.id}`)
+        .then(rows => { if (Array.isArray(rows)) setGuestCount(summarizeRsvps(rows).guests); })
+        .catch(() => {});
+    }
     dialog.current?.scrollTo(0, 0);
     const previousFocus = document.activeElement;
     const previousOverflow = document.body.style.overflow;
@@ -74,6 +84,7 @@ export default function EventDetailModal() {
       document.removeEventListener('keydown', onKey);
       if (previousFocus?.isConnected) previousFocus.focus?.({ preventScroll:true });
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEvent?.id]);
   useEffect(() => {
     if (!selectedEvent?.id || !isPast) { setUpcoming([]); return; }
