@@ -25,10 +25,34 @@ const events = [
   { id: 'largo', title: 'Festival Largo', date: longStart, end_date: longEnd, city_slug: 'guadalajara', status: 'approved', venue_name: 'Expo Guadalajara', img_url: 'https://example.supabase.co/poster-largo.jpg' },
 ];
 
-describe.each([['Vite', HomeEvents], ['Next', NextHomeEvents]])('%s home events', (_name, Home) => {
+describe('Vite home events (rueda 3D, como el inicio global)', () => {
+  it('merges long-duration events into the wheel and drops their section', () => {
+    const html = renderToStaticMarkup(
+      <HomeEvents events={events} activeCity="guadalajara" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} />,
+    );
+    // Un solo carrusel con el título de siempre, sin la sección aparte.
+    expect(html.match(/Próximos eventos/g)).toHaveLength(1);
+    expect(html).toContain('Los eventos que vienen en tu ciudad');
+    expect(html).not.toContain('Eventos de larga duración');
+    expect(html).not.toContain('Carrusel de eventos de larga duración');
+    // La rueda no tiene ficha con fecha/lugar debajo ni aria-label del coverflow.
+    expect(html).not.toContain('aria-label="Eventos destacados"');
+    expect(html).not.toContain('Hasta el ');
+    // Los dos eventos están en la rueda, ordenados por fecha de inicio.
+    expect(html).toContain('Concierto Corto');
+    expect(html).toContain('Festival Largo');
+    expect(html.indexOf('Festival Largo')).toBeLessThan(html.indexOf('Concierto Corto'));
+    // El de un día lleva su fecha en la píldora; el largo lleva el rango (ya empezó).
+    expect(html).toContain(tagDate(singleDate));
+    expect(html).toContain(`HASTA ${tagDate(longEnd)}`);
+    expect(html.match(/event-wheel-city/g)).toHaveLength(2);
+  });
+});
+
+describe('Next home events (coverflow)', () => {
   it('merges long-duration events into the main carousel and drops their section', () => {
     const html = renderToStaticMarkup(
-      <Home events={events} activeCity="guadalajara" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} />,
+      <NextHomeEvents events={events} activeCity="guadalajara" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} />,
     );
     // Un solo carrusel con el título de siempre, sin la sección aparte.
     expect(html.match(/Próximos eventos/g)).toHaveLength(1);

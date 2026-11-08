@@ -78,4 +78,13 @@ describe('event wheel 3D', () => {
   it('renders nothing without events', () => {
     expect(renderWheel({ events: [] })).toBe('');
   });
+
+  it('shows a custom pill label and subheading when provided (city pages)', () => {
+    const html = renderWheel({ pillLabel: () => '13 NOV', subheading: 'Los eventos que vienen en tu ciudad' });
+    expect(html).toContain('Los eventos que vienen en tu ciudad');
+    expect(html).not.toContain('Los eventos que vienen en todas las ciudades');
+    expect(html.match(/event-wheel-city/g)).toHaveLength(10);
+    expect(html).toContain('13 NOV');
+    expect(html).not.toContain('Guadalajara');
+  });
 });

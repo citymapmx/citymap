@@ -4,11 +4,13 @@ import OptimizedImage from '../ui/OptimizedImage.jsx';
 import EventPosterFallback from './EventPosterFallback.jsx';
 import { faceBrightness, normalizeAngleDeg, springSettled, springStep } from '../../lib/spring.js';
 
-// Rueda 3D de eventos para el inicio global, como el "Museo de eventos" de
-// QuePlan: los próximos 10 eventos en un tambor que gira solo, con el
-// diseño claro del carrusel de ciudad: sin banda oscura ni ficha debajo,
-// solo el tambor con el título encima. Cada póster lleva una etiqueta
-// discreta con el nombre de su ciudad.
+// Rueda 3D de eventos para el inicio global y las páginas de ciudad, como
+// el "Museo de eventos" de QuePlan: los próximos 10 eventos en un tambor
+// que gira solo, con el diseño claro del carrusel de ciudad: sin banda
+// oscura ni ficha debajo, solo el tambor con el título encima. Cada póster
+// lleva una etiqueta discreta al pie: en el inicio global, el nombre de su
+// ciudad (cityName); en la página de ciudad, la fecha del evento
+// (pillLabel). El subtítulo también cambia según la página.
 //
 // Idea 6 de motion.dev (Coverflow): el giro no es una transición CSS de
 // cara en cara, sino un resorte físico — el tambor lleva velocidad e
@@ -22,7 +24,7 @@ const AUTO_MS = 4000;
 // de dispositivo: a 400 px el póster se veía blando. A 800 px se ve nítido.
 const WHEEL_IMG_W = 800;
 
-export default function EventWheel3D({ events, onSelect, cityName, T = {} }) {
+export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading = 'Próximos eventos', subheading = 'Los eventos que vienen en todas las ciudades', T = {} }) {
   const items = (events || []).slice(0, MAX_FACES);
   const n = items.length;
   const [rotation, setRotation] = useState(0);
@@ -176,19 +178,20 @@ export default function EventWheel3D({ events, onSelect, cityName, T = {} }) {
     goTo(target, v0);
   };
 
-  // Encabezado igual que el carrusel de ciudad: título centrado y subtítulo.
+  // Encabezado: mismo título en ambas páginas; el subtítulo cambia.
   const header = (
     <header style={{ margin: '0 20px 16px', textAlign: 'center' }}>
-      <h2 style={{ margin: '0 0 5px', fontSize: 16, fontWeight: 800, color: T.text }}>Próximos eventos</h2>
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: T.sub }}>Los eventos que vienen en todas las ciudades</p>
+      <h2 style={{ margin: '0 0 5px', fontSize: 16, fontWeight: 800, color: T.text }}>{heading}</h2>
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: T.sub }}>{subheading}</p>
     </header>
   );
 
-  // Etiqueta discreta con la ciudad del evento, centrada al pie del póster.
-  const cityPill = (item) => {
-    const name = cityName?.(item.citySlug);
-    if (!name) return null;
-    return <span className="event-wheel-city" aria-hidden="true">{name}</span>;
+  // Etiqueta discreta al pie del póster: la ciudad (inicio global) o la
+  // fecha del evento (página de ciudad, vía pillLabel).
+  const pill = (item) => {
+    const label = pillLabel ? pillLabel(item) : cityName?.(item.citySlug);
+    if (!label) return null;
+    return <span className="event-wheel-city" aria-hidden="true">{label}</span>;
   };
 
   if (n === 0) return null;
@@ -203,7 +206,7 @@ export default function EventWheel3D({ events, onSelect, cityName, T = {} }) {
             <article key={item.key} onClick={() => onSelect?.(item)} style={{ flex: '0 0 170px', borderRadius: 16, overflow: 'hidden', background: '#111', cursor: 'pointer' }}>
               <div style={{ position: 'relative', aspectRatio: '3 / 4' }}>
                 {item.img ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <EventPosterFallback title={item.title} radius={0} />}
-                {cityPill(item)}
+                {pill(item)}
               </div>
             </article>
           ))}
@@ -233,7 +236,7 @@ export default function EventWheel3D({ events, onSelect, cityName, T = {} }) {
                 {item.img
                   ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} priority={i === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   : <EventPosterFallback title={item.title} radius={12} />}
-                {cityPill(item)}
+                {pill(item)}
               </div>
             );
           })}
