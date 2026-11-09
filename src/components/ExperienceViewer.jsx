@@ -14,6 +14,7 @@ import { getThumbUrl, createSlug } from '../lib/utils';
 import { typeLabel } from '../lib/postTaxonomy.js';
 import { tourSchemaNodes } from '../lib/tourSchema.js';
 import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
+import { useTranslation } from "../hooks/useTranslation.js";
 
 const Gallery = lazy(() => import('./Gallery').catch(() => {
   window.location.reload();
@@ -151,6 +152,7 @@ const FormattedText = ({ text, T }) => {
 };
 
 export default function ExperienceViewer({ exp, T, dark, onClose }) {
+  const { t, lang } = useTranslation();
   const [activeFaq, setActiveFaq] = useState(null);
   const [fullGalleryIdx, setFullGalleryIdx] = useState(null);
   const [showAllReviews, setShowAllReviews] = useState(false);
@@ -186,22 +188,23 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const gallery = Array.isArray(exp.gallery) ? exp.gallery : [];
   const cover = gallery.length > 0 ? gallery[0] : null;
   const curr = (exp.booking_config && exp.booking_config.currency) ? exp.booking_config.currency : 'MXN';
-  const priceFormatted = exp.price > 0 ? `${exp.price.toLocaleString("en-US")} ${curr}` : 'Gratis';
+  const isFree = !(exp.price > 0);
+  const priceFormatted = isFree ? t("gratis", "Gratis") : `${exp.price.toLocaleString("en-US")} ${curr}`;
   const isBlog = exp.activity_type && (exp.activity_type.toLowerCase().includes("blog") || exp.activity_type.toLowerCase().includes("guía"));
 
   const PLATFORM_STYLES = {
                     civitatis: CIVITATIS_PLATFORM,
     airbnb: { color: "#FF5A5F", label: "Airbnb", img: "/airbnb.svg" },
     booking: { color: "#003580", label: "Booking.com", img: "/booking.png" },
-    tiqets: { color: "#4bc2c5", label: "Comprar entradas", img: "/tiqets.png" },
+    tiqets: { color: "#4bc2c5", label: t("revista_comprar_entradas", "Comprar entradas"), img: "/tiqets.png" },
     tripadvisor: { color: "#000000", label: "TripAdvisor", img: "/tripadvisor.png" },
     expedia: { color: "#00005C", label: "Expedia", img: "/expedia.png" },
     hoteles: { color: "#D11013", label: "Hoteles.com", img: "/hoteles.com.png" },
     getyourguide: { color: "#FF5B00", label: "GetYourGuide", img: "/getyourguide.png" },
     didifood: { color: "#F76B1C", label: "DiDi Food", icon: "🥡" },
     whatsapp: { color: "#25D366", label: "WhatsApp", icon: "💬" },
-    comprar_entradas: { color: "#111827", label: "Comprar Entradas", icon: "🎟️" },
-    otro: { color: "#1877F2", label: "Sitio Web", icon: "🔗" }
+    comprar_entradas: { color: "#111827", label: t("revista_comprar_entradas", "Comprar entradas"), icon: "🎟️" },
+    otro: { color: "#1877F2", label: t("revista_sitio_web", "Sitio Web"), icon: "🔗" }
   };
 
   const openLink = (url) => {
@@ -269,9 +272,9 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
     >
       <Helmet>
         <title>{metaTitle}</title>
-        <meta name="description" content={exp.description ? exp.description.substring(0, 160) : `Reserva entradas y descubre más sobre ${exp.title}.`} />
+        <meta name="description" content={exp.description ? exp.description.substring(0, 160) : t("revista_meta_desc_reserva", `Reserva entradas y descubre más sobre ${exp.title}.`, {title: exp.title})} />
         <meta property="og:title" content={metaTitle} />
-        <meta property="og:description" content={exp.description ? exp.description.substring(0, 160) : `Reserva entradas y descubre más sobre ${exp.title}.`} />
+        <meta property="og:description" content={exp.description ? exp.description.substring(0, 160) : t("revista_meta_desc_reserva", `Reserva entradas y descubre más sobre ${exp.title}.`, {title: exp.title})} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonicalUrl} />
         {cover && <meta property="og:image" content={cover} />}
@@ -299,19 +302,19 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
 
         {/* Top bar */}
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "calc(env(safe-area-inset-top, 0px) + 16px) 20px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
-          <button aria-label="Volver" onClick={onClose} style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}>
+          <button aria-label={t("revista_volver", "Volver")} onClick={onClose} style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}>
             <Icon name="arrow_left" size={22} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
           </button>
           <div style={{ display: "flex", gap: 12 }}>
             <button 
-              aria-label="Compartir guía"
+              aria-label={t("revista_compartir_guia", "Compartir guía")}
               onClick={() => {
-              const shareText = `Descubre la experiencia ${exp.title} en CityMap.`;
+              const shareText = t("revista_compartir_texto", `Descubre la experiencia ${exp.title} en CityMap.`, {title: exp.title});
               if (navigator.share) {
                 navigator.share({ title: exp.title, text: shareText, url: window.location.href }).catch(()=>{});
               } else {
                 navigator.clipboard.writeText(window.location.href);
-                alert("Enlace copiado al portapapeles");
+                alert(t("revista_enlace_copiado", "Enlace copiado al portapapeles"));
               }
             }}
             style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
@@ -345,7 +348,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {/* Title Area */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, color: T.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
-            {typeLabel(exp.activity_type) || "Experiencia"}
+            {typeLabel(exp.activity_type) || t("revista_experiencia", "Experiencia")}
           </div>
           <h1 style={{ fontSize: 32, fontWeight: 900, color: T.text, margin: "0 0 12px 0", lineHeight: 1.1 }}>
             {exp.title}
@@ -357,11 +360,11 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
             <div style={{ width: 24, height: 24, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.1)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Icon name="user" size={12} color={T.sub} />
             </div>
-            <span>Escrito por <strong style={{ color: T.text }}>{exp.author_name}</strong></span>
+            <span>{t("revista_escrito_por", "Escrito por ")}<strong style={{ color: T.text }}>{exp.author_name}</strong></span>
             {exp.created_at && (
               <>
                 <span style={{ margin: "0 4px", color: T.border }}>•</span>
-                <span>{new Date(exp.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span>{new Date(exp.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
               </>
             )}
           </div>
@@ -388,9 +391,9 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
               </div>
             )}
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>Ofrecido por {associatedBiz.name}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>{t("revista_ofrecido_por", "Ofrecido por ")}{associatedBiz.name}</div>
               <div style={{ fontSize: 13, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>
-                Ver perfil del negocio <Icon name="chevron_right" size={14} color={T.sub} />
+                {t("revista_ver_perfil_negocio", "Ver perfil del negocio")} <Icon name="chevron_right" size={14} color={T.sub} />
               </div>
             </div>
           </div>
@@ -398,9 +401,9 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
 
         {!isBlog && (
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 16 }}>
-            <span style={{ fontSize: priceFormatted === 'Gratis' ? 14 : 22, fontWeight: 900, color: T.text, textTransform: priceFormatted === 'Gratis' ? "uppercase" : "none", letterSpacing: priceFormatted === 'Gratis' ? 0.5 : 0 }}>{priceFormatted}</span>
-            {priceFormatted !== 'Gratis' && (
-              <span style={{ fontSize: 13, color: T.sub, fontWeight: 500 }}>(los precios pueden variar)</span>
+            <span style={{ fontSize: isFree ? 14 : 22, fontWeight: 900, color: T.text, textTransform: isFree ? "uppercase" : "none", letterSpacing: isFree ? 0.5 : 0 }}>{priceFormatted}</span>
+            {!isFree && (
+              <span style={{ fontSize: 13, color: T.sub, fontWeight: 500 }}>{t("revista_precios_pueden_variar", "(los precios pueden variar)")}</span>
             )}
           </div>
         )}
@@ -445,16 +448,16 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                 const isWikiloc = exp.route_url.toLowerCase().includes('wikiloc');
                 const isAllTrails = exp.route_url.toLowerCase().includes('alltrails');
                 let routeBg = "#4B5563";
-                let routeText = "Ver ruta completa (Mapa GPS)";
+                let routeText = t("revista_ver_ruta_completa", "Ver ruta completa (Mapa GPS)");
                 let shadowColor = "rgba(75, 85, 99, 0.4)";
                 
                 if (isWikiloc) {
                   routeBg = "#4E922F";
-                  routeText = "Ver ruta en Wikiloc";
+                  routeText = t("revista_ver_ruta_en_wikiloc", "Ver ruta en Wikiloc");
                   shadowColor = "rgba(78, 146, 47, 0.4)";
                 } else if (isAllTrails) {
                   routeBg = "#2B4B27";
-                  routeText = "Ver ruta en AllTrails";
+                  routeText = t("revista_ver_ruta_en_alltrails", "Ver ruta en AllTrails");
                   shadowColor = "rgba(43, 75, 39, 0.4)";
                 }
 
@@ -475,7 +478,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {/* Gallery */}
         {gallery.length > 1 && (
           <div style={{ marginBottom: 32 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12 }}>Galería</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12 }}>{t("revista_galeria", "Galería")}</h3>
             {gallery.length === 2 ? (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "180px", gap: 8, borderRadius: 20, overflow: "hidden" }}>
                 <div onClick={() => setFullGalleryIdx(0)} className="press" style={{ background: `url(${getThumbUrl(gallery[0], 600, 400)}) center/cover`, cursor: "pointer" }} />
@@ -514,7 +517,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {/* Description */}
         {exp.description && (
           <div style={{ marginBottom: 36 }}>
-            {!isBlog && <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 14, letterSpacing: -0.3 }}>Sobre esta experiencia</h3>}
+            {!isBlog && <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 14, letterSpacing: -0.3 }}>{t("revista_sobre_experiencia", "Sobre esta experiencia")}</h3>}
             <FormattedText text={exp.description} T={T} />
           </div>
         )}
@@ -528,7 +531,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
               <div style={{ display: "flex", gap: 12 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: dark ? "rgba(255,255,255,0.08)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="globe" size={18} color={T.text} /></div>
                 <div>
-                  <div style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>Idiomas</div>
+                  <div style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>{t("revista_idiomas", "Idiomas")}</div>
                   <div style={{ fontSize: 15, color: T.text, fontWeight: 700 }}>{exp.languages}</div>
                 </div>
               </div>
@@ -539,7 +542,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                   <div style={{ display: "flex", gap: 12 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: dark ? "rgba(255,255,255,0.08)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="map-pin" size={18} color={T.text} /></div>
                     <div>
-                      <div style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>Punto de encuentro</div>
+                      <div style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>{t("revista_punto_encuentro", "Punto de encuentro")}</div>
                       <div style={{ fontSize: 15, color: T.text, fontWeight: 700, lineHeight: 1.4, marginTop: 4 }}>{exp.meeting_point}</div>
                     </div>
                   </div>
@@ -550,7 +553,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                   style={{ width: "100%", padding: "12px", borderRadius: 12, background: dark ? "rgba(255,255,255,0.1)" : "#F3F4F6", border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", fontSize: 14, fontWeight: 700, color: T.text }}
                 >
                   <Icon name="nav" size={16} color={T.text} />
-                  {exp.meeting_point ? "Cómo llegar" : "Ver ubicación en el mapa"}
+                  {exp.meeting_point ? t("como_llegar", "Cómo llegar") : t("revista_ver_ubicacion_mapa", "Ver ubicación en el mapa")}
                 </button>
               </div>
             )}
@@ -565,7 +568,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
             
             {exp.includes?.length > 0 && (
               <>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>¿Qué incluye?</h3>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>{t("revista_que_incluye", "¿Qué incluye?")}</h3>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12, marginBottom: exp.not_includes?.length > 0 ? 24 : 0 }}>
                   {exp.includes.map((inc, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
@@ -579,7 +582,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
 
             {exp.not_includes?.length > 0 && (
               <>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>¿Qué no incluye?</h3>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>{t("revista_que_no_incluye", "¿Qué no incluye?")}</h3>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
                   {exp.not_includes.map((ninc, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
@@ -597,7 +600,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {(bookingConfig.bring_items?.length > 0) && (
           <div style={{ marginBottom: 32 }}>
             <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "0 0 28px 0" }} />
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>Lo que recomendamos llevar</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>{t("revista_que_llevar", "Lo que recomendamos llevar")}</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
               {bookingConfig.bring_items.map((item, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
@@ -613,7 +616,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {exp.affiliate_products?.length > 0 && (
           <div style={{ marginBottom: 32 }}>
             <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "0 0 28px 0" }} />
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>Equipamiento recomendado</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>{t("revista_equipamiento", "Equipamiento recomendado")}</h3>
             <div className="no-scrollbar" style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 16, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", margin: "0 -20px", padding: "0 20px 16px" }}>
               {exp.affiliate_products.map((prod, i) => (
                 <div key={i} onClick={() => openLink(prod.url)} className="press" style={{ flexShrink: 0, width: 160, background: dark ? "rgba(255,255,255,0.03)" : "#fff", borderRadius: 16, border: `1px solid ${T.border}`, overflow: "hidden", scrollSnapAlign: "start", cursor: "pointer", display: "flex", flexDirection: "column", boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
@@ -627,9 +630,9 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                   <div style={{ padding: "12px", display: "flex", flexDirection: "column", flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: T.text, lineHeight: 1.3, marginBottom: 6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{prod.title}</div>
                     <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 14, fontWeight: 900, color: T.text }}>{prod.price || "Ver producto"}</span>
+                      <span style={{ fontSize: 14, fontWeight: 900, color: T.text }}>{prod.price || t("revista_ver_producto", "Ver producto")}</span>
                       <div style={{ background: dark ? "rgba(255,255,255,0.1)" : "#f1f5f9", padding: "4px 8px", borderRadius: 8, display: "flex", alignItems: "center", gap: 4 }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>Comprar</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("revista_comprar", "Comprar")}</span>
                         <Icon name="external-link" size={12} color={T.sub} />
                       </div>
                     </div>
@@ -644,7 +647,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {exp.faq?.length > 0 && (
           <div style={{ marginBottom: 32 }}>
             <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "0 0 28px 0" }} />
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>Preguntas Frecuentes</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 16 }}>{t("revista_preguntas_frecuentes", "Preguntas Frecuentes")}</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {exp.faq.map((f, i) => (
                 <div key={i} onClick={() => setActiveFaq(activeFaq === i ? null : i)} style={{ background: dark ? "rgba(255,255,255,0.03)" : "#fff", borderRadius: 16, border: `1px solid ${T.border}`, overflow: "hidden", cursor: "pointer" }}>
@@ -672,26 +675,26 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
 
         {/* Reseñas Internas */}
         <div style={{ marginBottom: 20 }}>
-          <div className="text-base" style={{ fontWeight: 800, color: T.text, marginBottom: 16 }}>Reseñas</div>
+          <div className="text-base" style={{ fontWeight: 800, color: T.text, marginBottom: 16 }}>{t("revista_resenas", "Reseñas")}</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, background: dark ? "rgba(255,255,255,0.03)" : "#f9fafb", borderRadius: 16, padding: "16px 16px", border: `1px solid ${T.border}` }}>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <div style={{ width: 48, height: 48, background: "#fff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}><img src="/estrella.svg" alt="Estrella" style={{ width: 24, height: 24, objectFit: "contain" }} /></div>
+              <div style={{ width: 48, height: 48, background: "#fff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}><img src="/estrella.svg" alt={t("revista_estrella", "Estrella")} style={{ width: 24, height: 24, objectFit: "contain" }} /></div>
               <div>
                 <StarRow n={0} size={16} />
-                <div className="text-xs" style={{ color: T.sub, marginTop: 4 }}>{reviews.length > 0 ? "Comparte tu experiencia" : "Sé el primero en dejar reseña"}</div>
+                <div className="text-xs" style={{ color: T.sub, marginTop: 4 }}>{reviews.length > 0 ? t("revista_comparte_experiencia", "Comparte tu experiencia") : t("revista_primero_resena", "Sé el primero en dejar reseña")}</div>
               </div>
             </div>
-            <button className="press" onClick={() => { if (!user) { setShowAuth(true); return; } setShowReview(v => !v); }} style={{ padding: "10px 16px", border: "1px solid #111", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#111", background: "#fff", cursor: "pointer", fontFamily: "inherit" }}>Escribir reseña</button>
+            <button className="press" onClick={() => { if (!user) { setShowAuth(true); return; } setShowReview(v => !v); }} style={{ padding: "10px 16px", border: "1px solid #111", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#111", background: "#fff", cursor: "pointer", fontFamily: "inherit" }}>{t("revista_escribir_resena", "Escribir reseña")}</button>
           </div>
 
           {showReview && <div style={{ background: dark ? "rgba(255,255,255,0.03)" : "#f9fafb", borderRadius: 12, padding: 14, marginBottom: 16, border: `1px solid ${T.border}` }}>
             <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>{[1, 2, 3, 4, 5].map(s => <button key={s} onClick={() => setReviewStar(s)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}><Icon name={s <= reviewStar ? "star_f" : "star"} size={24} color={s <= reviewStar ? T.text : T.sub} style={{ marginTop: -2 }} /></button>)}</div>
-            <textarea className="inp" rows={3} style={{ resize: "none", marginBottom: 10, background: dark ? "rgba(255,255,255,0.05)" : "#fff", color: T.text, border: `1px solid ${T.border}` }} placeholder="Comparte tu experiencia…" value={reviewText} onChange={e => setReviewText(e.target.value)} />
+            <textarea className="inp" rows={3} style={{ resize: "none", marginBottom: 10, background: dark ? "rgba(255,255,255,0.05)" : "#fff", color: T.text, border: `1px solid ${T.border}` }} placeholder={t("revista_comparte_experiencia_placeholder", "Comparte tu experiencia…")} value={reviewText} onChange={e => setReviewText(e.target.value)} />
             
             {reviewImgFile && (
               <div style={{ position: "relative", width: 80, height: 80, marginBottom: 10, borderRadius: 8, overflow: "hidden", border: `1px solid ${T.border}` }}>
                 <img src={URL.createObjectURL(reviewImgFile)} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                <button aria-label="Quitar foto" onClick={() => setReviewImgFile(null)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="x" size={10} color="#fff" /></button>
+                <button aria-label={t("revista_quitar_foto", "Quitar foto")} onClick={() => setReviewImgFile(null)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="x" size={10} color="#fff" /></button>
               </div>
             )}
             
@@ -701,7 +704,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                 <Icon name="camera" size={20} color={T.sub} />
               </label>
               <button className="btn-g press" style={{ flex: 1, padding: 12, opacity: reviewImgLoading ? 0.7 : 1 }} onClick={() => postExperienceReview(exp.id)} disabled={reviewImgLoading}>
-                {reviewImgLoading ? "Publicando..." : "Publicar reseña"}
+                {reviewImgLoading ? t("revista_publicando", "Publicando...") : t("revista_publicar_resena", "Publicar reseña")}
               </button>
             </div>
           </div>}
@@ -712,33 +715,33 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                 <div className="text-sm" style={{ width: 40, height: 40, borderRadius: "50%", background: r.user_color || "#111", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", flexShrink: 0 }}>{r.user_init}</div>
                 <div>
                   <div className="text-sm" style={{ fontWeight: 800, color: T.text }}>{r.user_name}</div>
-                  <div className="text-xs" style={{ color: T.sub, marginTop: 2 }}>{new Date(r.created_at).toLocaleDateString("es-MX", { day: "numeric", month: "long" })}</div>
+                  <div className="text-xs" style={{ color: T.sub, marginTop: 2 }}>{new Date(r.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', { day: "numeric", month: "long" })}</div>
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                 <StarRow n={r.stars} size={14} />
                 {(isAdmin || user?.id === r.user_id) && <button onClick={async () => { 
-                  if(window.confirm("¿Eliminar esta reseña?")){ 
+                  if(window.confirm(t("revista_confirm_eliminar_resena", "¿Eliminar esta reseña?"))){ 
                     try {
                       await sb.del("reviews", r.id); 
                       loadExperienceReviews(exp.id);
-                      toast$("Reseña eliminada"); 
+                      toast$(t("revista_resena_eliminada", "Reseña eliminada")); 
                     } catch (err) {
-                      toast$("Error al eliminar la reseña.");
+                      toast$(t("revista_error_eliminar_resena", "Error al eliminar la reseña."));
                     }
                   } 
-                }} style={{ background: "none", border: "none", color: T.red, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0 }}>Eliminar</button>}
+                }} style={{ background: "none", border: "none", color: T.red, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0 }}>{t("revista_eliminar", "Eliminar")}</button>}
               </div>
             </div>
             <p className="text-sm" style={{ color: T.text, lineHeight: 1.6, marginTop: 10, marginBottom: r.img_url ? 10 : 12 }}>{r.text}</p>
             {r.img_url && (
               <div style={{ marginBottom: 12, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}`, width: "100%", maxWidth: 300, background: "#f5f5f5" }}>
-                <img src={getThumbUrl(r.img_url, 600, 600)} alt="Foto de la reseña" loading="lazy" style={{ width: "100%", height: "auto", display: "block", maxHeight: 300, objectFit: "cover" }} />
+                <img src={getThumbUrl(r.img_url, 600, 600)} alt={t("revista_foto_resena", "Foto de la reseña")} loading="lazy" style={{ width: "100%", height: "auto", display: "block", maxHeight: 300, objectFit: "cover" }} />
               </div>
             )}
             <div style={{ display: "flex", gap: 10 }}>
               <button className="press" onClick={() => user ? toggleLikeReview(r) : setShowAuth(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", border: `1px solid ${r.liked_by?.includes(user?.id) ? "#000" : T.border}`, borderRadius: 16, background: r.liked_by?.includes(user?.id) ? "#000" : "transparent", fontSize: 13, fontWeight: 700, color: r.liked_by?.includes(user?.id) ? "#fff" : T.sub, cursor: "pointer", fontFamily: "inherit" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill={r.liked_by?.includes(user?.id) ? "#fff" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg> Útil ({r.liked_by?.length || 0})
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={r.liked_by?.includes(user?.id) ? "#fff" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg> {t("revista_util", `Útil (${r.liked_by?.length || 0})`, {count: r.liked_by?.length || 0})}
               </button>
             </div>
           </div>)}
@@ -749,14 +752,14 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
               onClick={() => setShowAllReviews(!showAllReviews)} 
               style={{ width: "100%", padding: "14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, fontSize: 14, fontWeight: 700, color: T.text, cursor: "pointer", marginTop: 16, fontFamily: "inherit" }}
             >
-              {showAllReviews ? "Mostrar menos" : `Ver todas las reseñas (${reviews.length})`}
+              {showAllReviews ? t("revista_mostrar_menos", "Mostrar menos") : t("revista_ver_todas_resenas", `Ver todas las reseñas (${reviews.length})`, {count: reviews.length})}
             </button>
           )}
         </div>
 
         {/* Disclaimer Legal */}
         <div style={{ marginTop: 20, paddingTop: 20, borderTop: `1px solid ${T.border}`, fontSize: 11, color: T.sub, lineHeight: 1.5, textAlign: "justify" }}>
-          CityMap muestra información proporcionada por nuestros socios. Los precios, itinerarios, horarios y actividades pueden modificarse sin previo aviso. El precio final se mostrará al momento de abrir el enlace de la reserva.
+          {t("revista_disclaimer", "CityMap muestra información proporcionada por nuestros socios. Los precios, itinerarios, horarios y actividades pueden modificarse sin previo aviso. El precio final se mostrará al momento de abrir el enlace de la reserva.")}
         </div>
 
       </div>
@@ -765,7 +768,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
       {fullGalleryIdx !== null && createPortal(
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, background: "#000000", display: "flex", flexDirection: "column" }}>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "16px 20px", display: "flex", justifyContent: "flex-start", zIndex: 10 }}>
-            <button aria-label="Cerrar galería" className="press" onClick={() => setFullGalleryIdx(null)} style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginTop: 20 }}>
+            <button aria-label={t("revista_cerrar_galeria", "Cerrar galería")} className="press" onClick={() => setFullGalleryIdx(null)} style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginTop: 20 }}>
               <Icon name="x" size={24} color="#fff" />
             </button>
           </div>

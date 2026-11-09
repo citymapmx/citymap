@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { getThumbUrl } from '../../lib/utils.js';
 import { shortestDelta, springSettled, springStep } from '../../lib/spring.js';
 import EventPosterFallback from './EventPosterFallback.jsx';
+import { useTranslation } from '../../hooks/useTranslation.js';
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -24,27 +25,28 @@ function relativePositionFloat(index, floatSelected, count) {
   return offset;
 }
 
-function formatDate(value) {
+function formatDate(value, locale = 'es-MX') {
   if (!value) return '';
   const date = new Date(`${value}T12:00:00`);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(locale, { day: 'numeric', month: 'long' });
 }
 
-function formatTagDate(value) {
+function formatTagDate(value, locale = 'es-MX') {
   if (!value) return '';
   const date = new Date(`${value}T12:00:00`);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }).replace('.', '').toUpperCase();
+  return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' }).replace('.', '').toUpperCase();
 }
 
 function CoverflowPoster({ src, title, priority }) {
   const [ready, setReady] = useState(false);
   const [original, setOriginal] = useState(false);
   const [failed, setFailed] = useState(false);
+  const { t } = useTranslation();
   const source = original ? src : getThumbUrl(src, 400);
   return <>
     {!ready && <span className="event-coverflow-loading" aria-hidden="true">{title}</span>}
-    {!failed && <img src={source} alt={title || 'Póster del evento'}
+    {!failed && <img src={source} alt={title || t("home_poster_evento", "Póster del evento")}
       loading={priority ? 'eager' : 'lazy'} fetchPriority={priority === 'center' ? 'high' : 'auto'}
       decoding="async" draggable="false"
       onLoad={async event => {
@@ -57,7 +59,10 @@ function CoverflowPoster({ src, title, priority }) {
   </>;
 }
 
-export default function EventCoverflow({ events = [], onOpen, T, label = 'Eventos destacados', heading, subheading, formatEventMeta, formatEventTag }) {
+export default function EventCoverflow({ events = [], onOpen, T, label, heading, subheading, formatEventMeta, formatEventTag }) {
+  const { t, lang } = useTranslation();
+  const locale = lang === 'en' ? 'en-US' : 'es-MX';
+  const labelText = label ?? t('home_eventos_destacados', 'Eventos destacados');
   const [selectedId, setSelectedId] = useState(null);
   // Posición seleccionada continua: 0, 1, 2… pero a mitad de giro puede
   // ser 1.4. Es lo que anima el carrusel; el índice entero se confirma
@@ -224,7 +229,7 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
   if (!current) return null;
 
   return (
-    <div className="event-coverflow" role="region" aria-roledescription="carrusel" aria-label={label} onKeyDown={event => {
+    <div className="event-coverflow" role="region" aria-roledescription="carrusel" aria-label={labelText} onKeyDown={event => {
       if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
         event.preventDefault();
         move(event.key === 'ArrowRight' ? 1 : -1);
@@ -483,10 +488,10 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
           .map(({ event, index, offset }) => {
             const isSelected = Math.abs(offset) < 0.5;
             const image = event.img_url || event.img || event.poster_url;
-            const tag = formatEventTag ? formatEventTag(event) : formatTagDate(event.date);
+            const tag = formatEventTag ? formatEventTag(event) : formatTagDate(event.date, locale);
             return <button key={event.id} type="button" className="event-coverflow-card"
               ref={el => { cardRefs.current[index] = el; }}
-              aria-label={isSelected ? `Ver evento: ${event.title}` : `Mostrar evento: ${event.title}`}
+              aria-label={isSelected ? `${t("home_ver_evento", "Ver evento")}: ${event.title}` : `${t("home_mostrar_evento", "Mostrar evento")}: ${event.title}`}
               aria-current={isSelected ? 'true' : undefined}
               tabIndex={isSelected ? 0 : -1}
               aria-hidden={Math.abs(offset) > 2 ? 'true' : undefined}
@@ -504,7 +509,7 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
       </div>
       {events.length > 1 && [-1, 1].map(direction => (
         <button key={direction} type="button" className="event-coverflow-arrow"
-          aria-label={direction === -1 ? 'Mostrar evento anterior' : 'Mostrar evento siguiente'}
+          aria-label={direction === -1 ? t("home_evento_anterior", "Mostrar evento anterior") : t("home_evento_siguiente", "Mostrar evento siguiente")}
           onClick={() => { move(direction); }}
           style={direction === -1 ? { left: 4 } : { right: 4 }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -517,7 +522,7 @@ export default function EventCoverflow({ events = [], onOpen, T, label = 'Evento
       {/* Título y fecha del evento seleccionado, solo para lectores de pantalla: abajo del carrusel ya no se muestra nada. */}
       <div aria-live="polite" aria-atomic="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
         <span>{current.title}</span>{' · '}
-        <span>{formatEventMeta ? formatEventMeta(current) : [formatDate(current.date), current.venue_name].filter(Boolean).join(' · ')}</span>
+        <span>{formatEventMeta ? formatEventMeta(current) : [formatDate(current.date, locale), current.venue_name].filter(Boolean).join(' · ')}</span>
       </div>
     </div>
   );

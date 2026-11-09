@@ -177,4 +177,12 @@ describe('tourPriceLabel', () => {
       booking_config: { externalLinks: [{ url: 'https://www.civitatis.com/es/x' }] },
     })).toBeNull();
   });
+
+  it('en inglés usa "from $X MXN" y "Free" (fase 1 i18n)', () => {
+    expect(tourPriceLabel({ price: 1200 }, 'en')).toBe('from $1,200 MXN');
+    expect(tourPriceLabel({ price: 0, booking_config: {} }, 'en')).toBe('Free');
+    expect(tourPriceLabel({ price: null }, 'en')).toBe('Free');
+    expect(formatTourPrice(1200, 'en')).toBe('from $1,200 MXN');
+    expect(formatTourPrice(1200)).toBe('desde $1,200 MXN');
+  });
 });

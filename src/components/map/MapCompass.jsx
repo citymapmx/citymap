@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import useCompass from '../../hooks/useCompass.js';
 import { headingDelta } from '../../lib/compass.js';
-
-const messages = {
-  requesting: 'Permite el acceso a la orientación del teléfono.',
-  waiting: 'Buscando dirección… Si no aparece, prueba al aire libre con el teléfono plano.',
-  denied: 'Activa el permiso de movimiento y orientación en los ajustes del navegador.',
-  unavailable: 'La brújula no está disponible en este dispositivo o navegador.',
-};
+import { useTranslation } from '../../hooks/useTranslation.js';
 
 export default function MapCompass({ map, location }) {
+  const { t } = useTranslation();
+  const messages = {
+    requesting: t('mapa_brujula_permiso', 'Permite el acceso a la orientación del teléfono.'),
+    waiting: t('mapa_brujula_buscando', 'Buscando dirección… Si no aparece, prueba al aire libre con el teléfono plano.'),
+    denied: t('mapa_brujula_denegada', 'Activa el permiso de movimiento y orientación en los ajustes del navegador.'),
+    unavailable: t('mapa_brujula_no_disponible', 'La brújula no está disponible en este dispositivo o navegador.'),
+  };
   const overlay = useRef(null);
   const bearing = useRef(null);
   const hasLocation = Number.isFinite(location?.lat) && Number.isFinite(location?.lng);
@@ -68,11 +69,11 @@ export default function MapCompass({ map, location }) {
     <style>{`.citymap-direction-cone svg{transition:transform 160ms linear;transform-origin:48px 48px}@media(prefers-reduced-motion:reduce){.citymap-direction-cone svg{transition:none}}`}</style>
     {messages[status] && <div role="status" style={{ position: 'absolute', right: 66, bottom: 82, maxWidth: 'min(260px, calc(100% - 85px))', padding: '10px 12px', background: '#fff', color: '#334155', borderRadius: 12, fontSize: 12, lineHeight: 1.4, boxShadow: '0 3px 16px #0002', zIndex: 10 }}>{messages[status]}</div>}
     <button type="button" onClick={toggle} disabled={status === 'requesting' || !hasLocation}
-      aria-label={enabled ? 'Desactivar brújula' : 'Activar brújula'} aria-pressed={enabled}
-      title={!hasLocation ? 'Activa tu ubicación para usar la brújula' : enabled ? 'Desactivar brújula' : 'Activar brújula'}
+      aria-label={enabled ? t('mapa_brujula_desactivar', 'Desactivar brújula') : t('mapa_brujula_activar', 'Activar brújula')} aria-pressed={enabled}
+      title={!hasLocation ? t('mapa_brujula_activa_ubicacion', 'Activa tu ubicación para usar la brújula') : enabled ? t('mapa_brujula_desactivar', 'Desactivar brújula') : t('mapa_brujula_activar', 'Activar brújula')}
       style={{ position: 'absolute', right: 14, bottom: 82, width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', background: enabled ? '#eff6ff' : 'rgba(255,255,255,.95)', border: `1px solid ${enabled ? '#93c5fd' : 'rgba(0,0,0,.08)'}`, borderRadius: 14, boxShadow: '0 4px 16px #0002', color: enabled ? '#2563eb' : '#1f2937', opacity: hasLocation ? 1 : .5, cursor: hasLocation ? 'pointer' : 'default', zIndex: 10 }}>
       <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5"/><path d="m15.5 8.5-2 5-5 2 2-5Z" fill="currentColor"/><path d="M12 1v2" stroke="currentColor" strokeWidth="1.5"/></svg>
     </button>
-    <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)' }} role="status">{status === 'active' ? 'Brújula activa. El cono azul indica hacia dónde apunta tu teléfono.' : ''}</span>
+    <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)' }} role="status">{status === 'active' ? t('mapa_brujula_activa', 'Brújula activa. El cono azul indica hacia dónde apunta tu teléfono.') : ''}</span>
   </>;
 }

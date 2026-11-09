@@ -8,6 +8,7 @@ import { sb } from '../lib/supabase.js';
 import { groupToursByCity, tourCardUrl, tourPriceLabel } from '../lib/tours.js';
 import OptimizedImage from './ui/OptimizedImage.jsx';
 import Footer from './Footer.jsx';
+import { useTranslation } from '../hooks/useTranslation.js';
 
 function tourImage(tour) {
   const gallery = tour?.gallery;
@@ -22,8 +23,9 @@ function tourImage(tour) {
 }
 
 function TourCard({ tour, T, onOpen }) {
+  const { t, lang } = useTranslation();
   const img = tourImage(tour);
-  const price = tourPriceLabel(tour);
+  const price = tourPriceLabel(tour, lang);
 
   return (
     <article
@@ -38,14 +40,15 @@ function TourCard({ tour, T, onOpen }) {
       </div>
       <div style={{ padding: '12px 14px 16px', background: T.card }}>
         <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{tour.title}</h3>
-        <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || 'Precio no publicado'}</p>
-        <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>Ver más detalles →</span>
+        <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || t("revista_precio_no_publicado", "Precio no publicado")}</p>
+        <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>{t("revista_ver_mas_detalles", "Ver más detalles →")}</span>
       </div>
     </article>
   );
 }
 
 export default function ToursView({ T, dark, cities, initialTours }) {
+  const { t, lang } = useTranslation();
   const [tours, setTours] = useState(initialTours || []);
   const [loading, setLoading] = useState(!initialTours);
   const [selectedCity, setSelectedCity] = useState('todas');
@@ -75,8 +78,8 @@ export default function ToursView({ T, dark, cities, initialTours }) {
   return (
     <div style={{ minHeight: '100vh', background: T.bg, color: T.text }}>
       <Helmet>
-        <title>Tours en Guadalajara, Tepic, Puerto Vallarta y más | CityMap</title>
-        <meta name="description" content="Tours guiados y excursiones en Guadalajara, Tepic, Puerto Vallarta, Ciudad de México y más, con precio desde y reserva en línea. Encuentra tu próximo tour en CityMap." />
+        <title>{t("revista_tours_titulo_seo", "Tours en Guadalajara, Tepic, Puerto Vallarta y más | CityMap")}</title>
+        <meta name="description" content={t("revista_tours_desc_seo", "Tours guiados y excursiones en Guadalajara, Tepic, Puerto Vallarta, Ciudad de México y más, con precio desde y reserva en línea. Encuentra tu próximo tour en CityMap.")} />
         <link rel="canonical" href="https://citymap.mx/tours" />
       </Helmet>
       {/* Cabecera como la de Revista: logotipo + etiqueta al lado */}
@@ -101,7 +104,7 @@ export default function ToursView({ T, dark, cities, initialTours }) {
               color: '#FFFFFF',
               lineHeight: 1
             }}>
-              Viajes
+              {t("revista_viajes", "Viajes")}
             </span>
           </div>
         </div>
@@ -109,9 +112,9 @@ export default function ToursView({ T, dark, cities, initialTours }) {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px 40px' }}>
         {/* Subtítulo como el de Revista: bajo el logo, sin título grande ni "← Inicio" */}
         <p style={{ fontSize: 13, fontWeight: 600, color: T.sub, margin: '0 0 20px', textAlign: 'center', lineHeight: 1.4 }}>
-          {loading ? 'Cargando tours…' : selectedGroup
-            ? <>Los mejores tours y experiencias de <span className="exp-city-anim">{selectedGroup.name}</span></>
-            : `${tours.length} tours en ${groups.length} ciudades${minPrice ? ` · desde $${minPrice.toLocaleString('es-MX')} MXN` : ''}`}
+          {loading ? t("revista_cargando_tours", "Cargando tours…") : selectedGroup
+            ? <>{t("revista_mejores_tours_de", "Los mejores tours y experiencias de ")}<span className="exp-city-anim">{selectedGroup.name}</span></>
+            : t("revista_tours_resumen", `${tours.length} tours en ${groups.length} ciudades${minPrice ? ` · desde $${minPrice.toLocaleString('es-MX')} MXN` : ''}`, {tours: tours.length, cities: groups.length, minPriceText: minPrice ? ` · ${lang === 'en' ? 'from' : 'desde'} $${minPrice.toLocaleString(lang === 'en' ? 'en-US' : 'es-MX')} MXN` : ''})}
         </p>
 
         {!loading && groups.length > 0 && (
@@ -121,7 +124,7 @@ export default function ToursView({ T, dark, cities, initialTours }) {
               onClick={() => setSelectedCity('todas')}
               style={{ flex: '0 0 auto', padding: '8px 14px', borderRadius: 999, border: `1px solid ${T.border}`, background: selectedCity === 'todas' ? T.text : 'transparent', color: selectedCity === 'todas' ? T.bg : T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
-              Todas ({tours.length})
+              {t("todas", "Todas")} ({tours.length})
             </button>
             {groups.map((g) => (
               <button
@@ -136,7 +139,7 @@ export default function ToursView({ T, dark, cities, initialTours }) {
         )}
 
         {!loading && tours.length === 0 && (
-          <p style={{ fontSize: 15, color: T.sub }}>Aún no hay tours publicados. Vuelve pronto.</p>
+          <p style={{ fontSize: 15, color: T.sub }}>{t("revista_sin_tours", "Aún no hay tours publicados. Vuelve pronto.")}</p>
         )}
 
         {visibleGroups.map((g) => (

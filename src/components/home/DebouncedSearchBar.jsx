@@ -1,5 +1,6 @@
 import React from "react";
 import Icon from "../ui/Icon.jsx";
+import { useTranslation } from "../../hooks/useTranslation.js";
 
 // Frases del buscador, verificadas contra los datos reales: cada una devuelve
 // resultados si se escribe tal cual (por eso van en singular: "pizza" da 6,
@@ -7,15 +8,15 @@ import Icon from "../ui/Icon.jsx";
 // se escribe una, se espera unos segundos, se borra y sigue la siguiente.
 // Los "..." del final son solo visuales: la frase animada nunca se convierte
 // en la búsqueda, así que no afectan a los resultados.
-const SEARCH_HINTS = [
-  'Buscar tacos...',
-  'Buscar pizza...',
-  'Buscar café...',
-  'Buscar restaurantes...',
-  'Buscar lugares...',
-  'Buscar hotel...',
-  'Buscar bares...',
-  'Buscar museo...',
+const SEARCH_HINT_KEYS = [
+  ['home_hint_tacos', 'Buscar tacos...'],
+  ['home_hint_pizza', 'Buscar pizza...'],
+  ['home_hint_cafe', 'Buscar café...'],
+  ['home_hint_restaurantes', 'Buscar restaurantes...'],
+  ['home_hint_lugares', 'Buscar lugares...'],
+  ['home_hint_hotel', 'Buscar hotel...'],
+  ['home_hint_bares', 'Buscar bares...'],
+  ['home_hint_museo', 'Buscar museo...'],
 ];
 
 function useTypewriter(phrases) {
@@ -48,6 +49,7 @@ function useTypewriter(phrases) {
 }
 
 export default function DebouncedSearchBar({ initialValue, onSearch, dark }) {
+  const { t } = useTranslation();
   const [localSearch, setLocalSearch] = React.useState(initialValue || "");
   const [focusedPlaceholder, setFocusedPlaceholder] = React.useState(null);
   const lastSubmitted = React.useRef(initialValue || "");
@@ -56,6 +58,10 @@ export default function DebouncedSearchBar({ initialValue, onSearch, dark }) {
   // mismo diseño y la animación solo vuelve a dibujar este buscador.
   // Sin frase fija: cuando la máquina de escribir borra una frase, el
   // buscador queda vacío en vez de mostrar un texto genérico.
+  const SEARCH_HINTS = React.useMemo(
+    () => SEARCH_HINT_KEYS.map(([key, fallback]) => t(key, fallback)),
+    [t],
+  );
   const animatedHint = useTypewriter(SEARCH_HINTS);
 
   React.useEffect(() => {
@@ -89,7 +95,7 @@ export default function DebouncedSearchBar({ initialValue, onSearch, dark }) {
         @keyframes heroCaretBlink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
         .hero-caret { color: #38BDF8; animation: heroCaretBlink 1s step-end infinite; }
       `}</style>
-      <input role="searchbox" aria-label="Buscar lugares y eventos" autoComplete="off" enterKeyHint="search"
+      <input role="searchbox" aria-label={t("home_buscar_lugares_eventos", "Buscar lugares y eventos")} autoComplete="off" enterKeyHint="search"
         className="inp hero-search-input"
         style={{ width: "100%", minHeight: 40, boxSizing: "border-box", padding: "8px 48px 8px 44px", border: "none", borderRadius: 100, color: dark ? "#F4F4F5" : "#18181B", fontSize: 16, fontWeight: 500, gridArea:"1 / 1",height:"100%", textAlign: "left" }}
         placeholder="" value={localSearch}
@@ -101,7 +107,7 @@ export default function DebouncedSearchBar({ initialValue, onSearch, dark }) {
       <span style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", zIndex: 5, pointerEvents: "none", display: "flex" }}>
         <Icon name="search" size={19} color={dark ? "#A1A1AA" : "#6B7280"} />
       </span>
-      {localSearch && <button type="button" aria-label="Borrar búsqueda" onClick={handleClear}
+      {localSearch && <button type="button" aria-label={t("home_borrar_busqueda", "Borrar búsqueda")} onClick={handleClear}
         style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", zIndex: 5, display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, border: 0, borderRadius: "50%", background: "transparent", color: dark ? "#F4F4F5" : "#18181B", cursor: "pointer" }}>
         <Icon name="x" size={18} color="currentColor" />
       </button>}

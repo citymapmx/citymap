@@ -1,8 +1,10 @@
 import {useEffect, useState} from 'react';
 import {getSearchPrompts} from '../../lib/searchPrompts.js';
+import { useTranslation } from '../../hooks/useTranslation.js';
 
 export default function useSearchPlaceholder(city, timeZone, paused) {
-  const [placeholder, setPlaceholder] = useState(`¿Qué buscas en ${city}?`);
+  const { t } = useTranslation();
+  const [placeholder, setPlaceholder] = useState(`${t("home_que_buscas_en", "¿Qué buscas en")} ${city}?`);
   useEffect(() => {
     if (paused) return;
     let index = 0;

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
 import { ensureGoogleIdentityServices } from '../lib/googleIdentity.js';
+import { useTranslation } from '../hooks/useTranslation.js';
 
 // Mismo cliente de Google que el botón de la web (AuthModal.jsx).
 // El botón oficial de Google (GIS) solo funciona sobre un origen https
@@ -21,6 +22,7 @@ export default function AppLoginView({ T, dark, navigate }) {
   const [error, setError] = useState('');
   const [deepLink, setDeepLink] = useState('');
   const handleGoogleIdToken = useAuthStore((s) => s.handleGoogleIdToken);
+  const { t } = useTranslation();
 
   const fromApp = new URLSearchParams(window.location.search).get('from') === 'app';
 
@@ -40,7 +42,7 @@ export default function AppLoginView({ T, dark, navigate }) {
             const uid = await handleGoogleIdToken(response.credential);
             if (!uid) {
               setStatus('error');
-              setError('No se pudo iniciar sesión con Google. Inténtalo de nuevo.');
+              setError(t("modal_no_sesion_google", "No se pudo iniciar sesión con Google. Inténtalo de nuevo."));
               return;
             }
             if (fromApp) {
@@ -48,7 +50,7 @@ export default function AppLoginView({ T, dark, navigate }) {
               const rt = localStorage.getItem('cg_r');
               if (!at) {
                 setStatus('error');
-                setError('Se inició sesión pero no se pudo pasar a la app. Inténtalo de nuevo.');
+                setError(t("modal_no_pasar_app", "Se inició sesión pero no se pudo pasar a la app. Inténtalo de nuevo."));
                 return;
               }
               const link = `${APP_DEEP_LINK}#access_token=${encodeURIComponent(at)}${rt ? `&refresh_token=${encodeURIComponent(rt)}` : ''}`;
@@ -114,7 +116,7 @@ export default function AppLoginView({ T, dark, navigate }) {
     try {
       await sb.signInWithOAuth('google');
     } catch (err) {
-      setError('Error con Google: ' + err.message);
+      setError(t("modal_error_google", "Error con Google: ") + err.message);
     }
   };
 
@@ -134,26 +136,26 @@ export default function AppLoginView({ T, dark, navigate }) {
           📍CityMap
         </div>
         <p style={{ color: T.sub, margin: '0 0 24px', fontWeight: 500, fontSize: 14 }}>
-          Inicia sesión para continuar
+          {t("modal_inicia_para_continuar", "Inicia sesión para continuar")}
         </p>
 
         {status === 'signing' && (
-          <p style={{ color: T.sub, fontSize: 14, margin: '0 0 16px' }}>Conectando con Google…</p>
+          <p style={{ color: T.sub, fontSize: 14, margin: '0 0 16px' }}>{t("modal_conectando_google", "Conectando con Google…")}</p>
         )}
 
         {status === 'done' && fromApp && (
           <div style={{ marginBottom: 16 }}>
-            <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>Sesión iniciada. Volviendo a la app…</p>
+            <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>{t("modal_sesion_volviendo_app", "Sesión iniciada. Volviendo a la app…")}</p>
             {deepLink && (
               <a href={deepLink} style={{ display: 'inline-block', padding: '12px 28px', borderRadius: 999, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
-                Volver a la app
+                {t("modal_volver_app", "Volver a la app")}
               </a>
             )}
           </div>
         )}
 
         {status === 'done' && !fromApp && (
-          <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: '0 0 16px' }}>Sesión iniciada. Redirigiendo…</p>
+          <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: '0 0 16px' }}>{t("modal_sesion_redirigiendo", "Sesión iniciada. Redirigiendo…")}</p>
         )}
 
         {status !== 'done' && (
@@ -162,7 +164,7 @@ export default function AppLoginView({ T, dark, navigate }) {
               <div ref={googleBtnRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} />
             </div>
             {!gisReady && !gisTimedOut && status !== 'signing' && (
-              <p style={{ color: T.sub, fontSize: 14, margin: '0 0 16px' }}>Cargando el botón de Google…</p>
+              <p style={{ color: T.sub, fontSize: 14, margin: '0 0 16px' }}>{t("modal_cargando_boton_google", "Cargando el botón de Google…")}</p>
             )}
             {gisTimedOut && !gisReady && (
               <button
@@ -175,7 +177,7 @@ export default function AppLoginView({ T, dark, navigate }) {
                   <path fill="#FBBC05" d="M10.7 28.4A14.5 14.5 0 0 1 9.5 24c0-1.5.3-3 .7-4.4l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.5 10.8l8.2-6.4z" />
                   <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.2 1.5-5 2.4-8.4 2.4-6.2 0-11.5-4.2-13.4-9.8l-8.2 6.4C6.7 42.5 14.7 48 24 48z" />
                 </svg>
-                <span>Continuar con Google</span>
+                <span>{t("modal_continuar_google", "Continuar con Google")}</span>
               </button>
             )}
           </>
@@ -189,7 +191,7 @@ export default function AppLoginView({ T, dark, navigate }) {
           onClick={handleCancel}
           style={{ background: 'none', border: 'none', color: T.sub, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}
         >
-          Cancelar
+          {t("modal_cancelar", "Cancelar")}
         </button>
       </div>
     </div>

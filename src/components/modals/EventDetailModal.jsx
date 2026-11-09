@@ -16,6 +16,7 @@ import { isPrivateEvent, privateEventUrl, summarizeRsvps, heroDateParts } from '
 import { getEventPrice, getEventPriceAmount, getEventMusicQuery, buildItunesSearchUrl } from '../../lib/eventDetails.js';
 import { SPRING_UI } from '../../lib/spring.js';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useTranslation } from '../../hooks/useTranslation.js';
 
 // Rediseño claro estilo Luma (solo eventos privados vigentes en modo claro;
 // el modo oscuro queda como estaba). El tinte del fondo vive en UNA sola
@@ -26,6 +27,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useDataStore } from '../../store/useDataStore';
 
 export default function EventDetailModal() {
+  const { t, lang } = useTranslation();
   const { selectedEvent, setSelectedEvent, activeCity, dark, toast$ } = useUIStore();
   const { user } = useAuthStore();
   const { handleCardTap } = useAppContext();
@@ -65,9 +67,9 @@ export default function EventDetailModal() {
       const url = await cloudUpload(fileToUpload);
       await sb.patch('events', ev.id, { img_url: url });
       setSelectedEvent({ ...ev, img_url: url });
-      toast$('Foto actualizada');
+      toast$(t("eventos_foto_actualizada", "Foto actualizada"));
     } catch (err) {
-      toast$('No se pudo cambiar la foto: ' + err.message);
+      toast$(`${t("eventos_foto_error", "No se pudo cambiar la foto:")} ${err.message}`);
     } finally {
       setPhotoBusy(false);
     }
@@ -91,9 +93,9 @@ export default function EventDetailModal() {
     const ev = selectedEvent;
     if (!ev) return;
     const evUrl = `${window.location.origin}/evento/${createSlug(ev.title)}_${ev.id}`;
-    if (navigator.share) navigator.share({ title: ev.title, text: 'Échale un vistazo a este evento:', url: evUrl });
-    else { navigator.clipboard?.writeText(evUrl); toast$('Enlace copiado'); }
-  }, [selectedEvent, toast$]);
+    if (navigator.share) navigator.share({ title: ev.title, text: t("eventos_compartir_texto", "Échale un vistazo a este evento:"), url: evUrl });
+    else { navigator.clipboard?.writeText(evUrl); toast$(t("eventos_enlace_copiado", "Enlace copiado")); }
+  }, [selectedEvent, toast$, t]);
   const dialog = useRef(null);
   const closeEvent = useCallback(() => {
     setSelectedEvent(null);
@@ -202,7 +204,7 @@ export default function EventDetailModal() {
         // precio se quita de la tarjeta de datos de abajo.
         const price = getEventPrice(ev);
         const priceAmount = getEventPriceAmount(ev);
-        const topPriceLabel = !isPrivateEvent(ev) && !isPast && price ? (price.free ? 'Entrada gratuita' : (priceAmount ? `Boletos desde: ${priceAmount}` : null)) : null;
+        const topPriceLabel = !isPrivateEvent(ev) && !isPast && price ? (price.free ? t("eventos_entrada_gratuita", "Entrada gratuita") : (priceAmount ? `${t("eventos_boletos_desde", "Boletos desde:")} ${priceAmount}` : null)) : null;
         const category = ev.event_category || ev.category;
         const showTopRow = !isPrivateEvent(ev) && Boolean(category || topPriceLabel);
 
@@ -221,10 +223,10 @@ export default function EventDetailModal() {
               {/* --- HERO IMAGE SECTION (solo eventos vigentes; los pasados van sin foto grande) --- */}
               {isPast ? (
                 <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "calc(env(safe-area-inset-top, 0px) + 12px) 16px 4px" }}>
-                  <button aria-label="Volver" onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                  <button aria-label={t("eventos_volver", "Volver")} onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
                     <Icon name="arrow_left" size={22} color={T.text} />
                   </button>
-                  <button aria-label="Compartir evento" onClick={(e) => { e.stopPropagation(); shareEvent(); }} style={{ width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                  <button aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={(e) => { e.stopPropagation(); shareEvent(); }} style={{ width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
                     <Icon name="share" size={20} color={T.text} />
                   </button>
                 </div>
@@ -262,12 +264,12 @@ export default function EventDetailModal() {
                 <div aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 40, background: `linear-gradient(180deg, transparent 0%, ${T.bg} 100%)`, zIndex: 5, pointerEvents: "none" }} />
 
                 {/* Floating Back Button */}
-                <button aria-label="Volver" onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
+                <button aria-label={t("eventos_volver", "Volver")} onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
                   <Icon name="arrow_left" size={22} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
                 </button>
                 
                 {/* Floating Share Button */}
-                <button aria-label="Compartir evento" onClick={(e) => { e.stopPropagation(); shareEvent(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
+                <button aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={(e) => { e.stopPropagation(); shareEvent(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
                   <Icon name="share" size={20} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
                 </button>
 
@@ -282,13 +284,13 @@ export default function EventDetailModal() {
                       onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) changePhoto(f); }}
                     />
                     <button
-                      aria-label={imgSrc ? 'Cambiar foto del evento' : 'Agregar foto al evento'}
+                      aria-label={imgSrc ? t("eventos_cambiar_foto_aria", "Cambiar foto del evento") : t("eventos_agregar_foto_aria", "Agregar foto al evento")}
                       onClick={() => photoInputRef.current?.click()}
                       disabled={photoBusy}
                       style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#FFFFFF', fontSize: 13, fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer', opacity: photoBusy ? 0.6 : 1, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}
                     >
                       <Icon name="camera" size={16} color="#fff" />
-                      {photoBusy ? 'Subiendo…' : (imgSrc ? 'Cambiar foto' : 'Agregar foto')}
+                      {photoBusy ? t("eventos_subiendo", "Subiendo…") : (imgSrc ? t("eventos_cambiar_foto", "Cambiar foto") : t("eventos_agregar_foto", "Agregar foto"))}
                     </button>
                   </>
                 )}
@@ -322,16 +324,16 @@ export default function EventDetailModal() {
                 {/* --- EVENTO PASADO: el aviso va después del nombre y la categoría --- */}
                 {isPast && (
                   <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, margin: '0 0 20px 0', boxShadow: T.shadow }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>Este evento ya terminó</div>
-                    <div style={{ fontSize: 14, color: T.sub, marginBottom: 12 }}>Pero hay más cosas pasando{cityName ? ` en ${cityName}` : ''}. Explora los próximos eventos.</div>
-                    <button onClick={exploreEvents} className="press" style={{ background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 9999, padding: '10px 18px', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Explora nuevos eventos</button>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>{t("eventos_ya_termino", "Este evento ya terminó")}</div>
+                    <div style={{ fontSize: 14, color: T.sub, marginBottom: 12 }}>{t("eventos_mas_cosas", "Pero hay más cosas pasando")}{cityName ? <> {t("eventos_en", "en")} {cityName}</> : ''}. {t("eventos_explora_proximos", "Explora los próximos eventos.")}</div>
+                    <button onClick={exploreEvents} className="press" style={{ background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 9999, padding: '10px 18px', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>{t("eventos_explora_nuevos", "Explora nuevos eventos")}</button>
                   </div>
                 )}
 
                 {/* --- EVENTO PASADO: próximos eventos antes que los datos viejos --- */}
                 {isPast && upcoming.length > 0 && (
                   <div style={{ margin: '0 0 24px 0' }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>Próximos eventos{cityName ? ` en ${cityName}` : ''}</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>{t("eventos_proximos", "Próximos eventos")}{cityName ? <> {t("eventos_en", "en")} {cityName}</> : ''}</div>
                     {upcoming.map(u => {
                       const thumb = u.img_url || u.img;
                       return (
@@ -345,13 +347,13 @@ export default function EventDetailModal() {
                           )}
                           <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
                             <div style={{ fontSize: 15, fontWeight: 800, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.title}</div>
-                            <div style={{ fontSize: 13, color: T.sub }}>{formatEventCardDate(u, { today: todayLocal, lang: 'es' })}{u.venue_name ? ` · ${u.venue_name}` : ''}</div>
+                            <div style={{ fontSize: 13, color: T.sub }}>{formatEventCardDate(u, { today: todayLocal, lang })}{u.venue_name ? ` · ${u.venue_name}` : ''}</div>
                           </div>
                           <Icon name="chevron_right" size={16} color={T.sub} />
                         </div>
                       );
                     })}
-                    <button onClick={exploreEvents} className="press" style={{ width: '100%', marginTop: 16, minHeight: 48, background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, cursor: 'pointer', fontFamily: 'inherit' }}>Ver todos los eventos</button>
+                    <button onClick={exploreEvents} className="press" style={{ width: '100%', marginTop: 16, minHeight: 48, background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, cursor: 'pointer', fontFamily: 'inherit' }}>{t("eventos_ver_todos", "Ver todos los eventos")}</button>
                   </div>
                 )}
 
@@ -360,9 +362,9 @@ export default function EventDetailModal() {
                   <>
                     <div style={{ display: 'flex', gap: 4, background: luma ? '#FFFFFF' : (dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9'), border: luma ? '1px solid #E5E7EB' : 'none', boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', borderRadius: 9999, padding: 4, margin: '0 0 14px 0', minWidth: 0 }}>
                       {[
-                        { key: 'chat', label: 'Chat del evento', count: chatCount },
-                        { key: 'detalles', label: 'Detalles', count: 0 },
-                        { key: 'invitados', label: 'Invitados', count: guestCount },
+                        { key: 'chat', label: t("eventos_tab_chat", "Chat del evento"), count: chatCount },
+                        { key: 'detalles', label: t("eventos_tab_detalles", "Detalles"), count: 0 },
+                        { key: 'invitados', label: t("eventos_tab_invitados", "Invitados"), count: guestCount },
                       ].map(tab => {
                         const active = privateTab === tab.key;
                         return (
@@ -392,13 +394,13 @@ export default function EventDetailModal() {
 
                     {user?.id && ev.user_id && user.id === ev.user_id && (
                       <button
-                        onClick={() => { navigator.clipboard?.writeText(privateEventUrl(ev)); toast$('Enlace secreto copiado'); }}
+                        onClick={() => { navigator.clipboard?.writeText(privateEventUrl(ev)); toast$(t("eventos_enlace_secreto_copiado", "Enlace secreto copiado")); }}
                         style={{ width: '100%', margin: '0 0 12px 0', padding: luma ? '12px 0' : '10px 0', background: luma ? '#FFFFFF' : 'transparent', border: luma ? '1px solid #E5E7EB' : `1.5px solid ${T.border}`, borderRadius: luma ? 16 : 12, boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', fontSize: 14, fontWeight: 800, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}
                       >
-                        🔗 Copiar enlace secreto
+                        {t("eventos_copiar_enlace_secreto", "🔗 Copiar enlace secreto")}
                       </button>
                     )}
-                    <div style={{ margin: '0 0 8px 0', fontSize: 12, color: T.sub, textAlign: 'center' }}>🔒 Evento privado · solo visible con el enlace</div>
+                    <div style={{ margin: '0 0 8px 0', fontSize: 12, color: T.sub, textAlign: 'center' }}>{t("eventos_privado_solo_enlace", "🔒 Evento privado · solo visible con el enlace")}</div>
                   </>
                 ) : (
                   /* --- Datos del evento: en los pasados ya no se muestran (fecha, lugar y precio vencidos) --- */
@@ -408,8 +410,8 @@ export default function EventDetailModal() {
                 {/* --- MÚSICA DEL ARTISTA (adelantos de iTunes; si no hay canciones no se muestra nada) --- */}
                 {musicQuery && musicTracks && musicTracks.length > 0 && (
                   <div style={{ margin: '0 0 24px 0', background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, boxShadow: T.shadow }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>Música del artista</div>
-                    <div style={{ fontSize: 13, color: T.sub, marginBottom: 10 }}>Escucha un adelanto de sus canciones sin salir de aquí.</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>{t("eventos_musica_artista", "Música del artista")}</div>
+                    <div style={{ fontSize: 13, color: T.sub, marginBottom: 10 }}>{t("eventos_musica_desc", "Escucha un adelanto de sus canciones sin salir de aquí.")}</div>
                     {musicTracks.map((track, i) => {
                       const playing = playingTrackId === track.id;
                       return (
@@ -423,7 +425,7 @@ export default function EventDetailModal() {
                         </div>
                       );
                     })}
-                    <a href={`https://music.apple.com/mx/search?term=${encodeURIComponent(musicQuery)}`} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: 10, fontSize: 13, fontWeight: 700, color: T.sub, textAlign: 'center', textDecoration: 'none' }}>Ver más en Apple Music ↗</a>
+                    <a href={`https://music.apple.com/mx/search?term=${encodeURIComponent(musicQuery)}`} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: 10, fontSize: 13, fontWeight: 700, color: T.sub, textAlign: 'center', textDecoration: 'none' }}>{t("eventos_ver_mas_apple_music", "Ver más en Apple Music ↗")}</a>
                   </div>
                 )}
 
@@ -449,9 +451,9 @@ export default function EventDetailModal() {
                       </div>
                     )}
                     <div style={{ flex: 1, textAlign: "left" }}>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>Ofrecido por {associatedBiz.name}</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>{t("eventos_ofrecido_por", "Ofrecido por")} {associatedBiz.name}</div>
                       <div style={{ fontSize: 13, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>
-                        Ver perfil del negocio <Icon name="chevron_right" size={14} color={T.sub} />
+                        {t("eventos_ver_perfil_negocio", "Ver perfil del negocio")} <Icon name="chevron_right" size={14} color={T.sub} />
                       </div>
                     </div>
                   </div>
@@ -462,7 +464,7 @@ export default function EventDetailModal() {
                 {/* --- MÁS EVENTOS (abajo de todo, como "Nearby events") --- */}
                 {!isPast && upcoming.length > 0 && (
                   <div style={{ margin: '0 -16px 8px' }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12, padding: '0 16px' }}>Más eventos{cityName ? ` en ${cityName}` : ''}</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12, padding: '0 16px' }}>{t("eventos_mas_eventos", "Más eventos")}{cityName ? <> {t("eventos_en", "en")} {cityName}</> : ''}</div>
                     <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 16px 8px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
                       {upcoming.map(u => {
                         const thumb = u.img_url || u.img;
@@ -477,7 +479,7 @@ export default function EventDetailModal() {
                             )}
                             <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                               <div style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{u.title}</div>
-                              <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{formatEventCardDate(u, { today: todayLocal, lang: 'es' })}</div>
+                              <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{formatEventCardDate(u, { today: todayLocal, lang })}</div>
                               <div style={{ fontSize: 13, color: T.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.venue_name || cityName || ''}</div>
                             </div>
                           </div>
@@ -485,7 +487,7 @@ export default function EventDetailModal() {
                       })}
                     </div>
                     <div style={{ padding: '0 16px', marginTop: 4 }}>
-                      <button onClick={exploreEvents} className="press" style={{ width: '100%', minHeight: 48, background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, cursor: 'pointer', fontFamily: 'inherit' }}>Ver todos los eventos</button>
+                      <button onClick={exploreEvents} className="press" style={{ width: '100%', minHeight: 48, background: T.green, color: dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, cursor: 'pointer', fontFamily: 'inherit' }}>{t("eventos_ver_todos", "Ver todos los eventos")}</button>
                     </div>
                   </div>
                 )}

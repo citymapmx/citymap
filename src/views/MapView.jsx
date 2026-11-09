@@ -14,7 +14,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { useTranslation } from "../hooks/useTranslation.js";
 
 export default function MapView() {
-  const { t, lang } = useTranslation();
+  const { t } = useTranslation();
   const ctx = useAppContext();
   
   const dark = useUIStore(s => s.dark);
@@ -235,9 +235,9 @@ export default function MapView() {
                     const tod = new Date();
                     tod.setHours(0,0,0,0);
                     const diff = Math.ceil((evD - tod) / (1000 * 60 * 60 * 24));
-                    if (diff === 0) countdownStr = "Es hoy 🎉";
-                    else if (diff === 1) countdownStr = "Mañana";
-                    else if (diff > 1) countdownStr = `Faltan ${diff} días`;
+                    if (diff === 0) countdownStr = t("mapa_es_hoy", "Es hoy 🎉");
+                    else if (diff === 1) countdownStr = t("mapa_manana", "Mañana");
+                    else if (diff > 1) countdownStr = t("mapa_faltan_dias", `Faltan ${diff} días`, {diff});
                   }
                   return countdownStr ? (
                     <div style={{ position: "absolute", bottom: 88, left: "50%", transform: "translateX(-50%)", zIndex: 5, background: "#111111", color: "#fff", padding: "4px 10px", borderRadius: 10, fontSize: 9, fontWeight: 800, textTransform: "uppercase", lineHeight: 1.2, letterSpacing: 0.5, boxShadow: "0 2px 8px rgba(0, 0, 0, 0.5)" }}>
@@ -249,7 +249,7 @@ export default function MapView() {
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: 16, left: 12, right: 12, zIndex: 2, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                   <div style={{ fontFamily: FONT_BIZ, fontWeight: 900, fontSize: 16, color: "#fff", textShadow: "0 2px 8px rgba(0,0,0,0.8)", lineHeight: 1.1 }}>{mapPin.title}</div>
-                  <div style={{ display: "inline-block", background: "#FCD34D", color: "#000", padding: "3px 12px", borderRadius: 8, fontSize: 10, fontWeight: 800, lineHeight: 1.2 }}>Ver detalles</div>
+                  <div style={{ display: "inline-block", background: "#FCD34D", color: "#000", padding: "3px 12px", borderRadius: 8, fontSize: 10, fontWeight: 800, lineHeight: 1.2 }}>{t("ver_detalles", "Ver detalles")}</div>
                 </div>
               </div>
             </m.div>
@@ -334,18 +334,18 @@ export default function MapView() {
                   let msg;
                   
                   if (d < 0.4) {
-                     msg = "¡Estás a unos pasos! (Caminando) 🚶";
+                     msg = t("mapa_a_pasos", "¡Estás a unos pasos! (Caminando) 🚶");
                   } else {
                      const cat = (mapPin.category || "").toLowerCase();
                      const driveMins = Math.max(2, Math.round(d * 3.5));
                      if (hour < 11 && (cat.includes("cafe") || cat.includes("desayuno"))) {
-                         msg = `Perfecto para desayunar • A ${driveMins} min ☕`;
+                         msg = t("mapa_para_desayunar", `Perfecto para desayunar • A ${driveMins} min ☕`, {driveMins});
                      } else if (hour >= 13 && hour <= 17 && (cat.includes("restaurante") || cat.includes("comida") || cat.includes("mariscos") || cat.includes("taco"))) {
-                         msg = `Excelente para comer ahora • A ${driveMins} min 🍽️`;
+                         msg = t("mapa_para_comer", `Excelente para comer ahora • A ${driveMins} min 🍽️`, {driveMins});
                      } else if (hour >= 20 && (cat.includes("bar") || cat.includes("cerveza") || cat.includes("antro") || cat.includes("cena"))) {
-                         msg = `Gran ambiente nocturno • A ${driveMins} min 🍻`;
+                         msg = t("mapa_nocturno", `Gran ambiente nocturno • A ${driveMins} min 🍻`, {driveMins});
                      } else {
-                         msg = `Estás a ${d < 1 ? Math.round(d*1000) + 'm' : d.toFixed(1) + 'km'} (${driveMins} min en auto) 🚗`;
+                         msg = t("mapa_a_distancia", `Estás a ${d < 1 ? Math.round(d*1000) + 'm' : d.toFixed(1) + 'km'} (${driveMins} min en auto) 🚗`, {distance: d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(1) + 'km', driveMins});
                      }
                   }
                   
@@ -372,8 +372,8 @@ export default function MapView() {
                 <div style={{ marginBottom: 20 }}>
                   {/* Title row */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <span style={{ fontFamily: "var(--heading)", fontSize: 20, color: T.text, fontWeight: 800 }}>{activeCat === "explorar" || activeCat === "todas" ? (lang === "en" ? "Closest to you" : "Lo más cerca de ti") : `${t(cats.find(c => c.id === activeCat)?.label || "Lugares", cats.find(c => c.id === activeCat)?.label || (lang === "en" ? "Places" : "Lugares"))} ${lang === "en" ? "near you" : "cerca de ti"}`}</span>
-                    {userCoords && filteredNearby.length > 0 && <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>{filteredNearby.length} {lang === 'en' ? 'places' : 'lugares'}</span>}
+                    <span style={{ fontFamily: "var(--heading)", fontSize: 20, color: T.text, fontWeight: 800 }}>{activeCat === "explorar" || activeCat === "todas" ? t("mapa_lo_mas_cerca", "Lo más cerca de ti") : `${t(cats.find(c => c.id === activeCat)?.label || "mapa_lugares", cats.find(c => c.id === activeCat)?.label || "Lugares")} ${t("cerca_de_ti_suffix", "cerca de ti")}`}</span>
+                    {userCoords && filteredNearby.length > 0 && <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>{filteredNearby.length} {t("lugares", "lugares")}</span>}
                   </div>
 
                   {/* Filter pills */}

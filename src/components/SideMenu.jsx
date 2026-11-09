@@ -55,7 +55,7 @@ export default function SideMenu({ isOpen, onClose, T, dark, navigate, routerNav
           >
             <div style={{ padding: '24px 20px', borderBottom: `1px solid ${dark ? T.border : '#F1F5F9'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
               <img src="/citymap.mx.png" alt="CityMap" width={133} height={40} style={{ height: 40, width: 133, filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
-              <button aria-label="Cerrar menú" onClick={onClose} style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: T.text }}>
+              <button aria-label={t("menu_cerrar_menu", "Cerrar menú")} onClick={onClose} style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: T.text }}>
                 <Icon name="x" size={24} color={T.text} />
               </button>
             </div>
@@ -71,9 +71,9 @@ export default function SideMenu({ isOpen, onClose, T, dark, navigate, routerNav
               <MenuItem icon="home" label={t("inicio", "Inicio")} onClick={() => { if (navigate) navigate('home'); else routerNavigate('/'); onClose(); }} T={T} dark={dark} />
               <MenuItem icon="map" label={t("explorar_mapa", "Explorar Mapa")} onClick={() => { routerNavigate('/mapa'); onClose(); }} T={T} dark={dark} />
               <MenuItem icon="calendar" label={t("eventos", "Eventos")} onClick={() => { if (navigate) navigate('events'); else routerNavigate('/eventos'); onClose(); }} T={T} dark={dark} />
-              <MenuItem icon="bookmark" label={t("revista", "Revista")} onClick={() => { routerNavigate('/mis-planes'); onClose(); }} T={T} dark={dark} />
+              <MenuItem icon="bookmark" label={t("menu_revista", "Revista")} onClick={() => { routerNavigate('/mis-planes'); onClose(); }} T={T} dark={dark} />
               <MenuItem icon="heart" label={t("mis_favoritos", "Mis Favoritos")} onClick={() => { if (navigate) navigate('favs'); else routerNavigate('/favoritos'); onClose(); }} T={T} dark={dark} />
-              <MenuItem icon="gift" label={t("recompensas", "Recompensas")} onClick={() => { routerNavigate('/wallet'); onClose(); }} T={T} dark={dark} />
+              <MenuItem icon="gift" label={t("menu_recompensas", "Recompensas")} onClick={() => { routerNavigate('/wallet'); onClose(); }} T={T} dark={dark} />
               
               <ThemeToggle showLabel />
 
@@ -92,7 +92,7 @@ export default function SideMenu({ isOpen, onClose, T, dark, navigate, routerNav
               )}
 
               <div style={{ height: 16 }} />
-              <div style={{ padding: '0 20px', fontSize: 12, fontWeight: 700, color: dark ? T.sub : '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{t("legal", "Legal")}</div>
+              <div style={{ padding: '0 20px', fontSize: 12, fontWeight: 700, color: dark ? T.sub : '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{t("menu_legal", "Legal")}</div>
               <MenuItem icon="info" label={t("acerca_de", "Acerca de")} onClick={() => { routerNavigate('/about'); onClose(); }} T={T} dark={dark} />
               <MenuItem icon="shield" label={t("privacidad", "Privacidad")} onClick={() => { routerNavigate('/privacy'); onClose(); }} T={T} dark={dark} />
               <MenuItem icon="file-text" label={t("terminos", "Términos")} onClick={() => { routerNavigate('/terms'); onClose(); }} T={T} dark={dark} />

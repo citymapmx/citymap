@@ -22,7 +22,8 @@ describe('bottom navigation and menus', () => {
   const nav = read('../components/BottomNav.jsx');
 
   it('lists Inicio, Revista, Mapa, Eventos, Mi Perfil in order', () => {
-    const labels = [...nav.matchAll(/label: "([^"]+)"/g)].map(m => m[1]);
+    // Las etiquetas viven en los fallbacks de t() (fase 1 i18n).
+    const labels = [...nav.matchAll(/label: t\("[^"]+", "([^"]+)"\)/g)].map(m => m[1]);
     expect(labels).toEqual(['Inicio', 'Revista', 'Mapa', 'Eventos', 'Mi Perfil']);
   });
 

@@ -63,7 +63,7 @@ export default function AccountView({
 
   const formatPrivateDate = (ev) => {
     if (!ev?.date) return "";
-    try { return new Date(ev.date + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }); } catch { return ev.date; }
+    try { return new Date(ev.date + "T00:00:00").toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', { day: "numeric", month: "short", year: "numeric" }); } catch { return ev.date; }
   };
 
   const startEditProfile = () => {
@@ -97,11 +97,11 @@ export default function AccountView({
     {
       title: t("cuenta", "Cuenta"),
       items: [
-        { label: dark ? "Modo oscuro activado" : "Modo oscuro", icon: dark ? "moon" : "sun", act: "toggle_dark" },
+        { label: t(dark ? "cuenta_modo_oscuro_on" : "cuenta_modo_oscuro", dark ? "Modo oscuro activado" : "Modo oscuro"), icon: dark ? "moon" : "sun", act: "toggle_dark" },
         { label: t("mis_favoritos", "Mis Favoritos"), icon: "heart", act: "favs" },
         { label: t("editar_perfil", "Editar perfil"), icon: "user", act: "edit_profile" },
         { label: t("notificaciones", "Notificaciones"), icon: "bell", act: "user_notifs" },
-        ...(isAdmin ? [{ label: "Notificaciones de Admin", icon: "shield", act: "admin_notifs" }] : [])
+        ...(isAdmin ? [{ label: t("cuenta_notif_admin", "Notificaciones de Admin"), icon: "shield", act: "admin_notifs" }] : [])
       ]
     },
     {
@@ -114,8 +114,8 @@ export default function AccountView({
           if (b.plan && b.plan !== "free" && b.plan !== "gratis") {
             items.push(
               { label: t("reservaciones", "Reservaciones"), icon: "calendar", act: `owner_res_${b.id}` },
-              { label: "Estadísticas", icon: "trending", act: `owner_stats_${b.id}` },
-              { label: "Tarjetas de Lealtad (Wallet)", icon: "award", act: `owner_loyalty_${b.id}` },
+              { label: t("cuenta_estadisticas", "Estadísticas"), icon: "trending", act: `owner_stats_${b.id}` },
+              { label: t("cuenta_tarjetas_lealtad", "Tarjetas de Lealtad (Wallet)"), icon: "award", act: `owner_loyalty_${b.id}` },
               { label: t("descargar_qr", "Descargar Códigos QR"), icon: "grid", act: `owner_qr_${b.id}` }
             );
           }
@@ -196,7 +196,7 @@ export default function AccountView({
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 20 }}>
                 {editPhoto ? (
                   <div style={{ position: "relative" }}>
-                    <img src={editPhoto} alt="Foto de perfil seleccionada" style={{ width: 80, height: 80, borderRadius: "50%", objectFit: "cover" }} />
+                    <img src={editPhoto} alt={t("cuenta_alt_foto_seleccionada", "Foto de perfil seleccionada")} style={{ width: 80, height: 80, borderRadius: "50%", objectFit: "cover" }} />
                     <button onClick={() => setEditPhoto("")} style={{ position: "absolute", top: -4, right: -4, background: T.red, color: "#fff", border: "none", width: 22, height: 22, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="x" size={11} color="#fff" /></button>
                   </div>
                 ) : (
@@ -224,9 +224,9 @@ export default function AccountView({
                   <Icon name="grid" size={32} color={T.green} />
                 </div>
               </div>
-              <h2 style={{ textAlign: "center", fontSize: 20, fontWeight: 900, color: T.text, margin: "0 0 8px 0" }}>Mi Identificador</h2>
+              <h2 style={{ textAlign: "center", fontSize: 20, fontWeight: 900, color: T.text, margin: "0 0 8px 0" }}>{t("cuenta_mi_identificador", "Mi Identificador")}</h2>
               <p style={{ textAlign: "center", fontSize: 14, color: T.sub, margin: "0 0 24px 0", lineHeight: 1.4 }}>
-                Muestra este código al establecimiento para acumular sellos, puntos y canjear tus recompensas.
+                {t("cuenta_qr_desc", "Muestra este código al establecimiento para acumular sellos, puntos y canjear tus recompensas.")}
               </p>
               
               <div style={{ background: "#fff", padding: 16, borderRadius: 24, border: "2px solid #E2E8F0", display: "flex", justifyContent: "center", marginBottom: 24 }}>
@@ -234,7 +234,7 @@ export default function AccountView({
               </div>
 
               <button onClick={() => setShowUserQR(false)} style={{ width: "100%", padding: "14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, fontSize: 15, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>
-                Cerrar
+                {t("cuenta_cerrar", "Cerrar")}
               </button>
             </div>
           </div>
@@ -317,7 +317,7 @@ export default function AccountView({
               const initials = (user?.user_metadata?.name || profile?.name || user.email || "U").slice(0, 2).toUpperCase();
               return avatarUrl ? (
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <img src={avatarUrl} alt="Foto de perfil del usuario" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: `2px solid ${T.border}` }} />
+                  <img src={avatarUrl} alt={t("cuenta_alt_foto_usuario", "Foto de perfil del usuario")} style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: `2px solid ${T.border}` }} />
                 </div>
               ) : (
                 <div style={{ position: "relative", flexShrink: 0 }}>
@@ -436,7 +436,7 @@ export default function AccountView({
         {/* ── MIS EVENTOS PRIVADOS ── */}
         {myPrivateEvents.length > 0 && (
           <div style={{ padding: "16px 16px 0" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Mis eventos privados</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("cuenta_mis_eventos_privados", "Mis eventos privados")}</div>
             {myPrivateEvents.map(ev => (
               <div key={ev.id} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", marginBottom: 8, border: `1px solid ${T.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
@@ -444,11 +444,11 @@ export default function AccountView({
                     <div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>🔒 {ev.title}</div>
                     <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{formatPrivateDate(ev)}{ev.time ? ` · ${ev.time}` : ""}{ev.venue_name ? ` · ${ev.venue_name}` : ""}</div>
                   </div>
-                  <span style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>Privado</span>
+                  <span style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{t("cuenta_privado", "Privado")}</span>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => { navigator.clipboard?.writeText(privateEventUrl(ev)); toast$("Enlace secreto copiado"); }} style={{ flex: 1, padding: "9px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>Copiar enlace</button>
-                  <button onClick={() => setSelectedEvent(ev)} style={{ flex: 1, padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>Abrir evento</button>
+                  <button onClick={() => { navigator.clipboard?.writeText(privateEventUrl(ev)); toast$(t("cuenta_enlace_copiado", "Enlace secreto copiado")); }} style={{ flex: 1, padding: "9px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>{t("cuenta_copiar_enlace", "Copiar enlace")}</button>
+                  <button onClick={() => setSelectedEvent(ev)} style={{ flex: 1, padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>{t("cuenta_abrir_evento", "Abrir evento")}</button>
                 </div>
               </div>
             ))}

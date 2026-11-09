@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
-
-const SLIDES = [
-  {
-    id: 1,
-    title: "Tu ciudad está llena de",
-    highlight: "cosas por descubrir.",
-    desc: "Restaurantes, negocios, eventos, experiencias y lugares para cada momento.",
-    img: "/onboarding_1.jpg"
-  }
-];
+import { useTranslation } from '../../hooks/useTranslation.js';
 
 export default function OnboardingModal({ onComplete, T }) {
   const [step] = useState(0);
+  const { t } = useTranslation();
+
+  const SLIDES = [
+    {
+      id: 1,
+      title: t("modal_onboarding_titulo", "Tu ciudad está llena de"),
+      highlight: t("modal_onboarding_destacado", "cosas por descubrir."),
+      desc: t("modal_onboarding_desc", "Restaurantes, negocios, eventos, experiencias y lugares para cada momento."),
+      img: "/onboarding_1.jpg"
+    }
+  ];
 
   const nextStep = () => {
     onComplete();
@@ -86,7 +88,7 @@ export default function OnboardingModal({ onComplete, T }) {
         background: `linear-gradient(to top, ${T.bg} 80%, transparent)`
       }}>
         <button onClick={skip} style={{ background: 'none', border: 'none', fontSize: 14, fontWeight: 500, color: T.sub, cursor: 'pointer', padding: '10px 0', opacity: 0.7 }}>
-          Omitir
+          {t("modal_omitir", "Omitir")}
         </button>
 
         {/* Dots */}
@@ -113,7 +115,7 @@ export default function OnboardingModal({ onComplete, T }) {
             color: '#fff'
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 700 }}>Comenzar</span>
+          <span style={{ fontSize: 15, fontWeight: 700 }}>{t("modal_comenzar", "Comenzar")}</span>
         </button>
       </div>
     </div>

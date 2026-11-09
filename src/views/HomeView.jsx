@@ -283,7 +283,7 @@ export default function HomeView({ isBackground }) {
 
     const showActiva = h >= 6 && h < 18;
 
-    return { listTitle, timeList, sportsList, showActiva };
+    return { listTitle, slotKey, timeList, sportsList, showActiva };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapPins, timeBasedBiz, activeCity]);
 
@@ -399,7 +399,7 @@ export default function HomeView({ isBackground }) {
             
             const EventosBlock = () => matchingEvents.length > 0 ? (
               <div style={{ marginBottom: 10, marginTop: isEventQuery ? 0 : 20 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: T.text, margin: "0 0 10px 0" }}>Eventos ({matchingEvents.length})</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: T.text, margin: "0 0 10px 0" }}>{t("eventos", "Eventos")} ({matchingEvents.length})</h3>
                 <div style={{ display: "flex", overflowX: "auto", gap: 12, paddingBottom: 10, margin: "0 -20px", padding: "0 20px", scrollbarWidth: "none" }}>
                   {matchingEvents.map(ev => {
                     const posterUrl = ev.img_url || ev.img || ev.poster_url;
@@ -456,14 +456,14 @@ export default function HomeView({ isBackground }) {
                     return (
                       <div style={{ padding: "10px 0 30px" }}>
                         <div style={{ fontSize: 15, color: T.sub, marginBottom: 20, textAlign: "center", padding: "0 10px", lineHeight: 1.4 }}>
-                          No encontramos resultados para <strong style={{ color: T.text }}>"{search}"</strong>. <br/>Explora la ciudad:
+                          {t("home_no_resultados_para", "No encontramos resultados para")} <strong style={{ color: T.text }}>"{search}"</strong>. <br/>{t("home_explora_ciudad", "Explora la ciudad:")}
                         </div>
                         
                         <SearchRecoveryLinks activeCity={activeCity} cities={cities} T={T} dark={dark} onSelect={category => { setSearch(''); setActiveCat(category); }} />
 
                         <div style={{ textAlign: "center", padding: "20px", background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)", borderRadius: 20, border: `1px dashed ${T.border}` }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>¿Conoces este lugar?</div>
-                          <div style={{ fontSize: 13, color: T.sub, marginBottom: 16, opacity: 0.8 }}>Ayúdanos a agregarlo al mapa de la ciudad.</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>{t("home_conoces_lugar", "¿Conoces este lugar?")}</div>
+                          <div style={{ fontSize: 13, color: T.sub, marginBottom: 16, opacity: 0.8 }}>{t("home_ayudanos_agregarlo", "Ayúdanos a agregarlo al mapa de la ciudad.")}</div>
                           <button 
                             className="press" 
                             onClick={() => { 
@@ -475,7 +475,7 @@ export default function HomeView({ isBackground }) {
                             }} 
                             style={{ background: "#0ea5e9", color: "#fff", border: "none", borderRadius: 20, padding: "12px 24px", fontSize: 14, fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 12px rgba(14, 165, 233, 0.3)", display: "inline-block", fontFamily: "inherit" }}
                           >
-                            + Sugerir Lugar
+                            + {t("sugerir_lugar", "Sugerir lugar")}
                           </button>
                         </div>
                       </div>
@@ -494,7 +494,7 @@ export default function HomeView({ isBackground }) {
           )}
 
           {/* ── EVENTOS ── */}
-          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} handleEventTap={handleEventTap} T={T} city={city} />}
+          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} lang={lang} handleEventTap={handleEventTap} T={T} city={city} />}
 
           {/* ── LUGAR DEL DÍA (Recomendación) ── */}
           {/* Esqueleto del spotlight mientras cargan los negocios: misma altura (240 px)
@@ -542,7 +542,7 @@ export default function HomeView({ isBackground }) {
 
                 {/* Top Badge */}
                 <div style={{ position: "absolute", top: 12, left: 12, background: "rgba(255,255,255,0.25)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", padding: "4px 10px", borderRadius: 8, display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}>
-                   <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: "0.5px" }}>✨ Recomendación del día</span>
+                   <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("home_recomendacion_dia", "✨ Recomendación del día")}</span>
                 </div>
 
                 {/* Bottom Text Content */}
@@ -573,10 +573,13 @@ export default function HomeView({ isBackground }) {
           {/* ── EXPLORAR SECTION ── */}
           {!search && activeCat === "explorar" && <div id="explorar-section">
             {(() => {
-              const { listTitle, timeList } = timeBasedListsMemo;
+              const { slotKey, timeList } = timeBasedListsMemo;
               if (timeList.length === 0) return (pinsLoading || !dbReady) ? <TimeListSk dark={dark} /> : null;
+              // El título viene de lib/timeBasedLists.js (fuera de esta fase):
+              // se traduce aquí por su clave de franja horaria.
+              const timeTitle = slotKey === "night" ? t("home_para_cerrar_dia", "Para cerrar el día") : slotKey === "lunch" ? t("home_hora_comer", "Hora de comer") : t("home_para_iniciar_dia", "Para iniciar el día");
               return (
-                <SquareCarousel title={listTitle} list={timeList} handleCardTap={handleCardTap} getThumbUrl={getThumbUrl} CAT_EMOJI={CAT_EMOJI} T={T} FONT_BIZ={FONT_BIZ} />
+                <SquareCarousel title={timeTitle} list={timeList} handleCardTap={handleCardTap} getThumbUrl={getThumbUrl} CAT_EMOJI={CAT_EMOJI} T={T} FONT_BIZ={FONT_BIZ} />
               );
             })()}
 
@@ -596,7 +599,7 @@ export default function HomeView({ isBackground }) {
           {!search && activeCat !== "explorar" && <div id="all-biz-section" style={{ padding: "6px 20px 0" }}>
             <div style={{ textAlign: "center", marginBottom: availableSubcats.length > 0 ? 12 : 16 }}>
               {!dbReady ? <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Sk w="60%" h={26} r={6} dark={dark} /></div> : <h1 style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 26, color: T.text, margin: "0 0 6px 0", padding: 0, textAlign: "center" }}>{t(cats.find(c => c.id === activeCat)?.label || activeCat)} {lang === 'en' ? 'in' : 'en'} {(city || "").split(',')[0]}</h1>}
-              {!dbReady ? <div style={{ display: "flex", justifyContent: "center" }}><Sk w="80%" h={14} r={4} dark={dark} /></div> : <h2 style={{ fontSize: 13, color: T.sub, fontWeight: 500, margin: 0, lineHeight: 1.4, textAlign: "center" }}>{getCategoryDescription(activeCat, cats.find(c => c.id === activeCat)?.label, city)}</h2>}
+              {!dbReady ? <div style={{ display: "flex", justifyContent: "center" }}><Sk w="80%" h={14} r={4} dark={dark} /></div> : <h2 style={{ fontSize: 13, color: T.sub, fontWeight: 500, margin: 0, lineHeight: 1.4, textAlign: "center" }}>{getCategoryDesc(activeCat, cats.find(c => c.id === activeCat)?.label, city)}</h2>}
             </div>
 
             {/* ── BARRA DE SUBCATEGORÍAS ── */}
@@ -637,7 +640,7 @@ export default function HomeView({ isBackground }) {
                     transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
                   }}
                 >
-                  Todos
+                  {t("home_todos", "Todos")}
                 </button>
                 {availableSubcats.map(sub => {
                   const isSelected = selectedSubcat.toLowerCase() === sub.toLowerCase();
@@ -674,8 +677,8 @@ export default function HomeView({ isBackground }) {
             )}
 
             <div style={{ flexDirection: "column", gap: 14 }}>
-              {(!dbReady || (!businessListReady && !businessListError)) && <div role="status" aria-label="Cargando negocios de esta categoría">{[1, 2, 3].map(i => <CardSk key={i} dark={dark} />)}</div>}
-              {dbReady && businessListError && <div role="status" style={{ padding: 24, textAlign: "center", color: T.sub }}><p>No se pudieron cargar los negocios.</p><button type="button" onClick={() => loadPaginatedBiz()} disabled={loadingMore}>{loadingMore ? "Cargando…" : "Reintentar"}</button></div>}
+              {(!dbReady || (!businessListReady && !businessListError)) && <div role="status" aria-label={t("home_cargando_negocios_cat", "Cargando negocios de esta categoría")}>{[1, 2, 3].map(i => <CardSk key={i} dark={dark} />)}</div>}
+              {dbReady && businessListError && <div role="status" style={{ padding: 24, textAlign: "center", color: T.sub }}><p>{t("home_error_cargar_negocios", "No se pudieron cargar los negocios.")}</p><button type="button" onClick={() => loadPaginatedBiz()} disabled={loadingMore}>{loadingMore ? t("cargando", "Cargando…") : t("home_reintentar", "Reintentar")}</button></div>}
               {dbReady && businessListReady && finalDisplayList.length > 0 && (
                 <BusinessListTransition transitionKey={JSON.stringify([activeCity, activeCat, selectedSubcat])}>
                 <Virtuoso
@@ -712,7 +715,7 @@ export default function HomeView({ isBackground }) {
                   <Icon name="search" size={36} color={T.border} />
                   <p style={{ fontWeight: 700, color: T.text, marginTop: 14, marginBottom: 6 }}>
                     {selectedSubcat !== "todas" 
-                      ? `Sin negocios en "${selectedSubcat}"` 
+                      ? <>{t("home_sin_negocios_en", "Sin negocios en")} "{selectedSubcat}"</>
                       : t("sin_negocios_cat", "Sin negocios en esta categoría")}
                   </p>
                   {selectedSubcat !== "todas" ? (
@@ -730,7 +733,7 @@ export default function HomeView({ isBackground }) {
                         cursor: "pointer" 
                       }}
                     >
-                      Ver todas las opciones
+                      {t("home_ver_todas_opciones", "Ver todas las opciones")}
                     </button>
                   ) : (
                     <p style={{ fontSize: 14 }}>{t("prueba_otra_cat", "Prueba otra categoría")}</p>
@@ -770,7 +773,7 @@ export default function HomeView({ isBackground }) {
                 const b = biz.find(x => x.id === c.biz_id); return <div key={c.id} style={{ minWidth: 280, flexShrink: 0 }}>
                   <CouponCard 
                     coupon={c} 
-                    bizName={b?.name || "Oferta Especial"} 
+                    bizName={b?.name || t("home_oferta_especial", "Oferta Especial")} 
                     dark={dark} 
                     T={T} 
                     onClick={() => { const cleanSlug = createSlug(b?.name || b?.id || ""); navigate(`/${b?.city_slug || activeCity}/${cleanSlug}`); }} 
@@ -810,7 +813,7 @@ export default function HomeView({ isBackground }) {
                   cursor: "pointer"
                 }}
               >
-                <span style={{ fontSize: 18 }}>✨</span> Planea tu noche
+                <span style={{ fontSize: 18 }}>✨</span> {t("home_planea_noche", "Planea tu noche")}
               </button>
             </div>
           )}

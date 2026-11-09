@@ -1,22 +1,24 @@
 import { getThumbUrl } from '../../lib/utils.js';
+import { useTranslation } from '../../hooks/useTranslation.js';
 
 export default function GalleryLayout({ photos, T, setShowGallery, bizName }) {
+  const { t } = useTranslation();
   const items = (photos || []).map((photo, index) => ({
     photo, index, url: typeof photo === 'string' ? photo : photo?.url,
   })).filter(item => item.url);
   if (!items.length) return null;
 
   return (
-    <section aria-label={`Galería de fotos de ${bizName || 'este lugar'}`} style={{ padding: '20px 20px 0' }}>
+    <section aria-label={t('detalle_galeria_de', 'Galería de fotos de {lugar}').replace('{lugar}', bizName || t('detalle_este_lugar', 'este lugar'))} style={{ padding: '20px 20px 0' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: T.text, letterSpacing: '-0.5px' }}>Galería de fotos</h2>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: T.text, letterSpacing: '-0.5px' }}>{t('detalle_galeria_fotos', 'Galería de fotos')}</h2>
         <button
           type="button"
-          aria-label={`Ver todas las fotos (${items.length})`}
+          aria-label={t('detalle_ver_todas_fotos', 'Ver todas las fotos ({n})').replace('{n}', items.length)}
           onClick={() => setShowGallery(items[0].index)}
           style={{ border: 0, background: 'transparent', padding: '8px 0 8px 12px', color: T.sub || T.text, fontFamily: 'inherit', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}
         >
-          Ver todas <span aria-hidden="true">›</span>
+          {t('detalle_ver_todas', 'Ver todas')} <span aria-hidden="true">›</span>
         </button>
       </div>
       <style>{`
@@ -36,12 +38,12 @@ export default function GalleryLayout({ photos, T, setShowGallery, bizName }) {
             key={`${url}-${index}`}
             type="button"
             className="business-photo-button"
-            aria-label={`Abrir foto ${index + 1} de ${bizName || 'la galería'}`}
+            aria-label={t('detalle_abrir_foto', 'Abrir foto {n} de {lugar}').replace('{n}', index + 1).replace('{lugar}', bizName || t('detalle_la_galeria', 'la galería'))}
             onClick={() => setShowGallery(index)}
           >
             <img
               src={getThumbUrl(url, items.length === 1 ? 800 : 400)}
-              alt={(typeof photo === 'object' && (photo.alt || photo.label)) || `Foto ${index + 1} de ${bizName || 'este lugar'}`}
+              alt={(typeof photo === 'object' && (photo.alt || photo.label)) || t('detalle_foto_numero', 'Foto {n} de {lugar}').replace('{n}', index + 1).replace('{lugar}', bizName || t('detalle_este_lugar', 'este lugar'))}
               width={photo?.width || undefined}
               height={photo?.height || undefined}
               loading={index < 2 ? 'eager' : 'lazy'}

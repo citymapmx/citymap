@@ -1,8 +1,10 @@
 import React, { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { createSlug, getThumbUrl } from "../../lib/utils.js";
+import { useTranslation } from "../../hooks/useTranslation.js";
 
 export default memo(function TopImperdibles({ experiences, T, city }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   // Get top 5 sorted by likes
   // Seed-based random shuffle changing every 24 hours
@@ -28,12 +30,12 @@ export default memo(function TopImperdibles({ experiences, T, city }) {
 
   if (!experiences || experiences.length === 0 || top5.length === 0) return null;
 
-  const cityName = city?.name || "la ciudad";
+  const cityName = city?.name || t("home_la_ciudad", "la ciudad");
 
   return (
     <div style={{ padding: "24px 20px 10px" }}>
       <div style={{ marginBottom: 12 }}>
-        <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0 }}>Los 5 imperdibles de {cityName} 🥇</h2>
+        <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0 }}>{t("home_imperdibles_de", "Los 5 imperdibles de")} {cityName} 🥇</h2>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {top5.map((exp, index) => {

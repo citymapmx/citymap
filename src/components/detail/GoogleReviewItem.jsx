@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { useTranslation } from "../../hooks/useTranslation.js";
 import StarRow from "../ui/StarRow.jsx";
 
 const MAX_LEN = 140;
 
 export default function GoogleReviewItem({ r, isElite, dText, dSub, T, isLast }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const isLong = r.text && r.text.length > MAX_LEN;
   const displayTxt = (!expanded && isLong) ? r.text.slice(0, MAX_LEN) + "..." : r.text;
@@ -14,7 +16,7 @@ export default function GoogleReviewItem({ r, isElite, dText, dSub, T, isLast })
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
             {r.profile_photo_url ? (
-               <img src={r.profile_photo_url} alt="Foto de perfil" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+               <img src={r.profile_photo_url} alt={t('detalle_foto_perfil', 'Foto de perfil')} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
             ) : (
                <div className="text-xs" style={{ width: 32, height: 32, borderRadius: "50%", background: "#4285F4", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, flexShrink: 0 }}>{r.author_name ? r.author_name.charAt(0).toUpperCase() : "U"}</div>
             )}
@@ -31,7 +33,7 @@ export default function GoogleReviewItem({ r, isElite, dText, dSub, T, isLast })
           "{displayTxt}"
           {isLong && (
             <span onClick={() => setExpanded(!expanded)} style={{ color: T.green, fontWeight: 600, cursor: "pointer", marginLeft: 4 }}>
-              {expanded ? "Mostrar menos" : "Leer más"}
+              {expanded ? t('detalle_mostrar_menos', 'Mostrar menos') : t('detalle_leer_mas', 'Leer más')}
             </span>
           )}
         </div>
