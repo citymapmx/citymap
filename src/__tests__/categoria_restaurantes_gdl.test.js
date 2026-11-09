@@ -53,7 +53,7 @@ describe('categoría Restaurantes en Guadalajara: los 21 alcanzables', () => {
   it('la lista de categoría empieza paginada en 20 (no muestra todo de golpe)', () => {
     const app = read('../App.jsx');
     // La página inicial de la categoría es 1: los primeros 20, y el resto
-    // se revela con "Ver más" o al bajar.
+    // se revela solo con "Ver más" (sin autollenado al bajar).
     expect(app).not.toContain('Math.ceil(count / 20)');
     expect(app).toContain('setPage(1);');
   });

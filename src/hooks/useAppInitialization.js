@@ -1,6 +1,7 @@
 import { useRef, useMemo } from 'react';
 import { getIdFromSlug } from '../lib/utils.js';
 import { parseSegments } from '../lib/domain.js';
+import { CATEGORY_SLUGS } from '../lib/seoRoutes.js';
 
 export function useAppInitialization() {
   const initialView = useMemo(() => {
@@ -113,7 +114,7 @@ export function useAppInitialization() {
         if (!SYSTEM_ROUTES.includes(potentialCity)) {
           currentCity = potentialCity;
           localStorage.setItem("cg_city_slug", currentCity);
-          const validCats = ["restaurantes", "cafe", "salud", "belleza", "fitness", "compras", "tech", "ocio", "hoteles", "educacion", "antros-y-bares", "servicios", "mascotas"];
+          const validCats = CATEGORY_SLUGS;
           if (validCats.includes(segments[1])) {
             cat = segments[1].replace(/-/g, ' ');
           } else {
