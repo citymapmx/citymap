@@ -25,8 +25,75 @@ const CAT_SEO = {
   "tech":         { title: "Tecnología y Servicios Digitales en {city} — Tiendas y Reparación", desc: "Tiendas de tecnología, reparación de celulares, cómputo y servicios digitales en {city}. Encuentra lo que necesitas.", label: "Tecnología" },
   "ocio":         { title: "Entretenimiento y Ocio en {city} — Bares, Antros y Diversión", desc: "Los mejores bares, antros, centros de entretenimiento y diversión en {city}. Horarios, eventos especiales y reseñas.", label: "Entretenimiento y Ocio" },
   "hoteles":      { title: "Los Mejores Hoteles en {city} — Hospedaje y Alojamiento", desc: "Hoteles, posadas, Airbnb y hospedaje en {city}. Compara opciones, consulta precios y reserva tu estancia ideal.", label: "Hoteles y Hospedaje" },
-  "educacion":    { title: "Escuelas y Educación en {city} — Colegios, Cursos y Más", desc: "Escuelas, universidades, academias y cursos en {city}. Encuentra opciones educativas con horarios e información de contacto.", label: "Educación" }
+  "educacion":    { title: "Escuelas y Educación en {city} — Colegios, Cursos y Más", desc: "Escuelas, universidades, academias y cursos en {city}. Encuentra opciones educativas con horarios e información de contacto.", label: "Educación" },
+  "antros-y-bares": { title: "Los Mejores Antros y Bares en {city} — Vida Nocturna", desc: "Descubre los mejores antros y bares en {city}. Ambiente, horarios y reseñas para tu próxima salida nocturna.", label: "Antros y Bares" },
+  "servicios":    { title: "Servicios en {city} — Profesionales y Negocios Locales", desc: "Encuentra servicios profesionales y negocios locales en {city}. Horarios, direcciones y reseñas de clientes.", label: "Servicios" },
+  "mascotas":     { title: "Servicios para Mascotas en {city} — Veterinarias y Estéticas", desc: "Veterinarias, estéticas caninas y servicios para mascotas en {city}. Horarios, direcciones y reseñas.", label: "Mascotas" }
 };
+
+// 404 real para bots: lo que ya no existe (negocio/evento/artículo borrado)
+// no debe devolver la home con 200 — Google lo lee como "soft 404" y no
+// lo saca del índice. El middleware ya pasa los 404 de og con noindex.
+function notFoundHtml(title = "Página no encontrada") {
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>404 — ${esc(title)} | CityMap</title></head><body style="font-family:system-ui,sans-serif;text-align:center;padding:20vh 24px"><h1>404</h1><p>${esc(title)}</p><p><a href="/">Ir al inicio</a></p></body></html>`;
+}
+
+function notFoundResponse(title) {
+  return new Response(notFoundHtml(title), {
+    status: 404,
+    headers: { "Content-Type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex" },
+  });
+}
+
+// Página de categoría para bots: mismo marcado para las categorías
+// de CAT_SEO y para las subcategorías /:ciudad/c/:subcategoria.
+function renderCategoryPage({ title, desc, label, cityName, canonicalUrl, img, listing, siteName, locale }) {
+  return `<!doctype html>
+<html lang="es" prefix="og: https://ogp.me/ns#">
+<head>
+<meta charset="UTF-8"/>
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}"/>
+<link rel="canonical" href="${canonicalUrl}"/>
+
+<!-- Open Graph -->
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="${canonicalUrl}"/>
+<meta property="og:title" content="${esc(title)}"/>
+<meta property="og:description" content="${esc(desc)}"/>
+<meta property="og:image" content="${esc(img)}"/>
+<meta property="og:site_name" content="${esc(siteName)}"/>
+<meta property="og:locale" content="${esc(locale)}"/>
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="${esc(title)}"/>
+<meta name="twitter:description" content="${esc(desc)}"/>
+<meta name="twitter:image" content="${esc(img)}"/>
+</head>
+<body>
+<h1>${esc(label)} en ${esc(cityName)}</h1>
+<img src="${esc(img)}" alt="${esc(label)} en ${esc(cityName)}" style="max-width: 100%; height: auto;" />
+<p>${esc(desc)}</p>
+${listing}
+<a href="${canonicalUrl}">Ver ${esc(label)} en ${esc(siteName)}</a>
+</body>
+</html>`;
+}
+
+// ¿Existe este valor como businesses.category en alguna ciudad?
+// Distingue una subcategoría real (p. ej. "unidad deportiva") de un slug inventado.
+async function isRealCategory(value) {
+  try {
+    const query = new URLSearchParams({ select: 'category', category: `eq.${value}`, limit: '1' });
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/businesses?${query}`, {
+      headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` }
+    });
+    if (!response.ok) return false;
+    const rows = await response.json();
+    return Array.isArray(rows) && rows.length > 0;
+  } catch { return false; }
+}
 
 async function getReviews(bizId) {
   try {
@@ -69,7 +136,18 @@ async function getListing(city, category, origin, cityPath) {
   try {
     const query = new URLSearchParams({ city_slug: `eq.${city}`, status: 'eq.approved',
       select: 'id,slug,name,description,logo_url,photos', order: 'name.asc', limit: '24' });
-    if (category) query.set('category', `eq.${category}`);
+    if (category) {
+      // La base guarda la categoría con espacios y a veces con mayúscula
+      // ("antros y bares", "Servicios") mientras la ruta usa guiones en
+      // minúscula ("antros-y-bares", "servicios"): se consultan las variantes.
+      const spaced = category.replace(/-/g, ' ');
+      const variants = [...new Set([
+        category,
+        spaced,
+        spaced.charAt(0).toUpperCase() + spaced.slice(1),
+      ])];
+      query.set('category', `in.(${variants.join(',')})`);
+    }
     const response = await fetch(`${SUPABASE_URL}/rest/v1/businesses?${query}`, {
       headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` }
     });
@@ -454,38 +532,11 @@ ${schemaJson}
       const canonicalUrl = `${BASE_URL}${specificCityPath}/${esc(id)}`;
       const img = cityBgImage || `${BASE_URL}/og-image.png`;
       const listing = await getListing(city, id, BASE_URL, specificCityPath);
+      const listingHtml = listing.includes("<article")
+        ? listing
+        : listing + `<p>Aún no hay lugares de esta categoría en ${esc(cityName)}.</p>`;
       
-      const html = `<!doctype html>
-<html lang="es" prefix="og: https://ogp.me/ns#">
-<head>
-<meta charset="UTF-8"/>
-<title>${esc(title)}</title>
-<meta name="description" content="${esc(desc)}"/>
-<link rel="canonical" href="${canonicalUrl}"/>
-
-<!-- Open Graph -->
-<meta property="og:type" content="website"/>
-<meta property="og:url" content="${canonicalUrl}"/>
-<meta property="og:title" content="${esc(title)}"/>
-<meta property="og:description" content="${esc(desc)}"/>
-<meta property="og:image" content="${esc(img)}"/>
-<meta property="og:site_name" content="${esc(SITE_NAME)}"/>
-<meta property="og:locale" content="${esc(locale)}"/>
-
-<!-- Twitter Card -->
-<meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="${esc(title)}"/>
-<meta name="twitter:description" content="${esc(desc)}"/>
-<meta name="twitter:image" content="${esc(img)}"/>
-</head>
-<body>
-<h1>${esc(catInfo.label)} en ${esc(cityName)}</h1>
-<img src="${esc(img)}" alt="${esc(catInfo.label)} en ${esc(cityName)}" style="max-width: 100%; height: auto;" />
-<p>${esc(desc)}</p>
-${listing}
-<a href="${canonicalUrl}">Ver ${esc(catInfo.label)} en ${esc(SITE_NAME)}</a>
-</body>
-</html>`;
+      const html = renderCategoryPage({ title, desc, label: catInfo.label, cityName, canonicalUrl, img, listing: listingHtml, siteName: SITE_NAME, locale });
 
       return new Response(html, {
         status: 200,
@@ -496,9 +547,39 @@ ${listing}
       });
     }
 
+    // /:ciudad/c/:subcategoria (p. ej. /guadalajara/c/unidad-deportiva):
+    // la subcategoría es un valor real de businesses.category (con espacios).
+    // Si existe, se sirve su página con la lista; si no, cae al flujo de
+    // negocio y termina en 404 (no en la home con 200).
+    if (searchParams.get("subcat") === "1") {
+      const catValue = id.replace(/-/g, " ");
+      const { country_code: cityCountry, bg_image: cityBgImage } = await getCityData(city);
+      const specificCityPath = isWorld && city ? `/${cityCountry}/${city}` : `/${city || ""}`;
+      const listing = await getListing(city, catValue, BASE_URL, specificCityPath);
+      const real = listing.includes("<article") || (await isRealCategory(catValue));
+      if (real) {
+        const cityName = (city || "tu ciudad").charAt(0).toUpperCase() + (city || "tu ciudad").slice(1).replace("-", " ");
+        const label = catValue.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        const title = `${label} en ${cityName} | ${SITE_NAME}`;
+        const desc = `Descubre ${label} en ${cityName}. Horarios, ubicaciones y reseñas en ${SITE_NAME}.`;
+        const canonicalUrl = `${BASE_URL}${specificCityPath}/c/${esc(id)}`;
+        const img = cityBgImage || `${BASE_URL}/og-image.png`;
+        const listingHtml = listing.includes("<article")
+          ? listing
+          : listing + `<p>Aún no hay lugares de esta categoría en ${esc(cityName)}.</p>`;
+        return new Response(renderCategoryPage({ title, desc, label, cityName, canonicalUrl, img, listing: listingHtml, siteName: SITE_NAME, locale }), {
+          status: 200,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        });
+      }
+    }
+
     const biz = await getBiz(id, city);
     if (!biz) {
-      return new Response(null, { status: 302, headers: { Location: BASE_URL } });
+      return notFoundResponse("Negocio no encontrado");
     }
     bizData = biz;
     const isMenu = searchParams.get("menu") === "true";
@@ -537,7 +618,7 @@ ${listing}
   } else if (evId) {
     const ev = await getEv(evId, city);
     if (!ev) {
-      return new Response(null, { status: 302, headers: { Location: BASE_URL } });
+      return notFoundResponse("Evento no encontrado");
     }
     evData = ev;
     name = esc(ev.title);
@@ -555,7 +636,7 @@ ${listing}
   } else if (expId) {
     const exp = await getExp(expId, city);
     if (!exp) {
-      return new Response(null, { status: 302, headers: { Location: BASE_URL } });
+      return notFoundResponse("Artículo no encontrado");
     }
     expData = exp;
     name = esc(exp.title);
