@@ -17,6 +17,7 @@ import { getEventPrice, getEventPriceAmount, getEventMusicQuery, buildItunesSear
 import { SPRING_UI } from '../../lib/spring.js';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTranslation } from '../../hooks/useTranslation.js';
+import { localizedTitle, localizedDescription } from '../../lib/i18nContent.js';
 
 // Rediseño claro estilo Luma (solo eventos privados vigentes en modo claro;
 // el modo oscuro queda como estaba). El tinte del fondo vive en UNA sola
@@ -93,9 +94,9 @@ export default function EventDetailModal() {
     const ev = selectedEvent;
     if (!ev) return;
     const evUrl = `${window.location.origin}/evento/${createSlug(ev.title)}_${ev.id}`;
-    if (navigator.share) navigator.share({ title: ev.title, text: t("eventos_compartir_texto", "Échale un vistazo a este evento:"), url: evUrl });
+    if (navigator.share) navigator.share({ title: localizedTitle(ev, lang), text: t("eventos_compartir_texto", "Échale un vistazo a este evento:"), url: evUrl });
     else { navigator.clipboard?.writeText(evUrl); toast$(t("eventos_enlace_copiado", "Enlace copiado")); }
-  }, [selectedEvent, toast$, t]);
+  }, [selectedEvent, toast$, t, lang]);
   const dialog = useRef(null);
   const closeEvent = useCallback(() => {
     setSelectedEvent(null);
@@ -137,7 +138,7 @@ export default function EventDetailModal() {
   useEffect(() => {
     if (!selectedEvent?.id) { setUpcoming([]); return; }
     let cancelled = false;
-    sb.get('events', '?select=id,title,slug,date,end_date,time,venue_name,venue_address,city_slug,img_url,img,status,active&status=eq.approved&order=date.asc&limit=40')
+    sb.get('events', '?select=id,title,title_en,description_en,slug,date,end_date,time,venue_name,venue_address,city_slug,img_url,img,status,active&status=eq.approved&order=date.asc&limit=40')
       .then(rows => { if (!cancelled) setUpcoming(upcomingEvents(Array.isArray(rows) ? rows : [], selectedEvent, todayLocal, 4)); })
       .catch(() => { if (!cancelled) setUpcoming([]); });
     return () => { cancelled = true; };
@@ -189,6 +190,14 @@ export default function EventDetailModal() {
     <AnimatePresence>
       {selectedEvent && (() => {
         const ev = selectedEvent;
+        // Título/descripción localizados (fase 2): en EN se muestra el
+        // campo `_en` cuando existe; si no, el español. El slug de la
+        // URL y la búsqueda de música siguen con el título original.
+        const displayTitle = localizedTitle(ev, lang);
+        const displayDescription = localizedDescription(ev, lang);
+        // EventInformation muestra la descripción: recibe la copia con
+        // los campos ya localizados (el resto de campos no cambia).
+        const evLocalized = { ...ev, title: displayTitle, description: displayDescription };
         const associatedBiz = ev.biz_id ? mapPins.find(b => b.id === ev.biz_id) : null;
         const imgSrc = ev.img_url || ev.img;
         const isHost = Boolean(user?.id && ev.user_id && user.id === ev.user_id);
@@ -211,7 +220,7 @@ export default function EventDetailModal() {
         return (
           <m.div
             key="event-modal"
-            ref={dialog} role="dialog" aria-modal="true" aria-label={ev.title || "Evento"} tabIndex={-1}
+            ref={dialog} role="dialog" aria-modal="true" aria-label={displayTitle || "Evento"} tabIndex={-1}
             initial={reduceMotion ? false : { opacity: 0, y: 28, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 28, scale: 0.985 }}
@@ -233,7 +242,7 @@ export default function EventDetailModal() {
               ) : (
               <div style={{ position: "relative", width: "100%", maxHeight: heroLuma ? 280 : 200, background: "transparent", overflow: "hidden" }}>
                 {imgSrc ? (
-                  <EventPoster key={imgSrc} src={imgSrc} alt={ev.title || ""} dark={dark} />
+                  <EventPoster key={imgSrc} src={imgSrc} alt={displayTitle || ""} dark={dark} />
                 ) : (
                   <div style={{ width: "100%", height: "100%", minHeight: heroLuma ? 200 : 120, display: "flex", alignItems: "center", justifyContent: "center", background: dark ? "#232326" : "#111", borderBottom: dark ? "1px solid #3F3F46" : "none", paddingTop: heroLuma ? 44 : 0 }}>
                     <Icon name="calendar" size={44} color={dark ? "#71717A" : "rgba(255,255,255,0.55)"} />
@@ -252,7 +261,7 @@ export default function EventDetailModal() {
                           {heroDate.dia} {heroDate.num} {heroDate.mes} {heroDate.year}
                         </span>
                       )}
-                      <div style={{ fontFamily: FONT_BIZ, fontSize: 30, fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.5px", color: imgSrc ? "#FFFFFF" : T.text, textShadow: imgSrc ? "0 2px 12px rgba(0,0,0,0.35)" : "none" }}>{ev.title}</div>
+                      <div style={{ fontFamily: FONT_BIZ, fontSize: 30, fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.5px", color: imgSrc ? "#FFFFFF" : T.text, textShadow: imgSrc ? "0 2px 12px rgba(0,0,0,0.35)" : "none" }}>{displayTitle}</div>
                       {ev.venue_name && (
                         <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6, color: imgSrc ? "rgba(255,255,255,0.92)" : T.sub, textShadow: imgSrc ? "0 1px 8px rgba(0,0,0,0.45)" : "none" }}>{ev.venue_name}</div>
                       )}
@@ -302,7 +311,7 @@ export default function EventDetailModal() {
 
                 {/* En el rediseño Luma el título ya va sobre la foto del héroe. */}
                 {!heroLuma && (
-                  <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: showTopRow ? 8 : 12, textAlign: "left", letterSpacing: "-0.5px" }}>{ev.title}</h1>
+                  <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: showTopRow ? 8 : 12, textAlign: "left", letterSpacing: "-0.5px" }}>{displayTitle}</h1>
                 )}
 
                 {/* Fila superior: categoría en mayúsculas y precio, sin botón. */}
@@ -346,7 +355,7 @@ export default function EventDetailModal() {
                             </div>
                           )}
                           <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.title}</div>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localizedTitle(u, lang)}</div>
                             <div style={{ fontSize: 13, color: T.sub }}>{formatEventCardDate(u, { today: todayLocal, lang })}{u.venue_name ? ` · ${u.venue_name}` : ''}</div>
                           </div>
                           <Icon name="chevron_right" size={16} color={T.sub} />
@@ -389,7 +398,7 @@ export default function EventDetailModal() {
                     </div>
 
                     {privateTab === 'chat' && <PrivateEventChat event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setChatCount} />}
-                    {privateTab === 'detalles' && <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={false} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />}
+                    {privateTab === 'detalles' && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={false} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />}
                     {privateTab === 'invitados' && <PrivateEventRsvp event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setGuestCount} />}
 
                     {user?.id && ev.user_id && user.id === ev.user_id && (
@@ -404,7 +413,7 @@ export default function EventDetailModal() {
                   </>
                 ) : (
                   /* --- Datos del evento: en los pasados ya no se muestran (fecha, lugar y precio vencidos) --- */
-                  !isPast && <EventInformation event={ev} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />
+                  !isPast && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />
                 )}
 
                 {/* --- MÚSICA DEL ARTISTA (adelantos de iTunes; si no hay canciones no se muestra nada) --- */}
@@ -478,7 +487,7 @@ export default function EventDetailModal() {
                               </div>
                             )}
                             <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{u.title}</div>
+                              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{localizedTitle(u, lang)}</div>
                               <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{formatEventCardDate(u, { today: todayLocal, lang })}</div>
                               <div style={{ fontSize: 13, color: T.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.venue_name || cityName || ''}</div>
                             </div>

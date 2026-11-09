@@ -2,9 +2,10 @@ import React, { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { createSlug, getThumbUrl } from "../../lib/utils.js";
 import { useTranslation } from "../../hooks/useTranslation.js";
+import { localizedTitle } from "../../lib/i18nContent.js";
 
 export default memo(function TopImperdibles({ experiences, T, city }) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const navigate = useNavigate();
   // Get top 5 sorted by likes
   // Seed-based random shuffle changing every 24 hours
@@ -48,7 +49,7 @@ export default memo(function TopImperdibles({ experiences, T, city }) {
               key={exp.id} 
               className="press" 
               href={href}
-              aria-label={exp.title}
+              aria-label={localizedTitle(exp, lang)}
               onClick={(e) => {
                 e.preventDefault(); 
                 navigate(href, { state: { articleOrigin: true } });
@@ -71,7 +72,7 @@ export default memo(function TopImperdibles({ experiences, T, city }) {
             >
               {imgUrl && <img src={imgUrl} loading="lazy" decoding="async" alt="" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition:"center", display:"block" }} />}
               <div aria-hidden="true" style={{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(0,0,0,0.04) 15%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.85) 100%)',pointerEvents:'none'}} />
-              <h3 style={{position:'relative',zIndex:1,margin:0,color:'#fff',fontFamily:'var(--sans, system-ui, sans-serif)',fontSize:'clamp(18px, 4.8vw, 22px)',fontWeight:700,lineHeight:1.25,letterSpacing:'-0.025em',textAlign:'left',overflowWrap:'anywhere',textShadow:'0 1px 4px rgba(0,0,0,0.4)'}}>{exp.title}</h3>
+              <h3 style={{position:'relative',zIndex:1,margin:0,color:'#fff',fontFamily:'var(--sans, system-ui, sans-serif)',fontSize:'clamp(18px, 4.8vw, 22px)',fontWeight:700,lineHeight:1.25,letterSpacing:'-0.025em',textAlign:'left',overflowWrap:'anywhere',textShadow:'0 1px 4px rgba(0,0,0,0.4)'}}>{localizedTitle(exp, lang)}</h3>
               <div style={{ position: "absolute", top: 12, left: 12, width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.2)", zIndex: 2 }}>
                  <span style={{ fontSize: 18, fontWeight: 900, color: index === 0 ? "#FCD34D" : (index === 1 ? "#E5E7EB" : (index === 2 ? "#FCA5A5" : "#fff")), fontStyle: "italic", lineHeight: 1 }}>
                    {index + 1}

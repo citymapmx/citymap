@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
+import { localizedTitle } from '../lib/i18nContent.js';
 import { groupToursByCity, tourCardUrl, tourPriceLabel } from '../lib/tours.js';
 import OptimizedImage from './ui/OptimizedImage.jsx';
 import Footer from './Footer.jsx';
@@ -26,6 +27,7 @@ function TourCard({ tour, T, onOpen }) {
   const { t, lang } = useTranslation();
   const img = tourImage(tour);
   const price = tourPriceLabel(tour, lang);
+  const title = localizedTitle(tour, lang);
 
   return (
     <article
@@ -34,12 +36,12 @@ function TourCard({ tour, T, onOpen }) {
     >
       <div style={{ position: 'relative', height: 180, background: 'linear-gradient(135deg,#111,#333)' }}>
         {typeof img === 'string' && img
-          ? <OptimizedImage src={img} alt={tour.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          ? <OptimizedImage src={img} alt={title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           : <div style={{ width: '100%', height: '100%' }} />}
         <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>TOUR</span>
       </div>
       <div style={{ padding: '12px 14px 16px', background: T.card }}>
-        <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{tour.title}</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{title}</h3>
         <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || t("revista_precio_no_publicado", "Precio no publicado")}</p>
         <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>{t("revista_ver_mas_detalles", "Ver más detalles →")}</span>
       </div>
@@ -60,7 +62,7 @@ export default function ToursView({ T, dark, cities, initialTours }) {
   useEffect(() => {
     if (initialTours) return;
     let cancelled = false;
-    sb.get('experiences', '?select=id,title,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=200')
+    sb.get('experiences', '?select=id,title,title_en,description_en,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=200')
       .then((res) => { if (!cancelled) setTours(Array.isArray(res) ? res : []); })
       .catch(() => { if (!cancelled) setTours([]); })
       .finally(() => { if (!cancelled) setLoading(false); });

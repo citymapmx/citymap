@@ -47,6 +47,29 @@ describe('Vite home events (rueda 3D, como el inicio global)', () => {
     expect(html).toContain(`HASTA ${tagDate(longEnd)}`);
     expect(html.match(/event-wheel-city/g)).toHaveLength(2);
   });
+  it('con lang en muestra el título en inglés cuando hay title_en (fase 2 i18n)', () => {
+    const bilingual = [
+      { id: 'corto', title: 'Concierto Corto', title_en: 'Short Concert', date: singleDate, city_slug: 'guadalajara', status: 'approved', venue_name: 'Teatro Diana', img_url: 'https://example.supabase.co/poster-corto.jpg' },
+      { id: 'largo', title: 'Festival Largo', title_en: 'Long Festival', date: longStart, end_date: longEnd, city_slug: 'guadalajara', status: 'approved', venue_name: 'Expo Guadalajara', img_url: 'https://example.supabase.co/poster-largo.jpg' },
+    ];
+    const html = renderToStaticMarkup(
+      <HomeEvents events={bilingual} activeCity="guadalajara" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} lang="en" />,
+    );
+    expect(html).toContain('Short Concert');
+    expect(html).toContain('Long Festival');
+    expect(html).not.toContain('Concierto Corto');
+    expect(html).not.toContain('Festival Largo');
+  });
+  it('con lang es muestra el título en español aunque haya title_en', () => {
+    const bilingual = [
+      { id: 'corto', title: 'Concierto Corto', title_en: 'Short Concert', date: singleDate, city_slug: 'guadalajara', status: 'approved', venue_name: 'Teatro Diana', img_url: 'https://example.supabase.co/poster-corto.jpg' },
+    ];
+    const html = renderToStaticMarkup(
+      <HomeEvents events={bilingual} activeCity="guadalajara" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} lang="es" />,
+    );
+    expect(html).toContain('Concierto Corto');
+    expect(html).not.toContain('Short Concert');
+  });
 });
 
 describe('Next home events (coverflow)', () => {
