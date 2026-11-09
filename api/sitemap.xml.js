@@ -48,7 +48,7 @@ export default async function handler(req) {
       const date = modified && !Number.isNaN(Date.parse(modified)) ? new Date(modified).toISOString() : null;
       urls.set(origin + path, { images: imagesXml(images, title), date });
     };
-    ['/', '/mapa', '/eventos', '/revista', '/tours', '/about', '/privacy', '/terms'].forEach(path => add(path));
+    ['/', '/mapa', '/eventos', '/revista', '/tours', '/negocios', '/about', '/privacy', '/terms'].forEach(path => add(path));
     const categories = ['restaurantes', 'cafe', 'salud', 'belleza', 'fitness', 'compras', 'tech', 'ocio', 'hoteles', 'educacion'];
     for (const city of cities.filter(city => allowedCity(city.slug))) {
       add(cityPath(city.slug), city.bg_image ? [city.bg_image] : [], undefined, city.name);

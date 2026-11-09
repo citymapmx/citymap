@@ -18,9 +18,10 @@ const FavsView = React.lazy(() => import('../views/FavsView.jsx'));
 const NotFoundView = React.lazy(() => import('../views/NotFoundView.jsx'));
 const AppLoginView = React.lazy(() => import('../views/AppLoginView.jsx'));
 const ToursView = React.lazy(() => import('../components/ToursView.jsx'));
+const BusinessLanding = React.lazy(() => import('../components/BusinessLanding.jsx'));
 
 // Paths that are NOT the home/category view
-const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/mis-planes', '/revista', '/experiencias', '/tours', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
+const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
 
 function isCategoryPath(segments) {
   if (IS_WORLD) return segments.length === 4 && segments[2] === 'c';
@@ -103,7 +104,8 @@ export default function AppRouter(props) {
     OwnerDashboardView,
     OwnerStatsView,
     LoyaltyCardView,
-    ScanView
+    ScanView,
+    startPaidPlan
   } = props;
 
   const location = useLocation();
@@ -171,6 +173,7 @@ export default function AppRouter(props) {
         {!showHomeView && (!showDetail || background) && (
           <div inert={showDetail || undefined}><Routes location={contentLocation}>
             <Route path="/precios" element={<PlansPage T={T} onClose={() => navigate("/")} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); navigate("/"); }} />} />
+            <Route path="/negocios" element={<BusinessLanding T={T} dark={dark} navigate={navigate} user={user} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); navigate("/"); }} onStartPaidPlan={startPaidPlan} setShowAuth={setShowAuth} />} />
             
             <Route path="/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />
             <Route path="/:country/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />
