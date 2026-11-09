@@ -1,3 +1,5 @@
+import { eventUrl } from './eventUrls.js';
+
 // Eventos privados (fase 1, sin álbum): enlace secreto + confirmaciones (RSVP).
 // El enlace secreto ES la URL: el slug lleva un sufijo aleatorio y el evento
 // nunca sale en listas, buscador ni sitemap (ver isListedEvent).
@@ -8,7 +10,7 @@ export function isPrivateEvent(event) {
 
 export function privateEventUrl(event, origin = '') {
   const base = origin || (typeof window !== 'undefined' ? window.location.origin : 'https://citymap.mx');
-  return `${base}/evento/${event.slug || event.id}`;
+  return eventUrl(event, base);
 }
 
 // Resume las confirmaciones: si un invitado confirma varias veces, solo

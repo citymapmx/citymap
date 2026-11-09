@@ -1,5 +1,6 @@
 import { seoSite } from '../src/lib/seoRoutes.js';
 import { tourSchemaNodes } from '../src/lib/tourSchema.js';
+import { eventUrl } from '../src/lib/eventUrls.js';
 const SUPABASE_URL  = "https://dpkjxhjkzdlkvyotoeai.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
 
@@ -139,7 +140,7 @@ async function getEv(id, city) {
     }
 
     let r = await fetch(
-      `${SUPABASE_URL}/rest/v1/events?${q}&select=id,title,description,date,venue_name,img_url,img,event_category,city_slug`,
+      `${SUPABASE_URL}/rest/v1/events?${q}&select=id,slug,title,description,date,venue_name,img_url,img,event_category,city_slug`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
     );
     if (!r.ok) return null;
@@ -548,7 +549,7 @@ ${listing}
       try { dStr = `📅 ${new Date(ev.date).toLocaleDateString("es-MX")}`; } catch(e) { /* ignore */ }
     }
     fullDesc = [desc, dStr, ev.venue_name ? esc(`📍 ${ev.venue_name}`) : ""].filter(Boolean).join(" — ");
-    canonicalUrl = `${BASE_URL}/evento/${esc(evId)}`;
+    canonicalUrl = esc(eventUrl(ev, BASE_URL));
     url = canonicalUrl;
     linkHref = canonicalUrl;
   } else if (expId) {
