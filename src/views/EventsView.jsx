@@ -11,7 +11,8 @@ import Icon from "../components/ui/Icon.jsx";
 import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import EventPosterFallback from "../components/home/EventPosterFallback.jsx";
 import Footer from "../components/Footer.jsx";
-import { haptic } from "../lib/utils";
+import { getThumbUrl, haptic } from "../lib/utils";
+import { smoothScrollIntoView } from "../lib/smoothScroll.js";
 import { useFlipList } from "../lib/useFlipList.js";
 import useTimeStore from "../store/useTimeStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
@@ -53,6 +54,19 @@ export default function EventsView() {
   const [priceFilter, setPriceFilter] = useState("todos");
   const [sortBy, setSortBy] = useState("fecha");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // "Ver más eventos": tras cargar la tanda nueva, la vista se desliza
+  // suave hasta la primera tarjeta nueva; sin esto la lista crecía de golpe
+  // y la pantalla no se movía (brusco). El botón guarda el id del primer
+  // evento nuevo y el efecto lo busca en la lista ya renderizada.
+  const eventListRef = React.useRef(null);
+  const pendingEventScrollRef = React.useRef(null);
+  useEffect(() => {
+    const id = pendingEventScrollRef.current;
+    if (!id) return;
+    pendingEventScrollRef.current = null;
+    const el = eventListRef.current?.querySelector?.(`[data-event-id="${id}"]`);
+    smoothScrollIntoView(el, 'nearest');
+  }, [visibleCount]);
   // Tarjeta de filtros: se edita en borrador y se aplica con "Mostrar eventos".
   const [sheetOpen, setSheetOpen] = useState(false);
   const [draftDate, setDraftDate] = useState("todos");
@@ -424,7 +438,7 @@ export default function EventsView() {
                 )}
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div ref={eventListRef} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                 {monthGroups.map(group => (
                   <div key={group.key} id={`mes-${group.key}`} style={{ scrollMarginTop: 120 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
@@ -441,12 +455,16 @@ export default function EventsView() {
                   const imgSrc = ev.img_url || ev.img;
 
                   return (
-                    <article key={ev.id} ref={registerFlip(ev.id)} style={{ minWidth: 0, position:'relative', borderRadius:18, overflow:'hidden' }}>
+                    <article key={ev.id} data-event-id={ev.id} ref={registerFlip(ev.id)} style={{ minWidth: 0, position:'relative', borderRadius:18, overflow:'hidden' }}>
                       <button type="button" onClick={() => handleEventTap(ev)} aria-label={`${localizedTitle(ev, lang) || 'Evento'}. ${fmtCardDate(ev)}`} className="event-list-card" style={{ display:'block', width:'100%', textAlign:'left', border:0, padding:0, background:'transparent', color:T.text, cursor:'pointer', fontFamily:'inherit' }}>
                         <div style={{ aspectRatio:'5 / 7', position:'relative', overflow:'hidden', background:dark ? '#23252b' : '#edf0f4' }}>
-                          {/* contain, no cover: con cover el póster se recortaba a 5:7 y se perdía el texto de los lados ("DANIEL BOAV…"); así sale completo con bandas del fondo de la tarjeta. */}
-                          {imgSrc ? <OptimizedImage src={imgSrc} alt={localizedTitle(ev, lang) || 'Evento'} widthRequest={600} priority={index < 2} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain' }} />
-                            : <EventPosterFallback title={localizedTitle(ev, lang) || 'Evento'} radius={0} />}
+                          {/* Fondo difuminado con la misma imagen (misma URL optimizada que el póster, así el navegador la reutiliza): con contain el póster sale completo pero dejaba bandas grises arriba y abajo porque la mayoría son horizontales y la tarjeta es 5:7; el fondo cubre toda la tarjeta y el póster queda encima, completo y sin recortar texto. */}
+                          {imgSrc ? (
+                            <>
+                              <div aria-hidden="true" style={{ position:'absolute', inset:0, backgroundImage:`url("${getThumbUrl(imgSrc, 600)}")`, backgroundSize:'cover', backgroundPosition:'center', filter:'blur(24px) brightness(0.85)', transform:'scale(1.15)' }} />
+                              <OptimizedImage src={imgSrc} alt={localizedTitle(ev, lang) || 'Evento'} widthRequest={600} priority={index < 2} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain', zIndex:1 }} />
+                            </>
+                          ) : <EventPosterFallback title={localizedTitle(ev, lang) || 'Evento'} radius={0} />}
                           <div style={{ position:'absolute', top:8, left:8, zIndex:2, borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF' }}>{fmtCardDate(ev)}</div>
                         </div>
                       </button>
@@ -460,7 +478,7 @@ export default function EventsView() {
                   </div>
                 ))}
                 {filteredEvents.length > visibleCount && (
-                  <button onClick={() => { haptic(); setVisibleCount(c => c + PAGE_SIZE); }} className="press" style={{ width: "100%", minHeight: 48, background: T.green, color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, cursor: "pointer", fontFamily: "inherit" }}>
+                  <button onClick={() => { haptic(); pendingEventScrollRef.current = filteredEvents[visibleCount]?.id ?? null; setVisibleCount(c => c + PAGE_SIZE); }} className="press" style={{ width: "100%", minHeight: 48, background: T.green, color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, cursor: "pointer", fontFamily: "inherit" }}>
                     {t("eventos_ver_mas_eventos", "Ver más eventos")} ({filteredEvents.length - visibleCount} {t("eventos_restantes", "restantes")})
                   </button>
                 )}

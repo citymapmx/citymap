@@ -24,6 +24,7 @@ import DestacadoCard from "../components/cards/DestacadoCard.jsx";
 import CompactCard from "../components/cards/CompactCard.jsx";
 import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import { Virtuoso } from "react-virtuoso";
+import { prefersReducedMotion } from "../lib/smoothScroll.js";
 import { Helmet } from "react-helmet-async";
 import CouponCard from "../components/ui/CouponCard.jsx";
 import HomeEvents from "../components/home/HomeEvents.jsx";
@@ -218,6 +219,27 @@ export default function HomeView({ isBackground }) {
       return sub.includes(target) || typ.includes(target) || tags.includes(target);
     });
   }, [biz, displayList, selectedSubcat]);
+
+  // "Ver más" de la categoría: tras cargar la tanda nueva, la vista se
+  // desliza suave hasta la primera tarjeta nueva (Virtuoso scrollToIndex);
+  // sin esto la lista crecía de golpe y la pantalla no se movía (brusco).
+  // El botón guarda el índice y la lista actuales; el efecto solo desplaza
+  // si la lista creció para esa misma lista (ciudad/categoría/subcategoría).
+  const virtuosoRef = React.useRef(null);
+  const categoryLoadMoreRef = React.useRef(null);
+  const categoryListKey = JSON.stringify([activeCity, activeCat, selectedSubcat]);
+  React.useEffect(() => {
+    const pending = categoryLoadMoreRef.current;
+    if (!pending) return;
+    if (pending.key !== categoryListKey) { categoryLoadMoreRef.current = null; return; }
+    if (finalDisplayList.length > pending.index) {
+      categoryLoadMoreRef.current = null;
+      virtuosoRef.current?.scrollToIndex({ index: pending.index, align: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    } else if (!loadingMore) {
+      // La carga falló o no trajo nada nuevo: no desplazar.
+      categoryLoadMoreRef.current = null;
+    }
+  }, [finalDisplayList.length, loadingMore, categoryListKey]);
 
   const isOpen = React.useCallback((b) => isOpenNow(b, city?.timezone || "America/Mexico_City"), [city?.timezone]);
 
@@ -686,6 +708,7 @@ export default function HomeView({ isBackground }) {
               {dbReady && businessListReady && finalDisplayList.length > 0 && (
                 <BusinessListTransition transitionKey={JSON.stringify([activeCity, activeCat, selectedSubcat])}>
                 <Virtuoso
+                  ref={virtuosoRef}
                   useWindowScroll
                   data={finalDisplayList}
                   // Sin autollenado al bajar: la paginación de la categoría es
@@ -718,7 +741,7 @@ export default function HomeView({ isBackground }) {
               {dbReady && businessListReady && finalDisplayList.length > 0 && hasMore && (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0 20px' }}>
                   <button
-                    onClick={() => loadPaginatedBiz(false)}
+                    onClick={() => { categoryLoadMoreRef.current = { index: finalDisplayList.length, key: categoryListKey }; loadPaginatedBiz(false); }}
                     disabled={loadingMore}
                     style={{ padding: '10px 28px', borderRadius: 20, border: `1px solid ${T.border}`, background: 'none', color: T.text, fontWeight: 700, fontSize: 14, cursor: loadingMore ? 'default' : 'pointer', opacity: loadingMore ? 0.5 : 1 }}
                   >{loadingMore ? t("cargando", "Cargando...") : t("ver_mas", "Ver más")}</button>
