@@ -78,7 +78,12 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
       return { disabled: true, label: t("cuenta_tu_plan_actual", "Tu plan actual"), onClick: undefined };
     }
     if (p.key === "pro") {
-      return { disabled: false, label: t("negocios_cta_probar", "Probar 7 días gratis"), onClick: () => onStartPaidPlan?.({ key: "pro" }, billing) };
+      // La prueba de 7 días solo existe en el pago mensual (igual que
+      // Premium/elite): en anual, el CTA normal de pago.
+      if (billing === "monthly") {
+        return { disabled: false, label: t("negocios_cta_probar", "Probar 7 días gratis"), onClick: () => onStartPaidPlan?.({ key: "pro" }, billing) };
+      }
+      return { disabled: false, label: t("cuenta_elegir_plan", `Elegir ${p.name}`, { name: p.name }), onClick: () => onStartPaidPlan?.({ key: "pro" }, billing) };
     }
     if (billing === "monthly") {
       return { disabled: false, label: t("negocios_cta_probar", "Probar 7 días gratis"), onClick: () => onStartPaidPlan?.({ key: "elite" }, billing) };
