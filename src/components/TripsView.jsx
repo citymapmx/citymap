@@ -510,8 +510,6 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
         )}
       </div>
       <div style={{ padding: "16px 20px" }}>
-        {showCivitatisWidget && <CivitatisWidget key={activeCity} code={widgetCode} cityName={cityName} T={T} />}
-
         {/* Planes de la Comunidad */}
         {publicPlans.length > 0 && (
           <div style={{ marginBottom: 32 }}>
@@ -606,6 +604,11 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
           )
         )}
         
+        {/* Lista larga de Civitatis: DESPUÉS de nuestros artículos, no antes.
+            Cuando el filtro es Tours, primero salen los tours que subimos
+            nosotros y abajo la lista del widget. */}
+        {showCivitatisWidget && <CivitatisWidget key={activeCity} code={widgetCode} cityName={cityName} T={T} />}
+
         {/* Banner Final CTA */}
         {/* Tiqets widget — solo en Ciudad de México */}
         {activeCity === "ciudad-de-mexico" && <TiqetsWidget T={T} dark={dark} />}

@@ -155,7 +155,7 @@ export default function GlobalHomeView() {
           // dependa de que aparezcan en la paginación de negocios.
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&or=(category.eq.lugares,category.eq.unidad%20deportiva,category.eq.playa,is_place.eq.true)&order=plan.desc,rating.desc.nullslast,id.desc&limit=60`).catch(() => []),
           // Tours para la sección "Tours por ciudad": solo tipo Tour, todas las ciudades.
-          sb.get('experiences', `?select=id,title,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=100`).catch(() => []),
+          sb.get('experiences', `?select=id,title,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=200`).catch(() => []),
         ]);
         if (cancelled) return;
         const bizRows = Array.isArray(bizRes) ? bizRes : [];
