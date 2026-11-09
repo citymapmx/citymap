@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
-import { groupToursByCity, tourCardUrl, formatTourPrice } from '../lib/tours.js';
+import { groupToursByCity, tourCardUrl, tourPriceLabel } from '../lib/tours.js';
 import OptimizedImage from './ui/OptimizedImage.jsx';
 import Footer from './Footer.jsx';
 
@@ -23,7 +23,7 @@ function tourImage(tour) {
 
 function TourCard({ tour, cityName, T, dark, onOpen }) {
   const img = tourImage(tour);
-  const price = formatTourPrice(tour?.price);
+  const price = tourPriceLabel(tour);
   return (
     <article
       onClick={() => onOpen(tour)}
@@ -59,7 +59,7 @@ export default function ToursView({ T, dark, navigate, cities, initialTours }) {
   useEffect(() => {
     if (initialTours) return;
     let cancelled = false;
-    sb.get('experiences', '?select=id,title,city_slug,price,duration,gallery,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=100')
+    sb.get('experiences', '?select=id,title,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=100')
       .then((res) => { if (!cancelled) setTours(Array.isArray(res) ? res : []); })
       .catch(() => { if (!cancelled) setTours([]); })
       .finally(() => { if (!cancelled) setLoading(false); });

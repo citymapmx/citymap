@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
 import { createSlug, getThumbUrl } from '../lib/utils.js';
 import { typeLabel } from '../lib/postTaxonomy.js';
-import { groupToursByCity, tourCardUrl, formatTourPrice } from '../lib/tours.js';
+import { groupToursByCity, tourCardUrl, tourPriceLabel } from '../lib/tours.js';
 import { displayRating } from '../lib/googleRatings.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import Icon from '../components/ui/Icon.jsx';
@@ -155,7 +155,7 @@ export default function GlobalHomeView() {
           // dependa de que aparezcan en la paginación de negocios.
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&or=(category.eq.lugares,category.eq.unidad%20deportiva,category.eq.playa,is_place.eq.true)&order=plan.desc,rating.desc.nullslast,id.desc&limit=60`).catch(() => []),
           // Tours para la sección "Tours por ciudad": solo tipo Tour, todas las ciudades.
-          sb.get('experiences', `?select=id,title,city_slug,price,duration,gallery,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=100`).catch(() => []),
+          sb.get('experiences', `?select=id,title,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=100`).catch(() => []),
         ]);
         if (cancelled) return;
         const bizRows = Array.isArray(bizRes) ? bizRes : [];
@@ -704,7 +704,7 @@ export default function GlobalHomeView() {
                   {visibleTours.map((tour) => {
                     const gallery = parseGallery(tour);
                     const img = gallery[0]?.url || gallery[0] || null;
-                    const price = formatTourPrice(tour.price);
+                    const price = tourPriceLabel(tour);
                     return (
                       <article key={`t-${tour.id}`} onClick={() => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } })} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
                         <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>

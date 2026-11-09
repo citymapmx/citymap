@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatTourPrice, tourCardUrl, groupToursByCity } from '../lib/tours.js';
+import { formatTourPrice, tourCardUrl, groupToursByCity, tourPriceLabel } from '../lib/tours.js';
 
 describe('formatTourPrice', () => {
   it('formatea con separador de miles y "desde"', () => {
@@ -130,5 +130,33 @@ describe('TravelAffiliateRow', () => {
     expect(html).toContain('Autos');
     expect(html).toContain('Hoteles');
     expect(html).toContain('Vuelos');
+  });
+});
+
+describe('groupToursByCity (mayúsculas en slugs)', () => {
+  it('usa el nombre bonito aunque el slug de cities tenga mayúsculas', () => {
+    const groups = groupToursByCity(
+      [{ city_slug: 'barcelona', title: 'Sagrada Familia' }],
+      [{ slug: 'Barcelona', name: 'Barcelona' }],
+    );
+    expect(groups[0].name).toBe('Barcelona');
+  });
+});
+
+describe('tourPriceLabel', () => {
+  it('con precio muestra "desde $X MXN"', () => {
+    expect(tourPriceLabel({ price: 1200 })).toBe('desde $1,200 MXN');
+  });
+
+  it('sin precio y sin reserva muestra "Gratis" (senderismo)', () => {
+    expect(tourPriceLabel({ price: 0, booking_config: {} })).toBe('Gratis');
+    expect(tourPriceLabel({ price: null })).toBe('Gratis');
+  });
+
+  it('sin precio pero con reserva devuelve null (la tarjeta dice "Precio no publicado")', () => {
+    expect(tourPriceLabel({
+      price: 0,
+      booking_config: { externalLinks: [{ url: 'https://www.civitatis.com/es/x' }] },
+    })).toBeNull();
   });
 });
