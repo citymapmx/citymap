@@ -640,6 +640,7 @@ useEffect(() => {
         else if (v === "wallet" || v === "lealtad" || v === "scan") { /* DO NOTHING, let AppRouter handle it */ }
         else if (v === "login") { /* DO NOTHING, let AppRouter handle it */ }
         else if (v === "tours") { /* DO NOTHING, let AppRouter handle it */ }
+        else if (v === "negocios") { /* DO NOTHING, let AppRouter handle it */ }
         else if (v === "planes") { /* Removed section: let AppRouter render the 404 */ }
         else if (v === "menu_direct") { /* DO NOTHING, let AppRouter handle it */ }
         else navigate("home");
