@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatTourPrice, tourCardUrl, groupToursByCity } from '../lib/tours.js';
+import { formatTourPrice, tourCardUrl, groupToursByCity, tourPriceLabel } from '../lib/tours.js';
 
 describe('formatTourPrice', () => {
   it('formatea con separador de miles y "desde"', () => {
@@ -69,7 +69,7 @@ describe('ToursView', () => {
     { id: '3', title: 'Excursión a San Blas', city_slug: 'tepic', price: 2078, duration: '8 horas', gallery: [] },
   ];
 
-  it('muestra los tours agrupados por ciudad con precio y botón de reserva', async () => {
+  it('muestra los tours agrupados por ciudad con precio y botón ver más detalles', async () => {
     const React = (await import('react')).default;
     const { renderToStaticMarkup } = await import('react-dom/server');
     const { HelmetProvider } = await import('react-helmet-async');
@@ -92,7 +92,13 @@ describe('ToursView', () => {
     expect(html).toContain('Excursión a Guachimontones');
     expect(html).toContain('Tour de la cultura huichol');
     expect(html).toContain('desde $1,475.1 MXN');
-    expect(html).toContain('Reservar →');
+    expect(html).toContain('Ver más detalles →');
+    expect(html).not.toContain('Reservar →');
+    // Tarjeta compacta (opción A): sin ubicación ni duración, título a 2 líneas.
+    expect(html).not.toContain('5–6 horas');
+    expect(html).not.toContain('10 horas 30 minutos');
+    expect(html).not.toContain('⏱');
+    expect(html).toContain('-webkit-line-clamp:2');
   });
 
   it('tiene la cabecera con el logotipo y la etiqueta Viajes como Revista', async () => {
@@ -130,5 +136,33 @@ describe('TravelAffiliateRow', () => {
     expect(html).toContain('Autos');
     expect(html).toContain('Hoteles');
     expect(html).toContain('Vuelos');
+  });
+});
+
+describe('groupToursByCity (mayúsculas en slugs)', () => {
+  it('usa el nombre bonito aunque el slug de cities tenga mayúsculas', () => {
+    const groups = groupToursByCity(
+      [{ city_slug: 'barcelona', title: 'Sagrada Familia' }],
+      [{ slug: 'Barcelona', name: 'Barcelona' }],
+    );
+    expect(groups[0].name).toBe('Barcelona');
+  });
+});
+
+describe('tourPriceLabel', () => {
+  it('con precio muestra "desde $X MXN"', () => {
+    expect(tourPriceLabel({ price: 1200 })).toBe('desde $1,200 MXN');
+  });
+
+  it('sin precio y sin reserva muestra "Gratis" (senderismo)', () => {
+    expect(tourPriceLabel({ price: 0, booking_config: {} })).toBe('Gratis');
+    expect(tourPriceLabel({ price: null })).toBe('Gratis');
+  });
+
+  it('sin precio pero con reserva devuelve null (la tarjeta dice "Precio no publicado")', () => {
+    expect(tourPriceLabel({
+      price: 0,
+      booking_config: { externalLinks: [{ url: 'https://www.civitatis.com/es/x' }] },
+    })).toBeNull();
   });
 });

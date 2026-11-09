@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
-import { groupToursByCity, tourCardUrl, formatTourPrice } from '../lib/tours.js';
+import { groupToursByCity, tourCardUrl, tourPriceLabel } from '../lib/tours.js';
 import OptimizedImage from './ui/OptimizedImage.jsx';
 import Footer from './Footer.jsx';
 
@@ -21,27 +21,24 @@ function tourImage(tour) {
   return null;
 }
 
-function TourCard({ tour, cityName, T, dark, onOpen }) {
+function TourCard({ tour, T, dark, onOpen }) {
   const img = tourImage(tour);
-  const price = formatTourPrice(tour?.price);
+  const price = tourPriceLabel(tour);
   return (
     <article
       onClick={() => onOpen(tour)}
       style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
     >
-      <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>
+      <div style={{ position: 'relative', height: 180, background: 'linear-gradient(135deg,#111,#333)' }}>
         {typeof img === 'string' && img
           ? <OptimizedImage src={img} alt={tour.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🗺️</div>}
         <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>🗺️ Tour</span>
       </div>
       <div style={{ padding: '12px 14px 16px' }}>
-        <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{tour.title}</h3>
-        <p style={{ fontSize: 13, color: T.sub, margin: '0 0 8px' }}>
-          {cityName}{tour.duration ? ` · ⏱ ${tour.duration}` : ''}
-        </p>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{tour.title}</h3>
         <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || 'Precio no publicado'}</p>
-        <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>Reservar →</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>Ver más detalles →</span>
       </div>
     </article>
   );
@@ -59,7 +56,7 @@ export default function ToursView({ T, dark, navigate, cities, initialTours }) {
   useEffect(() => {
     if (initialTours) return;
     let cancelled = false;
-    sb.get('experiences', '?select=id,title,city_slug,price,duration,gallery,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=100')
+    sb.get('experiences', '?select=id,title,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=100')
       .then((res) => { if (!cancelled) setTours(Array.isArray(res) ? res : []); })
       .catch(() => { if (!cancelled) setTours([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -144,7 +141,7 @@ export default function ToursView({ T, dark, navigate, cities, initialTours }) {
             <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 14px' }}>{g.name} · {g.count} {g.count === 1 ? 'tour' : 'tours'}</h2>
             <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
               {g.tours.map((tour) => (
-                <TourCard key={tour.id || tour.slug} tour={tour} cityName={g.name} T={T} dark={dark} onOpen={openTour} />
+                <TourCard key={tour.id || tour.slug} tour={tour} T={T} dark={dark} onOpen={openTour} />
               ))}
             </div>
           </section>

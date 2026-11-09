@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
 import { createSlug, getThumbUrl } from '../lib/utils.js';
 import { typeLabel } from '../lib/postTaxonomy.js';
-import { groupToursByCity, tourCardUrl, formatTourPrice } from '../lib/tours.js';
+import { groupToursByCity, tourCardUrl, tourPriceLabel } from '../lib/tours.js';
 import { displayRating } from '../lib/googleRatings.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import Icon from '../components/ui/Icon.jsx';
@@ -155,7 +155,7 @@ export default function GlobalHomeView() {
           // dependa de que aparezcan en la paginación de negocios.
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&or=(category.eq.lugares,category.eq.unidad%20deportiva,category.eq.playa,is_place.eq.true)&order=plan.desc,rating.desc.nullslast,id.desc&limit=60`).catch(() => []),
           // Tours para la sección "Tours por ciudad": solo tipo Tour, todas las ciudades.
-          sb.get('experiences', `?select=id,title,city_slug,price,duration,gallery,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=100`).catch(() => []),
+          sb.get('experiences', `?select=id,title,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=100`).catch(() => []),
         ]);
         if (cancelled) return;
         const bizRows = Array.isArray(bizRes) ? bizRes : [];
@@ -704,20 +704,19 @@ export default function GlobalHomeView() {
                   {visibleTours.map((tour) => {
                     const gallery = parseGallery(tour);
                     const img = gallery[0]?.url || gallery[0] || null;
-                    const price = formatTourPrice(tour.price);
+                    const price = tourPriceLabel(tour);
                     return (
                       <article key={`t-${tour.id}`} onClick={() => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } })} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
-                        <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>
+                        <div style={{ position: 'relative', height: 180, background: 'linear-gradient(135deg,#111,#333)' }}>
                           {typeof img === 'string' && img
                             ? <OptimizedImage src={img} alt={tour.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🗺️</div>}
                           <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>🗺️ Tour</span>
                         </div>
                         <div style={{ padding: '12px 14px 16px' }}>
-                          <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{tour.title}</h3>
-                          {tour.duration ? <p style={{ fontSize: 13, color: T.sub, margin: '0 0 8px' }}>⏱ {tour.duration}</p> : null}
+                          <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{tour.title}</h3>
                           <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || 'Precio no publicado'}</p>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>Reservar →</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>Ver más detalles →</span>
                         </div>
                       </article>
                     );
