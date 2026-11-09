@@ -6,6 +6,14 @@ export function seoSite(host = '') {
 
 export const SEO_COUNTRIES = new Set(['mx', 'us', 'es', 'ca', 'ar', 'co', 'fr', 'gb']);
 
+// Categorías de nivel superior de la app (useAppInitialization.js validCats):
+// las que tienen página propia /:ciudad/:categoria y salen en el sitemap.
+// Fuente única de verdad: middleware, sitemap y og la importan de aquí.
+export const CATEGORY_SLUGS = [
+  'restaurantes', 'cafe', 'salud', 'belleza', 'fitness', 'compras', 'tech',
+  'ocio', 'hoteles', 'educacion', 'antros-y-bares', 'servicios', 'mascotas',
+];
+
 export function seoSegments(pathname, isWorld) {
   const parts = pathname.split('/').filter(Boolean);
   if (isWorld && SEO_COUNTRIES.has(parts[0])) parts.shift();

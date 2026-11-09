@@ -1,6 +1,6 @@
 import sitemap from './api/sitemap.xml.js';
 import robots from './api/robots.txt.js';
-import { seoSite, seoSegments } from './src/lib/seoRoutes.js';
+import { seoSite, seoSegments, CATEGORY_SLUGS } from './src/lib/seoRoutes.js';
 
 // Bots sociales que necesitan OG tags pre-renderizados
 const SOCIAL_BOTS = [
@@ -35,7 +35,12 @@ export default async function middleware(request) {
       { status: 404, headers: { 'content-type': 'text/html; charset=utf-8', 'x-robots-tag': 'noindex' } }
     );
   }
-  if (routeParts.length === 3 && routeParts[1] === 'c') {
+  // /:ciudad/c/:categoria (p. ej. /guadalajara/c/restaurantes) es la forma
+  // legada de la categoría: se normaliza a /:ciudad/:categoria (308).
+  // Pero /:ciudad/c/:subcategoria (p. ej. /guadalajara/c/unidad-deportiva)
+  // es una vista real de la app y NO se redirige: la SPA la resuelve como
+  // categoría y los bots la reciben por la rama de subcategoría de abajo.
+  if (routeParts.length === 3 && routeParts[1] === 'c' && CATEGORY_SLUGS.includes(routeParts[2].toLowerCase())) {
     const destination = new URL(request.url);
     destination.pathname = pathname.replace('/c/', '/');
     return Response.redirect(destination, 308);
@@ -139,12 +144,20 @@ export default async function middleware(request) {
     ogUrl.searchParams.set('vista', 'revista');
     if (seg2) ogUrl.searchParams.set('city', seg2);
   }
-  // /:city/:slug/menu → og?b=slug&city=city&menu=true
+  // /:ciudad/:slug/menu → og?b=slug&city=ciudad&menu=true
   else if (parts.length === 3 && seg3 === 'menu' && !RESERVED_FIRST_SEGS.has(seg1)) {
     ogUrl = new URL('/api/og', request.url);
     ogUrl.searchParams.set('b', seg2);
     ogUrl.searchParams.set('city', seg1);
     ogUrl.searchParams.set('menu', 'true');
+  }
+  // /:ciudad/c/:subcategoria → og?b=subcat&city=ciudad&subcat=1
+  // (la subcategoría es un valor de businesses.category; og la valida)
+  else if (parts.length === 3 && seg2 === 'c' && !RESERVED_FIRST_SEGS.has(seg1)) {
+    ogUrl = new URL('/api/og', request.url);
+    ogUrl.searchParams.set('b', seg3);
+    ogUrl.searchParams.set('city', seg1);
+    ogUrl.searchParams.set('subcat', '1');
   }
   // /:city/:slug → og?b=slug&city=city
   else if (parts.length === 2 && !RESERVED_FIRST_SEGS.has(seg1)) {

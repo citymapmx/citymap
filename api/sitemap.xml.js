@@ -1,4 +1,4 @@
-import { seoSite } from '../src/lib/seoRoutes.js';
+import { seoSite, CATEGORY_SLUGS } from '../src/lib/seoRoutes.js';
 import { eventUrl } from '../src/lib/eventUrls.js';
 const SUPABASE_URL  = "https://dpkjxhjkzdlkvyotoeai.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
@@ -50,7 +50,7 @@ export default async function handler(req) {
       urls.set(origin + path, { images: imagesXml(images, title), date });
     };
     ['/', '/mapa', '/eventos', '/revista', '/tours', '/negocios', '/about', '/privacy', '/terms'].forEach(path => add(path));
-    const categories = ['restaurantes', 'cafe', 'salud', 'belleza', 'fitness', 'compras', 'tech', 'ocio', 'hoteles', 'educacion'];
+    const categories = CATEGORY_SLUGS;
     for (const city of cities.filter(city => allowedCity(city.slug))) {
       add(cityPath(city.slug), city.bg_image ? [city.bg_image] : [], undefined, city.name);
       categories.forEach(category => add(`${cityPath(city.slug)}/${category}`));
