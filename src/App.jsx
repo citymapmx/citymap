@@ -1256,7 +1256,11 @@ useEffect(() => {
       setBusinessQuery({ key: paginationKey, ids: orderBusinessIds(rows), status: "ready" });
       nextOffsetRef.current = count;
       setServerHasMore(count === fetchLimit);
-      setPage(isCategoryFilter ? Math.max(1, Math.ceil(count / 20)) : 1);
+      // La lista empieza paginada en 20 y se revela con "Ver más" (o al
+      // bajar): antes se mostraba todo lo cargado de golpe y Virtuoso solo
+      // renderiza lo visible, así que la categoría parecía tener solo los
+      // 4 negocios que cabían en pantalla.
+      setPage(1);
     });
   }, [paginationKey, activeCat, search, activeCity, fetchMoreBiz, initialBizCount, mapPinsCity, dbReady]);
 

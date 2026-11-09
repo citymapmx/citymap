@@ -1,7 +1,7 @@
 import CivitatisWidget from './CivitatisWidget.jsx';
 import { getCivitatisWidgetSrc } from '../lib/civitatisWidget.js';
 import SectionCategoryBar from './ui/SectionCategoryBar.jsx';
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { AnimatePresence } from "framer-motion";
@@ -281,6 +281,22 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
   const [fetchedPlan, setFetchedPlan] = useState(null);
   const viewingPlan = initialMatch || (fetchedPlan && fetchedPlan.slug === routeSlug ? fetchedPlan.exp : null);
   const isViewing = Boolean(routeSlug);
+
+  // Al volver de un artículo, la tarjeta que se abrió quedaba a medias
+  // bajo el encabezado fijo: al cerrar, se vuelve a ella con el offset
+  // del encabezado (scrollMarginTop en la tarjeta).
+  const lastViewedIdRef = useRef(null);
+  if (isViewing && viewingPlan) lastViewedIdRef.current = viewingPlan.id;
+  useEffect(() => {
+    if (isViewing) return;
+    const id = lastViewedIdRef.current;
+    if (!id) return;
+    lastViewedIdRef.current = null;
+    const raf = requestAnimationFrame(() => {
+      document.getElementById(`revista-card-${id}`)?.scrollIntoView({ block: "nearest" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isViewing]);
   
   const [publicPlans, setPublicPlans] = useState([]);
   
@@ -570,17 +586,18 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
               {filteredDiscover.slice(0, visibleCount).map((exp, idx) => {
                 const href = `/revista/${activeCity}/${createSlug(exp.title)}`;
                 return (
-                <ExperienceCard 
-                  key={exp.id} 
-                  exp={exp} 
+                <div key={exp.id} id={`revista-card-${exp.id}`} style={{ scrollMarginTop: 140 }}>
+                <ExperienceCard
+                  exp={exp}
                   href={href}
                   priority={idx < 2}
-                  onClick={() => routerNavigate(href, { state: { articleOrigin: true } })} 
-                  isSaved={savedExpIds.includes(exp.id)} 
-                  onToggleSave={() => toggleSaveExp(exp)} 
-                  T={T} 
-                  dark={dark} 
+                  onClick={() => routerNavigate(href, { state: { articleOrigin: true } })}
+                  isSaved={savedExpIds.includes(exp.id)}
+                  onToggleSave={() => toggleSaveExp(exp)}
+                  T={T}
+                  dark={dark}
                 />
+                </div>
                 );
               })}
             </div>

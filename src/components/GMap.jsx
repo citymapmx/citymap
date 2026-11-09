@@ -276,7 +276,9 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         this.div = document.createElement("div");
         this.div.style.position = "absolute";
         this.div.style.cursor = "pointer";
-        this.div.title = title;
+        // Sin el guard, un título ausente queda como el texto "undefined"
+        // en el tooltip del pin (así salían los pines de evento).
+        this.div.title = title || "";
         this.div.style.zIndex = zIndex;
         
         this.div.appendChild(this.content);
@@ -504,7 +506,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
           onPin({ ...ev, _isEvent: true });
         });
 
-        m = new HTMLMarker(new window.google.maps.LatLng(ev.lat, ev.lng), content);
+        m = new HTMLMarker(new window.google.maps.LatLng(ev.lat, ev.lng), content, ev.title);
         markerCache.current.set(cacheKey, m);
       }
       
