@@ -26,6 +26,51 @@ export default function AdminBizTab({
   const [saving, setSaving] = useState(false);
   const gok = useGMaps();
 
+  // Completar Place IDs de Google (botón del panel): llama a la acción
+  // ?action=completar-place-ids de 20 en 20; los ambiguos no se vuelven
+  // a consultar (exclude_ids) y se muestran para hacerlos a mano.
+  const [placeIdsRunning, setPlaceIdsRunning] = useState(false);
+  const [placeIdsProgress, setPlaceIdsProgress] = useState("");
+  const [placeIdsSummary, setPlaceIdsSummary] = useState(null);
+
+  const completarPlaceIds = async () => {
+    if (placeIdsRunning) return;
+    if (!window.confirm("Se consultará a Google (Places API) para llenar el Place ID de los negocios que no lo tienen, de 20 en 20. Costo aprox. $0.03 por negocio. ¿Continuar?")) return;
+    setPlaceIdsRunning(true);
+    setPlaceIdsSummary(null);
+    const totals = { updated: [], ambiguous: [], failed: [] };
+    const attempted = new Set();
+    try {
+      let guard = 0;
+      for (;;) {
+        guard += 1;
+        if (guard > 20) break; // seguridad: 20 tandas = 400 negocios
+        setPlaceIdsProgress(`Consultando a Google… ${totals.updated.length} llenados hasta ahora.`);
+        const res = await fetch("/api/actualizar-calificaciones-google?action=completar-place-ids", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sb._token || ""}` },
+          body: JSON.stringify({ exclude_ids: [...attempted] }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        (data.updated || []).forEach((u) => { totals.updated.push(u); attempted.add(u.business_id); });
+        (data.ambiguous || []).forEach((a) => { totals.ambiguous.push(a); attempted.add(a.business_id); });
+        (data.failed || []).forEach((f) => { totals.failed.push(f); attempted.add(f.business_id); });
+        setPlaceIdsProgress(`Llenados ${totals.updated.length} · pendientes ${data.remaining ?? "?"}.`);
+        if (!data.processed) break; // ya no quedan negocios por intentar
+      }
+      setPlaceIdsSummary(totals);
+      if (onToast) onToast(`Place IDs: ${totals.updated.length} llenados, ${totals.ambiguous.length} ambiguos, ${totals.failed.length} errores.`);
+      fetchBiz(0, false);
+    } catch (e) {
+      if (onToast) onToast("Error: " + e.message);
+      if (totals.updated.length || totals.ambiguous.length || totals.failed.length) setPlaceIdsSummary(totals);
+    } finally {
+      setPlaceIdsRunning(false);
+      setPlaceIdsProgress("");
+    }
+  };
+
   const geo = () => { if (!gok || !bizForm?.address) return; new window.google.maps.Geocoder().geocode({ address: bizForm.address }, (r, s) => { if (s === "OK") { const l = r[0].geometry.location; setBizForm(f => ({ ...f, lat: l.lat(), lng: l.lng() })); } }); };
 
   const saveBiz = async () => {
@@ -162,7 +207,10 @@ export default function AdminBizTab({
       {!bizForm && <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>Listado de negocios</span>
-          <button onClick={() => setBizForm({ _new: true, category: data.categories.length > 0 ? data.categories[0].slug : "restaurantes", open: true, photos: [], tags: "", lat: "", lng: "", plan: "free", status: "pending", city_slug: (data.cities && data.cities.length > 0 ? data.cities[0].slug : ""), social_links: {} })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={completarPlaceIds} disabled={placeIdsRunning} title="Llena el Place ID de Google de los negocios que no lo tienen (de 20 en 20)" style={{ background: "#fff", color: "#1A7A5E", border: "1.5px solid #1A7A5E", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: placeIdsRunning ? "wait" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, opacity: placeIdsRunning ? 0.6 : 1 }}><Icon name="map-pin" size={14} color="#1A7A5E" /> {placeIdsRunning ? "Consultando a Google…" : "Completar Place IDs"}</button>
+            <button onClick={() => setBizForm({ _new: true, category: data.categories.length > 0 ? data.categories[0].slug : "restaurantes", open: true, photos: [], tags: "", lat: "", lng: "", plan: "free", status: "pending", city_slug: (data.cities && data.cities.length > 0 ? data.cities[0].slug : ""), social_links: {} })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo</button>
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
@@ -180,6 +228,30 @@ export default function AdminBizTab({
             {data.cities.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
           </select>
         </div>
+
+        {placeIdsRunning && placeIdsProgress && (
+          <div className="text-sm" style={{ background: "#EAF4F0", borderRadius: 10, padding: "10px 14px", marginBottom: 12, color: "#1A7A5E", fontWeight: 600 }}>{placeIdsProgress}</div>
+        )}
+        {placeIdsSummary && (
+          <div style={{ background: "#fff", borderRadius: 12, padding: "12px 14px", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
+            <div className="text-sm" style={{ fontWeight: 800, color: "#0F1A14", marginBottom: 4 }}>Place IDs completados: {placeIdsSummary.updated.length} llenados · {placeIdsSummary.ambiguous.length} ambiguos · {placeIdsSummary.failed.length} errores</div>
+            {placeIdsSummary.ambiguous.length > 0 && (
+              <div className="text-sm" style={{ color: "#5A6872", lineHeight: 1.5 }}>
+                Los ambiguos no se escribieron: hazlos a mano con el <a href="https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder" target="_blank" rel="noreferrer" style={{ color: "#1A7A5E", fontWeight: 700 }}>Place ID Finder de Google</a>.
+                <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                  {placeIdsSummary.ambiguous.map((a) => (
+                    <li key={a.business_id}><strong style={{ color: "#0F1A14" }}>{a.name}</strong> — {({ 'sin-candidatos': 'Google no encontró el lugar', 'nombre-no-coincide': 'el nombre no coincide con el de Google', 'distancia': `el lugar de Google está a más de 500 m${a.distanceMeters ? ` (${a.distanceMeters} m)` : ''}`, 'direccion-no-coincide': 'la dirección de Google no contiene la calle del negocio', 'sin-datos-para-verificar': 'sin coordenadas ni dirección para verificar', 'ya-tiene-place-id': 'ya tenía Place ID' })[a.reason] || a.reason}{a.candidate?.name ? ` (Google devolvió: ${a.candidate.name}${a.candidate.address ? `, ${a.candidate.address}` : ''})` : ''}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {placeIdsSummary.failed.length > 0 && (
+              <div className="text-sm" style={{ color: "#D94F3D", marginTop: 6 }}>
+                Errores: {placeIdsSummary.failed.map((f) => `${f.name} (${f.error})`).join("; ")}
+              </div>
+            )}
+          </div>
+        )}
 
         {(() => {
           const filtered = localBiz;
