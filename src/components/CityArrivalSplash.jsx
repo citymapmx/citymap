@@ -1,13 +1,14 @@
-import { getHomeVisualState } from "../lib/homeReadiness.js";
+import { getHomeVisualState, shouldExitSplash } from "../lib/homeReadiness.js";
 import BrandSplash from "./ui/BrandSplash.jsx";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-const MINIMUM_MS = 600;
-
 // Splash al llegar o cambiar de ciudad: la vista de marca (fondo negro, logo
-// oficial e infinito en blanco). La lógica de salida no cambió: se queda
-// hasta que la ciudad está lista de verdad (datos + contenido visible) y
-// como mínimo 600 ms, así la ciudad aparece directo con todo cargado.
+// oficial e infinito en blanco). Se queda hasta que la ciudad está lista de
+// verdad (datos + contenido visible) y como mínimo 600 ms, así la ciudad
+// aparece directo con todo cargado. Pero nunca más de ~3 s por las fotos:
+// pasado el tope la ciudad se muestra igual y las fotos terminan de cargar
+// progresivamente; una foto rota o lenta no muestra el error ni el
+// reintentar (eso queda solo para un error real de carga de datos).
 export default function CityArrivalSplash({
   enabled,
   waitingForCity = false,
@@ -60,8 +61,8 @@ export default function CityArrivalSplash({
             height: window.innerHeight,
           })
         : "loading";
-      setIssue(Boolean(error) || visual === "error");
-      if (!closing && !error && ready && visual === "ready" && elapsed >= MINIMUM_MS) {
+      setIssue(Boolean(error));
+      if (!closing && shouldExitSplash({ready, error, visual, elapsedMs: elapsed})) {
         closing = true;
         exitTimer = setTimeout(() => setPhase("exit"), 100);
       }

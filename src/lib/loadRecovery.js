@@ -10,9 +10,23 @@ export function isStaleAssetError(error) {
   return /not a valid JavaScript MIME type|MIME type.*module|text\/html/i.test(message);
 }
 
-// A network/import failure alone is not evidence that a new version exists.
+// Un chunk que ya no existe en el servidor tras un despliegue también es
+// evidencia de una versión nueva: Vite renombra los chunks en cada build y
+// el import() falla con "Failed to fetch dynamically imported module" o
+// "Loading chunk … failed" (ChunkLoadError). Un fallo genérico de red
+// ("Importing a module script failed.") NO lo es: sin red no hay forma de
+// saber si hay versión nueva, así que ese no se auto-recupera.
+export function isRecoverableChunkError(error) {
+  const message = String(error?.message || error || '');
+  return error?.name === 'ChunkLoadError' || /Loading chunk \d+ failed|Failed to fetch dynamically imported module/i.test(message);
+}
+
+// Un fallo de red/importación por sí solo no es evidencia de una versión
+// nueva. Un asset obsoleto o un chunk que ya no existe sí lo son: en ese
+// caso la app recarga sola una vez, con el guardia de 15 s para no entrar
+// en bucle.
 export function canAutoRecover(error, now = Date.now()) {
-  if (!isOnline() || !isStaleAssetError(error)) return false;
+  if (!isOnline() || (!isStaleAssetError(error) && !isRecoverableChunkError(error))) return false;
   try {
     const last = Number(sessionStorage.getItem('chunk_reload_guard') || '0');
     return Number.isFinite(last) && now - last > 15000;
