@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 import EventPosterFallback from './EventPosterFallback.jsx';
 import { faceBrightness, normalizeAngleDeg, springSettled, springStep } from '../../lib/spring.js';
+import { useTranslation } from '../../hooks/useTranslation.js';
 
 // Rueda 3D de eventos para el inicio global y las páginas de ciudad, como
 // el "Museo de eventos" de QuePlan: los próximos 10 eventos en un tambor
@@ -24,7 +25,12 @@ const AUTO_MS = 4000;
 // de dispositivo: a 400 px el póster se veía blando. A 800 px se ve nítido.
 const WHEEL_IMG_W = 800;
 
-export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading = 'Próximos eventos', subheading = 'Los eventos que vienen en todas las ciudades', T = {} }) {
+export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading, subheading, T = {} }) {
+  const { t } = useTranslation();
+  // Título por defecto en t(): el llamador puede pasar heading/subheading
+  // propios (la página de ciudad pasa los suyos); si no, se traducen aquí.
+  const headingText = heading ?? t('home_proximos_eventos', 'Próximos eventos');
+  const subheadingText = subheading ?? t('home_eventos_todas_ciudades', 'Los eventos que vienen en todas las ciudades');
   const items = (events || []).slice(0, MAX_FACES);
   const n = items.length;
   const [rotation, setRotation] = useState(0);
@@ -181,8 +187,8 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   // Encabezado: mismo título en ambas páginas; el subtítulo cambia.
   const header = (
     <header style={{ margin: '0 20px 16px', textAlign: 'center' }}>
-      <h2 style={{ margin: '0 0 5px', fontSize: 16, fontWeight: 800, color: T.text }}>{heading}</h2>
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: T.sub }}>{subheading}</p>
+      <h2 style={{ margin: '0 0 5px', fontSize: 16, fontWeight: 800, color: T.text }}>{headingText}</h2>
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: T.sub }}>{subheadingText}</p>
     </header>
   );
 
@@ -216,7 +222,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   }
 
   return (
-    <section className="event-wheel" aria-label="Próximos eventos">
+    <section className="event-wheel" aria-label={headingText}>
       {header}
       <div
         className={`event-wheel-viewport${dragging ? ' event-wheel-dragging' : ''}`}

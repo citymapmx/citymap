@@ -6,6 +6,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import ReactDOM from 'react-dom';
 import { METRO_ZONES, isOpenNow as checkOpenNow } from '../lib/utils';
+import { useTranslation } from '../hooks/useTranslation.js';
 
 // ── MOODS ──────────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ const VIBES = [
 
 // ── COMPONENT ──────────────────────────────────────────────────────────────────
 export default function SurpriseModal({ open, onClose, mapPins, events = [], experiences = [], activeCity, userCoords, isNear, dark, T, handleCardTap, handleEventTap, handleExperienceTap, city }) {
+  const { t, lang } = useTranslation();
   const isOpenNow = business => checkOpenNow(business, CITY_TZ[activeCity]);
   const candidateCache = useRef(new Map());
   const requestVersion = useRef(0);
@@ -114,12 +116,12 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
           const timeStr = format12h(openMin);
 
           if (i === 0) {
-            if (openMin > currentMin) return `Abre hoy a las ${timeStr}`;
+            if (openMin > currentMin) return t('modal_abre_hoy', 'Abre hoy a las {hora}').replace('{hora}', timeStr);
           } else if (i === 1) {
-            return `Abre mañana a las ${timeStr}`;
+            return t('modal_abre_manana', 'Abre mañana a las {hora}').replace('{hora}', timeStr);
           } else {
-            const dayNames = ["el domingo", "el lunes", "el martes", "el miércoles", "el jueves", "el viernes", "el sábado"];
-            return `Abre ${dayNames[checkIdx]} a las ${timeStr}`;
+            const dayNames = lang === 'en' ? ["on Sunday", "on Monday", "on Tuesday", "on Wednesday", "on Thursday", "on Friday", "on Saturday"] : ["el domingo", "el lunes", "el martes", "el miércoles", "el jueves", "el viernes", "el sábado"];
+            return t('modal_abre_dia', 'Abre {dia} a las {hora}').replace('{dia}', dayNames[checkIdx]).replace('{hora}', timeStr);
           }
         }
       }
@@ -220,7 +222,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
       } catch {
         if (version !== requestVersion.current) return;
         setPick(pickBusiness(mood));
-        setAiError('No pudimos consultar más lugares. Revisa tu conexión e inténtalo de nuevo.');
+        setAiError(t('modal_no_pudimos_consultar', 'No pudimos consultar más lugares. Revisa tu conexión e inténtalo de nuevo.'));
       }
       if (version === requestVersion.current) { setSpinning(false); setStep('result'); }
     }, reduceMotion ? 0 : 1800);
@@ -235,10 +237,10 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
         const result = await findPick(selectedMood,pick?.id,version);
         if (version !== requestVersion.current) return;
         if (result) setPick(result);
-        else setRotationNotice('No encontramos otro lugar de este tipo en la ciudad. Puedes elegir otro plan.');
+        else setRotationNotice(t('modal_no_otro_lugar', 'No encontramos otro lugar de este tipo en la ciudad. Puedes elegir otro plan.'));
       } catch {
         if (version !== requestVersion.current) return;
-        setRotationNotice('No pudimos cargar más lugares. Revisa tu conexión e inténtalo de nuevo.');
+        setRotationNotice(t('modal_no_pudimos_cargar', 'No pudimos cargar más lugares. Revisa tu conexión e inténtalo de nuevo.'));
       }
       if (version !== requestVersion.current) return;
       unlockTimer.current = setTimeout(() => { changingRef.current = false; setChanging(false); }, reduceMotion ? 0 : 400);
@@ -280,7 +282,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
         setAiResults({ raw: null, bizList: candidates.slice(0, 3) });
         setStep('ai_result');
       } catch (e) {
-        setAiError('No pudimos generar sugerencias. Intenta de nuevo.');
+        setAiError(t('modal_no_pudimos_generar', 'No pudimos generar sugerencias. Intenta de nuevo.'));
         setStep('result');
       }
     }, 1500); // 1.5s delay to feel like it's "thinking"
@@ -311,8 +313,8 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
         {/* ── STEP: MOOD PICKER ── */}
         {(step === 'mood') && (
           <div>
-            <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>🎲 Sorpréndeme</p>
-            <h2 style={{ textAlign: 'center', fontSize: 22, fontWeight: 900, color: dText, margin: '0 0 24px', letterSpacing: '-0.5px' }}>¿Qué se te antoja?</h2>
+            <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>{t('modal_sorprendeme', '🎲 Sorpréndeme')}</p>
+            <h2 style={{ textAlign: 'center', fontSize: 22, fontWeight: 900, color: dText, margin: '0 0 24px', letterSpacing: '-0.5px' }}>{t('modal_que_se_te_antoja', '¿Qué se te antoja?')}</h2>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {MOODS.map(mood => (
@@ -336,8 +338,8 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
           <div style={{ padding: '40px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 64, animation: 'spin 0.4s linear infinite', display: 'inline-block' }}>🎲</div>
             <style>{`@keyframes spin { from { transform: rotate(0deg) scale(1) } 50% { transform: rotate(180deg) scale(1.2) } to { transform: rotate(360deg) scale(1) } }`}</style>
-            <p style={{ fontSize: 16, fontWeight: 700, color: dText, marginTop: 20 }}>Buscando el mejor lugar…</p>
-            <p style={{ fontSize: 13, color: dSub }}>Analizando {selectedMood?.label.toLowerCase()}</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: dText, marginTop: 20 }}>{t('modal_buscando_mejor_lugar', 'Buscando el mejor lugar…')}</p>
+            <p style={{ fontSize: 13, color: dSub }}>{t('modal_analizando', 'Analizando {plan}').replace('{plan}', selectedMood?.label.toLowerCase())}</p>
           </div>
         )}
 
@@ -345,7 +347,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
         {step === 'result' && pick && (
           <div>
             <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>{selectedMood?.emoji} {selectedMood?.label}</p>
-            <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 16px' }}>¡Lo encontramos!</h2>
+            <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 16px' }}>{t('modal_lo_encontramos', '¡Lo encontramos!')}</h2>
 
             {/* Business/Event/Experience Card */}
             <div style={{ minHeight: pick.isEvent ? undefined : 220 }} aria-busy={changing}>
@@ -367,7 +369,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
               {!pick.isEvent && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />}
               <div style={{ position: pick.isEvent ? 'relative' : 'absolute', bottom: 0, left: 0, right: 0, padding: pick.isEvent ? '14px 16px 16px' : '20px 16px 16px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: pick.isEvent ? dSub : 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-                  {pick.isEvent ? 'EVENTO' : pick.isExperience ? (typeLabel(pick.activity_type) || 'EXPERIENCIA') : pick.category}
+                  {pick.isEvent ? t('modal_evento_etiqueta', 'EVENTO') : pick.isExperience ? (typeLabel(pick.activity_type) || t('modal_experiencia_etiqueta', 'EXPERIENCIA')) : pick.category}
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: pick.isEvent ? dText : '#fff', lineHeight: 1.1 }}>{pick.title || pick.name}</div>
                 {pick.isEvent || pick.isExperience
@@ -376,13 +378,13 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
                 }
               </div>
               {pick.isEvent ? (
-                <div style={{ position: 'absolute', top: 12, right: 12, background: '#3B82F6', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Próximamente</div>
+                <div style={{ position: 'absolute', top: 12, right: 12, background: '#3B82F6', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>{t('modal_proximamente', 'Próximamente')}</div>
               ) : pick.isExperience ? (
                 null
               ) : (
                 isOpenNow(pick)
-                  ? <div style={{ position: 'absolute', top: 12, right: 12, background: '#10B981', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>Abierto</div>
-                  : <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 800, color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}>Cerrado</div>
+                  ? <div style={{ position: 'absolute', top: 12, right: 12, background: '#10B981', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800, color: '#fff' }}>{t('abierto', 'Abierto')}</div>
+                  : <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 800, color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}>{t('cerrado', 'Cerrado')}</div>
               )}
             </m.div>
             </AnimatePresence>
@@ -395,11 +397,11 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
               else handleCardTap(pick);
               handleClose();
             }} style={{ width: '100%', marginTop: 12, minHeight: 48, background: dText, color: dBg, border: 'none', borderRadius: 14, padding: '14px', fontWeight: 800, fontSize: 15, cursor: changing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
-              {pick.isEvent ? 'Ver evento →' : pick.isExperience ? 'Ver plan →' : 'Ver lugar →'}
+              {pick.isEvent ? t('modal_ver_evento', 'Ver evento →') : pick.isExperience ? t('modal_ver_plan', 'Ver plan →') : t('modal_ver_lugar', 'Ver lugar →')}
             </button>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
-              <button disabled={changing} onClick={() => setStep('mood')} style={{ minHeight: 46, background: 'transparent', border: `1px solid ${dBorder}`, borderRadius: 14, padding: '10px 8px', fontWeight: 700, fontSize: 13, color: dSub, cursor: changing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>Elegir otro plan</button>
-              <button disabled={changing} onClick={handleAnother} style={{ minHeight: 46, background: dCard, color: dText, border: `1px solid ${dBorder}`, borderRadius: 14, padding: '10px 8px', fontWeight: 700, fontSize: 13, cursor: changing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>{changing ? 'Buscando…' : 'Buscar otro lugar'}</button>
+              <button disabled={changing} onClick={() => setStep('mood')} style={{ minHeight: 46, background: 'transparent', border: `1px solid ${dBorder}`, borderRadius: 14, padding: '10px 8px', fontWeight: 700, fontSize: 13, color: dSub, cursor: changing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>{t('modal_elegir_otro_plan', 'Elegir otro plan')}</button>
+              <button disabled={changing} onClick={handleAnother} style={{ minHeight: 46, background: dCard, color: dText, border: `1px solid ${dBorder}`, borderRadius: 14, padding: '10px 8px', fontWeight: 700, fontSize: 13, cursor: changing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>{changing ? t('modal_buscando', 'Buscando…') : t('modal_buscar_otro_lugar', 'Buscar otro lugar')}</button>
             </div>
             <div role="status" aria-live="polite" style={{ fontSize: 13, color: dSub, textAlign: 'center', lineHeight: 1.5, marginTop: rotationNotice ? 10 : 0 }}>{rotationNotice}</div>
             {aiError && <p style={{ color: '#EF4444', fontSize: 12, textAlign: 'center', marginTop: 8 }}>{aiError}</p>}
@@ -410,17 +412,17 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
         {step === 'result' && !pick && (
           <div style={{ padding: '40px 0', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>😅</div>
-            <p style={{ fontSize: 16, fontWeight: 700, color: dText }}>{aiError || 'No encontramos lugares de esta categoría'}</p>
-            <button onClick={() => setStep('mood')} style={{ marginTop: 16, background: dText, color: dBg, border: 'none', borderRadius: 14, padding: '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>Intentar otra categoría</button>
+            <p style={{ fontSize: 16, fontWeight: 700, color: dText }}>{aiError || t('modal_no_lugares_categoria', 'No encontramos lugares de esta categoría')}</p>
+            <button onClick={() => setStep('mood')} style={{ marginTop: 16, background: dText, color: dBg, border: 'none', borderRadius: 14, padding: '12px 24px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>{t('modal_intentar_otra_categoria', 'Intentar otra categoría')}</button>
           </div>
         )}
 
         {/* ── STEP: AI VIBE PICKER ── */}
         {step === 'ai_vibe' && (
           <div>
-            <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>🤖 IA</p>
-            <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 6px' }}>¿Cuál es el ambiente?</h2>
-            <p style={{ textAlign: 'center', fontSize: 13, color: dSub, margin: '0 0 20px' }}>La IA buscará 3 opciones perfectas para ti</p>
+            <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>{t('modal_ia', '🤖 IA')}</p>
+            <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 6px' }}>{t('modal_cual_ambiente', '¿Cuál es el ambiente?')}</h2>
+            <p style={{ textAlign: 'center', fontSize: 13, color: dSub, margin: '0 0 20px' }}>{t('modal_ia_buscara', 'La IA buscará 3 opciones perfectas para ti')}</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {VIBES.map(v => (
                 <button key={v.id} onClick={() => handleAiGenerate(v)} style={{
@@ -429,11 +431,11 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
                   transition: 'all 0.15s'
                 }}>
                   <div style={{ fontSize: 26, marginBottom: 6 }}>{v.emoji}</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: dText }}>{v.label}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: dText }}>{t(`modal_vibe_${v.id}`, v.label)}</div>
                 </button>
               ))}
             </div>
-            <button onClick={() => setStep('mood')} style={{ width: '100%', marginTop: 12, background: 'transparent', border: 'none', color: dSub, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 12, fontFamily: 'inherit' }}>← Volver</button>
+            <button onClick={() => setStep('mood')} style={{ width: '100%', marginTop: 12, background: 'transparent', border: 'none', color: dSub, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 12, fontFamily: 'inherit' }}>← {t('comun_volver', 'Volver')}</button>
           </div>
         )}
 
@@ -442,16 +444,16 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
           <div style={{ padding: '50px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 48, animation: 'pulse 1s ease-in-out infinite', display: 'inline-block' }}>🤖</div>
             <style>{`@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }`}</style>
-            <p style={{ fontSize: 16, fontWeight: 700, color: dText, marginTop: 16 }}>Consultando a la IA…</p>
-            <p style={{ fontSize: 13, color: dSub }}>Analizando los mejores lugares de {(city || '').split(',')[0]}</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: dText, marginTop: 16 }}>{t('modal_consultando_ia', 'Consultando a la IA…')}</p>
+            <p style={{ fontSize: 13, color: dSub }}>{t('modal_analizando_lugares', 'Analizando los mejores lugares de {ciudad}').replace('{ciudad}', (city || '').split(',')[0])}</p>
           </div>
         )}
 
         {/* ── STEP: AI RESULT ── */}
         {step === 'ai_result' && aiResults && (
           <div>
-            <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>🤖 {aiVibe?.emoji} Recomendaciones IA</p>
-            <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 16px' }}>Perfectas para ti</h2>
+            <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: dSub, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 4px' }}>{t('modal_recomendaciones_ia', '🤖 {emoji} Recomendaciones IA').replace('{emoji}', aiVibe?.emoji)}</p>
+            <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: dText, margin: '0 0 16px' }}>{t('modal_perfectas_para_ti', 'Perfectas para ti')}</h2>
 
             {aiResults.bizList?.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -485,8 +487,8 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
             )}
 
             <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-              <button onClick={() => setStep('ai_vibe')} style={{ flex: 1, background: dCard, color: dText, border: `1.5px solid ${dBorder}`, borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>🔄 Intentar otro</button>
-              <button onClick={() => setStep('mood')} style={{ flex: 1, background: dText, color: dBg, border: 'none', borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Elegir otro plan</button>
+              <button onClick={() => setStep('ai_vibe')} style={{ flex: 1, background: dCard, color: dText, border: `1.5px solid ${dBorder}`, borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>{t('modal_intentar_otro', '🔄 Intentar otro')}</button>
+              <button onClick={() => setStep('mood')} style={{ flex: 1, background: dText, color: dBg, border: 'none', borderRadius: 14, padding: 12, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>{t('modal_elegir_otro_plan', 'Elegir otro plan')}</button>
             </div>
           </div>
         )}

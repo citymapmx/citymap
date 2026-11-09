@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Icon from '../ui/Icon.jsx';
 import { getKm, getThumbUrl } from '../../lib/utils.js';
+import { useTranslation } from '../../hooks/useTranslation.js';
 
 function PlaceThumbnail({ business, T }) {
   const [failed, setFailed] = useState(false);
@@ -12,9 +13,10 @@ function PlaceThumbnail({ business, T }) {
 }
 
 export default function SearchSuggestions({ results, cats = [], userCoords, onSelect, onViewAll, T }) {
-  return <div aria-label="Sugerencias de lugares" style={{ border: `1px solid ${T.border}`, borderRadius: 16, overflow: 'hidden', background: T.white }}>
+  const { t } = useTranslation();
+  return <div aria-label={t("home_sugerencias_lugares", "Sugerencias de lugares")} style={{ border: `1px solid ${T.border}`, borderRadius: 16, overflow: 'hidden', background: T.white }}>
     {results.slice(0, 5).map(business => {
-      const category = cats.find(cat => cat.id === business.category)?.label || business.category || business.type || 'Lugar';
+      const category = cats.find(cat => cat.id === business.category)?.label || business.category || business.type || t("home_lugar", "Lugar");
       const coordinates = [userCoords?.lat, userCoords?.lng, business.lat, business.lng];
       const hasCoordinates = coordinates.every(value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) && Number(value) !== 0);
       const distance = hasCoordinates ? getKm(...coordinates.map(Number)) : null;
@@ -26,6 +28,6 @@ export default function SearchSuggestions({ results, cats = [], userCoords, onSe
         <Icon name="chevron" size={16} color={T.sub} />
       </button>;
     })}
-    <button type="button" onClick={onViewAll} style={{ width: '100%', minHeight: 46, padding: '12px 16px', border: 0, background: 'transparent', color: T.text, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Ver todos los resultados →</button>
+    <button type="button" onClick={onViewAll} style={{ width: '100%', minHeight: 46, padding: '12px 16px', border: 0, background: 'transparent', color: T.text, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{t("home_ver_todos_resultados", "Ver todos los resultados")} →</button>
   </div>;
 }

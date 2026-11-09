@@ -43,7 +43,7 @@ export default function FavsView({ hideHeader }) {
                     <button className="press" onClick={() => setActiveCollection(null)} style={{ width: 40, height: 40, borderRadius: "50%", background: T.white, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: T.shadow }}><Icon name="arrow_left" size={20} color={T.text} /></button>
                     <div style={{ flex: 1 }}>
                       <h3 style={{ fontSize: 20, fontWeight: 800, color: T.text, margin: 0 }}>{activeCollection.emoji} {activeCollection.name}</h3>
-                      <div style={{ fontSize: 13, color: T.sub }}>{colItems.length} {lang === 'en' ? 'places' : 'lugares'}</div>
+                      <div style={{ fontSize: 13, color: T.sub }}>{colItems.length} {t("lugares", "lugares")}</div>
                     </div>
                     <button className="press" onClick={() => {
                       if(window.confirm(t("confirm_delete_col", "¿Estás seguro de eliminar esta colección? Los lugares no se borrarán, solo volverán a la sección 'Sin organizar'."))) {

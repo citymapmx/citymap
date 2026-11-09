@@ -467,7 +467,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
               color: "#FFFFFF",
               lineHeight: 1
             }}>
-              REVISTA
+              {t("revista", "Revista")}
             </span>
           </div>
           <p className="exp-subtitle-anim section-category-subtitle" style={{ margin: 0, fontSize: 13, fontWeight: 600, color: T.sub, lineHeight: 1.4 }}>
@@ -593,11 +593,11 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
           !showCivitatisWidget && ![ "ciudad-de-mexico", "puerto-vallarta", "los-angeles", "madrid", "paris"].includes(activeCity) && (
             <div style={{ textAlign: "center", padding: "60px 20px", color: T.sub }}>
               <span style={{ fontSize: 48 }}>🌅</span>
-              <h3 style={{ marginTop: 16, fontWeight: 800, color: T.text }}>{(searchQ || hasActiveFilters) ? t("no_resultados", "No hay resultados") : t("pronto_experiencias", "Pronto habrá experiencias")}</h3>
+              <h3 style={{ marginTop: 16, fontWeight: 800, color: T.text }}>{(searchQ || hasActiveFilters) ? t("revista_sin_resultados", "No hay resultados") : t("pronto_experiencias", "Pronto habrá experiencias")}</h3>
               <p style={{ fontSize: 14, lineHeight: 1.6 }}>{searchQ ? t("buscar_otras_palabras", "Intenta buscando con otras palabras.") : hasActiveFilters ? t("prueba_otros_filtros", "Prueba con otros filtros o limpia la selección.") : `${t("preparando_experiencias", "Estamos preparando las mejores experiencias en")} ${cityName}.`}</p>
               {hasActiveFilters && (
                 <button onClick={clearFilters} className="press" style={{ marginTop: 16, padding: "12px 24px", background: dark ? "#FFFFFF" : "#0F172A", color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 24, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                  ✕ {t("limpiar_filtros", "Limpiar filtros")}
+                  ✕ {t("revista_limpiar_filtros", "Limpiar filtros")}
                 </button>
               )}
             </div>
@@ -623,7 +623,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
         {activeCity === "paris" && <TiqetsParisWidget T={T} dark={dark} />}
       </div>
       {routeSlug && !viewingPlan && createPortal(
-        <div role="status" aria-label="Cargando artículo" style={{ position: "fixed", inset: 0, bottom: "calc(57px + env(safe-area-inset-bottom, 8px))", zIndex: 40, background: T.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div role="status" aria-label={t("revista_cargando_articulo", "Cargando artículo")} style={{ position: "fixed", inset: 0, bottom: "calc(57px + env(safe-area-inset-bottom, 8px))", zIndex: 40, background: T.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTopColor: T.text, borderRadius: "50%", animation: "spin .8s linear infinite" }} />
         </div>, document.body
       )}

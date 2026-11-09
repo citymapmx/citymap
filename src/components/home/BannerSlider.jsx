@@ -2,6 +2,7 @@ import React from "react";
 import { m, AnimatePresence } from "framer-motion";
 import OptimizedImage from "../ui/OptimizedImage.jsx";
 import { useUIStore } from "../../store/useUIStore.js";
+import { useTranslation } from "../../hooks/useTranslation.js";
 
 // Detect URL type
 function getMediaType(url) {
@@ -45,6 +46,7 @@ const slideVariants = {
 };
 
 export default function BannerSlider({ activeBanners }) {
+  const { t } = useTranslation();
   const dark = useUIStore(s => s.dark);
   const [idx, setIdx] = React.useState(0);
   const [dir, setDir] = React.useState(1);
@@ -151,7 +153,7 @@ export default function BannerSlider({ activeBanners }) {
             ) : embedUrl ? (
               <iframe
                 src={embedUrl}
-                title={bn.title || "Banner video"}
+                title={bn.title || t("home_banner_video", "Banner video")}
                 allow="autoplay; fullscreen"
                 style={{ width: "100%", height: "100%", border: "none", pointerEvents: "none" }}
               />
@@ -170,7 +172,7 @@ export default function BannerSlider({ activeBanners }) {
               background: "rgba(0,0,0,0.62)", color: "#fff",
               fontSize: 10, lineHeight: "14px", fontWeight: 500,
               letterSpacing: 0.15, pointerEvents: "none"
-            }}>Publicidad</span>}
+            }}>{t("home_publicidad", "Publicidad")}</span>}
           </m.div>
         </AnimatePresence>
       </div>
@@ -180,7 +182,7 @@ export default function BannerSlider({ activeBanners }) {
             <button
               key={b.id || i}
               type="button"
-              aria-label={`Ver banner ${i + 1} de ${count}`}
+              aria-label={`${t("home_ver_banner", "Ver banner")} ${i + 1} ${t("home_de", "de")} ${count}`}
               aria-current={i === safeIdx}
               onClick={() => goTo(i)}
               style={{

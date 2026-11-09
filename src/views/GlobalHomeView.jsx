@@ -14,6 +14,7 @@ import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
 import EventWheel3D from '../components/home/EventWheel3D.jsx';
 import TravelAffiliateRow from '../components/home/TravelAffiliateRow.jsx';
 import Footer from '../components/Footer.jsx';
+import { useTranslation } from '../hooks/useTranslation.js';
 
 const BIZ_PAGE = 60;
 // Cada sección del muro muestra 5 tarjetas y al deslizar hasta el final
@@ -23,7 +24,6 @@ const SECTION_STEP = 5;
 // Categorías de la tabla businesses que son lugares (no negocios): así se
 // clasifican en el filtro "Lugares" del muro, además de is_place.
 const PLACE_CATEGORIES = ['lugares', 'unidad deportiva', 'playa'];
-const PLACE_LABELS = { lugares: 'Puntos de interés', 'unidad deportiva': 'Unidad Deportiva', playa: 'Playa' };
 const normCat = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const isPlaceBiz = (b) => !!b.is_place || PLACE_CATEGORIES.includes(normCat(b.category));
 
@@ -46,6 +46,7 @@ function bizImage(b) {
 // escribir cambia cada ~75 ms y así solo se vuelve a dibujar esta zona,
 // no todo el muro.
 function HeroSearchBar({ dark, query, setQuery }) {
+  const { t } = useTranslation();
   const { detectCity, locating, navigate } = useAppContext();
   const handleLocate = () => {
     if (locating) return;
@@ -106,7 +107,7 @@ function HeroSearchBar({ dark, query, setQuery }) {
       </div>
 
       {!query && (
-        <button type="button" aria-label="Encontrar lugares cerca de mí" title="Cerca de mí" disabled={locating} onClick={handleLocate}
+        <button type="button" aria-label={t("home_encontrar_cerca", "Encontrar lugares cerca de mí")} title={t("home_cerca_de_mi", "Cerca de mí")} disabled={locating} onClick={handleLocate}
           style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: locating ? 'default' : 'pointer', fontSize: 23, opacity: locating ? 0.5 : 1 }}>📍</button>
       )}
     </div>
@@ -114,6 +115,7 @@ function HeroSearchBar({ dark, query, setQuery }) {
 }
 
 export default function GlobalHomeView() {
+  const { t, lang } = useTranslation();
   const { T, dark, user, toast$, handleCardTap, handleEventTap, navigate, favIds, toggleFav, globalFavCounts, savedEventIds, setSavedEventIds, savedExpIds, setSavedExpIds, toggleSaveEvent } = useAppContext();
   const routerNavigate = useNavigate();
   const setShowAuth = useAuthStore((s) => s.setShowAuth);
@@ -262,22 +264,24 @@ export default function GlobalHomeView() {
   const greeting = useMemo(() => {
     const h = new Date().getHours();
     const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-    const day = days[new Date().getDay()];
-    if (h >= 5 && h < 12) return `¡Buen ${day}!`;
-    if (h >= 12 && h < 19) return `¡Excelente ${day}!`;
-    return '¡Linda noche!';
-  }, []);
+    const dayKeys = ['home_dia_domingo', 'home_dia_lunes', 'home_dia_martes', 'home_dia_miercoles', 'home_dia_jueves', 'home_dia_viernes', 'home_dia_sabado'];
+    const dayIdx = new Date().getDay();
+    const day = t(dayKeys[dayIdx], days[dayIdx]);
+    if (h >= 5 && h < 12) return `${t('home_saludo_buen', '¡Buen')} ${day}!`;
+    if (h >= 12 && h < 19) return `${t('home_saludo_excelente', '¡Excelente')} ${day}!`;
+    return t('home_saludo_linda_noche', '¡Linda noche!');
+  }, [t]);
 
   const contextMessage = useMemo(() => {
     const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
     return rand([
-      'Descubre qué hay hoy en todas las ciudades',
-      'Negocios, lugares, artículos y eventos de todas nuestras ciudades',
-      'Lo mejor de Guadalajara, Tepic, Vallarta y más',
-      '¿Qué plan hay hoy? Explora todas las ciudades',
-      'Encuentra dónde comer, qué visitar y qué hacer',
+      t('home_contexto_01', 'Descubre qué hay hoy en todas las ciudades'),
+      t('home_contexto_02', 'Negocios, lugares, artículos y eventos de todas nuestras ciudades'),
+      t('home_contexto_03', 'Lo mejor de Guadalajara, Tepic, Vallarta y más'),
+      t('home_contexto_04', '¿Qué plan hay hoy? Explora todas las ciudades'),
+      t('home_contexto_05', 'Encuentra dónde comer, qué visitar y qué hacer'),
     ]);
-  }, []);
+  }, [t]);
 
   // Feed unificado: negocios, lugares, artículos y eventos, lo más reciente primero.
   const feed = useMemo(() => {
@@ -287,11 +291,15 @@ export default function GlobalHomeView() {
       if (seen.has(`b-${b.id}`)) return;
       seen.add(`b-${b.id}`);
       const isPlace = isPlaceBiz(b);
-      const catLabel = PLACE_LABELS[normCat(b.category)] || b.category || 'Negocio';
+      const catNorm = normCat(b.category);
+      const catLabel = catNorm === 'lugares' ? t('home_puntos_interes', 'Puntos de interés')
+        : catNorm === 'unidad deportiva' ? t('unidad deportiva', 'Unidad Deportiva')
+        : catNorm === 'playa' ? t('home_playa', 'Playa')
+        : b.category || t('home_negocio', 'Negocio');
       items.push({
         key: `b-${b.id}`,
         kind: isPlace ? 'lugares' : 'negocios',
-        badge: isPlace ? 'Lugar' : 'Negocio',
+        badge: isPlace ? t('home_lugar', 'Lugar') : t('home_negocio', 'Negocio'),
         title: b.name,
         subtitle: `${catLabel} · ${cityBySlug.get(b.city_slug)?.name || ''}`.replace(/ · $/, ''),
         img: bizImage(b),
@@ -308,9 +316,9 @@ export default function GlobalHomeView() {
       items.push({
         key: `x-${exp.id}`,
         kind: 'articulos',
-        badge: 'Artículo',
+        badge: t('home_articulo', 'Artículo'),
         title: exp.title,
-        subtitle: 'Guía de viaje',
+        subtitle: t('home_guia_viaje', 'Guía de viaje'),
         img: typeof img === 'string' ? img : null,
         date: exp.created_at || '',
         citySlug: exp.city_slug,
@@ -323,7 +331,7 @@ export default function GlobalHomeView() {
       items.push({
         key: `e-${ev.id}`,
         kind: 'eventos',
-        badge: 'Evento',
+        badge: t('home_evento', 'Evento'),
         title: ev.title,
         subtitle: `${ev.date || ''}${ev.venue_name ? ` · ${ev.venue_name}` : ''}${cityBySlug.get(ev.city_slug)?.name ? ` · ${cityBySlug.get(ev.city_slug).name}` : ''}`,
         img: ev.img_url || ev.img || null,
@@ -334,7 +342,7 @@ export default function GlobalHomeView() {
     });
     items.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     return items;
-  }, [biz, experiences, events, cityBySlug]);
+  }, [biz, experiences, events, cityBySlug, t]);
 
   // Secciones del muro (opción A): cada una con sus propios items, sin mezclar.
   // Eventos por fecha (los más cercanos primero); lugares y restaurantes por
@@ -374,7 +382,7 @@ export default function GlobalHomeView() {
             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{isPoster ? '🎟️' : '📍'}</div>}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)' }} />
           <button
-            aria-label="Guardar"
+            aria-label={t("home_guardar", "Guardar")}
             onClick={(e) => toggleSave(e, item)}
             style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
           >
@@ -434,7 +442,7 @@ export default function GlobalHomeView() {
 
   const fmtDate = (d) => {
     try {
-      return new Date(`${d}T12:00:00`).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+      return new Date(`${d}T12:00:00`).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
     } catch { return d; }
   };
 
@@ -501,8 +509,8 @@ export default function GlobalHomeView() {
                brinque cuando aparecen (CLS 0.707 en PageSpeed) */}
             <section style={{ marginTop: 22, marginBottom: 30 }} aria-hidden="true">
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Explora por ciudad</h2>
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, whiteSpace: 'nowrap' }}>Ver todas las ciudades →</span>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>{t("home_explora_por_ciudad", "Explora por ciudad")}</h2>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, whiteSpace: 'nowrap' }}>{t("home_ver_todas_ciudades", "Ver todas las ciudades")} →</span>
               </div>
               <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
                 {[0, 1, 2, 3, 4].map((i) => (
@@ -543,21 +551,21 @@ export default function GlobalHomeView() {
         )}
         {error && !loading && (
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
-            <p style={{ color: T.sub }}>No pudimos cargar el contenido global.</p>
-            <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: '11px 22px', borderRadius: 999, border: 0, background: '#1A7A5E', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Reintentar</button>
+            <p style={{ color: T.sub }}>{t("home_error_contenido_global", "No pudimos cargar el contenido global.")}</p>
+            <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: '11px 22px', borderRadius: 999, border: 0, background: '#1A7A5E', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{t("home_reintentar", "Reintentar")}</button>
           </div>
         )}
 
         {!loading && !error && isSearching && (
           <section style={{ marginTop: 22, marginBottom: 32 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 4px' }}>Resultados para “{query.trim()}”</h2>
-            <p style={{ fontSize: 13, color: T.sub, margin: '0 0 16px' }}>{searching ? 'Buscando en todas las ciudades...' : 'Buscamos en negocios, eventos y artículos de todas las ciudades.'}</p>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 4px' }}>{t("home_resultados_para", "Resultados para")} “{query.trim()}”</h2>
+            <p style={{ fontSize: 13, color: T.sub, margin: '0 0 16px' }}>{searching ? t("home_buscando_todas_ciudades", "Buscando en todas las ciudades...") : t("home_buscamos_en", "Buscamos en negocios, eventos y artículos de todas las ciudades.")}</p>
             {searchResults && searchResults.cities.length === 0 && searchResults.biz.length === 0 && searchResults.events.length === 0 && searchResults.exps.length === 0 && !searching && (
-              <p style={{ color: T.sub }}>No encontramos nada con esa búsqueda. Prueba con otra palabra.</p>
+              <p style={{ color: T.sub }}>{t("home_no_encontramos_busqueda", "No encontramos nada con esa búsqueda. Prueba con otra palabra.")}</p>
             )}
             {searchResults && searchResults.cities.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>Ciudades</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>{t("home_ciudades", "Ciudades")}</h3>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {searchResults.cities.map((c) => (
                     <button key={c.slug} onClick={() => navigate(`/${c.slug}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px 8px 8px', borderRadius: 999, border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer' }}>
@@ -570,7 +578,7 @@ export default function GlobalHomeView() {
             )}
             {searchResults && searchResults.biz.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>Negocios y lugares</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>{t("home_negocios_lugares", "Negocios y lugares")}</h3>
                 {searchResults.biz.map((b) => (
                   <button key={`sb-${b.id}`} onClick={() => handleCardTap(b)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 0', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
                     <span style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', background: '#e8f5ef', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
@@ -578,7 +586,7 @@ export default function GlobalHomeView() {
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</span>
-                      <span style={{ display: 'block', fontSize: 13, color: T.sub }}>{b.category || 'Negocio'} · {cityBySlug.get(b.city_slug)?.name || ''}</span>
+                      <span style={{ display: 'block', fontSize: 13, color: T.sub }}>{b.category || t('home_negocio', 'Negocio')} · {cityBySlug.get(b.city_slug)?.name || ''}</span>
                     </span>
                   </button>
                 ))}
@@ -586,7 +594,7 @@ export default function GlobalHomeView() {
             )}
             {searchResults && searchResults.events.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>Eventos</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>{t("eventos", "Eventos")}</h3>
                 {searchResults.events.map((ev) => (
                   <button key={`se-${ev.id}`} onClick={() => handleEventTap(ev)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 0', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
                     <span style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', background: '#e8f5ef', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
@@ -602,7 +610,7 @@ export default function GlobalHomeView() {
             )}
             {searchResults && searchResults.exps.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>Artículos y guías</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, margin: '0 0 10px' }}>{t("home_articulos_guias", "Artículos y guías")}</h3>
                 {searchResults.exps.map((exp) => {
                   const g = parseGallery(exp);
                   const img = g[0]?.url || g[0] || null;
@@ -613,7 +621,7 @@ export default function GlobalHomeView() {
                       </span>
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{exp.title}</span>
-                        <span style={{ display: 'block', fontSize: 13, color: T.sub }}>Guía de viaje{cityBySlug.get(exp.city_slug)?.name ? ` · ${cityBySlug.get(exp.city_slug).name}` : ''}</span>
+                        <span style={{ display: 'block', fontSize: 13, color: T.sub }}>{t("home_guia_viaje", "Guía de viaje")}{cityBySlug.get(exp.city_slug)?.name ? ` · ${cityBySlug.get(exp.city_slug).name}` : ''}</span>
                       </span>
                     </button>
                   );
@@ -629,9 +637,9 @@ export default function GlobalHomeView() {
             {allCities.length > 0 && (
               <section style={{ marginTop: 22, marginBottom: 30 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Explora por ciudad</h2>
+                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>{t("home_explora_por_ciudad", "Explora por ciudad")}</h2>
                   <button onClick={() => setShowAllCities((v) => !v)} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    {showAllCities ? 'Ver menos ←' : 'Ver todas las ciudades →'}
+                    {showAllCities ? <>{t("ver_menos", "Ver menos")} ←</> : <>{t("home_ver_todas_ciudades", "Ver todas las ciudades")} →</>}
                   </button>
                 </div>
                 <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
@@ -647,7 +655,7 @@ export default function GlobalHomeView() {
                           antes el nombre saltaba de bottom 10 a 26 cuando llegaban
                           los conteos (parte del CLS 0.707) */}
                       <span style={{ position: 'absolute', left: 12, bottom: 26, color: '#fff', fontSize: 16, fontWeight: 800 }}>{city.name}</span>
-                      <span style={{ position: 'absolute', left: 12, bottom: 8, color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 600 }}>{popCounts[city.slug] ? `${popCounts[city.slug].biz} negocios · ${popCounts[city.slug].ev} eventos` : ' '}</span>
+                      <span style={{ position: 'absolute', left: 12, bottom: 8, color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 600 }}>{popCounts[city.slug] ? <>{popCounts[city.slug].biz} {t("home_negocios", "negocios")} · {popCounts[city.slug].ev} {t("eventos", "eventos")}</> : ' '}</span>
                     </button>
                   ))}
                 </div>
@@ -667,7 +675,7 @@ export default function GlobalHomeView() {
             {/* Lugares increíbles: puntos de interés, unidades deportivas y playas */}
             {placesList.length > 0 && (
               <section style={{ marginBottom: 32 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Lugares increíbles</h2>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>{t("home_lugares_increibles", "Lugares increíbles")}</h2>
                 <div onScroll={onRowScroll(placesList, placesShown, setPlacesShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
                   {placesList.slice(0, placesShown).map((item, idx) => renderCard(item, idx))}
                 </div>
@@ -677,7 +685,7 @@ export default function GlobalHomeView() {
             {/* Restaurantes que debes conocer: los mejor calificados */}
             {restaurantsList.length > 0 && (
               <section style={{ marginBottom: 32 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>Restaurantes que debes conocer</h2>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>{t("home_restaurantes_conocer", "Restaurantes que debes conocer")}</h2>
                 <div onScroll={onRowScroll(restaurantsList, restShown, setRestShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
                   {restaurantsList.slice(0, restShown).map((item, idx) => renderCard(item, idx))}
                 </div>
@@ -688,9 +696,9 @@ export default function GlobalHomeView() {
             {tourGroups.length > 0 && (
               <section style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Tours por ciudad</h2>
+                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>{t("home_tours_por_ciudad", "Tours por ciudad")}</h2>
                   <button onClick={() => navigate('/tours')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    Ver todos los tours →
+                    {t("home_ver_todos_tours", "Ver todos los tours")} →
                   </button>
                 </div>
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none' }}>
@@ -704,7 +712,7 @@ export default function GlobalHomeView() {
                   {visibleTours.map((tour) => {
                     const gallery = parseGallery(tour);
                     const img = gallery[0]?.url || gallery[0] || null;
-                    const price = tourPriceLabel(tour);
+                    const price = tourPriceLabel(tour, lang);
                     return (
                       <article key={`t-${tour.id}`} onClick={() => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } })} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.card, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
                         <div style={{ position: 'relative', height: 180, background: 'linear-gradient(135deg,#111,#333)' }}>
@@ -715,8 +723,8 @@ export default function GlobalHomeView() {
                         </div>
                         <div style={{ padding: '12px 14px 16px', background: T.card }}>
                           <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{tour.title}</h3>
-                          <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || 'Precio no publicado'}</p>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>Ver más detalles →</span>
+                          <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || t("home_precio_no_publicado", "Precio no publicado")}</p>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>{t("home_ver_mas_detalles", "Ver más detalles")} →</span>
                         </div>
                       </article>
                     );
@@ -729,9 +737,9 @@ export default function GlobalHomeView() {
             {experiences.length > 0 && (
               <section style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Guías y artículos</h2>
+                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>{t("home_guias_articulos", "Guías y artículos")}</h2>
                   <button onClick={() => navigate('/revista')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    Ver todas las guías →
+                    {t("home_ver_todas_guias", "Ver todas las guías")} →
                   </button>
                 </div>
                 <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
@@ -751,7 +759,7 @@ export default function GlobalHomeView() {
                             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>📝</div>}
                           <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>{typeLabel(exp.activity_type)}</span>
                           <button
-                            aria-label="Guardar"
+                            aria-label={t("home_guardar", "Guardar")}
                             onClick={(e) => { e.stopPropagation(); if (!user) { setShowAuth(true); return; } const ids = savedExpIds || []; const nw = ids.includes(exp.id) ? ids.filter((x) => x !== exp.id) : [...ids, exp.id]; setSavedExpIds?.(nw); try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ } }}
                             style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
                           >
@@ -761,7 +769,7 @@ export default function GlobalHomeView() {
                         <div style={{ padding: '12px 14px 16px' }}>
                           <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{exp.title}</h3>
                           <p style={{ fontSize: 13, color: T.sub, margin: 0 }}>
-                            {cityBySlug.get(exp.city_slug)?.name || ''}{exp.duration ? ` · ⏱ ${exp.duration}` : ''}{exp.price > 0 ? ` · $${exp.price} MXN` : ' · Gratis'}
+                            {cityBySlug.get(exp.city_slug)?.name || ''}{exp.duration ? ` · ⏱ ${exp.duration}` : ''}{exp.price > 0 ? ` · $${exp.price} MXN` : ` · ${t("home_gratis", "Gratis")}`}
                           </p>
                         </div>
                       </article>

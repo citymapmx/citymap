@@ -3,6 +3,7 @@ import { SPRING_UI } from '../lib/spring.js';
 import { m } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import Icon from './ui/Icon.jsx';
+import { useTranslation } from '../hooks/useTranslation.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { useShallow } from 'zustand/react/shallow';
@@ -10,6 +11,7 @@ import { useShallow } from 'zustand/react/shallow';
 export default function BottomNav({ dark, navigate }) {
   const location = useLocation();
   const T = getT(dark);
+  const { t } = useTranslation();
   const { mapFullScreen } = useUIStore(useShallow(s => ({ mapFullScreen: s.mapFullScreen })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
 
@@ -20,7 +22,7 @@ export default function BottomNav({ dark, navigate }) {
 
   return (
     <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, width: "100%", height: "calc(57px + env(safe-area-inset-bottom, 8px))", boxSizing: "border-box", background: T.white, borderTop: `1px solid ${dark ? T.border : 'rgba(0,0,0,0.08)'}`, display: "flex", alignItems: "center", justifyContent: "space-around", padding: "4px 12px", paddingBottom: "calc(4px + env(safe-area-inset-bottom, 8px))", zIndex: 50, boxShadow: "0 -4px 20px rgba(0,0,0,0.03)" }}>
-      {[{ id: "home", icon: "home", label: "Inicio" }, { id: "mis-planes", icon: "newspaper", label: "Revista" }, { id: "map", icon: "map_svg", label: "Mapa" }, { id: "eventos", icon: "ticket", label: "Eventos" }, { id: "account", icon: "user", label: "Mi Perfil" }].map(n => {
+      {[{ id: "home", icon: "home", label: t("inicio", "Inicio") }, { id: "mis-planes", icon: "newspaper", label: t("menu_revista", "Revista") }, { id: "map", icon: "map_svg", label: t("mapa", "Mapa") }, { id: "eventos", icon: "ticket", label: t("eventos", "Eventos") }, { id: "account", icon: "user", label: t("mi_perfil", "Mi Perfil") }].map(n => {
         let isActive = false;
         if (n.id === "home") isActive = p === "/" || (!p.startsWith("/mapa") && !p.startsWith("/eventos") && !p.startsWith("/explorar") && !p.startsWith("/mis-planes") && !p.startsWith("/revista") && !p.startsWith("/experiencias") && !p.startsWith("/precios") && !p.startsWith("/cuenta") && !p.startsWith("/admin") && !p.startsWith("/favoritos") && !p.startsWith("/about") && !p.startsWith("/privacy") && !p.startsWith("/terms") && !p.startsWith("/itinerarios") && !p.startsWith("/itinerario/") && !p.startsWith("/plan/") && !p.startsWith("/manage/") && !p.startsWith("/stats/") && !p.startsWith("/wallet") && !p.includes("/lugar/") && !p.includes("/evento/"));
         else if (n.id === "map") isActive = p.startsWith("/mapa");

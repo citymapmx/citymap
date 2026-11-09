@@ -18,16 +18,16 @@ import { useTranslation } from "../hooks/useTranslation.js";
 
 const PAGE_SIZE = 20;
 const DATE_FILTERS = [
-  { key: "todos", label: "Todos" },
-  { key: "hoy", label: "Hoy" },
-  { key: "manana", label: "Mañana" },
-  { key: "finde", label: "Este finde" },
-  { key: "mes", label: "Este mes" },
+  { key: "todos", labelKey: "eventos_filtro_todos", label: "Todos" },
+  { key: "hoy", labelKey: "eventos_filtro_hoy", label: "Hoy" },
+  { key: "manana", labelKey: "eventos_filtro_manana", label: "Mañana" },
+  { key: "finde", labelKey: "eventos_filtro_finde", label: "Este finde" },
+  { key: "mes", labelKey: "eventos_filtro_mes", label: "Este mes" },
 ];
 const PRICE_FILTERS = [
-  { key: "todos", label: "Todos" },
-  { key: "gratis", label: "Gratis" },
-  { key: "pago", label: "De pago" },
+  { key: "todos", labelKey: "eventos_filtro_todos", label: "Todos" },
+  { key: "gratis", labelKey: "eventos_filtro_gratis", label: "Gratis" },
+  { key: "pago", labelKey: "eventos_filtro_pago", label: "De pago" },
 ];
 
 export default function EventsView() {
@@ -336,7 +336,7 @@ export default function EventsView() {
                 fontFamily: "var(--heading)",
                 letterSpacing: "-0.3px"
               }}>
-                {cityName ? (lang === 'en' ? `Upcoming events in ${cityName}` : `Próximos eventos en ${cityName}`) : t("eventos_proximos", "Próximos eventos")}
+                {cityName ? <>{t("eventos_proximos", "Próximos eventos")} {t("eventos_en", "en")} {cityName}</> : t("eventos_proximos", "Próximos eventos")}
               </h2>
               {user ? (
                 <button
@@ -374,14 +374,14 @@ export default function EventsView() {
               <input
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Buscar evento o lugar…"
-                aria-label="Buscar eventos"
+                placeholder={t("eventos_buscar_placeholder", "Buscar evento o lugar…")}
+                aria-label={t("eventos_buscar_eventos", "Buscar eventos")}
                 style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", color: T.text, fontSize: 15, fontFamily: "inherit" }}
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery("")} aria-label="Limpiar búsqueda" style={{ border: "none", background: "transparent", color: T.sub, fontSize: 20, lineHeight: 1, cursor: "pointer", padding: 0 }}>×</button>
+                <button onClick={() => setSearchQuery("")} aria-label={t("eventos_limpiar_busqueda", "Limpiar búsqueda")} style={{ border: "none", background: "transparent", color: T.sub, fontSize: 20, lineHeight: 1, cursor: "pointer", padding: 0 }}>×</button>
               )}
-              <button onClick={openSheet} aria-label="Filtros de eventos" className="press" style={{ position: "relative", flexShrink: 0, width: 36, height: 36, borderRadius: "50%", border: "none", background: T.green, display: "grid", placeItems: "center", cursor: "pointer" }}>
+              <button onClick={openSheet} aria-label={t("eventos_filtros", "Filtros de eventos")} className="press" style={{ position: "relative", flexShrink: 0, width: 36, height: 36, borderRadius: "50%", border: "none", background: T.green, display: "grid", placeItems: "center", cursor: "pointer" }}>
                 <Icon name="sliders" size={18} color={dark ? "#18181B" : "#FFFFFF"} />
                 {activeFilterCount > 0 && (
                   <span style={{ position: "absolute", top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9999, background: "#D94F3D", color: "#FFFFFF", fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 4px", border: `2px solid ${T.bg}` }}>{activeFilterCount}</span>
@@ -403,7 +403,7 @@ export default function EventsView() {
                       }}
                       style={chipStyle(isSelected)}
                     >
-                      {chip}
+                      {chip === "Todos" ? t("eventos_filtro_todos", "Todos") : chip}
                     </button>
                   );
                 })}
@@ -416,10 +416,10 @@ export default function EventsView() {
                 <div style={{ width: 60, height: 60, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.05)" : "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
                   <Icon name="calendar" size={28} color={T.sub} />
                 </div>
-                <div style={{ fontWeight: 800, fontSize: 16, color: T.text }}>{hasActiveFilters ? "Sin resultados" : t("sin_eventos", "Sin eventos por ahora")}</div>
-                <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{hasActiveFilters ? "Prueba con otra búsqueda o quita los filtros" : t("sin_eventos_desc", "Pronto habrá novedades en tu ciudad")}</div>
+                <div style={{ fontWeight: 800, fontSize: 16, color: T.text }}>{hasActiveFilters ? t("eventos_sin_resultados", "Sin resultados") : t("sin_eventos", "Sin eventos por ahora")}</div>
+                <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{hasActiveFilters ? t("eventos_sin_resultados_desc", "Prueba con otra búsqueda o quita los filtros") : t("sin_eventos_desc", "Pronto habrá novedades en tu ciudad")}</div>
                 {hasActiveFilters && (
-                  <button onClick={clearFilters} className="press" style={{ marginTop: 16, padding: "10px 18px", borderRadius: 9999, border: `1px solid ${T.border}`, background: T.white, color: T.text, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Limpiar filtros</button>
+                  <button onClick={clearFilters} className="press" style={{ marginTop: 16, padding: "10px 18px", borderRadius: 9999, border: `1px solid ${T.border}`, background: T.white, color: T.text, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{t("eventos_limpiar_filtros", "Limpiar filtros")}</button>
                 )}
               </div>
             ) : (
@@ -428,7 +428,7 @@ export default function EventsView() {
                   <div key={group.key} id={`mes-${group.key}`} style={{ scrollMarginTop: 120 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
                       <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.3px" }}>{group.label}</h3>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: T.sub }}>{monthTotal.get(group.key) ?? group.events.length} {(monthTotal.get(group.key) ?? group.events.length) === 1 ? "evento" : "eventos"}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: T.sub }}>{monthTotal.get(group.key) ?? group.events.length} {(monthTotal.get(group.key) ?? group.events.length) === 1 ? t("eventos_evento", "evento") : t("eventos_eventos", "eventos")}</span>
                     </div>
                     <div className="event-list-grid" style={{
                       display: "grid",
@@ -451,7 +451,7 @@ export default function EventsView() {
                           <h3 style={{ fontSize:15, fontWeight:700, lineHeight:1.35, letterSpacing:'-0.2px', margin:0, overflowWrap:'anywhere' }}>{ev.title || 'Evento'}</h3>
                         </div>
                       </button>
-                      <button type="button" onClick={e => handleToggleSaveEvent(ev, e)} aria-label={isSaved ? 'Quitar evento de guardados' : 'Guardar evento'} aria-pressed={isSaved} style={{ position:'absolute', top:6, right:6, width:44, height:44, background:'rgba(0,0,0,0.24)', border:0, borderRadius:'50%', display:'grid', placeItems:'center', cursor:'pointer', zIndex:2 }}>
+                      <button type="button" onClick={e => handleToggleSaveEvent(ev, e)} aria-label={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")} aria-pressed={isSaved} style={{ position:'absolute', top:6, right:6, width:44, height:44, background:'rgba(0,0,0,0.24)', border:0, borderRadius:'50%', display:'grid', placeItems:'center', cursor:'pointer', zIndex:2 }}>
                         <Icon name={isSaved ? 'heart_overlay_f' : 'heart_overlay'} size={25} color="none" />
                       </button>
                     </article>
@@ -462,7 +462,7 @@ export default function EventsView() {
                 ))}
                 {filteredEvents.length > visibleCount && (
                   <button onClick={() => { haptic(); setVisibleCount(c => c + PAGE_SIZE); }} className="press" style={{ width: "100%", minHeight: 48, background: T.green, color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, cursor: "pointer", fontFamily: "inherit" }}>
-                    Ver más eventos ({filteredEvents.length - visibleCount} restantes)
+                    {t("eventos_ver_mas_eventos", "Ver más eventos")} ({filteredEvents.length - visibleCount} {t("eventos_restantes", "restantes")})
                   </button>
                 )}
               </div>
@@ -480,18 +480,18 @@ export default function EventsView() {
       {sheetOpen && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200 }}>
           <div onClick={() => setSheetOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)" }} />
-          <div role="dialog" aria-modal="true" aria-label="Filtros de eventos" style={{ position: "absolute", left: 0, right: 0, bottom: 0, maxWidth: 460, margin: "0 auto", background: T.bg, borderRadius: "24px 24px 0 0", padding: "12px 20px calc(env(safe-area-inset-bottom, 0px) + 20px)", maxHeight: "85dvh", overflowY: "auto", boxShadow: "0 -8px 40px rgba(0,0,0,0.25)", animation: "sheetUp 0.25s ease-out" }}>
+          <div role="dialog" aria-modal="true" aria-label={t("eventos_filtros", "Filtros de eventos")} style={{ position: "absolute", left: 0, right: 0, bottom: 0, maxWidth: 460, margin: "0 auto", background: T.bg, borderRadius: "24px 24px 0 0", padding: "12px 20px calc(env(safe-area-inset-bottom, 0px) + 20px)", maxHeight: "85dvh", overflowY: "auto", boxShadow: "0 -8px 40px rgba(0,0,0,0.25)", animation: "sheetUp 0.25s ease-out" }}>
             <div style={{ width: 40, height: 4, borderRadius: 9999, background: T.border, margin: "0 auto 12px" }} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.3px" }}>Filtros de eventos</h2>
-              <button onClick={() => setSheetOpen(false)} aria-label="Cerrar filtros" style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", color: T.text, fontSize: 20, lineHeight: 1, cursor: "pointer" }}>×</button>
+              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.3px" }}>{t("eventos_filtros", "Filtros de eventos")}</h2>
+              <button onClick={() => setSheetOpen(false)} aria-label={t("eventos_cerrar_filtros", "Cerrar filtros")} style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", color: T.text, fontSize: 20, lineHeight: 1, cursor: "pointer" }}>×</button>
             </div>
 
             {/* Fecha */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <Icon name="calendar" size={20} color={T.text} />
-                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>Fecha</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{t("eventos_fecha", "Fecha")}</span>
               </div>
               <div style={chipRowStyle}>
                 {DATE_FILTERS.map(f => (
@@ -500,14 +500,14 @@ export default function EventsView() {
                     onClick={() => { haptic(); setDraftDate(f.key); setDraftCustomDate(""); }}
                     style={chipStyle(draftDate === f.key)}
                   >
-                    {f.label}
+                    {t(f.labelKey, f.label)}
                   </button>
                 ))}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, border: `1px solid ${draftDate === "custom" ? T.green : T.border}`, borderRadius: 12, padding: "4px 6px 4px 14px", background: dark ? "rgba(255,255,255,0.04)" : "#F8FAFC" }}>
                 <Icon name="calendar" size={18} color={T.sub} />
-                <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: T.text }}>Fecha personalizada</span>
-                <input type="date" value={draftCustomDate} onChange={e => { setDraftCustomDate(e.target.value); if (e.target.value) setDraftDate("custom"); }} aria-label="Fecha personalizada" style={{ border: "none", outline: "none", background: "transparent", color: T.text, fontSize: 14, fontFamily: "inherit", maxWidth: 150 }} />
+                <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: T.text }}>{t("eventos_fecha_personalizada", "Fecha personalizada")}</span>
+                <input type="date" value={draftCustomDate} onChange={e => { setDraftCustomDate(e.target.value); if (e.target.value) setDraftDate("custom"); }} aria-label={t("eventos_fecha_personalizada", "Fecha personalizada")} style={{ border: "none", outline: "none", background: "transparent", color: T.text, fontSize: 14, fontFamily: "inherit", maxWidth: 150 }} />
               </div>
             </div>
 
@@ -515,7 +515,7 @@ export default function EventsView() {
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <Icon name="tag" size={20} color={T.text} />
-                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>Precio</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{t("eventos_precio", "Precio")}</span>
               </div>
               <div style={chipRowStyle}>
                 {PRICE_FILTERS.map(f => (
@@ -524,7 +524,7 @@ export default function EventsView() {
                     onClick={() => { haptic(); setDraftPrice(f.key); }}
                     style={chipStyle(draftPrice === f.key)}
                   >
-                    {f.label}
+                    {t(f.labelKey, f.label)}
                   </button>
                 ))}
               </div>
@@ -534,12 +534,12 @@ export default function EventsView() {
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <span style={{ fontSize: 18, fontWeight: 800, color: T.text, lineHeight: 1 }}>↑↓</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>Ordenar por</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{t("eventos_ordenar_por", "Ordenar por")}</span>
               </div>
               <div style={{ position: "relative" }}>
-                <select value={draftSort} onChange={e => setDraftSort(e.target.value)} aria-label="Ordenar por" style={selectStyle}>
-                  <option value="fecha">Próximos eventos</option>
-                  <option value="precio">Precio: menor a mayor</option>
+                <select value={draftSort} onChange={e => setDraftSort(e.target.value)} aria-label={t("eventos_ordenar_por", "Ordenar por")} style={selectStyle}>
+                  <option value="fecha">{t("eventos_orden_fecha", "Próximos eventos")}</option>
+                  <option value="precio">{t("eventos_orden_precio", "Precio: menor a mayor")}</option>
                 </select>
                 <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%) rotate(90deg)", pointerEvents: "none", display: "flex" }}>
                   <Icon name="chevron" size={18} color={T.sub} />
@@ -547,8 +547,8 @@ export default function EventsView() {
               </div>
             </div>
 
-            <button onClick={applySheet} className="press" style={{ width: "100%", minHeight: 52, background: T.green, color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 9999, fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Mostrar eventos</button>
-            <button onClick={() => { clearFilters(); setSheetOpen(false); }} style={{ display: "block", margin: "14px auto 0", border: "none", background: "transparent", color: T.sub, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Limpiar filtros</button>
+            <button onClick={applySheet} className="press" style={{ width: "100%", minHeight: 52, background: T.green, color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 9999, fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{t("eventos_mostrar_eventos", "Mostrar eventos")}</button>
+            <button onClick={() => { clearFilters(); setSheetOpen(false); }} style={{ display: "block", margin: "14px auto 0", border: "none", background: "transparent", color: T.sub, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t("eventos_limpiar_filtros", "Limpiar filtros")}</button>
           </div>
         </div>
       )}

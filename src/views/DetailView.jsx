@@ -29,6 +29,7 @@ import CouponCard from "../components/ui/CouponCard.jsx";
 import StarRow from "../components/ui/StarRow.jsx";
 import { ErrorBoundary } from "../components/ErrorBoundary.jsx";
 import { haptic } from "../lib/utils.js";
+import { useTranslation } from "../hooks/useTranslation.js";
 import { CAT_EMOJI, getKm, createSlug, getEventStatus, isOpenNow, getThumbUrl, getCategoryDescription, parseMenuUrls, getScheduleStatus, getSmartScheduleInfo } from "../lib/utils";
 
 const MapPicker = lazy(() => import('../components/map/MapPicker.jsx'));
@@ -41,6 +42,7 @@ import { Helmet } from 'react-helmet-async';
 
 
 export default function DetailView() {
+  const { t, lang } = useTranslation();
   const navType = useNavigationType();
   const isPop = navType === "POP";
   const ctx = useAppContext();
@@ -218,10 +220,10 @@ export default function DetailView() {
       >
         {/* Header Image Full Bleed */}
             <div style={{ height: (selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) ? (isElite ? "40vh" : 220) : 64, position: "relative", background: dark ? "#232326" : "#E5E7EB", overflow: "hidden", flexShrink: 0 }}>
-              {(selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) && <img src={getThumbUrl(selected.photos?.find(photo => photo?.url)?.url || selected.banner_url || selected.logo_url, 1200, 900)} alt={`Foto de ${selected.name}`} style={{ width: "100%", height: "100%", objectFit: "cover", backgroundColor: "transparent" }} />}
+              {(selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) && <img src={getThumbUrl(selected.photos?.find(photo => photo?.url)?.url || selected.banner_url || selected.logo_url, 1200, 900)} alt={t('detalle_foto_de', 'Foto de {nombre}').replace('{nombre}', selected.name)} style={{ width: "100%", height: "100%", objectFit: "cover", backgroundColor: "transparent" }} />}
               {isElite && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(to top, #111111 0%, rgba(17,17,17,0) 100%)" }} />}
               <div style={{ position: "absolute", top: 16, left: 16, right: 16, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 20 }}>
-                <button aria-label="Volver" className="press" onClick={() => {
+                <button aria-label={t('comun_volver', 'Volver')} className="press" onClick={() => {
                   if (openedFromMap) {
                     setOpenedFromMap(false);
                     navigate("map");
@@ -232,12 +234,12 @@ export default function DetailView() {
                   <Icon name="chevron" size={26} color="#fff" style={{ transform: "rotate(180deg)", filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                 </button>
                 <div style={{ display: "flex", gap: 0, alignItems: "center" }}>
-                  <m.button whileTap={{ scale: 0.85 }} title="Mis favoritos" aria-label={favIds.includes(selected.id) ? "Quitar de favoritos" : "Añadir a favoritos"} className="press" onClick={e => { haptic("light"); toggleFav(selected.id, e); }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <m.button whileTap={{ scale: 0.85 }} title={t('detalle_mis_favoritos', 'Mis favoritos')} aria-label={favIds.includes(selected.id) ? t('quitar_fav', 'Quitar de favoritos') : t('anadir_fav', 'Añadir a favoritos')} className="press" onClick={e => { haptic("light"); toggleFav(selected.id, e); }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <m.div key={favIds.includes(selected.id) ? 'fav' : 'unfav'} initial={{ scale: 0.5 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 15 }}>
                       <Icon name={favIds.includes(selected.id) ? "heart_overlay_f" : "heart_overlay"} size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                     </m.div>
                   </m.button>
-                  <m.button whileTap={{ scale: 0.85 }} aria-label="Compartir" className="press" onClick={e => doShare(selected, e)} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <m.button whileTap={{ scale: 0.85 }} aria-label={t('compartir', 'Compartir')} className="press" onClick={e => doShare(selected, e)} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon name="share" size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                   </m.button>
                 </div>
@@ -254,7 +256,7 @@ export default function DetailView() {
               
               {selected.logo_url && (selected.plan === "premium" || selected.plan === "pro" || selected.plan === "destacado") && (
                 <div style={{ position: "absolute", top: -48, left: 16, width: 96, height: 96, borderRadius: "50%", background: "#fff", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 6px 16px rgba(0,0,0,0.12)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 40, padding: 3, boxSizing: "border-box", overflow: "hidden" }}>
-                  <img src={getThumbUrl(selected.logo_url, 300, 300)} width={90} height={90} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "50%" }} alt={`Logo de ${selected.name}`} />
+                  <img src={getThumbUrl(selected.logo_url, 300, 300)} width={90} height={90} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "50%" }} alt={t('detalle_logo_de', 'Logo de {nombre}').replace('{nombre}', selected.name)} />
                 </div>
               )}
 
@@ -277,7 +279,7 @@ export default function DetailView() {
                     })()}
 
                     {(selected.plan === "destacado" || selected.plan === "premium" || selected.plan === "pro") && (
-                      <img src="/verificado.png" alt="Verificado" width="22" height="22" style={{ marginLeft: 6, flexShrink: 0 }} />
+                      <img src="/verificado.png" alt={t('detalle_verificado', 'Verificado')} width="22" height="22" style={{ marginLeft: 6, flexShrink: 0 }} />
                     )}
                   </h1>
                   {selected.type?.trim() && (
@@ -294,7 +296,7 @@ export default function DetailView() {
                         return (
                           <>
                             <span style={{ width: 6, height: 6, borderRadius: "50%", background: smartSt.color, display: "inline-block" }} />
-                            <span className="text-sm" style={{ color: smartSt.color, fontWeight: 700 }}>{smartSt.text}</span>
+                            <span className="text-sm" style={{ color: smartSt.color, fontWeight: 700 }}>{t(smartSt.text)}</span>
                             
                           </>
                         );
@@ -316,7 +318,7 @@ export default function DetailView() {
                           return (
                             <>
                               <Icon name="star_f" size={16} color={dText} style={{ marginTop: -2 }} />
-                              <span className="text-sm" style={{ fontWeight: 800, color: dText }}>{rRating > 0 ? rRating : "Nuevo"}</span>
+                              <span className="text-sm" style={{ fontWeight: 800, color: dText }}>{rRating > 0 ? rRating : t('detalle_nuevo', 'Nuevo')}</span>
                               <span className="text-xs" style={{ color: dSub }}>({formatReviewCount(rCount)})</span>
                               {disp.source === "google" && (
                                 <img src="/googlelogo.svg" alt="Google" style={{ width: 14, height: 14, objectFit: "contain" }} />
@@ -345,7 +347,7 @@ export default function DetailView() {
             <div style={{ display: (selected.phone || (selected.whatsapp && ['premium', 'pro', 'destacado'].includes(selected.plan)) || (!selected.hide_location && selected.address && selected.address.trim() !== '')) ? "flex" : "none", gap: 8, padding: "0" }}>
               {(selected.phone) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => callPhone(selected, null)} style={{ flex: "1 1 0", minWidth: 0, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                 <Icon name="phone" size={20} color={dText} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>Llamar</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>{t('detalle_llamar', 'Llamar')}</span>
               </m.button>}
               
               {(selected.whatsapp && ['premium', 'pro', 'destacado'].includes(selected.plan)) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goWhatsApp(selected, null)} style={{ flex: "1 1 0", minWidth: 0, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
@@ -354,7 +356,7 @@ export default function DetailView() {
               </m.button>}
               {(!selected.hide_location && selected.address && selected.address.trim() !== '') && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goDir(selected, null)} style={{ flex: "1 1 0", minWidth: 0, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                 <Icon name="map-pin" size={20} color={dText} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>Ubicación</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>{t('detalle_ubicacion', 'Ubicación')}</span>
               </m.button>}
             </div>
 
@@ -374,7 +376,7 @@ export default function DetailView() {
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                  <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.2 }}>Tarjeta Lealtad</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.2 }}>{t('detalle_tarjeta_lealtad', 'Tarjeta Lealtad')}</span>
                 </button>
               )}
 
@@ -390,7 +392,7 @@ export default function DetailView() {
                   setShowBooking(true); 
                 }} style={{ flex: "1 1 140px", minWidth: 0, background: "#FACC15", border: "none", borderRadius: 14, padding: "12px 10px", color: "#111827", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>
-                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{selected.booking_config.label || "Reservar"}</span>
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{selected.booking_config.label || t('detalle_reservar', 'Reservar')}</span>
                 </button>
               )}
               {selected.plan === "premium" && hasMenu && (
@@ -401,7 +403,7 @@ export default function DetailView() {
                     } else setShowIntentModal(true);
                   }} style={{ flex: "1 1 140px", minWidth: 0, background: dark ? "#F0F0F0" : "#000000", border: "none", borderRadius: 14, padding: "12px 10px", color: dark ? "#111111" : "#FFFFFF", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2 }}>
                   {isCatalog?<Icon name="grid" size={16} color="currentColor" />:(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>)}
-                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{isCatalog?'VER CATÁLOGO':'VER MENÚ'}</span>
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{isCatalog ? t('detalle_ver_catalogo', 'VER CATÁLOGO') : t('detalle_ver_menu', 'VER MENÚ')}</span>
                 </m.button>
               )}
             </div>
@@ -415,19 +417,19 @@ export default function DetailView() {
                     civitatis: CIVITATIS_PLATFORM,
                     airbnb: { color: "#FF5A5F", label: "Airbnb", img: "/airbnb.svg" },
                     booking: { color: "#003580", label: "Booking.com", img: "/booking.png" },
-                    tiqets: { color: "#4bc2c5", label: "Comprar entradas", img: "/tiqets.png" },
+                    tiqets: { color: "#4bc2c5", label: t('detalle_comprar_entradas', 'Comprar entradas'), img: "/tiqets.png" },
                     tripadvisor: { color: "#000000", label: "TripAdvisor", img: "/tripadvisor.png" },
                     expedia: { color: "#00005C", label: "Expedia.com", img: "/expedia.png" },
                     hoteles: { color: "#D11013", label: "Hoteles.com", img: "/hoteles.com.png" },
                     getyourguide: { color: "#FF5B00", label: "GetYourGuide", img: "/getyourguide.png" },
-                    renta_auto: { color: "#E11D48", label: "Rentar Auto", icon: "🚗" },
+                    renta_auto: { color: "#E11D48", label: t('detalle_rentar_auto', 'Rentar Auto'), icon: "🚗" },
                     opentable: { color: "#DA3743", label: "OpenTable", icon: "🍽️" },
                     ubereats: { color: "#06C167", label: "Uber Eats", icon: "🍔" },
                     rappi: { color: "#FF4500", label: "Rappi", icon: "🛵" },
                     didifood: { color: "#F76B1C", label: "DiDi Food", icon: "🥡" },
                     whatsapp: { color: "#25D366", label: "WhatsApp", icon: "💬" },
-                    comprar_entradas: { color: "#111827", label: "Comprar Entradas", icon: "🎟️" },
-                    otro: { color: "#1877F2", label: "Sitio Web", icon: "🔗" }
+                    comprar_entradas: { color: "#111827", label: t('detalle_comprar_entradas_titulo', 'Comprar Entradas'), icon: "🎟️" },
+                    otro: { color: "#1877F2", label: t('detalle_sitio_web_plataforma', 'Sitio Web'), icon: "🔗" }
                   };
                   
                   const renderIcon = (s, size = 16) => {
@@ -443,9 +445,9 @@ export default function DetailView() {
 
                   const getPrefix = (platform) => {
                     if (platform === 'tiqets') return '';
-                    if (['ubereats', 'rappi', 'didifood'].includes(platform)) return 'Haz tu pedido en';
-                    if (['whatsapp', 'otro'].includes(platform)) return 'Ir a';
-                    return 'Reservar en';
+                    if (['ubereats', 'rappi', 'didifood'].includes(platform)) return t('detalle_haz_pedido_en', 'Haz tu pedido en');
+                    if (['whatsapp', 'otro'].includes(platform)) return t('detalle_ir_a', 'Ir a');
+                    return t('detalle_reservar_en', 'Reservar en');
                   };
 
                   if (links.length === 1) {
@@ -527,7 +529,7 @@ export default function DetailView() {
           {/* PRODUCTOS AFILIADOS */}
           {Array.isArray(selected.affiliate_products) && selected.affiliate_products.length > 0 && (
             <div style={{ padding: "20px 0 0" }}>
-              <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 12, padding: "0 20px" }}>Productos Recomendados</div>
+              <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 12, padding: "0 20px" }}>{t('detalle_productos_recomendados', 'Productos Recomendados')}</div>
               <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 20px 10px", scrollSnapType: "x mandatory" }} className="no-scrollbar">
                 {selected.affiliate_products.map((ap, i) => (
                   <a key={i} href={ap.url} target="_blank" rel="noreferrer" style={{ flexShrink: 0, width: 140, background: T.white, borderRadius: 12, overflow: "hidden", textDecoration: "none", border: `1px solid ${T.border}`, scrollSnapAlign: "start", display: "flex", flexDirection: "column", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
@@ -538,7 +540,7 @@ export default function DetailView() {
                     <div style={{ padding: "8px 10px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: T.text, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", textAlign: "center" }}>{ap.title}</div>
                       <div style={{ fontSize: 10, color: T.green, fontWeight: 800, marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 2 }}>
-                         Ver producto
+                         {t('detalle_ver_producto', 'Ver producto')}
                       </div>
                     </div>
                   </a>
@@ -554,11 +556,11 @@ export default function DetailView() {
 
           {/* Promociones / Cupones / Menú originales preservados */}
           {promos.filter(p => p?.biz_id === selected.id && p?.img_url).length > 0 && <div style={{ padding: "20px 20px 0" }}>
-            <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 16 }}>Promociones destacadas</div>
-            {promos.filter(p => p?.biz_id === selected.id && p?.img_url).slice(0, 3).map(p => <div key={p.id} style={{ borderRadius: 16, overflow: "hidden", marginBottom: 10 }}><img src={getThumbUrl(p?.img_url, 1200, 600)} alt={`Promoción de ${selected.name}`} style={{ width: "100%", display: "block", borderRadius: 16 }} loading="lazy" /></div>)}
+            <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 16 }}>{t('detalle_promociones_destacadas', 'Promociones destacadas')}</div>
+            {promos.filter(p => p?.biz_id === selected.id && p?.img_url).slice(0, 3).map(p => <div key={p.id} style={{ borderRadius: 16, overflow: "hidden", marginBottom: 10 }}><img src={getThumbUrl(p?.img_url, 1200, 600)} alt={t('detalle_promocion_de', 'Promoción de {nombre}').replace('{nombre}', selected.name)} style={{ width: "100%", display: "block", borderRadius: 16 }} loading="lazy" /></div>)}
           </div>}
           {coupons.filter(c => c.biz_id === selected.id).length > 0 && <div style={{ padding: "20px 20px 0" }}>
-            <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}><Icon name="coupon" size={18} color={dText} />Cupones de descuento</div>
+            <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}><Icon name="coupon" size={18} color={dText} />{t('detalle_cupones_descuento', 'Cupones de descuento')}</div>
             {coupons.filter(c => c.biz_id === selected.id).map(c => {
               const saved = wallet.includes(c.id);
               const claimedAt = claimedCoupons[c.id];
@@ -568,18 +570,18 @@ export default function DetailView() {
               
               if (claimedAt) {
                  const diff = 86400000 - (Date.now() - claimedAt);
-                 if (diff <= 0) { isExpired = true; timeLeftStr = "Expirado"; }
+                 if (diff <= 0) { isExpired = true; timeLeftStr = t('detalle_expirado', 'Expirado'); }
                  else {
                     const h = Math.floor(diff / 3600000);
                     const m = Math.floor((diff % 3600000) / 60000);
-                    timeLeftStr = `${h}h ${m}m restantes`;
+                    timeLeftStr = t('detalle_tiempo_restante', '{h}h {m}m restantes').replace('{h}', h).replace('{m}', m);
                  }
                  uniqueCode = c.code + "-" + claimedAt.toString().slice(-4);
               }
 
               let rewardTitle;
               if (c.discount_type === "fixed") rewardTitle = `-$${c.discount_amount}`;
-              else if (c.discount_type === "promo") rewardTitle = "Promoción";
+              else if (c.discount_type === "promo") rewardTitle = t('detalle_promocion', 'Promoción');
               else rewardTitle = `-${c.discount_pct}%`;
 
               return (
@@ -592,7 +594,7 @@ export default function DetailView() {
                     dark={dark} 
                     T={T}
                     onClaimClick={(e) => {
-                      if (!user) { setShowAuth(true); toast$("Inicia sesión para reclamar"); return; }
+                      if (!user) { setShowAuth(true); toast$(t('detalle_inicia_reclamar', 'Inicia sesión para reclamar')); return; }
                       if (!claimedAt) {
                         const newClaimed = { ...claimedCoupons, [c.id]: Date.now() };
                         setClaimedCoupons(newClaimed);
@@ -602,7 +604,7 @@ export default function DetailView() {
                            setWallet(valid);
                            localStorage.setItem("citymap_wallet", JSON.stringify(valid));
                         }
-                        toast$("¡Cupón activado por 24 horas!");
+                        toast$(t('detalle_cupon_activado', '¡Cupón activado por 24 horas!'));
                       }
                     }}
                   />
@@ -611,7 +613,7 @@ export default function DetailView() {
             })}
           </div>}
           {raffles && raffles.filter(r => r.biz_id === selected.id).length > 0 && <div style={{ padding: "20px 20px 0" }}>
-            <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}><Icon name="gift" size={18} color="#D94F3D" />Sorteos Activos</div>
+            <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}><Icon name="gift" size={18} color="#D94F3D" />{t('detalle_sorteos_activos', 'Sorteos Activos')}</div>
             {raffles.filter(r => r.biz_id === selected.id).map(r => {
               const participated = (r.participants || []).some(p => p.user_id === user?.id);
               const isEnded = new Date(r.ends_at).getTime() < Date.now();
@@ -624,19 +626,19 @@ export default function DetailView() {
                   </div>
                 </div>
                 <div style={{ background: "rgba(255,255,255,0.6)", borderRadius: 10, padding: "10px", marginBottom: 12, textAlign: "center" }}>
-                  <div className="text-xs" style={{ fontWeight: 800, color: "#92400E", letterSpacing: 1, textTransform: "uppercase" }}>Premio</div>
+                  <div className="text-xs" style={{ fontWeight: 800, color: "#92400E", letterSpacing: 1, textTransform: "uppercase" }}>{t('premio', 'Premio')}</div>
                   <div className="text-sm" style={{ fontWeight: 900, color: "#D97706" }}>{r.prize}</div>
                 </div>
                 <button onClick={async (e) => {
                   e.stopPropagation();
-                  if (!user) { setShowAuth(true); toast$("Inicia sesión para participar"); return; }
+                  if (!user) { setShowAuth(true); toast$(t('detalle_inicia_participar', 'Inicia sesión para participar')); return; }
                   try {
                     await dbService.joinRaffle(r.id, user.id);
                     setRaffles(prev => prev.map(x => x.id === r.id ? { ...x, participants: [...(x.participants || []), { user_id: user.id }] } : x));
-                    toast$("¡Estás participando en el sorteo!");
+                    toast$(t('detalle_participando_sorteo', '¡Estás participando en el sorteo!'));
                   } catch (e) { console.log(e); }
                 }} disabled={participated || isEnded} style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: participated ? "#16A34A" : (isEnded ? "#D1D5DB" : "#F59E0B"), color: "#fff", fontWeight: 800, fontSize: 14, cursor: (participated || isEnded) ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: participated || isEnded ? "none" : "0 4px 14px rgba(245, 158, 11, 0.4)" }}>
-                  {isEnded ? "Sorteo finalizado" : (participated ? <><Icon name="check" size={16} color="#fff" /> ¡Estás participando!</> : <><Icon name="star" size={16} color="#fff" /> Participar Gratis</>)}
+                  {isEnded ? t('detalle_sorteo_finalizado', 'Sorteo finalizado') : (participated ? <><Icon name="check" size={16} color="#fff" /> {t('detalle_estas_participando', '¡Estás participando!')}</> : <><Icon name="star" size={16} color="#fff" /> {t('detalle_participar_gratis', 'Participar Gratis')}</>)}
                 </button>
               </div>;
             })}
@@ -647,9 +649,9 @@ export default function DetailView() {
             return (
               <div style={{ padding: "24px 20px 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div className="text-base" style={{ fontWeight: 800, color: dText, letterSpacing: "-0.5px" }}>{isCatalog?'Catálogo':'Menú'}</div>
+                  <div className="text-base" style={{ fontWeight: 800, color: dText, letterSpacing: "-0.5px" }}>{isCatalog ? t('detalle_catalogo', 'Catálogo') : t('detalle_menu', 'Menú')}</div>
                   {!isSinglePdf && menuUrls.length > 2 && (
-                    <div onClick={() => setShowMenuGallery(true)} style={{ fontSize: 13, fontWeight: 700, color: T.green, cursor: "pointer" }}>Ver todo</div>
+                    <div onClick={() => setShowMenuGallery(true)} style={{ fontSize: 13, fontWeight: 700, color: T.green, cursor: "pointer" }}>{t('detalle_ver_todo', 'Ver todo')}</div>
                   )}
                 </div>
 
@@ -657,10 +659,10 @@ export default function DetailView() {
                   <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 10, scrollSnapType: "x mandatory" }} className="no-scrollbar">
                     {menuUrls.slice(0, 3).map((url, i) => (
                       <div key={i} onClick={() => setShowMenuGallery(true)} style={{ flexShrink: 0, width: 140, height: 180, borderRadius: 12, overflow: "hidden", background: "transparent", scrollSnapAlign: "start", cursor: "pointer", border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, position: "relative" }}>
-                        <img src={getThumbUrl(url, 400, 600)} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={isCatalog?"Catálogo":"Menú"} />
+                        <img src={getThumbUrl(url, 400, 600)} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={isCatalog ? t('detalle_catalogo', 'Catálogo') : t('detalle_menu', 'Menú')} />
                         {i === 2 && menuUrls.length > 3 && (
                           <div className="text-base" style={{ position: "absolute", inset: 0, background: "rgba(0, 0, 0, 0.5)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800 }}>
-                            +{menuUrls.length - 3} hojas
+                            +{t('detalle_mas_hojas', '{n} hojas').replace('{n}', menuUrls.length - 3)}
                           </div>
                         )}
                       </div>
@@ -668,12 +670,12 @@ export default function DetailView() {
                   </div>
                 )}
 
-                <button aria-label={isCatalog?"Ver catálogo":"Ver menú"} onClick={() => isSinglePdf ? window.open(menuUrls[0], '_blank') : setShowMenuGallery(true)} style={{ width: '100%', padding: '12px 16px', borderRadius: 14, background: dark ? '#1E293B' : '#0F172A', border: 'none', color: '#FFFFFF', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginTop: isSinglePdf ? 0 : 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontFamily: "inherit" }}>
+                <button aria-label={isCatalog ? t('detalle_ver_catalogo_min', 'Ver catálogo') : t('detalle_ver_menu_min', 'Ver menú')} onClick={() => isSinglePdf ? window.open(menuUrls[0], '_blank') : setShowMenuGallery(true)} style={{ width: '100%', padding: '12px 16px', borderRadius: 14, background: dark ? '#1E293B' : '#0F172A', border: 'none', color: '#FFFFFF', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', marginTop: isSinglePdf ? 0 : 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontFamily: "inherit" }}>
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: dark ? '#F8FAFC' : '#111111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="file" size={16} color={dark ? '#111111' : '#ffffff'} />
                   </div>
                   <span className="text-sm" style={{ fontWeight: 800, color: "#ffffff" }}>
-                    {isSinglePdf ? `Abrir ${isCatalog?"catálogo":"menú"} en PDF` : `Ver ${isCatalog?"catálogo":"menú"} completo (${menuUrls.length} hojas)`}
+                    {isSinglePdf ? t('detalle_abrir_pdf', 'Abrir {tipo} en PDF').replace('{tipo}', isCatalog ? t('detalle_catalogo_min', 'catálogo') : t('detalle_menu_min', 'menú')) : t('detalle_ver_completo', 'Ver {tipo} completo ({n} hojas)').replace('{tipo}', isCatalog ? t('detalle_catalogo_min', 'catálogo') : t('detalle_menu_min', 'menú')).replace('{n}', menuUrls.length)}
                   </span>
                 </button>
               </div>
@@ -712,7 +714,7 @@ export default function DetailView() {
               </div>}
               {(selected.website || selected.social_links?.website) && <div onClick={() => goWeb(selected, null)} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
                  <Icon name="globe" size={22} color="#0EA5E9" />
-                <span className="text-sm" style={{ fontWeight: 600, color: dSub }}>Sitio web</span>
+                <span className="text-sm" style={{ fontWeight: 600, color: dSub }}>{t('detalle_sitio_web', 'Sitio web')}</span>
               </div>}
             </div>
           </div>}
@@ -724,7 +726,7 @@ export default function DetailView() {
             const fmtDate = d => {
               if (!d) return "";
               const [y, m, day] = d.split("-").map(Number);
-              const months = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+              const months = lang === 'en' ? ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"] : ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
               return { day, month: months[m - 1] };
             };
             const fmtTime = t => {
@@ -734,8 +736,8 @@ export default function DetailView() {
             };
             return <div style={{ paddingTop: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingLeft: 20, paddingRight: 20 }}>
-                <div className="text-base" style={{ fontWeight: 800, color: dText }}>Agenda</div>
-                <div className="text-xs" style={{ color: dSub, fontWeight: 600 }}>{bizEvents.length} {bizEvents.length === 1 ? "evento" : "eventos"}</div>
+                <div className="text-base" style={{ fontWeight: 800, color: dText }}>{t('detalle_agenda', 'Agenda')}</div>
+                <div className="text-xs" style={{ color: dSub, fontWeight: 600 }}>{bizEvents.length} {bizEvents.length === 1 ? t('detalle_evento', 'evento') : t('detalle_eventos', 'eventos')}</div>
               </div>
               <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingLeft: 20, paddingRight: 20, paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
                 {bizEvents.map(ev => {
@@ -765,10 +767,10 @@ export default function DetailView() {
               <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0, textAlign: "left" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Icon name="map-pin" size={22} color={dText} />
-                  <span className="business-section-title" style={{ color: dText }}>Ubicación</span>
+                  <span className="business-section-title" style={{ color: dText }}>{t('detalle_ubicacion', 'Ubicación')}</span>
                 </div>
                 <div className="business-address" style={{ color: dSub, paddingLeft: 34 }}>{selected.address}</div>
-                <button onClick={e => goDir(selected, e)} style={{alignSelf:"flex-start",marginLeft:34,minHeight:36,padding:0,background:"transparent",border:0,color:dText,fontSize:13,fontWeight:600,fontFamily:"inherit",cursor:"pointer",textDecoration:"underline",textUnderlineOffset:3}}>Cómo llegar ↗</button>
+                <button onClick={e => goDir(selected, e)} style={{alignSelf:"flex-start",marginLeft:34,minHeight:36,padding:0,background:"transparent",border:0,color:dText,fontSize:13,fontWeight:600,fontFamily:"inherit",cursor:"pointer",textDecoration:"underline",textUnderlineOffset:3}}>{t('como_llegar', 'Cómo llegar')} ↗</button>
               </div>
 
             </div>}
@@ -780,9 +782,9 @@ export default function DetailView() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <img src="/googlelogo.svg" alt="Google" style={{ width: 20, height: 20, objectFit: "contain" }} />
-                  <span className="business-section-title" style={{ color: dText }}>Reseñas en Google</span>
+                  <span className="business-section-title" style={{ color: dText }}>{t('detalle_resenas_google', 'Reseñas en Google')}</span>
                 </div>
-                <div className="text-sm" style={{ fontWeight: 700, color: dSub }}>{googleData.rating} ★ ({googleData.count} reseñas)</div>
+                <div className="text-sm" style={{ fontWeight: 700, color: dSub }}>{googleData.rating} ★ {t('detalle_num_resenas', '({n} reseñas)').replace('{n}', googleData.count)}</div>
               </div>
               <div style={{ background: isElite ? dCard : T.card, borderRadius: 16, padding: "16px", border: "none", display: "flex", flexDirection: "column", gap: 16 }}>
                 {googleData.reviews.slice(0, 3).map((r, i) => (
@@ -798,7 +800,7 @@ export default function DetailView() {
                 ))}
                 
                 <a href={`https://search.google.com/local/reviews?placeid=${selected.social_links.google_place_id}`} target="_blank" rel="noreferrer" style={{ width: "100%", padding: "12px", background: "transparent", border: `1.5px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, borderRadius: 12, fontSize: 13, fontWeight: 700, color: dText, cursor: "pointer", marginTop: 4, display: "block", textAlign: "center", textDecoration: "none", boxSizing: "border-box" }}>
-                  Leer todas en Google Maps
+                  {t('detalle_leer_todas_google', 'Leer todas en Google Maps')}
                 </a>
               </div>
             </div>
@@ -810,23 +812,23 @@ export default function DetailView() {
               <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, color: dText }}>
                   <Icon name="star_f" size={22} color={dText} />
-                  <span className="text-base" style={{ fontWeight: 700 }}>Reseñas</span>
+                  <span className="text-base" style={{ fontWeight: 700 }}>{t('detalle_resenas', 'Reseñas')}</span>
                 </div>
-                <div className="text-sm" style={{ color: dSub, lineHeight: 1.5, paddingLeft: 34 }}>{reviews.length > 0 ? "Comparte tu experiencia" : "Sé el primero en dejar reseña"}</div>
+                <div className="text-sm" style={{ color: dSub, lineHeight: 1.5, paddingLeft: 34 }}>{reviews.length > 0 ? t('detalle_comparte_experiencia', 'Comparte tu experiencia') : t('detalle_primero_resena', 'Sé el primero en dejar reseña')}</div>
               </div>
-              <button aria-label="Escribir reseña" className="press" onClick={() => { if (!user) { setShowAuth(true); return; } setShowReview(v => !v); }} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
+              <button aria-label={t('detalle_escribir_resena', 'Escribir reseña')} className="press" onClick={() => { if (!user) { setShowAuth(true); return; } setShowReview(v => !v); }} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
                 <Icon name="edit" size={20} color={dText} />
               </button>
             </div>
 
             {showReview && <div style={{ background: dBg, borderRadius: 12, padding: 14, marginBottom: 16, border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}` }}>
               <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>{[1, 2, 3, 4, 5].map(s => <button key={s} onClick={() => setReviewStar(s)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}><Icon name={s <= reviewStar ? "star_f" : "star"} size={24} color={s <= reviewStar ? T.text : T.sub} style={{ marginTop: -2 }} /></button>)}</div>
-              <textarea className="inp" rows={3} style={{ resize: "none", marginBottom: 10 }} placeholder="Comparte tu experiencia…" value={reviewText} onChange={e => setReviewText(e.target.value)} />
+              <textarea className="inp" rows={3} style={{ resize: "none", marginBottom: 10 }} placeholder={t('detalle_placeholder_experiencia', 'Comparte tu experiencia…')} value={reviewText} onChange={e => setReviewText(e.target.value)} />
               
               {reviewImgFile && (
                 <div style={{ position: "relative", width: 80, height: 80, marginBottom: 10, borderRadius: 8, overflow: "hidden", border: `1px solid ${T.border}` }}>
                   <img src={URL.createObjectURL(reviewImgFile)} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  <button aria-label="Quitar foto" onClick={() => setReviewImgFile(null)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="x" size={10} color="#fff" /></button>
+                  <button aria-label={t('detalle_quitar_foto', 'Quitar foto')} onClick={() => setReviewImgFile(null)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="x" size={10} color="#fff" /></button>
                 </div>
               )}
               
@@ -836,7 +838,7 @@ export default function DetailView() {
                   <Icon name="camera" size={20} color={dSub} />
                 </label>
                 <button className="btn-g press" style={{ flex: 1, padding: 12, opacity: reviewImgLoading ? 0.7 : 1 }} onClick={() => postReview(selected.id)} disabled={reviewImgLoading}>
-                  {reviewImgLoading ? "Publicando..." : "Publicar reseña"}
+                  {reviewImgLoading ? t('detalle_publicando', 'Publicando...') : t('detalle_publicar_resena', 'Publicar reseña')}
                 </button>
               </div>
             </div>}
@@ -846,13 +848,13 @@ export default function DetailView() {
                   <div className="text-sm" style={{ width: 40, height: 40, borderRadius: "50%", background: r.user_color || "#111", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", flexShrink: 0 }}>{r.user_init}</div>
                   <div>
                     <div className="text-sm" style={{ fontWeight: 800, color: dText }}>{r.user_name}</div>
-                    <div className="text-xs" style={{ color: dSub, marginTop: 2 }}>{new Date(r.created_at).toLocaleDateString("es-MX", { day: "numeric", month: "long" })}</div>
+                    <div className="text-xs" style={{ color: dSub, marginTop: 2 }}>{new Date(r.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', { day: "numeric", month: "long" })}</div>
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                   <StarRow n={r.stars} size={14} />
                   {(isAdmin || user?.id === r.user_id) && <button onClick={async () => { 
-                      if (window.confirm("¿Seguro que deseas eliminar esta reseña?")) {
+                      if (window.confirm(t('detalle_confirmar_eliminar_resena', '¿Seguro que deseas eliminar esta reseña?'))) {
                         try {
                           await dbService.deleteReview(r.id); 
                           // Update cache
@@ -863,24 +865,24 @@ export default function DetailView() {
                           if (selected && selected.id) {
                             dbService.updateBusinessStats(selected.id, { rating: avg, review_count: count });
                           }
-                          toast$("Reseña eliminada"); 
+                          toast$(t('detalle_resena_eliminada', 'Reseña eliminada')); 
                         } catch (err) {
-                          alert("Error al eliminar la reseña. Puede ser un problema de permisos en la base de datos (RLS).");
+                          alert(t('detalle_error_eliminar_resena', 'Error al eliminar la reseña. Puede ser un problema de permisos en la base de datos (RLS).'));
                           console.error(err);
                         }
                       } 
-                    }} style={{ background: "none", border: "none", color: T.red, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0 }}>Eliminar</button>}
+                    }} style={{ background: "none", border: "none", color: T.red, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0 }}>{t('detalle_eliminar', 'Eliminar')}</button>}
                 </div>
               </div>
               <p className="text-sm" style={{ color: dText, lineHeight: 1.6, marginTop: 10, marginBottom: r.img_url ? 10 : 12 }}>{r.text}</p>
               {r.img_url && (
                 <div style={{ marginBottom: 12, borderRadius: 12, overflow: "hidden", border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, width: "100%", maxWidth: 300, background: isElite ? "transparent" : "#f5f5f5" }}>
-                  <img src={getThumbUrl(r.img_url, 600, 600)} alt="Foto de la reseña" loading="lazy" style={{ width: "100%", height: "auto", display: "block", maxHeight: 300, objectFit: "cover" }} />
+                  <img src={getThumbUrl(r.img_url, 600, 600)} alt={t('detalle_foto_resena', 'Foto de la reseña')} loading="lazy" style={{ width: "100%", height: "auto", display: "block", maxHeight: 300, objectFit: "cover" }} />
                 </div>
               )}
               <div style={{ display: "flex", gap: 10 }}>
                 <button className="press" onClick={() => toggleLikeReview(r)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", border: `1px solid ${r.liked_by?.includes(user?.id) ? "#000" : (isElite ? "rgba(255,255,255,0.1)" : T.border)}`, borderRadius: 20, background: r.liked_by?.includes(user?.id) ? "#000" : dCard, color: r.liked_by?.includes(user?.id) ? "#fff" : dSub, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill={r.liked_by?.includes(user?.id) ? "#fff" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg> Útil ({r.liked_by?.length || 0})
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill={r.liked_by?.includes(user?.id) ? "#fff" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg> {t('detalle_util', 'Útil ({n})').replace('{n}', r.liked_by?.length || 0)}
                 </button>
               </div>
             </div>)}
@@ -891,14 +893,14 @@ export default function DetailView() {
                 onClick={() => setShowAllReviews(!showAllReviews)} 
                 style={{ width: "100%", padding: "14px", background: isElite ? "rgba(255,255,255,0.05)" : T.bg, border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, borderRadius: 12, fontSize: 14, fontWeight: 700, color: dText, cursor: "pointer", marginTop: 16, fontFamily: "inherit" }}
               >
-                {showAllReviews ? "Mostrar menos" : `Ver todas las reseñas (${reviews.length})`}
+                {showAllReviews ? t('detalle_mostrar_menos', 'Mostrar menos') : t('detalle_ver_todas_resenas', 'Ver todas las reseñas ({n})').replace('{n}', reviews.length)}
               </button>
             )}
             
             {!selected.user_id && (
               <div style={{ marginTop: 24, paddingTop: 24, borderTop: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, textAlign: "center" }}>
-                <div className="text-sm" style={{ color: dSub, marginBottom: 12 }}>¿Eres el dueño o administrador de {selected.name}?</div>
-                <m.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="press" onClick={() => { if(!user){ setShowAuth(true); toast$("Inicia sesión para reclamar este negocio"); return; } setClaimBiz(selected); }} style={{ padding: "10px 20px", background: isElite ? dCard : T.white, border: `1.5px solid ${isElite ? "rgba(255,255,255,0.2)" : T.border}`, borderRadius: 20, fontSize: 13, fontWeight: 700, color: dText, cursor: "pointer", fontFamily: "inherit", boxShadow: isElite ? "none" : T.shadow, outline: 'none' }}>Reclamar este negocio</m.button>
+                <div className="text-sm" style={{ color: dSub, marginBottom: 12 }}>{t('detalle_dueno_pregunta', '¿Eres el dueño o administrador de {nombre}?').replace('{nombre}', selected.name)}</div>
+                <m.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="press" onClick={() => { if(!user){ setShowAuth(true); toast$(t('detalle_inicia_reclamar_negocio', 'Inicia sesión para reclamar este negocio')); return; } setClaimBiz(selected); }} style={{ padding: "10px 20px", background: isElite ? dCard : T.white, border: `1.5px solid ${isElite ? "rgba(255,255,255,0.2)" : T.border}`, borderRadius: 20, fontSize: 13, fontWeight: 700, color: dText, cursor: "pointer", fontFamily: "inherit", boxShadow: isElite ? "none" : T.shadow, outline: 'none' }}>{t('detalle_reclamar_negocio', 'Reclamar este negocio')}</m.button>
               </div>
             )}
           </div>
@@ -908,7 +910,7 @@ export default function DetailView() {
           <ErrorBoundary>
             <Suspense fallback={
               <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-                <div style={{ textAlign: "center", padding: "40px", background: "#fff", borderRadius: 24, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>Cargando reservaciones...</div>
+                <div style={{ textAlign: "center", padding: "40px", background: "#fff", borderRadius: 24, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>{t('detalle_cargando_reservaciones', 'Cargando reservaciones...')}</div>
               </div>
             }>
               <BookingModal biz={selected} onClose={() => setShowBooking(false)} />
@@ -936,10 +938,10 @@ export default function DetailView() {
                 )}
               </div>
               <h2 style={{ margin: '0 0 12px 0', fontSize: 22, fontWeight: 800, color: dark ? '#FFF' : '#111', fontFamily: 'system-ui, -apple-system, sans-serif', letterSpacing: '-0.3px' }}>
-                ¿Cómo nos visitas hoy?
+                {t('detalle_como_visitas', '¿Cómo nos visitas hoy?')}
               </h2>
               <p style={{ margin: '0 0 28px 0', fontSize: 14, color: dark ? '#A1A1AA' : '#71717A', lineHeight: 1.5 }}>
-                Elige una opción para mostrarte el menú adecuado.
+                {t('detalle_elige_opcion', 'Elige una opción para mostrarte el menú adecuado.')}
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -953,7 +955,7 @@ export default function DetailView() {
                   style={{ width: '100%', padding: '16px', background: dark ? '#18181B' : '#FAFAFA', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, borderRadius: 16, color: dark ? '#FAFAFA' : '#18181B', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                 >
                   <span style={{ fontSize: 24 }}>🍽️</span>
-                  Estoy en el local
+                  {t('detalle_estoy_local', 'Estoy en el local')}
                 </button>
                 
                 <button 
@@ -965,8 +967,8 @@ export default function DetailView() {
                   className="press"
                   style={{ width: '100%', padding: '16px', background: dark ? '#18181B' : '#FAFAFA', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, borderRadius: 16, color: dark ? '#FAFAFA' : '#18181B', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                 >
-                  <img src="/pedido.png" alt="Para llevar" style={{ width: 24, height: 24, objectFit: 'contain' }} />
-                  Para llevar / Domicilio
+                  <img src="/pedido.png" alt={t('detalle_para_llevar_corto', 'Para llevar')} style={{ width: 24, height: 24, objectFit: 'contain' }} />
+                  {t('detalle_para_llevar', 'Para llevar / Domicilio')}
                 </button>
               </div>
             </m.div>

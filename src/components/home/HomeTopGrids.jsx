@@ -70,7 +70,7 @@ export default memo(function HomeTopGrids({
           
           {topFavs.length > 5 && (
             <button onClick={() => setShowMoreTopFavs(v => !v)} className="press" style={{ width: "100%", padding: "12px", background: "none", border: `1px solid ${T.border}`, borderRadius: 12, marginTop: 12, fontSize: 13, fontWeight: 700, color: T.green, cursor: "pointer", fontFamily: "inherit" }}>
-              {showMoreTopFavs ? t("ver_menos", "Ver menos") : t("ver_mas", "Ver 5 más")}
+              {showMoreTopFavs ? t("ver_menos", "Ver menos") : t("home_ver_5_mas", "Ver 5 más")}
             </button>
           )}
         </div>
@@ -79,7 +79,7 @@ export default memo(function HomeTopGrids({
       <div id="mejor-calificados" style={{scrollMarginTop:20}} />
       {ratedStatus && topRated.length === 0 && <section style={{margin:'32px 20px 24px',textAlign:'left'}}>
         <h2 style={{fontSize:20,fontWeight:800,color:T.text}}>⭐ {t('los_mas_valorados','Los más valorados')}</h2>
-        <p role="status" style={{fontSize:14,color:T.sub}}>{ratedStatus === 'loading' ? 'Cargando calificaciones…' : ratedStatus === 'error' ? 'No pudimos cargar las calificaciones. Vuelve a intentarlo cuando tengas conexión.' : 'Todavía no hay negocios con reseñas en esta ciudad.'}</p>
+        <p role="status" style={{fontSize:14,color:T.sub}}>{ratedStatus === 'loading' ? t("home_cargando_calificaciones", "Cargando calificaciones…") : ratedStatus === 'error' ? t("home_error_calificaciones", "No pudimos cargar las calificaciones. Vuelve a intentarlo cuando tengas conexión.") : t("home_sin_resenas_ciudad", "Todavía no hay negocios con reseñas en esta ciudad.")}</p>
       </section>}
       {topRated.length > 0 && (
         <div style={{ margin: "32px 20px 24px" }}>
@@ -108,7 +108,7 @@ export default memo(function HomeTopGrids({
           
           {topRated.length > 5 && (
             <button onClick={() => setShowMoreTopRated(v => !v)} className="press" style={{ width: "100%", padding: "12px", background: "none", border: `1px solid ${T.border}`, borderRadius: 12, marginTop: 12, fontSize: 13, fontWeight: 700, color: T.green, cursor: "pointer", fontFamily: "inherit" }}>
-              {showMoreTopRated ? t("ver_menos", "Ver menos") : t("ver_mas", "Ver 5 más")}
+              {showMoreTopRated ? t("ver_menos", "Ver menos") : t("home_ver_5_mas", "Ver 5 más")}
             </button>
           )}
         </div>

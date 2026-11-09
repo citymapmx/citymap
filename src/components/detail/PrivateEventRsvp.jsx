@@ -7,13 +7,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { sb } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
 import { summarizeRsvps } from '../../lib/privateEvents';
+import { useTranslation } from '../../hooks/useTranslation.js';
 
 const STATUS_OPTIONS = [
-  { value: 'voy', label: 'Voy' },
-  { value: 'quizas', label: 'Quizás' },
-  { value: 'no', label: 'No voy' },
+  { value: 'voy', labelKey: 'eventos_rsvp_voy', label: 'Voy' },
+  { value: 'quizas', labelKey: 'eventos_rsvp_quizas', label: 'Quizás' },
+  { value: 'no', labelKey: 'eventos_rsvp_no', label: 'No voy' },
 ];
-const STATUS_LABEL = { voy: 'Vas', quizas: 'Quizás', no: 'No voy' };
 
 const storageKey = (eventId) => `cg_rsvp_${eventId}`;
 function readStored(eventId) {
@@ -26,6 +26,7 @@ function readStored(eventId) {
 }
 
 export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCountChange }) {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [rows, setRows] = useState([]);
   const [name, setName] = useState('');
@@ -53,12 +54,13 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
   }, [event?.id]);
 
   const summary = summarizeRsvps(rows);
+  const statusLabel = { voy: t('eventos_rsvp_vas', 'Vas'), quizas: t('eventos_rsvp_quizas', 'Quizás'), no: t('eventos_rsvp_no', 'No voy') }[status] || t('eventos_rsvp_confirmado', 'Confirmado');
 
   // Contador de personas que van, para la píldora de la pestaña.
   useEffect(() => { onCountChange?.(summary.guests); }, [summary.guests, onCountChange]);
 
   const submit = async () => {
-    if (!name.trim()) { toast$('Escribe tu nombre para confirmar'); return; }
+    if (!name.trim()) { toast$(t("eventos_escribe_nombre_confirmar", "Escribe tu nombre para confirmar")); return; }
     const companionsToSave = status === 'voy' ? companions : 0;
     setSaving(true);
     try {
@@ -69,11 +71,11 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
         companions: companionsToSave,
       });
       try { window.localStorage.setItem(storageKey(event.id), JSON.stringify({ name: name.trim(), status, companions: companionsToSave })); } catch { /* sin almacenamiento */ }
-      toast$('Confirmación guardada');
+      toast$(t("eventos_confirmacion_guardada", "Confirmación guardada"));
       setCollapsed(true);
       load();
     } catch (e) {
-      toast$('Error: ' + e.message);
+      toast$(`${t("eventos_error", "Error:")} ${e.message}`);
     } finally {
       setSaving(false);
     }
@@ -85,17 +87,17 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
       {collapsed ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: luma ? '#FFFFFF' : T.greenL, border: luma ? '1px solid #E7EBE8' : 'none', boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', borderRadius: luma ? 16 : 12, padding: '12px 14px', marginBottom: 16 }}>
           <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: T.text, textAlign: 'left' }}>
-            ✓ {STATUS_LABEL[status] || 'Confirmado'} · {name}
+            ✓ {statusLabel} · {name}
             {status === 'voy' && companions > 0 ? ` +${companions}` : ''}
           </div>
-          <button onClick={() => setCollapsed(false)} style={{ padding: '8px 14px', background: 'transparent', border: `1.5px solid ${T.border}`, borderRadius: 9999, fontSize: 13, fontWeight: 700, color: T.text, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>Cambiar</button>
+          <button onClick={() => setCollapsed(false)} style={{ padding: '8px 14px', background: 'transparent', border: `1.5px solid ${T.border}`, borderRadius: 9999, fontSize: 13, fontWeight: 700, color: T.text, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>{t("eventos_cambiar", "Cambiar")}</button>
         </div>
       ) : (
         <div style={{ background: luma ? '#FFFFFF' : T.greenL, border: luma ? '1px solid #E7EBE8' : 'none', boxShadow: luma ? '0 12px 32px rgba(15,23,42,0.08)' : 'none', borderRadius: luma ? 24 : 16, padding: luma ? 18 : 16, marginBottom: 16 }}>
-          <div style={{ fontSize: luma ? 16 : 14, fontWeight: 800, color: T.text, marginBottom: 10 }}>¿Vas al evento?</div>
+          <div style={{ fontSize: luma ? 16 : 14, fontWeight: 800, color: T.text, marginBottom: 10 }}>{t("eventos_vas_al_evento", "¿Vas al evento?")}</div>
           <input
             className="inp"
-            placeholder="Tu nombre"
+            placeholder={t("eventos_tu_nombre", "Tu nombre")}
             value={name}
             onChange={e => setName(e.target.value)}
             style={{ marginBottom: 10 }}
@@ -115,16 +117,16 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
-                {opt.label}
+                {t(opt.labelKey, opt.label)}
               </button>
             ))}
           </div>
           {status === 'voy' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-              <span style={{ fontSize: 13, color: T.sub, flex: 1 }}>¿Llevas acompañantes?</span>
-              <button aria-label="Menos acompañantes" onClick={() => setCompanions(c => Math.max(0, c - 1))} style={{ width: 36, height: 36, borderRadius: '50%', border: `1.5px solid ${T.border}`, background: T.white, color: T.text, fontSize: 18, cursor: 'pointer' }}>−</button>
+              <span style={{ fontSize: 13, color: T.sub, flex: 1 }}>{t("eventos_llevas_acompanantes", "¿Llevas acompañantes?")}</span>
+              <button aria-label={t("eventos_menos_acompanantes", "Menos acompañantes")} onClick={() => setCompanions(c => Math.max(0, c - 1))} style={{ width: 36, height: 36, borderRadius: '50%', border: `1.5px solid ${T.border}`, background: T.white, color: T.text, fontSize: 18, cursor: 'pointer' }}>−</button>
               <span style={{ fontSize: 15, fontWeight: 800, color: T.text, minWidth: 20, textAlign: 'center' }}>{companions}</span>
-              <button aria-label="Más acompañantes" onClick={() => setCompanions(c => Math.min(10, c + 1))} style={{ width: 36, height: 36, borderRadius: '50%', border: `1.5px solid ${T.border}`, background: T.white, color: T.text, fontSize: 18, cursor: 'pointer' }}>+</button>
+              <button aria-label={t("eventos_mas_acompanantes", "Más acompañantes")} onClick={() => setCompanions(c => Math.min(10, c + 1))} style={{ width: 36, height: 36, borderRadius: '50%', border: `1.5px solid ${T.border}`, background: T.white, color: T.text, fontSize: 18, cursor: 'pointer' }}>+</button>
             </div>
           )}
           <button
@@ -132,19 +134,19 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
             disabled={saving}
             style={{ width: '100%', padding: luma ? '15px 0' : '12px 0', background: T.green, border: 'none', borderRadius: luma ? 16 : 12, fontSize: luma ? 15 : 14, fontWeight: 800, color: dark ? '#18181B' : '#FFFFFF', cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1, boxShadow: luma ? '0 8px 20px rgba(0,0,0,0.20)' : 'none' }}
           >
-            {saving ? 'Guardando…' : 'Confirmar asistencia'}
+            {saving ? t("eventos_guardando", "Guardando…") : t("eventos_confirmar_asistencia", "Confirmar asistencia")}
           </button>
         </div>
       )}
 
       {/* ── Quién va ── */}
       <div style={{ fontSize: luma ? 20 : 14, fontWeight: luma ? 900 : 800, color: T.text, marginBottom: 8 }}>
-        Van {summary.guests} persona{summary.guests === 1 ? '' : 's'}
-        {summary.counts.quizas > 0 && ` · ${summary.counts.quizas} quizás`}
-        {summary.counts.no > 0 && ` · ${summary.counts.no} no van`}
+        {t("eventos_rsvp_van", "Van")} {summary.guests} {summary.guests === 1 ? t("eventos_rsvp_persona", "persona") : t("eventos_rsvp_personas", "personas")}
+        {summary.counts.quizas > 0 && <> · {summary.counts.quizas} {t("eventos_rsvp_quizas_min", "quizás")}</>}
+        {summary.counts.no > 0 && <> · {summary.counts.no} {t("eventos_rsvp_no_van", "no van")}</>}
       </div>
       {summary.list.length === 0 ? (
-        <div style={{ fontSize: 13, color: T.sub }}>Aún nadie confirma. Sé la primera persona en confirmar.</div>
+        <div style={{ fontSize: 13, color: T.sub }}>{t("eventos_rsvp_sin_confirmar", "Aún nadie confirma. Sé la primera persona en confirmar.")}</div>
       ) : (
         summary.list.map(row => (
           <div key={row.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', borderTop: `1px solid ${T.border}` }}>
@@ -160,7 +162,7 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
               background: row.status === 'voy' ? T.greenL : row.status === 'quizas' ? '#FEF3C7' : '#F1F5F9',
               color: row.status === 'voy' ? T.green : row.status === 'quizas' ? '#92400E' : T.sub,
             }}>
-              {row.status === 'voy' ? 'Voy' : row.status === 'quizas' ? 'Quizás' : 'No voy'}
+              {row.status === 'voy' ? t("eventos_rsvp_voy", "Voy") : row.status === 'quizas' ? t("eventos_rsvp_quizas", "Quizás") : t("eventos_rsvp_no", "No voy")}
             </span>
           </div>
         ))

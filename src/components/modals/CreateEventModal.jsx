@@ -9,6 +9,7 @@ import { createSlug, randomToken } from '../../lib/utils';
 import { privateEventUrl } from '../../lib/privateEvents.js';
 import { EVENT_IMAGE_OPTIMIZE } from '../../lib/imageOptimize.js';
 import Icon from '../ui/Icon';
+import { useTranslation } from '../../hooks/useTranslation.js';
 import Uploader from '../Uploader';
 
 const STEPS = [
@@ -25,6 +26,7 @@ const EMPTY_FORM = {
 };
 
 export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }) {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const { events } = useDataStore();
   const { activeCity, dark, toast$, setSelectedEvent } = useUIStore();
@@ -94,13 +96,13 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
   const close = () => { setShowCreateEvent(false); setStep(1); setIsPrivate(false); setCreatedPrivate(null); };
 
   const canContinue = () => {
-    if (step === 1 && !createEvForm.title.trim()) { toast$("El título es obligatorio"); return false; }
-    if (step === 2 && !createEvForm.date) { toast$("La fecha es obligatoria"); return false; }
+    if (step === 1 && !createEvForm.title.trim()) { toast$(t('modal_titulo_obligatorio', 'El título es obligatorio')); return false; }
+    if (step === 2 && !createEvForm.date) { toast$(t('modal_fecha_obligatoria', 'La fecha es obligatoria')); return false; }
     return true;
   };
 
   const submitEvent = async () => {
-    if (!createEvForm.title.trim()) { toast$("El título es obligatorio"); return; }
+    if (!createEvForm.title.trim()) { toast$(t('modal_titulo_obligatorio', 'El título es obligatorio')); return; }
     try {
       let baseSlug = createSlug(createEvForm.title);
       if (!baseSlug.startsWith(activeCity + "-")) baseSlug = `${activeCity}-${baseSlug}`;
@@ -125,15 +127,15 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
       if (isPrivate) {
         const created = Array.isArray(rows) && rows[0] ? rows[0] : { ...createEvForm, slug: newSlug, city_slug: activeCity, visibility: "private" };
         setCreatedPrivate(created);
-        toast$("Evento privado creado");
+        toast$(t('modal_evento_privado_creado', 'Evento privado creado'));
         return;
       }
-      toast$("Evento enviado para revisión");
+      toast$(t('modal_evento_enviado_revision', 'Evento enviado para revisión'));
       close();
       setCreateEvForm(EMPTY_FORM);
       setShowManualAddr(false);
     } catch (e) {
-      toast$("Error: " + e.message);
+      toast$(t('modal_error', 'Error: {mensaje}').replace('{mensaje}', e.message));
     }
   };
 
@@ -167,8 +169,8 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
         {/* ── Encabezado ── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
           <div>
-            <h2 className="text-xl" style={{ fontFamily: "var(--heading)", color: T.text, marginBottom: 4 }}>Crear evento</h2>
-            <p className="text-sm" style={{ color: T.sub }}>{isPrivate ? "Solo visible con el enlace secreto · sin aprobación" : "Se publicará tras la aprobación del admin"}</p>
+            <h2 className="text-xl" style={{ fontFamily: "var(--heading)", color: T.text, marginBottom: 4 }}>{t('modal_crear_evento', 'Crear evento')}</h2>
+            <p className="text-sm" style={{ color: T.sub }}>{isPrivate ? t('modal_solo_enlace_secreto', 'Solo visible con el enlace secreto · sin aprobación') : t('modal_publicara_tras_aprobacion', 'Se publicará tras la aprobación del admin')}</p>
           </div>
           <button onClick={close} style={{ width: 36, height: 36, borderRadius: "50%", background: T.border, color: T.text, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
@@ -177,13 +179,13 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
           <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 4 }}>
             <div style={{ textAlign: "center", padding: "8px 0 0" }}>
               <div style={{ fontSize: 40, marginBottom: 8 }}>🔒</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>¡Tu evento privado está listo!</div>
-              <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>Solo quien tenga este enlace podrá verlo. No sale en público.</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>{t('modal_evento_privado_listo', '¡Tu evento privado está listo!')}</div>
+              <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{t('modal_solo_enlace_verlo', 'Solo quien tenga este enlace podrá verlo. No sale en público.')}</div>
             </div>
             <div style={{ background: T.bg, border: `1.5px solid ${T.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 13, color: T.text, wordBreak: "break-all", textAlign: "left" }}>{privateEventUrl(createdPrivate)}</div>
-            <button onClick={() => { navigator.clipboard?.writeText(privateEventUrl(createdPrivate)); toast$("Enlace secreto copiado"); }} style={{ padding: "13px 0", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>Copiar enlace secreto</button>
-            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Te invito a mi evento privado: ${createdPrivate.title || "Evento"} ${privateEventUrl(createdPrivate)}`)}`, "_blank")} style={{ padding: "13px 0", background: "#25D366", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>Compartir por WhatsApp</button>
-            <button onClick={() => { const ev = createdPrivate; close(); setCreateEvForm(EMPTY_FORM); setShowManualAddr(false); setSelectedEvent(ev); }} style={{ padding: "13px 0", background: "transparent", border: `1.5px solid ${T.border}`, borderRadius: 14, fontSize: 14, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>Abrir evento</button>
+            <button onClick={() => { navigator.clipboard?.writeText(privateEventUrl(createdPrivate)); toast$(t('modal_enlace_copiado', 'Enlace secreto copiado')); }} style={{ padding: "13px 0", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>{t('modal_copiar_enlace_secreto', 'Copiar enlace secreto')}</button>
+            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(t('modal_invito_evento_privado', 'Te invito a mi evento privado: {titulo} {enlace}').replace('{titulo}', createdPrivate.title || t('modal_evento_generico', 'Evento')).replace('{enlace}', privateEventUrl(createdPrivate)))}`, "_blank")} style={{ padding: "13px 0", background: "#25D366", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>{t('modal_compartir_whatsapp', 'Compartir por WhatsApp')}</button>
+            <button onClick={() => { const ev = createdPrivate; close(); setCreateEvForm(EMPTY_FORM); setShowManualAddr(false); setSelectedEvent(ev); }} style={{ padding: "13px 0", background: "transparent", border: `1.5px solid ${T.border}`, borderRadius: 14, fontSize: 14, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>{t('modal_abrir_evento', 'Abrir evento')}</button>
           </div>
         )}
         {!createdPrivate && (<div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -191,23 +193,23 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
           {step === 1 && (
             <>
               <div>
-                <div className="text-xs" style={labelStyle}>Imagen del evento</div>
+                <div className="text-xs" style={labelStyle}>{t('modal_imagen_evento', 'Imagen del evento')}</div>
                 <Uploader onDone={url => setCreateEvForm(f => ({ ...f, img_url: url }))} optimize={EVENT_IMAGE_OPTIMIZE} />
                 {createEvForm.img_url && <img src={createEvForm.img_url} alt="" style={{ width: "100%", height: 110, objectFit: "cover", borderRadius: 10, marginTop: 8 }} loading="lazy" />}
               </div>
-              <div><div className="text-xs" style={labelStyle}>Título</div><input className="inp" placeholder="Nombre del evento" value={createEvForm.title} onChange={e => setCreateEvForm(f => ({ ...f, title: e.target.value }))} /></div>
+              <div><div className="text-xs" style={labelStyle}>{t('modal_titulo', 'Título')}</div><input className="inp" placeholder={t('modal_placeholder_nombre_evento', 'Nombre del evento')} value={createEvForm.title} onChange={e => setCreateEvForm(f => ({ ...f, title: e.target.value }))} /></div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.greenL, borderRadius: 12, padding: "10px 12px" }}>
                 <div style={{ flex: 1, textAlign: "left" }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>🔒 Evento privado</div>
-                  <div style={{ fontSize: 12, color: T.sub }}>Solo quien tenga el enlace podrá verlo. No sale en público ni necesita aprobación.</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>{t('modal_evento_privado', '🔒 Evento privado')}</div>
+                  <div style={{ fontSize: 12, color: T.sub }}>{t('modal_privado_desc', 'Solo quien tenga el enlace podrá verlo. No sale en público ni necesita aprobación.')}</div>
                 </div>
-                <button type="button" role="switch" aria-checked={isPrivate} aria-label="Evento privado" onClick={() => setIsPrivate(v => !v)} style={{ width: 48, height: 28, borderRadius: 9999, border: "none", background: isPrivate ? T.green : T.border, position: "relative", cursor: "pointer", flexShrink: 0, padding: 0 }}>
+                <button type="button" role="switch" aria-checked={isPrivate} aria-label={t('modal_evento_privado_aria', 'Evento privado')} onClick={() => setIsPrivate(v => !v)} style={{ width: 48, height: 28, borderRadius: 9999, border: "none", background: isPrivate ? T.green : T.border, position: "relative", cursor: "pointer", flexShrink: 0, padding: 0 }}>
                   <span style={{ position: "absolute", top: 3, left: isPrivate ? 23 : 3, width: 22, height: 22, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.3)", transition: "left .15s ease" }} />
                 </button>
               </div>
-              <div><div className="text-xs" style={labelStyle}>Descripción</div><textarea className="inp" placeholder="Describe el evento..." rows={3} value={createEvForm.description} onChange={e => setCreateEvForm(f => ({ ...f, description: e.target.value }))} style={{ resize: "none", height: 64 }} /></div>
+              <div><div className="text-xs" style={labelStyle}>{t('modal_descripcion', 'Descripción')}</div><textarea className="inp" placeholder={t('modal_placeholder_describe_evento', 'Describe el evento...')} rows={3} value={createEvForm.description} onChange={e => setCreateEvForm(f => ({ ...f, description: e.target.value }))} style={{ resize: "none", height: 64 }} /></div>
               <div>
-                <div className="text-xs" style={{ ...labelStyle, marginBottom: 6 }}>Categoría</div>
+                <div className="text-xs" style={{ ...labelStyle, marginBottom: 6 }}>{t('modal_categoria', 'Categoría')}</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
                   {EVENT_CATEGORIES.map(cat => {
                     const isPreset = EVENT_CATEGORIES.filter(c => c !== "Otro").includes(createEvForm.event_category);
@@ -244,7 +246,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
                 {(!createEvForm.event_category || !EVENT_CATEGORIES.filter(c => c !== "Otro").includes(createEvForm.event_category)) && (
                   <input
                     className="inp"
-                    placeholder="Escribe otra categoría..."
+                    placeholder={t('modal_placeholder_otra_categoria', 'Escribe otra categoría...')}
                     value={createEvForm.event_category || ""}
                     onChange={e => setCreateEvForm(f => ({ ...f, event_category: e.target.value }))}
                     style={{ marginTop: 4 }}
@@ -258,27 +260,27 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
           {step === 2 && (
             <>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div><div className="text-xs" style={labelStyle}>Fecha</div><input type="date" value={createEvForm.date} onChange={e => setCreateEvForm(f => ({ ...f, date: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.text, fontFamily: "inherit" }} /></div>
-                <div><div className="text-xs" style={labelStyle}>Hora</div><input type="time" value={createEvForm.time} onChange={e => setCreateEvForm(f => ({ ...f, time: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.text, fontFamily: "inherit" }} /></div>
+                <div><div className="text-xs" style={labelStyle}>{t('modal_fecha', 'Fecha')}</div><input type="date" value={createEvForm.date} onChange={e => setCreateEvForm(f => ({ ...f, date: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.text, fontFamily: "inherit" }} /></div>
+                <div><div className="text-xs" style={labelStyle}>{t('modal_hora', 'Hora')}</div><input type="time" value={createEvForm.time} onChange={e => setCreateEvForm(f => ({ ...f, time: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.text, fontFamily: "inherit" }} /></div>
               </div>
               <div>
                 <div className="text-xs" style={{ ...labelStyle, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    Lugar del Evento {mapsOk && <img src="/googlelogo.svg" style={{ height: 12 }} alt="Google" />}
+                    {t('modal_lugar_evento', 'Lugar del Evento')} {mapsOk && <img src="/googlelogo.svg" style={{ height: 12 }} alt="Google" />}
                   </div>
                   {!showManualAddr && (
                     <button
                       onClick={(e) => { e.preventDefault(); setShowManualAddr(true); }}
                       style={{ background: "transparent", border: "none", color: "#1A7A5E", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
                     >
-                      ¿Ingresar manual?
+                      {t('modal_ingresar_manual', '¿Ingresar manual?')}
                     </button>
                   )}
                 </div>
                 <input
                   ref={venueRef}
                   className="inp"
-                  placeholder="Ej: Auditorio Telmex (Buscar con Google)..."
+                  placeholder={t('modal_placeholder_lugar', 'Ej: Auditorio Telmex (Buscar con Google)...')}
                   value={createEvForm.venue_name || ""}
                   onChange={e => {
                     setCreateEvForm(f => ({ ...f, venue_name: e.target.value }));
@@ -289,17 +291,17 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
               {showManualAddr && (
                 <div style={{ animation: "fadeIn 0.3s ease" }}>
                   <div className="text-xs" style={{ ...labelStyle, display: "flex", justifyContent: "space-between" }}>
-                    Dirección Manual
+                    {t('modal_direccion_manual', 'Dirección Manual')}
                     <button
                       onClick={(e) => { e.preventDefault(); setShowManualAddr(false); setCreateEvForm(f => ({ ...f, venue_address: f.venue_name })); }}
                       style={{ background: "transparent", border: "none", color: "#D94F3D", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
                     >
-                      Ocultar
+                      {t('modal_ocultar', 'Ocultar')}
                     </button>
                   </div>
                   <input
                     className="inp"
-                    placeholder="Av. México 123, Colonia Centro..."
+                    placeholder={t('modal_placeholder_direccion', 'Av. México 123, Colonia Centro...')}
                     value={createEvForm.venue_address}
                     onChange={e => setCreateEvForm(f => ({ ...f, venue_address: e.target.value }))}
                   />
@@ -311,21 +313,21 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
           {/* ── PASO 3: Entradas y contacto ── */}
           {step === 3 && (
             <>
-              <div><div className="text-xs" style={{ ...labelStyle, marginBottom: 8 }}>Precio</div>
+              <div><div className="text-xs" style={{ ...labelStyle, marginBottom: 8 }}>{t('modal_precio', 'Precio')}</div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  {["gratis", "paid"].map(pt => <button key={pt} onClick={() => setCreateEvForm(f => ({ ...f, price_type: pt }))} style={{ flex: 1, padding: "10px 0", border: `1.5px solid ${createEvForm.price_type === pt ? T.green : T.border}`, borderRadius: 10, fontSize: 13, fontWeight: 700, background: createEvForm.price_type === pt ? T.greenL : T.white, color: createEvForm.price_type === pt ? T.green : T.sub, cursor: "pointer", fontFamily: "inherit" }}>{pt === "gratis" ? "Gratis" : "De pago"}</button>)}
+                  {["gratis", "paid"].map(pt => <button key={pt} onClick={() => setCreateEvForm(f => ({ ...f, price_type: pt }))} style={{ flex: 1, padding: "10px 0", border: `1.5px solid ${createEvForm.price_type === pt ? T.green : T.border}`, borderRadius: 10, fontSize: 13, fontWeight: 700, background: createEvForm.price_type === pt ? T.greenL : T.white, color: createEvForm.price_type === pt ? T.green : T.sub, cursor: "pointer", fontFamily: "inherit" }}>{pt === "gratis" ? t('modal_gratis', 'Gratis') : t('modal_de_pago', 'De pago')}</button>)}
                 </div>
-                {createEvForm.price_type === "paid" && <input className="inp" placeholder="Ej: $200" value={createEvForm.price} onChange={e => setCreateEvForm(f => ({ ...f, price: e.target.value }))} style={{ marginTop: 8 }} />}
+                {createEvForm.price_type === "paid" && <input className="inp" placeholder={t('modal_placeholder_precio', 'Ej: $200')} value={createEvForm.price} onChange={e => setCreateEvForm(f => ({ ...f, price: e.target.value }))} style={{ marginTop: 8 }} />}
               </div>
-              <div><div className="text-xs" style={labelStyle}>WhatsApp de contacto</div><input className="inp" placeholder="3111234567" value={createEvForm.whatsapp} onChange={e => setCreateEvForm(f => ({ ...f, whatsapp: e.target.value }))} /></div>
-              <div><div className="text-xs" style={labelStyle}>Sitio web / Boletos <span className="text-micro" style={{ opacity: 0.6 }}>(Opcional)</span></div><input className="inp" placeholder="https://..." value={createEvForm.website || ""} onChange={e => setCreateEvForm(f => ({ ...f, website: e.target.value }))} /></div>
+              <div><div className="text-xs" style={labelStyle}>{t('modal_whatsapp_contacto', 'WhatsApp de contacto')}</div><input className="inp" placeholder="3111234567" value={createEvForm.whatsapp} onChange={e => setCreateEvForm(f => ({ ...f, whatsapp: e.target.value }))} /></div>
+              <div><div className="text-xs" style={labelStyle}>{t('modal_sitio_boletos', 'Sitio web / Boletos')} <span className="text-micro" style={{ opacity: 0.6 }}>{t('modal_opcional', '(Opcional)')}</span></div><input className="inp" placeholder="https://..." value={createEvForm.website || ""} onChange={e => setCreateEvForm(f => ({ ...f, website: e.target.value }))} /></div>
               <div style={{ background: T.greenL, borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 4 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: .6 }}>Tu evento</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{createEvForm.title || "Sin título"}</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: .6 }}>{t('modal_tu_evento', 'Tu evento')}</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{createEvForm.title || t('modal_sin_titulo', 'Sin título')}</div>
                 {formattedDate() && <div style={{ fontSize: 13, color: T.sub }}>{formattedDate()}{createEvForm.time ? ` · ${createEvForm.time}` : ""}</div>}
                 {createEvForm.venue_name && <div style={{ fontSize: 13, color: T.sub }}>{createEvForm.venue_name}</div>}
                 {createEvForm.event_category && <div style={{ fontSize: 13, color: T.sub }}>{createEvForm.event_category}</div>}
-                {isPrivate && <div style={{ fontSize: 13, color: T.sub }}>🔒 Privado · solo con el enlace secreto</div>}
+                {isPrivate && <div style={{ fontSize: 13, color: T.sub }}>{t('modal_privado_resumen', '🔒 Privado · solo con el enlace secreto')}</div>}
               </div>
             </>
           )}
@@ -333,7 +335,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
           {/* ── Navegación: flecha atrás, puntos, continuar ── */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
             {step > 1 ? (
-              <button aria-label="Atrás" onClick={() => setStep(s => s - 1)} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: `1.5px solid ${T.border}`, color: T.text, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="arrow_left" size={18} /></button>
+              <button aria-label={t('modal_atras', 'Atrás')} onClick={() => setStep(s => s - 1)} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: `1.5px solid ${T.border}`, color: T.text, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="arrow_left" size={18} /></button>
             ) : (
               <div style={{ width: 44, height: 44, flexShrink: 0 }} />
             )}
@@ -343,9 +345,9 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
               ))}
             </div>
             {step < 3 ? (
-              <button onClick={() => { if (canContinue()) setStep(s => s + 1); }} style={{ padding: "13px 18px", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>Continuar<Icon name="arrow_right" size={16} /></button>
+              <button onClick={() => { if (canContinue()) setStep(s => s + 1); }} style={{ padding: "13px 18px", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{t('modal_continuar', 'Continuar')}<Icon name="arrow_right" size={16} /></button>
             ) : (
-              <button onClick={submitEvent} style={{ padding: "13px 18px", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>{isPrivate ? "Crear evento privado" : "Enviar evento"}</button>
+              <button onClick={submitEvent} style={{ padding: "13px 18px", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>{isPrivate ? t('modal_crear_evento_privado', 'Crear evento privado') : t('modal_enviar_evento', 'Enviar evento')}</button>
             )}
           </div>
         </div>)}

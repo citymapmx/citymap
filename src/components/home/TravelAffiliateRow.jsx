@@ -2,15 +2,18 @@
 // global, debajo del buscador, y se oculta mientras se busca. El botón Tours
 // lleva a la página /tours del sitio (los artículos tienen el enlace de
 // afiliado); los demás abren al socio en otra pestaña.
+import { useTranslation } from '../../hooks/useTranslation.js';
+
 export default function TravelAffiliateRow({ T, dark, navigate }) {
+  const { t } = useTranslation();
   const links = [
-    { label: 'Autos', icon: '🚗', href: 'https://expedia.stay22.com/citymapmx/LeK8DFMnTC' },
-    { label: 'Hoteles', icon: '🏨', href: 'https://booking.stay22.com/citymapmx/Uv1zqBOpxi' },
-    { label: 'Vuelos', icon: '✈️', href: 'https://kayak.stay22.com/citymapmx/qi99zaJZro' },
-    { label: 'Tours', icon: '🗺️', href: '/tours', internal: true },
+    { label: t("home_autos", "Autos"), icon: '🚗', href: 'https://expedia.stay22.com/citymapmx/LeK8DFMnTC' },
+    { label: t("hoteles", "Hoteles"), icon: '🏨', href: 'https://booking.stay22.com/citymapmx/Uv1zqBOpxi' },
+    { label: t("home_vuelos", "Vuelos"), icon: '✈️', href: 'https://kayak.stay22.com/citymapmx/qi99zaJZro' },
+    { label: t("home_tours", "Tours"), icon: '🗺️', href: '/tours', internal: true },
   ];
   return (
-    <nav aria-label="Reserva tu viaje" style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+    <nav aria-label={t("home_reserva_viaje", "Reserva tu viaje")} style={{ display: 'flex', gap: 8, marginTop: 12 }}>
       {links.map((l) => (
         l.internal ? (
           <a key={l.label} href={l.href} onClick={navigate ? (e) => { e.preventDefault(); navigate(l.href); } : undefined}

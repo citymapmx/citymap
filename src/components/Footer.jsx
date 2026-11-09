@@ -1,7 +1,9 @@
 import { useAppContext } from '../context/AppContext';
+import { useTranslation } from '../hooks/useTranslation.js';
 
 export default function Footer() {
   const { T, dark, navigate, setShowPlans, setShowAddBiz, setShowAuth, user } = useAppContext();
+  const { t } = useTranslation();
 
   const socials = [
     { name: 'Instagram', url: 'https://www.instagram.com/citymap.mx', icon: (
@@ -30,7 +32,7 @@ export default function Footer() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <img src="/citymap.mx.png" alt="CityMap" width={107} height={32} style={{ height: 32, width: 107, objectFit: "contain", filter: dark ? "brightness(0) invert(1)" : "brightness(0)", marginBottom: 16 }} />
           <p style={{ fontSize: 13, color: T.sub, margin: "0 0 20px 0", lineHeight: 1.6, maxWidth: 350 }}>
-            Tu guía local para descubrir lo mejor de la ciudad. Encuentra lugares increíbles, eventos y experiencias cerca de ti.
+            {t("menu_tagline", "Tu guía local para descubrir lo mejor de la ciudad. Encuentra lugares increíbles, eventos y experiencias cerca de ti.")}
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
             {socials.map(s => (
@@ -60,21 +62,21 @@ export default function Footer() {
           
           {/* Links Column 1: Negocios */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <h4 style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>Para Negocios</h4>
+            <h4 style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t("menu_para_negocios", "Para Negocios")}</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
-              <span onClick={() => { if(!user) { setShowAuth?.(true); return; } setShowAddBiz?.(true); }} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>Agrega tu negocio</span>
-              <span onClick={() => { if(!user) { setShowAuth?.(true); return; } navigate('cuenta'); }} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>Acceso a dueños</span>
+              <span onClick={() => { if(!user) { setShowAuth?.(true); return; } setShowAddBiz?.(true); }} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>{t("menu_agrega_tu_negocio", "Agrega tu negocio")}</span>
+              <span onClick={() => { if(!user) { setShowAuth?.(true); return; } navigate('cuenta'); }} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>{t("menu_acceso_duenos", "Acceso a dueños")}</span>
             </div>
           </div>
 
           {/* Links Column 2: Legal & Ayuda */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <h4 style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>Soporte y Legal</h4>
+            <h4 style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t("menu_soporte_legal", "Soporte y Legal")}</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
-              <span onClick={() => navigate('about')} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>Sobre nosotros</span>
-              <span onClick={() => navigate('privacy')} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>Aviso de privacidad</span>
-              <span onClick={() => navigate('terms')} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>Términos y condiciones</span>
-              <a href="https://wa.me/523223792428?text=Hola, tengo una duda sobre CityMap." target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: T.sub, textDecoration: 'none', transition: 'color .2s' }}>Contáctanos</a>
+              <span onClick={() => navigate('about')} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>{t("menu_sobre_nosotros", "Sobre nosotros")}</span>
+              <span onClick={() => navigate('privacy')} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>{t("menu_aviso_privacidad", "Aviso de privacidad")}</span>
+              <span onClick={() => navigate('terms')} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>{t("menu_terminos_condiciones", "Términos y condiciones")}</span>
+              <a href="https://wa.me/523223792428?text=Hola, tengo una duda sobre CityMap." target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: T.sub, textDecoration: 'none', transition: 'color .2s' }}>{t("menu_contactanos", "Contáctanos")}</a>
             </div>
           </div>
 
@@ -89,7 +91,7 @@ export default function Footer() {
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 
       }}>
         <div style={{ fontSize: 12, color: dark ? 'rgba(255,255,255,0.4)' : '#6B7280', fontWeight: 500 }}>
-          © {new Date().getFullYear()} CityMap. Todos los derechos reservados.
+          © {new Date().getFullYear()} CityMap. {t("derechos_reservados", "Todos los derechos reservados.")}
         </div>
       </div>
     </footer>

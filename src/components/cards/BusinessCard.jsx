@@ -137,7 +137,7 @@ const renderNotesBlock = (stayTimeStr, note, onEditNote, T, t) => {
           </p>
           {onEditNote && (
             <button 
-              aria-label="Editar nota"
+              aria-label={t("card_editar_nota", "Editar nota")}
               onClick={(e) => { e.stopPropagation(); onEditNote(); }}
               style={{ position: "absolute", top: 0, right: 0, background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
             >
@@ -274,7 +274,7 @@ export default memo(function BusinessCard({
             <h3 style={{ fontFamily: FONT_BIZ, fontSize: 15, color: T.text, lineHeight: 1.25, fontWeight: 700, letterSpacing: 0, marginBottom: 0, paddingRight: !hideFavs ? 44 : 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", flexShrink: 0, textAlign: "left" }}>
               {b.name}
               {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
-                <img src="/verificado.png" alt="Verificado" width="18" height="18" style={{ marginLeft: 6, flexShrink: 0 }} />
+                <img src="/verificado.png" alt={t("card_verificado", "Verificado")} width="18" height="18" style={{ marginLeft: 6, flexShrink: 0 }} />
               )}
             </h3>
             
@@ -365,7 +365,7 @@ export default memo(function BusinessCard({
           <h3 style={{ fontFamily: FONT_BIZ, fontSize: 18, color: T.text, lineHeight: 1.2, fontWeight: 800, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</span>
             {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
-              <img src="/verificado.png" alt="Verificado" width="18" height="18" style={{ marginLeft: 6, flexShrink: 0 }} />
+              <img src="/verificado.png" alt={t("card_verificado", "Verificado")} width="18" height="18" style={{ marginLeft: 6, flexShrink: 0 }} />
             )}
           </h3>
           
@@ -448,7 +448,7 @@ export default memo(function BusinessCard({
             <h3 style={{ fontFamily: FONT_BIZ, fontSize: 22, color: "#fff", lineHeight: 1.15, fontWeight: 800, letterSpacing: 0, marginBottom: 2, textShadow: "0 2px 4px rgba(0,0,0,0.5)", paddingRight: 8, display: "flex", alignItems: "center" }}>
               <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</span>
               {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
-                <img src="/verificado.png" alt="Verificado" width="18" height="18" style={{ marginLeft: 6, flexShrink: 0, filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.5))" }} />
+                <img src="/verificado.png" alt={t("card_verificado", "Verificado")} width="18" height="18" style={{ marginLeft: 6, flexShrink: 0, filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.5))" }} />
               )}
             </h3>
             
@@ -485,12 +485,12 @@ export default memo(function BusinessCard({
               
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}>
                 {b.whatsapp && (
-                  <button aria-label="Contactar por WhatsApp" onClick={(e) => { e.stopPropagation(); goWhatsApp && goWhatsApp(b, e); }} style={{ width: 36, height: 36, borderRadius: "50%", background: "transparent", border: "none", padding: 6, cursor: "pointer", transition: "transform 0.2s", display: "flex", alignItems: "center", justifyContent: "center" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
+                  <button aria-label={t("card_contactar_whatsapp", "Contactar por WhatsApp")} onClick={(e) => { e.stopPropagation(); goWhatsApp && goWhatsApp(b, e); }} style={{ width: 36, height: 36, borderRadius: "50%", background: "transparent", border: "none", padding: 6, cursor: "pointer", transition: "transform 0.2s", display: "flex", alignItems: "center", justifyContent: "center" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
                     <img src="/whatsapp.svg" alt="WhatsApp" width={24} height={24} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }} />
                   </button>
                 )}
                 {(b.instagram || b.social_links?.instagram) && (
-                  <button aria-label="Ver Instagram" onClick={(e) => { 
+                  <button aria-label={t("card_ver_instagram", "Ver Instagram")} onClick={(e) => { 
                     e.stopPropagation(); 
                     const ig = b.instagram || b.social_links?.instagram;
                     window.open(`https://instagram.com/${ig.replace("@","")}`, "_blank"); 
@@ -499,7 +499,7 @@ export default memo(function BusinessCard({
                   </button>
                 )}
                 {(b.facebook || b.social_links?.facebook) && (
-                  <button aria-label="Ver Facebook" onClick={(e) => { 
+                  <button aria-label={t("card_ver_facebook", "Ver Facebook")} onClick={(e) => { 
                     e.stopPropagation(); 
                     const fb = b.facebook || b.social_links?.facebook;
                     window.open(fb.includes("http") ? fb : `https://facebook.com/${fb}`, "_blank"); 
@@ -511,7 +511,7 @@ export default memo(function BusinessCard({
                   </button>
                 )}
                 {b.social_links?.youtube && (
-                  <button aria-label="Ver YouTube" onClick={(e) => { 
+                  <button aria-label={t("card_ver_youtube", "Ver YouTube")} onClick={(e) => { 
                     e.stopPropagation(); 
                     const yt = b.social_links?.youtube;
                     window.open(yt.includes("http") ? yt : `https://youtube.com/${yt.startsWith('@') ? '' : '@'}${yt}`, "_blank"); 

@@ -66,10 +66,12 @@ export default memo(function HomeHero({
   const getGreeting = () => {
     const h = new Date().getHours();
     const days = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-    const day = days[new Date().getDay()];
-    if (h >= 5 && h < 12) return `¡Buen ${day}!`;
-    if (h >= 12 && h < 19) return `¡Excelente ${day}!`;
-    return `¡Linda noche!`;
+    const dayKeys = ["home_dia_domingo", "home_dia_lunes", "home_dia_martes", "home_dia_miercoles", "home_dia_jueves", "home_dia_viernes", "home_dia_sabado"];
+    const dayIdx = new Date().getDay();
+    const day = t(dayKeys[dayIdx], days[dayIdx]);
+    if (h >= 5 && h < 12) return `${t("home_saludo_buen", "¡Buen")} ${day}!`;
+    if (h >= 12 && h < 19) return `${t("home_saludo_excelente", "¡Excelente")} ${day}!`;
+    return t("home_saludo_linda_noche", "¡Linda noche!");
   };
 
   const contextMessage = React.useMemo(() => {
@@ -83,91 +85,91 @@ export default memo(function HomeHero({
     if (h < 11) {
       return isWeekend 
         ? rand([
-            "El fin de semana merece un desayuno especial", 
-            "Empieza tu día de descanso con un buen brunch", 
-            "Mañana perfecta para salir por un café",
-            "¿Listos para salir a explorar la ciudad hoy?",
-            "Descubre qué eventos hay este fin de semana"
+            t("home_hero_msg_01", "El fin de semana merece un desayuno especial"), 
+            t("home_hero_msg_02", "Empieza tu día de descanso con un buen brunch"), 
+            t("home_hero_msg_03", "Mañana perfecta para salir por un café"),
+            t("home_hero_msg_04", "¿Listos para salir a explorar la ciudad hoy?"),
+            t("home_hero_msg_05", "Descubre qué eventos hay este fin de semana")
           ])
         : rand([
-            "Ideal para un buen café mañanero", 
-            "Empieza el día con energía y un buen desayuno", 
-            "¡Buenos días! ¿Qué se te antoja desayunar hoy?",
-            "Planea tus actividades y rutas para hoy",
-            "Descubre nuevos lugares cerca de ti"
+            t("home_hero_msg_06", "Ideal para un buen café mañanero"), 
+            t("home_hero_msg_07", "Empieza el día con energía y un buen desayuno"), 
+            t("home_hero_msg_08", "¡Buenos días! ¿Qué se te antoja desayunar hoy?"),
+            t("home_hero_msg_09", "Planea tus actividades y rutas para hoy"),
+            t("home_hero_msg_10", "Descubre nuevos lugares cerca de ti")
           ]);
     }
     
     if (h >= 11 && h < 14) {
       return isWeekend
         ? rand([
-            "¿Listo para el antojo de fin de semana?", 
-            "¿Dónde vamos a comer hoy?", 
-            "Busca el plan perfecto para esta tarde",
-            "Descubre museos, parques y lugares increíbles",
-            "Hay mucho por hacer hoy en la ciudad"
+            t("home_hero_msg_11", "¿Listo para el antojo de fin de semana?"), 
+            t("home_hero_msg_12", "¿Dónde vamos a comer hoy?"), 
+            t("home_hero_msg_13", "Busca el plan perfecto para esta tarde"),
+            t("home_hero_msg_14", "Descubre museos, parques y lugares increíbles"),
+            t("home_hero_msg_15", "Hay mucho por hacer hoy en la ciudad")
           ])
         : rand([
-            "¿Ya hace hambre? Descubre dónde comer", 
-            "Haz una pausa y disfruta una buena comida", 
-            "Encuentra el lugar perfecto para tu hora de comida",
-            "Busca qué hacer al salir de la oficina",
-            "Explora los mejores lugares de la zona"
+            t("home_hero_msg_16", "¿Ya hace hambre? Descubre dónde comer"), 
+            t("home_hero_msg_17", "Haz una pausa y disfruta una buena comida"), 
+            t("home_hero_msg_18", "Encuentra el lugar perfecto para tu hora de comida"),
+            t("home_hero_msg_19", "Busca qué hacer al salir de la oficina"),
+            t("home_hero_msg_20", "Explora los mejores lugares de la zona")
           ]);
     }
     
     if (h >= 14 && h < 18) {
       return isWeekend 
         ? rand([
-            "Tarde perfecta para salir por un postre", 
-            "Aprovecha la tarde libre para explorar", 
-            "Busca eventos y música en vivo para hoy",
-            "¿Un paseo por la ciudad o un buen café?",
-            "Descubre las mejores experiencias locales"
+            t("home_hero_msg_21", "Tarde perfecta para salir por un postre"), 
+            t("home_hero_msg_22", "Aprovecha la tarde libre para explorar"), 
+            t("home_hero_msg_23", "Busca eventos y música en vivo para hoy"),
+            t("home_hero_msg_24", "¿Un paseo por la ciudad o un buen café?"),
+            t("home_hero_msg_25", "Descubre las mejores experiencias locales")
           ])
         : rand([
-            "Para romper la rutina con algo dulce", 
-            "Haz una pausa en tu tarde con un buen café", 
-            "Un gustito a mitad del día no hace daño",
-            "Escapa de la rutina y descubre algo nuevo",
-            "¿Qué plan hay para salir del trabajo?"
+            t("home_hero_msg_26", "Para romper la rutina con algo dulce"), 
+            t("home_hero_msg_27", "Haz una pausa en tu tarde con un buen café"), 
+            t("home_hero_msg_28", "Un gustito a mitad del día no hace daño"),
+            t("home_hero_msg_29", "Escapa de la rutina y descubre algo nuevo"),
+            t("home_hero_msg_30", "¿Qué plan hay para salir del trabajo?")
           ]);
     }
     
     if (h >= 18 && h < 22) {
       return isWeekend 
         ? rand([
-            "La noche es joven. Ideal para una cena o tragos", 
-            "Descubre dónde cenar y relajarte este fin de semana", 
-            "Busca eventos, teatro o comedia para esta noche",
-            "Noche perfecta para probar algo diferente",
-            "Encuentra el mejor ambiente nocturno"
+            t("home_hero_msg_31", "La noche es joven. Ideal para una cena o tragos"), 
+            t("home_hero_msg_32", "Descubre dónde cenar y relajarte este fin de semana"), 
+            t("home_hero_msg_33", "Busca eventos, teatro o comedia para esta noche"),
+            t("home_hero_msg_34", "Noche perfecta para probar algo diferente"),
+            t("home_hero_msg_35", "Encuentra el mejor ambiente nocturno")
           ])
         : rand([
-            "¿Antojo de cenar algo rico?", 
-            "Termina tu día con una cena espectacular", 
-            "Descubre qué hacer esta noche en la ciudad",
-            "El día aún no termina, sal a explorar",
-            "Relájate en un buen bar o terraza"
+            t("home_hero_msg_36", "¿Antojo de cenar algo rico?"), 
+            t("home_hero_msg_37", "Termina tu día con una cena espectacular"), 
+            t("home_hero_msg_38", "Descubre qué hacer esta noche en la ciudad"),
+            t("home_hero_msg_39", "El día aún no termina, sal a explorar"),
+            t("home_hero_msg_40", "Relájate en un buen bar o terraza")
           ]);
     }
     
     return isWeekend
       ? rand([
-            "Para los que todavía no quieren dormir", 
-            "Descubre la vida nocturna de la ciudad", 
-            "Los mejores eventos para alargar la noche",
-            "Encuentra música y fiesta cerca de ti",
-            "Una noche inolvidable te espera"
+            t("home_hero_msg_41", "Para los que todavía no quieren dormir"), 
+            t("home_hero_msg_42", "Descubre la vida nocturna de la ciudad"), 
+            t("home_hero_msg_43", "Los mejores eventos para alargar la noche"),
+            t("home_hero_msg_44", "Encuentra música y fiesta cerca de ti"),
+            t("home_hero_msg_45", "Una noche inolvidable te espera")
           ])
       : rand([
-            "Descubre los mejores lugares nocturnos", 
-            "¿Antojo de medianoche?", 
-            "La ciudad nunca duerme",
-            "Lugares increíbles que abren hasta tarde",
-            "Encuentra dónde terminar la noche"
+            t("home_hero_msg_46", "Descubre los mejores lugares nocturnos"), 
+            t("home_hero_msg_47", "¿Antojo de medianoche?"), 
+            t("home_hero_msg_48", "La ciudad nunca duerme"),
+            t("home_hero_msg_49", "Lugares increíbles que abren hasta tarde"),
+            t("home_hero_msg_50", "Encuentra dónde terminar la noche")
           ]);
-  }, []);
+  }, [t]);
 
 
 
@@ -295,7 +297,7 @@ export default memo(function HomeHero({
             <DebouncedSearchBar initialValue={search} onSearch={setSearch} dark={dark} />
         </div>
 
-        {!search && onSurprise && <button type="button" aria-label="Sorpréndeme" title="Sorpréndeme" onClick={onSurprise}
+        {!search && onSurprise && <button type="button" aria-label={t("home_sorprendeme", "Sorpréndeme")} title={t("home_sorprendeme", "Sorpréndeme")} onClick={onSurprise}
           style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, cursor: 'pointer', fontSize: 23 }}>🎲</button>}
         </div>
 
