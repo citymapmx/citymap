@@ -13,3 +13,18 @@ export function shouldShowCityEmptyState({
 } = {}) {
   return !hasBusinesses && !hasExperiences && !hasEvents && !hasWidget;
 }
+
+// ¿Mostrar la tarjeta de categoría vacía en la página de categoría?
+//
+// La página de categoría (/:ciudad/c/:categoria) tiene su propio bloque de
+// lista vacía. Cuando la categoría completa está vacía (sin subcategoría
+// elegida), ese bloque es la tarjeta CityEmptyState con la categoría; pero
+// solo si la tarjeta genérica de "ciudad vacía" NO se muestra ya arriba,
+// para que nunca se vean las dos a la vez.
+export function shouldShowCategoryEmptyState({
+  selectedSubcat,
+  categoryLabel,
+  showGenericEmpty,
+} = {}) {
+  return selectedSubcat === "todas" && !showGenericEmpty && Boolean(categoryLabel);
+}

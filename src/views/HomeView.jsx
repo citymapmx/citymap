@@ -12,7 +12,7 @@ import { useAuthStore } from "../store/useAuthStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear, METRO_ZONES } from "../lib/utils";
-import { shouldShowCityEmptyState } from "../lib/cityEmptyState.js";
+import { shouldShowCityEmptyState, shouldShowCategoryEmptyState } from "../lib/cityEmptyState.js";
 import { getTimeSlot, spotForSlot, isFoodSpot, seededRand, shuffleBySeed } from "../lib/timeBasedLists.js";
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
@@ -373,6 +373,19 @@ export default function HomeView({ isBackground }) {
   const hasCityExperiences = experiences.some(e => isNear(e, userCoords, activeCity));
   const hasCityEvents = (events || []).some(ev => ev.status === 'approved' && isNear(ev, userCoords, activeCity));
 
+  // Etiqueta de la categoría activa (undefined en "Explorar" / "Todas").
+  const categoryLabel = (activeCat && activeCat !== 'explorar' && activeCat !== 'todas')
+    ? (cats.find(c => c.id === activeCat)?.label || activeCat)
+    : undefined;
+
+  // La tarjeta genérica de "ciudad vacía" y la de categoría nunca deben
+  // mostrarse a la vez: la de categoría solo sale cuando la genérica no sale.
+  const showGenericEmpty = !search && dbReady && !pinsLoading && shouldShowCityEmptyState({
+    hasBusinesses: mapPins.filter(b => isNear(b, userCoords, activeCity)).length > 0,
+    hasExperiences: hasCityExperiences,
+    hasEvents: hasCityEvents,
+  });
+
   return (
     <div data-city-home={activeCity} style={{ paddingBottom: 84, position: "relative", ...viewStyle }}>
           {/* ── HERO HEADER ── */}
@@ -380,14 +393,14 @@ export default function HomeView({ isBackground }) {
           
 
           {/* ── EMPTY CITY STATE ── */}
-          {!search && dbReady && !pinsLoading && shouldShowCityEmptyState({ hasBusinesses: mapPins.filter(b => isNear(b, userCoords, activeCity)).length > 0, hasExperiences: hasCityExperiences, hasEvents: hasCityEvents }) && (
+          {showGenericEmpty && (
             <CityEmptyState
               activeCity={activeCity}
               userCoords={userCoords}
               cities={cities}
               T={T}
               dark={dark}
-              category={(activeCat && activeCat !== 'explorar' && activeCat !== 'todas') ? (cats.find(c => c.id === activeCat)?.label || activeCat) : undefined}
+              category={categoryLabel}
             />
           )}
 
@@ -718,34 +731,47 @@ export default function HomeView({ isBackground }) {
                 </BusinessListTransition>
               )}
               {dbReady && businessListReady && finalDisplayList.length === 0 && (
-                <div style={{ textAlign: "center", padding: "32px 0", color: T.sub }}>
-                  <Icon name="search" size={36} color={T.border} />
-                  <p style={{ fontWeight: 700, color: T.text, marginTop: 14, marginBottom: 6 }}>
-                    {selectedSubcat !== "todas" 
-                      ? <>{t("home_sin_negocios_en", "Sin negocios en")} "{selectedSubcat}"</>
-                      : t("sin_negocios_cat", "Sin negocios en esta categoría")}
-                  </p>
-                  {selectedSubcat !== "todas" ? (
-                    <button 
+                shouldShowCategoryEmptyState({ selectedSubcat, categoryLabel, showGenericEmpty }) ? (
+                  <CityEmptyState
+                    activeCity={activeCity}
+                    category={categoryLabel}
+                    userCoords={userCoords}
+                    cities={cities}
+                    T={T}
+                    dark={dark}
+                  />
+                ) : selectedSubcat !== "todas" ? (
+                  <div style={{ textAlign: "center", padding: "32px 0", color: T.sub }}>
+                    <Icon name="search" size={36} color={T.border} />
+                    <p style={{ fontWeight: 700, color: T.text, marginTop: 14, marginBottom: 6 }}>
+                      <>{t("home_sin_negocios_en", "Sin negocios en")} "{selectedSubcat}"</>
+                    </p>
+                    <button
                       onClick={() => setSelectedSubcat("todas")}
-                      style={{ 
-                        marginTop: 6, 
-                        padding: "8px 16px", 
-                        background: dark ? "rgba(255,255,255,0.1)" : "#E5E7EB", 
-                        borderRadius: 12, 
-                        border: "none", 
-                        color: T.text, 
-                        fontSize: 13, 
-                        fontWeight: 700, 
-                        cursor: "pointer" 
+                      style={{
+                        marginTop: 6,
+                        padding: "8px 16px",
+                        background: dark ? "rgba(255,255,255,0.1)" : "#E5E7EB",
+                        borderRadius: 12,
+                        border: "none",
+                        color: T.text,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: "pointer"
                       }}
                     >
                       {t("home_ver_todas_opciones", "Ver todas las opciones")}
                     </button>
-                  ) : (
+                  </div>
+                ) : showGenericEmpty ? null : (
+                  <div style={{ textAlign: "center", padding: "32px 0", color: T.sub }}>
+                    <Icon name="search" size={36} color={T.border} />
+                    <p style={{ fontWeight: 700, color: T.text, marginTop: 14, marginBottom: 6 }}>
+                      {t("sin_negocios_cat", "Sin negocios en esta categoría")}
+                    </p>
                     <p style={{ fontSize: 14 }}>{t("prueba_otra_cat", "Prueba otra categoría")}</p>
-                  )}
-                </div>
+                  </div>
+                )
               )}
             </div>
           </div>}
