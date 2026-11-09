@@ -14,6 +14,7 @@ import { useTranslation } from "../hooks/useTranslation.js";
 import { createSlug } from "../lib/utils.js";
 import { POST_TYPES, POST_THEMES, filterPostsByTypeAndTheme, themeBySlug, themeLabel } from "../lib/postTaxonomy.js";
 import { getThumbUrl, METRO_ZONES, isNear } from "../lib/utils.js";
+import { shouldShowCityEmptyState } from "../lib/cityEmptyState.js";
 import CityEmptyState from "./CityEmptyState.jsx";
 import * as dbService from "../services/dbService.js";
 import { sb } from "../lib/supabase.js";
@@ -408,8 +409,12 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
 
   const shortCity = cityName.split(",")[0];
 
-  // Si la ciudad no tiene lugares registrados (y por ende ni experiencias), mostramos el empty state global.
-  if (!routeSlug && dbReady && mapPins.length === 0 && !hasCivitatisWidget) {
+  // La ciudad solo está vacía si no tiene ningún contenido: ni negocios,
+  // ni experiences (tours/artículos) en la ciudad, ni widget de Civitatis.
+  // Antes solo se miraban los negocios, así que ciudades nuevas con tours
+  // (p. ej. Bogotá, Londres) mostraban el estado vacío por error.
+  const hasCityExperiences = experiences.some(e => isNear(e, userCoords, activeCity));
+  if (!routeSlug && dbReady && shouldShowCityEmptyState({ hasBusinesses: mapPins.length > 0, hasExperiences: hasCityExperiences, hasEvents: false, hasWidget: hasCivitatisWidget })) {
     return (
       <div style={{ paddingBottom: 84, minHeight: "100vh", display: "flex", flexDirection: "column", background: dark ? "#0a0a0a" : "#F7F8F6" }}>
         <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative" }}>

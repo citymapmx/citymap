@@ -12,6 +12,7 @@ import { useAuthStore } from "../store/useAuthStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear, METRO_ZONES } from "../lib/utils";
+import { shouldShowCityEmptyState } from "../lib/cityEmptyState.js";
 import { getTimeSlot, spotForSlot, isFoodSpot, seededRand, shuffleBySeed } from "../lib/timeBasedLists.js";
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
@@ -367,6 +368,11 @@ export default function HomeView({ isBackground }) {
     articleNavigate(`/revista/${activeCity}/${createSlug(exp.title)}`, { state: { articleOrigin: true } });
   };
 
+  // La ciudad solo está vacía si no tiene ningún contenido: ni negocios,
+  // ni experiences (tours/artículos), ni eventos aprobados en la ciudad.
+  const hasCityExperiences = experiences.some(e => isNear(e, userCoords, activeCity));
+  const hasCityEvents = (events || []).some(ev => ev.status === 'approved' && isNear(ev, userCoords, activeCity));
+
   return (
     <div data-city-home={activeCity} style={{ paddingBottom: 84, position: "relative", ...viewStyle }}>
           {/* ── HERO HEADER ── */}
@@ -374,13 +380,14 @@ export default function HomeView({ isBackground }) {
           
 
           {/* ── EMPTY CITY STATE ── */}
-          {!search && dbReady && !pinsLoading && mapPins.filter(b => isNear(b, userCoords, activeCity)).length === 0 && (
-            <CityEmptyState 
-              activeCity={activeCity} 
-              userCoords={userCoords} 
-              cities={cities} 
-              T={T} 
-              dark={dark} 
+          {!search && dbReady && !pinsLoading && shouldShowCityEmptyState({ hasBusinesses: mapPins.filter(b => isNear(b, userCoords, activeCity)).length > 0, hasExperiences: hasCityExperiences, hasEvents: hasCityEvents }) && (
+            <CityEmptyState
+              activeCity={activeCity}
+              userCoords={userCoords}
+              cities={cities}
+              T={T}
+              dark={dark}
+              category={(activeCat && activeCat !== 'explorar' && activeCat !== 'todas') ? (cats.find(c => c.id === activeCat)?.label || activeCat) : undefined}
             />
           )}
 
