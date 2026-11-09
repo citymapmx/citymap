@@ -489,12 +489,9 @@ export default function HomeView({ isBackground }) {
 
           
           {/* ── BANNERS ── */}
-          {!search && activeCat === "explorar" && (() => {
-            if (activeBannersMemo.length === 0) return null;
-            return <div style={{ margin: "6px 20px 8px", borderRadius: 14, overflow: "hidden", aspectRatio: "21/9", position: "relative", background: "transparent" }}>
-              <BannerSlider activeBanners={activeBannersMemo} />
-            </div>;
-          })()}
+          {!search && activeCat === "explorar" && (
+            <BannerSlider activeBanners={activeBannersMemo} />
+          )}
 
           {/* ── EVENTOS ── */}
           {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} handleEventTap={handleEventTap} T={T} city={city} />}
