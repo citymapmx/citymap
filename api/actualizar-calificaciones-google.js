@@ -12,7 +12,11 @@
 // limpiar-imagenes-pasadas). Llave de Google: GOOGLE_PLACES_API_KEY
 // (llave de servidor restringida a Places API, en Vercel).
 //
-// Acción extra (mismo archivo: Vercel está al límite de 16 funciones):
+// Refresco también desde el panel de admin (botón «Actualizar reseñas
+// de Google»): el mismo refresco acepta el JWT de un admin (verificado
+// contra Supabase Auth, igual que completar-place-ids) y soporta
+// offset+limit para procesar por tandas. Los place_id se recortan y
+// los que no empiezan por «ChIJ» se saltan sin llamar a Google.
 // ?action=completar-place-ids llena el google_place_id de los negocios
 // aprobados que no lo tienen, con Text Search de Places API (New) y
 // verificación de nombre + distancia/dirección (ver src/lib/placeIdMatch.js).
@@ -202,12 +206,17 @@ export default async function handler(req, res) {
   const action = req.query?.action || req.body?.action;
   if (action === 'completar-place-ids') return handleCompletarPlaceIds(req, res);
 
+  // Refresco: lo dispara el cron con CRON_SECRET o un admin con su JWT
+  // (botón del panel). El cron sigue funcionando exactamente igual.
   const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return res.status(500).json({ error: 'CRON_SECRET no configurado' });
   const auth = req.headers['authorization'] || '';
   const bodySecret = req.body?.secret;
-  if (auth !== `Bearer ${cronSecret}` && bodySecret !== cronSecret) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  const isCron = Boolean(cronSecret) && (auth === `Bearer ${cronSecret}` || bodySecret === cronSecret);
+  if (!isCron) {
+    const admin = await requireAdmin(req);
+    if (!admin.ok) {
+      return res.status(admin.status || 401).json({ error: admin.status === 403 ? 'Forbidden: se requiere administrador' : 'Unauthorized' });
+    }
   }
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -216,6 +225,7 @@ export default async function handler(req, res) {
 
   const dry = req.query?.dry === '1' || req.body?.dry === true;
   const limit = Math.max(1, parseInt(req.query?.limit ?? req.body?.limit ?? 1000, 10) || 1000);
+  const offset = Math.max(0, parseInt(req.query?.offset ?? req.body?.offset ?? 0, 10) || 0);
   const googleKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!dry && !googleKey) return res.status(500).json({ error: 'GOOGLE_PLACES_API_KEY no configurado' });
 
@@ -224,20 +234,24 @@ export default async function handler(req, res) {
   try {
     // 1. Negocios aprobados con place_id de Google.
     const rows = [];
-    for (let offset = 0; ; offset += 1000) {
-      const r = await fetch(`${supabaseUrl}/rest/v1/businesses?select=id,social_links&status=eq.approved&order=id.asc&limit=1000&offset=${offset}`, { headers });
+    for (let page = 0; ; page += 1000) {
+      const r = await fetch(`${supabaseUrl}/rest/v1/businesses?select=id,name,social_links&status=eq.approved&order=id.asc&limit=1000&offset=${page}`, { headers });
       if (!r.ok) throw new Error(`PostgREST businesses: HTTP ${r.status}`);
       const batch = await r.json();
       rows.push(...batch);
       if (batch.length < 1000) break;
     }
-    const targets = rows
-      .map(b => ({ id: b.id, placeId: b.social_links?.google_place_id || null }))
-      .filter(t => t.placeId)
-      .slice(0, limit);
+    // place_id recortado; los que no empiezan por «ChIJ» no son IDs de
+    // Google (hay strings CID y blancos en la base) y se saltan sin gastar
+    // llamadas, contándolos como fallidos en la tanda que les toque.
+    const withPlaceId = rows
+      .map(b => ({ id: b.id, name: b.name || '', placeId: (b.social_links?.google_place_id || '').trim() || null }))
+      .filter(t => t.placeId);
+    const targets = withPlaceId.slice(offset, offset + limit);
+    const remaining = Math.max(0, withPlaceId.length - offset - targets.length);
 
     if (dry) {
-      return res.status(200).json({ ok: true, dry: true, checked: rows.length, withPlaceId: targets.length, wouldRefresh: targets.map(t => t.id) });
+      return res.status(200).json({ ok: true, dry: true, checked: rows.length, withPlaceId: withPlaceId.length, offset, remaining, wouldRefresh: targets.map(t => t.id) });
     }
 
     // 2. Borrar filas vencidas (el caché nunca guarda datos de más de 30 días).
@@ -250,12 +264,16 @@ export default async function handler(req, res) {
     }
 
     // 3. Pedir rating + conteo a Places API (New), 10 llamadas a la vez.
+    // `updated` lleva solo las columnas del caché (el upsert rechaza
+    // columnas desconocidas); `updatedItems` es el mismo reporte con nombre.
     const updated = [];
+    const updatedItems = [];
     const sinCalificacion = [];
     const failed = [];
     for (let i = 0; i < targets.length; i += CONCURRENCY) {
       const chunk = targets.slice(i, i + CONCURRENCY);
       const results = await Promise.all(chunk.map(async (t) => {
+        if (!t.placeId.startsWith('ChIJ')) return { t, invalid: true };
         try {
           const r = await fetch(`${PLACES_URL}/${encodeURIComponent(t.placeId)}`, {
             headers: { 'X-Goog-Api-Key': googleKey, 'X-Goog-FieldMask': 'rating,userRatingCount' },
@@ -269,9 +287,13 @@ export default async function handler(req, res) {
         }
       }));
       for (const res of results) {
-        if (res.error) failed.push({ business_id: res.t.id, place_id: res.t.placeId, error: res.error });
-        else if (res.noRating) sinCalificacion.push({ business_id: res.t.id, place_id: res.t.placeId });
-        else updated.push({ business_id: res.t.id, place_id: res.t.placeId, rating: res.rating, review_count: res.count, fetched_at: nowIso, expires_at: shiftDays(nowIso, CACHE_TTL_DAYS) });
+        if (res.invalid) { failed.push({ business_id: res.t.id, name: res.t.name, place_id: res.t.placeId, error: 'Place ID inválido (no es un ID de Google)' }); continue; }
+        if (res.error) failed.push({ business_id: res.t.id, name: res.t.name, place_id: res.t.placeId, error: res.error });
+        else if (res.noRating) sinCalificacion.push({ business_id: res.t.id, name: res.t.name, place_id: res.t.placeId });
+        else {
+          updated.push({ business_id: res.t.id, place_id: res.t.placeId, rating: res.rating, review_count: res.count, fetched_at: nowIso, expires_at: shiftDays(nowIso, CACHE_TTL_DAYS) });
+          updatedItems.push({ business_id: res.t.id, name: res.t.name, place_id: res.t.placeId, rating: res.rating, review_count: res.count });
+        }
       }
     }
 
@@ -285,7 +307,7 @@ export default async function handler(req, res) {
       if (!up.ok) throw new Error(`PostgREST upsert google_ratings_cache: HTTP ${up.status}`);
     }
 
-    return res.status(200).json({ ok: true, dry: false, checked: rows.length, withPlaceId: targets.length, updated: updated.length, sinCalificacion: sinCalificacion.length, failed, deletedExpired });
+    return res.status(200).json({ ok: true, dry: false, checked: rows.length, withPlaceId: withPlaceId.length, offset, remaining, processed: targets.length, updated: updated.length, updatedItems, sinCalificacion: sinCalificacion.length, sinCalificacionItems: sinCalificacion, failed, deletedExpired });
   } catch (err) {
     console.error('actualizar-calificaciones-google error:', err);
     return res.status(500).json({ ok: false, error: String(err?.message || err) });

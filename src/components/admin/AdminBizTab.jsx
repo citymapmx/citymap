@@ -71,6 +71,51 @@ export default function AdminBizTab({
     }
   };
 
+  // Actualizar reseñas de Google (botón del panel): refresca el caché
+  // google_ratings_cache con Place Details, de 50 en 50 por offset.
+  const [refreshRunning, setRefreshRunning] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState("");
+  const [refreshSummary, setRefreshSummary] = useState(null);
+
+  const actualizarResenasGoogle = async () => {
+    if (refreshRunning) return;
+    if (!window.confirm("Se consultará a Google (Places API) para actualizar la calificación y el número de reseñas de los negocios con Place ID, de 50 en 50. Place Details con solo rating+conteo: ~$20 por cada 1,000 llamadas, con 1,000 gratis al mes, así que unas 306 llamadas salen en $0. ¿Continuar?")) return;
+    setRefreshRunning(true);
+    setRefreshSummary(null);
+    const totals = { updated: [], sinCalificacion: [], failed: [] };
+    try {
+      let offset = 0;
+      let guard = 0;
+      for (;;) {
+        guard += 1;
+        if (guard > 20) break; // seguridad: 20 tandas = 1,000 negocios
+        setRefreshProgress(`Actualizando reseñas… ${totals.updated.length} actualizadas hasta ahora.`);
+        const res = await fetch("/api/actualizar-calificaciones-google", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sb._token || ""}` },
+          body: JSON.stringify({ limit: 50, offset }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        (data.updatedItems || []).forEach((u) => totals.updated.push(u));
+        (data.sinCalificacionItems || []).forEach((s) => totals.sinCalificacion.push(s));
+        (data.failed || []).forEach((f) => totals.failed.push(f));
+        const processed = data.processed ?? 0;
+        setRefreshProgress(`Actualizadas ${totals.updated.length} · pendientes ${data.remaining ?? "?"}.`);
+        offset += processed;
+        if (!processed || (data.remaining ?? 0) <= 0) break;
+      }
+      setRefreshSummary(totals);
+      if (onToast) onToast(`Reseñas de Google: ${totals.updated.length} actualizadas, ${totals.sinCalificacion.length} sin calificación, ${totals.failed.length} errores.`);
+    } catch (e) {
+      if (onToast) onToast("Error: " + e.message);
+      if (totals.updated.length || totals.sinCalificacion.length || totals.failed.length) setRefreshSummary(totals);
+    } finally {
+      setRefreshRunning(false);
+      setRefreshProgress("");
+    }
+  };
+
   const geo = () => { if (!gok || !bizForm?.address) return; new window.google.maps.Geocoder().geocode({ address: bizForm.address }, (r, s) => { if (s === "OK") { const l = r[0].geometry.location; setBizForm(f => ({ ...f, lat: l.lat(), lng: l.lng() })); } }); };
 
   const saveBiz = async () => {
@@ -209,6 +254,7 @@ export default function AdminBizTab({
           <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>Listado de negocios</span>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={completarPlaceIds} disabled={placeIdsRunning} title="Llena el Place ID de Google de los negocios que no lo tienen (de 20 en 20)" style={{ background: "#fff", color: "#1A7A5E", border: "1.5px solid #1A7A5E", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: placeIdsRunning ? "wait" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, opacity: placeIdsRunning ? 0.6 : 1 }}><Icon name="map-pin" size={14} color="#1A7A5E" /> {placeIdsRunning ? "Consultando a Google…" : "Completar Place IDs"}</button>
+            <button onClick={actualizarResenasGoogle} disabled={refreshRunning} title="Actualiza la calificación y el número de reseñas de Google de los negocios con Place ID (de 50 en 50)" style={{ background: "#fff", color: "#1A7A5E", border: "1.5px solid #1A7A5E", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: refreshRunning ? "wait" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, opacity: refreshRunning ? 0.6 : 1 }}><Icon name="star" size={14} color="#1A7A5E" /> {refreshRunning ? "Actualizando…" : "Actualizar reseñas de Google"}</button>
             <button onClick={() => setBizForm({ _new: true, category: data.categories.length > 0 ? data.categories[0].slug : "restaurantes", open: true, photos: [], tags: "", lat: "", lng: "", plan: "free", status: "pending", city_slug: (data.cities && data.cities.length > 0 ? data.cities[0].slug : ""), social_links: {} })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo</button>
           </div>
         </div>
@@ -231,6 +277,24 @@ export default function AdminBizTab({
 
         {placeIdsRunning && placeIdsProgress && (
           <div className="text-sm" style={{ background: "#EAF4F0", borderRadius: 10, padding: "10px 14px", marginBottom: 12, color: "#1A7A5E", fontWeight: 600 }}>{placeIdsProgress}</div>
+        )}
+        {refreshRunning && refreshProgress && (
+          <div className="text-sm" style={{ background: "#EAF4F0", borderRadius: 10, padding: "10px 14px", marginBottom: 12, color: "#1A7A5E", fontWeight: 600 }}>{refreshProgress}</div>
+        )}
+        {refreshSummary && (
+          <div style={{ background: "#fff", borderRadius: 12, padding: "12px 14px", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
+            <div className="text-sm" style={{ fontWeight: 800, color: "#0F1A14", marginBottom: 4 }}>Reseñas de Google actualizadas: {refreshSummary.updated.length} actualizadas · {refreshSummary.sinCalificacion.length} sin calificación · {refreshSummary.failed.length} errores</div>
+            {refreshSummary.sinCalificacion.length > 0 && (
+              <div className="text-sm" style={{ color: "#5A6872", lineHeight: 1.5 }}>
+                Sin calificación en Google (no se escribió nada): {refreshSummary.sinCalificacion.map((s) => s.name).join(", ")}.
+              </div>
+            )}
+            {refreshSummary.failed.length > 0 && (
+              <div className="text-sm" style={{ color: "#D94F3D", marginTop: 6 }}>
+                Errores: {refreshSummary.failed.map((f) => `${f.name} (${f.error})`).join("; ")}
+              </div>
+            )}
+          </div>
         )}
         {placeIdsSummary && (
           <div style={{ background: "#fff", borderRadius: 12, padding: "12px 14px", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
