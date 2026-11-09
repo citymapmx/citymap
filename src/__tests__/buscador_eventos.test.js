@@ -1,4 +1,5 @@
 import React from 'react';
+import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
 import { eventMatchesQuery } from '../lib/eventSearch.js';
@@ -75,5 +76,15 @@ describe('SearchSuggestions: Ver todos solo cuando hay más que mostrar', () => 
     }));
     expect(html).toContain('Ver todos los resultados');
     expect(html.match(/Lugar \d/g)).toHaveLength(5);
+  });
+});
+
+describe('App.jsx: el filtro de negocios usa searchMatches (regresión PR #125/#126)', () => {
+  it('no vuelve a usar fuzzyMatch con la descripción dentro del texto', () => {
+    // El merge del PR #126 revirtió este hunk del #125 en App.jsx: la
+    // búsqueda de negocios volvió a pasar la descripción por la difusa.
+    const src = readFileSync(new URL('../App.jsx', import.meta.url), 'utf8');
+    expect(src).toContain('searchMatches(search, shortText, b.description)');
+    expect(src).not.toContain('fuzzyMatch(search, textToSearch)');
   });
 });
