@@ -122,6 +122,16 @@ export function useAppInitialization() {
           }
         }
       }
+    } else if (segments.length === 3 && segments[0] === "evento") {
+      // Formato nuevo /evento/:ciudad/:slug-corto (p. ej. /evento/zapopan/zz-top):
+      // la ciudad va en la URL y el slug corto se resuelve en App.jsx
+      // anteponiendo la ciudad (`zapopan-zz-top`).
+      const cSlug = segments[1].toLowerCase();
+      if (!SYSTEM_ROUTES.includes(cSlug)) {
+        currentCity = cSlug;
+        localStorage.setItem("cg_city_slug", currentCity);
+      }
+      ev = getIdFromSlug(segments[2]);
     } else if (segments.length === 3 && segments[1] === "c") {
       const potentialCity = segments[0].toLowerCase();
       if (!SYSTEM_ROUTES.includes(potentialCity)) {

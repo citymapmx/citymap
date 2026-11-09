@@ -116,10 +116,16 @@ export default async function middleware(request) {
     ogUrl.searchParams.set('vista', 'mis-planes');
     if (seg2) ogUrl.searchParams.set('city', seg2);
   }
-  // /evento/:slug → og?ev=slug
+  // /evento/:slug (viejo) → og?ev=slug
+  // /evento/:ciudad/:slug (nuevo) → og?ev=slug&city=ciudad
   else if (seg1 === 'evento' && seg2) {
     ogUrl = new URL('/api/og', request.url);
-    ogUrl.searchParams.set('ev', seg2);
+    if (seg3) {
+      ogUrl.searchParams.set('ev', seg3);
+      ogUrl.searchParams.set('city', seg2);
+    } else {
+      ogUrl.searchParams.set('ev', seg2);
+    }
   }
   // /revista/:city/:slug o /experiencias/:city/:slug → og?exp=slug&city=city
   else if ((seg1 === 'revista' || seg1 === 'experiencias') && seg2 && seg3) {

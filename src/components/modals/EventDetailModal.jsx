@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useUIStore } from '../../store/useUIStore';
 import { getT, FONT_BIZ, CITY_TZ } from '../../lib/constants';
-import { createSlug, getThumbUrl } from '../../lib/utils';
+import { getThumbUrl } from '../../lib/utils';
+import { eventUrl } from '../../lib/eventUrls';
 import { eventCalendarDay, isPastEvent, upcomingEvents, formatEventCardDate } from '../../lib/eventListing';
 import { sb, cloudUpload } from '../../lib/supabase';
 import { EVENT_IMAGE_OPTIMIZE, resolveOptimizeOptions, shouldOptimizeImage } from '../../lib/imageOptimize.js';
@@ -93,7 +94,7 @@ export default function EventDetailModal() {
   const shareEvent = useCallback(() => {
     const ev = selectedEvent;
     if (!ev) return;
-    const evUrl = `${window.location.origin}/evento/${createSlug(ev.title)}_${ev.id}`;
+    const evUrl = eventUrl(ev, window.location.origin);
     if (navigator.share) navigator.share({ title: localizedTitle(ev, lang), text: t("eventos_compartir_texto", "Échale un vistazo a este evento:"), url: evUrl });
     else { navigator.clipboard?.writeText(evUrl); toast$(t("eventos_enlace_copiado", "Enlace copiado")); }
   }, [selectedEvent, toast$, t, lang]);

@@ -1,4 +1,5 @@
 import { seoSite } from '../src/lib/seoRoutes.js';
+import { eventUrl } from '../src/lib/eventUrls.js';
 const SUPABASE_URL  = "https://dpkjxhjkzdlkvyotoeai.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
 
@@ -66,7 +67,7 @@ export default async function handler(req) {
       if (['restaurantes', 'cafe'].includes(business.category)) add(`${path}/menu`, [], business.updated_at);
     }
     for (const event of events.filter(event => belongs(event.city_slug) && event.visibility !== 'private')) {
-      if (event.slug || event.id) add(`/evento/${event.slug || event.id}`, [event.img_url || event.img], event.updated_at, event.title);
+      if (event.slug || event.id) add(eventUrl(event), [event.img_url || event.img], event.updated_at, event.title);
     }
     for (const experience of experiences.filter(experience => belongs(experience.city_slug))) {
       const city = cityList(experience.city_slug).find(allowedCity) || (byCity.has('tepic') ? 'tepic' : cities.find(city => allowedCity(city.slug))?.slug);

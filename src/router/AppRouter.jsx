@@ -161,6 +161,7 @@ export default function AppRouter(props) {
               {/* citymap.mx routes */}
               <Route path="/:city/:slug" element={<DetailView />} />
               <Route path="/evento/:slug" element={<DetailView />} />
+              <Route path="/evento/:city/:slug" element={<DetailView />} />
               {/* citymap.world routes (country prefix) */}
               <Route path="/:country/:city/:slug" element={<DetailView />} />
               <Route path="/itinerario/:id" element={<ItineraryDetail T={T} dark={dark} navigate={navigate} id={pathname.split('/itinerario/')[1]} userCoords={userCoords} />} />

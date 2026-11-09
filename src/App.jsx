@@ -23,6 +23,7 @@ import { CITY_TZ, FONT_BIZ, EVENT_CATS, getT } from './lib/constants.js';
 import { fuzzyMatch } from './lib/utils.js';
 import { SPRING_UI } from './lib/spring.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
+import { eventUrl } from './lib/eventUrls.js';
 import Icon from './components/ui/Icon.jsx';
 import BrandSplash from './components/ui/BrandSplash.jsx';
 
@@ -598,7 +599,7 @@ useEffect(() => {
            
           if (r?.[0]) {
             setSelectedEvent(r[0]);
-            const eventPath = `/evento/${r[0].slug || r[0].id}`;
+            const eventPath = eventUrl(r[0]);
             // Reloading a detail must not execute home navigation, which clears it.
             if (window.location.pathname !== eventPath) routerNavigate(eventPath, { replace:true });
             if (r[0].city_slug && r[0].city_slug !== initialParams.current.citySlug) {
@@ -889,8 +890,7 @@ useEffect(() => {
 
   const handleEventTap = useCallback((ev) => {
     setSelectedEvent(ev);
-    const slug = ev.slug || ev.id;
-    const targetPath = `/evento/${slug}`;
+    const targetPath = eventUrl(ev);
     routerNavigate(targetPath, { state: { background: location } });
     // Business analytics has a business FK; event IDs must never be sent as biz IDs.
     if (ev.biz_id) trackEvent(ev.biz_id, "view_event");

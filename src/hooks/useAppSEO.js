@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useUIStore } from '../store/useUIStore.js';
 import { useDataStore } from '../store/useDataStore.js';
 import { IS_WORLD, buildCityPath, getCountryCode } from '../lib/domain.js';
+import { eventUrl } from '../lib/eventUrls.js';
 
 export function useAppSEO({ city }) {
   const location = useLocation();
@@ -164,7 +165,7 @@ export function useAppSEO({ city }) {
         : `No te pierdas ${selectedEvent.title} en ${cityCapitalized}. Fecha, ubicación, precios y todos los detalles en CityMap.`;
       if (selectedEvent.image) image = selectedEvent.image;
        
-      canonical = `${BASE_URL}/evento/${selectedEvent.slug || selectedEvent.id}`;
+      canonical = eventUrl(selectedEvent, BASE_URL);
       
       const countryCode = getCountryCode(selectedEvent.city_slug || activeCity, cities).toUpperCase();
       schemaJson = JSON.stringify({
