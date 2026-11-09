@@ -15,6 +15,7 @@ import { typeLabel } from '../lib/postTaxonomy.js';
 import { tourSchemaNodes } from '../lib/tourSchema.js';
 import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
 import { useTranslation } from "../hooks/useTranslation.js";
+import { localizedTitle, localizedDescription } from "../lib/i18nContent.js";
 
 const Gallery = lazy(() => import('./Gallery').catch(() => {
   window.location.reload();
@@ -183,6 +184,11 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   }, [exp?.id, loadExperienceReviews]);
   
   if (!exp) return null;
+  // Título/descripción localizados (fase 2): en EN se muestra el campo
+  // `_en` cuando existe; si no, el español. Slugs, URL canónica y schema
+  // siguen con el título original en español.
+  const displayTitle = localizedTitle(exp, lang);
+  const displayDescription = localizedDescription(exp, lang);
   const associatedBiz = exp.biz_id ? mapPins.find(b => b.id === exp.biz_id) : null;
 
   const gallery = Array.isArray(exp.gallery) ? exp.gallery : [];
@@ -255,7 +261,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
     return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
   const cityName = formatCityName(exp.city_slug);
-  const metaTitle = cityName ? `${exp.title} | Revista CityMap ${cityName}` : `${exp.title} | Revista CityMap`;
+  const metaTitle = cityName ? `${displayTitle} | Revista CityMap ${cityName}` : `${displayTitle} | Revista CityMap`;
 
   // Sin animación al entrar: primero el fundido (opacity 0→1) dejaba ver la
   // página de atrás, y luego el deslizamiento (y 50→0) dejaba ver por unos
@@ -272,9 +278,9 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
     >
       <Helmet>
         <title>{metaTitle}</title>
-        <meta name="description" content={exp.description ? exp.description.substring(0, 160) : t("revista_meta_desc_reserva", `Reserva entradas y descubre más sobre ${exp.title}.`, {title: exp.title})} />
+        <meta name="description" content={displayDescription ? displayDescription.substring(0, 160) : t("revista_meta_desc_reserva", `Reserva entradas y descubre más sobre ${displayTitle}.`, {title: displayTitle})} />
         <meta property="og:title" content={metaTitle} />
-        <meta property="og:description" content={exp.description ? exp.description.substring(0, 160) : t("revista_meta_desc_reserva", `Reserva entradas y descubre más sobre ${exp.title}.`, {title: exp.title})} />
+        <meta property="og:description" content={displayDescription ? displayDescription.substring(0, 160) : t("revista_meta_desc_reserva", `Reserva entradas y descubre más sobre ${displayTitle}.`, {title: displayTitle})} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonicalUrl} />
         {cover && <meta property="og:image" content={cover} />}
@@ -286,7 +292,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {cover ? (
           <img 
             src={heroSrc} 
-            alt={exp.title || ""} 
+            alt={displayTitle || ""} 
             style={{ 
               width: "100%", 
               height: "auto", 
@@ -309,9 +315,9 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
             <button 
               aria-label={t("revista_compartir_guia", "Compartir guía")}
               onClick={() => {
-              const shareText = t("revista_compartir_texto", `Descubre la experiencia ${exp.title} en CityMap.`, {title: exp.title});
+              const shareText = t("revista_compartir_texto", `Descubre la experiencia ${displayTitle} en CityMap.`, {title: displayTitle});
               if (navigator.share) {
-                navigator.share({ title: exp.title, text: shareText, url: window.location.href }).catch(()=>{});
+                navigator.share({ title: displayTitle, text: shareText, url: window.location.href }).catch(()=>{});
               } else {
                 navigator.clipboard.writeText(window.location.href);
                 alert(t("revista_enlace_copiado", "Enlace copiado al portapapeles"));
@@ -351,7 +357,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
             {typeLabel(exp.activity_type) || t("revista_experiencia", "Experiencia")}
           </div>
           <h1 style={{ fontSize: 32, fontWeight: 900, color: T.text, margin: "0 0 12px 0", lineHeight: 1.1 }}>
-            {exp.title}
+            {displayTitle}
           </h1>
         </div>
         
@@ -515,10 +521,10 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         )}
 
         {/* Description */}
-        {exp.description && (
+        {displayDescription && (
           <div style={{ marginBottom: 36 }}>
             {!isBlog && <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 14, letterSpacing: -0.3 }}>{t("revista_sobre_experiencia", "Sobre esta experiencia")}</h3>}
-            <FormattedText text={exp.description} T={T} />
+            <FormattedText text={displayDescription} T={T} />
           </div>
         )}
 

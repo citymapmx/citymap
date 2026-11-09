@@ -15,6 +15,7 @@ import EventWheel3D from '../components/home/EventWheel3D.jsx';
 import TravelAffiliateRow from '../components/home/TravelAffiliateRow.jsx';
 import Footer from '../components/Footer.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
+import { localizedTitle } from '../lib/i18nContent.js';
 
 const BIZ_PAGE = 60;
 // Cada sección del muro muestra 5 tarjetas y al deslizar hasta el final
@@ -147,8 +148,8 @@ export default function GlobalHomeView() {
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const [bizRes, evRes, exRes, citiesRes, placesRes, toursRes] = await Promise.all([
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=0`).catch(() => []),
-          sb.get('events', `?select=id,title,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved&order=date.asc&limit=60`).catch(() => []),
-          sb.get('experiences', `?select=id,title,city_slug,activity_type,price,duration,people,gallery,created_at&status=eq.approved&order=created_at.desc&limit=12`).catch(() => []),
+          sb.get('events', `?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved&order=date.asc&limit=60`).catch(() => []),
+          sb.get('experiences', `?select=id,title,title_en,description_en,city_slug,activity_type,price,duration,people,gallery,created_at&status=eq.approved&order=created_at.desc&limit=12`).catch(() => []),
           (cities && cities.length > 0)
             ? Promise.resolve(cities)
             : sb.get('cities', '?active=eq.true&select=id,name,slug,state,country,country_code,bg_image&order=name.asc').catch(() => []),
@@ -157,7 +158,7 @@ export default function GlobalHomeView() {
           // dependa de que aparezcan en la paginación de negocios.
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&or=(category.eq.lugares,category.eq.unidad%20deportiva,category.eq.playa,is_place.eq.true)&order=plan.desc,rating.desc.nullslast,id.desc&limit=60`).catch(() => []),
           // Tours para la sección "Tours por ciudad": solo tipo Tour, todas las ciudades.
-          sb.get('experiences', `?select=id,title,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=200`).catch(() => []),
+          sb.get('experiences', `?select=id,title,title_en,description_en,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=200`).catch(() => []),
         ]);
         if (cancelled) return;
         const bizRows = Array.isArray(bizRes) ? bizRes : [];
@@ -238,8 +239,8 @@ export default function GlobalHomeView() {
       try {
         const [b, e, x] = await Promise.all([
           sb.get('businesses', `?select=id,name,slug,category,city_slug,photos,logo_url,banner_url,is_place,created_at&status=eq.approved&plan=neq.menu&or=(name.ilike.*${enc}*,category.ilike.*${enc}*,tagline.ilike.*${enc}*)&order=plan.desc,rating.desc.nullslast&limit=15`).catch(() => []),
-          sb.get('events', `?select=id,title,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved&title=ilike.*${enc}*&order=date.asc&limit=10`).catch(() => []),
-          sb.get('experiences', `?select=id,title,city_slug,gallery,created_at&status=eq.approved&title=ilike.*${enc}*&order=created_at.desc&limit=10`).catch(() => []),
+          sb.get('events', `?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved&title=ilike.*${enc}*&order=date.asc&limit=10`).catch(() => []),
+          sb.get('experiences', `?select=id,title,title_en,description_en,city_slug,gallery,created_at&status=eq.approved&title=ilike.*${enc}*&order=created_at.desc&limit=10`).catch(() => []),
         ]);
         if (cancelled) return;
         const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -317,7 +318,7 @@ export default function GlobalHomeView() {
         key: `x-${exp.id}`,
         kind: 'articulos',
         badge: t('home_articulo', 'Artículo'),
-        title: exp.title,
+        title: localizedTitle(exp, lang),
         subtitle: t('home_guia_viaje', 'Guía de viaje'),
         img: typeof img === 'string' ? img : null,
         date: exp.created_at || '',
@@ -332,7 +333,7 @@ export default function GlobalHomeView() {
         key: `e-${ev.id}`,
         kind: 'eventos',
         badge: t('home_evento', 'Evento'),
-        title: ev.title,
+        title: localizedTitle(ev, lang),
         subtitle: `${ev.date || ''}${ev.venue_name ? ` · ${ev.venue_name}` : ''}${cityBySlug.get(ev.city_slug)?.name ? ` · ${cityBySlug.get(ev.city_slug).name}` : ''}`,
         img: ev.img_url || ev.img || null,
         date: ev.date || '',
@@ -342,7 +343,7 @@ export default function GlobalHomeView() {
     });
     items.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     return items;
-  }, [biz, experiences, events, cityBySlug, t]);
+  }, [biz, experiences, events, cityBySlug, t, lang]);
 
   // Secciones del muro (opción A): cada una con sus propios items, sin mezclar.
   // Eventos por fecha (los más cercanos primero); lugares y restaurantes por
@@ -601,7 +602,7 @@ export default function GlobalHomeView() {
                       {ev.img_url || ev.img ? <img src={getThumbUrl(ev.img_url || ev.img, 200)} alt="" width={52} height={52} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🎟️'}
                     </span>
                     <span style={{ minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</span>
+                      <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{localizedTitle(ev, lang)}</span>
                       <span style={{ display: 'block', fontSize: 13, color: T.sub }}>📅 {fmtDate(ev.date)}{ev.venue_name ? ` · ${ev.venue_name}` : ''}</span>
                     </span>
                   </button>
@@ -620,7 +621,7 @@ export default function GlobalHomeView() {
                         {typeof img === 'string' && img ? <img src={getThumbUrl(img, 200)} alt="" width={52} height={52} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📝'}
                       </span>
                       <span style={{ minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{exp.title}</span>
+                        <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{localizedTitle(exp, lang)}</span>
                         <span style={{ display: 'block', fontSize: 13, color: T.sub }}>{t("home_guia_viaje", "Guía de viaje")}{cityBySlug.get(exp.city_slug)?.name ? ` · ${cityBySlug.get(exp.city_slug).name}` : ''}</span>
                       </span>
                     </button>
@@ -717,12 +718,12 @@ export default function GlobalHomeView() {
                       <article key={`t-${tour.id}`} onClick={() => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } })} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.card, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
                         <div style={{ position: 'relative', height: 180, background: 'linear-gradient(135deg,#111,#333)' }}>
                           {typeof img === 'string' && img
-                            ? <OptimizedImage src={img} alt={tour.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            ? <OptimizedImage src={img} alt={localizedTitle(tour, lang) || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             : <div style={{ width: '100%', height: '100%' }} />}
                           <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>TOUR</span>
                         </div>
                         <div style={{ padding: '12px 14px 16px', background: T.card }}>
-                          <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{tour.title}</h3>
+                          <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{localizedTitle(tour, lang)}</h3>
                           <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || t("home_precio_no_publicado", "Precio no publicado")}</p>
                           <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>{t("home_ver_mas_detalles", "Ver más detalles")} →</span>
                         </div>
@@ -755,7 +756,7 @@ export default function GlobalHomeView() {
                       >
                         <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>
                           {typeof img === 'string' && img
-                            ? <OptimizedImage src={img} alt={exp.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            ? <OptimizedImage src={img} alt={localizedTitle(exp, lang) || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>📝</div>}
                           <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>{typeLabel(exp.activity_type)}</span>
                           <button
@@ -767,7 +768,7 @@ export default function GlobalHomeView() {
                           </button>
                         </div>
                         <div style={{ padding: '12px 14px 16px' }}>
-                          <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{exp.title}</h3>
+                          <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{localizedTitle(exp, lang)}</h3>
                           <p style={{ fontSize: 13, color: T.sub, margin: 0 }}>
                             {cityBySlug.get(exp.city_slug)?.name || ''}{exp.duration ? ` · ⏱ ${exp.duration}` : ''}{exp.price > 0 ? ` · $${exp.price} MXN` : ` · ${t("home_gratis", "Gratis")}`}
                           </p>

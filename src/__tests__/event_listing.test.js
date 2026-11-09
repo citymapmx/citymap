@@ -98,6 +98,13 @@ describe('filtros de la página de Eventos', () => {
     expect(matchesEventSearch(ev, 'concierto')).toBe(false);
     expect(matchesEventSearch(ev, '')).toBe(true);
   });
+  it('busca también en el título y la descripción en inglés (fase 2 i18n)', () => {
+    const ev = { title: 'Noche de Museos', title_en: 'Museum Night', description_en: 'A night walk through the museums of the city', venue_name: 'Centro', event_category: 'Cultura' };
+    expect(matchesEventSearch(ev, 'museum night')).toBe(true);
+    expect(matchesEventSearch(ev, 'night walk')).toBe(true);
+    expect(matchesEventSearch(ev, 'museos')).toBe(true);
+    expect(matchesEventSearch(ev, 'concert')).toBe(false);
+  });
   it('agrupa por mes con etiqueta en español y los sin fecha al final', () => {
     expect(monthLabel('2026-11')).toBe('Noviembre 2026');
     expect(monthLabel('2027-01')).toBe('Enero 2027');

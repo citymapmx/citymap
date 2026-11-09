@@ -107,7 +107,9 @@ export function matchesEventSearch(event, query) {
   const fold = value => (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const needle = fold(query).trim();
   if (!needle) return true;
-  const hay = fold([event.title, event.venue_name, event.event_category, event.category].filter(Boolean).join(' '));
+  // Búsqueda en español e inglés: el título y la descripción en inglés
+  // también cuentan, para que buscar en inglés encuentre el evento.
+  const hay = fold([event.title, event.title_en, event.description_en, event.venue_name, event.event_category, event.category].filter(Boolean).join(' '));
   return needle.split(/\s+/).every(word => hay.includes(word));
 }
 

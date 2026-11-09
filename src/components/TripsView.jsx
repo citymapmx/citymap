@@ -11,6 +11,7 @@ import { useDataStore } from "../store/useDataStore.js";
 import { useAppContext } from "../context/AppContext";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "../hooks/useTranslation.js";
+import { localizedTitle } from "../lib/i18nContent.js";
 import { createSlug } from "../lib/utils.js";
 import { POST_TYPES, POST_THEMES, filterPostsByTypeAndTheme, themeBySlug, themeLabel } from "../lib/postTaxonomy.js";
 import { getThumbUrl, METRO_ZONES, isNear } from "../lib/utils.js";
@@ -185,7 +186,7 @@ function TiqetsParisWidget({ T, dark }) {
 }
 
 function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark, priority }) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const photos = Array.isArray(exp.gallery) ? exp.gallery : [];
   const priceFormatted = exp.price > 0 ? `$${exp.price} MXN` : t("gratis", "Gratis");
   const theme = themeBySlug(exp.theme);
@@ -249,7 +250,7 @@ function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark, pr
           </div>
         )}
         <h3 style={{ margin: 0, fontFamily: "var(--heading)", fontWeight: 900, fontSize: 19, color: T.text, lineHeight: 1.1, letterSpacing: "-0.5px" }}>
-          {exp.title}
+          {localizedTitle(exp, lang)}
         </h3>
       </div>
     </a>
@@ -380,9 +381,11 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     
     if (searchQ) {
       const q = searchQ.toLowerCase();
-      filtered = filtered.filter(p => 
-        (p.title && p.title.toLowerCase().includes(q)) || 
+      filtered = filtered.filter(p =>
+        (p.title && p.title.toLowerCase().includes(q)) ||
+        (p.title_en && p.title_en.toLowerCase().includes(q)) ||
         (p.description && p.description.toLowerCase().includes(q)) ||
+        (p.description_en && p.description_en.toLowerCase().includes(q)) ||
         (p.activity_type && p.activity_type.toLowerCase().includes(q)) ||
         (p.theme && ((themeLabel(p.theme) || "").toLowerCase().includes(q) || p.theme.toLowerCase().includes(q)))
       );
