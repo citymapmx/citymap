@@ -39,6 +39,16 @@ describe('per-city Civitatis embed',()=>{
   const html=renderToStaticMarkup(<HelmetProvider><AppContext.Provider value={{}}><TripsView T={T} dark={false} activeCity="guadalajara" cities={[{slug:'guadalajara',name:'Guadalajara',civitatis_widget_code:code}]} mapPins={[]}/></AppContext.Provider></HelmetProvider>);
   expect(html).toContain('🗺️ Tours');expect(html).not.toContain('class="civitatis-iframe"');
  });
+ it('muestra primero nuestros artículos y después la lista larga del widget',async()=>{
+  // El filtro Tours no se puede pulsar en render estático, así que se
+  // verifica el orden en el código: el widget va después de la lista.
+  const fs=await import('node:fs');
+  const src=fs.readFileSync(new URL('../components/TripsView.jsx',import.meta.url),'utf8');
+  const listAt=src.indexOf('filteredDiscover.slice(0, visibleCount)');
+  const widgetAt=src.indexOf('showCivitatisWidget && <CivitatisWidget');
+  expect(listAt).toBeGreaterThan(-1);expect(widgetAt).toBeGreaterThan(-1);
+  expect(widgetAt).toBeGreaterThan(listAt);
+ });
 });
 describe('shared Civitatis script loader',()=>{
  it('deduplicates concurrent loads, retries after failure and reuses the loaded library',async()=>{
