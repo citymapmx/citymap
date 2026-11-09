@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import CompactCard from '../cards/CompactCard.jsx';
 import { useFlipList } from '../../lib/useFlipList.js';
+import { smoothScrollIntoView } from '../../lib/smoothScroll.js';
 import { useDataStore } from "../../store/useDataStore.js";
 import { useUIStore } from "../../store/useUIStore.js";
 import Icon from '../ui/Icon.jsx';
@@ -10,6 +11,24 @@ export default memo(function HomeTopGrids({
   topRated, showMoreTopRated, setShowMoreTopRated,
   userCoords, getKm, dark, T, favIds, toggleFav, handleCardTap, globalFavCounts, t, ratedStatus
 }) {
+  // Al expandir ("Ver 5 más") la vista se desliza suave hasta la primera
+  // tarjeta nueva (la 6ª); al contraer ("Ver menos") no se desplaza.
+  const firstNewFavRef = React.useRef(null);
+  const firstNewRatedRef = React.useRef(null);
+  const prevShowMoreTopFavs = React.useRef(showMoreTopFavs);
+  const prevShowMoreTopRated = React.useRef(showMoreTopRated);
+  React.useEffect(() => {
+    if (showMoreTopFavs && !prevShowMoreTopFavs.current) {
+      smoothScrollIntoView(firstNewFavRef.current, 'nearest');
+    }
+    prevShowMoreTopFavs.current = showMoreTopFavs;
+  }, [showMoreTopFavs]);
+  React.useEffect(() => {
+    if (showMoreTopRated && !prevShowMoreTopRated.current) {
+      smoothScrollIntoView(firstNewRatedRef.current, 'nearest');
+    }
+    prevShowMoreTopRated.current = showMoreTopRated;
+  }, [showMoreTopRated]);
   const sectionRef = React.useRef(null);
   const activeCity = useUIStore(s => s.activeCity);
   const loadHighlights = useDataStore(s => s.loadHomeHighlights);
@@ -58,7 +77,7 @@ export default memo(function HomeTopGrids({
               const pillBg = dark ? "#333" : "#F3F4F6";
 
               return (
-                <div key={b.id} style={{ position: "relative", paddingBottom: 0 }}>
+                <div key={b.id} ref={index === 5 ? firstNewFavRef : undefined} style={{ position: "relative", paddingBottom: 0 }}>
                   <div style={{ position: "absolute", top: index < 3 ? -2 : -2, left: index < 3 ? -2 : -2, width: index < 3 ? 38 : 34, height: index < 3 ? 38 : 34, borderRadius: "50%", background: index < 3 ? "transparent" : pillBg, color: numColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: index < 3 ? 32 : 15, fontWeight: 900, boxShadow: index < 3 ? "none" : "0 4px 10px rgba(0,0,0,0.15)", zIndex: 10, border: index < 3 ? "none" : `2.5px solid ${dark ? "#111" : "#f4f4f5"}`, filter: index < 3 ? "drop-shadow(0 4px 6px rgba(0,0,0,0.2))" : "none" }}>
                     {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
                   </div>
@@ -96,7 +115,7 @@ export default memo(function HomeTopGrids({
               const pillBg = dark ? "#333" : "#F3F4F6";
 
               return (
-                <div key={b.id} ref={registerRated(b.id)} style={{ position: "relative", paddingBottom: 0 }}>
+                <div key={b.id} ref={el => { registerRated(b.id)(el); if (index === 5) firstNewRatedRef.current = el; }} style={{ position: "relative", paddingBottom: 0 }}>
                   <div style={{ position: "absolute", top: index < 3 ? -2 : -2, left: index < 3 ? -2 : -2, width: index < 3 ? 38 : 34, height: index < 3 ? 38 : 34, borderRadius: "50%", background: index < 3 ? "transparent" : pillBg, color: numColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: index < 3 ? 32 : 15, fontWeight: 900, boxShadow: index < 3 ? "none" : "0 4px 10px rgba(0,0,0,0.15)", zIndex: 10, border: index < 3 ? "none" : `2.5px solid ${dark ? "#111" : "#f4f4f5"}`, filter: index < 3 ? "drop-shadow(0 4px 6px rgba(0,0,0,0.2))" : "none" }}>
                     {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
                   </div>
