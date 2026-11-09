@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useDataStore } from '../store/useDataStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
@@ -114,6 +115,7 @@ function HeroSearchBar({ dark, query, setQuery }) {
 
 export default function GlobalHomeView() {
   const { T, dark, user, toast$, handleCardTap, handleEventTap, navigate, favIds, toggleFav, globalFavCounts, savedEventIds, setSavedEventIds, savedExpIds, setSavedExpIds, toggleSaveEvent } = useAppContext();
+  const routerNavigate = useNavigate();
   const setShowAuth = useAuthStore((s) => s.setShowAuth);
   const cities = useDataStore((s) => s.cities);
   const googleRatings = useDataStore((s) => s.googleRatings);
@@ -704,7 +706,7 @@ export default function GlobalHomeView() {
                     const img = gallery[0]?.url || gallery[0] || null;
                     const price = formatTourPrice(tour.price);
                     return (
-                      <article key={`t-${tour.id}`} onClick={() => navigate(tourCardUrl(tour))} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
+                      <article key={`t-${tour.id}`} onClick={() => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } })} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
                         <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>
                           {typeof img === 'string' && img
                             ? <OptimizedImage src={img} alt={tour.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />

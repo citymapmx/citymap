@@ -73,13 +73,16 @@ describe('ToursView', () => {
     const React = (await import('react')).default;
     const { renderToStaticMarkup } = await import('react-dom/server');
     const { HelmetProvider } = await import('react-helmet-async');
+    const { MemoryRouter } = await import('react-router-dom');
     const { AppContext } = await import('../context/AppContext.jsx');
     const ToursView = (await import('../components/ToursView.jsx')).default;
     const html = renderToStaticMarkup(
       <HelmetProvider>
-        <AppContext.Provider value={{ T, dark: false, navigate: () => {} }}>
-          <ToursView T={T} dark={false} navigate={() => {}} cities={cities} initialTours={initialTours} />
-        </AppContext.Provider>
+        <MemoryRouter>
+          <AppContext.Provider value={{ T, dark: false, navigate: () => {} }}>
+            <ToursView T={T} dark={false} navigate={() => {}} cities={cities} initialTours={initialTours} />
+          </AppContext.Provider>
+        </MemoryRouter>
       </HelmetProvider>
     );
     expect(html).toContain('Tours');
@@ -90,6 +93,28 @@ describe('ToursView', () => {
     expect(html).toContain('Tour de la cultura huichol');
     expect(html).toContain('desde $1,475.1 MXN');
     expect(html).toContain('Reservar →');
+  });
+
+  it('tiene la cabecera con el logotipo y la etiqueta Viajes como Revista', async () => {
+    const React = (await import('react')).default;
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { HelmetProvider } = await import('react-helmet-async');
+    const { MemoryRouter } = await import('react-router-dom');
+    const { AppContext } = await import('../context/AppContext.jsx');
+    const ToursView = (await import('../components/ToursView.jsx')).default;
+    const html = renderToStaticMarkup(
+      <HelmetProvider>
+        <MemoryRouter>
+          <AppContext.Provider value={{ T, dark: false, navigate: () => {} }}>
+            <ToursView T={T} dark={false} navigate={() => {}} cities={cities} initialTours={initialTours} />
+          </AppContext.Provider>
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+    expect(html).toContain('src="/citymap.mx.png"');
+    expect(html).toContain('width="127"');
+    expect(html).toContain('height="38"');
+    expect(html).toContain('Viajes');
   });
 });
 
