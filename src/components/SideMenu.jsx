@@ -98,7 +98,6 @@ export default function SideMenu({ isOpen, onClose, T, dark, navigate, routerNav
               <MenuItem icon="file-text" label={t("terminos", "Términos")} onClick={() => { routerNavigate('/terms'); onClose(); }} T={T} dark={dark} />
             </div>
 
-            {/* Language Selector Selector de Idioma 
             <div style={{ padding: '16px 20px', borderTop: `1px solid ${dark ? T.border : '#F1F5F9'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: dark ? T.sub : '#6B7280' }}>
                 {t("idioma", "Idioma")}
@@ -142,7 +141,6 @@ export default function SideMenu({ isOpen, onClose, T, dark, navigate, routerNav
                 </button>
               </div>
             </div>
-            */}
 
             <div style={{ padding: '10px 20px 20px', textAlign: 'center', fontSize: 11, color: dark ? T.sub : '#9CA3AF', borderTop: `1px solid ${dark ? T.border : '#F1F5F9'}` }}>
               &copy; {new Date().getFullYear()} CityMap. {t("derechos_reservados", "Todos los derechos reservados.")}
