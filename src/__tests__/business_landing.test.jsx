@@ -19,7 +19,7 @@ describe('business landing', () => {
   it('muestra el h1 aprobado y los 4 números', () => {
     const html = renderLanding();
     expect(html).toContain('Haz que más personas encuentren tu negocio.');
-    expect(html).toContain('Publica tu negocio gratis en la guía de tu ciudad');
+    expect(html).toContain('Publica tu negocio gratis en citymap. Te encuentran en el mapa, en el buscador y en Google, y te escriben directo por WhatsApp, sin comisiones.');
     expect(html).toContain('330');
     expect(html).toContain('35');
     expect(html).toContain('167');
@@ -60,8 +60,20 @@ describe('business landing', () => {
     expect(html).toContain('Lo mejor');
     expect(html).toContain('Pruébalo 7 días gratis');
     expect(html).toContain('Probar 7 días gratis');
-    expect(html).toContain('Empezar con Premium');
+    // En mensual, Destacado y Premium ofrecen la prueba: la nota de prueba
+    // aparece en ambas tarjetas y el botón "Empezar con Premium" solo sale
+    // en el pago anual.
+    expect(html.split('Pruébalo 7 días gratis (solo en el pago mensual).').length - 1).toBe(2);
+    expect(html.split('Probar 7 días gratis').length - 1).toBe(2);
+    expect(html).not.toContain('Empezar con Premium');
     expect(html).toContain('Lo esencial para estar presente.');
+  });
+
+  it('el encabezado no tiene botón de regreso (solo el título)', () => {
+    const html = renderLanding();
+    expect(html).toContain('CityMap para negocios');
+    expect(html).not.toContain('Volver');
+    expect(html).not.toContain('chevron');
   });
 
   it('muestra las 6 preguntas frecuentes y el cierre', () => {
@@ -70,7 +82,8 @@ describe('business landing', () => {
     expect(html).toContain('¿Cuánto cuesta empezar?');
     expect(html).toContain('¿Necesito pagar para aparecer en CityMap?');
     expect(html).toContain('¿CityMap cobra comisión por mis ventas?');
-    expect(html).toContain('¿Puedo probar Destacado gratis?');
+    expect(html).toContain('¿Puedo probar los planes de pago gratis?');
+    expect(html).toContain('Los planes Destacado y Premium mensuales tienen 7 días de prueba gratis');
     expect(html).toContain('¿En qué ciudades está CityMap?');
     expect(html).toContain('¿Qué necesito para registrar mi negocio?');
     expect(html).toContain('Tu negocio ya lo buscan. Que lo encuentren.');

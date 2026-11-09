@@ -59,9 +59,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Plan o combinación no válidos' });
     }
 
-    // Prueba gratis de 7 días solo en Destacado mensual: la tarjeta se
-    // registra hoy y el primer cobro es después de la prueba.
-    const trialDays = plan_id === 'pro' && interval === 'month' ? 7 : 0;
+    // Prueba gratis de 7 días solo en Destacado y Premium mensuales: la
+    // tarjeta se registra hoy y el primer cobro es después de la prueba.
+    const trialDays = ['pro', 'elite'].includes(plan_id) && interval === 'month' ? 7 : 0;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

@@ -69,7 +69,7 @@ describe('stripe checkout', () => {
     expect(usd.line_items[0].price_data.unit_amount).toBe(19900);
   });
 
-  it('gives a 7-day free trial only on monthly Destacado and returns to /cuenta', async () => {
+  it('gives a 7-day free trial on monthly Destacado and Premium, and on no other combination', async () => {
     const trial = await createSession({ biz_id: 'b1', plan_id: 'pro', interval: 'month', host_url: 'https://citymap.mx', currency: 'MXN' });
     expect(trial.subscription_data).toEqual({ trial_period_days: 7 });
     expect(trial.success_url).toContain('/cuenta?success=true');
@@ -77,12 +77,18 @@ describe('stripe checkout', () => {
     expect(trial.client_reference_id).toBe('b1');
     expect(trial.metadata.plan_tier).toBe('pro');
 
+    const trialElite = await createSession({ biz_id: 'b1', plan_id: 'elite', interval: 'month', host_url: 'https://citymap.mx', currency: 'MXN' });
+    expect(trialElite.subscription_data).toEqual({ trial_period_days: 7 });
+    expect(trialElite.success_url).toContain('&trial=1');
+    expect(trialElite.metadata.plan_tier).toBe('elite');
+
     const noTrialAnnual = await createSession({ biz_id: 'b1', plan_id: 'pro', interval: 'year', host_url: 'https://citymap.mx', currency: 'MXN' });
     expect(noTrialAnnual.subscription_data).toBeUndefined();
     expect(noTrialAnnual.success_url).not.toContain('&trial=1');
 
-    const noTrialElite = await createSession({ biz_id: 'b1', plan_id: 'elite', interval: 'month', host_url: 'https://citymap.mx', currency: 'MXN' });
-    expect(noTrialElite.subscription_data).toBeUndefined();
+    const noTrialEliteAnnual = await createSession({ biz_id: 'b1', plan_id: 'elite', interval: 'year', host_url: 'https://citymap.mx', currency: 'MXN' });
+    expect(noTrialEliteAnnual.subscription_data).toBeUndefined();
+    expect(noTrialEliteAnnual.success_url).not.toContain('&trial=1');
   });
 
   it('rejects unknown plans and missing keys', async () => {

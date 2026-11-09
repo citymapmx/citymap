@@ -27,7 +27,6 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
   const currentPlanKey = rawPlan === "premium" ? "elite" : ["pro", "destacado"].includes(rawPlan) ? "pro" : rawPlan === "elite" ? "elite" : "free";
   const isCurrent = p => Boolean(myBizList?.length) && p.key === currentPlanKey;
 
-  const goBack = () => { if (window.history.length > 1) window.history.back(); else navigate("home"); };
   const scrollToPlans = () => { document.getElementById("planes")?.scrollIntoView({ behavior: "smooth" }); };
 
   const accent = dark ? '#70ADFF' : '#0066CC';
@@ -60,7 +59,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     [t("negocios_faq1_q", "¿Cuánto cuesta empezar?"), t("negocios_faq1_a", "Nada. Crear tu perfil y publicar tu negocio es gratis. Solo pagas si quieres Destacado o Premium.")],
     [t("negocios_faq2_q", "¿Necesito pagar para aparecer en CityMap?"), t("negocios_faq2_a", "No. Con el plan gratuito tu negocio ya tiene su página pública, con teléfono, dirección, horarios y portada.")],
     [t("negocios_faq3_q", "¿CityMap cobra comisión por mis ventas?"), t("negocios_faq3_a", "No. Los pedidos te llegan por WhatsApp y el pago es directo entre tu cliente y tú.")],
-    [t("negocios_faq4_q", "¿Puedo probar Destacado gratis?"), t("negocios_faq4_a", "Sí. El plan Destacado mensual tiene 7 días de prueba gratis, sin compromiso.")],
+    [t("negocios_faq4_q", "¿Puedo probar los planes de pago gratis?"), t("negocios_faq4_a", "Sí. Los planes Destacado y Premium mensuales tienen 7 días de prueba gratis, sin compromiso.")],
     [t("negocios_faq5_q", "¿En qué ciudades está CityMap?"), t("negocios_faq5_a", "En 35 ciudades, entre ellas Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Ciudad de México, Mérida, Monterrey, Cancún y Playa del Carmen.")],
     [t("negocios_faq6_q", "¿Qué necesito para registrar mi negocio?"), t("negocios_faq6_a", "Solo tu información básica: nombre, fotos, horarios y un teléfono o WhatsApp para que te contacten.")],
   ];
@@ -68,7 +67,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
   const priceNote = p => {
     if (p.key === "free") return t("cuenta_sin_costo", "Sin costo de suscripción.");
     if (billing === "annual") return t("cuenta_cobra_ano", "Se cobra el importe completo del año.");
-    if (p.key === "pro") return t("negocios_prueba_gratis", "Pruébalo 7 días gratis (solo en el pago mensual).");
+    if (p.key === "pro" || p.key === "elite") return t("negocios_prueba_gratis", "Pruébalo 7 días gratis (solo en el pago mensual).");
     return t("cuenta_fact_mensual", "Facturación mensual.");
   };
   const planButton = p => {
@@ -81,6 +80,9 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     if (p.key === "pro") {
       return { disabled: false, label: t("negocios_cta_probar", "Probar 7 días gratis"), onClick: () => onStartPaidPlan?.({ key: "pro" }, billing) };
     }
+    if (billing === "monthly") {
+      return { disabled: false, label: t("negocios_cta_probar", "Probar 7 días gratis"), onClick: () => onStartPaidPlan?.({ key: "elite" }, billing) };
+    }
     return { disabled: false, label: t("negocios_cta_premium", "Empezar con Premium"), onClick: () => onStartPaidPlan?.({ key: "elite" }, billing) };
   };
 
@@ -88,7 +90,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     <div className="business-landing" style={{ minHeight: '100vh', background: pageBg, color: ink, fontFamily: 'inherit', letterSpacing: 0, '--plans-accent': accent, '--plans-line': line, '--plans-surface': surface }}>
       <Helmet>
         <title>{`${t("negocios_h1", "Haz que más personas encuentren tu negocio.")} | CityMap`}</title>
-        <meta name="description" content={t("negocios_sub", "Publica tu negocio gratis en la guía de tu ciudad y deja que te encuentren en el mapa, en el buscador y en Google. Sin comisiones por tus ventas: tus clientes te escriben directo por WhatsApp.")} />
+        <meta name="description" content={t("negocios_sub", "Publica tu negocio gratis en citymap. Te encuentran en el mapa, en el buscador y en Google, y te escriben directo por WhatsApp, sin comisiones.")} />
         <link rel="canonical" href="https://citymap.mx/negocios" />
       </Helmet>
       <style>{`
@@ -111,7 +113,6 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
       `}</style>
       <header style={{ position: 'sticky', top: 0, zIndex: 10, background: dark ? 'rgba(22,22,23,.92)' : 'rgba(245,245,247,.92)', backdropFilter: 'blur(20px)', borderBottom: `1px solid ${line}` }}>
         <div style={{ maxWidth: 1140, margin: 'auto', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10, minHeight: 62 }}>
-          <button aria-label={t("cuenta_volver", "Volver")} onClick={goBack} style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 0, background: 'transparent', color: ink, cursor: 'pointer' }}><Icon name="chevron" size={22} color={ink} style={{ transform: 'rotate(180deg)' }} /></button>
           <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: '-.025em' }}>{t("negocios_eyebrow", "CityMap para negocios")}</span>
         </div>
       </header>
@@ -119,7 +120,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         <section style={{ textAlign: 'center', padding: '48px 0 24px', maxWidth: 680, margin: 'auto' }}>
           <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '.06em', color: muted, margin: '0 0 12px', textTransform: 'uppercase' }}>{t("negocios_eyebrow", "CityMap para negocios")}</p>
           <h1 style={{ fontFamily: 'var(--heading)', fontSize: 'clamp(30px,5vw,44px)', fontWeight: 700, lineHeight: 1.08, letterSpacing: '-.045em', margin: '0 auto 16px', maxWidth: 620 }}>{t("negocios_h1", "Haz que más personas encuentren tu negocio.")}</h1>
-          <p style={{ fontSize: 16, lineHeight: 1.55, color: muted, margin: '0 auto 24px', maxWidth: 560 }}>{t("negocios_sub", "Publica tu negocio gratis en la guía de tu ciudad y deja que te encuentren en el mapa, en el buscador y en Google. Sin comisiones por tus ventas: tus clientes te escriben directo por WhatsApp.")}</p>
+          <p style={{ fontSize: 16, lineHeight: 1.55, color: muted, margin: '0 auto 24px', maxWidth: 560 }}>{t("negocios_sub", "Publica tu negocio gratis en citymap. Te encuentran en el mapa, en el buscador y en Google, y te escriben directo por WhatsApp, sin comisiones.")}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12 }}>
             <button onClick={() => onAddBiz?.()} style={{ minHeight: 48, padding: '12px 24px', border: 0, borderRadius: 999, background: accent, color: dark ? '#101827' : '#FFFFFF', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t("cuenta_crear_perfil_gratis", "Crear perfil gratis")}</button>
             <button onClick={scrollToPlans} style={{ minHeight: 48, padding: '12px 24px', border: `1px solid ${line}`, borderRadius: 999, background: 'transparent', color: ink, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t("ver_planes", "Ver planes")}</button>
