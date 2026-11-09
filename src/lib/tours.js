@@ -15,17 +15,37 @@ export function tourCardUrl(tour) {
   return `/revista/${tour?.city_slug || ''}/${createSlug(tour?.title || '')}`;
 }
 
+// ¿El tour tiene enlace de reserva externo (Civitatis, Viator, GetYourGuide…)?
+// Sirve para distinguir un tour gratis (senderismo, sin reserva) de uno con
+// precio sin publicar todavía.
+export function hasTourBooking(tour) {
+  const links = tour?.booking_config?.externalLinks;
+  return Array.isArray(links) && links.length > 0;
+}
+
+// Etiqueta de precio de la tarjeta: "desde $X MXN", "Gratis" (actividad sin
+// reserva ni precio, p. ej. senderismo) o null (tiene reserva pero el precio
+// no está publicado; la tarjeta muestra "Precio no publicado").
+export function tourPriceLabel(tour) {
+  const priced = formatTourPrice(tour?.price);
+  if (priced) return priced;
+  return hasTourBooking(tour) ? null : 'Gratis';
+}
+
 // Agrupa los tours por ciudad: [{ slug, name, count, tours }], ordenados por
 // cantidad (más tours primero) y a igualdad por nombre. `cities` es la lista
 // de ciudades del sitio (para el nombre bonito); si la ciudad no está en la
-// lista, el slug hace de nombre.
+// lista, el slug hace de nombre. La coincidencia de slug no distingue
+// mayúsculas (la tabla cities guarda 'Barcelona' y los tours 'barcelona').
 export function groupToursByCity(tours, cities = []) {
-  const bySlug = new Map((cities || []).map((c) => [c.slug, c.name || c.slug]));
+  const bySlug = new Map(
+    (cities || []).map((c) => [String(c.slug || '').toLowerCase(), c.name || c.slug]),
+  );
   const groups = new Map();
   for (const tour of tours || []) {
     const slug = tour?.city_slug || 'todas';
     if (!groups.has(slug)) {
-      groups.set(slug, { slug, name: bySlug.get(slug) || slug, count: 0, tours: [] });
+      groups.set(slug, { slug, name: bySlug.get(String(slug).toLowerCase()) || slug, count: 0, tours: [] });
     }
     const group = groups.get(slug);
     group.count += 1;
