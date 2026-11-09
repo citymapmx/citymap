@@ -441,15 +441,12 @@ export default function EventsView() {
                   const imgSrc = ev.img_url || ev.img;
 
                   return (
-                    <article key={ev.id} ref={registerFlip(ev.id)} style={{ minWidth: 0, position:'relative', borderRadius:18, overflow:'hidden', background:T.white, border:`1px solid ${T.border}` }}>
+                    <article key={ev.id} ref={registerFlip(ev.id)} style={{ minWidth: 0, position:'relative', borderRadius:18, overflow:'hidden' }}>
                       <button type="button" onClick={() => handleEventTap(ev)} aria-label={`${localizedTitle(ev, lang) || 'Evento'}. ${fmtCardDate(ev)}`} className="event-list-card" style={{ display:'block', width:'100%', textAlign:'left', border:0, padding:0, background:'transparent', color:T.text, cursor:'pointer', fontFamily:'inherit' }}>
                         <div style={{ aspectRatio:'5 / 7', position:'relative', overflow:'hidden', background:dark ? '#23252b' : '#edf0f4' }}>
                           {imgSrc ? <OptimizedImage src={imgSrc} alt={localizedTitle(ev, lang) || 'Evento'} widthRequest={600} priority={index < 2} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
                             : <EventPosterFallback title={localizedTitle(ev, lang) || 'Evento'} radius={0} />}
-                        </div>
-                        <div style={{ padding:'12px 12px 14px' }}>
-                          <div style={{ fontSize:12, fontWeight:600, color:T.sub, marginBottom:6 }}>{fmtCardDate(ev)}</div>
-                          <h3 style={{ fontSize:15, fontWeight:700, lineHeight:1.35, letterSpacing:'-0.2px', margin:0, overflowWrap:'anywhere' }}>{localizedTitle(ev, lang) || 'Evento'}</h3>
+                          <div style={{ position:'absolute', top:8, left:8, zIndex:2, borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF' }}>{fmtCardDate(ev)}</div>
                         </div>
                       </button>
                       <button type="button" onClick={e => handleToggleSaveEvent(ev, e)} aria-label={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")} aria-pressed={isSaved} style={{ position:'absolute', top:6, right:6, width:44, height:44, background:'rgba(0,0,0,0.24)', border:0, borderRadius:'50%', display:'grid', placeItems:'center', cursor:'pointer', zIndex:2 }}>
