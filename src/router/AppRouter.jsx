@@ -17,9 +17,10 @@ const WalletView = React.lazy(() => import('../views/WalletView.jsx'));
 const FavsView = React.lazy(() => import('../views/FavsView.jsx'));
 const NotFoundView = React.lazy(() => import('../views/NotFoundView.jsx'));
 const AppLoginView = React.lazy(() => import('../views/AppLoginView.jsx'));
+const ToursView = React.lazy(() => import('../components/ToursView.jsx'));
 
 // Paths that are NOT the home/category view
-const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/mis-planes', '/revista', '/experiencias', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
+const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/mis-planes', '/revista', '/experiencias', '/tours', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
 
 function isCategoryPath(segments) {
   if (IS_WORLD) return segments.length === 4 && segments[2] === 'c';
@@ -178,6 +179,7 @@ export default function AppRouter(props) {
             <Route path="/mapa/:city" element={<MapView />} />
             <Route path="/eventos" element={<EventsView />} />
             <Route path="/eventos/:city" element={<EventsView />} />
+            <Route path="/tours" element={<ToursView T={T} dark={dark} navigate={navigate} cities={cities} />} />
             <Route path="/explorar" element={<EventsView />} />
             <Route path="/explorar/:city" element={<EventsView />} />
             {/* The legacy "Planes" section was removed: these URLs must answer 404 (no redirect). */}
