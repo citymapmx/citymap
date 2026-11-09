@@ -688,9 +688,10 @@ export default function HomeView({ isBackground }) {
                 <Virtuoso
                   useWindowScroll
                   data={finalDisplayList}
-                  endReached={() => {
-                    if (hasMore && !loadingMore) loadPaginatedBiz(false);
-                  }}
+                  // Sin autollenado al bajar: la paginación de la categoría es
+                  // solo con el botón "Ver más". Antes, al bajar, la lista
+                  // cargaba más negocios sola y el botón se desplazaba
+                  // (o desaparecía) antes de poder pulsarlo.
                   computeItemKey={(index, b) => b.id}
                   itemContent={(index, b) => {
                     const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;

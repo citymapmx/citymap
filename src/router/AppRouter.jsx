@@ -5,6 +5,7 @@ import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import BrandSplash from '../components/ui/BrandSplash.jsx';
 import { IS_WORLD } from '../lib/domain.js';
 import { parseRevistaPath } from '../lib/revistaRoute.js';
+import { isDirectCategorySegments } from '../lib/categoryRouting.js';
 
 const LoaderFallback = () => <BrandSplash />;
 
@@ -24,8 +25,8 @@ const BusinessLanding = React.lazy(() => import('../components/BusinessLanding.j
 const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
 
 function isCategoryPath(segments) {
-  if (IS_WORLD) return segments.length === 4 && segments[2] === 'c';
-  return segments.length === 3 && segments[1] === 'c';
+  if (IS_WORLD) return (segments.length === 4 && segments[2] === 'c') || isDirectCategorySegments(segments, true);
+  return (segments.length === 3 && segments[1] === 'c') || isDirectCategorySegments(segments);
 }
 
 function isHomePath(pathname) {

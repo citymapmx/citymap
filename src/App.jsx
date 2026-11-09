@@ -1256,8 +1256,9 @@ useEffect(() => {
       setBusinessQuery({ key: paginationKey, ids: orderBusinessIds(rows), status: "ready" });
       nextOffsetRef.current = count;
       setServerHasMore(count === fetchLimit);
-      // La lista empieza paginada en 20 y se revela con "Ver más" (o al
-      // bajar): antes se mostraba todo lo cargado de golpe y Virtuoso solo
+      // La lista empieza paginada en 20 y se revela solo con "Ver más" (sin
+      // autollenado al bajar, para que el botón no se desplace antes de poder
+      // pulsarlo): antes se mostraba todo lo cargado de golpe y Virtuoso solo
       // renderiza lo visible, así que la categoría parecía tener solo los
       // 4 negocios que cabían en pantalla.
       setPage(1);
