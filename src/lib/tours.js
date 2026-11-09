@@ -23,12 +23,14 @@ export function hasTourBooking(tour) {
   return Array.isArray(links) && links.length > 0;
 }
 
-// Etiqueta de precio de la tarjeta: "desde $X MXN", "Gratis" (actividad sin
-// reserva ni precio, p. ej. senderismo) o null (tiene reserva pero el precio
-// no está publicado; la tarjeta muestra "Precio no publicado").
+// Etiqueta de precio de la tarjeta: "desde $X MXN", "Gratis" o null (tiene
+// reserva pero el precio no está publicado; la tarjeta muestra
+// "Precio no publicado"). Precio 0 explícito = verificado gratis (free tour,
+// senderismo); sin precio (null/vacío) y con reserva = no publicado.
 export function tourPriceLabel(tour) {
   const priced = formatTourPrice(tour?.price);
   if (priced) return priced;
+  if (tour?.price === 0 || tour?.price === '0') return 'Gratis';
   return hasTourBooking(tour) ? null : 'Gratis';
 }
 
