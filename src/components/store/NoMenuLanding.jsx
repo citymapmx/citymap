@@ -38,7 +38,7 @@ export default function NoMenuLanding({ business, T, dark, onBack }) {
       const timeZone = CITY_TZ[city] || 'America/Mazatlan';
       const today = eventCalendarDay(Date.now(), timeZone);
       try {
-        const events = await sb.get('events', `?select=id,title,slug,date,end_date,time,venue_name,img_url,img,city_slug,status,active,visibility&or=(city_slug.ilike.*${city}*,city_slug.eq.all)&date=gte.${today}&status=eq.approved&active=eq.true&visibility=neq.private&order=date.asc,time.asc&limit=20`);
+        const events = await sb.get('events', `?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website,active,visibility&or=(city_slug.ilike.*${city}*,city_slug.eq.all)&date=gte.${today}&status=eq.approved&active=eq.true&visibility=neq.private&order=date.asc,time.asc&limit=20`);
         if (cancelled || !Array.isArray(events)) return;
         const listed = events.filter(ev => isListedEvent(ev, today));
         const todayList = listed.filter(ev => eventCoversDay(ev, today)).slice(0, 4);

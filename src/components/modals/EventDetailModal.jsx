@@ -138,7 +138,7 @@ export default function EventDetailModal() {
   useEffect(() => {
     if (!selectedEvent?.id) { setUpcoming([]); return; }
     let cancelled = false;
-    sb.get('events', '?select=id,title,title_en,description_en,slug,date,end_date,time,venue_name,venue_address,city_slug,img_url,img,status,active&status=eq.approved&order=date.asc&limit=40')
+    sb.get('events', '?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website,visibility,active&status=eq.approved&order=date.asc&limit=40')
       .then(rows => { if (!cancelled) setUpcoming(upcomingEvents(Array.isArray(rows) ? rows : [], selectedEvent, todayLocal, 4)); })
       .catch(() => { if (!cancelled) setUpcoming([]); });
     return () => { cancelled = true; };
