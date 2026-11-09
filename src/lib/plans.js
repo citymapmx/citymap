@@ -3,5 +3,5 @@
 // (trial_period_days en api/stripe-checkout.js).
 export const TRIAL_DAYS = 7;
 
-// Prueba gratis: solo Destacado mensual.
-export const isTrialSelection = (planKey, billing) => planKey === 'pro' && billing === 'monthly';
+// Prueba gratis: solo Destacado y Premium mensuales.
+export const isTrialSelection = (planKey, billing) => ['pro', 'elite'].includes(planKey) && billing === 'monthly';
