@@ -316,7 +316,8 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                background: inline ? 'transparent' : 'rgba(0,0,0,0.5)', 
                display: inline ? 'block' : 'flex',
                justifyContent: inline ? 'normal' : 'center',
-               overflow: 'hidden'
+               // En la página completa (inline) el overflow debe ser visible: con 'hidden' este contenedor se vuelve el área de scroll del encabezado sticky y las categorías se van con la página al bajar. En el modal se queda 'hidden' para recortar la animación de entrada; ahí el que hace scroll es la tarjeta (overflowY auto) y el sticky sí funciona.
+               overflow: inline ? 'visible' : 'hidden'
              }}
           >
             <m.div 
