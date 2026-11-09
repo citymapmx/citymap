@@ -444,7 +444,8 @@ export default function EventsView() {
                     <article key={ev.id} ref={registerFlip(ev.id)} style={{ minWidth: 0, position:'relative', borderRadius:18, overflow:'hidden' }}>
                       <button type="button" onClick={() => handleEventTap(ev)} aria-label={`${localizedTitle(ev, lang) || 'Evento'}. ${fmtCardDate(ev)}`} className="event-list-card" style={{ display:'block', width:'100%', textAlign:'left', border:0, padding:0, background:'transparent', color:T.text, cursor:'pointer', fontFamily:'inherit' }}>
                         <div style={{ aspectRatio:'5 / 7', position:'relative', overflow:'hidden', background:dark ? '#23252b' : '#edf0f4' }}>
-                          {imgSrc ? <OptimizedImage src={imgSrc} alt={localizedTitle(ev, lang) || 'Evento'} widthRequest={600} priority={index < 2} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                          {/* contain, no cover: con cover el póster se recortaba a 5:7 y se perdía el texto de los lados ("DANIEL BOAV…"); así sale completo con bandas del fondo de la tarjeta. */}
+                          {imgSrc ? <OptimizedImage src={imgSrc} alt={localizedTitle(ev, lang) || 'Evento'} widthRequest={600} priority={index < 2} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain' }} />
                             : <EventPosterFallback title={localizedTitle(ev, lang) || 'Evento'} radius={0} />}
                           <div style={{ position:'absolute', top:8, left:8, zIndex:2, borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF' }}>{fmtCardDate(ev)}</div>
                         </div>

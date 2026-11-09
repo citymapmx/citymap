@@ -181,7 +181,10 @@ export function useAppSEO({ city }) {
         "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode"
       });
     } else {
-      if (activeCat && activeCat !== "explorar") {
+      // Rutas de nivel superior con título propio: una categoría activa de
+      // otra vista (p. ej. restaurantes) no debe taparles el título.
+      const isTopLevelRoute = ["/eventos", "/explorar", "/mapa", "/tours", "/precios", "/negocios", "/revista", "/mis-planes", "/experiencias", "/cuenta", "/about", "/privacy", "/terms"].some(p => location.pathname.startsWith(p));
+      if (activeCat && activeCat !== "explorar" && !isTopLevelRoute) {
         // eslint-disable-next-line no-useless-assignment
         let catLabel = activeCat;
         if (CAT_SEO[activeCat]) {
@@ -252,6 +255,21 @@ export function useAppSEO({ city }) {
         desc = `Explora el mapa interactivo de ${cityCapitalized}. Encuentra los mejores restaurantes, cafés, eventos y negocios locales cerca de ti con horarios y reseñas.`;
          
         canonical = `${BASE_URL}/mapa`;
+      } else if (location.pathname.startsWith("/tours")) {
+        title = `Tours y actividades por ciudad — Reserva tu experiencia | CityMap`;
+        desc = `Descubre tours y experiencias en todas las ciudades: recorridos, gastronomía, naturaleza y cultura con reserva en línea en CityMap.`;
+
+        canonical = `${BASE_URL}/tours`;
+      } else if (location.pathname.startsWith("/precios")) {
+        title = `Precios y planes para tu negocio | CityMap`;
+        desc = `Planes Destacado y Premium para que tu negocio destaque en CityMap: más visibilidad, más llamadas y más clientes.`;
+
+        canonical = `${BASE_URL}/precios`;
+      } else if (location.pathname.startsWith("/negocios")) {
+        title = `CityMap para negocios — Publica tu negocio gratis | CityMap`;
+        desc = `Publica tu negocio gratis en CityMap. Te encuentran en el mapa, en el buscador y en Google, y te escriben directo por WhatsApp, sin comisiones.`;
+
+        canonical = `${BASE_URL}/negocios`;
       } else if (location.pathname.startsWith("/mis-planes") || location.pathname.startsWith("/experiencias") || location.pathname.startsWith("/revista")) {
         const hasCity = Boolean(activeCity && !location.pathname.endsWith("/todas"));
         title = hasCity 

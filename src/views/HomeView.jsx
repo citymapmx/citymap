@@ -13,6 +13,7 @@ import { useTranslation } from "../hooks/useTranslation.js";
 import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear, METRO_ZONES } from "../lib/utils";
 import { shouldShowCityEmptyState, shouldShowCategoryEmptyState } from "../lib/cityEmptyState.js";
+import { getAvailableSubcats } from "../lib/businessSubcats.js";
 import { getTimeSlot, spotForSlot, isFoodSpot, seededRand, shuffleBySeed } from "../lib/timeBasedLists.js";
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
@@ -204,29 +205,7 @@ export default function HomeView({ isBackground }) {
 
   const availableSubcats = React.useMemo(() => {
     if (!activeCat || activeCat === "explorar" || !biz) return [];
-    const subcatMap = new Map();
-    
-    biz.forEach(b => {
-      const candidates = [];
-      if (b.subcategory) {
-        candidates.push(...String(b.subcategory).split(/[,/•|]/));
-      } else if (b.type) {
-        candidates.push(...String(b.type).split(/[,/•|]/));
-      }
-      
-      candidates.forEach(raw => {
-        const item = raw.trim();
-        if (item && item.length > 1) {
-          const key = item.toLowerCase();
-          if (!subcatMap.has(key)) {
-            const formatted = item.charAt(0).toUpperCase() + item.slice(1);
-            subcatMap.set(key, formatted);
-          }
-        }
-      });
-    });
-
-    return Array.from(subcatMap.values()).sort((a, b) => a.localeCompare(b));
+    return getAvailableSubcats(biz);
   }, [biz, activeCat]);
 
   const finalDisplayList = React.useMemo(() => {
@@ -620,6 +599,11 @@ export default function HomeView({ isBackground }) {
             <div style={{ textAlign: "center", marginBottom: availableSubcats.length > 0 ? 12 : 16 }}>
               {!dbReady ? <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Sk w="60%" h={26} r={6} dark={dark} /></div> : <h1 style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 26, color: T.text, margin: "0 0 6px 0", padding: 0, textAlign: "center" }}>{t(cats.find(c => c.id === activeCat)?.label || activeCat)} {lang === 'en' ? 'in' : 'en'} {(city || "").split(',')[0]}</h1>}
               {!dbReady ? <div style={{ display: "flex", justifyContent: "center" }}><Sk w="80%" h={14} r={4} dark={dark} /></div> : <h2 style={{ fontSize: 13, color: T.sub, fontWeight: 500, margin: 0, lineHeight: 1.4, textAlign: "center" }}>{getCategoryDesc(activeCat, cats.find(c => c.id === activeCat)?.label, city)}</h2>}
+              {dbReady && businessListReady && biz.length > 0 && (
+                <p style={{ fontSize: 13, color: T.sub, fontWeight: 600, margin: "8px 0 0", textAlign: "center" }}>
+                  {selectedSubcat === "todas" ? biz.length : finalDisplayList.length} {t("lugares", "lugares")}
+                </p>
+              )}
             </div>
 
             {/* ── BARRA DE SUBCATEGORÍAS ── */}
@@ -729,6 +713,15 @@ export default function HomeView({ isBackground }) {
                   }}
                 />
                 </BusinessListTransition>
+              )}
+              {dbReady && businessListReady && finalDisplayList.length > 0 && hasMore && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0 20px' }}>
+                  <button
+                    onClick={() => loadPaginatedBiz(false)}
+                    disabled={loadingMore}
+                    style={{ padding: '10px 28px', borderRadius: 20, border: `1px solid ${T.border}`, background: 'none', color: T.text, fontWeight: 700, fontSize: 14, cursor: loadingMore ? 'default' : 'pointer', opacity: loadingMore ? 0.5 : 1 }}
+                  >{loadingMore ? t("cargando", "Cargando...") : t("ver_mas", "Ver más")}</button>
+                </div>
               )}
               {dbReady && businessListReady && finalDisplayList.length === 0 && (
                 shouldShowCategoryEmptyState({ selectedSubcat, categoryLabel, showGenericEmpty }) ? (
