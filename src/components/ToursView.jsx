@@ -56,7 +56,7 @@ export default function ToursView({ T, dark, navigate, cities, initialTours }) {
   useEffect(() => {
     if (initialTours) return;
     let cancelled = false;
-    sb.get('experiences', '?select=id,title,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=100')
+    sb.get('experiences', '?select=id,title,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=200')
       .then((res) => { if (!cancelled) setTours(Array.isArray(res) ? res : []); })
       .catch(() => { if (!cancelled) setTours([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
