@@ -4,6 +4,8 @@ import { useDataStore } from '../store/useDataStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
 import { createSlug, getThumbUrl } from '../lib/utils.js';
+import { typeLabel } from '../lib/postTaxonomy.js';
+import { groupToursByCity, tourCardUrl, formatTourPrice } from '../lib/tours.js';
 import { displayRating } from '../lib/googleRatings.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import Icon from '../components/ui/Icon.jsx';
@@ -118,6 +120,8 @@ export default function GlobalHomeView() {
   const [biz, setBiz] = useState([]);
   const [events, setEvents] = useState([]);
   const [experiences, setExperiences] = useState([]);
+  const [tours, setTours] = useState([]);
+  const [tourCity, setTourCity] = useState(null);
   const [allCities, setAllCities] = useState([]);
   const [popCounts, setPopCounts] = useState({});
   const [searchResults, setSearchResults] = useState(null);
@@ -137,10 +141,10 @@ export default function GlobalHomeView() {
       try {
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const [bizRes, evRes, exRes, citiesRes, placesRes] = await Promise.all([
+        const [bizRes, evRes, exRes, citiesRes, placesRes, toursRes] = await Promise.all([
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=0`).catch(() => []),
           sb.get('events', `?select=id,title,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved&order=date.asc&limit=60`).catch(() => []),
-          sb.get('experiences', `?select=id,title,city_slug,price,duration,people,gallery,created_at&status=eq.approved&order=created_at.desc&limit=12`).catch(() => []),
+          sb.get('experiences', `?select=id,title,city_slug,activity_type,price,duration,people,gallery,created_at&status=eq.approved&order=created_at.desc&limit=12`).catch(() => []),
           (cities && cities.length > 0)
             ? Promise.resolve(cities)
             : sb.get('cities', '?active=eq.true&select=id,name,slug,state,country,country_code,bg_image&order=name.asc').catch(() => []),
@@ -148,6 +152,8 @@ export default function GlobalHomeView() {
           // para que el filtro "Lugares" tenga contenido desde el inicio y no
           // dependa de que aparezcan en la paginación de negocios.
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&or=(category.eq.lugares,category.eq.unidad%20deportiva,category.eq.playa,is_place.eq.true)&order=plan.desc,rating.desc.nullslast,id.desc&limit=60`).catch(() => []),
+          // Tours para la sección "Tours por ciudad": solo tipo Tour, todas las ciudades.
+          sb.get('experiences', `?select=id,title,city_slug,price,duration,gallery,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=100`).catch(() => []),
         ]);
         if (cancelled) return;
         const bizRows = Array.isArray(bizRes) ? bizRes : [];
@@ -164,6 +170,7 @@ export default function GlobalHomeView() {
         // guarda todos los próximos (hasta 60) en vez de solo los primeros 12.
         setEvents(evRows);
         setExperiences(Array.isArray(exRes) ? exRes : []);
+        setTours(Array.isArray(toursRes) ? toursRes : []);
         const cityList = Array.isArray(citiesRes) ? citiesRes : [];
         setAllCities(cityList);
         // Popularidad por ciudad: negocios + eventos registrados (conteos exactos).
@@ -193,6 +200,13 @@ export default function GlobalHomeView() {
     (allCities || []).forEach((c) => map.set(c.slug, c));
     return map;
   }, [allCities]);
+
+  // Tours agrupados por ciudad para la sección "Tours por ciudad".
+  const tourGroups = useMemo(() => groupToursByCity(tours, allCities || []), [tours, allCities]);
+  const effectiveTourCity = tourCity && tourGroups.some((g) => g.slug === tourCity)
+    ? tourCity
+    : (tourGroups.find((g) => g.slug === 'guadalajara') || tourGroups[0])?.slug;
+  const visibleTours = tourGroups.find((g) => g.slug === effectiveTourCity)?.tours || [];
 
   // Ciudades ordenadas de la más popular a la menos: negocios + eventos registrados.
   const sortedCities = useMemo(() => {
@@ -472,7 +486,7 @@ export default function GlobalHomeView() {
           )}
 
           <HeroSearchBar dark={dark} query={query} setQuery={setQuery} />
-          {!query && <TravelAffiliateRow T={T} dark={dark} />}
+          {!query && <TravelAffiliateRow T={T} dark={dark} navigate={navigate} />}
 
         </div>
       </div>
@@ -668,6 +682,48 @@ export default function GlobalHomeView() {
               </section>
             )}
 
+            {/* Tours por ciudad: solo tipo Tour, con píldoras por ciudad */}
+            {tourGroups.length > 0 && (
+              <section style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>🗺️ Tours por ciudad</h2>
+                  <button onClick={() => navigate('/tours')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    Ver todos los tours →
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none' }}>
+                  {tourGroups.map((g) => (
+                    <button key={g.slug} onClick={() => setTourCity(g.slug)} style={{ flex: '0 0 auto', padding: '8px 14px', borderRadius: 999, border: `1px solid ${T.border}`, background: effectiveTourCity === g.slug ? T.text : 'transparent', color: effectiveTourCity === g.slug ? T.bg : T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      {g.name} ({g.count})
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                  {visibleTours.map((tour) => {
+                    const gallery = parseGallery(tour);
+                    const img = gallery[0]?.url || gallery[0] || null;
+                    const price = formatTourPrice(tour.price);
+                    return (
+                      <article key={`t-${tour.id}`} onClick={() => navigate(tourCardUrl(tour))} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
+                        <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>
+                          {typeof img === 'string' && img
+                            ? <OptimizedImage src={img} alt={tour.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🗺️</div>}
+                          <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>🗺️ Tour</span>
+                        </div>
+                        <div style={{ padding: '12px 14px 16px' }}>
+                          <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{tour.title}</h3>
+                          {tour.duration ? <p style={{ fontSize: 13, color: T.sub, margin: '0 0 8px' }}>⏱ {tour.duration}</p> : null}
+                          <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || 'Precio no publicado'}</p>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>Reservar →</span>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* Guías y artículos */}
             {experiences.length > 0 && (
               <section style={{ marginBottom: 32 }}>
@@ -692,7 +748,7 @@ export default function GlobalHomeView() {
                           {typeof img === 'string' && img
                             ? <OptimizedImage src={img} alt={exp.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>📝</div>}
-                          <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>Guía</span>
+                          <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>{typeLabel(exp.activity_type)}</span>
                           <button
                             aria-label="Guardar"
                             onClick={(e) => { e.stopPropagation(); if (!user) { setShowAuth(true); return; } const ids = savedExpIds || []; const nw = ids.includes(exp.id) ? ids.filter((x) => x !== exp.id) : [...ids, exp.id]; setSavedExpIds?.(nw); try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ } }}

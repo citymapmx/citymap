@@ -9,7 +9,7 @@ const EXPECTED = [
   { label: 'Autos', href: 'https://expedia.stay22.com/citymapmx/LeK8DFMnTC' },
   { label: 'Hoteles', href: 'https://booking.stay22.com/citymapmx/Uv1zqBOpxi' },
   { label: 'Vuelos', href: 'https://kayak.stay22.com/citymapmx/qi99zaJZro' },
-  { label: 'Tours', href: 'https://www.civitatis.com/es/?aid=114552' },
+  { label: 'Tours', href: '/tours' },
 ];
 
 describe('TravelAffiliateRow', () => {
@@ -19,7 +19,9 @@ describe('TravelAffiliateRow', () => {
       expect(html).toContain(l.label);
       expect(html).toContain(`href="${l.href}"`);
     }
-    expect(html).toContain('target="_blank"');
+    // Solo los tres socios externos abren en otra pestaña; Tours es interno.
+    expect(html.match(/target="_blank"/g)).toHaveLength(3);
     expect(html).toContain('sponsored');
+    expect(html).not.toContain('civitatis.com');
   });
 });
