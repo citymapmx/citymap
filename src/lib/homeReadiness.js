@@ -14,3 +14,19 @@ export function getHomeVisualState(doc,citySlug,viewport={width:0,height:0}) {
   if(images.some(img=>img.naturalWidth===0))return 'error';
   return 'ready';
 }
+
+// Salida del splash de llegada: la ciudad se muestra en cuanto los datos
+// están listos y la primera pantalla está presentable. El mínimo evita un
+// parpadeo al cambiar de ciudad; el tope evita que una foto lenta o rota
+// deje la pantalla negra atorada: pasado el tope la ciudad se muestra igual
+// y las fotos terminan de cargar progresivamente. Una imagen rota o lenta
+// nunca bloquea la salida por sí sola; el reintentar queda solo para un
+// error real de carga de datos.
+export const SPLASH_MINIMUM_MS = 600;
+export const SPLASH_MAX_WAIT_MS = 3000;
+
+export function shouldExitSplash({ready, error, visual, elapsedMs}) {
+  if (!ready || error) return false;
+  if (elapsedMs < SPLASH_MINIMUM_MS) return false;
+  return visual === 'ready' || elapsedMs >= SPLASH_MAX_WAIT_MS;
+}

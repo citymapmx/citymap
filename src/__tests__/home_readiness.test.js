@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {getHomeVisualState} from '../lib/homeReadiness.js';
+import {getHomeVisualState, shouldExitSplash, SPLASH_MINIMUM_MS, SPLASH_MAX_WAIT_MS} from '../lib/homeReadiness.js';
 const image=(props={},box={top:0,left:0,right:200,bottom:100,width:200,height:100})=>({complete:true,naturalWidth:800,getBoundingClientRect:()=>box,...props});
 const documentWith=(images=[],city='tepic',fonts={status:'loaded',check:()=>true})=>({fonts,querySelectorAll:()=>[{getAttribute:()=>city,querySelectorAll:()=>images}],querySelector:()=>null});
 const viewport={width:390,height:844};
@@ -36,4 +36,16 @@ describe('home data readiness',()=>{
    expect(useDataStore.getState().homeSecondaryError).toBe(false);
   }finally{request.mockRestore();rpc.mockRestore();vi.unstubAllGlobals();}
  });
+});
+
+describe('city arrival splash exit cap',()=>{
+ it('keeps the 600 ms minimum and the 3 s cap',()=>{expect(SPLASH_MINIMUM_MS).toBe(600);expect(SPLASH_MAX_WAIT_MS).toBe(3000);});
+ it('exits once the first screen is ready',()=>{expect(shouldExitSplash({ready:true,error:false,visual:'ready',elapsedMs:600})).toBe(true);});
+ it('does not exit before the minimum, even with everything ready',()=>{expect(shouldExitSplash({ready:true,error:false,visual:'ready',elapsedMs:599})).toBe(false);});
+ it('exits at the cap when images are still loading',()=>{expect(shouldExitSplash({ready:true,error:false,visual:'loading',elapsedMs:3000})).toBe(true);});
+ it('does not exit before the cap while images are still loading',()=>{expect(shouldExitSplash({ready:true,error:false,visual:'loading',elapsedMs:1000})).toBe(false);});
+ it('exits at the cap when an image is broken instead of blocking',()=>{expect(shouldExitSplash({ready:true,error:false,visual:'error',elapsedMs:3000})).toBe(true);});
+ it('waits for the cap when an image is broken instead of exiting early',()=>{expect(shouldExitSplash({ready:true,error:false,visual:'error',elapsedMs:1000})).toBe(false);});
+ it('never exits while the city data is not ready, even past the cap',()=>{expect(shouldExitSplash({ready:false,error:false,visual:'loading',elapsedMs:30000})).toBe(false);});
+ it('never exits on a real data error, even past the cap',()=>{expect(shouldExitSplash({ready:true,error:true,visual:'ready',elapsedMs:30000})).toBe(false);});
 });

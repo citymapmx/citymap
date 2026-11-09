@@ -1,6 +1,5 @@
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {writeFileSync} from 'node:fs';
 import {afterEach,describe,it,expect,vi} from 'vitest';
 import {canAutoRecover,claimAutoRecovery,isChunkError,reloadClearingStaleAssets,retryPageLoad} from '../lib/loadRecovery.js';
 import {ErrorBoundary} from '../components/ErrorBoundary.jsx';
@@ -35,7 +34,6 @@ describe('offline load recovery',()=>{
     setup(false);
     const html=renderToStaticMarkup(<LoadFailureView error={networkError} fullPage/>);
     expect(html).toContain('Sin conexión a internet');expect(html).toContain('Esperando conexión');expect(html).toContain('disabled');expect(html).not.toContain('nueva versión');
-    writeFileSync('/Users/danielarana/Documents/Codex/2026-10-13/files-pasted-by-the-user-dominio/outputs/citymap-eventos-compactos/preview/public/offline-check.html',`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vista sin conexión</title><body style="margin:0;font-family:system-ui;background:#18181B">${html}</body>`);
   });
   it('retries an ordinary load failure without clearing stored data',()=>{
     const {win,nav,session}=setup(true);expect(retryPageLoad(networkError)).toBe(true);
@@ -44,6 +42,23 @@ describe('offline load recovery',()=>{
   it('only allows guarded recovery for an actual stale asset response',()=>{
     setup();expect(canAutoRecover(staleError)).toBe(true);expect(claimAutoRecovery(staleError)).toBe(true);expect(canAutoRecover(staleError)).toBe(false);
     const {storage}=setup();storage.set('chunk_reload_guard',String(Date.now()));expect(canAutoRecover(staleError)).toBe(false);
+  });
+  it('auto-recovers a chunk that no longer exists after a deploy',()=>{
+    setup();
+    const chunkError=new TypeError('Failed to fetch dynamically imported module: https://citymap.mx/assets/GMap-abc123.js');
+    expect(isChunkError(chunkError)).toBe(true);expect(canAutoRecover(chunkError)).toBe(true);
+    expect(ErrorBoundary.getDerivedStateFromError(chunkError).autoReloading).toBe(true);
+    expect(claimAutoRecovery(chunkError)).toBe(true);expect(canAutoRecover(chunkError)).toBe(false);
+  });
+  it('auto-recovers a webpack-style chunk load failure',()=>{
+    setup();
+    const chunkError=new Error('Loading chunk 42 failed');chunkError.name='ChunkLoadError';
+    expect(isChunkError(chunkError)).toBe(true);expect(canAutoRecover(chunkError)).toBe(true);
+  });
+  it('does not auto-recover a chunk failure without a connection',()=>{
+    setup(false);
+    const chunkError=new TypeError('Failed to fetch dynamically imported module: https://citymap.mx/assets/GMap-abc123.js');
+    expect(canAutoRecover(chunkError)).toBe(false);expect(claimAutoRecovery(chunkError)).toBe(false);
   });
   it('stops cache cleanup if the connection drops during recovery',async()=>{
     const {win,nav}=setup(true);win.caches.keys.mockImplementation(async()=>{nav.onLine=false;return ['offline-data'];});
