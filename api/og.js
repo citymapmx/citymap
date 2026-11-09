@@ -1,4 +1,5 @@
 import { seoSite } from '../src/lib/seoRoutes.js';
+import { tourSchemaNodes } from '../src/lib/tourSchema.js';
 const SUPABASE_URL  = "https://dpkjxhjkzdlkvyotoeai.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
 
@@ -163,7 +164,7 @@ async function getExp(id, city) {
     
     if (isUUID) {
       const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/experiences?id=eq.${id}&select=id,title,description,gallery,city_slug,activity_type`,
+        `${SUPABASE_URL}/rest/v1/experiences?id=eq.${id}&select=id,title,description,gallery,city_slug,activity_type,price,duration,booking_config`,
         { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
       );
       if (!r.ok) return null;
@@ -172,7 +173,7 @@ async function getExp(id, city) {
     }
     
     let r = await fetch(
-      `${SUPABASE_URL}/rest/v1/experiences?slug=ilike.*${encodeURIComponent(id)}*&select=id,title,description,gallery,city_slug,activity_type&limit=1`,
+      `${SUPABASE_URL}/rest/v1/experiences?slug=ilike.*${encodeURIComponent(id)}*&select=id,title,description,gallery,city_slug,activity_type,price,duration,booking_config&limit=1`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
     );
     if (r.ok) {
@@ -182,7 +183,7 @@ async function getExp(id, city) {
     
     const searchName = id.replace(/-/g, '%25');
     r = await fetch(
-      `${SUPABASE_URL}/rest/v1/experiences?title=ilike.*${searchName}*&select=id,title,description,gallery,city_slug,activity_type&limit=1`,
+      `${SUPABASE_URL}/rest/v1/experiences?title=ilike.*${searchName}*&select=id,title,description,gallery,city_slug,activity_type,price,duration,booking_config&limit=1`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
     );
     if (r.ok) {
@@ -629,15 +630,18 @@ ${listing}
     if (evData.venue_name) schema.location = { "@type": "Place", "name": evData.venue_name };
     jsonLd = `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
   } else if (expData) {
+    const expImage = (Array.isArray(expData.gallery) && expData.gallery[0]) ? expData.gallery[0] : null;
+    const tourNodes = tourSchemaNodes(expData, canonicalUrl, expImage);
     const schema = [
-      {
+      // Tours: TouristTrip + oferta con precio MXN; resto: TouristAttraction
+      ...(tourNodes.length > 0 ? tourNodes : [{
         "@context": "https://schema.org",
         "@type": "TouristAttraction",
         "name": expData.title,
         "url": canonicalUrl,
         "description": expData.description || "",
-        "image": (Array.isArray(expData.gallery) && expData.gallery[0]) ? [expData.gallery[0]] : []
-      },
+        "image": expImage ? [expImage] : []
+      }]),
       {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -701,6 +705,8 @@ ${listing}
     }
 
     if (expData.activity_type) bodyContent += `<p><strong>Categoría:</strong> ${esc(expData.activity_type)}</p>`;
+    if (expData.activity_type === 'Tour' && Number(expData.price) > 0) bodyContent += `<p><strong>Precio desde:</strong> $${Number(expData.price).toLocaleString('es-MX')} MXN</p>`;
+    if (expData.activity_type === 'Tour' && expData.duration) bodyContent += `<p><strong>Duración:</strong> ${esc(expData.duration)}</p>`;
     if (expData.description) bodyContent += `<p>${esc(expData.description)}</p>`;
     bodyContent += `<a href="${linkHref}">Ver experiencia en ${SITE_NAME}</a>`;
   }

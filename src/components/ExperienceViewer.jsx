@@ -12,6 +12,7 @@ import { useDataStore } from '../store/useDataStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, createSlug } from '../lib/utils';
 import { typeLabel } from '../lib/postTaxonomy.js';
+import { tourSchemaNodes } from '../lib/tourSchema.js';
 import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
 
 const Gallery = lazy(() => import('./Gallery').catch(() => {
@@ -241,7 +242,9 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         { "@type": "ListItem", "position": 2, "name": "Revista", "item": `https://citymap.mx/revista/${exp.city_slug || ''}` },
         { "@type": "ListItem", "position": 3, "name": exp.title, "item": canonicalUrl }
       ]
-    }
+    },
+    // Tours: TouristTrip + oferta con precio MXN (ver src/lib/tourSchema.js)
+    ...tourSchemaNodes(exp, canonicalUrl, cover)
   ]);
 
   const formatCityName = (slug) => {
