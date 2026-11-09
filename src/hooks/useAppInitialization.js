@@ -10,6 +10,7 @@ export function useAppInitialization() {
     if (p.startsWith("/explorar")) return "events";
     if (p.startsWith("/mis-planes")) return "mis-planes";
     if (p.startsWith("/experiencias") || p.startsWith("/revista")) return "mis-planes";
+    if (p.startsWith("/tours")) return "tours";
     if (p.startsWith("/cuenta")) return "account";
     if (p.startsWith("/favoritos")) return "favs";
     if (p.startsWith("/admin_notifs")) return "admin_notifs";
@@ -49,7 +50,7 @@ export function useAppInitialization() {
     let expSlug = null;
     let storedCity = localStorage.getItem("cg_city_slug");
     
-    const SYSTEM_ROUTES = ["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "explorar", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "explorer", "itinerarios", "revista", "experiencias", "manage", "stats", "itinerario", "plan", "evento", "precios", "lealtad", "wallet", "scan", "login"];
+    const SYSTEM_ROUTES = ["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "explorar", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "explorer", "itinerarios", "revista", "experiencias", "manage", "stats", "itinerario", "plan", "evento", "precios", "lealtad", "wallet", "scan", "login", "tours"];
 
     if (storedCity && (SYSTEM_ROUTES.includes(storedCity) || storedCity.includes("/"))) {
       localStorage.removeItem("cg_city_slug");

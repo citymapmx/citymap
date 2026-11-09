@@ -6,7 +6,7 @@ const INVALID_CITY_SLUGS = new Set([
   "explorar", "explorer", "favoritos", "mapa", "admin", "mis-planes", "revista", "planes", "cuenta", 
   "eventos", "admin_notifs", "user_notifs", "about", "privacy", "terms", 
   "itinerarios", "experiencias", "manage", "stats", "itinerario", "plan", 
-  "evento", "precios", "lealtad", "wallet", "scan", "menu"
+  "evento", "precios", "lealtad", "wallet", "scan", "menu", "tours"
 ]);
 
 export const useUIStore = create((set) => ({
