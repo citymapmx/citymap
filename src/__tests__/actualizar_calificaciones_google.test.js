@@ -12,10 +12,20 @@ const makeRes = () => {
   };
   return res;
 };
-const req = ({ auth = false, dry = false } = {}) => ({
+const ADMIN_USER = { id: 'admin-id', email: 'admin@cityguide.com', email_confirmed_at: '2025-01-01T00:00:00Z', app_metadata: { isAdmin: true } };
+const PLAIN_USER = { id: 'user-id', email: 'alguien@example.com', email_confirmed_at: '2025-01-01T00:00:00Z', app_metadata: {} };
+const DEFAULT_BIZ = [
+  { id: 'b1', name: 'Taco Fish', social_links: { google_place_id: 'ChIJ111' } },
+  { id: 'b2', name: 'Sin Place ID', social_links: {} },
+  { id: 'b3', name: 'Café San Pedro', social_links: { google_place_id: 'ChIJ222' } },
+];
+let mockBiz = DEFAULT_BIZ;
+let authUser = ADMIN_USER;
+
+const req = ({ auth = false, jwt = false, dry = false, query = {} } = {}) => ({
   method: 'GET',
-  query: dry ? { dry: '1' } : {},
-  headers: auth ? { authorization: 'Bearer test-cron-secret' } : {},
+  query: { ...(dry ? { dry: '1' } : {}), ...query },
+  headers: auth ? { authorization: 'Bearer test-cron-secret' } : jwt ? { authorization: 'Bearer test-jwt' } : {},
   body: {},
 });
 
@@ -26,15 +36,16 @@ beforeEach(async () => {
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-service-key');
   vi.stubEnv('VITE_SUPABASE_URL', 'https://dpkjxhjkzdlkvyotoeai.supabase.co');
   vi.stubEnv('GOOGLE_PLACES_API_KEY', 'test-google-key');
+  mockBiz = DEFAULT_BIZ;
+  authUser = ADMIN_USER;
   vi.stubGlobal('fetch', vi.fn(async (url) => {
+    if (String(url).includes('/auth/v1/user')) {
+      return authUser ? { ok: true, json: async () => authUser } : { ok: false, json: async () => ({}) };
+    }
     if (String(url).includes('/rest/v1/businesses')) {
       return {
         ok: true,
-        json: async () => ([
-          { id: 'b1', social_links: { google_place_id: 'ChIJ111' } },
-          { id: 'b2', social_links: {} },
-          { id: 'b3', social_links: { google_place_id: 'ChIJ222' } },
-        ]),
+        json: async () => mockBiz,
       };
     }
     if (String(url).includes('places.googleapis.com')) {
@@ -89,5 +100,68 @@ describe('actualizar-calificaciones-google', () => {
     await handler(req({ auth: true }), res);
     expect(res.statusCode).toBe(500);
     expect(fetch.mock.calls.some(([u]) => String(u).includes('places.googleapis.com'))).toBe(false);
+  });
+});
+
+describe('refresco con JWT de admin', () => {
+  it('un admin refresca sin el secreto del cron', async () => {
+    const res = makeRes();
+    await handler(req({ jwt: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.updated).toBe(2);
+  });
+
+  it('403 con JWT de usuario no admin', async () => {
+    authUser = PLAIN_USER;
+    const res = makeRes();
+    await handler(req({ jwt: true }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('401 si Supabase no reconoce el JWT', async () => {
+    authUser = null;
+    const res = makeRes();
+    await handler(req({ jwt: true }), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('salta los place_id basura sin llamar a Google y recorta los espacios', async () => {
+    mockBiz = [
+      { id: 'g1', name: 'Cerro Falso', social_links: { google_place_id: 'Ei5DZXJybyBkZSBTYW4gSnVhbiwgNjM3ODI=' } },
+      { id: 'g2', name: 'En Blanco', social_links: { google_place_id: '   ' } },
+      { id: 'g3', name: 'Plaza Con Espacio', social_links: { google_place_id: ' ChIJ333 ' } },
+      { id: 'g4', name: 'Válido', social_links: { google_place_id: 'ChIJ444' } },
+    ];
+    const res = makeRes();
+    await handler(req({ auth: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.withPlaceId).toBe(3); // el blanco no cuenta
+    expect(res.body.updated).toBe(2);
+    expect(res.body.failed).toHaveLength(1);
+    expect(res.body.failed[0]).toMatchObject({ business_id: 'g1', name: 'Cerro Falso' });
+    expect(res.body.failed[0].error).toMatch(/inválido/);
+    const placesCalls = fetch.mock.calls.filter(([u]) => String(u).includes('places.googleapis.com'));
+    expect(placesCalls).toHaveLength(2);
+    expect(placesCalls.some(([u]) => String(u).includes('ChIJ333'))).toBe(true);
+    expect(placesCalls.some(([u]) => String(u).includes('Ei5D'))).toBe(false);
+    // El upsert no lleva el nombre (la tabla no tiene esa columna).
+    const upsert = fetch.mock.calls.find(([u, o]) => String(u).includes('/rest/v1/google_ratings_cache') && o?.method === 'POST');
+    const rows = JSON.parse(upsert[1].body);
+    expect(rows.every((r) => !('name' in r))).toBe(true);
+    // El reporte sí lleva los nombres.
+    expect(res.body.updatedItems.map((u) => u.name)).toEqual(['Plaza Con Espacio', 'Válido']);
+  });
+
+  it('offset+limit procesan por tandas con remaining', async () => {
+    const res = makeRes();
+    await handler(req({ auth: true, query: { limit: '1', offset: '1' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.offset).toBe(1);
+    expect(res.body.remaining).toBe(0);
+    expect(res.body.updated).toBe(1);
+    const upsert = fetch.mock.calls.find(([u, o]) => String(u).includes('/rest/v1/google_ratings_cache') && o?.method === 'POST');
+    const rows = JSON.parse(upsert[1].body);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].business_id).toBe('b3');
   });
 });
