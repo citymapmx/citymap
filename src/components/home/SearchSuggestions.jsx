@@ -28,6 +28,9 @@ export default function SearchSuggestions({ results, cats = [], userCoords, onSe
         <Icon name="chevron" size={16} color={T.sub} />
       </button>;
     })}
-    <button type="button" onClick={onViewAll} style={{ width: '100%', minHeight: 46, padding: '12px 16px', border: 0, background: 'transparent', color: T.text, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{t("home_ver_todos_resultados", "Ver todos los resultados")} →</button>
+    {/* El desplegable muestra los primeros 5: el botón solo tiene sentido
+        cuando hay más resultados que mostrar. Con 5 o menos, todos ya están
+        visibles y el botón no hacía nada al pulsarlo. */}
+    {results.length > 5 && <button type="button" onClick={onViewAll} style={{ width: '100%', minHeight: 46, padding: '12px 16px', border: 0, background: 'transparent', color: T.text, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{t("home_ver_todos_resultados", "Ver todos los resultados")} →</button>}
   </div>;
 }

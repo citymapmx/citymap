@@ -606,7 +606,11 @@ export function fuzzyMatch(query, text) {
 
   for (const qw of qWords) {
     let matchFound = false;
-    const maxDist = qw.length <= 4 ? 1 : 2;
+    // Tolerancia a typos según la longitud: 1 error hasta 6 letras, 2 a
+    // partir de 7. Con 2 errores en palabras cortas, "tacos" coincidía con
+    // cualquier palabra común ("toros", "tonos", "cascos", "todos") y el
+    // buscador devolvía eventos sin relación con la consulta.
+    const maxDist = qw.length >= 7 ? 2 : 1;
     
     for (const tw of tWords) {
       if (tw.includes(qw)) {
@@ -622,6 +626,20 @@ export function fuzzyMatch(query, text) {
   }
   
   return true;
+}
+
+// Búsqueda local: coincidencia difusa (tolerancia a typos) solo en textos
+// cortos (nombre, título, lugar, categoría) y coincidencia literal en
+// textos largos (descripción). Un texto largo siempre contiene alguna
+// palabra común a distancia 2 de la consulta ("todos", "años", "toros"
+// ~ "tacos"), lo que devolvía resultados sin relación con lo buscado.
+export function searchMatches(query, shortText, longText) {
+  const norm = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const words = norm(query).split(/\s+/).filter(Boolean);
+  if (!words.length) return false;
+  if (fuzzyMatch(words.join(' '), shortText)) return true;
+  const long = norm(longText);
+  return words.every((w) => long.includes(w));
 }
 
 export function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
