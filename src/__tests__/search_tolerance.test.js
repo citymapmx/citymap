@@ -56,6 +56,12 @@ describe('search thumbnails',()=>{
     expect(html).toContain('logo.png');
     expect(html).toContain('Tostadas');
     expect(html).not.toContain('NaN');
+    // Con 3 resultados ya están todos visibles: el botón no se muestra.
+    expect(html).not.toContain('Ver todos los resultados');
+  });
+  it('shows Ver todos only when there are more than 5 results',()=>{
+    const results=[1,2,3,4,5,6].map(id=>({id,name:`Lugar ${id}`,photos:[]}));
+    const html=renderToStaticMarkup(React.createElement(SearchSuggestions,{results,T:{border:'#ddd',card:'#fff',text:'#111',sub:'#555'},onSelect:()=>{},onViewAll:()=>{}}));
     expect(html).toContain('Ver todos los resultados');
   });
 });

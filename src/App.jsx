@@ -20,7 +20,7 @@ const GalleryModals = lazy(() => import('./components/GalleryModals.jsx'));
 import { useFavorites } from './hooks/useFavorites.js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CITY_TZ, FONT_BIZ, EVENT_CATS, getT } from './lib/constants.js';
-import { fuzzyMatch } from './lib/utils.js';
+import { searchMatches } from './lib/utils.js';
 import { SPRING_UI } from './lib/spring.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
 import { eventUrl } from './lib/eventUrls.js';
@@ -1138,15 +1138,17 @@ useEffect(() => {
     
     if (search) {
       filtered = filtered.filter(b => {
-        const textToSearch = [
+        const shortText = [
           b.name,
           b.category,
           b.type,
           b.tagline,
-          b.description,
           ...(b.tags || [])
         ].join(" ");
-        return fuzzyMatch(search, textToSearch);
+        // La descripción solo se busca literal: con coincidencia difusa,
+        // un texto largo siempre contiene alguna palabra común a distancia
+        // 2 de la consulta ("todos" ~ "tacos") y devolvía negocios ajenos.
+        return searchMatches(search, shortText, b.description);
       });
     }
     
