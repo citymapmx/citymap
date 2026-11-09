@@ -14,13 +14,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { useDataStore } from './store/useDataStore.js';
 import { useUIStore } from './store/useUIStore.js';
 import { useGeolocation } from './hooks/useGeolocation.js';
+import { useTranslation } from './hooks/useTranslation.js';
 
 const AuthModal = lazy(() => import('./components/AuthModal.jsx'));
 const GalleryModals = lazy(() => import('./components/GalleryModals.jsx'));
 import { useFavorites } from './hooks/useFavorites.js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CITY_TZ, FONT_BIZ, EVENT_CATS, getT } from './lib/constants.js';
-import { searchMatches } from './lib/utils.js';
+import { fuzzyMatch } from './lib/utils.js';
 import { SPRING_UI } from './lib/spring.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
 import { eventUrl } from './lib/eventUrls.js';
@@ -199,6 +200,8 @@ export default function CityGuide() {
   } = useAppInitialization();
   const { activeCat, setActiveCat, selected, setSelected, mapPin, setMapPin, mapFullScreen, showAdmin, setShowAdmin, showPlans, setShowPlans, claimBiz, setClaimBiz, showAddBiz, setShowAddBiz, showGallery, setShowGallery, showMenuGallery, setShowMenuGallery, showSchedule, setShowSchedule, showLocPicker, setShowLocPicker, selectedEvent, setSelectedEvent, activeCity, setActiveCity, showCountryPicker, setShowCountryPicker, dark, setDark, toast, toast$, setInstallPromptEvent, ownerView, setOwnerView } = useUIStore(useShallow(s => ({ activeCat: s.activeCat, setActiveCat: s.setActiveCat, selected: s.selected, setSelected: s.setSelected, mapPin: s.mapPin, setMapPin: s.setMapPin, mapFullScreen: s.mapFullScreen, showAdmin: s.showAdmin, setShowAdmin: s.setShowAdmin, showPlans: s.showPlans, setShowPlans: s.setShowPlans, claimBiz: s.claimBiz, setClaimBiz: s.setClaimBiz, showAddBiz: s.showAddBiz, setShowAddBiz: s.setShowAddBiz, showGallery: s.showGallery, setShowGallery: s.setShowGallery, showMenuGallery: s.showMenuGallery, setShowMenuGallery: s.setShowMenuGallery, showSchedule: s.showSchedule, setShowSchedule: s.setShowSchedule, showLocPicker: s.showLocPicker, setShowLocPicker: s.setShowLocPicker, selectedEvent: s.selectedEvent, setSelectedEvent: s.setSelectedEvent, activeCity: s.activeCity, setActiveCity: s.setActiveCity, showCountryPicker: s.showCountryPicker, setShowCountryPicker: s.setShowCountryPicker, dark: s.dark, setDark: s.setDark, toast: s.toast, toast$: s.toast$, setInstallPromptEvent: s.setInstallPromptEvent, ownerView: s.ownerView, setOwnerView: s.setOwnerView })));
   
+  const { t } = useTranslation();
+
   // --- NATIVE BACK BUTTON & DEEP LINKS (Capacitor) ---
   useCapacitorHardwareBack();
   useCapacitorStatusBar(dark);
@@ -1064,7 +1067,11 @@ useEffect(() => {
       setUserCoords(coords);
       localStorage.setItem("cg_coords", JSON.stringify(coords));
       if (typeof cb === 'function') cb(coords);
-    }, () => { }, { enableHighAccuracy: true, timeout: 10000 }); 
+    }, () => {
+      // Antes el error se tragaba en silencio y la ventana de GPS quedaba
+      // para siempre: ahora se avisa y el usuario puede reintentar o cerrar.
+      toast$(t("ubicacion_error", "No pudimos obtener tu ubicación"));
+    }, { enableHighAccuracy: true, timeout: 10000 }); 
   };
   useEffect(() => {
     const cachedCity = localStorage.getItem("cg_city_slug") || activeCity;
@@ -1138,17 +1145,15 @@ useEffect(() => {
     
     if (search) {
       filtered = filtered.filter(b => {
-        const shortText = [
+        const textToSearch = [
           b.name,
           b.category,
           b.type,
           b.tagline,
+          b.description,
           ...(b.tags || [])
         ].join(" ");
-        // La descripción solo se busca literal: con coincidencia difusa,
-        // un texto largo siempre contiene alguna palabra común a distancia
-        // 2 de la consulta ("todos" ~ "tacos") y devolvía negocios ajenos.
-        return searchMatches(search, shortText, b.description);
+        return fuzzyMatch(search, textToSearch);
       });
     }
     

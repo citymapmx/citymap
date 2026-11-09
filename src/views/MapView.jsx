@@ -48,6 +48,11 @@ export default function MapView() {
   const [visibleCount, setVisibleCount] = useState(5);
   const scrollRef = useRef(null);
 
+  // La ventana de GPS se puede cerrar: queda oculta por la sesión y vuelve
+  // a aparecer al cambiar de ciudad.
+  const [gpsDismissed, setGpsDismissed] = useState(false);
+  useEffect(() => { setGpsDismissed(false); }, [activeCity]);
+
   // Sync URL to /mapa/:city for SEO
   useEffect(() => {
     if (activeCity) {
@@ -163,9 +168,10 @@ export default function MapView() {
 
             <Suspense fallback={<LoaderFallback/>}><GMap events={(events||[]).filter(e => e.city_slug === activeCity || e.city_slug === 'all')} businesses={displayedPins} selected={mapPin} onPin={b => { setMapPin(p => p?.id === b.id ? null : b); }} userLocation={userCoords} onRequestLocation={requestLocation} categories={cats} radiusKm={null} onBoundsChanged={(bounds) => loadMapPinsByBounds(activeCity, bounds)} showRoute={mapFullScreen} cityCenter={cityCenter} cityKey={activeCity} /></Suspense>
 
-            {/* GPS Overlay */}
-            {!userCoords && (
+            {/* GPS Overlay — se puede cerrar; al ocultarse deja de tapar el mapa y los pines se pueden tocar */}
+            {!userCoords && !gpsDismissed && (
               <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 15, background: T.white, padding: "16px 20px", borderRadius: 20, boxShadow: "0 12px 32px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, maxWidth: 260, textAlign: "center", border: `1px solid ${T.border}` }}>
+                <button type="button" aria-label={t("cerrar", "Cerrar")} onClick={() => setGpsDismissed(true)} style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: "50%", border: 0, background: "transparent", color: T.sub, fontSize: 16, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
                 <div style={{ fontWeight: 800, fontSize: 14, color: T.text }}>{t("que_hay_cerca", "¿Qué hay cerca?")}</div>
                 <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.3 }}>{t("activa_ubicacion_desc", "Activa tu ubicación para explorar lugares a tu alrededor.")}</div>
                 <button className="press" onClick={() => { localStorage.removeItem("cg_manual_city"); requestLocation(); }} style={{ background: "#0ea5e9", color: "#fff", border: "none", padding: "8px 20px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
