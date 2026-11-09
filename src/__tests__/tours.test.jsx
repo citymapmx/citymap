@@ -164,9 +164,16 @@ describe('tourPriceLabel', () => {
     expect(tourPriceLabel({ price: null })).toBe('Gratis');
   });
 
-  it('sin precio pero con reserva devuelve null (la tarjeta dice "Precio no publicado")', () => {
+  it('precio 0 explícito con reserva muestra "Gratis" (free tour)', () => {
     expect(tourPriceLabel({
       price: 0,
+      booking_config: { externalLinks: [{ url: 'https://www.civitatis.com/es/x' }] },
+    })).toBe('Gratis');
+  });
+
+  it('sin precio (null) pero con reserva devuelve null (la tarjeta dice "Precio no publicado")', () => {
+    expect(tourPriceLabel({
+      price: null,
       booking_config: { externalLinks: [{ url: 'https://www.civitatis.com/es/x' }] },
     })).toBeNull();
   });
