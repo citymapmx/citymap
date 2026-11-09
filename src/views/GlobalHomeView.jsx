@@ -688,7 +688,7 @@ export default function GlobalHomeView() {
             {tourGroups.length > 0 && (
               <section style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>🗺️ Tours por ciudad</h2>
+                  <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>Tours por ciudad</h2>
                   <button onClick={() => navigate('/tours')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                     Ver todos los tours →
                   </button>
@@ -706,14 +706,14 @@ export default function GlobalHomeView() {
                     const img = gallery[0]?.url || gallery[0] || null;
                     const price = tourPriceLabel(tour);
                     return (
-                      <article key={`t-${tour.id}`} onClick={() => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } })} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
+                      <article key={`t-${tour.id}`} onClick={() => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } })} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.card, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
                         <div style={{ position: 'relative', height: 180, background: 'linear-gradient(135deg,#111,#333)' }}>
                           {typeof img === 'string' && img
                             ? <OptimizedImage src={img} alt={tour.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🗺️</div>}
-                          <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>🗺️ Tour</span>
+                            : <div style={{ width: '100%', height: '100%' }} />}
+                          <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>TOUR</span>
                         </div>
-                        <div style={{ padding: '12px 14px 16px' }}>
+                        <div style={{ padding: '12px 14px 16px', background: T.card }}>
                           <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{tour.title}</h3>
                           <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || 'Precio no publicado'}</p>
                           <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>Ver más detalles →</span>

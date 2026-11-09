@@ -21,21 +21,22 @@ function tourImage(tour) {
   return null;
 }
 
-function TourCard({ tour, T, dark, onOpen }) {
+function TourCard({ tour, T, onOpen }) {
   const img = tourImage(tour);
   const price = tourPriceLabel(tour);
+
   return (
     <article
       onClick={() => onOpen(tour)}
-      style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
+      style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.card, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
     >
       <div style={{ position: 'relative', height: 180, background: 'linear-gradient(135deg,#111,#333)' }}>
         {typeof img === 'string' && img
           ? <OptimizedImage src={img} alt={tour.title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🗺️</div>}
-        <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>🗺️ Tour</span>
+          : <div style={{ width: '100%', height: '100%' }} />}
+        <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>TOUR</span>
       </div>
-      <div style={{ padding: '12px 14px 16px' }}>
+      <div style={{ padding: '12px 14px 16px', background: T.card }}>
         <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{tour.title}</h3>
         <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || 'Precio no publicado'}</p>
         <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>Ver más detalles →</span>
@@ -44,7 +45,7 @@ function TourCard({ tour, T, dark, onOpen }) {
   );
 }
 
-export default function ToursView({ T, dark, navigate, cities, initialTours }) {
+export default function ToursView({ T, dark, cities, initialTours }) {
   const [tours, setTours] = useState(initialTours || []);
   const [loading, setLoading] = useState(!initialTours);
   const [selectedCity, setSelectedCity] = useState('todas');
@@ -69,6 +70,7 @@ export default function ToursView({ T, dark, navigate, cities, initialTours }) {
     const prices = tours.map((t) => Number(t.price)).filter((p) => Number.isFinite(p) && p > 0);
     return prices.length > 0 ? Math.min(...prices) : null;
   }, [tours]);
+  const selectedGroup = selectedCity === 'todas' ? null : groups.find((g) => g.slug === selectedCity);
 
   return (
     <div style={{ minHeight: '100vh', background: T.bg, color: T.text }}>
@@ -105,10 +107,11 @@ export default function ToursView({ T, dark, navigate, cities, initialTours }) {
         </div>
       </div>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px 40px' }}>
-        <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: T.sub, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '4px 0 16px' }}>← Inicio</button>
-        <h1 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 6px' }}>🗺️ Tours</h1>
-        <p style={{ fontSize: 15, color: T.sub, margin: '0 0 20px' }}>
-          {loading ? 'Cargando tours…' : `${tours.length} tours en ${groups.length} ciudades${minPrice ? ` · desde $${minPrice.toLocaleString('es-MX')} MXN` : ''}`}
+        {/* Subtítulo como el de Revista: bajo el logo, sin título grande ni "← Inicio" */}
+        <p style={{ fontSize: 13, fontWeight: 600, color: T.sub, margin: '0 0 20px', textAlign: 'center', lineHeight: 1.4 }}>
+          {loading ? 'Cargando tours…' : selectedGroup
+            ? <>Los mejores tours y experiencias de <span className="exp-city-anim">{selectedGroup.name}</span></>
+            : `${tours.length} tours en ${groups.length} ciudades${minPrice ? ` · desde $${minPrice.toLocaleString('es-MX')} MXN` : ''}`}
         </p>
 
         {!loading && groups.length > 0 && (
@@ -141,7 +144,7 @@ export default function ToursView({ T, dark, navigate, cities, initialTours }) {
             <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 14px' }}>{g.name} · {g.count} {g.count === 1 ? 'tour' : 'tours'}</h2>
             <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
               {g.tours.map((tour) => (
-                <TourCard key={tour.id || tour.slug} tour={tour} T={T} dark={dark} onOpen={openTour} />
+                <TourCard key={tour.id || tour.slug} tour={tour} T={T} onOpen={openTour} />
               ))}
             </div>
           </section>

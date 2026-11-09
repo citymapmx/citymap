@@ -58,7 +58,7 @@ describe('groupToursByCity', () => {
 });
 
 describe('ToursView', () => {
-  const T = { text: '#111', sub: '#666', bg: '#fff', border: '#ddd' };
+  const T = { text: '#111', sub: '#666', bg: '#fff', border: '#ddd', card: '#f5f5f5' };
   const cities = [
     { slug: 'guadalajara', name: 'Guadalajara' },
     { slug: 'tepic', name: 'Tepic' },
@@ -85,7 +85,6 @@ describe('ToursView', () => {
         </MemoryRouter>
       </HelmetProvider>
     );
-    expect(html).toContain('Tours');
     expect(html).toContain('3 tours en 2 ciudades');
     expect(html).toContain('Tepic (2)');
     expect(html).toContain('Guadalajara (1)');
@@ -94,6 +93,12 @@ describe('ToursView', () => {
     expect(html).toContain('desde $1,475.1 MXN');
     expect(html).toContain('Ver más detalles →');
     expect(html).not.toContain('Reservar →');
+    // Cabecera estilo Revista: sin "← Inicio", sin título grande con emoji,
+    // subtítulo con los conteos; tarjeta con fondo sólido (T.card) y píldora "TOUR".
+    expect(html).not.toContain('← Inicio');
+    expect(html).not.toContain('🗺️');
+    expect(html).toContain('TOUR');
+    expect(html).toContain('background:#f5f5f5');
     // Tarjeta compacta (opción A): sin ubicación ni duración, título a 2 líneas.
     expect(html).not.toContain('5–6 horas');
     expect(html).not.toContain('10 horas 30 minutos');
