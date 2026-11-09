@@ -3,6 +3,7 @@
 // está el botón de reserva con el enlace de afiliado.
 import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import { groupToursByCity, tourCardUrl, formatTourPrice } from '../lib/tours.js';
 import OptimizedImage from './ui/OptimizedImage.jsx';
@@ -20,12 +21,12 @@ function tourImage(tour) {
   return null;
 }
 
-function TourCard({ tour, cityName, T, dark, navigate }) {
+function TourCard({ tour, cityName, T, dark, onOpen }) {
   const img = tourImage(tour);
   const price = formatTourPrice(tour?.price);
   return (
     <article
-      onClick={() => navigate(tourCardUrl(tour))}
+      onClick={() => onOpen(tour)}
       style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
     >
       <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>
@@ -50,6 +51,10 @@ export default function ToursView({ T, dark, navigate, cities, initialTours }) {
   const [tours, setTours] = useState(initialTours || []);
   const [loading, setLoading] = useState(!initialTours);
   const [selectedCity, setSelectedCity] = useState('todas');
+  const routerNavigate = useNavigate();
+  // Abrir el tour con articleOrigin: al cerrarlo, la Revista regresa aquí
+  // (routerNavigate(-1)) en vez de ir a la lista de la ciudad.
+  const openTour = (tour) => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } });
 
   useEffect(() => {
     if (initialTours) return;
@@ -75,6 +80,33 @@ export default function ToursView({ T, dark, navigate, cities, initialTours }) {
         <meta name="description" content="Tours guiados y excursiones en Guadalajara, Tepic, Puerto Vallarta, Ciudad de México y más, con precio desde y reserva en línea. Encuentra tu próximo tour en CityMap." />
         <link rel="canonical" href="https://citymap.mx/tours" />
       </Helmet>
+      {/* Cabecera como la de Revista: logotipo + etiqueta al lado */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: T.glassBg, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderBottom: `1px solid ${T.glassBorder}` }}>
+        <div style={{ padding: 'calc(env(safe-area-inset-top, 0px) + 10px) 20px 10px', textAlign: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <img
+              src="/citymap.mx.png"
+              alt="CityMap"
+              width={127}
+              height={38}
+              style={{ height: 38, width: 127, objectFit: 'contain', filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)', display: 'block' }}
+            />
+            <span style={{
+              fontSize: 10,
+              fontWeight: 900,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              padding: '3px 8px',
+              borderRadius: 6,
+              background: dark ? 'rgba(255,255,255,0.15)' : '#0f172a',
+              color: '#FFFFFF',
+              lineHeight: 1
+            }}>
+              Viajes
+            </span>
+          </div>
+        </div>
+      </div>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px 40px' }}>
         <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: T.sub, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '4px 0 16px' }}>← Inicio</button>
         <h1 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 6px' }}>🗺️ Tours</h1>
@@ -112,7 +144,7 @@ export default function ToursView({ T, dark, navigate, cities, initialTours }) {
             <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 14px' }}>{g.name} · {g.count} {g.count === 1 ? 'tour' : 'tours'}</h2>
             <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
               {g.tours.map((tour) => (
-                <TourCard key={tour.id || tour.slug} tour={tour} cityName={g.name} T={T} dark={dark} navigate={navigate} />
+                <TourCard key={tour.id || tour.slug} tour={tour} cityName={g.name} T={T} dark={dark} onOpen={openTour} />
               ))}
             </div>
           </section>
