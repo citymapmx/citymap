@@ -74,6 +74,7 @@ export default function SideMenu({ isOpen, onClose, T, dark, navigate, routerNav
               <MenuItem icon="bookmark" label={t("menu_revista", "Revista")} onClick={() => { routerNavigate('/mis-planes'); onClose(); }} T={T} dark={dark} />
               <MenuItem icon="heart" label={t("mis_favoritos", "Mis Favoritos")} onClick={() => { if (navigate) navigate('favs'); else routerNavigate('/favoritos'); onClose(); }} T={T} dark={dark} />
               <MenuItem icon="gift" label={t("menu_recompensas", "Recompensas")} onClick={() => { routerNavigate('/wallet'); onClose(); }} T={T} dark={dark} />
+              <MenuItem icon="store" label={t("menu_para_negocios", "Para Negocios")} onClick={() => { routerNavigate('/negocios'); onClose(); }} T={T} dark={dark} />
               
               <ThemeToggle showLabel />
 

@@ -137,7 +137,7 @@ const isEventsRoute = (pathname) => {
 };
 import { categoryFromUrl } from './lib/categoryRouting.js';
 import { rankTopRated } from './lib/googleRatings.js';
-const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/tours', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
+const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
 
 function isHomePath(pathname) {
   if (pathname === '/') return true;
@@ -651,7 +651,7 @@ useEffect(() => {
         // If already on a detail/category/non-home path (e.g. hard refresh on /tepic/restaurante),
         // do NOT navigate away — let AppRouter handle the URL as-is.
         const currentPath = window.location.pathname;
-        const nonHomePrefixes = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/tours', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
+        const nonHomePrefixes = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
         const isNonHome = nonHomePrefixes.some(p => currentPath.startsWith(p));
         const segments = currentPath.split('/').filter(Boolean);
         const isDetailOrCategory = segments.length >= 2; // e.g. /tepic/emilianos or /tepic/c/restaurantes
@@ -1618,6 +1618,7 @@ useEffect(() => {
             OwnerStatsView={OwnerStatsView}
             LoyaltyCardView={LoyaltyCardView}
             ScanView={ScanView}
+            startPaidPlan={startPaidPlan}
           />
 
         {storeAdminBiz && <Suspense fallback={<LoaderFallback/>}><StoreAdminPanel business={storeAdminBiz} onClose={() => setStoreAdminBiz(null)} T={T} /></Suspense>}

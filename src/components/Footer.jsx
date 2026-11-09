@@ -66,6 +66,7 @@ export default function Footer() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
               <span onClick={() => { if(!user) { setShowAuth?.(true); return; } setShowAddBiz?.(true); }} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>{t("menu_agrega_tu_negocio", "Agrega tu negocio")}</span>
               <span onClick={() => { if(!user) { setShowAuth?.(true); return; } navigate('cuenta'); }} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>{t("menu_acceso_duenos", "Acceso a dueños")}</span>
+              <span onClick={() => navigate('/negocios')} style={{ fontSize: 14, color: T.sub, cursor: 'pointer', transition: 'color .2s' }}>{t("cuenta_planes_titulo", "Planes para tu negocio")}</span>
             </div>
           </div>
 

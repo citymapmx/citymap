@@ -8,6 +8,7 @@ import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import { getCountryCode } from "../lib/domain.js";
 import { isTrialSelection } from "../lib/plans.js";
+import { getBusinessPricing, buildBusinessPlans } from "../lib/businessPlans.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 
 export default function PlansPage({ myBizList, onAddBiz, onStartPaidPlan, pendingPlan, onConsumePendingPlan, user, T, dark, onClose }) {
@@ -21,51 +22,7 @@ export default function PlansPage({ myBizList, onAddBiz, onStartPaidPlan, pendin
   const rawPlan = myBizList?.[0]?.plan || "free";
   const currentPlanKey = rawPlan === "premium" ? "elite" : ["pro", "destacado"].includes(rawPlan) ? "pro" : rawPlan === "elite" ? "elite" : "free";
 
-  const getPricing = () => {
-    if (countryCode === "es") {
-      return {
-        currency: "EUR",
-        symbol: "€",
-        proMonthly: "9.99€",
-        oldProMonthly: "19.99€",
-        proAnnual: "99€",
-        oldProAnnual: "199€",
-        eliteMonthly: "19.99€",
-        oldEliteMonthly: "39.99€",
-        eliteAnnual: "199€",
-        oldEliteAnnual: "399€",
-      };
-    } else if (countryCode === "us") {
-      return {
-        currency: "USD",
-        symbol: "$",
-        proMonthly: "$9.99",
-        oldProMonthly: "$19.99",
-        proAnnual: "$99",
-        oldProAnnual: "$199",
-        eliteMonthly: "$19.99",
-        oldEliteMonthly: "$39.99",
-        eliteAnnual: "$199",
-        oldEliteAnnual: "$399",
-      };
-    } else {
-      // Default: Mexico (MXN)
-      return {
-        currency: "MXN",
-        symbol: "$",
-        proMonthly: "$99",
-        oldProMonthly: "$199",
-        proAnnual: "$990",
-        oldProAnnual: "$1,990",
-        eliteMonthly: "$249",
-        oldEliteMonthly: "$499",
-        eliteAnnual: "$2,490",
-        oldEliteAnnual: "$4,990",
-      };
-    }
-  };
-
-  const pricing = getPricing();
+  const pricing = getBusinessPricing(countryCode);
   useEffect(() => { window.scrollTo(0, 0); }, []);
   const [billing, setBilling] = useState("monthly"); // "monthly" | "annual"
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -112,62 +69,7 @@ export default function PlansPage({ myBizList, onAddBiz, onStartPaidPlan, pendin
     facebook: "donatella"
   };
 
-  const plans = [
-    { 
-      key: "free", 
-      name: "Gratuito", 
-      priceMonthly: `${pricing.symbol}0`, 
-      priceAnnual: `${pricing.symbol}0`, 
-      desc: "Ideal para que cualquier negocio tenga presencia básica.",
-      color: dark ? "#9CA3AF" : "#6B7280", 
-      icon: "user", 
-      features: [t("cuenta_feat_pagina_publica", "Página pública del negocio en CityMap"), t("cuenta_feat_portada_info", "Portada e Información del negocio"), t("cuenta_feat_telefono_direccion", "Teléfono y Dirección"), t("cuenta_feat_horarios", "Horarios"), t("cuenta_feat_banner_estandar", "Banner estándar")], 
-    },
-    { 
-      key: "pro", 
-      name: "Destacado", 
-      priceMonthly: pricing.proMonthly, 
-      oldPriceMonthly: pricing.oldProMonthly,
-      priceAnnual: pricing.proAnnual, 
-      oldPriceAnnual: pricing.oldProAnnual,
-      desc: "Ideal para negocios que buscan captar clientes y mayor visibilidad.",
-      color: dark ? "#E2E8F0" : "#0F172A", 
-      icon: "star", 
-      badge: "Más popular",
-      features: [t("cuenta_feat_todo_gratuito", "Todo lo del plan gratuito, más:"), t("cuenta_feat_seo", "Posicionamiento SEO en Google"), t("cuenta_feat_banner_destacado", "Banner destacado"), t("cuenta_feat_galeria", "Galería de fotos"), t("cuenta_feat_whatsapp_redes", "Enlace a WhatsApp y redes sociales"), t("cuenta_feat_menu_qr", "Menú QR (Para Local)"), t("cuenta_feat_panel_admin", "Panel de administrador")], 
-    },
-    { 
-      key: "elite", 
-      name: "Premium", 
-      priceMonthly: pricing.eliteMonthly, 
-      oldPriceMonthly: pricing.oldEliteMonthly,
-      priceAnnual: pricing.eliteAnnual, 
-      oldPriceAnnual: pricing.oldEliteAnnual,
-      desc: "Todas las herramientas para dominar tu presencia digital y vender más.",
-      color: dark ? "#E2E8F0" : "#0F172A", 
-      icon: "award", 
-      badge: "Lo mejor",
-      features: [
-        t("cuenta_feat_todo_destacado", "Todo lo del plan Destacado, más:"), 
-        t("cuenta_feat_menu_interactivo_google", "Menú interactivo indexado en Google"),
-        t("cuenta_feat_banner_premium", "Banner premium y Logotipo en mapa"), 
-        t("cuenta_feat_videos", "Vídeos"), 
-        t("cuenta_feat_carrito_whatsapp", "Carrito enlazado a WhatsApp"), 
-        t("cuenta_feat_galeria_amplia", "Amplia galería de fotos"), 
-        t("cuenta_feat_eventos_reservas", "Gestión de Eventos y Reservas"), 
-        t("cuenta_feat_resenas_google", "Reseñas de Google Maps"), 
-        t("cuenta_feat_estadisticas_soporte", "Estadísticas y Soporte prioritario"),
-        t("cuenta_feat_tarjetas_lealtad", "Tarjetas de lealtad"),
-        t("cuenta_feat_cupones", "Integración de cupones"),
-        t("cuenta_feat_proximamente", "Próximamente más herramientas...")
-      ], 
-      screenshots: [
-        { url: "/plans/menu-interactivo.png", label: t("cuenta_shot_menu", "Menú Interactivo y Carrito") },
-        { url: "/plans/estadisticas.png", label: t("cuenta_shot_stats", "Panel de Estadísticas") },
-        { url: "/plans/reservas.png", label: t("cuenta_shot_reservas", "Gestión de Reservas") }
-      ]
-    },
-  ];
+  const plans = buildBusinessPlans(t, pricing, dark);
 
   const [showComparison,setShowComparison]=useState(false);
   const accent=dark?'#70ADFF':'#0066CC';
