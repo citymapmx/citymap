@@ -54,8 +54,9 @@ describe('tarjeta para compartir el negocio', () => {
     // El exportador de canvas también lo dibuja, en blanco.
     expect(lib).toContain("'/logo-brand.png'");
     expect(lib).toContain('source-in');
-    // El pie con la marca sigue.
-    expect(template).toContain('Descúbrelo en CityMap');
+    // El pie con la marca sigue, ahora con la URL.
+    expect(template).toContain('Descúbrelo en www.citymap.mx');
+    expect(lib).toContain("const run2 = 'www.citymap.mx';");
   });
 
   it('compartir con el menú del sistema y fallback a descarga', () => {
