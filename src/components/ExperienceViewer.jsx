@@ -22,6 +22,10 @@ const Gallery = lazy(() => import('./Gallery').catch(() => {
   return { default: () => null };
 }));
 
+// Hoja de la tarjeta para compartir (PR de artículos): carga perezosa
+// como la galería — solo se descarga cuando el usuario toca Compartir.
+const ExperienceShareCardSheet = lazy(() => import('./ExperienceShareCardSheet.jsx'));
+
 const renderInline = (lineContent, T) => {
   const tokenRegex = /(\*\*.*?\*\*|\[.*?\]\(.*?\))/g;
   const parts = lineContent.split(tokenRegex);
@@ -157,6 +161,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const [activeFaq, setActiveFaq] = useState(null);
   const [fullGalleryIdx, setFullGalleryIdx] = useState(null);
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [showShareSheet, setShowShareSheet] = useState(false);
 
   // Foto del héroe: empieza con la versión a 800 px (la misma que ya cargó
   // la tarjeta, sale al instante desde caché) y sube a 1200 px cuando está
@@ -189,6 +194,19 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   // siguen con el título original en español.
   const displayTitle = localizedTitle(exp, lang);
   const displayDescription = localizedDescription(exp, lang);
+
+  // «Compartir enlace» de la hoja de la tarjeta: el comportamiento que
+  // tenía el botón Compartir antes (compartir nativo de la liga del
+  // artículo, o copiarla al portapapeles si el navegador no lo soporta).
+  const handleShareLink = () => {
+    const shareText = t("revista_compartir_texto", `Descubre la experiencia ${displayTitle} en CityMap.`, {title: displayTitle});
+    if (navigator.share) {
+      navigator.share({ title: displayTitle, text: shareText, url: window.location.href }).catch(()=>{});
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert(t("revista_enlace_copiado", "Enlace copiado al portapapeles"));
+    }
+  };
   const associatedBiz = exp.biz_id ? mapPins.find(b => b.id === exp.biz_id) : null;
 
   const gallery = Array.isArray(exp.gallery) ? exp.gallery : [];
@@ -315,15 +333,10 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
           <div style={{ display: "flex", gap: 12 }}>
             <button 
               aria-label={t("revista_compartir_guia", "Compartir guía")}
-              onClick={() => {
-              const shareText = t("revista_compartir_texto", `Descubre la experiencia ${displayTitle} en CityMap.`, {title: displayTitle});
-              if (navigator.share) {
-                navigator.share({ title: displayTitle, text: shareText, url: window.location.href }).catch(()=>{});
-              } else {
-                navigator.clipboard.writeText(window.location.href);
-                alert(t("revista_enlace_copiado", "Enlace copiado al portapapeles"));
-              }
-            }}
+              // Abre la hoja de la tarjeta para compartir (imagen con
+              // foto, datos y precio): el «Compartir enlace» dentro de
+              // la hoja conserva el compartir nativo de antes.
+              onClick={() => setShowShareSheet(true)}
             style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
           >
             <Icon name="share" size={20} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
@@ -785,6 +798,17 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
             </Suspense>
           </div>
         </div>, document.body
+      )}
+
+      {/* Hoja de la tarjeta para compartir el artículo */}
+      {showShareSheet && (
+        <Suspense fallback={null}>
+          <ExperienceShareCardSheet
+            experience={exp}
+            onClose={() => setShowShareSheet(false)}
+            onShareLink={handleShareLink}
+          />
+        </Suspense>
       )}
     </m.div>, document.body
   );
