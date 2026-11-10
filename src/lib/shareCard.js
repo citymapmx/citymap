@@ -130,11 +130,14 @@ export const SHARE_CARD_LAYOUT = {
 // del #142 sigue siendo el por defecto, y se suma la versión clara
 // (PR #156: antes se llamaba «Editorial», Jonathan la renombró «Clara»;
 // el id interno sigue siendo 'editorial' para no romper nada), fondo
-// blanco, tipografía cuidada, sin círculo de logo: la limpieza es el
-// estilo). PR #155: la Ficha completa se quita (Jonathan) y quedan DOS
-// estilos, que se cambian con chevrones y puntos en la hoja en vez de
-// botones. La categoría sale de ambas versiones (PR #155) y el logo de
-// la versión clara va en oscuro (el PNG es blanco y no se veía sobre blanco).
+// blanco, tipografía cuidada. PR #160: la clara TAMBIÉN lleva el
+// círculo del logo del negocio (misma regla que en Oscura: logo_url +
+// plan de pago); antes no lo llevaba por diseño («la limpieza es el
+// estilo»), pero Jonathan pidió que Clara también tuviera el logotipo
+// del negocio (Vulcanos Chapalita, con logo y plan premium, salía sin
+// nada en Clara). El anillo del círculo en Clara es gris visible
+// sobre blanco (ver la paleta: bizLogoRing), porque el fino casi
+// invisible del oscuro no se distinguía del fondo blanco.
 // La hoja (ShareCardSheet) deja elegir el estilo junto al formato
 // (Historia/Post): la vista previa y el PNG comparten UNA geometría por
 // estilo, igual que la tarjeta actual. Sin precio en ningún estilo.
@@ -188,6 +191,9 @@ export const SHARE_CARD_STYLE_COLORS = {
     logoWhite: true,
     photoBg: '#262626',
     initial: 'rgba(255,255,255,0.35)',
+    // Anillo del círculo del logo del negocio: fino y casi invisible
+    // sobre fondo oscuro, donde el círculo blanco ya se distingue.
+    bizLogoRing: 'rgba(0,0,0,0.06)',
   },
   editorial: {
     bg: ['#FFFFFF', '#FAF9F6'],
@@ -199,6 +205,11 @@ export const SHARE_CARD_STYLE_COLORS = {
     logoWhite: false,
     photoBg: '#F0EFEA',
     initial: 'rgba(0,0,0,0.30)',
+    // Anillo del círculo del logo del negocio: gris visible sobre el
+    // fondo blanco (PR #160) — el círculo blanco con su anillo fino
+    // casi invisible no se distinguía del fondo, y Jonathan pidió
+    // que Clara también llevara el logotipo del negocio.
+    bizLogoRing: '#D4D4D8',
   },
   // PR #159: «Para pedir» es oscura como Glass (mismo fondo y textos)
   // más el botón verde de WhatsApp; el QR del menú también es oscuro,
@@ -231,12 +242,22 @@ export const SHARE_CARD_STYLE_COLORS = {
 };
 
 // Geometría de la versión clara: los mismos bloques que el estilo
-// oscuro (logo, foto, nombre, píldoras, pie), con medidas propias y sin
-// círculo de logo (showBizLogo: false): la limpieza es el estilo.
-// PR #155: sin categoría (sale de ambas versiones), foto más corta y
+// oscuro (logo, foto, nombre, píldoras, pie), con medidas propias y
+// CON círculo de logo (PR #160: Jonathan pidió que Clara también
+// llevara el logotipo del negocio, con la misma regla que en Oscura —
+// logo_url + plan de pago —; antes no lo llevaba por diseño, «la
+// limpieza es el estilo», pero Vulcanos Chapalita, con logo y plan
+// premium, salía sin nada en Clara). El círculo es el mismo que en
+// Oscura (mismo diámetro, a caballo sobre el borde inferior de la
+// foto), con anillo gris visible sobre el fondo blanco (ver la paleta:
+// bizLogoRing) en vez del fino casi invisible del oscuro. PR #155:
+// sin categoría (sale de ambas versiones), foto más corta y
 // nombre/píldoras más grandes para que la información tenga más
 // presencia; logo más grande (logoH 76/60). PR #156: el logo de Post
 // sube a 76 (era 60 y en la vista previa de 200 px no se apreciaba).
+// PR #160: photoMinH de Post baja a 300 (era 360) para que el peor
+// caso (nombre de 3 líneas + píldoras en 2 filas + círculo) no se
+// coma el hueco del pie.
 export const EDITORIAL_SHARE_CARD_LAYOUT = {
   story: {
     pad: 64,
@@ -244,7 +265,12 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     logoGap: 40,
     photoMinH: 950,
     photoRadius: 32,
-    showBizLogo: false,
+    showBizLogo: true,
+    bizLogoD: 240,
+    bizLogoRing: 8,
+    bizLogoGap: 28,
+    bizLogoShadowY: 8,
+    bizLogoShadowBlur: 20,
     nameSize: 80,
     nameGap: 32,
     nameLineH: 1.15,
@@ -262,9 +288,14 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     pad: 48,
     logoH: 76,
     logoGap: 36,
-    photoMinH: 360,
+    photoMinH: 300,
     photoRadius: 28,
-    showBizLogo: false,
+    showBizLogo: true,
+    bizLogoD: 190,
+    bizLogoRing: 6,
+    bizLogoGap: 22,
+    bizLogoShadowY: 8,
+    bizLogoShadowBlur: 20,
     nameSize: 62,
     nameGap: 20,
     nameLineH: 1.15,
@@ -787,9 +818,10 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   // de su margen normal; los demás bloques conservan sus márgenes.
   // firstGap es el hueco que usa ese primer bloque: la plantilla lo
   // aplica tal cual, así vista previa y canvas coinciden.
-  // En Editorial no hay círculo aunque el negocio tenga logo y plan de
-  // pago (showBizLogo: false): la limpieza es el estilo. En los demás
-  // estilos la regla no cambia.
+  // En Clara el círculo también se muestra (PR #160, misma regla que
+  // en Oscura: showBizLogo: true en su tabla); la regla del #158 se
+  // mantiene: el círculo nunca tapa el nombre (nombres hasta 3 líneas,
+  // nowrap por línea calculada, la foto se acorta si hace falta).
   const hasBizLogo = !!data?.bizLogoUrl && L.showBizLogo !== false;
   const circleClear = hasBizLogo ? L.bizLogoD / 2 + L.bizLogoGap : 0;
   let firstGap = null;
@@ -1230,7 +1262,10 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     ctx.restore();
     ctx.beginPath();
     ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    // Anillo del círculo: en Clara es gris visible sobre el fondo
+    // blanco (palette.bizLogoRing, PR #160); en Oscura, fino y casi
+    // invisible, donde el círculo blanco ya se distingue.
+    ctx.strokeStyle = palette.bizLogoRing;
     ctx.lineWidth = 2;
     ctx.stroke();
     const innerR = r - b.ring;
