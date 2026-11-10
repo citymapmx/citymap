@@ -1,7 +1,7 @@
 // Plantilla de la tarjeta para compartir (PR #142 v1, PR #143): UN estilo
 // oscuro tipo «Glass» — logotipo oficial arriba, foto, nombre grande,
 // píldoras con la calificación de Google (con su conteo de reseñas) y
-// la ciudad, y «Descúbrelo en CityMap» al pie.
+// la ciudad, y «Descúbrelo en www.citymap.mx» al pie.
 // PR #144: el logo circular del negocio (mismo que la ficha, solo para
 // planes de pago con logo_url) va centrado a caballo sobre el borde
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
@@ -15,9 +15,10 @@
 // nombre y las píldoras más grandes; el logo de la versión clara va en
 // oscuro (el PNG es blanco y con 'none' no se veía sobre blanco).
 // PR #160: Clara TAMBIÉN lleva el círculo del logo del negocio
-// (misma regla que Oscura: logo_url + plan de pago), con anillo gris
-// visible sobre el fondo blanco; antes no lo llevaba por diseño y
-// Vulcanos Chapalita salía sin logo en Clara.
+// (misma regla que Oscura: logo_url + plan de pago), con anillo solo
+// blanco (antes gris visible; Jonathan, 10 nov 2026: el trazo gris
+// se veía mal); antes no lo llevaba por diseño y Vulcanos Chapalita
+// salía sin logo en Clara.
 // PR #156: el estilo claro se llama «Clara» (el id interno sigue
 // siendo 'editorial'); el logo de Post crece para que se vea en la
 // vista previa de 200 px.
@@ -208,11 +209,10 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
             height: layout.bizLogo.d,
             borderRadius: '50%',
             background: '#FFFFFF',
-            // Anillo del círculo: en Clara es gris visible sobre el
-            // fondo blanco (palette.bizLogoRing, PR #160); en Oscura,
-            // fino y casi invisible, donde el círculo blanco ya se
-            // distingue. Sin anillo visible, el círculo blanco no se
-            // distinguía del fondo blanco de Clara.
+            // Anillo del círculo: en Clara es solo blanco
+            // (palette.bizLogoRing; Jonathan, 10 nov 2026: el trazo
+            // gris se veía mal); en Oscura, fino y casi invisible,
+            // donde el círculo blanco ya se distingue.
             border: `2px solid ${palette.bizLogoRing}`,
             boxShadow: `0 ${L.bizLogoShadowY}px ${L.bizLogoShadowBlur}px rgba(0,0,0,0.12)`,
             padding: layout.bizLogo.ring,
@@ -438,7 +438,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           flexShrink: 0,
         }}
       >
-        Descúbrelo en <span style={{ color: palette.text, fontWeight: 800 }}>CityMap</span>
+        Descúbrelo en <span style={{ color: palette.text, fontWeight: 800 }}>www.citymap.mx</span>
       </div>
     </div>
   );

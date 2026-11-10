@@ -188,9 +188,10 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
         );
         expect(markup).toContain(`top:${geo.bizLogo.y}px`);
         expect(markup).toContain('border-radius:50%');
-        // El anillo gris visible sobre blanco (en Oscura es fino y
+        // El anillo es solo blanco en Clara (en Oscura es fino y
         // casi invisible, porque el círculo blanco ya se distingue).
-        expect(markup).toContain('#D4D4D8');
+        expect(markup).toContain('border:2px solid #FFFFFF');
+        expect(markup).not.toContain('#D4D4D8');
         expect(markup).toContain('white-space:nowrap');
       }
     }

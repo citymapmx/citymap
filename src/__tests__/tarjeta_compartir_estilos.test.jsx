@@ -347,13 +347,14 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
       expect(footTop - pillsEnd).toBe(geo.L.footGap);
       // Vista previa: el círculo se pinta a la y calculada, con el
-      // anillo gris visible sobre blanco, y el nombre no se reparte.
+      // anillo solo blanco, y el nombre no se reparte.
       const markup = renderToStaticMarkup(
         <ShareCardTemplate data={d} format={format} styleId="editorial" />,
       );
       expect(markup).toContain(`top:${geo.bizLogo.y}px`);
       expect(markup).toContain('border-radius:50%');
-      expect(markup).toContain('#D4D4D8');
+      expect(markup).toContain('border:2px solid #FFFFFF');
+      expect(markup).not.toContain('#D4D4D8');
       expect(markup).toContain('white-space:nowrap');
     }
     // Sin logo o con plan gratuito, Clara NO lleva círculo (misma
@@ -392,11 +393,12 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     }
   });
 
-  it('el anillo del círculo se ve sobre blanco en Clara y sigue fino en Oscura (PR #160)', () => {
+  it('el anillo del círculo es solo blanco en Clara y sigue fino en Oscura (PR #160)', () => {
     // El círculo blanco con su anillo fino casi invisible no se
-    // distinguía del fondo blanco de Clara. Ahora cada estilo define
-    // el color de su anillo: gris visible en Clara, fino en Oscura.
-    expect(SHARE_CARD_STYLE_COLORS.editorial.bizLogoRing).toBe('#D4D4D8');
+    // distinguía del fondo blanco de Clara; el anillo gris que se
+    // puso entonces se veía mal (Jonathan, 10 nov 2026) y ahora es
+    // solo blanco en Clara. Cada estilo define el color de su anillo.
+    expect(SHARE_CARD_STYLE_COLORS.editorial.bizLogoRing).toBe('#FFFFFF');
     expect(SHARE_CARD_STYLE_COLORS.glass.bizLogoRing).toBe('rgba(0,0,0,0.06)');
     const lib = read('../lib/shareCard.js');
     const template = read('../components/ShareCardTemplate.jsx');

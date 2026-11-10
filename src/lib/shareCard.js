@@ -135,9 +135,9 @@ export const SHARE_CARD_LAYOUT = {
 // plan de pago); antes no lo llevaba por diseño («la limpieza es el
 // estilo»), pero Jonathan pidió que Clara también tuviera el logotipo
 // del negocio (Vulcanos Chapalita, con logo y plan premium, salía sin
-// nada en Clara). El anillo del círculo en Clara es gris visible
-// sobre blanco (ver la paleta: bizLogoRing), porque el fino casi
-// invisible del oscuro no se distinguía del fondo blanco.
+// nada en Clara). El anillo del círculo en Clara es solo blanco
+// (ver la paleta: bizLogoRing; Jonathan, 10 nov 2026: el trazo gris
+// se veía mal).
 // La hoja (ShareCardSheet) deja elegir el estilo junto al formato
 // (Historia/Post): la vista previa y el PNG comparten UNA geometría por
 // estilo, igual que la tarjeta actual. Sin precio en ningún estilo.
@@ -217,11 +217,11 @@ export const SHARE_CARD_STYLE_COLORS = {
     logoWhite: false,
     photoBg: '#F0EFEA',
     initial: 'rgba(0,0,0,0.30)',
-    // Anillo del círculo del logo del negocio: gris visible sobre el
-    // fondo blanco (PR #160) — el círculo blanco con su anillo fino
-    // casi invisible no se distinguía del fondo, y Jonathan pidió
-    // que Clara también llevara el logotipo del negocio.
-    bizLogoRing: '#D4D4D8',
+    // Anillo del círculo del logo del negocio: solo blanco (Jonathan,
+    // 10 nov 2026: el trazo gris se veía mal en Clara). Antes era
+    // gris visible #D4D4D8 (PR #160) porque el círculo blanco con su
+    // anillo fino casi invisible no se distinguía del fondo.
+    bizLogoRing: '#FFFFFF',
   },
   // PR #159: «Para pedir» es oscura como Glass (mismo fondo y textos)
   // más el botón verde de WhatsApp; el QR del menú también es oscuro,
@@ -261,8 +261,8 @@ export const SHARE_CARD_STYLE_COLORS = {
 // limpieza es el estilo», pero Vulcanos Chapalita, con logo y plan
 // premium, salía sin nada en Clara). El círculo es el mismo que en
 // Oscura (mismo diámetro, a caballo sobre el borde inferior de la
-// foto), con anillo gris visible sobre el fondo blanco (ver la paleta:
-// bizLogoRing) en vez del fino casi invisible del oscuro. PR #155:
+// foto), con anillo solo blanco (ver la paleta: bizLogoRing; el gris
+// se quitó a petición de Jonathan). PR #155:
 // sin categoría (sale de ambas versiones), foto más corta y
 // nombre/píldoras más grandes para que la información tenga más
 // presencia; logo más grande (logoH 76/60). PR #156: el logo de Post
@@ -1285,9 +1285,9 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     ctx.restore();
     ctx.beginPath();
     ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
-    // Anillo del círculo: en Clara es gris visible sobre el fondo
-    // blanco (palette.bizLogoRing, PR #160); en Oscura, fino y casi
-    // invisible, donde el círculo blanco ya se distingue.
+    // Anillo del círculo: en Clara es solo blanco (palette.bizLogoRing;
+    // Jonathan, 10 nov 2026: el trazo gris se veía mal); en Oscura,
+    // fino y casi invisible, donde el círculo blanco ya se distingue.
     ctx.strokeStyle = palette.bizLogoRing;
     ctx.lineWidth = 2;
     ctx.stroke();
@@ -1345,10 +1345,10 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     }
   }
 
-  // Pie: «Descúbrelo en CityMap».
+  // Pie: «Descúbrelo en www.citymap.mx».
   const f = geo.footer;
   const run1 = 'Descúbrelo en ';
-  const run2 = 'CityMap';
+  const run2 = 'www.citymap.mx';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
