@@ -622,20 +622,23 @@ export default function GlobalHomeView() {
 
             {/* Lugares increíbles: puntos de interés, unidades deportivas y playas.
                 Tira tipo historias (PR #148): un lugar a la vez, rota sola
-                cada 4 s y arranca en un lugar al azar en cada visita. */}
+                y arranca en un lugar al azar en cada visita. PR #149: gira
+                hacia adelante cada 4 s. */}
             {placesList.length > 0 && (
               <section style={{ marginBottom: 32 }}>
                 <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>{t("home_lugares_increibles", "Lugares increíbles")}</h2>
-                <StoryStrip items={placesList} T={T} t={t} onSelect={openItem} isSaved={isSaved} onToggleSave={toggleSave} cityName={(slug) => cityBySlug.get(slug)?.name || ''} ratingFor={ratingFor} />
+                <StoryStrip items={placesList} T={T} t={t} onSelect={openItem} isSaved={isSaved} onToggleSave={toggleSave} cityName={(slug) => cityBySlug.get(slug)?.name || ''} ratingFor={ratingFor} intervalMs={4000} direction="next" />
               </section>
             )}
 
             {/* Restaurantes que debes conocer: los mejor calificados.
-                Tira tipo historias (PR #148), igual que Lugares increíbles. */}
+                Tira tipo historias (PR #148), igual que Lugares increíbles.
+                PR #149: gira hacia atrás cada 6 s, para que las dos tiras
+                no se muevan a la vez ni se vean iguales. */}
             {restaurantsList.length > 0 && (
               <section style={{ marginBottom: 32 }}>
                 <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>{t("home_restaurantes_conocer", "Restaurantes que debes conocer")}</h2>
-                <StoryStrip items={restaurantsList} T={T} t={t} onSelect={openItem} isSaved={isSaved} onToggleSave={toggleSave} cityName={(slug) => cityBySlug.get(slug)?.name || ''} ratingFor={ratingFor} />
+                <StoryStrip items={restaurantsList} T={T} t={t} onSelect={openItem} isSaved={isSaved} onToggleSave={toggleSave} cityName={(slug) => cityBySlug.get(slug)?.name || ''} ratingFor={ratingFor} intervalMs={6000} direction="prev" />
               </section>
             )}
 
