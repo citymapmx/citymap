@@ -62,12 +62,24 @@ const EJEMPLOS_NEGOCIOS = [
 const prettyCitySlug = (slug) =>
   String(slug || "").split("-").map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(" ");
 
+// Visitas desde Google: cifras REALES de Search Console (captura de
+// Jonathan del 10 nov 2026, últimos 3 meses) del sitio COMPLETO, no por
+// negocio y no inventadas. Para actualizarlas, cambiar solo los valores
+// de aquí: el texto, las cifras grandes y los ejemplos se arman solos.
+// impressionsThousands es el número en miles: 151 = "151 mil" (es) /
+// "151K" (en). Ejemplos: clics por página en esos 3 meses.
+const GOOGLE_SEARCH_CONSOLE = {
+  clicks: 763,
+  impressionsThousands: 151,
+  examples: { formentera: 34, umami: 31, campomar: 30 },
+};
+
 // Página /negocios: CityMap para negocios. Mismo lenguaje visual que
 // PlansPage (encabezado sticky con blur, maxWidth 1140, tarjetas con borde
 // y radio grande, claro/oscuro) y los mismos datos de planes del módulo
 // compartido src/lib/businessPlans.js.
 export default function BusinessLanding({ T, dark, navigate, user, myBizList, onAddBiz, onStartPaidPlan, setShowAuth }) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const activeCity = useUIStore(s => s.activeCity);
   const cities = useDataStore(s => s.cities);
   const googleRatings = useDataStore(s => s.googleRatings);
@@ -124,6 +136,10 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     { value: liveStats.events, label: t("negocios_stat_eventos", "eventos vigentes") },
     { value: liveStats.tours, label: t("negocios_stat_tours", "tours y guías") },
   ];
+  // "151 mil" en español, "151K" en inglés (ver GOOGLE_SEARCH_CONSOLE).
+  const impressionsDisplay = lang === "en"
+    ? `${GOOGLE_SEARCH_CONSOLE.impressionsThousands}K`
+    : `${GOOGLE_SEARCH_CONSOLE.impressionsThousands} mil`;
   const benefits = [
     { icon: "pin", title: t("negocios_ben_mapa_titulo", "Te encuentran en el mapa"), text: t("negocios_ben_mapa_texto", "Tu negocio aparece con su pin en el mapa de tu ciudad, junto a los lugares, restaurantes y eventos que la gente ya busca. Con Premium, tu logotipo se ve directo en el mapa.") },
     { icon: "globe", title: t("negocios_ben_google_titulo", "Te encuentran en Google"), text: t("negocios_ben_google_texto", "Tu página queda indexada y aparece en las búsquedas de Google. Con Destacado, tu posicionamiento mejora; con Premium, hasta tu menú interactivo aparece en Google.") },
@@ -224,6 +240,30 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
               <div style={{ fontSize: 13, lineHeight: 1.4, color: muted, marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
+        </section>
+        {/* Tu negocio ya aparece en Google: prueba con cifras reales de
+        Search Console (ver GOOGLE_SEARCH_CONSOLE arriba). Va justo después
+        de las cifras en vivo y antes de los planes. Mismo lenguaje visual
+        que las cifras: tarjetas con radio 24 y número grande en acento. */}
+        <section style={{ marginTop: 64 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+            <img src="/googlelogo.svg" alt="Google" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+          </div>
+          <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_google_titulo", "Tu negocio ya aparece en Google")}</h2>
+          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 560 }}>{t("negocios_google_texto", "Los negocios de CityMap reciben visitas reales desde el buscador: ${clicks} clics y ${impressions} impresiones en los últimos 3 meses. Sin pagar anuncios, la gente ya llega a tu menú y a tu perfil desde Google.", { clicks: GOOGLE_SEARCH_CONSOLE.clicks, impressions: impressionsDisplay })}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, maxWidth: 720, margin: '0 auto' }}>
+            <div className="stat-card" style={{ textAlign: 'center', padding: '22px 12px', background: surface, border: `1px solid ${line}`, borderRadius: 24 }}>
+              <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.04em', fontVariantNumeric: 'tabular-nums', color: accent }}>{GOOGLE_SEARCH_CONSOLE.clicks}</div>
+              <div style={{ fontSize: 13, lineHeight: 1.4, color: muted, marginTop: 4 }}>{t("negocios_google_clics", "clics")}</div>
+              <div style={{ fontSize: 12, lineHeight: 1.4, color: muted, marginTop: 2 }}>{t("negocios_google_periodo", "últimos 3 meses")}</div>
+            </div>
+            <div className="stat-card" style={{ textAlign: 'center', padding: '22px 12px', background: surface, border: `1px solid ${line}`, borderRadius: 24 }}>
+              <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.04em', fontVariantNumeric: 'tabular-nums', color: accent }}>{impressionsDisplay}</div>
+              <div style={{ fontSize: 13, lineHeight: 1.4, color: muted, marginTop: 4 }}>{t("negocios_google_impresiones", "impresiones")}</div>
+              <div style={{ fontSize: 12, lineHeight: 1.4, color: muted, marginTop: 2 }}>{t("negocios_google_periodo", "últimos 3 meses")}</div>
+            </div>
+          </div>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: muted, textAlign: 'center', margin: '20px auto 0', maxWidth: 560 }}>{t("negocios_google_ejemplos", "El menú de Formentera recibió ${formentera} visitas desde Google; Umami Ramen, ${umami}; y Campomar, ${campomar}.", { formentera: GOOGLE_SEARCH_CONSOLE.examples.formentera, umami: GOOGLE_SEARCH_CONSOLE.examples.umami, campomar: GOOGLE_SEARCH_CONSOLE.examples.campomar })}</p>
         </section>
         <section style={{ marginTop: 64 }}>
           <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_beneficios_titulo", "Por qué CityMap")}</h2>
