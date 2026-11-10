@@ -8,6 +8,7 @@ import { AnimatePresence } from "framer-motion";
 import Icon from "./ui/Icon.jsx";
 import ExperienceViewer from "./ExperienceViewer.jsx";
 import { useDataStore } from "../store/useDataStore.js";
+import { ArticleSk } from "./ui/Skeleton.jsx";
 import { useAppContext } from "../context/AppContext";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "../hooks/useTranslation.js";
@@ -645,6 +646,13 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
             )}
           </>
         ) : (
+          // Mientras los artículos todavía están cargando, las siluetas
+          // con brillo (demo #3) en vez del "Pronto habrá experiencias".
+          !dbReady ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {[1, 2, 3].map(i => <ArticleSk key={i} dark={dark} />)}
+            </div>
+          ) : (
           // Solo mostrar el empty state si la ciudad NO tiene widgets propios
           !showCivitatisWidget && ![ "ciudad-de-mexico", "puerto-vallarta", "los-angeles", "madrid", "paris"].includes(activeCity) && (
             <div style={{ textAlign: "center", padding: "60px 20px", color: T.sub }}>
@@ -657,6 +665,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
                 </button>
               )}
             </div>
+          )
           )
         )}
         

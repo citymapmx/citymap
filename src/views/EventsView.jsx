@@ -19,6 +19,7 @@ import { cascadeDelayS, CASCADE_WINDOW_MS } from "../lib/cascade.js";
 import useTimeStore from "../store/useTimeStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle } from "../lib/i18nContent.js";
+import { EventGridSk } from "../components/ui/Skeleton.jsx";
 
 const PAGE_SIZE = 20;
 const DATE_FILTERS = [
@@ -39,7 +40,7 @@ export default function EventsView() {
   const ctx = useAppContext();
   const { dark, activeCity } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
-  const { cities } = useDataStore(useShallow(s => ({ cities: s.cities })));
+  const { cities, dbReady } = useDataStore(useShallow(s => ({ cities: s.cities, dbReady: s.dbReady })));
   const now = useTimeStore(s => s.now);
 
   const {
@@ -472,7 +473,13 @@ export default function EventsView() {
             )}
 
             {/* Event Cards Vertical Stack (Matches Image 1) */}
+            {/* Mientras los eventos todavía están cargando, las siluetas
+                de las tarjetas con brillo (demo #3) en vez del "Sin eventos
+                por ahora", que es mentira mientras llegan los datos. */}
             {filteredEvents.length === 0 ? (
+              !dbReady && !hasActiveFilters ? (
+                <EventGridSk dark={dark} />
+              ) : (
               <div style={{ textAlign: "center", padding: "60px 20px" }}>
                 <div style={{ width: 60, height: 60, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.05)" : "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
                   <Icon name="calendar" size={28} color={T.sub} />
@@ -483,6 +490,7 @@ export default function EventsView() {
                   <button onClick={clearFilters} className="press" style={{ marginTop: 16, padding: "10px 18px", borderRadius: 9999, border: `1px solid ${T.border}`, background: T.white, color: T.text, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{t("eventos_limpiar_filtros", "Limpiar filtros")}</button>
                 )}
               </div>
+              )
             ) : (
               <div ref={eventListRef} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                 {monthGroups.map(group => (
