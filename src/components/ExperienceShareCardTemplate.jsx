@@ -1,230 +1,59 @@
 // Plantilla de la tarjeta para compartir el artículo / experiencia
-// (mismo patrón que la de eventos, PR #152): los 2 estilos que eligió
-// Jonathan de la demo — «Foto completa» (fondo oscuro, la foto llena
-// la tarjeta y el precio va en una pastilla blanca protagonista) y
-// «Dividida» (fondo claro, foto a la izquierda y ficha de datos a la
-// derecha). La foto es la primera de la galería y crece (flex: 1, con
-// altura mínima) para comerse el espacio libre: nunca queda franja
-// vacía entre la información y el pie. El logotipo es /logo-brand.png:
-// blanco en «foto», oscuro en «dividida» (el PNG es blanco y no se
-// vería sobre fondo blanco, igual que en Editorial). Sin foto no hay
-// imagen rota: sale un bloque con la inicial del título.
+// (mismo patrón que la de eventos, PR #152): UN SOLO estilo,
+// «Foto completa», EXACTAMENTE como la propuesta 2 de la demo
+// `propuestas-de-tarjetas-para-articulos` (corrección de Jonathan
+// 10 Nov ~10:54: el segundo estilo, de fondo claro, se veía mal en vivo): la foto
+// llena TODA la tarjeta a sangre, el texto va encima con degradados,
+// pastilla «citymap.mx» arriba a la izquierda, pastilla de calificación
+// arriba a la derecha (solo si es real), pastilla azul de ciudad · tipo,
+// título, descripción, duración · idiomas, y el precio en una pastilla
+// AZUL grande («DESDE $1,881 MXN por persona»). Sin logotipo grande ni
+// pie: la marca es la pastilla citymap.mx, como en la demo. Sin foto no
+// hay imagen rota: sale un degradado oscuro con la inicial del título.
 // La vista previa y el PNG exportado comparten la misma geometría:
 // EXPERIENCE_SHARE_CARD_LAYOUT + computeExperienceShareCardLayout en
 // lib/experienceShareCard.js, así que lo que se ve es lo que se descarga.
 import { getThumbUrl } from '../lib/utils.js';
 import {
-  SHARE_CARD_FORMATS,
-  EXPERIENCE_SHARE_CARD_LAYOUT,
+  EXPERIENCE_SHARE_CARD_FORMATS,
+  EXPERIENCE_SHARE_CARD_BLUE,
   computeExperienceShareCardLayout,
 } from '../lib/experienceShareCard.js';
 
-export default function ExperienceShareCardTemplate({ data, format, styleId, onPhotoError }) {
-  const f = format || SHARE_CARD_FORMATS.story;
-  const style = styleId === 'dividida' ? 'dividida' : 'foto';
-  const L = (EXPERIENCE_SHARE_CARD_LAYOUT[style] || EXPERIENCE_SHARE_CARD_LAYOUT.foto)[f.id]
-    || EXPERIENCE_SHARE_CARD_LAYOUT.foto.story;
+export default function ExperienceShareCardTemplate({ data, format, onPhotoError }) {
+  const f = format || EXPERIENCE_SHARE_CARD_FORMATS.story;
+  const L = computeExperienceShareCardLayout(data, format).L;
   const width = f.width;
-  const photoW = width - L.pad * 2;
-  // Las líneas (título, ciudad, descripción, datos, pastilla) se
+  // Las líneas (título, ciudad, descripción, datos, pastillas) se
   // calculan con la misma función que usa el exportador de canvas:
   // el corte y los anchos son idénticos en ambos.
-  const layout = computeExperienceShareCardLayout(data, format, style);
+  const layout = computeExperienceShareCardLayout(data, format);
   // La foto se pide ancha (1080w por el bucket de getThumbUrl) para que
   // salga nítida en la exportación a 1080 px.
   const photoSrc = data?.photoUrl ? getThumbUrl(data.photoUrl, 1080) : null;
   const initial = (data?.title || 'C').trim().charAt(0).toUpperCase() || 'C';
-  const dark = style === 'dividida';
-  const firstBlock = layout.title && layout.title.lines.length
-    ? 'title'
-    : layout.city
-      ? 'city'
-      : layout.rating
-        ? 'rating'
-        : layout.desc && layout.desc.lines.length
-          ? 'desc'
-          : layout.dataRows && layout.dataRows.lines.length
-            ? 'data'
-            : layout.pricePill
-              ? 'price'
-              : 'foot';
+  const gradTopH = Math.round(f.height * L.gradTopH);
+  const gradBottomH = Math.round(f.height * L.gradBottomH);
 
-  const photoBlock = (
+  const pill = (geo, children, extra) => (
     <div
       style={{
-        width: dark ? L.photoW : photoW,
-        flex: dark ? 'none' : 1,
-        minHeight: dark ? undefined : L.photoMinH,
-        height: dark ? '100%' : undefined,
-        borderRadius: L.photoRadius,
-        overflow: 'hidden',
-        background: dark ? '#E5E7EB' : '#262626',
+        position: 'absolute',
+        left: geo.x,
+        top: geo.y,
+        width: geo.w,
+        height: geo.h,
+        borderRadius: geo.h / 2,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
+        boxSizing: 'border-box',
+        padding: `0 ${geo.padX}px`,
+        ...extra,
       }}
     >
-      {photoSrc ? (
-        <img
-          src={photoSrc}
-          crossOrigin="anonymous"
-          onError={onPhotoError}
-          alt=""
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            display: 'block',
-          }}
-        />
-      ) : (
-        <span
-          style={{
-            color: dark ? 'rgba(17,17,17,0.35)' : 'rgba(255,255,255,0.35)',
-            fontSize: Math.round(Math.min(dark ? L.photoW : photoW, layout.photo.h) * 0.4),
-            fontWeight: 800,
-            lineHeight: 1,
-          }}
-        >
-          {initial}
-        </span>
-      )}
+      {children}
     </div>
   );
-
-  const titleBlock = layout.title && layout.title.lines.length ? (
-    <div
-      style={{
-        marginTop: dark ? 0 : firstBlock === 'title' ? layout.firstGap : L.titleGap,
-        width: dark ? undefined : photoW,
-        flexShrink: 0,
-      }}
-    >
-      {layout.title.lines.map((line, i) => (
-        <div
-          key={i}
-          style={{
-            fontSize: layout.title.size,
-            fontWeight: 800,
-            lineHeight: L.titleLineH,
-            letterSpacing: -1,
-            color: dark ? '#111111' : '#FFFFFF',
-          }}
-        >
-          {line}
-        </div>
-      ))}
-    </div>
-  ) : null;
-
-  const cityBlock = layout.city ? (
-    <div
-      style={{
-        marginTop: dark ? L.titleGap : firstBlock === 'city' ? layout.firstGap : L.cityGap,
-        fontSize: layout.city.size,
-        fontWeight: 600,
-        lineHeight: L.titleLineH,
-        color: dark ? '#6B7280' : 'rgba(255,255,255,0.85)',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        flexShrink: 0,
-      }}
-    >
-      {layout.city.text}
-    </div>
-  ) : null;
-
-  const ratingBlock = layout.rating ? (
-    <div
-      style={{
-        marginTop: dark ? L.cityGap : firstBlock === 'rating' ? layout.firstGap : L.cityGap,
-        fontSize: layout.rating.size,
-        fontWeight: 600,
-        lineHeight: L.titleLineH,
-        color: dark ? '#6B7280' : 'rgba(255,255,255,0.85)',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        flexShrink: 0,
-      }}
-    >
-      {layout.rating.text}
-    </div>
-  ) : null;
-
-  const descBlock = layout.desc && layout.desc.lines.length ? (
-    <div
-      style={{
-        marginTop: dark ? L.descGap : firstBlock === 'desc' ? layout.firstGap : L.descGap,
-        width: dark ? undefined : photoW,
-        flexShrink: 0,
-      }}
-    >
-      {layout.desc.lines.map((line, i) => (
-        <div
-          key={i}
-          style={{
-            fontSize: layout.desc.size,
-            fontWeight: 600,
-            lineHeight: L.descLineH,
-            color: dark ? '#4B5563' : 'rgba(255,255,255,0.75)',
-          }}
-        >
-          {line}
-        </div>
-      ))}
-    </div>
-  ) : null;
-
-  const dataBlock = layout.dataRows && layout.dataRows.lines.length ? (
-    <div
-      style={{
-        marginTop: dark ? L.dataGap : firstBlock === 'data' ? layout.firstGap : L.dataGap,
-        width: dark ? undefined : photoW,
-        flexShrink: 0,
-      }}
-    >
-      {layout.dataRows.lines.map((line, i) => (
-        <div
-          key={i}
-          style={{
-            fontSize: layout.dataRows.size,
-            fontWeight: 600,
-            lineHeight: L.dataLineH,
-            color: dark ? '#4B5563' : 'rgba(255,255,255,0.85)',
-          }}
-        >
-          {line}
-        </div>
-      ))}
-    </div>
-  ) : null;
-
-  const priceBlock = layout.pricePill ? (
-    <div
-      style={{
-        marginTop: dark ? L.priceGap : firstBlock === 'price' ? layout.firstGap : L.priceGap,
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          background: dark ? '#111111' : '#FFFFFF',
-          color: dark ? '#FFFFFF' : '#111111',
-          borderRadius: 999,
-          padding: `${L.pricePadY}px ${L.pricePadX}px`,
-          fontSize: L.priceSize,
-          fontWeight: 800,
-          lineHeight: 1,
-          display: 'inline-block',
-        }}
-      >
-        {layout.pricePill.text}
-      </span>
-    </div>
-  ) : null;
 
   return (
     <div
@@ -232,90 +61,220 @@ export default function ExperienceShareCardTemplate({ data, format, styleId, onP
         width,
         height: f.height,
         boxSizing: 'border-box',
-        padding: L.pad,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: dark ? 'stretch' : 'center',
-        background: dark ? '#FFFFFF' : 'linear-gradient(180deg, #1B1B1B 0%, #0B0B0B 100%)',
-        color: dark ? '#111111' : '#FFFFFF',
+        background: '#111111',
+        color: '#FFFFFF',
         fontFamily: "var(--heading), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-        textAlign: dark ? 'left' : 'center',
+        textAlign: 'left',
         overflow: 'hidden',
         position: 'relative',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          flexShrink: 0,
-          marginBottom: L.logoGap,
-        }}
-      >
+      {/* Foto a sangre completa (o degradado + inicial sin foto) */}
+      {photoSrc ? (
         <img
-          src="/logo-brand.png"
-          alt="CityMap"
+          src={photoSrc}
+          crossOrigin="anonymous"
+          onError={onPhotoError}
+          alt=""
           style={{
-            height: L.logoH,
-            width: 'auto',
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
             display: 'block',
-            filter: dark ? 'brightness(0)' : 'brightness(0) invert(1)',
           }}
         />
-      </div>
-
-      {dark ? (
+      ) : (
         <div
           style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(180deg, #262626 0%, #111111 100%)',
             display: 'flex',
-            flex: 1,
-            gap: L.colGap,
-            minHeight: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {photoBlock}
-          <div
+          <span
             style={{
-              flex: 1,
-              minWidth: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
+              color: 'rgba(255,255,255,0.35)',
+              fontSize: Math.round(Math.min(width, f.height) * 0.3),
+              fontWeight: 800,
+              lineHeight: 1,
             }}
           >
-            {titleBlock}
-            {cityBlock}
-            {ratingBlock}
-            {descBlock}
-            {dataBlock}
-            {priceBlock}
-          </div>
+            {initial}
+          </span>
         </div>
-      ) : (
-        <>
-          {photoBlock}
-          {titleBlock}
-          {cityBlock}
-          {ratingBlock}
-          {descBlock}
-          {dataBlock}
-          {priceBlock}
-        </>
       )}
 
+      {/* Degradados para que se lea el texto */}
       <div
         style={{
-          marginTop: dark ? L.footGap : firstBlock === 'foot' ? layout.firstGap : L.footGap,
-          fontSize: L.footSize,
-          lineHeight: 1,
-          letterSpacing: 2,
-          color: dark ? '#9CA3AF' : '#A3A3A3',
-          flexShrink: 0,
-          textAlign: 'center',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: gradTopH,
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)',
         }}
-      >
-        Descúbrelo en <span style={{ color: dark ? '#111111' : '#FFFFFF', fontWeight: 800 }}>CityMap</span>
-      </div>
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: gradBottomH,
+          background: 'linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0) 100%)',
+        }}
+      />
+
+      {/* Pastilla citymap.mx (arriba a la izquierda) */}
+      {pill(
+        layout.brandPill,
+        <>
+          <span style={{ fontSize: layout.brandPill.size, fontWeight: 800, lineHeight: 1, color: '#FFFFFF' }}>
+            citymap
+          </span>
+          <span style={{ fontSize: layout.brandPill.size, fontWeight: 800, lineHeight: 1, color: '#60A5FA' }}>
+            .mx
+          </span>
+        </>,
+        { background: '#111827' },
+      )}
+
+      {/* Pastilla de calificación (arriba a la derecha, solo si es real) */}
+      {layout.ratingPill
+        ? pill(
+            layout.ratingPill,
+            <>
+              <span style={{ fontSize: layout.ratingPill.size, fontWeight: 800, lineHeight: 1, color: '#F59E0B', marginRight: 6 }}>
+                ★
+              </span>
+              <span style={{ fontSize: layout.ratingPill.size, fontWeight: 600, lineHeight: 1, color: '#111827' }}>
+                {layout.ratingPill.text}
+              </span>
+            </>,
+            { background: '#FFFFFF' },
+          )
+        : null}
+
+      {/* Pastilla azul de ciudad · tipo */}
+      {layout.cityPill
+        ? pill(
+            layout.cityPill,
+            <span style={{ fontSize: layout.cityPill.size, fontWeight: 600, lineHeight: 1, color: '#FFFFFF', whiteSpace: 'nowrap' }}>
+              {layout.cityPill.text}
+            </span>,
+            { background: EXPERIENCE_SHARE_CARD_BLUE },
+          )
+        : null}
+
+      {/* Título */}
+      {layout.title ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: layout.title.x,
+            top: layout.title.y - layout.title.lineH / 2,
+            width: f.width - L.pad * 2 - (L.priceBeside ? layout.pricePill.w + L.colGap : 0),
+          }}
+        >
+          {layout.title.lines.map((line, i) => (
+            <div
+              key={i}
+              style={{
+                fontSize: layout.title.size,
+                fontWeight: 800,
+                lineHeight: L.titleLineH,
+                letterSpacing: -1,
+                color: '#FFFFFF',
+              }}
+            >
+              {line}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Descripción */}
+      {layout.desc ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: layout.desc.x,
+            top: layout.desc.y - layout.desc.lineH / 2,
+            width: f.width - L.pad * 2 - (L.priceBeside ? layout.pricePill.w + L.colGap : 0),
+          }}
+        >
+          {layout.desc.lines.map((line, i) => (
+            <div
+              key={i}
+              style={{
+                fontSize: layout.desc.size,
+                fontWeight: 600,
+                lineHeight: L.descLineH,
+                color: 'rgba(255,255,255,0.75)',
+              }}
+            >
+              {line}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Duración · idiomas · personas */}
+      {layout.dataRows ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: layout.dataRows.x,
+            top: layout.dataRows.y - layout.dataRows.lineH / 2,
+            width: f.width - L.pad * 2 - (L.priceBeside ? layout.pricePill.w + L.colGap : 0),
+          }}
+        >
+          {layout.dataRows.lines.map((line, i) => (
+            <div
+              key={i}
+              style={{
+                fontSize: layout.dataRows.size,
+                fontWeight: 600,
+                lineHeight: L.dataLineH,
+                color: 'rgba(255,255,255,0.85)',
+              }}
+            >
+              {line}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Pastilla AZUL de precio protagonista */}
+      {pill(
+        layout.pricePill,
+        layout.pricePill.priced ? (
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', width: '100%' }}>
+            <div style={{ fontSize: layout.pricePill.desdeSize, fontWeight: 800, lineHeight: 1, color: '#FFFFFF', marginBottom: layout.pricePill.desdeGap }}>
+              DESDE
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: layout.pricePill.rowGap }}>
+              <span style={{ fontSize: layout.pricePill.priceSize, fontWeight: 800, lineHeight: 1, color: '#FFFFFF' }}>
+                {layout.pricePill.text}
+              </span>
+              <span style={{ fontSize: layout.pricePill.porSize, fontWeight: 600, lineHeight: 1, color: 'rgba(255,255,255,0.9)' }}>
+                por persona
+              </span>
+            </div>
+          </div>
+        ) : (
+          <span style={{ fontSize: layout.pricePill.priceSize, fontWeight: 800, lineHeight: 1, color: '#FFFFFF' }}>
+            {layout.pricePill.text}
+          </span>
+        ),
+        { background: EXPERIENCE_SHARE_CARD_BLUE },
+      )}
     </div>
   );
 }

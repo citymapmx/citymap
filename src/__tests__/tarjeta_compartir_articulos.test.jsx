@@ -4,26 +4,28 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import ExperienceShareCardTemplate from '../components/ExperienceShareCardTemplate.jsx';
 import {
   EXPERIENCE_SHARE_CARD_LAYOUT,
-  EXPERIENCE_SHARE_CARD_STYLE_LIST,
-  EXPERIENCE_SHARE_CARD_DEFAULT_STYLE,
+  EXPERIENCE_SHARE_CARD_FORMATS,
+  EXPERIENCE_SHARE_CARD_FORMAT_LIST,
+  EXPERIENCE_SHARE_CARD_BLUE,
   buildExperienceShareCardData,
   experienceShareCardFileName,
   experienceShareUrl,
   experienceShareCardPriceText,
   computeExperienceShareCardLayout,
-  SHARE_CARD_FORMATS,
 } from '../lib/experienceShareCard.js';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
 // Tarjeta para compartir el ARTÍCULO / experiencia de Revista: lo mismo
 // que la tarjeta de eventos (PR #152) — botón Compartir en el detalle,
-// hoja centrada Historia/Post, PNG dibujado en canvas — pero con los
-// datos de la fila de `experiences` y los 2 estilos que eligió Jonathan
-// de la demo `propuestas-de-tarjetas-para-articulos`: «Foto completa»
-// (la foto llena la tarjeta y el precio va en una pastilla protagonista)
-// y «Dividida» (foto a la izquierda y ficha de datos a la derecha).
-// Sin círculo de logo (eso es solo para negocios con plan de pago).
+// hoja centrada, PNG dibujado en canvas — pero con los datos de la fila
+// de `experiences` y UN SOLO estilo, «Foto completa», EXACTAMENTE como
+// la propuesta 2 de la demo `propuestas-de-tarjetas-para-articulos`
+// (corrección de Jonathan 10 Nov ~10:54: la «Dividida» clara se veía
+// mal en vivo; el precio va en pastilla AZUL grande). Tres formatos:
+// Historia 1080×1920, Post 1080×1080 y Horizontal 1080×566 (el tamaño
+// oficial de Instagram para post horizontal). Sin círculo de logo (eso
+// es solo para negocios con plan de pago).
 
 // Tour real de la base como caso de prueba: Excursión a Tequila con
 // La Rojeña, Guadalajara, $1,881, 6–8 horas, Español/Inglés, SIN
@@ -81,8 +83,17 @@ const LARGO = {
   slug: 'excursion-privada-tequila-amatitan',
 };
 
-function fotoEnds(geo) {
+const ALL_FORMATS = [
+  EXPERIENCE_SHARE_CARD_FORMATS.story,
+  EXPERIENCE_SHARE_CARD_FORMATS.post,
+  EXPERIENCE_SHARE_CARD_FORMATS.horizontal,
+];
+
+// Fin vertical del último bloque del texto (sin contar la pastilla de
+// precio, que en Horizontal va al lado).
+function textBlockEnd(geo) {
   const ends = [];
+  if (geo.cityPill) ends.push(geo.cityPill.y + geo.cityPill.h);
   if (geo.title) {
     ends.push(
       geo.title.y +
@@ -90,8 +101,6 @@ function fotoEnds(geo) {
         geo.title.lineH / 2,
     );
   }
-  if (geo.city) ends.push(geo.city.y + (geo.city.size * geo.L.titleLineH) / 2);
-  if (geo.rating) ends.push(geo.rating.y + (geo.rating.size * geo.L.titleLineH) / 2);
   if (geo.desc) {
     ends.push(
       geo.desc.y +
@@ -106,30 +115,22 @@ function fotoEnds(geo) {
         geo.dataRows.lineH / 2,
     );
   }
-  if (geo.pricePill) ends.push(geo.pricePill.y + geo.pricePill.h);
-  return ends;
-}
-
-function divididaFirstTop(geo) {
-  if (geo.title) return geo.title.y - geo.title.lineH / 2;
-  if (geo.city) return geo.city.y - (geo.city.size * geo.L.titleLineH) / 2;
-  if (geo.rating) return geo.rating.y - (geo.rating.size * geo.L.titleLineH) / 2;
-  if (geo.desc) return geo.desc.y - geo.desc.lineH / 2;
-  if (geo.dataRows) return geo.dataRows.y - geo.dataRows.lineH / 2;
-  return geo.pricePill.y;
+  return Math.max(...ends);
 }
 
 describe('tarjeta para compartir el artículo: datos reales', () => {
-  it('tequila: foto de la galería, ciudad, precio real, duración e idiomas', () => {
+  it('tequila: foto de la galería, ciudad · tipo, precio real, duración e idiomas', () => {
     const d = buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' });
     expect(d.photoUrl).toContain('1794186715000_guadalajara-tequila.webp');
     expect(d.title).toBe(
       'Excursión a Tequila con visita a la destilería La Rojeña de José Cuervo',
     );
     expect(d.cityName).toBe('Guadalajara');
-    expect(d.cityLine).toBe('📍 Guadalajara');
+    expect(d.activityType).toBe('Tour');
+    expect(d.cityLine).toBe('📍 Guadalajara · Tour');
     expect(d.priceText).toBe('$1,881 MXN');
-    expect(d.dataLine).toBe('⏱ 6 horas - 8 horas · Español, Inglés');
+    expect(d.priced).toBe(true);
+    expect(d.dataLine).toBe('⏱ 6 horas - 8 horas · 🌐 Español, Inglés');
     // La descripción trae HTML: se quitan las etiquetas, sin inventar nada.
     expect(d.description).not.toContain('<');
     expect(d.description).toContain('destilería La Rojeña');
@@ -146,9 +147,11 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
   it('precio 0 → «Gratis»; sin foto → photoUrl null', () => {
     const d = buildExperienceShareCardData(GUIA_GRATIS, { cityName: 'Guadalajara' });
     expect(d.priceText).toBe('Gratis');
+    expect(d.priced).toBe(false);
     expect(experienceShareCardPriceText(GUIA_GRATIS)).toBe('Gratis');
     expect(d.photoUrl).toBeNull();
     expect(d.dataLine).toBe('');
+    expect(d.cityLine).toBe('📍 Guadalajara · Guía');
   });
 
   it('calificación SOLO si es real: sin reseñas no se muestra nada (nunca el 4.9 de la demo)', () => {
@@ -156,7 +159,7 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
     expect(TEQUILA.rating).toBe(0);
     expect(sin.ratingText).toBe('');
     const con = buildExperienceShareCardData(CON_RESENAS, { cityName: 'Guadalajara' });
-    expect(con.ratingText).toBe('★ 4.8 (132)');
+    expect(con.ratingText).toBe('4.8 · 132 reseñas');
     // Rating sin reseñas, o reseñas sin rating: tampoco se muestra.
     expect(
       buildExperienceShareCardData(
@@ -185,174 +188,244 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
     expect(d.description.endsWith('…')).toBe(true);
   });
 
-  it('los estilos son solo los 2 elegidos por Jonathan, «foto» por defecto', () => {
-    expect(EXPERIENCE_SHARE_CARD_STYLE_LIST.map((s) => s.id)).toEqual([
-      'foto',
-      'dividida',
+  it('los formatos son Historia, Post y Horizontal (1080×566, oficial de Instagram)', () => {
+    expect(EXPERIENCE_SHARE_CARD_FORMAT_LIST.map((f) => f.id)).toEqual([
+      'story',
+      'post',
+      'horizontal',
     ]);
-    expect(EXPERIENCE_SHARE_CARD_DEFAULT_STYLE).toBe('foto');
+    expect(EXPERIENCE_SHARE_CARD_FORMATS.story).toEqual({
+      id: 'story',
+      label: 'Historia IG',
+      width: 1080,
+      height: 1920,
+    });
+    expect(EXPERIENCE_SHARE_CARD_FORMATS.post).toEqual({
+      id: 'post',
+      label: 'Post IG',
+      width: 1080,
+      height: 1080,
+    });
+    expect(EXPERIENCE_SHARE_CARD_FORMATS.horizontal).toEqual({
+      id: 'horizontal',
+      label: 'Horizontal IG',
+      width: 1080,
+      height: 566,
+    });
+    // Proporción 1.91:1, la misma de la demo (1200×630).
+    expect(1080 / 566).toBeCloseTo(1200 / 630, 2);
+    // Ya no hay estilos: solo «Foto completa» (la «Dividida» se quitó).
+    expect(EXPERIENCE_SHARE_CARD_BLUE).toBe('#2563EB');
   });
 });
 
-describe('tarjeta para compartir el artículo: geometría «foto» (vista previa = PNG)', () => {
-  it('la foto crece y no queda franja vacía entre el último bloque y el pie', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+describe('tarjeta para compartir el artículo: geometría «Foto completa» (vista previa = PNG)', () => {
+  it('la foto es a sangre completa y el bloque de texto termina en el margen inferior', () => {
+    for (const format of ALL_FORMATS) {
       for (const exp of [TEQUILA, GUIA_GRATIS, CON_RESENAS]) {
         const d = buildExperienceShareCardData(exp, { cityName: 'Guadalajara' });
-        const geo = computeExperienceShareCardLayout(d, format, 'foto');
-        // La foto es más alta que su mínimo: se comió el espacio libre.
-        expect(geo.photo.h).toBeGreaterThan(geo.L.photoMinH);
-        // Entre el fin del último bloque y el pie hay exactamente el
-        // hueco diseñado (footGap), no un tercio de tarjeta vacía.
-        const lastEnd = Math.max(...fotoEnds(geo));
-        const footTop = geo.height - geo.L.pad - geo.L.footSize;
-        // Tolerancia de 1e-9 px: las alturas de línea (tamaño × 1.12)
-        // son decimales no exactos en binario y la suma arrastra polvo
-        // de coma flotante; el hueco diseñado es footGap, sin hueco
-        // vacío ni desbordamiento.
-        expect(footTop - lastEnd).toBeCloseTo(geo.L.footGap, 9);
+        const geo = computeExperienceShareCardLayout(d, format);
+        // La foto llena TODA la tarjeta, como la demo.
+        expect(geo.photo).toEqual({ x: 0, y: 0, w: format.width, h: format.height });
+        // El bloque de texto (o la pastilla, que va debajo en
+        // Historia/Post) termina exactamente en el margen inferior.
+        const lastEnd = Math.max(
+          textBlockEnd(geo),
+          geo.pricePill.y + geo.pricePill.h,
+        );
+        expect(lastEnd).toBeCloseTo(geo.height - geo.L.pad, 9);
+        // Nada se sale de la tarjeta.
+        expect(geo.brandPill.x).toBeGreaterThanOrEqual(0);
+        expect(geo.brandPill.y).toBeGreaterThanOrEqual(0);
+        expect(geo.pricePill.x + geo.pricePill.w).toBeLessThanOrEqual(geo.width);
+        expect(geo.pricePill.y + geo.pricePill.h).toBeLessThanOrEqual(geo.height);
+        if (geo.ratingPill) {
+          expect(geo.ratingPill.x + geo.ratingPill.w).toBeLessThanOrEqual(
+            geo.width - geo.L.pad,
+          );
+        }
       }
     }
   });
 
-  it('la pastilla de precio es el precio real (o «Gratis») y está centrada', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+  it('la pastilla de precio es azul, con el precio real (o «Gratis»), a la derecha', () => {
+    for (const format of ALL_FORMATS) {
       const geo = computeExperienceShareCardLayout(
         buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' }),
         format,
-        'foto',
       );
       expect(geo.pricePill.text).toBe('$1,881 MXN');
-      expect(geo.pricePill.x + geo.pricePill.w / 2).toBe(geo.width / 2);
+      expect(geo.pricePill.priced).toBe(true);
+      // A la derecha, pegada al margen.
+      expect(geo.pricePill.x + geo.pricePill.w).toBe(geo.width - geo.L.pad);
       const gratis = computeExperienceShareCardLayout(
         buildExperienceShareCardData(GUIA_GRATIS, { cityName: 'Guadalajara' }),
         format,
-        'foto',
       );
       expect(gratis.pricePill.text).toBe('Gratis');
+      expect(gratis.pricePill.priced).toBe(false);
+    }
+  });
+
+  it('en Horizontal el precio va AL LADO del texto; en Historia/Post, DEBAJO', () => {
+    const tequila = buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' });
+    const h = computeExperienceShareCardLayout(
+      tequila,
+      EXPERIENCE_SHARE_CARD_FORMATS.horizontal,
+    );
+    // Al lado: la pastilla empieza a la derecha de la columna de texto
+    // y su base coincide con la del bloque de texto.
+    expect(h.pricePill.x).toBeGreaterThan(h.title.x + 200);
+    expect(h.pricePill.y + h.pricePill.h).toBeCloseTo(textBlockEnd(h), 9);
+    // La columna de texto deja hueco para la pastilla.
+    expect(h.title.lines.join(' ')).toBe(TEQUILA.title);
+    for (const format of [
+      EXPERIENCE_SHARE_CARD_FORMATS.story,
+      EXPERIENCE_SHARE_CARD_FORMATS.post,
+    ]) {
+      const geo = computeExperienceShareCardLayout(tequila, format);
+      // Debajo: la pastilla empieza después de los datos y ocupa todo
+      // el ancho disponible a la derecha.
+      expect(geo.pricePill.y).toBeGreaterThan(textBlockEnd(geo) - geo.pricePill.h);
+      expect(geo.pricePill.y + geo.pricePill.h).toBeCloseTo(
+        geo.height - geo.L.pad,
+        9,
+      );
+    }
+  });
+
+  it('las pastillas superiores: citymap.mx a la izquierda, calificación a la derecha (solo si es real)', () => {
+    for (const format of ALL_FORMATS) {
+      const sin = computeExperienceShareCardLayout(
+        buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' }),
+        format,
+      );
+      expect(sin.brandPill.x).toBe(sin.L.pad);
+      expect(sin.brandPill.y).toBe(sin.L.pad);
+      expect(sin.ratingPill).toBeNull();
+      const con = computeExperienceShareCardLayout(
+        buildExperienceShareCardData(CON_RESENAS, { cityName: 'Guadalajara' }),
+        format,
+      );
+      expect(con.ratingPill).not.toBeNull();
+      expect(con.ratingPill.text).toBe('4.8 · 132 reseñas');
+      expect(con.ratingPill.x + con.ratingPill.w).toBe(con.width - con.L.pad);
+      expect(con.ratingPill.y).toBe(con.L.pad);
+      // La de ciudad · tipo va encima del título, a la izquierda.
+      expect(con.cityPill.text).toBe('📍 Guadalajara · Tour');
+      expect(con.cityPill.x).toBe(con.L.pad);
     }
   });
 
   it('el título cabe siempre completo, sin «…», en Historia y en Post', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+    for (const format of [
+      EXPERIENCE_SHARE_CARD_FORMATS.story,
+      EXPERIENCE_SHARE_CARD_FORMATS.post,
+    ]) {
       for (const exp of [TEQUILA, LARGO]) {
         const d = buildExperienceShareCardData(exp, { cityName: 'Guadalajara' });
-        const geo = computeExperienceShareCardLayout(d, format, 'foto');
+        const geo = computeExperienceShareCardLayout(d, format);
         expect(geo.title.lines.length).toBeGreaterThan(0);
         expect(geo.title.lines.length).toBeLessThanOrEqual(
-          EXPERIENCE_SHARE_CARD_LAYOUT.foto[format.id].titleMaxLines,
+          EXPERIENCE_SHARE_CARD_LAYOUT[format.id].titleMaxLines,
         );
         for (const line of geo.title.lines) expect(line).not.toContain('…');
         expect(geo.title.lines.join(' ')).toBe(exp.title);
-        // La fuente nunca es mayor que la del estilo.
+        // La fuente nunca es mayor que la del formato.
         expect(geo.title.size).toBeLessThanOrEqual(
-          EXPERIENCE_SHARE_CARD_LAYOUT.foto[format.id].titleSize,
+          EXPERIENCE_SHARE_CARD_LAYOUT[format.id].titleSize,
         );
       }
     }
   });
-});
 
-describe('tarjeta para compartir el artículo: geometría «dividida»', () => {
-  it('la columna de datos va centrada en la fila dividida, sin desbordar', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
-      for (const exp of [TEQUILA, GUIA_GRATIS, CON_RESENAS]) {
-        const d = buildExperienceShareCardData(exp, { cityName: 'Guadalajara' });
-        const geo = computeExperienceShareCardLayout(d, format, 'dividida');
-        // La foto llena toda la altura de la fila dividida.
-        expect(geo.photo.h).toBe(geo.split.h);
-        expect(geo.photo.w).toBe(geo.L.photoW);
-        const firstTop = divididaFirstTop(geo);
-        const lastEnd = Math.max(...fotoEnds(geo));
-        // Centrada: el hueco arriba de la columna es igual al de abajo.
-        expect(geo.split.y + geo.split.h - lastEnd).toBeCloseTo(
-          firstTop - geo.split.y,
-          9,
-        );
-        // Nada se sale de la fila ni se come el pie.
-        expect(firstTop).toBeGreaterThanOrEqual(geo.split.y - 1e-9);
-        expect(lastEnd).toBeLessThanOrEqual(geo.split.y + geo.split.h + 1e-9);
-        const footTop = geo.height - geo.L.pad - geo.L.footSize;
-        expect(footTop - lastEnd).toBeGreaterThanOrEqual(geo.L.footGap - 1e-9);
-      }
-    }
-  });
-
-  it('la pastilla de precio va a la izquierda, en la columna de datos', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
-      const geo = computeExperienceShareCardLayout(
-        buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' }),
-        format,
-        'dividida',
-      );
-      expect(geo.pricePill.text).toBe('$1,881 MXN');
-      expect(geo.pricePill.x).toBe(geo.L.pad + geo.L.photoW + geo.L.colGap);
-      expect(geo.pricePill.x + geo.pricePill.w).toBeLessThanOrEqual(
-        geo.width - geo.L.pad,
-      );
-    }
-  });
-
-  it('el título cabe completo en la columna, sin «…»', () => {
-    // La columna es angosta (440 px en Historia): el título de ejemplo
-    // (74 caracteres) cabe en 4 líneas achicando la fuente; uno más
-    // largo ya no entraría y se cortaría, como en «foto».
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
-      const d = buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' });
-      const geo = computeExperienceShareCardLayout(d, format, 'dividida');
-      expect(geo.title.lines.length).toBeLessThanOrEqual(
-        EXPERIENCE_SHARE_CARD_LAYOUT.dividida[format.id].titleMaxLines,
-      );
-      for (const line of geo.title.lines) expect(line).not.toContain('…');
-      expect(geo.title.lines.join(' ')).toBe(TEQUILA.title);
-    }
+  it('en Horizontal el título cabe completo hasta ~90 caracteres; más largo se corta con «…» sin desbordar', () => {
+    // La columna de Horizontal es angosta (la pastilla de precio va al
+    // lado): el límite diseñado es menor que en Historia/Post, igual que
+    // en la tarjeta de eventos (PR #153). El título real de Tequila
+    // (74 caracteres) cabe completo; uno de 97 ya no entra en 3 líneas
+    // ni al tamaño mínimo y se corta — sin salirse de la tarjeta.
+    const format = EXPERIENCE_SHARE_CARD_FORMATS.horizontal;
+    const tequila = computeExperienceShareCardLayout(
+      buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' }),
+      format,
+    );
+    expect(tequila.title.lines.length).toBeLessThanOrEqual(
+      EXPERIENCE_SHARE_CARD_LAYOUT.horizontal.titleMaxLines,
+    );
+    for (const line of tequila.title.lines) expect(line).not.toContain('…');
+    expect(tequila.title.lines.join(' ')).toBe(TEQUILA.title);
+    const largo = computeExperienceShareCardLayout(
+      buildExperienceShareCardData(LARGO, { cityName: 'Guadalajara' }),
+      format,
+    );
+    expect(largo.title.lines.length).toBeLessThanOrEqual(
+      EXPERIENCE_SHARE_CARD_LAYOUT.horizontal.titleMaxLines,
+    );
+    expect(largo.title.size).toBe(
+      EXPERIENCE_SHARE_CARD_LAYOUT.horizontal.titleMinSize,
+    );
+    // Se corta con «…» pero no se desborda: todo queda dentro de la tarjeta.
+    expect(largo.title.lines.join(' ').startsWith('Excursión privada')).toBe(true);
+    expect(largo.title.x + 600).toBeLessThanOrEqual(largo.width);
   });
 });
 
 describe('tarjeta para compartir el artículo: la plantilla se renderiza (vista previa real)', () => {
-  it('foto en Historia: título, precio, ciudad, datos y logo; sin la calificación inventada', () => {
+  it('foto en Historia: pastilla citymap.mx, precio azul con DESDE, ciudad · Tour, datos; sin la calificación inventada', () => {
     const d = buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' });
     const html = renderToStaticMarkup(
-      <ExperienceShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} styleId="foto" />,
+      <ExperienceShareCardTemplate data={d} format={EXPERIENCE_SHARE_CARD_FORMATS.story} />,
     );
     expect(html).toContain('Excursión a Tequila');
     expect(html).toContain('La Rojeña');
+    expect(html).toContain('citymap');
+    expect(html).toContain('.mx');
+    expect(html).toContain('DESDE');
     expect(html).toContain('$1,881 MXN');
+    expect(html).toContain('por persona');
     expect(html).toContain('Guadalajara');
+    expect(html).toContain('Tour');
     expect(html).toContain('6 horas - 8 horas');
     expect(html).toContain('Español, Inglés');
-    expect(html).toContain('/logo-brand.png');
-    expect(html).toContain('Descúbrelo en');
+    // La pastilla de precio es AZUL, como la demo (no blanca).
+    expect(html).toContain('#2563EB');
+    // Sin logotipo grande ni pie: la marca es la pastilla citymap.mx.
+    expect(html).not.toContain('/logo-brand.png');
+    expect(html).not.toContain('Descúbrelo en');
     // La demo mostraba «4.9 · 13,275 reseñas»: ilustrativo, no real.
     expect(html).not.toContain('13,275');
     expect(html).not.toContain('4.9');
+    expect(html).not.toContain('★');
   });
 
-  it('dividida en Post: fondo claro, logo oscuro, título y precio', () => {
+  it('horizontal: mismo contenido en 1080×566', () => {
     const d = buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' });
     const html = renderToStaticMarkup(
-      <ExperienceShareCardTemplate data={d} format={SHARE_CARD_FORMATS.post} styleId="dividida" />,
+      <ExperienceShareCardTemplate data={d} format={EXPERIENCE_SHARE_CARD_FORMATS.horizontal} />,
     );
     expect(html).toContain('Excursión a Tequila');
+    expect(html).toContain('DESDE');
     expect(html).toContain('$1,881 MXN');
-    expect(html).toContain('background:#FFFFFF');
-    expect(html).toContain('brightness(0)');
-    expect(html).toContain('/logo-brand.png');
+    expect(html).toContain('por persona');
+    expect(html).toContain('width:1080px');
+    expect(html).toContain('height:566px');
   });
 
-  it('con reseñas reales: la calificación sí se pinta', () => {
+  it('con reseñas reales: la calificación sí se pinta (estrella + texto)', () => {
     const d = buildExperienceShareCardData(CON_RESENAS, { cityName: 'Guadalajara' });
     const html = renderToStaticMarkup(
-      <ExperienceShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} styleId="foto" />,
+      <ExperienceShareCardTemplate data={d} format={EXPERIENCE_SHARE_CARD_FORMATS.story} />,
     );
+    expect(html).toContain('★');
     expect(html).toContain('4.8');
-    expect(html).toContain('(132)');
+    expect(html).toContain('132 reseñas');
   });
 
   it('sin foto: sale el bloque con la inicial, no una imagen rota', () => {
     const d = buildExperienceShareCardData(GUIA_GRATIS, { cityName: 'Guadalajara' });
     const html = renderToStaticMarkup(
-      <ExperienceShareCardTemplate data={d} format={SHARE_CARD_FORMATS.post} styleId="foto" />,
+      <ExperienceShareCardTemplate data={d} format={EXPERIENCE_SHARE_CARD_FORMATS.post} />,
     );
     expect(html).toContain('Guía de Chapala');
     expect(html).toContain('Gratis');
@@ -381,15 +454,15 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(viewer).toContain('window.location.href');
   });
 
-  it('la hoja es la misma centrada de eventos/negocios, con los dos formatos y los dos estilos', () => {
-    expect(sheet).toContain('SHARE_CARD_FORMAT_LIST.map');
+  it('la hoja es la misma centrada de eventos/negocios, con los tres formatos y SIN selector de estilo', () => {
+    expect(sheet).toContain('EXPERIENCE_SHARE_CARD_FORMAT_LIST.map');
     expect(sheet).toContain('{f.label}');
     expect(sheet).toContain('{f.width} × {f.height}');
     expect(sheet).toContain('Compartir imagen');
     expect(sheet).toContain('Compartir enlace');
     expect(sheet).toContain("e?.name === 'AbortError'");
     expect(sheet).toContain('buildExperienceShareCardData(experience, { cityName })');
-    expect(sheet).toContain('exportExperienceShareCardPng(dataToExport, format, styleId)');
+    expect(sheet).toContain('exportExperienceShareCardPng(dataToExport, format)');
     expect(sheet).toContain('experienceShareCardFileName(experience)');
     expect(sheet).toContain('La foto no se pudo cargar');
     // Tarjeta centrada con las 4 esquinas redondeadas (PR #147).
@@ -404,24 +477,32 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     const m = sheet.match(/const PREVIEW_W = (\d+)/);
     expect(m).not.toBeNull();
     expect(Number(m[1])).toBeLessThanOrEqual(220);
-    // Selector de estilo como en negocios: chevrones, puntos y swipe.
-    expect(sheet).toContain('EXPERIENCE_SHARE_CARD_STYLE_LIST');
-    expect(sheet).toContain('Estilo anterior');
-    expect(sheet).toContain('Estilo siguiente');
-    expect(sheet).toContain('SWIPE_MIN_PX');
-    expect(sheet).toContain('goStyle');
+    // Sin selector de estilo: un solo estilo, sin chevrones, puntos ni swipe.
+    expect(sheet).not.toContain('EXPERIENCE_SHARE_CARD_STYLE_LIST');
+    expect(sheet).not.toContain('Estilo anterior');
+    expect(sheet).not.toContain('Estilo siguiente');
+    expect(sheet).not.toContain('SWIPE_MIN_PX');
+    expect(sheet).not.toContain('goStyle');
+    expect(sheet).not.toContain('trackPos');
+    expect(sheet).not.toContain('styleId');
   });
 
-  it('la plantilla lleva el logo oficial, la foto con CORS y el pie', () => {
-    expect(template).toContain('src="/logo-brand.png"');
-    expect(template).toContain('brightness(0) invert(1)');
-    expect(template).toContain('Descúbrelo en');
-    expect(template).toContain('>CityMap</span>');
+  it('la plantilla lleva la foto a sangre, las pastillas y el precio azul; sin logo ni pie', () => {
+    expect(template).toContain('citymap');
+    expect(template).toContain('.mx');
+    expect(template).toContain('#60A5FA');
+    expect(template).toContain('DESDE');
+    expect(template).toContain('por persona');
+    expect(template).toContain('EXPERIENCE_SHARE_CARD_BLUE');
     expect(template).toContain('crossOrigin="anonymous"');
     expect(template).toContain('{photoSrc ? (');
     expect(template).toContain('computeExperienceShareCardLayout');
-    expect(template).toContain('L.photoMinH');
-    expect(template).toContain("flex: dark ? 'none' : 1");
+    expect(template).toContain('objectFit:');
+    expect(template).toContain("'cover'");
+    expect(template).not.toContain('/logo-brand.png');
+    expect(template).not.toContain('Descúbrelo en');
+    expect(template).not.toContain('styleId');
+    expect(template).not.toContain('dividida');
     // Sin círculo de logo del negocio: eso es solo para negocios.
     expect(template).not.toContain('bizLogo');
     expect(template).not.toContain('logo circular');
@@ -436,9 +517,11 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(lib).toContain('assertCanvasNotBlank');
     expect(lib).not.toContain("import('html-to-image')");
     expect(lib).toContain('loadShareCardPhoto');
-    expect(lib).toContain('loadShareCardLogoWhite');
-    expect(lib).toContain('loadShareCardLogoDark');
+    expect(lib).not.toContain('loadShareCardLogoWhite');
+    expect(lib).not.toContain('loadShareCardLogoDark');
     expect(lib).toContain('drawCoverImage');
+    expect(lib).toContain('EXPERIENCE_SHARE_CARD_BLUE');
+    expect(lib).toContain("'#2563EB'");
     expect(sheet).not.toContain('left: -10000');
     // La vista previa y el PNG comparten UNA geometría.
     expect(lib).toContain('EXPERIENCE_SHARE_CARD_LAYOUT');
@@ -447,5 +530,13 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     // La calificación solo se muestra si es real (rating y reseñas).
     expect(lib).toContain('rating > 0');
     expect(lib).toContain('review_count > 0');
+    // La «Dividida» se quitó del todo: ni en la librería ni en la hoja.
+    expect(lib).not.toContain('dividida');
+    expect(lib).not.toContain('Dividida');
+    expect(sheet).not.toContain('dividida');
+    // El formato horizontal oficial de Instagram.
+    expect(lib).toContain('horizontal');
+    expect(lib).toContain('1080');
+    expect(lib).toContain('566');
   });
 });
