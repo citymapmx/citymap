@@ -364,6 +364,7 @@ iframe[id^="credential_picker"] {
   .cascade-in { -webkit-animation: none; animation: none; }
   .heart-pop-once { -webkit-animation: none; animation: none; }
   .heart-spark { -webkit-animation: none; animation: none; }
+  .skel-shimmer { -webkit-animation: none; animation: none; }
 }
 
 /* ── scale-in-ver-top (Animista, entrada del lote nuevo de "Ver más") ──
@@ -414,6 +415,26 @@ iframe[id^="credential_picker"] {
 @keyframes cascade-in {
   0% { -webkit-transform: translateY(22px); transform: translateY(22px); opacity: 0; }
   100% { -webkit-transform: translateY(0); transform: translateY(0); opacity: 1; }
+}
+
+/* ── skeleton-shimmer (esqueletos con brillo, demo #3 de "15 animaciones") ──
+   Mientras una lista tarda en cargar se ven las siluetas de las tarjetas
+   con una banda de luz diagonal que las cruza (~1,3 s por pasada). La demo
+   usa su propio keyframe `shimmer` (no es de Animista): aquí va el mismo
+   efecto — banda diagonal que barre el bloque de izquierda a derecha.
+   Solo transform/opacity: no mueve el layout. Los bloques del esqueleto
+   (Skeleton.jsx) llevan un hijo `.skel-shimmer` con esta clase. */
+@keyframes skeleton-shimmer {
+  0% { -webkit-transform: translateX(-100%); transform: translateX(-100%); }
+  100% { -webkit-transform: translateX(100%); transform: translateX(100%); }
+}
+.skel-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.28) 50%, transparent 70%);
+  -webkit-animation: skeleton-shimmer 1.3s linear infinite;
+  animation: skeleton-shimmer 1.3s linear infinite;
+  pointer-events: none;
 }
 
 /* ── Corazón al guardar: pop único + estallido de chispitas ──
