@@ -9,12 +9,14 @@
 // En web NO se puede publicar directo a Instagram: la hoja comparte la
 // imagen con el menú del sistema o la descarga, nunca promete publicarla.
 // Sin foto la tarjeta sale con el bloque de la inicial, nunca rota.
+// Solo formato Historia IG (el Post se quitó el 10 nov 2026) y dos
+// temas: Oscura (la de siempre) y Clara (fondo blanco, texto oscuro).
 import React, { useState } from 'react';
 import { useDataStore } from '../store/useDataStore.js';
 import { useUIStore } from '../store/useUIStore.js';
 import EventShareCardTemplate from './EventShareCardTemplate.jsx';
 import {
-  SHARE_CARD_FORMAT_LIST,
+  SHARE_CARD_FORMATS,
   canShareImageFiles,
   isPhotoFetchable,
   shareOrDownloadPng,
@@ -23,6 +25,7 @@ import {
   buildEventShareCardData,
   eventShareCardFileName,
   exportEventShareCardPng,
+  EVENT_SHARE_CARD_THEME_LIST,
 } from '../lib/eventShareCard.js';
 
 const PREVIEW_W = 200;
@@ -38,13 +41,13 @@ export default function EventShareCardSheet({ event, onClose, onShareLink }) {
   const dark = useUIStore((s) => s.dark);
   const toast$ = useUIStore((s) => s.toast$);
   const cities = useDataStore((s) => s.cities);
-  const [formatId, setFormatId] = useState('story');
+  const [themeId, setThemeId] = useState('oscura');
   const [status, setStatus] = useState('idle'); // idle | generating | error
   const [error, setError] = useState('');
   const [photoFailed, setPhotoFailed] = useState(false);
 
-  const format =
-    SHARE_CARD_FORMAT_LIST.find((f) => f.id === formatId) || SHARE_CARD_FORMAT_LIST[0];
+  // Solo queda Historia IG (el Post se quitó el 10 nov 2026).
+  const format = SHARE_CARD_FORMATS.story;
   const evCitySlug = String(event?.city_slug || '')
     .split(',')
     .map((s) => s.trim())
@@ -52,9 +55,12 @@ export default function EventShareCardSheet({ event, onClose, onShareLink }) {
   const cityName = cities.find((c) => c.slug === evCitySlug)?.name || '';
   const data = buildEventShareCardData(event, { cityName });
   // Sin foto, la tarjeta sale sin esa parte (nunca rota): el fallo de
-  // carga quita el dato y la geometría se recalcula sin él.
+  // carga quita el dato y la geometría se recalcula sin él. El tema
+  // (Oscura/Clara) viaja en el dato para que la vista previa y el PNG
+  // usen los mismos colores.
   let exportData = data;
   if (photoFailed) exportData = { ...exportData, photoUrl: null };
+  exportData = { ...exportData, theme: themeId };
 
   const onExport = async () => {
     if (status === 'generating') return;
@@ -164,33 +170,35 @@ export default function EventShareCardSheet({ event, onClose, onShareLink }) {
           </button>
         </div>
 
+        {/* Selector de tema (Oscura/Clara): el estilo por categoría
+            sigue siendo automático; aquí solo cambia el fondo. */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 8, marginTop: 10 }}>
-          {SHARE_CARD_FORMAT_LIST.map((f) => (
+          {EVENT_SHARE_CARD_THEME_LIST.map((t) => (
             <button
-              key={f.id}
-              onClick={() => setFormatId(f.id)}
+              key={t.id}
+              onClick={() => setThemeId(t.id)}
               className="press"
               style={{
                 flex: 1,
                 padding: '8px',
                 borderRadius: 14,
-                border: `1.5px solid ${formatId === f.id ? '#000000' : dark ? '#3F3F46' : '#E4E4E7'}`,
-                background: formatId === f.id ? '#000000' : 'transparent',
-                color: formatId === f.id ? '#FFFFFF' : dark ? '#FAFAFA' : '#18181B',
+                border: `1.5px solid ${themeId === t.id ? '#000000' : dark ? '#3F3F46' : '#E4E4E7'}`,
+                background: themeId === t.id ? '#000000' : 'transparent',
+                color: themeId === t.id ? '#FFFFFF' : dark ? '#FAFAFA' : '#18181B',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
               }}
             >
-              <div style={{ fontSize: 14, fontWeight: 800 }}>{f.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 800 }}>{t.label}</div>
               <div
                 style={{
                   fontSize: 11,
                   fontWeight: 600,
-                  color: formatId === f.id ? 'rgba(255,255,255,0.7)' : dark ? '#A1A1AA' : '#71717A',
+                  color: themeId === t.id ? 'rgba(255,255,255,0.7)' : dark ? '#A1A1AA' : '#71717A',
                   marginTop: 2,
                 }}
               >
-                {f.width} × {f.height}
+                {t.id === 'oscura' ? 'Fondo oscuro' : 'Fondo claro'}
               </div>
             </button>
           ))}

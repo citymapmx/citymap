@@ -6,12 +6,14 @@
 // (información clara y directa, sin píldora). La foto es el póster del
 // evento y crece (flex: 1, con altura mínima) para comerse el espacio
 // libre: nunca queda franja vacía entre la información y el pie. El
-// logotipo es /logo-brand.png en blanco, igual que la tarjeta de
-// negocios. Sin foto no hay imagen rota: sale un bloque oscuro con la
-// inicial del título.
+// logotipo es /logo-brand.png: en blanco en Oscura y en negro
+// (brightness(0)) en Clara. Sin foto no hay imagen rota: sale un bloque
+// con la inicial del título. Solo formato Historia.
 // La vista previa y el PNG exportado comparten la misma geometría:
 // EVENT_SHARE_CARD_LAYOUT + computeEventShareCardLayout en
 // lib/eventShareCard.js, así que lo que se ve es lo que se descarga.
+// Los colores vienen de layout.palette (el tema Oscura/Clara de
+// data.theme), igual que el canvas.
 import { getThumbUrl } from '../lib/utils.js';
 import {
   SHARE_CARD_FORMATS,
@@ -28,6 +30,7 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
   // calculan con la misma función que usa el exportador de canvas:
   // el corte y los anchos son idénticos en ambos.
   const layout = computeEventShareCardLayout(data, format);
+  const palette = layout.palette;
   // La foto se pide ancha (1600w por el bucket de getThumbUrl) para que
   // salga nítida en la exportación a 1080 px.
   const photoSrc = data?.photoUrl ? getThumbUrl(data.photoUrl, 1080) : null;
@@ -56,8 +59,8 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        background: 'linear-gradient(180deg, #1B1B1B 0%, #0B0B0B 100%)',
-        color: '#FFFFFF',
+        background: `linear-gradient(180deg, ${palette.bg[0]} 0%, ${palette.bg[1]} 100%)`,
+        color: palette.text,
         fontFamily: "var(--heading), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
         textAlign: 'center',
         overflow: 'hidden',
@@ -71,7 +74,7 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
           height: L.logoH,
           width: 'auto',
           display: 'block',
-          filter: 'brightness(0) invert(1)',
+          filter: palette.logoWhite ? 'brightness(0) invert(1)' : 'brightness(0)',
           marginBottom: L.logoGap,
           flexShrink: 0,
         }}
@@ -84,7 +87,7 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
           minHeight: L.photoMinH,
           borderRadius: L.photoRadius,
           overflow: 'hidden',
-          background: '#262626',
+          background: palette.photoBg,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -106,7 +109,7 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
         ) : (
           <span
             style={{
-              color: 'rgba(255,255,255,0.35)',
+              color: palette.initial,
               fontSize: L.photoMinH * 0.45,
               fontWeight: 800,
               lineHeight: 1,
@@ -126,7 +129,7 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
             lineHeight: 1,
             letterSpacing: 6,
             textTransform: 'uppercase',
-            color: '#A3A3A3',
+            color: palette.muted,
             flexShrink: 0,
           }}
         >
@@ -173,7 +176,7 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
                 fontSize: layout.subtitle.size,
                 fontWeight: 600,
                 lineHeight: L.subLineH,
-                color: 'rgba(255,255,255,0.75)',
+                color: palette.sub,
               }}
             >
               {line}
@@ -197,7 +200,7 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
                 fontSize: row.size,
                 fontWeight: 600,
                 lineHeight: L.infoLineH,
-                color: 'rgba(255,255,255,0.85)',
+                color: palette.info,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -218,13 +221,14 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
         >
           <span
             style={{
-              background: 'rgba(255,255,255,0.12)',
+              background: palette.pillBg,
               borderRadius: 999,
               padding: `${L.pillPadY}px ${L.pillPadX}px`,
               fontSize: L.pillSize,
               fontWeight: 700,
               lineHeight: 1,
               display: 'inline-block',
+              color: palette.pillText,
             }}
           >
             {layout.pill.text}
@@ -232,16 +236,17 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
         </div>
       ) : null}
 
-      {/* Código de barras decorativo (estilo boleto): tira blanca con
-          las barras en las posiciones del layout, igual que el canvas.
-          No es un código real, no se escanea. */}
+      {/* Código de barras decorativo (estilo boleto): tira con las
+          barras en las posiciones del layout, igual que el canvas. En
+          Oscura es tira blanca con barras negras; en Clara, tira negra
+          con barras blancas. No es un código real, no se escanea. */}
       {layout.barcode ? (
         <div
           style={{
             marginTop: firstBlock === 'barcode' ? layout.firstGap : L.barcodeGap,
             width: photoW,
             height: L.barcodeH,
-            background: '#FFFFFF',
+            background: palette.barcodeBg,
             borderRadius: 20,
             position: 'relative',
             overflow: 'hidden',
@@ -257,7 +262,7 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
                 top: L.barcodePadY,
                 width: bar.w,
                 height: L.barcodeH - L.barcodePadY * 2,
-                background: '#111111',
+                background: palette.barcodeBar,
               }}
             />
           ))}
@@ -270,11 +275,12 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
           fontSize: L.footSize,
           lineHeight: 1,
           letterSpacing: 2,
-          color: '#A3A3A3',
+          color: palette.footMuted,
           flexShrink: 0,
         }}
       >
-        Descúbrelo en <span style={{ color: '#FFFFFF', fontWeight: 800 }}>CityMap</span>
+        Descubre más eventos en{' '}
+        <span style={{ color: palette.footBold, fontWeight: 800 }}>www.citymap.mx</span>
       </div>
     </div>
   );
