@@ -6,13 +6,15 @@
 // «Grid» (demo `propuestas-de-tarjetas-con-grid`, 10 nov 2026: 1 foto
 // grande arriba y 2 chicas abajo, sobre fondo blanco, con logotipo
 // oficial, pastilla de ubicación gris, título y precio en texto plano,
-// pie «Descúbrelo en www.citymap.mx»). «Foto completa»: la foto
-// llena TODA la tarjeta a sangre, el texto va encima con degradados,
-// logotipo oficial arriba a la izquierda (corrección de Jonathan
-// 10 Nov ~11:39: en lugar de la pastilla de texto «citymap.mx»),
-// pastilla de calificación arriba a la derecha (solo si es real),
-// pastilla GLASS de ciudad · tipo (corrección de Jonathan
-// 10 Nov ~11:39: translúcida, no azul sólida), título, descripción,
+// pie «Descúbrelo en www.citymap.mx»). «Foto completa»: en Post y
+// Horizontal la foto llena TODA la tarjeta a sangre, el texto va encima
+// con degradados; en Historia (PR #177) la foto va en un bloque
+// CENTRADO con márgenes y esquinas redondeadas, como en la tarjeta de
+// eventos, y el contenido va DEBAJO sobre fondo oscuro. Logotipo oficial
+// arriba a la izquierda (corrección de Jonathan 10 Nov ~11:39: en lugar
+// de la pastilla de texto «citymap.mx»), pastilla de calificación arriba
+// a la derecha (solo si es real), pastilla GLASS de ciudad · tipo
+// (corrección de Jonathan 10 Nov ~11:39: translúcida, no azul sólida), título, descripción,
 // duración · idiomas, y el precio en una pastilla AZUL grande
 // («DESDE $1,881 MXN por persona»). Sin pie. Sin foto no hay imagen
 // rota: sale un degradado oscuro con la inicial del título.
@@ -36,6 +38,10 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
   // calculan con la misma función que usa el exportador de canvas:
   // el corte y los anchos son idénticos en ambos.
   const layout = computeExperienceShareCardLayout(data, format, styleId);
+  // En Historia (PR #177) la foto va en un bloque centrado con
+  // márgenes, como en eventos; en Post y Horizontal sigue a sangre.
+  const centeredPhoto = Boolean(L.centeredPhoto);
+  const photo = layout.photo;
   // La foto se pide ancha (1080w por el bucket de getThumbUrl) para que
   // salga nítida en la exportación a 1080 px.
   const photoSrc = data?.photoUrl ? getThumbUrl(data.photoUrl, 1080) : null;
@@ -251,7 +257,11 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
         width,
         height: f.height,
         boxSizing: 'border-box',
-        background: '#111111',
+        // Historia: fondo oscuro (igual que la tarjeta de eventos);
+        // Post y Horizontal llevan la foto a sangre encima.
+        background: centeredPhoto
+          ? 'linear-gradient(180deg, #1B1B1B 0%, #0B0B0B 100%)'
+          : '#111111',
         color: '#FFFFFF',
         fontFamily: "var(--heading), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
         textAlign: 'left',
@@ -259,7 +269,9 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
         position: 'relative',
       }}
     >
-      {/* Foto a sangre completa (o degradado + inicial sin foto) */}
+      {/* Foto: en Historia, bloque centrado con esquinas redondeadas;
+          en Post y Horizontal, a sangre completa (o degradado + inicial
+          sin foto) */}
       {photoSrc ? (
         <img
           src={photoSrc}
@@ -268,10 +280,12 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
           alt=""
           style={{
             position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
+            left: photo.x,
+            top: photo.y,
+            width: photo.w,
+            height: photo.h,
             objectFit: 'cover',
+            borderRadius: photo.radius || 0,
             display: 'block',
           }}
         />
@@ -279,8 +293,14 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
         <div
           style={{
             position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(180deg, #262626 0%, #111111 100%)',
+            left: photo.x,
+            top: photo.y,
+            width: photo.w,
+            height: photo.h,
+            borderRadius: photo.radius || 0,
+            background: centeredPhoto
+              ? '#262626'
+              : 'linear-gradient(180deg, #262626 0%, #111111 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -289,7 +309,7 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
           <span
             style={{
               color: 'rgba(255,255,255,0.35)',
-              fontSize: Math.round(Math.min(width, f.height) * 0.3),
+              fontSize: Math.round(Math.min(photo.w, photo.h) * 0.3),
               fontWeight: 800,
               lineHeight: 1,
             }}
@@ -299,27 +319,32 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
         </div>
       )}
 
-      {/* Degradados para que se lea el texto */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: gradTopH,
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: gradBottomH,
-          background: 'linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0) 100%)',
-        }}
-      />
+      {/* Degradados para que se lea el texto (solo con la foto a
+          sangre: en Historia el texto va sobre el fondo oscuro) */}
+      {!centeredPhoto && (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: gradTopH,
+              background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: gradBottomH,
+              background: 'linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0) 100%)',
+            }}
+          />
+        </>
+      )}
 
       {/* Logotipo oficial (arriba a la izquierda): blanco sobre la foto */}
       <img
@@ -335,7 +360,11 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
         }}
       />
 
-      {/* Pastilla de calificación (arriba a la derecha, solo si es real) */}
+      {/* Pastilla de calificación (arriba a la derecha, solo si es real).
+          Estrella y texto en spans separados (mismo patrón que la glass
+          en el PR #177): cada uno se centra por su propia línea en la
+          pastilla flex; con un solo span, el glifo ★ arrastraba el
+          texto hacia arriba, igual que el pin 📍 en la glass. */}
       {layout.ratingPill
         ? pill(
             layout.ratingPill,
@@ -351,13 +380,32 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
           )
         : null}
 
-      {/* Pastilla GLASS de ciudad · tipo: translúcida + borde claro */}
+      {/* Pastilla GLASS de ciudad · tipo: translúcida + borde claro.
+          Pin y etiqueta por separado (PR #177): cada uno se centra por
+          su caja visual en su propia línea; con un solo span, el emoji
+          📍 arrastraba el texto hacia arriba. */}
       {layout.cityPill
         ? pill(
             layout.cityPill,
-            <span style={{ fontSize: layout.cityPill.size, fontWeight: 600, lineHeight: 1, color: '#FFFFFF', whiteSpace: 'nowrap' }}>
-              {layout.cityPill.text}
-            </span>,
+            <>
+              {layout.cityPill.pin ? (
+                <span style={{ fontSize: layout.cityPill.size, fontWeight: 600, lineHeight: 1, color: '#FFFFFF', whiteSpace: 'nowrap' }}>
+                  {layout.cityPill.pin}
+                </span>
+              ) : null}
+              <span
+                style={{
+                  fontSize: layout.cityPill.size,
+                  fontWeight: 600,
+                  lineHeight: 1,
+                  color: '#FFFFFF',
+                  whiteSpace: 'nowrap',
+                  marginLeft: layout.cityPill.pin ? layout.cityPill.pinGap : 0,
+                }}
+              >
+                {layout.cityPill.label}
+              </span>
+            </>,
             {
               background: EXPERIENCE_SHARE_CARD_GLASS_BG,
               border: `1.5px solid ${EXPERIENCE_SHARE_CARD_GLASS_BORDER}`,
@@ -444,7 +492,11 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
         </div>
       ) : null}
 
-      {/* Pastilla AZUL de precio protagonista */}
+      {/* Pastilla AZUL de precio protagonista. La de «Gratis» es un solo
+          span con lineHeight 1 en la pastilla flex (mismo patrón que la
+          glass en el PR #177): el texto se centra por su propia línea;
+          en canvas se dibuja además con drawInkCenteredText para que
+          la tinta quede centrada por su caja visual. */}
       {pill(
         layout.pricePill,
         layout.pricePill.priced ? (

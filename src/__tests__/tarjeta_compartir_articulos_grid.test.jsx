@@ -247,7 +247,18 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
       expect(geo.bigPhoto).toBeUndefined();
       expect(geo.duo).toBeUndefined();
       expect(geo.pricePill).toBeDefined();
-      expect(geo.photo).toEqual({ x: 0, y: 0, w: 1080, h: format.height });
+      if (format.id === 'story') {
+        // PR #177 (rebase): en Historia la foto es un bloque centrado
+        // con márgenes, no a sangre (x/y/w/radio del bloque; la altura
+        // es lo que sobra, con photoMinH 900 como mínimo).
+        expect(geo.photo.x).toBe(64);
+        expect(geo.photo.y).toBe(180);
+        expect(geo.photo.w).toBe(952);
+        expect(geo.photo.radius).toBe(40);
+        expect(geo.photo.h).toBeGreaterThanOrEqual(900);
+      } else {
+        expect(geo.photo).toEqual({ x: 0, y: 0, w: 1080, h: format.height, radius: 0 });
+      }
     }
     // Por defecto, sin estilo, sigue siendo «Foto completa».
     expect(computeExperienceShareCardLayout(d, EXPERIENCE_SHARE_CARD_FORMATS.story).style).toBe(
