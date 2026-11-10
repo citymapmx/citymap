@@ -174,8 +174,8 @@ export default function AppRouter(props) {
         {/* ── ALL OTHER ROUTES (non-home, non-detail) ───────────────── */}
         {!showHomeView && (!showDetail || background) && (
           <div inert={showDetail || undefined}><Routes location={contentLocation}>
-            <Route path="/precios" element={<PlansPage T={T} onClose={() => navigate("/")} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); navigate("/"); }} />} />
-            <Route path="/negocios" element={<BusinessLanding T={T} dark={dark} navigate={navigate} user={user} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); navigate("/"); }} onStartPaidPlan={startPaidPlan} setShowAuth={setShowAuth} />} />
+            <Route path="/precios" element={<PlansPage T={T} onClose={() => navigate("/")} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); }} />} />
+            <Route path="/negocios" element={<BusinessLanding T={T} dark={dark} navigate={navigate} user={user} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); }} onStartPaidPlan={startPaidPlan} setShowAuth={setShowAuth} />} />
             
             <Route path="/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />
             <Route path="/:country/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />
