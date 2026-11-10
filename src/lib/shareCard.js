@@ -59,13 +59,16 @@ export const SHARE_CARD_LAYOUT = {
     logoGap: 32,
     photoMinH: 1080,
     photoRadius: 40,
-    // Círculo del logo del negocio (PR #144): mismo estilo que la ficha
+    // Círculo del logo del negocio (PR #144; PR #145: más grande, Ø 240
+    // con anillo y sombra proporcionales): mismo estilo que la ficha
     // (DetailView) — blanco, anillo y sombra — centrado a caballo sobre
     // el borde inferior de la foto. bizLogoGap es el hueco entre el
     // círculo y el primer texto.
-    bizLogoD: 190,
-    bizLogoRing: 6,
+    bizLogoD: 240,
+    bizLogoRing: 8,
     bizLogoGap: 28,
+    bizLogoShadowY: 8,
+    bizLogoShadowBlur: 20,
     catSize: 32,
     catGap: 36,
     nameSize: 76,
@@ -87,9 +90,11 @@ export const SHARE_CARD_LAYOUT = {
     logoGap: 24,
     photoMinH: 480,
     photoRadius: 32,
-    bizLogoD: 150,
-    bizLogoRing: 5,
+    bizLogoD: 190,
+    bizLogoRing: 6,
     bizLogoGap: 22,
+    bizLogoShadowY: 8,
+    bizLogoShadowBlur: 20,
     catSize: 28,
     catGap: 28,
     nameSize: 60,
@@ -608,8 +613,8 @@ export function drawShareCardCanvas(data, format, assets, layout) {
     const r = b.d / 2;
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.12)';
-    ctx.shadowBlur = 16;
-    ctx.shadowOffsetY = 6;
+    ctx.shadowBlur = L.bizLogoShadowBlur;
+    ctx.shadowOffsetY = L.bizLogoShadowY;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fillStyle = '#FFFFFF';

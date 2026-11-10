@@ -5,7 +5,8 @@
 // PR #144: el logo circular del negocio (mismo que la ficha, solo para
 // planes de pago con logo_url) va centrado a caballo sobre el borde
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
-// tarjeta queda igual que en el #143.
+// tarjeta queda igual que en el #143. PR #145: el círculo es más grande
+// (Ø 240 Historia / 190 Post) con anillo y sombra proporcionales.
 // La vista previa y el PNG exportado comparten la misma geometría:
 // SHARE_CARD_LAYOUT + computeShareCardLayout en lib/shareCard.js, así que
 // lo que se ve es lo que se descarga. La foto crece (flex: 1, con altura
@@ -138,7 +139,7 @@ export default function ShareCardTemplate({ data, format, onPhotoError, onBizLog
             borderRadius: '50%',
             background: '#FFFFFF',
             border: '1px solid rgba(0,0,0,0.06)',
-            boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+            boxShadow: `0 ${L.bizLogoShadowY}px ${L.bizLogoShadowBlur}px rgba(0,0,0,0.12)`,
             padding: layout.bizLogo.ring,
             boxSizing: 'border-box',
             overflow: 'hidden',
