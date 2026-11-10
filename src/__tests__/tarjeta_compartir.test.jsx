@@ -10,6 +10,9 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // PR #143: el PNG se dibuja en canvas (el de html-to-image salía en
 // blanco), con el logotipo oficial, la calificación de Google con su
 // conteo, sin precio y con la foto creciendo para llenar la tarjeta.
+// PR #144: el logo circular del negocio (mismo que la ficha) a caballo
+// sobre el borde inferior de la foto, y la hoja compacta con los botones
+// en un pie fijo para que se vean sin bajar.
 describe('tarjeta para compartir el negocio', () => {
   const lib = read('../lib/shareCard.js');
   const template = read('../components/ShareCardTemplate.jsx');
@@ -131,5 +134,49 @@ describe('tarjeta para compartir el negocio', () => {
     expect(sheet).toContain('Compartir enlace');
     expect(sheet).toContain('onShareLink');
     expect(detail).toContain('onShareLink={(b) => doShare(b)}');
+  });
+
+  it('el logo circular del negocio (PR #144): mismo que la ficha, solo si lo tiene', () => {
+    // La ficha (DetailView) solo muestra el círculo a los planes de
+    // pago con logo_url; la tarjeta replica esa regla.
+    expect(lib).toContain('bizShowsLogoCircle');
+    expect(lib).toContain('logo_url');
+    expect(lib).toContain("'premium'");
+    expect(lib).toContain("'destacado'");
+    expect(lib).toContain('bizLogoUrl');
+    // Geometría compartida: diámetro y hueco en el layout, círculo
+    // centrado sobre el borde inferior de la foto.
+    expect(lib).toContain('bizLogoD');
+    expect(lib).toContain('bizLogoGap');
+    expect(lib).toContain('bizLogo');
+    // La vista previa lo dibuja con el mismo estilo que la ficha
+    // (círculo blanco, anillo y sombra) y lo quita si no carga.
+    expect(template).toContain('getThumbUrl(data.bizLogoUrl, 300, 300)');
+    expect(template).toContain('onBizLogoError');
+    expect(template).toContain("borderRadius: '50%'");
+    expect(template).toContain('0 6px 16px rgba(0,0,0,0.12)');
+    // El exportador de canvas también lo dibuja (círculo + contain) y
+    // si no carga, la tarjeta sale sin círculo.
+    expect(lib).toContain('loadShareCardBizLogo');
+    expect(lib).toContain('drawContainImage');
+    expect(lib).toContain('ctx.arc');
+    expect(sheet).toContain('onBizLogoError');
+    expect(sheet).toContain('bizLogoFailed');
+  });
+
+  it('la hoja cabe sin bajar: vista previa chica y botones en pie fijo (PR #144)', () => {
+    // Vista previa de 200 px (Historia: 356 px de alto) en vez de 300.
+    const m = sheet.match(/const PREVIEW_W = (\d+)/);
+    expect(m).not.toBeNull();
+    expect(Number(m[1])).toBeLessThanOrEqual(220);
+    // Los dos botones viven en un pie fijo al fondo de la hoja.
+    expect(sheet).toContain("position: 'sticky'");
+    expect(sheet).toContain('bottom: 0');
+    expect(sheet).toContain('Compartir enlace');
+    // La hoja sigue acotada en altura y con cierre.
+    expect(sheet).toContain("maxHeight: '92dvh'");
+    expect(sheet).toContain('onClose');
+    // El párrafo largo de descripción se quitó para que quepa todo.
+    expect(sheet).not.toContain('Una imagen con la foto y los datos del negocio');
   });
 });

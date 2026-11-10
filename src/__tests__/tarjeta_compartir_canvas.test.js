@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildShareCardData,
+  bizShowsLogoCircle,
   computeShareCardLayout,
   wrapShareCardName,
   SHARE_CARD_FORMATS,
@@ -21,6 +22,14 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
   };
   const googleDisp = { rating: 4.5, count: 1234, source: 'google' };
   const internalDisp = { rating: 5.0, count: 2, source: 'citymap' };
+  // Barbarella: plan de pago con logo, como en la captura de Jonathan.
+  const bizLogo = {
+    ...biz,
+    name: 'Barbarella',
+    logo_url: 'https://example.supabase.co/object/public/media/cityguide/barbarella-logo.png',
+    plan: 'premium',
+  };
+  const googleDispBarbarella = { rating: 4.5, count: 4569, source: 'google' };
 
   it('la calificación es solo la de Google, con su conteo', () => {
     const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
@@ -102,5 +111,101 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
     expect(lines[1].endsWith('…')).toBe(true);
     expect(wrapShareCardName('Xokol', 952, L)).toEqual(['Xokol']);
     expect(wrapShareCardName('', 952, L)).toEqual([]);
+  });
+
+  it('el círculo del logo es solo para planes de pago con logo_url (como la ficha)', () => {
+    // Misma regla que DetailView: logo + plan premium/pro/destacado.
+    expect(bizShowsLogoCircle(bizLogo)).toBe(true);
+    expect(bizShowsLogoCircle({ ...bizLogo, plan: 'pro' })).toBe(true);
+    expect(bizShowsLogoCircle({ ...bizLogo, plan: 'destacado' })).toBe(true);
+    // Plan gratuito con logo: la ficha tampoco lo muestra.
+    expect(bizShowsLogoCircle({ ...bizLogo, plan: 'free' })).toBe(false);
+    expect(bizShowsLogoCircle({ ...bizLogo, plan: '' })).toBe(false);
+    expect(bizShowsLogoCircle({ ...bizLogo, plan: undefined })).toBe(false);
+    // Sin logo no hay círculo en ningún plan.
+    expect(bizShowsLogoCircle({ ...bizLogo, logo_url: '' })).toBe(false);
+    expect(bizShowsLogoCircle({ ...bizLogo, logo_url: null })).toBe(false);
+    expect(bizShowsLogoCircle(biz)).toBe(false);
+  });
+
+  it('buildShareCardData pasa el logo solo cuando hay círculo; la foto sigue prefiriendo la galería', () => {
+    const d = buildShareCardData(bizLogo, { disp: googleDispBarbarella, cityName: 'Guadalajara' });
+    expect(d.bizLogoUrl).toBe(bizLogo.logo_url);
+    // La foto sigue siendo la de la galería, no el logo.
+    expect(d.photoUrl).toBe(biz.photos[0].url);
+    const dFree = buildShareCardData({ ...bizLogo, plan: 'free' }, { disp: googleDispBarbarella, cityName: 'Guadalajara' });
+    expect(dFree.bizLogoUrl).toBeNull();
+    const dNoLogo = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+    expect(dNoLogo.bizLogoUrl).toBeNull();
+  });
+
+  it('con logo, el círculo queda centrado a caballo sobre el borde inferior de la foto', () => {
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      const d = buildShareCardData(bizLogo, { disp: googleDispBarbarella, cityName: 'Guadalajara' });
+      const geo = computeShareCardLayout(d, format, true);
+      expect(geo.bizLogo).not.toBeNull();
+      // Diámetro del layout y centrado horizontal.
+      expect(geo.bizLogo.d).toBe(geo.L.bizLogoD);
+      expect(geo.bizLogo.x).toBe(Math.round((geo.width - geo.L.bizLogoD) / 2));
+      // El centro del círculo está justo en el borde inferior de la foto
+      // (la y se redondea a píxel entero para un dibujo nítido).
+      const photoBottom = geo.photo.y + geo.photo.h;
+      expect(geo.bizLogo.y + geo.bizLogo.d / 2).toBeCloseTo(photoBottom, 0);
+      // La foto se acorta exactamente lo que sobresale el círculo más
+      // el hueco, menos el margen que había antes (catGap).
+      const dNoLogo = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+      const geoNoLogo = computeShareCardLayout(dNoLogo, format, true);
+      const expectedDiff = geo.L.bizLogoD / 2 + geo.L.bizLogoGap - geo.L.catGap;
+      expect(geoNoLogo.photo.h - geo.photo.h).toBeCloseTo(expectedDiff, 6);
+      // El primer hueco tras la foto es el del círculo.
+      expect(geo.firstGap).toBe(geo.L.bizLogoD / 2 + geo.L.bizLogoGap);
+      // Sigue sin franja vacía entre píldoras y pie.
+      const lastRow = geo.pillRows[geo.pillRows.length - 1];
+      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      const footTop = geo.height - geo.L.pad - geo.L.footSize;
+      expect(footTop - pillsEnd).toBe(geo.L.footGap);
+    }
+  });
+
+  it('sin logo, la tarjeta es idéntica a la del #143 (sin círculo, sin hueco)', () => {
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+      const geo = computeShareCardLayout(d, format, true);
+      expect(geo.bizLogo).toBeNull();
+      // La foto conserva su alto del #143 (Xokol, Historia: 1370,88;
+      // Post: 640,8) y el primer hueco es el margen normal.
+      const expectedPhotoH =
+        format.height -
+        geo.L.pad * 2 -
+        (geo.L.logoH + geo.L.logoGap) -
+        (geo.L.catGap + geo.L.catSize) -
+        (geo.L.nameGap + geo.L.nameSize * geo.L.nameLineH) -
+        (geo.L.pillsGap + geo.L.pillSize + geo.L.pillPadY * 2) -
+        (geo.L.footGap + geo.L.footSize);
+      expect(geo.photo.h).toBeCloseTo(expectedPhotoH, 6);
+      expect(geo.firstGap).toBe(geo.L.catGap);
+    }
+  });
+
+  it('el peor caso con logo (nombre largo, 2 líneas, ciudad larga) tampoco deja hueco ni se desborda', () => {
+    const longBizLogo = {
+      ...bizLogo,
+      name: 'Restaurante El Gran Buffet Internacional de la Abuela María',
+      city_slug: 'san-pedro-garza-garcia',
+    };
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      const d = buildShareCardData(longBizLogo, {
+        disp: googleDispBarbarella,
+        cityName: 'San Pedro Garza García',
+      });
+      const geo = computeShareCardLayout(d, format, true);
+      expect(geo.bizLogo).not.toBeNull();
+      expect(geo.name.lines.length).toBeLessThanOrEqual(2);
+      expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
+      const lastRow = geo.pillRows[geo.pillRows.length - 1];
+      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      const footTop = geo.height - geo.L.pad - geo.L.footSize;
+      expect(footTop - pillsEnd).toBe(geo.L.footGap);
+    }
   });
 });

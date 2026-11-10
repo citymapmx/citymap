@@ -1,6 +1,8 @@
 // Hoja para compartir el negocio como imagen (PR #142, v1; PR #143: la
 // imagen se dibuja en canvas, con el logo oficial y la calificación de
-// Google con su conteo, sin precio).
+// Google con su conteo, sin precio; PR #144: logo circular del negocio y
+// hoja compacta con los botones en un pie fijo, para que se vean sin
+// bajar en cualquier teléfono).
 // Al presionar Compartir se genera un PNG con la foto y los datos del
 // negocio, listo para Instagram/Facebook. v1: UN estilo oscuro, dos
 // formatos (Historia IG 1080×1920, Post IG 1080×1080). El botón de
@@ -13,6 +15,7 @@ import { m } from 'framer-motion';
 import { useDataStore } from '../store/useDataStore.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { displayRating } from '../lib/googleRatings.js';
+import { getThumbUrl } from '../lib/utils.js';
 import ShareCardTemplate from './ShareCardTemplate.jsx';
 import {
   SHARE_CARD_FORMAT_LIST,
@@ -24,7 +27,17 @@ import {
   shareOrDownloadPng,
 } from '../lib/shareCard.js';
 
-const PREVIEW_W = 300;
+const PREVIEW_W = 200;
+
+// La hoja es compacta a propósito (PR #144): vista previa chica y
+// espacios apretados para que en cualquier teléfono se vean la vista
+// previa y los dos botones sin tener que bajar. Peor caso (Historia,
+// 200×356): 12 (padding sup.) + 10 (tirador) + 30 (encabezado) + 56
+// (selector) + 364 (vista previa) + 104 (pie fijo) = 576 px, que cabe
+// en 92dvh de una pantalla chica de 640 px (589 px) y sobra en una
+// típica de 844 px (776 px). Si aparece un aviso (foto sin cargar o
+// error), la hoja puede crecer unos px: el pie es sticky y los botones
+// nunca se esconden.
 
 export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   const dark = useUIStore((s) => s.dark);
@@ -35,6 +48,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   const [status, setStatus] = useState('idle'); // idle | generating | error
   const [error, setError] = useState('');
   const [photoFailed, setPhotoFailed] = useState(false);
+  const [bizLogoFailed, setBizLogoFailed] = useState(false);
 
   const format =
     SHARE_CARD_FORMAT_LIST.find((f) => f.id === formatId) || SHARE_CARD_FORMAT_LIST[0];
@@ -44,7 +58,11 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   // los pasa si displayRating trae dato de Google; si no, no hay píldora.
   const disp = displayRating(biz, googleRatings);
   const data = buildShareCardData(biz, { disp, cityName });
-  const exportData = photoFailed ? { ...data, photoUrl: null } : data;
+  // Sin foto o sin logo, la tarjeta sale sin esa parte (nunca rota):
+  // el fallo de carga quita el dato y la geometría se recalcula sin él.
+  let exportData = data;
+  if (photoFailed) exportData = { ...exportData, photoUrl: null };
+  if (bizLogoFailed) exportData = { ...exportData, bizLogoUrl: null };
 
   const onExport = async () => {
     if (status === 'generating') return;
@@ -59,6 +77,17 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
         if (!ok) {
           setPhotoFailed(true);
           dataToExport = { ...exportData, photoUrl: null };
+        }
+      }
+      // El logo circular: si no se puede leer, la tarjeta sale sin
+      // círculo (igual que la vista previa tras onError), nunca rota.
+      if (dataToExport.bizLogoUrl) {
+        const okLogo = await isPhotoFetchable(
+          getThumbUrl(dataToExport.bizLogoUrl, 300, 300),
+        );
+        if (!okLogo) {
+          setBizLogoFailed(true);
+          dataToExport = { ...dataToExport, bizLogoUrl: null };
         }
       }
       // La imagen se dibuja directo en canvas (PR #143): lo que se
@@ -110,7 +139,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
           width: '100%',
           maxWidth: 600,
           borderRadius: '24px 24px 0 0',
-          padding: '16px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
+          padding: '12px 16px 0',
           boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
           maxHeight: '92dvh',
           overflowY: 'auto',
@@ -123,7 +152,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
             height: 4,
             borderRadius: 2,
             background: dark ? '#3F3F46' : '#E4E4E7',
-            margin: '0 auto 16px',
+            margin: '0 auto 6px',
           }}
         />
         <div
@@ -131,13 +160,13 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: 4,
+            marginBottom: 0,
           }}
         >
           <h2
             style={{
               margin: 0,
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: 800,
               color: dark ? '#FAFAFA' : '#18181B',
             }}
@@ -155,24 +184,14 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
               fontSize: 22,
               lineHeight: 1,
               color: dark ? '#A1A1AA' : '#71717A',
-              padding: 8,
+              padding: 4,
             }}
           >
             ×
           </button>
         </div>
-        <p
-          style={{
-            margin: '0 0 16px 0',
-            fontSize: 13,
-            color: dark ? '#A1A1AA' : '#71717A',
-            lineHeight: 1.5,
-          }}
-        >
-          Una imagen con la foto y los datos del negocio, lista para Instagram.
-        </p>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8, marginTop: 10 }}>
           {SHARE_CARD_FORMAT_LIST.map((f) => (
             <button
               key={f.id}
@@ -180,7 +199,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
               className="press"
               style={{
                 flex: 1,
-                padding: '12px 8px',
+                padding: '8px',
                 borderRadius: 14,
                 border: `1.5px solid ${formatId === f.id ? '#000000' : dark ? '#3F3F46' : '#E4E4E7'}`,
                 background: formatId === f.id ? '#000000' : 'transparent',
@@ -208,7 +227,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
           style={{
             width: PREVIEW_W,
             height: previewH,
-            margin: '0 auto 16px',
+            margin: '0 auto 8px',
             borderRadius: 20,
             overflow: 'hidden',
             boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
@@ -227,63 +246,78 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
               data={exportData}
               format={format}
               onPhotoError={() => setPhotoFailed(true)}
+              onBizLogoError={() => setBizLogoFailed(true)}
             />
           </div>
         </div>
 
         {photoFailed ? (
-          <p style={{ margin: '0 0 12px 0', fontSize: 12, color: '#B45309', textAlign: 'center' }}>
+          <p style={{ margin: '0 0 8px 0', fontSize: 12, color: '#B45309', textAlign: 'center' }}>
             La foto no se pudo cargar: la tarjeta se genera sin foto.
           </p>
         ) : null}
         {status === 'error' && error ? (
-          <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#DC2626', textAlign: 'center' }}>
+          <p style={{ margin: '0 0 8px 0', fontSize: 13, color: '#DC2626', textAlign: 'center' }}>
             {error}
           </p>
         ) : null}
 
-        <button
-          onClick={onExport}
-          disabled={status === 'generating'}
-          className="press"
+        {/* Pie fijo: los botones de acción nunca se esconden aunque la
+            hoja llegue a tener scroll (por ejemplo, con un aviso). */}
+        <div
           style={{
-            width: '100%',
-            padding: 16,
-            background: '#000000',
-            color: '#FFFFFF',
-            border: 'none',
-            borderRadius: 16,
-            fontSize: 15,
-            fontWeight: 800,
-            cursor: status === 'generating' ? 'wait' : 'pointer',
-            opacity: status === 'generating' ? 0.7 : 1,
-            fontFamily: 'inherit',
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 2,
+            background: dark ? '#232326' : '#FFFFFF',
+            margin: '0 -16px',
+            padding: '6px 16px calc(10px + env(safe-area-inset-bottom, 0px))',
+            borderTop: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`,
           }}
         >
-          {status === 'generating' ? 'Creando imagen…' : shareLabel}
-        </button>
-        <button
-          onClick={() => {
-            if (onShareLink) onShareLink(biz);
-            onClose();
-          }}
-          className="press"
-          style={{
-            width: '100%',
-            padding: 14,
-            marginTop: 8,
-            background: 'transparent',
-            color: dark ? '#FAFAFA' : '#18181B',
-            border: 'none',
-            borderRadius: 16,
-            fontSize: 14,
-            fontWeight: 700,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          Compartir enlace
-        </button>
+          <button
+            onClick={onExport}
+            disabled={status === 'generating'}
+            className="press"
+            style={{
+              width: '100%',
+              padding: 13,
+              background: '#000000',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: 16,
+              fontSize: 15,
+              fontWeight: 800,
+              cursor: status === 'generating' ? 'wait' : 'pointer',
+              opacity: status === 'generating' ? 0.7 : 1,
+              fontFamily: 'inherit',
+            }}
+          >
+            {status === 'generating' ? 'Creando imagen…' : shareLabel}
+          </button>
+          <button
+            onClick={() => {
+              if (onShareLink) onShareLink(biz);
+              onClose();
+            }}
+            className="press"
+            style={{
+              width: '100%',
+              padding: 11,
+              marginTop: 4,
+              background: 'transparent',
+              color: dark ? '#FAFAFA' : '#18181B',
+              border: 'none',
+              borderRadius: 16,
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Compartir enlace
+          </button>
+        </div>
       </m.div>
     </div>
   );

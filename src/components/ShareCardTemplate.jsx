@@ -2,6 +2,10 @@
 // oscuro tipo «Glass» — logotipo oficial arriba, foto, categoría en
 // versales, nombre grande, píldoras con la calificación de Google (con su
 // conteo de reseñas) y la ciudad, y «Descúbrelo en CityMap» al pie.
+// PR #144: el logo circular del negocio (mismo que la ficha, solo para
+// planes de pago con logo_url) va centrado a caballo sobre el borde
+// inferior de la foto, con anillo blanco; si no hay logo o no carga, la
+// tarjeta queda igual que en el #143.
 // La vista previa y el PNG exportado comparten la misma geometría:
 // SHARE_CARD_LAYOUT + computeShareCardLayout en lib/shareCard.js, así que
 // lo que se ve es lo que se descarga. La foto crece (flex: 1, con altura
@@ -19,7 +23,7 @@ import {
   computeShareCardLayout,
 } from '../lib/shareCard.js';
 
-export default function ShareCardTemplate({ data, format, onPhotoError }) {
+export default function ShareCardTemplate({ data, format, onPhotoError, onBizLogoError }) {
   const f = format || SHARE_CARD_FORMATS.story;
   const L = SHARE_CARD_LAYOUT[f.id] || SHARE_CARD_LAYOUT.story;
   const width = f.width;
@@ -33,6 +37,18 @@ export default function ShareCardTemplate({ data, format, onPhotoError }) {
   const gSize = Math.round(L.pillSize * 0.85);
   const initial = (data?.name || 'C').trim().charAt(0).toUpperCase() || 'C';
   const hasRating = typeof data?.rating === 'number' && data.rating > 0;
+  // El primer bloque tras la foto usa el hueco del círculo
+  // (layout.firstGap) cuando hay logo; los demás conservan sus
+  // márgenes normales, igual que en el canvas.
+  const firstBlock = data?.category
+    ? 'cat'
+    : layout.name && layout.name.lines.length
+      ? 'name'
+      : hasRating || data?.cityName
+        ? 'pills'
+        : 'foot';
+  // El logo circular se pide en 300×300, igual que la ficha.
+  const logoSrc = data?.bizLogoUrl ? getThumbUrl(data.bizLogoUrl, 300, 300) : null;
 
   return (
     <div
@@ -49,6 +65,7 @@ export default function ShareCardTemplate({ data, format, onPhotoError }) {
         fontFamily: "var(--heading), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
         textAlign: 'center',
         overflow: 'hidden',
+        position: 'relative',
       }}
     >
       <img
@@ -104,10 +121,53 @@ export default function ShareCardTemplate({ data, format, onPhotoError }) {
         )}
       </div>
 
+      {/* Círculo del logo del negocio (PR #144): absoluto, con la misma
+          geometría que el canvas (layout.bizLogo), así no ocupa espacio
+          en el flujo y la foto conserva su alto exacto. Si el logo no
+          carga, onBizLogoError lo quita y la tarjeta queda como en el
+          #143. */}
+      {layout.bizLogo && logoSrc ? (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: layout.bizLogo.x,
+            top: layout.bizLogo.y,
+            width: layout.bizLogo.d,
+            height: layout.bizLogo.d,
+            borderRadius: '50%',
+            background: '#FFFFFF',
+            border: '1px solid rgba(0,0,0,0.06)',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+            padding: layout.bizLogo.ring,
+            boxSizing: 'border-box',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+          }}
+        >
+          <img
+            src={logoSrc}
+            crossOrigin="anonymous"
+            onError={onBizLogoError}
+            alt=""
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              borderRadius: '50%',
+              display: 'block',
+            }}
+          />
+        </div>
+      ) : null}
+
       {data?.category ? (
         <div
           style={{
-            marginTop: L.catGap,
+            marginTop: firstBlock === 'cat' ? layout.firstGap : L.catGap,
             fontSize: L.catSize,
             fontWeight: 700,
             lineHeight: 1,
@@ -122,7 +182,7 @@ export default function ShareCardTemplate({ data, format, onPhotoError }) {
       ) : null}
 
       {layout.name && layout.name.lines.length ? (
-        <div style={{ marginTop: L.nameGap, width: photoW, flexShrink: 0 }}>
+        <div style={{ marginTop: firstBlock === 'name' ? layout.firstGap : L.nameGap, width: photoW, flexShrink: 0 }}>
           {layout.name.lines.map((line, i) => (
             <div
               key={i}
@@ -142,7 +202,7 @@ export default function ShareCardTemplate({ data, format, onPhotoError }) {
       {hasRating || data?.cityName ? (
         <div
           style={{
-            marginTop: L.pillsGap,
+            marginTop: firstBlock === 'pills' ? layout.firstGap : L.pillsGap,
             width: photoW,
             display: 'flex',
             flexWrap: 'wrap',
@@ -192,7 +252,7 @@ export default function ShareCardTemplate({ data, format, onPhotoError }) {
 
       <div
         style={{
-          marginTop: L.footGap,
+          marginTop: firstBlock === 'foot' ? layout.firstGap : L.footGap,
           fontSize: L.footSize,
           lineHeight: 1,
           letterSpacing: 2,
