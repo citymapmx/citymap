@@ -19,6 +19,14 @@
 // transición de 0,5 s, como las tiras del #149) en vez de cambiar de
 // golpe; y el logo de Post crece (76 px) para que se vea en la vista
 // previa de 200 px (en Post era tan chico que parecía no estar).
+// PR #158: Jonathan pidió dos cosas más con una captura de Vincent
+// Andares (Clara/Historia): (1) los chevrones ‹ › estaban muy pegados
+// a la vista previa, así que se separan más (más hueco a los lados);
+// (2) al dar › en el último estilo la pista se REGRESABA deslizándose
+// hacia atrás y él quiere que le dé la VUELTA y empiece de nuevo al
+// inicio: ahora la pista es un carrusel infinito con clones (un clon
+// del último antes del primero y un clon del primero después del
+// último) y reseteo silencioso sin transición al llegar al clon.
 // PR #146: la hoja entra con scale-in-center (la misma animación de las
 // tarjetas del mapa, PR #134/#135): el panel crece desde el centro en
 // 0,5 s, en vez del fundido de la librería de animación. La clase va en
@@ -42,7 +50,7 @@
 // conserva el comportamiento anterior (compartir la liga del negocio).
 // En web NO se puede publicar directo a Instagram: la hoja comparte la
 // imagen con el menú del sistema o la descarga, nunca promete publicarla.
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDataStore } from '../store/useDataStore.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { displayRating } from '../lib/googleRatings.js';
@@ -165,19 +173,82 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   // vez del corte instantáneo de antes. Con 2 estilos no hay problema
   // de envoltura (ir de Clara a Oscura es volver atrás, sin barrer).
   // Los puntos siguen cambiando al instante sin transición (PR #151).
+  // PR #158: ese regreso hacia atrás NO le gustó a Jonathan: al dar ›
+  // en el último quiere que la pista le dé la VUELTA y empiece de
+  // nuevo al inicio. La pista pasa a ser un CARRUSEL INFINITO con
+  // clones (la técnica clásica): un clon del último estilo antes del
+  // primero y un clon del primero después del último; al avanzar
+  // desde el último la pista desliza hacia adelante hasta el clon y
+  // luego se resetea a la posición real SIN transición (noAnim), sin
+  // que se note el salto; al revés con ‹ desde el primero. Los puntos
+  // siguen marcando el índice real, no el clon. La exportación a PNG
+  // no cambia: sigue el estilo elegido.
   const styleIndex = Math.max(
     0,
     SHARE_CARD_STYLE_LIST.findIndex((s) => s.id === styleId),
   );
+  const styleCount = SHARE_CARD_STYLE_LIST.length;
+  // Posición en la pista con clones: 0 = clon del último, 1..n =
+  // estilos reales, n+1 = clon del primero. Empieza en el estilo por
+  // defecto (el primero).
+  const [trackPos, setTrackPos] = useState(() => {
+    const i = Math.max(
+      0,
+      SHARE_CARD_STYLE_LIST.findIndex((s) => s.id === SHARE_CARD_DEFAULT_STYLE),
+    );
+    return i + 1;
+  });
+  const [noAnim, setNoAnim] = useState(false);
   const goStyle = (delta) => {
-    const n = SHARE_CARD_STYLE_LIST.length;
-    const next = (styleIndex + delta + n) % n;
+    // Si la pista está en un clon (reseteo pendiente, dura 0,5 s), se
+    // ignora el toque: así nunca se sale del rango de la pista y el
+    // reseteo silencioso no se pisa.
+    if (trackPos === 0 || trackPos === styleCount + 1) return;
+    const next = (styleIndex + delta + styleCount) % styleCount;
     setStyleId(SHARE_CARD_STYLE_LIST[next].id);
+    if (reduceMotion) {
+      setNoAnim(true);
+      setTrackPos(next + 1);
+      return;
+    }
+    setNoAnim(false);
+    setTrackPos((p) => p + delta);
   };
+  // Tocar un punto salta a ese estilo real (con 2 estilos siempre es
+  // un paso): la pista desliza hasta su posición real, nunca a un clon.
+  const goToStyle = (index) => {
+    if (index === styleIndex) return;
+    if (trackPos === 0 || trackPos === styleCount + 1) return;
+    setStyleId(SHARE_CARD_STYLE_LIST[index].id);
+    setNoAnim(reduceMotion);
+    setTrackPos(index + 1);
+  };
+  // Reseteo silencioso del bucle: tras deslizar hasta un clon, la
+  // pista salta a la posición real equivalente sin transición. El
+  // tiempo (0,5 s) es lo que dura la transición, así el salto cae
+  // justo al terminar el deslizamiento y no se nota.
+  useEffect(() => {
+    if (reduceMotion) return undefined;
+    if (trackPos !== 0 && trackPos !== styleCount + 1) return undefined;
+    const t = setTimeout(() => {
+      setNoAnim(true);
+      setTrackPos(trackPos === 0 ? styleCount : 1);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [trackPos, styleCount, reduceMotion]);
   const dotColor = dark ? '#FAFAFA' : '#18181B';
-  const trackTransition = reduceMotion
-    ? 'none'
-    : 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)';
+  const trackTransition =
+    reduceMotion || noAnim
+      ? 'none'
+      : 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)';
+  // La pista lleva los clones en los extremos: [último, ...estilos,
+  // primero]. Las claves llevan la posición, porque el id se repite
+  // entre el clon y el estilo real.
+  const trackStyles = [
+    SHARE_CARD_STYLE_LIST[styleCount - 1],
+    ...SHARE_CARD_STYLE_LIST,
+    SHARE_CARD_STYLE_LIST[0],
+  ];
 
   return (
     <div
@@ -294,13 +365,19 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
             translateX y una transición suave de 0,5 s (como las tiras
             del #149), en vez del corte instantáneo de antes. Los
             chevrones y los puntos van fuera de la pista, así no se
-            mueven con ella. */}
+            mueven con ella.
+            PR #158: los chevrones iban muy pegados a la vista previa
+            (hueco de 2 px + 4 px de relleno): ahora llevan más aire
+            (hueco de 14 px + 8 px de relleno a cada lado). Y la pista
+            es un carrusel infinito con clones: al dar › en el último
+            desliza hacia adelante hasta el clon del primero y se
+            resetea en silencio, en vez de regresarse hacia atrás. */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 2,
+            gap: 14,
             marginBottom: 0,
           }}
         >
@@ -315,7 +392,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
               fontSize: 26,
               lineHeight: 1,
               color: dark ? '#A1A1AA' : '#71717A',
-              padding: '8px 4px',
+              padding: '8px 8px',
               fontFamily: 'inherit',
               flexShrink: 0,
             }}
@@ -337,13 +414,13 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
               style={{
                 display: 'flex',
                 height: previewH,
-                transform: `translateX(${-styleIndex * PREVIEW_W}px)`,
+                transform: `translateX(${-trackPos * PREVIEW_W}px)`,
                 transition: trackTransition,
               }}
             >
-              {SHARE_CARD_STYLE_LIST.map((s) => (
+              {trackStyles.map((s, i) => (
                 <div
-                  key={s.id}
+                  key={`${s.id}-${i}`}
                   style={{
                     width: PREVIEW_W,
                     height: previewH,
@@ -382,7 +459,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
               fontSize: 26,
               lineHeight: 1,
               color: dark ? '#A1A1AA' : '#71717A',
-              padding: '8px 4px',
+              padding: '8px 8px',
               fontFamily: 'inherit',
               flexShrink: 0,
             }}
@@ -405,7 +482,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
             <button
               key={s.id}
               aria-label={`Estilo ${s.label}`}
-              onClick={() => setStyleId(s.id)}
+              onClick={() => goToStyle(n)}
               style={{
                 width: n === styleIndex ? 16 : 6,
                 height: 6,
