@@ -239,23 +239,65 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     expect(lib).toContain('ctx.drawImage(logoImg, geo.logo.x, geo.logo.y, geo.logo.w, geo.logo.h)');
   });
 
-  it('la hoja desliza la vista previa al cambiar de estilo (PR #156)', () => {
+  it('la hoja da la vuelta al cambiar de estilo: carrusel infinito con clones (PR #158)', () => {
     const sheet = read('../components/ShareCardSheet.jsx');
-    // La pista lleva los dos estilos en fila y se mueve con translateX
-    // y una transición suave de 0,5 s, como las tiras del #149, en vez
-    // del corte instantáneo de antes.
-    expect(sheet).toContain('SHARE_CARD_STYLE_LIST.map((s) =>');
-    expect(sheet).toContain('translateX(${-styleIndex * PREVIEW_W}px)');
+    // PR #156: la vista previa es una pista deslizante con los dos
+    // estilos en fila y una transición suave de 0,5 s, como las tiras
+    // del #149, en vez del corte instantáneo de antes.
+    // PR #158: al dar › en el último ya NO se regresa deslizándose
+    // hacia atrás (así quedó el #156 y a Jonathan no le gustó): la
+    // pista es un carrusel infinito con clones — un clon del último
+    // antes del primero y un clon del primero después del último — y
+    // al llegar al clon se resetea al índice real SIN transición.
+    expect(sheet).toContain('trackStyles');
+    expect(sheet).toContain('SHARE_CARD_STYLE_LIST[styleCount - 1]');
+    expect(sheet).toContain('...SHARE_CARD_STYLE_LIST');
+    expect(sheet).toContain('SHARE_CARD_STYLE_LIST[0]');
+    expect(sheet).toContain('translateX(${-trackPos * PREVIEW_W}px)');
     expect(sheet).toContain('transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)');
-    // Con «reducir movimiento» no desliza: cambia al instante.
-    expect(sheet).toContain('prefers-reduced-motion: reduce');
+    // El reseteo silencioso: sin transición (noAnim), a los 0,5 s (lo
+    // que dura el deslizamiento), y el clon vuelve a su posición real
+    // (0 → último, n+1 → primero).
+    expect(sheet).toContain('noAnim');
+    expect(sheet).toContain('setTimeout');
+    expect(sheet).toContain('}, 500);');
+    expect(sheet).toContain('trackPos === 0 ? styleCount : 1');
+    // Mientras la pista está en un clon (reseteo pendiente) se ignora
+    // el toque, para no salirse del rango de la pista.
+    expect(sheet).toContain('trackPos === 0 || trackPos === styleCount + 1');
     // Los chevrones y los puntos van fuera de la pista y siguen
-    // cambiando el índice; la exportación no cambia (sigue el estilo
+    // cambiando el estilo; la exportación no cambia (sigue el estilo
     // elegido).
     expect(sheet).toContain('goStyle(-1)');
     expect(sheet).toContain('goStyle(1)');
-    expect(sheet).toContain('setStyleId(s.id)');
+    expect(sheet).toContain('goToStyle(n)');
+    expect(sheet).toContain('setStyleId(SHARE_CARD_STYLE_LIST[next].id)');
     expect(sheet).toContain('exportShareCardPng(dataToExport, format, styleId)');
+    // Con «reducir movimiento» no desliza: cambia al instante.
+    expect(sheet).toContain('prefers-reduced-motion: reduce');
+    // Los puntos marcan el índice real (styleIndex), no la posición
+    // de la pista (trackPos): en el clon, el punto del estilo real ya
+    // está activo.
+    expect(sheet).toContain('n === styleIndex ? 16 : 6');
+    expect(sheet).toContain('n === styleIndex ? 1 : 0.25');
+  });
+
+  it('los chevrones van separados de la vista previa (PR #158)', () => {
+    const sheet = read('../components/ShareCardSheet.jsx');
+    // Jonathan (captura de Vincent Andares, Clara/Historia): los
+    // chevrones estaban muy pegados a la tarjeta (hueco de 2 px y
+    // relleno de 4 px a cada lado: solo 6 px de aire). Ahora llevan
+    // hueco de 14 px y relleno de 8 px: 22 px de aire a cada lado, que
+    // se nota en el teléfono.
+    expect(sheet).toContain('gap: 14,');
+    expect(sheet.match(/padding: '8px 8px'/g)).toHaveLength(2);
+    expect(sheet).not.toContain('gap: 2,');
+    expect(sheet).not.toContain("padding: '8px 4px'");
+    // Siguen centrados verticalmente sobre la vista previa, a los
+    // lados, fuera de la pista.
+    expect(sheet).toContain("alignItems: 'center'");
+    expect(sheet).toContain('Estilo anterior');
+    expect(sheet).toContain('Estilo siguiente');
   });
 
   it('Clara: clara, sin círculo de logo y sin desbordar', () => {
@@ -369,10 +411,10 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     expect(sheet).toContain('goStyle');
     // Puntos debajo de la vista previa, mismo lenguaje que StoryStrip:
     // activo píldora de 16 px, inactivo 6 px con opacidad 0.25, sin
-    // transición; tocar un punto salta a ese estilo.
+    // transición; tocar un punto salta a ese estilo (goToStyle, PR #158).
     expect(sheet).toContain('n === styleIndex ? 16 : 6');
     expect(sheet).toContain('n === styleIndex ? 1 : 0.25');
-    expect(sheet).toContain('setStyleId(s.id)');
+    expect(sheet).toContain('goToStyle(n)');
     // Ya no hay botones de estilo: las etiquetas solo aparecen en el
     // aria-label de los puntos, nunca como texto de botón. (La etiqueta
     // 'Ficha completa' como valor tampoco: los comentarios de historia
