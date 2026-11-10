@@ -75,6 +75,43 @@ const FERIA = {
   slug: 'guadalajara-fil-guadalajara-2026',
   description: 'La feria del libro más grande en español.',
 };
+// El caso de la captura de Jonathan (PR #153): título largo de concierto
+// SIN precio publicado (Teatro Diana, 13 nov 2026) — en la tarjeta vieja
+// salía cortado como «ESLABÓN ARMADO TOUR E...» y con la píldora
+// «Precio mínimo no publicado».
+const ESLABON = {
+  title: 'Eslabón Armado Amor Nocturno Tour en Guadalajara',
+  event_category: 'Concierto',
+  date: '2026-11-13',
+  end_date: null,
+  time: '21:00',
+  end_time: null,
+  venue_name: 'Teatro Diana',
+  city_slug: 'guadalajara',
+  price: '',
+  price_type: 'paid',
+  img_url: 'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/eslabon-armado.jpg',
+  slug: 'guadalajara-eslabon-armado-amor-nocturno-tour-en-guadalajara',
+  description: 'Eslabón Armado en concierto en el Teatro Diana.',
+};
+// Peor caso de geometría (PR #153): título que necesita 3 líneas +
+// subtítulo a 2 líneas + 2 filas de información + píldora.
+const LARGO_EDITORIAL = {
+  title: 'Gran Exposición Internacional de Arte Contemporáneo y Fotografía de Guadalajara 2026',
+  event_category: 'Exposición',
+  date: '2026-11-21',
+  end_date: null,
+  time: '18:00',
+  end_time: '23:00',
+  venue_name: 'Museo de las Artes de la Universidad de Guadalajara',
+  city_slug: 'guadalajara',
+  price: '250',
+  price_type: 'paid',
+  img_url: 'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/expo.jpg',
+  slug: 'guadalajara-expo-internacional-arte-contemporaneo-2026',
+  description:
+    'Una exposición con artistas nacionales e internacionales, instalaciones, fotografía y pintura contemporánea de todo el mundo.',
+};
 
 describe('tarjeta para compartir el evento: estilo por tipo', () => {
   it('concierto → festival (también con espacio final y navideño)', () => {
@@ -137,18 +174,19 @@ describe('tarjeta para compartir el evento: datos reales', () => {
     );
   });
 
-  it('gratis → «Entrada gratuita»; sin precio publicado → «Precio mínimo no publicado»', () => {
+  it('gratis → «Entrada gratuita»; sin precio publicado → sin mención de precio (PR #153)', () => {
     const free = buildEventShareCardData(
       { ...CONCIERTO, price: '0', price_type: 'gratis' },
       { cityName: 'Guadalajara' },
     );
     expect(free.priceText).toBe('Entrada gratuita');
     expect(free.priceKind).toBe('free');
+    // Sin precio no se menciona nada: ni píldora ni línea de precio.
     const unknown = buildEventShareCardData(EXPOSICION, {
       cityName: 'Puerto Vallarta',
     });
-    expect(unknown.priceText).toBe('Precio mínimo no publicado');
-    expect(unknown.priceKind).toBe('unknown');
+    expect(unknown.priceText).toBe('');
+    expect(unknown.priceKind).toBe('none');
   });
 
   it('exposición sin foto ni hora: editorial, sin foto y sin inventar nada', () => {
@@ -221,7 +259,11 @@ describe('tarjeta para compartir el evento: geometría (vista previa = PNG)', ()
         if (geo.barcode) ends.push(geo.barcode.y + geo.barcode.h);
         const lastEnd = Math.max(...ends);
         const footTop = geo.height - geo.L.pad - geo.L.footSize;
-        expect(footTop - lastEnd).toBe(geo.L.footGap);
+        // Tolerancia de 1e-9 px: las alturas de línea (tamaño × 1.12)
+        // son decimales no exactos en binario y la suma arrastra polvo
+        // de coma flotante; el hueco diseñado es footGap, sin hueco
+        // vacío ni desbordamiento.
+        expect(footTop - lastEnd).toBeCloseTo(geo.L.footGap, 9);
       }
     }
   });
@@ -236,7 +278,8 @@ describe('tarjeta para compartir el evento: geometría (vista previa = PNG)', ()
       buildEventShareCardData(EXPOSICION, { cityName: 'Puerto Vallarta' }),
       SHARE_CARD_FORMATS.story,
     );
-    expect(edit.pill?.text).toBe('Precio mínimo no publicado');
+    // Sin precio publicado la tarjeta no lleva píldora (PR #153).
+    expect(edit.pill).toBeNull();
     const exp = computeEventShareCardLayout(
       buildEventShareCardData(
         { ...CONCIERTO, event_category: 'Gastronomía', price: '', price_type: 'paid' },
@@ -342,6 +385,133 @@ describe('tarjeta para compartir el evento: la plantilla se renderiza (vista pre
     expect(html).toContain('>2026</div>');
     expect(html).toContain('>E</span>');
     expect(html).not.toContain('<img src=""');
+  });
+});
+
+describe('tarjeta para compartir el evento: sin precio no se menciona (PR #153)', () => {
+  it('sin precio: la geometría no lleva píldora en ningún formato ni estilo', () => {
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      // Editorial sin precio (Expo Tattoo) y festival sin precio (Eslabón).
+      for (const ev of [EXPOSICION, ESLABON]) {
+        const geo = computeEventShareCardLayout(
+          buildEventShareCardData(ev, { cityName: 'Guadalajara' }),
+          format,
+        );
+        expect(geo.pill).toBeNull();
+      }
+    }
+    // Con precio y gratis la píldora sigue como antes.
+    const paid = computeEventShareCardLayout(
+      buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' }),
+      SHARE_CARD_FORMATS.story,
+    );
+    expect(paid.pill?.text).toBe('Boletos desde $1200');
+    const free = computeEventShareCardLayout(
+      buildEventShareCardData(
+        { ...CONCIERTO, price: '0', price_type: 'gratis' },
+        { cityName: 'Guadalajara' },
+      ),
+      SHARE_CARD_FORMATS.story,
+    );
+    expect(free.pill?.text).toBe('Entrada gratuita');
+  });
+
+  it('la plantilla sin precio no pinta ningún texto de precio', () => {
+    for (const ev of [EXPOSICION, ESLABON]) {
+      const d = buildEventShareCardData(ev, { cityName: 'Guadalajara' });
+      const html = renderToStaticMarkup(
+        <EventShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} />,
+      );
+      expect(html).not.toContain('Precio mínimo');
+      expect(html).not.toContain('Boletos desde');
+      expect(html).not.toContain('Entrada gratuita');
+    }
+  });
+});
+
+describe('tarjeta para compartir el evento: el título siempre completo (PR #153)', () => {
+  it('título largo (Eslabón Armado): cabe completo sin «…» en Historia y en Post', () => {
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      const d = buildEventShareCardData(ESLABON, { cityName: 'Guadalajara' });
+      const geo = computeEventShareCardLayout(d, format);
+      expect(geo.title.lines.length).toBeGreaterThan(0);
+      expect(geo.title.lines.length).toBeLessThanOrEqual(3);
+      for (const line of geo.title.lines) expect(line).not.toContain('…');
+      // En festival el título va en mayúsculas y completo, sin cortar.
+      expect(geo.title.lines.join(' ')).toBe(
+        'ESLABÓN ARMADO AMOR NOCTURNO TOUR EN GUADALAJARA',
+      );
+      // La fuente nunca es mayor que la del estilo.
+      expect(geo.title.size).toBeLessThanOrEqual(
+        EVENT_SHARE_CARD_LAYOUT[format.id].titleSizeFestival,
+      );
+    }
+  });
+
+  it('título muy largo en editorial: la fuente se achica hasta caber en 3 líneas', () => {
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      const d = buildEventShareCardData(LARGO_EDITORIAL, {
+        cityName: 'Guadalajara',
+      });
+      const geo = computeEventShareCardLayout(d, format);
+      expect(geo.title.lines.length).toBeLessThanOrEqual(3);
+      for (const line of geo.title.lines) expect(line).not.toContain('…');
+      expect(geo.title.lines.join(' ')).toBe(
+        'Gran Exposición Internacional de Arte Contemporáneo y Fotografía de Guadalajara 2026',
+      );
+      // Tuvo que achicarse: a tamaño completo no cabe en 3 líneas.
+      expect(geo.title.size).toBeLessThan(
+        EVENT_SHARE_CARD_LAYOUT[format.id].titleSize,
+      );
+    }
+  });
+
+  it('la geometría no desborda con el peor caso (título a 3 líneas + subtítulo + 2 filas + píldora)', () => {
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      for (const ev of [LARGO_EDITORIAL, ESLABON, FERIA]) {
+        const d = buildEventShareCardData(ev, { cityName: 'Guadalajara' });
+        const geo = computeEventShareCardLayout(d, format);
+        // La foto nunca baja de su mínimo: nada se sale de la tarjeta.
+        expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
+        const ends = [];
+        if (geo.chip) ends.push(geo.chip.y + geo.chip.size / 2);
+        if (geo.title) {
+          ends.push(
+            geo.title.y +
+              (geo.title.lines.length - 1) * geo.title.lineH +
+              geo.title.lineH / 2,
+          );
+        }
+        if (geo.subtitle) {
+          ends.push(
+            geo.subtitle.y +
+              (geo.subtitle.lines.length - 1) * geo.subtitle.lineH +
+              geo.subtitle.lineH / 2,
+          );
+        }
+        for (const row of geo.info) ends.push(row.y + (row.size * geo.L.infoLineH) / 2);
+        if (geo.pill) ends.push(geo.pill.y + geo.pill.h);
+        if (geo.barcode) ends.push(geo.barcode.y + geo.barcode.h);
+        const lastEnd = Math.max(...ends);
+        const footTop = geo.height - geo.L.pad - geo.L.footSize;
+        // Misma tolerancia de 1e-9 px que el test de geometría de
+        // arriba: polvo de coma flotante de las alturas de línea.
+        expect(footTop - lastEnd).toBeCloseTo(geo.L.footGap, 9);
+      }
+    }
+  });
+
+  it('la plantilla renderiza el título largo completo, sin «…» en ningún lado', () => {
+    const d = buildEventShareCardData(ESLABON, { cityName: 'Guadalajara' });
+    const html = renderToStaticMarkup(
+      <EventShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} />,
+    );
+    // El título va en varias líneas (una por div): todas sus palabras
+    // están en la plantilla y ninguna línea se cortó con «…».
+    for (const word of 'ESLABÓN ARMADO AMOR NOCTURNO TOUR EN GUADALAJARA'.split(' ')) {
+      expect(html).toContain(word);
+    }
+    expect(html).not.toContain('…');
   });
 });
 

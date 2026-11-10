@@ -28,6 +28,16 @@ describe('event list card: image only', () => {
     expect(imageBox).toContain('{fmtCardDate(ev)}');
   });
 
+  it('la foto llena la tarjeta (cover), sin fondo difuminado (PR #153)', () => {
+    // La foto llena toda el área 5:7 recortando los lados si hace falta:
+    // se acabó el contain con bandas grises y el fondo difuminado de la
+    // misma imagen (regla del PR #132, anulada por Jonathan en nov 2026).
+    expect(card).toContain("objectFit:'cover'");
+    expect(card).not.toContain("objectFit:'contain'");
+    expect(card).not.toContain('blur(24px)');
+    expect(card).not.toContain('Fondo difuminado');
+  });
+
   it('is only the image: no white background or card border, rounded corners kept', () => {
     const article = src.slice(src.indexOf('<article key={ev.id}'), src.indexOf('className="event-list-card"'));
     expect(article).toContain('borderRadius:18');

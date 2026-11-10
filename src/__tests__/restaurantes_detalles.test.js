@@ -52,9 +52,9 @@ describe('detalles chicos de la auditoría del 9 nov', () => {
     expect(trips).toContain("scrollIntoView({ block: \"nearest\" })");
   });
 
-  it('las tarjetas de eventos muestran el póster completo (contain, no cover)', () => {
+  it('las tarjetas de eventos llenan la tarjeta con la foto (cover, PR #153)', () => {
     const events = read('../views/EventsView.jsx');
-    expect(events).toContain("objectFit:'contain'");
-    expect(events).not.toContain("objectFit:'cover'");
+    expect(events).toContain("objectFit:'cover'");
+    expect(events).not.toContain("objectFit:'contain'");
   });
 });

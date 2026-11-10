@@ -8,7 +8,10 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // Jonathan): al tocar "Ver 5 más" la lista crecía de 5 a 10 de golpe y la
 // pantalla no se movía; en /eventos las tarjetas solo-imagen mostraban el
 // póster completo con bandas grises arriba y abajo (contain a propósito:
-// con cover se recortaba a 5:7 y se perdía el texto de los lados).
+// con cover se recortaba a 5:7 y se perdía el texto de los lados). PR
+// #153 (10 nov, decisión de Jonathan con capturas): la foto LLENA la
+// tarjeta con cover, sin fondo difuminado — la regla del PR #132
+// (contain + fondo difuminado) queda anulada.
 describe('desplazamiento suave al expandir', () => {
   it('smoothScrollIntoView desliza suave hasta el elemento', () => {
     const calls = [];
@@ -72,22 +75,21 @@ describe('desplazamiento suave al expandir', () => {
   });
 });
 
-describe('póster de evento con fondo difuminado', () => {
-  it('la tarjeta tiene una capa de fondo con la misma imagen, difuminada y ampliada', () => {
+describe('póster de evento llena la tarjeta (PR #153)', () => {
+  it('la tarjeta ya no tiene capa de fondo difuminada', () => {
     const src = read('../views/EventsView.jsx');
-    // Misma URL optimizada que el póster (getThumbUrl 600), así el
-    // navegador la reutiliza y no se descarga dos veces.
-    expect(src).toContain('backgroundImage:`url("${getThumbUrl(imgSrc, 600)}")`');
-    expect(src).toContain("filter:'blur(24px) brightness(0.85)'");
-    expect(src).toContain("transform:'scale(1.15)'");
+    // Sin capa de fondo con la misma imagen: ni blur ni escala.
+    expect(src).not.toContain("filter:'blur(24px) brightness(0.85)'");
+    expect(src).not.toContain("transform:'scale(1.15)'");
+    expect(src).not.toContain('getThumbUrl(imgSrc, 600)');
   });
 
-  it('el póster sigue completo con contain (no se recorta el texto de los lados)', () => {
+  it('el póster llena la tarjeta con cover (sin bandas, sin contain)', () => {
     const src = read('../views/EventsView.jsx');
-    expect(src).toContain("objectFit:'contain'");
-    expect(src).not.toContain("objectFit:'cover'");
-    // El póster queda por encima del fondo difuminado.
-    expect(src).toContain("objectFit:'contain', zIndex:1");
+    expect(src).toContain("objectFit:'cover'");
+    expect(src).not.toContain("objectFit:'contain'");
+    // El póster queda por encima del fondo de la tarjeta.
+    expect(src).toContain("objectFit:'cover', zIndex:1");
   });
 
   it('la píldora de fecha y el corazón siguen por encima, y sin imagen sigue el fallback', () => {
