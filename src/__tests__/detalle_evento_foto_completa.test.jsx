@@ -37,13 +37,15 @@ describe('detalle de evento: póster completo y título debajo', () => {
     expect(modalSrc).toContain('fontSize: isPast ? 24 : 30');
   });
 
-  it('el recinto va debajo del título y la fecha en su píldora', () => {
-    const h1 = modalSrc.indexOf('<h1');
-    const venue = modalSrc.indexOf('{!isPast && ev.venue_name && (');
-    expect(venue).toBeGreaterThan(h1);
+  it('el recinto ya no va debajo del título; va en la tarjeta de fecha/lugar', () => {
+    // La cabecera bajo la foto lleva solo la píldora de fecha y el título.
+    expect(modalSrc).not.toContain('{!isPast && ev.venue_name && (');
+    expect(modalSrc).not.toContain('heroShowsVenue');
+    // El h1 ya no reserva margen para una línea de recinto debajo.
+    expect(modalSrc).not.toContain("marginBottom: (!isPast && ev.venue_name) ? 6 : 0");
     // La píldora de fecha (solo privados en claro) va antes del título.
     expect(modalSrc).toContain('{!isPast && heroDate && (');
-    expect(modalSrc.indexOf('{!isPast && heroDate && (')).toBeLessThan(h1);
+    expect(modalSrc.indexOf('{!isPast && heroDate && (')).toBeLessThan(modalSrc.indexOf('<h1'));
   });
 
   it('se conservan los botones flotantes sobre la foto', () => {
@@ -65,8 +67,14 @@ describe('detalle de evento: póster completo y título debajo', () => {
     expect(modalSrc).toContain('eventos_ya_termino');
   });
 
-  it('la información no duplica el recinto que ya muestra la cabecera', () => {
-    expect(modalSrc.match(/heroShowsVenue=\{!isPast\}/g)?.length).toBe(2);
+  it('la tarjeta de fecha/lugar es la que muestra el recinto', () => {
+    // La cabecera ya no muestra el recinto ni pasa la vieja prop.
+    expect(modalSrc).not.toContain('heroShowsVenue');
+    // EventInformation muestra el recinto en la fila de lugar, salvo
+    // que la dirección ya lo incluya (ver event_details.test.jsx).
+    const infoSrc = fs.readFileSync(new URL('../components/detail/EventInformation.jsx', import.meta.url), 'utf8');
+    expect(infoSrc).toContain('showVenueLine');
+    expect(infoSrc).not.toContain('heroShowsVenue');
   });
 });
 

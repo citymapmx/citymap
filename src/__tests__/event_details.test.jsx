@@ -69,11 +69,20 @@ describe('Event links and schedule',()=>{
     expect(html).toContain('Titanes');
     expect(html).toContain('Entrada: $1208');
   });
-  it('hides the venue name in the row when the hero already shows it',()=>{
+  it('shows the venue name in the row now that the header no longer shows it',()=>{
     const event={venue_name:'Titanes',venue_address:'Zapopan, Jal.'};
-    expect(renderToStaticMarkup(<EventInformation event={event} T={T} heroShowsVenue />)).not.toContain('>Titanes<');
-    expect(renderToStaticMarkup(<EventInformation event={event} T={T} heroShowsVenue />)).toContain('Zapopan, Jal.');
-    expect(renderToStaticMarkup(<EventInformation event={event} T={T} />)).toContain('>Titanes<');
+    expect(render(event)).toContain('>Titanes<');
+    expect(render(event)).toContain('Zapopan, Jal.');
+  });
+  it('does not repeat the venue when the address already includes it',()=>{
+    const event={venue_name:'Auditorio Telmex',venue_address:'Auditorio Telmex, Industrial los Belenes, 45157 Zapopan, Jal., México'};
+    const html=render(event);
+    expect(html).toContain('Auditorio Telmex, Industrial los Belenes');
+    expect(html).not.toContain('>Auditorio Telmex<');
+  });
+  it('shows the venue alone when there is no address',()=>{
+    const event={venue_name:'Auditorio Telmex'};
+    expect(render(event)).toContain('>Auditorio Telmex<');
   });
   it('splits long descriptions into short paragraphs with a lead line',()=>{
     const text='¡El día más bonito del año ya está aquí! Este 2026, la tarde se pinta de dorado con Arcade Fire. Santa Pirata presenta su show, la magia de Chet Faker llega por primera vez. Bándalos Chinos y Kakkmaddafakka cierran la noche con todo. Trae a tus amigos y llega temprano para agarrar buen lugar. Habrá comida, bebidas y muchas sorpresas durante toda la tarde.';
