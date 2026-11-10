@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { sb } from '../lib/supabase.js';
-import { app, getMessaging, getToken, onMessage } from '../lib/firebase.js';
 
 // Public VAPID key (safe to expose — it's a public key by design)
 const VAPID_KEY = 'BHUenh0Q3pag11nC5XJCEM9X8x9cuTipX0VKQep21sH01G-hBb8vXx2QAvsEO0-KxLCT3Vkj92aZh5mWqdGSzaM';
@@ -46,6 +45,11 @@ export function useWebPush({ citySlug, userId, enabled = true } = {}) {
 
   async function register() {
     try {
+      // Firebase solo se descarga cuando el registro push realmente corre
+      // (permiso ya concedido o usuario que acepta el aviso): en la
+      // primera carga casi nadie lo necesita y no debe pesar en el bundle
+      // inicial (firebase/app + messaging + installations + idb).
+      const { app, getMessaging, getToken, onMessage } = await import('../lib/firebase.js');
       const sw = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/push-notifications/' });
       const messaging = getMessaging(app);
       const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: sw });

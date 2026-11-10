@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { createSlug, getThumbUrl } from "../../lib/utils.js";
+import { createSlug, getThumbUrl, getThumbSrcSet, SRCSET_CARD } from "../../lib/utils.js";
 import { useTranslation } from "../../hooks/useTranslation.js";
 import { localizedTitle } from "../../lib/i18nContent.js";
 
@@ -41,6 +41,12 @@ export default memo(function TopImperdibles({ experiences, T, city }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {top5.map((exp, index) => {
           const imgUrl = exp.gallery?.[0] ? getThumbUrl(exp.gallery[0], 800) : null;
+          // La tarjeta es a ancho completo en móvil: el navegador elige
+          // 400w (1x) o 800w (pantallas densas). Antes era solo 800w fijo,
+          // y era la única imagen del inicio sin srcset tras el PR #140
+          // (la hero de Chapala de PageSpeed: 800×468 para mostrarse a
+          // ~209×123). Mismo recorte (cover) y misma calidad visible.
+          const imgSrcSet = exp.gallery?.[0] ? getThumbSrcSet(exp.gallery[0], SRCSET_CARD) : null;
           const slug = createSlug(exp.title) || exp.id;
           const cSlug = exp.city_slug ? exp.city_slug.split(',')[0] : (city?.slug || "");
           const href = `/revista/${cSlug}/${slug}`;
@@ -70,7 +76,7 @@ export default memo(function TopImperdibles({ experiences, T, city }) {
                  overflow: "hidden"
               }}
             >
-              {imgUrl && <img src={imgUrl} loading="lazy" decoding="async" alt="" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition:"center", display:"block" }} />}
+              {imgUrl && <img src={imgUrl} srcSet={imgSrcSet} sizes="(max-width: 640px) 100vw, 800px" loading="lazy" decoding="async" alt="" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition:"center", display:"block" }} />}
               <div aria-hidden="true" style={{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(0,0,0,0.04) 15%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.85) 100%)',pointerEvents:'none'}} />
               <h3 style={{position:'relative',zIndex:1,margin:0,color:'#fff',fontFamily:'var(--sans, system-ui, sans-serif)',fontSize:'clamp(18px, 4.8vw, 22px)',fontWeight:700,lineHeight:1.25,letterSpacing:'-0.025em',textAlign:'left',overflowWrap:'anywhere',textShadow:'0 1px 4px rgba(0,0,0,0.4)'}}>{localizedTitle(exp, lang)}</h3>
               <div style={{ position: "absolute", top: 12, left: 12, width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.2)", zIndex: 2 }}>
