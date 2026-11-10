@@ -165,21 +165,67 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
     }
   });
 
-  it('Clara no tiene círculo y no le afecta el cambio', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
-      const d = buildShareCardData(tangente, {
+  it('Clara TAMBIÉN lleva el círculo y tampoco tapa el nombre (PR #160)', () => {
+    // Antes Clara no tenía círculo por diseño («la limpieza es el
+    // estilo»); Jonathan pidió que también llevara el logotipo del
+    // negocio (Vulcanos Chapalita, con logo y plan premium, salía sin
+    // nada en Clara). Misma regla que en Oscura y mismo hueco entre el
+    // círculo y el primer texto.
+    for (const [biz, disp, cityName] of [
+      [tangente, tangenteDisp, 'Guadalajara'],
+      [carrito, carritoDisp, 'Tepic'],
+    ]) {
+      for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+        const d = buildShareCardData(biz, { disp, cityName });
+        const geo = computeShareCardLayout(d, format, true, 'editorial');
+        expect(geo.bizLogo).not.toBeNull();
+        expect(geo.bizLogo.d).toBe(geo.L.bizLogoD);
+        expect(nameTop(geo) - circleBottom(geo)).toBeCloseTo(geo.L.bizLogoGap, 0);
+        expect(geo.name.lines.length).toBeLessThanOrEqual(3);
+        expect(geo.name.lines.join(' ')).not.toContain('…');
+        const markup = renderToStaticMarkup(
+          <ShareCardTemplate data={d} format={format} styleId="editorial" />,
+        );
+        expect(markup).toContain(`top:${geo.bizLogo.y}px`);
+        expect(markup).toContain('border-radius:50%');
+        // El anillo gris visible sobre blanco (en Oscura es fino y
+        // casi invisible, porque el círculo blanco ya se distingue).
+        expect(markup).toContain('#D4D4D8');
+        expect(markup).toContain('white-space:nowrap');
+      }
+    }
+  });
+
+  it('Clara: el peor caso con círculo tampoco desborda el pie (PR #160)', () => {
+    // En Clara el nombre es más chico que en Oscura (80/62 px contra
+    // 88/68 px), así que «Tangente Restaurante Tlaquepaque» cabe en 2
+    // líneas; el peor caso usa un nombre más largo que sí da 3 líneas
+    // en ambos formatos.
+    const cases = [
+      [SHARE_CARD_FORMATS.story, 'Restaurante El Gran Buffet Internacional de la Abuela María'],
+      [SHARE_CARD_FORMATS.post, 'Restaurante El Gran Buffet Internacional de la Abuela María'],
+    ];
+    for (const [format, name] of cases) {
+      const biz = {
+        ...tangente,
+        name,
+        city_slug: 'san-pedro-garza-garcia',
+      };
+      const d = buildShareCardData(biz, {
         disp: tangenteDisp,
-        cityName: 'Guadalajara',
+        cityName: 'San Pedro Garza García, Nuevo León',
       });
       const geo = computeShareCardLayout(d, format, true, 'editorial');
-      expect(geo.bizLogo).toBeNull();
-      expect(geo.name.lines.length).toBeLessThanOrEqual(3);
+      expect(geo.bizLogo).not.toBeNull();
+      expect(geo.name.lines.length).toBe(3);
       expect(geo.name.lines.join(' ')).not.toContain('…');
-      const markup = renderToStaticMarkup(
-        <ShareCardTemplate data={d} format={format} styleId="editorial" />,
-      );
-      expect(markup).not.toContain('border-radius:50%');
-      expect(markup).toContain('white-space:nowrap');
+      expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
+      const lastRow = geo.pillRows[geo.pillRows.length - 1];
+      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      const footTop = geo.height - geo.L.pad - geo.L.footSize;
+      expect(pillsEnd).toBeLessThanOrEqual(footTop);
+      expect(footTop - pillsEnd).toBeCloseTo(geo.L.footGap, 6);
+      expect(nameTop(geo) - circleBottom(geo)).toBeCloseTo(geo.L.bizLogoGap, 0);
     }
   });
 
