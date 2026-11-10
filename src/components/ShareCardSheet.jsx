@@ -3,12 +3,22 @@
 // Google con su conteo, sin precio; PR #144: logo circular del negocio y
 // hoja compacta con los botones en un pie fijo, para que se vean sin
 // bajar en cualquier teléfono).
-// PR #145: la hoja entra con scale-in-center (la misma animación de las
+// PR #146: la hoja entra con scale-in-center (la misma animación de las
 // tarjetas del mapa, PR #134/#135): el panel crece desde el centro en
 // 0,5 s, en vez del fundido de la librería de animación. La clase va en
 // el panel mismo (sin el div animado): la animación CSS solo toca
 // transform, y el panel no lo centra la librería con x:"-50%", así que
 // no hay conflicto; con "reducir movimiento" el CSS la apaga solo.
+// También el círculo del negocio es más grande (Ø 240 Historia /
+// 190 Post).
+// PR #147: la hoja deja de ser un bottom sheet anclado abajo y pasa a
+// ser una TARJETA CENTRADA con las 4 esquinas redondeadas. El pie fijo
+// (sticky) partía la animación en dos —el pie y el contenido no se
+// movían como una unidad y los botones salían a la mitad de la vista
+// previa—, así que los botones van en flujo normal al final de la
+// tarjeta y el panel entero (que ya lleva fondo, borde y sombra) anima
+// con scale-in-center como una sola pieza. Sin tirador: es un
+// affordance de bottom sheet, una tarjeta centrada no lo lleva.
 // Al presionar Compartir se genera un PNG con la foto y los datos del
 // negocio, listo para Instagram/Facebook. v1: UN estilo oscuro, dos
 // formatos (Historia IG 1080×1920, Post IG 1080×1080). El botón de
@@ -34,15 +44,16 @@ import {
 
 const PREVIEW_W = 200;
 
-// La hoja es compacta a propósito (PR #144): vista previa chica y
+// La tarjeta es compacta a propósito (PR #144): vista previa chica y
 // espacios apretados para que en cualquier teléfono se vean la vista
 // previa y los dos botones sin tener que bajar. Peor caso (Historia,
-// 200×356): 12 (padding sup.) + 10 (tirador) + 30 (encabezado) + 56
-// (selector) + 364 (vista previa) + 104 (pie fijo) = 576 px, que cabe
-// en 92dvh de una pantalla chica de 640 px (589 px) y sobra en una
-// típica de 844 px (776 px). Si aparece un aviso (foto sin cargar o
-// error), la hoja puede crecer unos px: el pie es sticky y los botones
-// nunca se esconden.
+// 200×356): 12 (padding sup.) + 30 (encabezado) + 56 (selector) + 364
+// (vista previa) + 92 (botones en flujo) + 10 (padding inf.) = 564 px,
+// que cabe en 92dvh de una pantalla chica de 640 px (589 px) y sobra en
+// una típica de 844 px (776 px). Si aparece un aviso (foto sin cargar o
+// error) o la pantalla es muy chica, TODO el panel hace scroll como una
+// unidad (PR #147: sin pie sticky, los botones nunca quedan en medio de
+// la vista previa).
 
 export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   const dark = useUIStore((s) => s.dark);
@@ -131,8 +142,10 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
-        alignItems: 'flex-end',
+        alignItems: 'center',
         justifyContent: 'center',
+        padding: '0 16px',
+        boxSizing: 'border-box',
       }}
     >
       <div
@@ -140,25 +153,16 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           background: dark ? '#232326' : '#FFFFFF',
-          width: '100%',
-          maxWidth: 600,
-          borderRadius: '24px 24px 0 0',
-          padding: '12px 16px 0',
+          width: 'calc(100vw - 32px)',
+          maxWidth: 460,
+          borderRadius: 24,
+          padding: '12px 16px calc(10px + env(safe-area-inset-bottom, 0px))',
           boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
           maxHeight: '92dvh',
           overflowY: 'auto',
           boxSizing: 'border-box',
         }}
       >
-        <div
-          style={{
-            width: 40,
-            height: 4,
-            borderRadius: 2,
-            background: dark ? '#3F3F46' : '#E4E4E7',
-            margin: '0 auto 6px',
-          }}
-        />
         <div
           style={{
             display: 'flex',
@@ -266,16 +270,14 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
           </p>
         ) : null}
 
-        {/* Pie fijo: los botones de acción nunca se esconden aunque la
-            hoja llegue a tener scroll (por ejemplo, con un aviso). */}
+        {/* Botones en flujo normal (PR #147): nada de position sticky
+            dentro del panel animado — el pie fijo partía la animación
+            en dos y los botones salían a la mitad de la vista previa.
+            Si la tarjeta desborda, todo el panel hace scroll junto. */}
         <div
           style={{
-            position: 'sticky',
-            bottom: 0,
-            zIndex: 2,
-            background: dark ? '#232326' : '#FFFFFF',
-            margin: '0 -16px',
-            padding: '6px 16px calc(10px + env(safe-area-inset-bottom, 0px))',
+            marginTop: 6,
+            paddingTop: 10,
             borderTop: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`,
           }}
         >

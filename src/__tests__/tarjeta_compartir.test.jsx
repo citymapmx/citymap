@@ -13,8 +13,13 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // PR #144: el logo circular del negocio (mismo que la ficha) a caballo
 // sobre el borde inferior de la foto, y la hoja compacta con los botones
 // en un pie fijo para que se vean sin bajar.
-// PR #145: el círculo es más grande (Ø 240 Historia / 190 Post) y la hoja
+// PR #146: el círculo es más grande (Ø 240 Historia / 190 Post) y la hoja
 // entra con scale-in-center, la animación de las tarjetas del mapa.
+// PR #147: la hoja deja de ser un bottom sheet y es una tarjeta CENTRADA
+// con las 4 esquinas redondeadas; sin tirador y sin pie sticky (el pie
+// fijo partía la animación en dos y los botones salían a la mitad de la
+// vista previa): los botones van en flujo normal al final y todo el
+// panel anima junto con scale-in-center.
 describe('tarjeta para compartir el negocio', () => {
   const lib = read('../lib/shareCard.js');
   const template = read('../components/ShareCardTemplate.jsx');
@@ -175,20 +180,59 @@ describe('tarjeta para compartir el negocio', () => {
     expect(sheet).toContain('bizLogoFailed');
   });
 
-  it('la hoja cabe sin bajar: vista previa chica y botones en pie fijo (PR #144)', () => {
+  it('la tarjeta cabe sin bajar: vista previa chica y botones en flujo (PR #144, #147)', () => {
     // Vista previa de 200 px (Historia: 356 px de alto) en vez de 300.
     const m = sheet.match(/const PREVIEW_W = (\d+)/);
     expect(m).not.toBeNull();
     expect(Number(m[1])).toBeLessThanOrEqual(220);
-    // Los dos botones viven en un pie fijo al fondo de la hoja.
-    expect(sheet).toContain("position: 'sticky'");
-    expect(sheet).toContain('bottom: 0');
+    // Los dos botones viven en flujo normal al final de la tarjeta
+    // (PR #147: ya no hay pie fijo; si la tarjeta desborda, todo el
+    // panel hace scroll junto y los botones nunca quedan en medio de
+    // la vista previa).
+    expect(sheet).toContain('Compartir imagen');
     expect(sheet).toContain('Compartir enlace');
-    // La hoja sigue acotada en altura y con cierre.
+    expect(sheet).toContain('onExport');
+    expect(sheet).toContain('onShareLink');
+    // La tarjeta sigue acotada en altura y con cierre.
     expect(sheet).toContain("maxHeight: '92dvh'");
+    expect(sheet).toContain("overflowY: 'auto'");
     expect(sheet).toContain('onClose');
     // El párrafo largo de descripción se quitó para que quepa todo.
     expect(sheet).not.toContain('Una imagen con la foto y los datos del negocio');
+  });
+
+  it('la hoja es una tarjeta centrada con las 4 esquinas redondeadas (PR #147)', () => {
+    // El overlay centra la tarjeta (antes la anclaba abajo con
+    // flex-end): el bloque del overlay es el que tiene position fixed.
+    expect(sheet).not.toContain("alignItems: 'flex-end'");
+    const overlay = sheet.match(/position: 'fixed',[\s\S]{0,400}alignItems: '([^']+)'/);
+    expect(overlay).not.toBeNull();
+    expect(overlay[1]).toBe('center');
+    // Padding horizontal para que la tarjeta flote sin tocar los bordes.
+    expect(sheet).toContain("padding: '0 16px'");
+    // El panel tiene las 4 esquinas redondeadas (antes solo las dos de
+    // arriba, como bottom sheet) y ancho centrado con tope.
+    expect(sheet).toContain('borderRadius: 24,');
+    expect(sheet).not.toContain("borderRadius: '24px 24px 0 0'");
+    expect(sheet).toContain("width: 'calc(100vw - 32px)'");
+    expect(sheet).toContain('maxWidth: 460');
+    expect(sheet).not.toContain('maxWidth: 600');
+    // Sin tirador de bottom sheet (la barrita de 40×4).
+    expect(sheet).not.toContain("margin: '0 auto 6px'");
+    // Sin pie sticky: NADA con position sticky dentro del panel
+    // animado, que era lo que partía la animación en dos.
+    expect(sheet).not.toContain("position: 'sticky'");
+    expect(sheet).not.toContain('bottom: 0');
+    // La animación sigue siendo scale-in-center y va en el panel que
+    // lleva fondo, borde redondeado y sombra: la tarjeta entera anima
+    // como una sola pieza (regla del PR #135 de la tarjeta del mapa).
+    const anim = sheet.indexOf('className="scale-in-center"');
+    const radius = sheet.indexOf('borderRadius: 24,');
+    const shadow = sheet.indexOf("boxShadow: '0 24px 48px rgba(0,0,0,0.2)'");
+    expect(anim).toBeGreaterThan(-1);
+    expect(radius).toBeGreaterThan(anim);
+    expect(shadow).toBeGreaterThan(radius);
+    expect(sheet).not.toContain('framer-motion');
   });
 
   it('la hoja entra con scale-in-center, la animación de las tarjetas del mapa (PR #145)', () => {
