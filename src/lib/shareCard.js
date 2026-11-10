@@ -718,12 +718,23 @@ export function wrapShareCardText(text, maxW, size, maxLines, weight = 700) {
       i += 1;
     }
     // Una palabra sola más ancha que la tarjeta, o palabras que sobran
-    // en la última línea: se recorta con puntos suspensivos.
+    // en la última línea: se recorta con puntos suspensivos, SIEMPRE en
+    // límite de palabra (nunca «famos…»): se quitan palabras enteras
+    // del final hasta que quepa con «…». Solo si la línea es una sola
+    // palabra más ancha que la tarjeta (no hay límite de palabra
+    // posible) se recorta por caracteres, como antes.
     if (
       measureShareCardText(line, size, weight) > maxW ||
       (isLast && i < words.length)
     ) {
-      let t = line;
+      const parts = line.split(' ');
+      while (
+        parts.length > 1 &&
+        measureShareCardText(`${parts.join(' ')}…`, size, weight) > maxW
+      ) {
+        parts.pop();
+      }
+      let t = parts.join(' ');
       while (
         t.length > 1 &&
         measureShareCardText(`${t}…`, size, weight) > maxW
