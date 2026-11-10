@@ -13,6 +13,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, createSlug } from '../lib/utils';
 import { typeLabel } from '../lib/postTaxonomy.js';
 import { tourSchemaNodes } from '../lib/tourSchema.js';
+import { galleryWithoutCover } from '../lib/experienceGallery.js';
 import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
 import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle, localizedDescription } from "../lib/i18nContent.js";
@@ -211,6 +212,10 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
 
   const gallery = Array.isArray(exp.gallery) ? exp.gallery : [];
   const cover = gallery.length > 0 ? gallery[0] : null;
+  // «Galería» sin la portada: el hero ya muestra gallery[0]; repetirla
+  // como primera foto de la galería duplicaba la portada. Si no queda
+  // ninguna foto, la sección no se muestra.
+  const galleryPhotos = galleryWithoutCover(gallery);
   const curr = (exp.booking_config && exp.booking_config.currency) ? exp.booking_config.currency : 'MXN';
   const isFree = !(exp.price > 0);
   const priceFormatted = isFree ? t("gratis", "Gratis") : `${exp.price.toLocaleString("en-US")} ${curr}`;
@@ -496,22 +501,26 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         )}
 
         {/* Gallery */}
-        {gallery.length > 1 && (
+        {galleryPhotos.length > 0 && (
           <div style={{ marginBottom: 32 }}>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12 }}>{t("revista_galeria", "Galería")}</h3>
-            {gallery.length === 2 ? (
+            {galleryPhotos.length === 1 ? (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gridTemplateRows: "180px", gap: 8, borderRadius: 20, overflow: "hidden" }}>
+                <div onClick={() => setFullGalleryIdx(0)} className="press" style={{ background: `url(${getThumbUrl(galleryPhotos[0], 1200, 600)}) center/cover`, cursor: "pointer" }} />
+              </div>
+            ) : galleryPhotos.length === 2 ? (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "180px", gap: 8, borderRadius: 20, overflow: "hidden" }}>
-                <div onClick={() => setFullGalleryIdx(0)} className="press" style={{ background: `url(${getThumbUrl(gallery[0], 600, 400)}) center/cover`, cursor: "pointer" }} />
-                <div onClick={() => setFullGalleryIdx(1)} className="press" style={{ background: `url(${getThumbUrl(gallery[1], 600, 400)}) center/cover`, cursor: "pointer" }} />
+                <div onClick={() => setFullGalleryIdx(0)} className="press" style={{ background: `url(${getThumbUrl(galleryPhotos[0], 600, 400)}) center/cover`, cursor: "pointer" }} />
+                <div onClick={() => setFullGalleryIdx(1)} className="press" style={{ background: `url(${getThumbUrl(galleryPhotos[1], 600, 400)}) center/cover`, cursor: "pointer" }} />
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "180px 140px", gap: 8, borderRadius: 20, overflow: "hidden" }}>
-                <div onClick={() => setFullGalleryIdx(0)} className="press" style={{ gridColumn: "1 / -1", background: `url(${getThumbUrl(gallery[0], 1200, 600)}) center/cover`, cursor: "pointer" }} />
-                <div onClick={() => setFullGalleryIdx(1)} className="press" style={{ background: `url(${getThumbUrl(gallery[1], 600, 400)}) center/cover`, cursor: "pointer" }} />
-                <div onClick={() => setFullGalleryIdx(2)} className="press" style={{ background: `url(${getThumbUrl(gallery[2], 600, 400)}) center/cover`, cursor: "pointer", position: "relative" }}>
-                  {gallery.length > 3 && (
+                <div onClick={() => setFullGalleryIdx(0)} className="press" style={{ gridColumn: "1 / -1", background: `url(${getThumbUrl(galleryPhotos[0], 1200, 600)}) center/cover`, cursor: "pointer" }} />
+                <div onClick={() => setFullGalleryIdx(1)} className="press" style={{ background: `url(${getThumbUrl(galleryPhotos[1], 600, 400)}) center/cover`, cursor: "pointer" }} />
+                <div onClick={() => setFullGalleryIdx(2)} className="press" style={{ background: `url(${getThumbUrl(galleryPhotos[2], 600, 400)}) center/cover`, cursor: "pointer", position: "relative" }}>
+                  {galleryPhotos.length > 3 && (
                     <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 24, fontWeight: 700 }}>
-                      +{gallery.length - 3}
+                      +{galleryPhotos.length - 3}
                     </div>
                   )}
                 </div>
@@ -794,7 +803,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
           </div>
           <div style={{ flex: 1, display: "flex", alignItems: "center", width: "100%" }}>
             <Suspense fallback={<div style={{ height: "100dvh", width: "100%", background: "#000" }} />}>
-              <Gallery photos={gallery.map(u => ({ url: u }))} h="100dvh" fit="contain" bg="transparent" initialIndex={fullGalleryIdx} />
+              <Gallery photos={galleryPhotos.map(u => ({ url: u }))} h="100dvh" fit="contain" bg="transparent" initialIndex={fullGalleryIdx} />
             </Suspense>
           </div>
         </div>, document.body
