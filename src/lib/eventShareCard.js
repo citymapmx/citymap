@@ -7,12 +7,13 @@
 // otro tipo → editorial (estilo por defecto).
 //
 // Reutiliza TODA la base de la tarjeta de negocios (lib/shareCard.js):
-// los dos formatos (Historia 1080×1920, Post 1080×1080), el logotipo
-// oficial en blanco, la exportación a canvas 2D (nada de html-to-image:
-// el PNG salía transparente, PR #143), la foto flexible que llena la
-// tarjeta, el guarda anti-blanco y los helpers de medición/dibujo. NO
-// lleva el círculo de logo del negocio: eso es solo para negocios con
-// plan de pago (PR #144); en eventos no hay círculo.
+// el formato Historia 1080×1920 (el Post 1080×1080 se quitó el 10 nov
+// 2026: la tarjeta de eventos solo se comparte como Historia), el
+// logotipo oficial en blanco, la exportación a canvas 2D (nada de
+// html-to-image: el PNG salía transparente, PR #143), la foto flexible
+// que llena la tarjeta, el guarda anti-blanco y los helpers de
+// medición/dibujo. NO lleva el círculo de logo del negocio: eso es solo
+// para negocios con plan de pago (PR #144); en eventos no hay círculo.
 //
 // La vista previa (EventShareCardTemplate.jsx) y el PNG comparten UNA
 // sola geometría: EVENT_SHARE_CARD_LAYOUT + computeEventShareCardLayout,
@@ -37,6 +38,7 @@ import {
   wrapShareCardName,
   loadShareCardPhoto,
   loadShareCardLogoWhite,
+  loadShareCardLogoDark,
   drawCoverImage,
   roundRectPath,
   spacedWidth,
@@ -44,7 +46,7 @@ import {
   assertCanvasNotBlank,
 } from './shareCard.js';
 
-// Los formatos (Historia/Post) son los mismos de la tarjeta de negocios.
+// El formato es solo Historia (el mismo de la tarjeta de negocios).
 export { SHARE_CARD_FORMATS } from './shareCard.js';
 
 export const EVENT_SHARE_CARD_STYLES = {
@@ -54,6 +56,61 @@ export const EVENT_SHARE_CARD_STYLES = {
   experiencias: { id: 'experiencias', label: 'Experiencias' },
   agenda: { id: 'agenda', label: 'Agenda' },
 };
+
+// Tema de la tarjeta (10 nov 2026, Jonathan): Oscura (la de siempre,
+// fondo oscuro) y Clara (fondo blanco, texto oscuro, como la Clara de
+// las tarjetas de negocios). El tema viaja en `data.theme` ('oscura'
+// por defecto) y lo elige el usuario en la hoja de compartir; el estilo
+// por categoría (festival/editorial/boleto/…) sigue siendo automático.
+// La plantilla y el canvas leen los mismos colores de la paleta, así la
+// vista previa y el PNG coinciden (igual que SHARE_CARD_STYLE_COLORS
+// en las tarjetas de negocios).
+export const EVENT_SHARE_CARD_THEMES = {
+  oscura: { id: 'oscura', label: 'Oscura' },
+  clara: { id: 'clara', label: 'Clara' },
+};
+export const EVENT_SHARE_CARD_THEME_LIST = [
+  EVENT_SHARE_CARD_THEMES.oscura,
+  EVENT_SHARE_CARD_THEMES.clara,
+];
+export const EVENT_SHARE_CARD_THEME_COLORS = {
+  oscura: {
+    bg: ['#1B1B1B', '#0B0B0B'],
+    text: '#FFFFFF',
+    sub: 'rgba(255,255,255,0.75)',
+    info: 'rgba(255,255,255,0.85)',
+    muted: '#A3A3A3',
+    pillBg: 'rgba(255,255,255,0.12)',
+    pillText: '#FFFFFF',
+    logoWhite: true,
+    photoBg: '#262626',
+    initial: 'rgba(255,255,255,0.35)',
+    barcodeBg: '#FFFFFF',
+    barcodeBar: '#111111',
+    footMuted: '#A3A3A3',
+    footBold: '#FFFFFF',
+  },
+  clara: {
+    bg: ['#FFFFFF', '#FAF9F6'],
+    text: '#111111',
+    sub: '#6B7280',
+    info: 'rgba(17,17,17,0.85)',
+    muted: '#6B7280',
+    pillBg: 'rgba(17,17,17,0.08)',
+    pillText: '#111111',
+    logoWhite: false,
+    photoBg: '#F0EFEA',
+    initial: 'rgba(0,0,0,0.30)',
+    barcodeBg: '#111111',
+    barcodeBar: '#FFFFFF',
+    footMuted: '#6B7280',
+    footBold: '#111111',
+  },
+};
+export function resolveEventShareCardTheme(value) {
+  const id = String(value || '').trim().toLowerCase();
+  return EVENT_SHARE_CARD_THEMES[id] || EVENT_SHARE_CARD_THEMES.oscura;
+}
 
 // Geometría de la tarjeta de evento, por formato. Reutiliza las medidas
 // La geometría de la tarjeta de evento: su propia base (pad, logo,
@@ -89,7 +146,7 @@ export const EVENT_SHARE_CARD_LAYOUT = {
     // 988/318 y la geometría nunca desborda la tarjeta — el mínimo se
     // bajó de 1000/360 en el PR #153 porque el título ahora puede ir a
     // 3 líneas (ver fitEventShareCardTitle): la tercera línea a tamaño
-    // completo come ~85 px en Historia y ~68 px en Post.
+    // completo come ~85 px en Historia.
     photoMinH: 960,
     titleSize: 76,
     titleSizeFestival: 96,
@@ -109,38 +166,8 @@ export const EVENT_SHARE_CARD_LAYOUT = {
     barcodePadX: 28,
     barcodePadY: 18,
   },
-  post: {
-    pad: 48,
-    logoH: 44,
-    logoGap: 24,
-    photoRadius: 32,
-    catSize: 28,
-    catGap: 28,
-    pillSize: 30,
-    pillPadX: 24,
-    pillPadY: 11,
-    pillGap: 14,
-    footSize: 26,
-    footGap: 36,
-    photoMinH: 300,
-    titleSize: 60,
-    titleSizeFestival: 76,
-    titleMinSize: 40,
-    titleGap: 14,
-    titleLineH: 1.12,
-    titleMaxLines: 3,
-    subSize: 32,
-    subGap: 14,
-    subLineH: 1.35,
-    subMaxLines: 2,
-    infoSize: 30,
-    infoGap: 14,
-    infoLineH: 1.4,
-    barcodeH: 96,
-    barcodeGap: 24,
-    barcodePadX: 24,
-    barcodePadY: 16,
-  },
+  // Sin entrada de Post: la tarjeta de eventos solo se comparte como
+  // Historia (10 nov 2026), así que su geometría no existe.
 };
 
 // ─── Estilo por tipo de evento ───
@@ -467,6 +494,8 @@ export function computeEventShareCardLayout(data, format) {
   const H = f.height;
   const maxW = W - L.pad * 2;
   const style = data?.style || 'editorial';
+  const theme = resolveEventShareCardTheme(data?.theme);
+  const palette = EVENT_SHARE_CARD_THEME_COLORS[theme.id];
 
   const logoW = Math.round(L.logoH * (400 / 120));
   const logo = { x: Math.round((W - logoW) / 2), y: L.pad, w: logoW, h: L.logoH };
@@ -624,6 +653,8 @@ export function computeEventShareCardLayout(data, format) {
     format: f,
     L,
     style,
+    theme,
+    palette,
     width: W,
     height: H,
     logo,
@@ -643,22 +674,24 @@ export function computeEventShareCardLayout(data, format) {
 
 export function drawEventShareCardCanvas(data, format, assets, layout) {
   const geo = layout || computeEventShareCardLayout(data, format);
-  const { L } = geo;
+  const { L, palette } = geo;
   const canvas = document.createElement('canvas');
   canvas.width = geo.width;
   canvas.height = geo.height;
   const ctx = canvas.getContext('2d');
 
-  // Fondo degradado oscuro (igual que la tarjeta de negocios).
+  // Fondo degradado (oscuro en Oscura, casi blanco en Clara).
   const bg = ctx.createLinearGradient(0, 0, 0, geo.height);
-  bg.addColorStop(0, '#1B1B1B');
-  bg.addColorStop(1, '#0B0B0B');
+  bg.addColorStop(0, palette.bg[0]);
+  bg.addColorStop(1, palette.bg[1]);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, geo.width, geo.height);
 
-  // Logotipo oficial blanco, arriba y centrado.
-  if (assets?.logoWhite) {
-    ctx.drawImage(assets.logoWhite, geo.logo.x, geo.logo.y, geo.logo.w, geo.logo.h);
+  // Logotipo oficial: en blanco sobre fondo oscuro, recolorado a
+  // oscuro (#111111, loadShareCardLogoDark) sobre fondo claro.
+  const logoImg = palette.logoWhite ? assets?.logoWhite : assets?.logoDark;
+  if (logoImg) {
+    ctx.drawImage(logoImg, geo.logo.x, geo.logo.y, geo.logo.w, geo.logo.h);
   }
 
   // Foto (o bloque con la inicial si no hay foto).
@@ -669,10 +702,10 @@ export function drawEventShareCardCanvas(data, format, assets, layout) {
   if (assets?.photo) {
     drawCoverImage(ctx, assets.photo, p.x, p.y, p.w, p.h);
   } else {
-    ctx.fillStyle = '#262626';
+    ctx.fillStyle = palette.photoBg;
     ctx.fillRect(p.x, p.y, p.w, p.h);
     const initial = (data?.title || 'C').trim().charAt(0).toUpperCase() || 'C';
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillStyle = palette.initial;
     ctx.font = `800 ${Math.round(L.photoMinH * 0.45)}px ${SHARE_CARD_FONT_STACK}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -684,7 +717,7 @@ export function drawEventShareCardCanvas(data, format, assets, layout) {
   if (geo.chip) {
     const c = geo.chip;
     ctx.font = `700 ${c.size}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillStyle = '#A3A3A3';
+    ctx.fillStyle = palette.muted;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     const w = spacedWidth(ctx, c.text, 6);
@@ -695,7 +728,7 @@ export function drawEventShareCardCanvas(data, format, assets, layout) {
   if (geo.title) {
     const n = geo.title;
     ctx.font = `800 ${n.size}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = palette.text;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     n.lines.forEach((line, i) => {
@@ -708,7 +741,7 @@ export function drawEventShareCardCanvas(data, format, assets, layout) {
   if (geo.subtitle) {
     const s = geo.subtitle;
     ctx.font = `600 ${s.size}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillStyle = palette.sub;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     s.lines.forEach((line, i) => {
@@ -720,7 +753,7 @@ export function drawEventShareCardCanvas(data, format, assets, layout) {
   // Filas de información (fecha/hora y lugar).
   for (const row of geo.info) {
     ctx.font = `600 ${row.size}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillStyle = palette.info;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     const w = ctx.measureText(row.text).width;
@@ -730,35 +763,39 @@ export function drawEventShareCardCanvas(data, format, assets, layout) {
   // Píldora (precio o «Cupo limitado»).
   if (geo.pill) {
     const pill = geo.pill;
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillStyle = palette.pillBg;
     roundRectPath(ctx, pill.x, pill.y, pill.w, pill.h, pill.h / 2);
     ctx.fill();
     ctx.font = `700 ${L.pillSize}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = palette.pillText;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     const textW = ctx.measureText(pill.text).width;
     ctx.fillText(pill.text, pill.x + (pill.w - textW) / 2, pill.y + pill.h / 2);
   }
 
-  // Código de barras decorativo (estilo boleto): tira blanca con
-  // barras negras. No es un código real, no se escanea.
+  // Código de barras decorativo (estilo boleto): tira con barras. En
+  // Oscura es tira blanca con barras negras; en Clara, tira negra con
+  // barras blancas para que se lea sobre fondo claro. No es un código
+  // real, no se escanea.
   if (geo.barcode) {
     const b = geo.barcode;
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = palette.barcodeBg;
     roundRectPath(ctx, b.x, b.y, b.w, b.h, 20);
     ctx.fill();
-    ctx.fillStyle = '#111111';
+    ctx.fillStyle = palette.barcodeBar;
     const barH = b.h - b.padY * 2;
     for (const bar of b.bars) {
       ctx.fillRect(b.x + b.padX + bar.x, b.y + b.padY, bar.w, barH);
     }
   }
 
-  // Pie: «Descúbrelo en CityMap».
+  // Pie: «Descubre más eventos en www.citymap.mx» (10 nov 2026; antes
+  // «Descúbrelo en CityMap»). La URL va en negrita, como el pie de las
+  // tarjetas de negocios («Descúbrelo en www.citymap.mx», que NO cambia).
   const f = geo.footer;
-  const run1 = 'Descúbrelo en ';
-  const run2 = 'CityMap';
+  const run1 = 'Descubre más eventos en ';
+  const run2 = 'www.citymap.mx';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
@@ -768,22 +805,23 @@ export function drawEventShareCardCanvas(data, format, assets, layout) {
   const total = w1 + 2 + w2;
   const fx = geo.width / 2 - total / 2;
   ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = '#A3A3A3';
+  ctx.fillStyle = palette.footMuted;
   drawSpacedText(ctx, run1, fx, f.y, 2);
   ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = '#FFFFFF';
+  ctx.fillStyle = palette.footBold;
   drawSpacedText(ctx, run2, fx + w1 + 2, f.y, 2);
 
   return canvas;
 }
 
 export async function renderEventShareCardCanvas(data, format) {
-  const [photo, logoWhite] = await Promise.all([
+  const [photo, logoWhite, logoDark] = await Promise.all([
     loadShareCardPhoto(data?.photoUrl),
     loadShareCardLogoWhite(),
+    loadShareCardLogoDark(),
   ]);
   const layout = computeEventShareCardLayout(data, format);
-  return drawEventShareCardCanvas(data, format, { photo, logoWhite }, layout);
+  return drawEventShareCardCanvas(data, format, { photo, logoWhite, logoDark }, layout);
 }
 
 // Genera el PNG de la tarjeta del evento dibujando en canvas (nada de

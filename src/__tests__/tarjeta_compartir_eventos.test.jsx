@@ -12,6 +12,10 @@ import {
   eventBarcodeBars,
   computeEventShareCardLayout,
   EVENT_SHARE_CARD_LAYOUT,
+  EVENT_SHARE_CARD_THEMES,
+  EVENT_SHARE_CARD_THEME_LIST,
+  EVENT_SHARE_CARD_THEME_COLORS,
+  resolveEventShareCardTheme,
   SHARE_CARD_FORMATS,
 } from '../lib/eventShareCard.js';
 
@@ -19,7 +23,7 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
 // Tarjeta para compartir el EVENTO (PR #152): lo mismo que la tarjeta
 // de los negocios (PRs #142–#147) — botón Compartir en el detalle del
-// evento, hoja centrada Historia/Post, PNG dibujado en canvas — pero con
+// evento, hoja centrada solo Historia, PNG dibujado en canvas — pero con
 // los datos del evento y uno de los 5 estilos de la imagen de Jonathan:
 // concierto → festival, exposición/cultural → editorial, feria → boleto
 // (código de barras decorativo), cata/taller → experiencias,
@@ -230,7 +234,7 @@ describe('tarjeta para compartir el evento: datos reales', () => {
 
 describe('tarjeta para compartir el evento: geometría (vista previa = PNG)', () => {
   it('la foto crece y no queda franja vacía entre el último bloque y el pie', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+    for (const format of [SHARE_CARD_FORMATS.story]) {
       for (const ev of [CONCIERTO, EXPOSICION, FERIA]) {
         const d = buildEventShareCardData(ev, { cityName: 'Guadalajara' });
         const geo = computeEventShareCardLayout(d, format);
@@ -362,7 +366,8 @@ describe('tarjeta para compartir el evento: la plantilla se renderiza (vista pre
     expect(html).toContain('Lun, 2 Nov');
     expect(html).toContain('Fiestas de octubre');
     expect(html).toContain('/logo-brand.png');
-    expect(html).toContain('Descúbrelo en');
+    expect(html).toContain('Descubre más eventos en');
+    expect(html).toContain('www.citymap.mx');
   });
 
   it('boleto: la tira del código de barras se renderiza con sus barras', () => {
@@ -378,11 +383,11 @@ describe('tarjeta para compartir el evento: la plantilla se renderiza (vista pre
   it('sin foto: sale el bloque con la inicial, no una imagen rota', () => {
     const d = buildEventShareCardData(EXPOSICION, { cityName: 'Puerto Vallarta' });
     const html = renderToStaticMarkup(
-      <EventShareCardTemplate data={d} format={SHARE_CARD_FORMATS.post} />,
+      <EventShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} />,
     );
-    // El título va en dos líneas (una por div).
-    expect(html).toContain('Expo Tattoo Puerto Vallarta');
-    expect(html).toContain('>2026</div>');
+    // El título va en dos líneas (una por div) en Historia.
+    expect(html).toContain('Expo Tattoo Puerto');
+    expect(html).toContain('Vallarta 2026');
     expect(html).toContain('>E</span>');
     expect(html).not.toContain('<img src=""');
   });
@@ -390,7 +395,7 @@ describe('tarjeta para compartir el evento: la plantilla se renderiza (vista pre
 
 describe('tarjeta para compartir el evento: sin precio no se menciona (PR #153)', () => {
   it('sin precio: la geometría no lleva píldora en ningún formato ni estilo', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+    for (const format of [SHARE_CARD_FORMATS.story]) {
       // Editorial sin precio (Expo Tattoo) y festival sin precio (Eslabón).
       for (const ev of [EXPOSICION, ESLABON]) {
         const geo = computeEventShareCardLayout(
@@ -430,8 +435,8 @@ describe('tarjeta para compartir el evento: sin precio no se menciona (PR #153)'
 });
 
 describe('tarjeta para compartir el evento: el título siempre completo (PR #153)', () => {
-  it('título largo (Eslabón Armado): cabe completo sin «…» en Historia y en Post', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+  it('título largo (Eslabón Armado): cabe completo sin «…» en Historia', () => {
+    for (const format of [SHARE_CARD_FORMATS.story]) {
       const d = buildEventShareCardData(ESLABON, { cityName: 'Guadalajara' });
       const geo = computeEventShareCardLayout(d, format);
       expect(geo.title.lines.length).toBeGreaterThan(0);
@@ -449,7 +454,7 @@ describe('tarjeta para compartir el evento: el título siempre completo (PR #153
   });
 
   it('título muy largo en editorial: la fuente se achica hasta caber en 3 líneas', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+    for (const format of [SHARE_CARD_FORMATS.story]) {
       const d = buildEventShareCardData(LARGO_EDITORIAL, {
         cityName: 'Guadalajara',
       });
@@ -467,7 +472,7 @@ describe('tarjeta para compartir el evento: el título siempre completo (PR #153
   });
 
   it('la geometría no desborda con el peor caso (título a 3 líneas + subtítulo + 2 filas + píldora)', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+    for (const format of [SHARE_CARD_FORMATS.story]) {
       for (const ev of [LARGO_EDITORIAL, ESLABON, FERIA]) {
         const d = buildEventShareCardData(ev, { cityName: 'Guadalajara' });
         const geo = computeEventShareCardLayout(d, format);
@@ -536,13 +541,19 @@ describe('tarjeta para compartir el evento: cableado', () => {
     expect(modal).toContain('eventUrl(ev, window.location.origin)');
   });
 
-  it('la hoja es la misma centrada de los negocios, con los dos formatos', () => {
-    // Los dos formatos (Historia IG / Post IG) vienen de la lista
-    // compartida con la tarjeta de negocios; la hoja los pinta como
-    // botones con su etiqueta y sus medidas.
-    expect(sheet).toContain('SHARE_CARD_FORMAT_LIST.map');
-    expect(sheet).toContain('{f.label}');
-    expect(sheet).toContain('{f.width} × {f.height}');
+  it('la hoja es la misma centrada de los negocios, con solo Historia y selector de tema', () => {
+    // Solo queda Historia IG (el Post se quitó el 10 nov 2026): la hoja
+    // ya no lista formatos y en su lugar ofrece los dos temas
+    // (Oscura/Clara) como botones.
+    expect(sheet).not.toContain('SHARE_CARD_FORMAT_LIST');
+    expect(sheet).not.toContain('Post IG');
+    expect(sheet).not.toContain('formatId');
+    expect(sheet).toContain('EVENT_SHARE_CARD_THEME_LIST.map');
+    expect(sheet).toContain('Oscura');
+    expect(sheet).toContain('Clara');
+    expect(sheet).toContain('Fondo oscuro');
+    expect(sheet).toContain('Fondo claro');
+    expect(sheet).toContain("SHARE_CARD_FORMATS.story");
     expect(sheet).toContain('Compartir imagen');
     expect(sheet).toContain('Compartir enlace');
     expect(sheet).toContain("e?.name === 'AbortError'");
@@ -566,10 +577,14 @@ describe('tarjeta para compartir el evento: cableado', () => {
 
   it('la plantilla lleva el logo oficial, la foto con CORS y el pie', () => {
     expect(template).toContain('src="/logo-brand.png"');
+    // En Oscura el logo va en blanco (brightness(0) invert(1)); en
+    // Clara va en negro (brightness(0)) — ver el bloque de Clara abajo.
     expect(template).toContain('brightness(0) invert(1)');
-    // El pie «Descúbrelo en CityMap» (el JSX lo parte en dos tramos).
-    expect(template).toContain('Descúbrelo en');
-    expect(template).toContain('>CityMap</span>');
+    // El pie nuevo «Descubre más eventos en www.citymap.mx» (el JSX lo
+    // parte en dos tramos: el texto y la URL en negrita).
+    expect(template).toContain('Descubre más eventos en');
+    expect(template).toContain('>www.citymap.mx</span>');
+    expect(template).not.toContain('Descúbrelo en');
     expect(template).toContain('crossOrigin="anonymous"');
     expect(template).toContain('{photoSrc ? (');
     expect(template).toContain('computeEventShareCardLayout');
@@ -596,5 +611,154 @@ describe('tarjeta para compartir el evento: cableado', () => {
     expect(lib).toContain('EVENT_SHARE_CARD_LAYOUT');
     expect(lib).toContain('computeEventShareCardLayout');
     expect(template).toContain('computeEventShareCardLayout');
+  });
+});
+
+describe('tarjeta para compartir el evento: pie nuevo (10 nov 2026)', () => {
+  const lib = read('../lib/eventShareCard.js');
+  const template = read('../components/EventShareCardTemplate.jsx');
+  const bizLib = read('../lib/shareCard.js');
+  const bizTemplate = read('../components/ShareCardTemplate.jsx');
+
+  it('el pie de eventos es «Descubre más eventos en www.citymap.mx» en canvas y vista previa', () => {
+    expect(lib).toContain("const run1 = 'Descubre más eventos en ';");
+    expect(lib).toContain("const run2 = 'www.citymap.mx';");
+    // El pie viejo ya no se dibuja (solo queda mencionado en el
+    // comentario que explica el cambio).
+    expect(lib).not.toContain("const run1 = 'Descúbrelo en ';");
+    expect(lib).not.toContain("run2 = 'CityMap'");
+    expect(template).toContain('Descubre más eventos en');
+    expect(template).toContain('>www.citymap.mx</span>');
+    expect(template).not.toContain('Descúbrelo en');
+    // La plantilla pinta el pie nuevo en los dos temas (ver Clara abajo).
+    for (const theme of [undefined, 'clara']) {
+      const d = buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' });
+      const html = renderToStaticMarkup(
+        <EventShareCardTemplate
+          data={theme ? { ...d, theme } : d}
+          format={SHARE_CARD_FORMATS.story}
+        />,
+      );
+      expect(html).toContain('Descubre más eventos en');
+      expect(html).toContain('www.citymap.mx');
+    }
+  });
+
+  it('el pie de negocios NO cambia: sigue «Descúbrelo en www.citymap.mx»', () => {
+    expect(bizLib).toContain("const run1 = 'Descúbrelo en ';");
+    expect(bizLib).toContain("const run2 = 'www.citymap.mx';");
+    expect(bizLib).not.toContain('Descubre más eventos en');
+    expect(bizTemplate).toContain('Descúbrelo en');
+    expect(bizTemplate).not.toContain('Descubre más eventos en');
+  });
+});
+
+describe('tarjeta para compartir el evento: solo Historia (sin Post)', () => {
+  it('la geometría de eventos ya no tiene entrada de Post', () => {
+    expect(EVENT_SHARE_CARD_LAYOUT.story).toBeDefined();
+    expect(EVENT_SHARE_CARD_LAYOUT.post).toBeUndefined();
+    expect(Object.keys(EVENT_SHARE_CARD_LAYOUT)).toEqual(['story']);
+  });
+
+  it('la hoja no ofrece Post: solo Historia y el tema', () => {
+    const sheet = read('../components/EventShareCardSheet.jsx');
+    expect(sheet).not.toContain('SHARE_CARD_FORMAT_LIST');
+    expect(sheet).not.toContain('Post IG');
+    expect(sheet).not.toContain('1080 × 1080');
+    expect(sheet).toContain('SHARE_CARD_FORMATS.story');
+  });
+});
+
+describe('tarjeta para compartir el evento: versión Clara', () => {
+  it('el tema se resuelve: clara solo si se pide, oscura por defecto', () => {
+    expect(resolveEventShareCardTheme('clara').id).toBe('clara');
+    expect(resolveEventShareCardTheme('oscura').id).toBe('oscura');
+    expect(resolveEventShareCardTheme(undefined).id).toBe('oscura');
+    expect(resolveEventShareCardTheme('').id).toBe('oscura');
+    expect(resolveEventShareCardTheme('otro').id).toBe('oscura');
+    expect(EVENT_SHARE_CARD_THEME_LIST.map((t) => t.id)).toEqual([
+      'oscura',
+      'clara',
+    ]);
+    expect(EVENT_SHARE_CARD_THEMES.clara.label).toBe('Clara');
+    expect(EVENT_SHARE_CARD_THEMES.oscura.label).toBe('Oscura');
+  });
+
+  it('la geometría lleva el tema y su paleta: Clara con fondo blanco y texto oscuro', () => {
+    const d = buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' });
+    const dark = computeEventShareCardLayout(d, SHARE_CARD_FORMATS.story);
+    expect(dark.theme.id).toBe('oscura');
+    expect(dark.palette.bg).toEqual(['#1B1B1B', '#0B0B0B']);
+    expect(dark.palette.text).toBe('#FFFFFF');
+    expect(dark.palette.logoWhite).toBe(true);
+    const light = computeEventShareCardLayout(
+      { ...d, theme: 'clara' },
+      SHARE_CARD_FORMATS.story,
+    );
+    expect(light.theme.id).toBe('clara');
+    expect(light.palette).toBe(EVENT_SHARE_CARD_THEME_COLORS.clara);
+    expect(light.palette.bg).toEqual(['#FFFFFF', '#FAF9F6']);
+    expect(light.palette.text).toBe('#111111');
+    expect(light.palette.logoWhite).toBe(false);
+    expect(light.palette.barcodeBg).toBe('#111111');
+    expect(light.palette.barcodeBar).toBe('#FFFFFF');
+    // La geometría (foto, título, pie) es la misma en los dos temas:
+    // solo cambian los colores.
+    expect(light.photo.h).toBe(dark.photo.h);
+    expect(light.title.lines).toEqual(dark.title.lines);
+    expect(light.footer).toEqual(dark.footer);
+  });
+
+  it('la plantilla Clara: fondo blanco, texto oscuro, logo en negro y pie nuevo', () => {
+    const d = buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' });
+    const html = renderToStaticMarkup(
+      <EventShareCardTemplate
+        data={{ ...d, theme: 'clara' }}
+        format={SHARE_CARD_FORMATS.story}
+      />,
+    );
+    expect(html).toContain('linear-gradient(180deg, #FFFFFF 0%, #FAF9F6 100%)');
+    expect(html).toContain('color:#111111');
+    // El logo va en negro (brightness(0) sin invert) sobre fondo claro.
+    expect(html).toContain('filter:brightness(0)');
+    expect(html).not.toContain('brightness(0) invert(1)');
+    expect(html).toContain('Descubre más eventos en');
+    expect(html).toContain('www.citymap.mx');
+    // Título, precio y fecha siguen ahí.
+    expect(html).toContain('CARLOS RIVERA -');
+    expect(html).toContain('Boletos desde $1200');
+    expect(html).toContain('Lun, 2 Nov');
+  });
+
+  it('la plantilla Oscura sigue igual: fondo oscuro y logo en blanco', () => {
+    const d = buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' });
+    const html = renderToStaticMarkup(
+      <EventShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} />,
+    );
+    expect(html).toContain('linear-gradient(180deg, #1B1B1B 0%, #0B0B0B 100%)');
+    expect(html).toContain('filter:brightness(0) invert(1)');
+    expect(html).toContain('Descubre más eventos en');
+  });
+
+  it('boleto en Clara: la tira del código de barras es negra con barras blancas', () => {
+    const d = buildEventShareCardData(FERIA, { cityName: 'Guadalajara' });
+    const html = renderToStaticMarkup(
+      <EventShareCardTemplate
+        data={{ ...d, theme: 'clara' }}
+        format={SHARE_CARD_FORMATS.story}
+      />,
+    );
+    expect(html).toContain('background:#111111');
+    expect(html).toContain('background:#FFFFFF');
+  });
+
+  it('la hoja ofrece Clara como opción junto a Oscura', () => {
+    const sheet = read('../components/EventShareCardSheet.jsx');
+    expect(sheet).toContain('EVENT_SHARE_CARD_THEME_LIST.map');
+    expect(sheet).toContain("useState('oscura')");
+    expect(sheet).toContain('{t.label}');
+    expect(sheet).toContain('Fondo oscuro');
+    expect(sheet).toContain('Fondo claro');
+    expect(sheet).toContain('theme: themeId');
   });
 });
