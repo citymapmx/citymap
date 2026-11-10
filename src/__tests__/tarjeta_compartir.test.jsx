@@ -13,6 +13,8 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // PR #144: el logo circular del negocio (mismo que la ficha) a caballo
 // sobre el borde inferior de la foto, y la hoja compacta con los botones
 // en un pie fijo para que se vean sin bajar.
+// PR #145: el círculo es más grande (Ø 240 Historia / 190 Post) y la hoja
+// entra con scale-in-center, la animación de las tarjetas del mapa.
 describe('tarjeta para compartir el negocio', () => {
   const lib = read('../lib/shareCard.js');
   const template = read('../components/ShareCardTemplate.jsx');
@@ -154,7 +156,16 @@ describe('tarjeta para compartir el negocio', () => {
     expect(template).toContain('getThumbUrl(data.bizLogoUrl, 300, 300)');
     expect(template).toContain('onBizLogoError');
     expect(template).toContain("borderRadius: '50%'");
-    expect(template).toContain('0 6px 16px rgba(0,0,0,0.12)');
+    // La sombra es la del layout (compartida con el canvas) y crece con
+    // el círculo (PR #145: Ø 240 Historia / 190 Post, anillo 8/6).
+    expect(template).toContain('L.bizLogoShadowY');
+    expect(template).toContain('L.bizLogoShadowBlur');
+    expect(lib).toContain('bizLogoD: 240');
+    expect(lib).toContain('bizLogoD: 190');
+    expect(lib).toContain('bizLogoRing: 8');
+    expect(lib).toContain('bizLogoRing: 6');
+    expect(lib).toContain('bizLogoShadowY: 8');
+    expect(lib).toContain('bizLogoShadowBlur: 20');
     // El exportador de canvas también lo dibuja (círculo + contain) y
     // si no carga, la tarjeta sale sin círculo.
     expect(lib).toContain('loadShareCardBizLogo');
@@ -178,5 +189,20 @@ describe('tarjeta para compartir el negocio', () => {
     expect(sheet).toContain('onClose');
     // El párrafo largo de descripción se quitó para que quepa todo.
     expect(sheet).not.toContain('Una imagen con la foto y los datos del negocio');
+  });
+
+  it('la hoja entra con scale-in-center, la animación de las tarjetas del mapa (PR #145)', () => {
+    // La misma entrada que la ventana de detalle del pin del mapa
+    // (PR #134/#135): el panel crece desde el centro en 0,5 s, sin el
+    // fundido de opacidad de framer-motion.
+    expect(sheet).toContain('className="scale-in-center"');
+    expect(sheet).not.toContain('m.div');
+    expect(sheet).not.toContain('framer-motion');
+    // La clase existe en el CSS con la misma definición que usa el mapa.
+    const css = read('../index.css');
+    expect(css).toContain('.scale-in-center');
+    expect(css).toContain('scale-in-center 0.5s');
+    expect(css).toContain('transform: scale(0)');
+    expect(css).toContain('transform: scale(1)');
   });
 });

@@ -3,6 +3,12 @@
 // Google con su conteo, sin precio; PR #144: logo circular del negocio y
 // hoja compacta con los botones en un pie fijo, para que se vean sin
 // bajar en cualquier teléfono).
+// PR #145: la hoja entra con scale-in-center (la misma animación de las
+// tarjetas del mapa, PR #134/#135): el panel crece desde el centro en
+// 0,5 s, en vez del fundido de la librería de animación. La clase va en
+// el panel mismo (sin el div animado): la animación CSS solo toca
+// transform, y el panel no lo centra la librería con x:"-50%", así que
+// no hay conflicto; con "reducir movimiento" el CSS la apaga solo.
 // Al presionar Compartir se genera un PNG con la foto y los datos del
 // negocio, listo para Instagram/Facebook. v1: UN estilo oscuro, dos
 // formatos (Historia IG 1080×1920, Post IG 1080×1080). El botón de
@@ -11,7 +17,6 @@
 // En web NO se puede publicar directo a Instagram: la hoja comparte la
 // imagen con el menú del sistema o la descarga, nunca promete publicarla.
 import React, { useState } from 'react';
-import { m } from 'framer-motion';
 import { useDataStore } from '../store/useDataStore.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { displayRating } from '../lib/googleRatings.js';
@@ -130,10 +135,9 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
         justifyContent: 'center',
       }}
     >
-      <m.div
+      <div
+        className="scale-in-center"
         onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
         style={{
           background: dark ? '#232326' : '#FFFFFF',
           width: '100%',
@@ -318,7 +322,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
             Compartir enlace
           </button>
         </div>
-      </m.div>
+      </div>
     </div>
   );
 }

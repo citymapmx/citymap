@@ -208,4 +208,45 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
       expect(footTop - pillsEnd).toBe(geo.L.footGap);
     }
   });
+
+  it('el círculo es más grande que en el #144, con anillo y sombra proporcionales (PR #145)', () => {
+    // «Un poco» más grande: ~+25% de diámetro; el logo CITYMAP de
+    // arriba no cambia de tamaño.
+    expect(SHARE_CARD_LAYOUT.story.bizLogoD).toBe(240);
+    expect(SHARE_CARD_LAYOUT.post.bizLogoD).toBe(190);
+    expect(SHARE_CARD_LAYOUT.story.bizLogoRing).toBe(8);
+    expect(SHARE_CARD_LAYOUT.post.bizLogoRing).toBe(6);
+    expect(SHARE_CARD_LAYOUT.story.logoH).toBe(56);
+    expect(SHARE_CARD_LAYOUT.post.logoH).toBe(44);
+  });
+
+  it('el peor caso con logo y círculo grande no se solapa (nombre de 2 líneas, PR #145)', () => {
+    const longBizLogo = {
+      ...bizLogo,
+      name: 'Restaurante El Gran Buffet Internacional de la Abuela María',
+      city_slug: 'san-pedro-garza-garcia',
+    };
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      const d = buildShareCardData(longBizLogo, {
+        disp: googleDispBarbarella,
+        cityName: 'San Pedro Garza García',
+      });
+      const geo = computeShareCardLayout(d, format, true);
+      expect(geo.bizLogo).not.toBeNull();
+      // El nombre ocupa las 2 líneas en el peor caso.
+      expect(geo.name.lines.length).toBe(2);
+      // La foto no se recorta a su mínimo: nada se desborda.
+      expect(geo.photo.h).toBeGreaterThan(geo.L.photoMinH);
+      // Entre el círculo y el primer texto queda el hueco diseñado
+      // (la y del círculo se redondea a píxel entero, ±0,5 px).
+      const circleBottom = geo.bizLogo.y + geo.bizLogo.d;
+      const firstTextTop = geo.category.y - geo.category.size / 2;
+      expect(firstTextTop - circleBottom).toBeCloseTo(geo.L.bizLogoGap, 0);
+      // Y entre las píldoras y el pie queda exactamente footGap.
+      const lastRow = geo.pillRows[geo.pillRows.length - 1];
+      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      const footTop = geo.height - geo.L.pad - geo.L.footSize;
+      expect(footTop - pillsEnd).toBe(geo.L.footGap);
+    }
+  });
 });
