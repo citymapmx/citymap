@@ -4,7 +4,7 @@ import { getThumbUrl } from '../../lib/utils';
 // Both uncropped layers share the same grid cell and their natural proportions.
 export default function EventPoster({ src, alt = '', dark = false }) {
   const previewSrc = getThumbUrl(src, 400);
-  const optimizedSrc = getThumbUrl(src, 800);
+  const optimizedSrc = getThumbUrl(src, 1200);
   const [useOriginal, setUseOriginal] = useState(false);
   const [loadedSrc, setLoadedSrc] = useState(null);
   const detailSrc = useOriginal ? src : optimizedSrc;

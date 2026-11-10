@@ -216,10 +216,11 @@ export default function EventDetailModal() {
         const isHost = Boolean(user?.id && ev.user_id && user.id === ev.user_id);
         // Rediseño Luma en claro: solo privados vigentes en modo claro.
         const luma = isPrivateEvent(ev) && !isPast && !dark;
-        // Héroe estilo Luma en vigentes, en claro y en oscuro: título y
-        // lugar sobre la foto con degradado (sin distintivo de fecha; la
-        // fecha se queda como está, en Cuándo).
-        const heroLuma = !isPast;
+        // La foto del héroe va completa, sin recorte: el título y el
+        // lugar ya no van superpuestos sobre la foto con degradado,
+        // sino debajo de la imagen, en la tarjeta de contenido (la
+        // fecha se queda como está, en Cuándo). Los eventos pasados
+        // van sin foto grande, como antes.
         const heroDate = luma ? heroDateParts(ev.date) : null;
         // Fila superior (solo públicos): categoría en mayúsculas a la
         // izquierda y el precio a la derecha, sin aspecto de botón. El
@@ -253,37 +254,16 @@ export default function EventDetailModal() {
                   </button>
                 </div>
               ) : (
-              <div style={{ position: "relative", width: "100%", maxHeight: heroLuma ? 280 : 200, background: "transparent", overflow: "hidden" }}>
+              <div style={{ position: "relative", width: "100%", background: "transparent" }}>
+                {/* Póster completo, sin recorte: la imagen va a ancho
+                    completo con su altura natural y nada tapa su pie. */}
                 {imgSrc ? (
                   <EventPoster key={imgSrc} src={imgSrc} alt={displayTitle || ""} dark={dark} />
                 ) : (
-                  <div style={{ width: "100%", height: "100%", minHeight: heroLuma ? 200 : 120, display: "flex", alignItems: "center", justifyContent: "center", background: dark ? "#232326" : "#111", borderBottom: dark ? "1px solid #3F3F46" : "none", paddingTop: heroLuma ? 44 : 0 }}>
+                  <div style={{ width: "100%", minHeight: 200, display: "flex", alignItems: "center", justifyContent: "center", background: dark ? "#232326" : "#111", borderBottom: dark ? "1px solid #3F3F46" : "none", paddingTop: 44 }}>
                     <Icon name="calendar" size={44} color={dark ? "#71717A" : "rgba(255,255,255,0.55)"} />
                   </div>
                 )}
-
-                {/* ── Héroe estilo Luma: título grande sobre la foto ── */}
-                {heroLuma && (
-                  <>
-                    {imgSrc && (
-                      <div aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "62%", background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.75) 100%)", zIndex: 5, pointerEvents: "none" }} />
-                    )}
-                    <div style={{ position: "absolute", left: 16, right: (isPrivateEvent(ev) && isHost) ? 148 : 16, bottom: 14, zIndex: 6, textAlign: "left" }}>
-                      {heroDate && (
-                        <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, letterSpacing: "0.4px", padding: "6px 10px", borderRadius: 9999, marginBottom: 8, background: imgSrc ? "rgba(255,255,255,0.22)" : "rgba(15,26,20,0.06)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: imgSrc ? "#FFFFFF" : T.text, border: imgSrc ? "1px solid rgba(255,255,255,0.35)" : "1px solid rgba(15,26,20,0.08)" }}>
-                          {heroDate.dia} {heroDate.num} {heroDate.mes} {heroDate.year}
-                        </span>
-                      )}
-                      <div style={{ fontFamily: FONT_BIZ, fontSize: 30, fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.5px", color: imgSrc ? "#FFFFFF" : T.text, textShadow: imgSrc ? "0 2px 12px rgba(0,0,0,0.35)" : "none" }}>{displayTitle}</div>
-                      {ev.venue_name && (
-                        <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6, color: imgSrc ? "rgba(255,255,255,0.92)" : T.sub, textShadow: imgSrc ? "0 1px 8px rgba(0,0,0,0.45)" : "none" }}>{ev.venue_name}</div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {/* Desvanecido sutil del borde inferior de la foto hacia el fondo de la página (en claro y en oscuro). Va por encima del degradado oscuro y por debajo del título. */}
-                <div aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 40, background: `linear-gradient(180deg, transparent 0%, ${T.bg} 100%)`, zIndex: 5, pointerEvents: "none" }} />
 
                 {/* Floating Back Button */}
                 <button aria-label={t("eventos_volver", "Volver")} onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
@@ -322,10 +302,21 @@ export default function EventDetailModal() {
               {/* --- CONTENT CARD (No overlap) --- */}
               <div style={{ position: "relative", zIndex: 2, background: luma ? "transparent" : T.bg, padding: "16px 16px 32px", flex: 1, display: "flex", flexDirection: "column" }}>
 
-                {/* En el rediseño Luma el título ya va sobre la foto del héroe. */}
-                {!heroLuma && (
-                  <h1 style={{ fontFamily: FONT_BIZ, fontSize: 24, fontWeight: 900, color: T.text, lineHeight: 1.15, marginTop: 0, marginBottom: showTopRow ? 8 : 12, textAlign: "left", letterSpacing: "-0.5px" }}>{displayTitle}</h1>
-                )}
+                {/* Cabecera bajo la foto: la píldora de fecha (solo
+                    privados en claro), el título grande y el recinto.
+                    Antes iban superpuestos sobre la foto; ahora la foto
+                    va completa arriba y nada tapa el póster. */}
+                <div style={{ marginBottom: showTopRow ? 8 : 12 }}>
+                  {!isPast && heroDate && (
+                    <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, letterSpacing: "0.4px", padding: "6px 10px", borderRadius: 9999, marginBottom: 10, background: dark ? "rgba(255,255,255,0.08)" : "rgba(15,26,20,0.06)", color: T.text, border: `1px solid ${T.border}` }}>
+                      {heroDate.dia} {heroDate.num} {heroDate.mes} {heroDate.year}
+                    </span>
+                  )}
+                  <h1 style={{ fontFamily: FONT_BIZ, fontSize: isPast ? 24 : 30, fontWeight: 900, color: T.text, lineHeight: isPast ? 1.15 : 1.05, marginTop: 0, marginBottom: (!isPast && ev.venue_name) ? 6 : 0, textAlign: "left", letterSpacing: "-0.5px" }}>{displayTitle}</h1>
+                  {!isPast && ev.venue_name && (
+                    <div style={{ fontSize: 14, fontWeight: 600, color: T.sub }}>{ev.venue_name}</div>
+                  )}
+                </div>
 
                 {/* Fila superior: categoría en mayúsculas y precio, sin botón. */}
                 {showTopRow && (
@@ -411,7 +402,7 @@ export default function EventDetailModal() {
                     </div>
 
                     {privateTab === 'chat' && <PrivateEventChat event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setChatCount} />}
-                    {privateTab === 'detalles' && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={false} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />}
+                    {privateTab === 'detalles' && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={false} heroShowsVenue={!isPast} hidePriceRow={Boolean(topPriceLabel)} />}
                     {privateTab === 'invitados' && <PrivateEventRsvp event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setGuestCount} />}
 
                     {user?.id && ev.user_id && user.id === ev.user_id && (
@@ -426,7 +417,7 @@ export default function EventDetailModal() {
                   </>
                 ) : (
                   /* --- Datos del evento: en los pasados ya no se muestran (fecha, lugar y precio vencidos) --- */
-                  !isPast && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={heroLuma} hidePriceRow={Boolean(topPriceLabel)} />
+                  !isPast && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={!isPast} hidePriceRow={Boolean(topPriceLabel)} />
                 )}
 
                 {/* --- MÚSICA DEL ARTISTA (adelantos de iTunes; si no hay canciones no se muestra nada) --- */}
