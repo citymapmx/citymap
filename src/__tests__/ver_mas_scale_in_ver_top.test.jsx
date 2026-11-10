@@ -59,6 +59,17 @@ describe('ver mas: scale-in-ver-top entrance on the new batch', () => {
     expect(events).toContain("smoothScrollIntoView(el, 'nearest')");
   });
 
+  it('EventsView: newBatchIds is declared AFTER filteredEvents (no TDZ crash)', () => {
+    // Regresión del PR #137: en el PR #136 el useMemo de newBatchIds vivía
+    // antes que el const de filteredEvents y lo leía en su arreglo de
+    // dependencias → ReferenceError al montar → "Algo salió mal" en /eventos.
+    const filteredAt = events.indexOf('const filteredEvents = useMemo');
+    const batchAt = events.indexOf('const newBatchIds = useMemo');
+    expect(filteredAt).toBeGreaterThan(-1);
+    expect(batchAt).toBeGreaterThan(-1);
+    expect(batchAt).toBeGreaterThan(filteredAt);
+  });
+
   it('HomeTopGrids: only the 5 new cards of each "Ver 5 más" get the class, on an inner wrapper', () => {
     expect(grids).toContain("freshFavs && index >= 5 ? 'scale-in-ver-top' : undefined");
     expect(grids).toContain("freshRated && index >= 5 ? 'scale-in-ver-top' : undefined");

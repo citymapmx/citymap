@@ -60,10 +60,9 @@ export default function EventsView() {
   // índice global en el render). Se limpia 600 ms después de que el lote
   // llega (la animación dura 0.5 s) para que la clase no quede puesta.
   const [newBatchFrom, setNewBatchFrom] = useState(null);
-  const newBatchIds = useMemo(
-    () => (newBatchFrom === null ? null : new Set(filteredEvents.slice(newBatchFrom, visibleCount).map(ev => ev.id))),
-    [newBatchFrom, filteredEvents, visibleCount]
-  );
+  // (newBatchIds va DESPUÉS de filteredEvents: su useMemo lee filteredEvents
+  // en el arreglo de dependencias, y leerlo antes de su const rompería la
+  // vista al montar — eso tumbó /eventos en el PR #136.)
   // "Ver más eventos": tras cargar la tanda nueva, la vista se desliza
   // suave hasta la primera tarjeta nueva; sin esto la lista crecía de golpe
   // y la pantalla no se movía (brusco). El botón guarda el id del primer
@@ -202,6 +201,16 @@ export default function EventsView() {
     }
     return list;
   }, [visibleEvents, eventCategoryFilter, dateFilter, customDate, searchQuery, priceFilter, sortBy, todayLocal]);
+
+  // Lote recién cargado con "Ver más eventos", identificado por id (la lista
+  // se agrupa por mes y no hay un índice global en el render). SOLO puede
+  // vivir aquí, después de filteredEvents: el useMemo lee filteredEvents en
+  // su arreglo de dependencias, y antes de su const es zona muerta temporal
+  // (ReferenceError al montar → "Algo salió mal", PR #136).
+  const newBatchIds = useMemo(
+    () => (newBatchFrom === null ? null : new Set(filteredEvents.slice(newBatchFrom, visibleCount).map(ev => ev.id))),
+    [newBatchFrom, filteredEvents, visibleCount]
+  );
 
   // Al cambiar cualquier filtro se vuelve a mostrar desde los primeros 20.
   useEffect(() => { setVisibleCount(PAGE_SIZE); setNewBatchFrom(null); }, [searchQuery, eventCategoryFilter, dateFilter, customDate, priceFilter, sortBy]);
