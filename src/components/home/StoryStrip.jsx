@@ -39,7 +39,13 @@ export default function StoryStrip({ items = [], T, t, onSelect, isSaved, onTogg
   const total = pool.length;
   // Arranque al azar en cada visita: el primer lugar que se ve cambia
   // de una visita a otra, en vez de ser siempre el mejor calificado.
-  const [i, setI] = useState(() => (total ? Math.floor(Math.random() * total) : 0));
+  // PR #151: el inicializador NO depende de `total` — al montar, los
+  // datos aún no han cargado y `total` es 0, así que antes `i` quedaba
+  // en 0 siempre y la tira arrancaba en el lugar #1. Con
+  // STORY_MAX_ITEMS el arranque es aleatorio de verdad; `idx = i %
+  // total` ya lo acota cuando la lista llega (y si trae menos de 12,
+  // también vale).
+  const [i, setI] = useState(() => Math.floor(Math.random() * STORY_MAX_ITEMS));
   const [paused, setPaused] = useState(false);
   // Sin transición durante el salto de la vuelta (del último al primero):
   // la pista no barre las 12 tarjetas de regreso.
@@ -241,7 +247,12 @@ export default function StoryStrip({ items = [], T, t, onSelect, isSaved, onTogg
           los puntos de la galería de la ficha (Gallery.jsx): el activo
           es una píldora corta, los demás puntitos discretos con opacidad
           baja. Tocar un punto salta a ese lugar. Sin animación de
-          llenado. */}
+          llenado. PR #151: SIN transición — la transición de ancho y
+          opacidad se atascaba a mitad en el WebView del teléfono con
+          el avance automático y dejaba una estela de puntos a medio
+          activar (una barra larga en vez de una sola píldora). El
+          cambio es instantáneo: un punto es 6 px tenue o 16 px
+          brillante, nada entre medias. */}
       {total > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 10 }}>
           {pool.map((it, n) => (
@@ -258,7 +269,6 @@ export default function StoryStrip({ items = [], T, t, onSelect, isSaved, onTogg
                 background: T.text,
                 opacity: n === idx ? 1 : 0.25,
                 cursor: 'pointer',
-                transition: 'all 0.3s',
               }}
             />
           ))}
