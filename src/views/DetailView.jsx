@@ -943,7 +943,13 @@ export default function DetailView() {
                 <div style={{ textAlign: "center", padding: "40px", background: "#fff", borderRadius: 24, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>Cargando…</div>
               </div>
             }>
-              <ShareCardSheet biz={selected} hasMenu={hasMenu} onClose={() => setShowShareCard(false)} onShareLink={(b) => doShare(b)} />
+              {/* PR #162: la ficha ya no pasa hasMenu: «Para pedir» y
+                  «QR del menú» salen de la tarjeta del negocio y viven
+                  en la página del menú (BusinessStore, menuOnly). La
+                  hoja vuelve a 2 estilos (Oscura y Clara) para todos
+                  los negocios, tengan menú o no. El hasMenu de arriba
+                  se queda: lo usa el botón «VER MENÚ» de la ficha. */}
+              <ShareCardSheet biz={selected} onClose={() => setShowShareCard(false)} onShareLink={(b) => doShare(b)} />
             </Suspense>
           </ErrorBoundary>
         )}

@@ -76,6 +76,7 @@ import ShareCardTemplate from './ShareCardTemplate.jsx';
 import {
   SHARE_CARD_DEFAULT_STYLE,
   SHARE_CARD_FORMAT_LIST,
+  SHARE_CARD_MENU_ONLY_STYLE_LIST,
   buildMenuShareCardData,
   buildMenuShareUrl,
   buildShareCardData,
@@ -107,13 +108,30 @@ const SWIPE_MIN_PX = 60;
 // como una unidad (PR #147: sin pie sticky, los botones nunca quedan en
 // medio de la vista previa).
 
-export default function ShareCardSheet({ biz, hasMenu = false, onClose, onShareLink }) {
+// PR #162: en la página del menú la hoja ofrece SOLO «Para pedir»
+// y «QR del menú» (menuOnly): los 2 estilos salen de la ficha y
+// viven en el link del menú. El llamador (BusinessStore) ya trae los
+// platillos cargados y los pasa como menuItems, así la hoja no hace
+// otra consulta; si no llegan como prop, la hoja los carga igual que
+// en la ficha. El estilo inicial es «Para pedir» (el primero de los
+// 2), no Oscura.
+export default function ShareCardSheet({
+  biz,
+  hasMenu = false,
+  menuOnly = false,
+  menuItems: menuItemsProp = null,
+  onClose,
+  onShareLink,
+}) {
   const dark = useUIStore((s) => s.dark);
   const toast$ = useUIStore((s) => s.toast$);
   const googleRatings = useDataStore((s) => s.googleRatings);
   const cities = useDataStore((s) => s.cities);
   const [formatId, setFormatId] = useState('story');
-  const [styleId, setStyleId] = useState(SHARE_CARD_DEFAULT_STYLE);
+  const defaultStyleId = menuOnly
+    ? SHARE_CARD_MENU_ONLY_STYLE_LIST[0].id
+    : SHARE_CARD_DEFAULT_STYLE;
+  const [styleId, setStyleId] = useState(defaultStyleId);
   const [status, setStatus] = useState('idle'); // idle | generating | error
   const [error, setError] = useState('');
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -122,10 +140,17 @@ export default function ShareCardSheet({ biz, hasMenu = false, onClose, onShareL
   // tiene platillos con precio). Solo se carga si la ficha dice que
   // hay menú (hasMenu, que DetailView ya consulta); sin menú, la hoja
   // ni siquiera pregunta por él.
+  // PR #162: en la página del menú (menuOnly) también se carga, y si
+  // el llamador ya trae los platillos (menuItemsProp, BusinessStore)
+  // se usan tal cual, sin otra consulta.
   const [menuItems, setMenuItems] = useState(null);
   useEffect(() => {
     let alive = true;
-    if (!hasMenu || !biz?.id) {
+    if (Array.isArray(menuItemsProp)) {
+      setMenuItems(menuItemsProp);
+      return undefined;
+    }
+    if ((!hasMenu && !menuOnly) || !biz?.id) {
       setMenuItems(null);
       return undefined;
     }
@@ -136,7 +161,7 @@ export default function ShareCardSheet({ biz, hasMenu = false, onClose, onShareL
     return () => {
       alive = false;
     };
-  }, [hasMenu, biz?.id]);
+  }, [hasMenu, menuOnly, menuItemsProp, biz?.id]);
   // Con «reducir movimiento» la pista no desliza: cambia de estilo al
   // instante, como las tiras (StoryStrip).
   const [reduceMotion] = useState(
@@ -255,7 +280,14 @@ export default function ShareCardSheet({ biz, hasMenu = false, onClose, onShareL
   // chevrones usan la lista disponible, no la base. Si el menú llega
   // tarde, la lista crece de 2 a 4 con el índice intacto (el estilo
   // por defecto sigue siendo el primero).
-  const availableStyles = shareCardStyleList(hasMenuItems);
+  // PR #162: en la página del menú (menuOnly) la lista es SOLO «Para
+  // pedir» y «QR del menú» (2 puntos); la ficha ya no ofrece esos 2
+  // estilos (DetailView ya no pasa hasMenu). En el menú, la hoja no
+  // se pinta hasta que los platillos están cargados: «Para pedir»
+  // sin platillos y el QR sin URL serían una tarjeta a medias.
+  const availableStyles = shareCardStyleList(hasMenuItems, { menuOnly });
+  const menuReady = !menuOnly || hasMenuItems;
+  const menuEmpty = menuOnly && menuItems !== null && menuItems.length === 0;
   const styleIndex = Math.max(
     0,
     availableStyles.findIndex((s) => s.id === styleId),
@@ -267,7 +299,7 @@ export default function ShareCardSheet({ biz, hasMenu = false, onClose, onShareL
   const [trackPos, setTrackPos] = useState(() => {
     const i = Math.max(
       0,
-      availableStyles.findIndex((s) => s.id === SHARE_CARD_DEFAULT_STYLE),
+      availableStyles.findIndex((s) => s.id === defaultStyleId),
     );
     return i + 1;
   });
@@ -496,6 +528,11 @@ export default function ShareCardSheet({ biz, hasMenu = false, onClose, onShareL
             es un carrusel infinito con clones: al dar › en el último
             desliza hacia adelante hasta el clon del primero y se
             resetea en silencio, en vez de regresarse hacia atrás. */}
+        {/* PR #162: en el menú, la pista y los botones solo se pintan
+            cuando los platillos ya están cargados (menuReady); si no,
+            «Para pedir» saldría sin platillos y el QR sin URL. */}
+        {menuReady && !menuEmpty ? (
+          <>
         <div
           style={{
             display: 'flex',
@@ -725,6 +762,21 @@ export default function ShareCardSheet({ biz, hasMenu = false, onClose, onShareL
             Compartir enlace
           </button>
         </div>
+          </>
+        ) : (
+          <p
+            style={{
+              margin: '24px 0',
+              fontSize: 14,
+              color: dark ? '#A1A1AA' : '#71717A',
+              textAlign: 'center',
+            }}
+          >
+            {menuEmpty
+              ? 'Este menú aún no tiene platillos con precio para compartir.'
+              : 'Cargando menú…'}
+          </p>
+        )}
       </div>
     </div>
   );
