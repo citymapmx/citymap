@@ -38,6 +38,30 @@ describe('map pin detail: scale-in-center entrance', () => {
     expect(gps).toContain('className="scale-in-center"');
   });
 
+  it('animates the WHOLE visible card: the scale-in-center element carries the card visuals (regression)', () => {
+    // 9 Nov 2026 (captura de Jonathan): la clase estaba en un envoltorio
+    // interior sin estilos y la tarjeta blanca (fondo, bordes, sombra)
+    // aparecía de golpe; solo el contenido crecía. El elemento animado
+    // debe ser la ÚNICA tarjeta visual: si los estilos volvieran al
+    // exterior, aparecerían antes de la clase o duplicados.
+    const count = (block, s) => block.split(s).length - 1;
+    for (const [block, radius, shadow] of [
+      [ev, 'borderRadius: 24', 'boxShadow: "0 16px 40px rgba(0,0,0,0.3)"'],
+      [biz, 'borderRadius: 24', 'boxShadow: "0 16px 40px rgba(0,0,0,0.3)"'],
+      [gps, 'borderRadius: 20', 'boxShadow: "0 12px 32px rgba(0,0,0,0.2)"'],
+    ]) {
+      const animAt = block.indexOf('className="scale-in-center"');
+      expect(animAt).toBeGreaterThan(-1);
+      expect(count(block, 'background: T.white')).toBe(1);
+      expect(block.indexOf('background: T.white')).toBeGreaterThan(animAt);
+      expect(block.indexOf(radius)).toBeGreaterThan(animAt);
+      expect(count(block, shadow)).toBe(1);
+      expect(block.indexOf(shadow)).toBeGreaterThan(animAt);
+    }
+    expect(count(ev, 'borderRadius: 24')).toBe(1);
+    expect(count(biz, 'borderRadius: 24')).toBe(1);
+  });
+
   it('replays on every open: each pin card remounts with a key per pin', () => {
     expect(ev).toContain('key={"ev_" + mapPin.id}');
     expect(biz).toContain('key={"biz_" + mapPin.id}');
