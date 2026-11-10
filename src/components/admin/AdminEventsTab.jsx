@@ -6,6 +6,8 @@ import OptimizedImage from '../ui/OptimizedImage';
 import FI from './FI';
 import BookingManager from '../BookingManager';
 import { getEventStatus, createSlug, getThumbUrl } from '../../lib/utils.js';
+import { filterAdminEvents, countEventsWithoutImage, eventHasImage } from '../../lib/adminEventFilters.js';
+import AdminEventFilters from './AdminEventFilters';
 import { EVENT_CATEGORIES } from '../../lib/constants.js';
 import { cloudDelete } from '../../lib/supabase.js';
 
@@ -67,6 +69,8 @@ export default function AdminEventsTab({
   const [evSearch, setEvSearch] = useState("");
   const [evCityFilter, setEvCityFilter] = useState("all");
   const [evStatusFilter, setEvStatusFilter] = useState("all");
+  const [evNoImageOnly, setEvNoImageOnly] = useState(false);
+  const [showEvFilters, setShowEvFilters] = useState(false);
 
   const mapsOk = useGMaps();
   const venueRef = useRef(null);
@@ -134,18 +138,9 @@ export default function AdminEventsTab({
     return (b.time || "").localeCompare(a.time || "");
   });
 
-  const filteredEvents = sortedEvents.filter(ev => {
-    if (evCityFilter !== "all" && !(ev.city_slug === "all" || (ev.city_slug && ev.city_slug.split(",").includes(evCityFilter)))) return false;
-    const isFinished = getEventStatus(ev).lbl === "Finalizado";
-    if (evStatusFilter === "upcoming" && isFinished) return false;
-    if (evStatusFilter === "past" && !isFinished) return false;
-    if (evSearch.trim()) {
-      const q = evSearch.trim().toLowerCase();
-      const hay = [ev.title, ev.venue_name, ev.event_category].filter(Boolean).join(" ").toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
+  const baseFilteredEvents = filterAdminEvents(sortedEvents, { city: evCityFilter, status: evStatusFilter, search: evSearch });
+  const noImageCount = countEventsWithoutImage(baseFilteredEvents);
+  const filteredEvents = evNoImageOnly ? baseFilteredEvents.filter(ev => !eventHasImage(ev)) : baseFilteredEvents;
 
   return (
     <>
@@ -158,12 +153,16 @@ export default function AdminEventsTab({
           <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><Icon name="search" size={16} color="#9CA3AF" /></div>
           <input type="text" placeholder="Buscar evento por nombre, lugar o categoría..." value={evSearch} onChange={e => setEvSearch(e.target.value)} style={{ width: "100%", padding: "12px 16px 12px 38px", border: "1.5px solid #E2E8F0", borderRadius: 12, fontSize: 14, color: "#0F1A14", outline: "none", background: "#fff", fontFamily: "inherit", boxSizing: "border-box" }} />
         </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-          <button type="button" onClick={() => setEvCityFilter("all")} style={{ padding: "6px 12px", border: `1.5px solid ${evCityFilter === "all" ? "#1A7A5E" : "#E4E8E4"}`, borderRadius: 20, fontSize: 12, fontWeight: 700, background: evCityFilter === "all" ? "#EAF4F0" : "#fff", color: evCityFilter === "all" ? "#1A7A5E" : "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Todas</button>
-          {(data.cities || []).map(c => (
-            <button key={c.slug} type="button" onClick={() => setEvCityFilter(c.slug)} style={{ padding: "6px 12px", border: `1.5px solid ${evCityFilter === c.slug ? "#1A7A5E" : "#E4E8E4"}`, borderRadius: 20, fontSize: 12, fontWeight: 700, background: evCityFilter === c.slug ? "#EAF4F0" : "#fff", color: evCityFilter === c.slug ? "#1A7A5E" : "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>{c.name}</button>
-          ))}
-        </div>
+        <AdminEventFilters
+          cities={data.cities || []}
+          cityFilter={evCityFilter}
+          onCityFilterChange={setEvCityFilter}
+          noImageOnly={evNoImageOnly}
+          onNoImageOnlyChange={setEvNoImageOnly}
+          noImageCount={noImageCount}
+          showFilters={showEvFilters}
+          onShowFiltersChange={setShowEvFilters}
+        />
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
           {[["all", "Todos"], ["upcoming", "Vigentes"], ["past", "Pasados"]].map(([v, lbl]) => (
             <button key={v} type="button" onClick={() => setEvStatusFilter(v)} style={{ padding: "6px 12px", border: `1.5px solid ${evStatusFilter === v ? "#1A7A5E" : "#E4E8E4"}`, borderRadius: 20, fontSize: 12, fontWeight: 700, background: evStatusFilter === v ? "#EAF4F0" : "#fff", color: evStatusFilter === v ? "#1A7A5E" : "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>{lbl}</button>
