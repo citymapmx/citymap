@@ -1,3 +1,9 @@
+'use client';
+
+// Usa el store de zustand (useUIStore), un hook de cliente: sin esta directiva
+// Next.js lo trataba como Server Component y al renderizar en el servidor
+// zustand llamaba a React.useSyncExternalStore, que no existe en el runtime
+// de Server Components -> HTTP 500 en la ficha.
 import Icon from './Icon.jsx';
 import { useUIStore } from '../../store/useUIStore.js';
 import { getT } from '../../lib/constants.js';

@@ -218,7 +218,16 @@ async function getBusiness(city, slug) {
     headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
   });
   let data = await res.json();
-  
+
+  if (!data || data.length === 0) {
+    // try city-prefixed slug (igual que la página del menú: en base el slug
+    // lleva el prefijo, p. ej. tepic-carrito-la-paz-tostadas-de-atun)
+    res = await fetch(`${(process.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co")}/rest/v1/businesses?slug=eq.${city}-${slug}&city_slug=eq.${city}&select=*`, {
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+    });
+    data = await res.json();
+  }
+
   if (!data || data.length === 0) {
     const searchName = slug.split("-").join("%25");
     res = await fetch(`${(process.env.VITE_SUPABASE_URL || "https://dpkjxhjkzdlkvyotoeai.supabase.co")}/rest/v1/businesses?name=ilike.*${searchName}*&city_slug=eq.${city}&select=*`, {
