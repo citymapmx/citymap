@@ -377,19 +377,30 @@ const sb = {
 };
 
 // ─── CLOUDINARY ───────────────────────────────────────────────────────────────
+// Caché de las imágenes subidas a Supabase Storage: 24 h (86400 s).
+// La subida es binaria directa a la API de Storage, que lee el encabezado
+// `cache-control` y lo guarda como metadata cacheControl del objeto; la URL
+// transformada (/render/image/, la que usa el sitio vía getThumbUrl) lo
+// sirve tal cual. Sin este encabezado los objetos quedaban en
+// `private, no-cache` (URL cruda) y `max-age=3600` (URL transformada).
+// Verificado 10 nov 2026 con una subida de prueba: la transformada sirvió
+// `Cache-Control: max-age=86400`.
+const STORAGE_CACHE_CONTROL = "max-age=86400";
+
 async function cloudUpload(file, onPct = () => {}, folder = "cityguide") {
   const ext = file.name.split('.').pop();
   const path = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
   const endpoint = `${SUPABASE_URL}/storage/v1/object/media/${path}`;
-  
+
   const token = sb._token || SUPABASE_ANON;
-  
+
   return new Promise((res, rej) => {
     const x = new XMLHttpRequest();
     x.open("POST", endpoint);
     x.setRequestHeader("Authorization", `Bearer ${token}`);
     x.setRequestHeader("apikey", SUPABASE_ANON);
     x.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    x.setRequestHeader("cache-control", STORAGE_CACHE_CONTROL);
     
     x.upload.onprogress = e => e.lengthComputable && onPct(Math.round(e.loaded / e.total * 100));
     x.onload = () => {
