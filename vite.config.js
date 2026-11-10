@@ -101,7 +101,11 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+          // Solo react y react-dom exactos. 'node_modules/react' a secas
+          // también casa con react-virtuoso, react-easy-crop o
+          // react-qr-code y los metía en el chunk 'react', que se precarga
+          // en el inicio aunque solo se usen en el Uploader o la Wallet.
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
             return 'react'
           }
         }
