@@ -5,9 +5,11 @@
 // UN SOLO estilo, «Foto completa», EXACTAMENTE como la propuesta 2 de
 // la demo `propuestas-de-tarjetas-para-articulos` (corrección de
 // Jonathan 10 Nov ~10:54: el segundo estilo, de fondo claro, se veía
-// mal en vivo): la
-// foto llena TODA la tarjeta a sangre, el texto va encima con
-// degradados para que se lea, logotipo oficial arriba a la izquierda
+// mal en vivo). En Post y Horizontal la foto llena TODA la tarjeta a
+// sangre, el texto va encima con degradados para que se lea; en
+// Historia (PR #177) la foto va en un bloque CENTRADO con márgenes y
+// esquinas redondeadas, como en la tarjeta de eventos, y el contenido
+// va DEBAJO sobre fondo oscuro. Logotipo oficial arriba a la izquierda
 // (corrección de Jonathan 10 Nov ~11:39: en lugar de la pastilla de
 // texto «citymap.mx»), pastilla de calificación arriba a la derecha
 // (SOLO si es real), pastilla GLASS de ciudad · tipo de actividad
@@ -85,11 +87,20 @@ export const EXPERIENCE_SHARE_CARD_GLASS_BORDER = 'rgba(255,255,255,0.35)';
 const LOGO_RATIO = 400 / 120;
 const STAR = '#F59E0B';
 
-// Geometría de la tarjeta, por formato. La foto va a sangre (0,0,W,H)
-// y el bloque de texto va anclado abajo, con degradados arriba y abajo
-// para que se lea. `priceBeside` (solo Horizontal): la pastilla de
-// precio va a la derecha del bloque de texto, con la base alineada con
-// la de los datos; en Historia y Post va debajo de los datos.
+// Geometría de la tarjeta, por formato. En Post y Horizontal la foto
+// va a sangre (0,0,W,H) y el bloque de texto va anclado abajo, con
+// degradados arriba y abajo para que se lea. En Historia
+// (PR #177, como la tarjeta de eventos: EVENT_SHARE_CARD_LAYOUT.story)
+// la foto va en un bloque CENTRADO con márgenes (x: pad, ancho
+// W - 2*pad), esquinas redondeadas y el contenido DEBAJO sobre fondo
+// oscuro: el alto de la foto es todo lo que sobra entre el logotipo y
+// el bloque de texto, con photoMinH como mínimo. El peor caso de
+// contenido (título a 3 líneas a tamaño completo + descripción y datos
+// a 2 líneas + pastilla de precio) deja 926 px libres, así que
+// photoMinH 900 nunca se come el texto (en eventos es 960 porque su
+// bloque de contenido es más bajo). `priceBeside` (solo Horizontal): la
+// pastilla de precio va a la derecha del bloque de texto, con la base
+// alineada con la de los datos; en Historia y Post va debajo de los datos.
 export const EXPERIENCE_SHARE_CARD_LAYOUT = {
   story: {
     pad: 64,
@@ -124,6 +135,13 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
     priceBeside: false,
     gradTopH: 0.22,
     gradBottomH: 0.6,
+    // Solo Historia: foto en bloque centrado como en eventos
+    // (PR #177). Post y Horizontal siguen a sangre completa.
+    centeredPhoto: true,
+    photoMinH: 900,
+    photoGap: 36,
+    photoRadius: 40,
+    logoGap: 40,
   },
   post: {
     pad: 48,
@@ -256,9 +274,17 @@ export function buildExperienceShareCardData(exp, { cityName = '' } = {}) {
   const city = (cityName || '').trim();
   const activityType = (exp?.activity_type || '').trim();
   // Pastilla de ciudad · tipo: «📍 Guadalajara · Tour» (glass, no azul).
-  const cityParts = [];
-  if (city) cityParts.push(`📍 ${city}`);
-  if (activityType) cityParts.push(activityType);
+  // El pin va SEPARADO del texto (PR #177): el emoji 📍 se dibuja más
+  // alto que el centro visual del texto y la pastilla salía
+  // descentrada; la geometría guarda pin y etiqueta por separado para
+  // centrar cada uno por su caja visual. `cityLine` sigue siendo la
+  // línea completa, por compatibilidad.
+  const cityLabelParts = [];
+  if (city) cityLabelParts.push(city);
+  if (activityType) cityLabelParts.push(activityType);
+  const cityLabel = cityLabelParts.join(' · ');
+  const cityPin = city ? '📍' : '';
+  const cityLine = cityPin ? `${cityPin} ${cityLabel}` : cityLabel;
   const price = Number(exp?.price);
   return {
     photoUrl:
@@ -269,7 +295,9 @@ export function buildExperienceShareCardData(exp, { cityName = '' } = {}) {
     title: (exp?.title || '').trim(),
     cityName: city,
     activityType,
-    cityLine: cityParts.join(' · '),
+    cityLine,
+    cityPin,
+    cityLabel,
     ratingText: hasRating
       ? `${rating.toFixed(1)} · ${formatReviewCount(reviewCount)} ${reviewCount === 1 ? 'reseña' : 'reseñas'}`
       : '',
@@ -338,10 +366,20 @@ function ratingPillSize(ratingText, L) {
   };
 }
 
-function cityPillSize(cityLine, L) {
+// La pastilla de ciudad · tipo se mide en DOS tramos (PR #177): el pin
+// 📍 y la etiqueta por separado, con el ancho de un espacio entre
+// ambos (el mismo hueco que los separaba en la línea completa). El
+// ancho total es el mismo que antes: pin + espacio + etiqueta + los
+// dos paddings.
+function cityPillSize(pin, label, L) {
+  const pinW = pin ? measureShareCardText(pin, L.citySize, 600) : 0;
+  const pinGap = pin ? measureShareCardText(' ', L.citySize, 600) : 0;
+  const labelW = measureShareCardText(label, L.citySize, 600);
   return {
-    w: measureShareCardText(cityLine, L.citySize, 600) + L.cityPadX * 2,
+    w: pinW + pinGap + labelW + L.cityPadX * 2,
     h: L.citySize + L.cityPadY * 2,
+    pinW,
+    pinGap,
   };
 }
 
@@ -368,14 +406,14 @@ function pricePillSize(priceText, priced, L) {
 
 // ─── Geometría (vista previa y canvas dibujan lo mismo) ───
 
-// La foto es a sangre (0,0,W,H) y el bloque de texto va anclado abajo:
-// píldora de ciudad, título, descripción, datos y la pastilla de precio
-// (debajo en Historia/Post, al lado en Horizontal). Solo los bloques
-// presentes cuentan, y solo hay hueco ENTRE bloques — por eso nunca
-// queda franja vacía ni nada se sale por abajo. Las `y` de título,
-// descripción y datos son el CENTRO vertical de la primera línea (el
-// canvas dibuja con textBaseline 'middle'), igual que en la tarjeta de
-// negocios y en la de eventos.
+// En Post y Horizontal la foto es a sangre (0,0,W,H) y el bloque de
+// texto va anclado abajo. En Historia (PR #177) la foto es un bloque
+// centrado con márgenes y el contenido va debajo, sobre fondo oscuro:
+// la foto es todo lo que sobra entre el logotipo y el bloque de texto,
+// con photoMinH como mínimo, así nunca se come el contenido ni queda
+// hueco vacío. Las `y` de título, descripción y datos son el CENTRO
+// vertical de la primera línea (el canvas dibuja con textBaseline
+// 'middle'), igual que en la tarjeta de negocios y en la de eventos.
 export function computeExperienceShareCardLayout(data, format) {
   const f = format || EXPERIENCE_SHARE_CARD_FORMATS.story;
   const L = EXPERIENCE_SHARE_CARD_LAYOUT[f.id] || EXPERIENCE_SHARE_CARD_LAYOUT.story;
@@ -444,7 +482,12 @@ export function computeExperienceShareCardLayout(data, format) {
     : [];
 
   const cityLine = data?.cityLine || '';
-  const city = cityLine ? cityPillSize(cityLine, L) : null;
+  // Pin y etiqueta por separado (PR #177); si los datos vienen de un
+  // llamador viejo sin cityPin/cityLabel, se parten de cityLine.
+  const cityPin = data?.cityPin ?? (cityLine.startsWith('📍') ? '📍' : '');
+  const cityLabel =
+    data?.cityLabel ?? cityLine.replace(/^📍\s*/, '');
+  const city = cityLine ? cityPillSize(cityPin, cityLabel, L) : null;
 
   const items = [];
   if (city) items.push({ kind: 'city', h: city.h, gap: 0 });
@@ -461,6 +504,18 @@ export function computeExperienceShareCardLayout(data, format) {
   const blockH = items.reduce((sum, it, i) => sum + it.h + (i > 0 ? it.gap : 0), 0);
   const blockBottom = H - pad;
   const blockTop = blockBottom - blockH;
+
+  // Foto: en Historia (PR #177) es un bloque centrado con márgenes,
+  // como en eventos; en Post y Horizontal sigue a sangre completa.
+  let photo;
+  if (L.centeredPhoto) {
+    const photoY = pad + L.logoH + L.logoGap;
+    const photoH = Math.max(L.photoMinH, blockTop - L.photoGap - photoY);
+    photo = { x: pad, y: photoY, w: W - pad * 2, h: photoH, radius: L.photoRadius };
+  } else {
+    photo = { x: 0, y: 0, w: W, h: H, radius: 0 };
+  }
+
   let y = blockTop;
   let started = false;
   const step = (gap) => {
@@ -473,6 +528,10 @@ export function computeExperienceShareCardLayout(data, format) {
     step(0);
     cityPill = {
       text: cityLine,
+      pin: cityPin,
+      label: cityLabel,
+      pinW: city.pinW,
+      pinGap: city.pinGap,
       x: pad,
       y,
       w: city.w,
@@ -537,7 +596,6 @@ export function computeExperienceShareCardLayout(data, format) {
     L,
     width: W,
     height: H,
-    photo: { x: 0, y: 0, w: W, h: H },
     brandLogo,
     ratingPill,
     cityPill,
@@ -545,6 +603,7 @@ export function computeExperienceShareCardLayout(data, format) {
     desc,
     dataRows,
     pricePill,
+    photo,
   };
 }
 
@@ -561,6 +620,34 @@ function drawLeftLines(ctx, block, { color, weight }) {
   });
 }
 
+// Dibuja un texto con su CAJA VISUAL (tinta) centrada verticalmente en
+// centerY (PR #177): la línea base se ajusta con las medidas reales de
+// la tinta (actualBoundingBoxAscent/Descent), así el pin 📍 —que no
+// tiene descendente— y la etiqueta —con la «y» de Playa— quedan cada
+// uno centrados, no solo el cuadro del em. Con textBaseline
+// 'alphabetic' a la mitad de la pastilla, la tinta quedaba desplazada
+// hacia arriba. Sin métricas de tinta (contextos simulados), se usa
+// textBaseline 'middle' como aproximación.
+function drawInkCenteredText(ctx, text, x, centerY) {
+  // La tinta se mide SIEMPRE con la línea base alfabética: los
+  // valores actualBoundingBox* se miden desde la línea base ACTIVA
+  // del contexto, no siempre desde la alfabética. Si quien llama dejó
+  // 'middle' (como la sección de la pastilla de precio), la medida
+  // salía desplazada ~17 px a 56 px y el texto también — por eso la
+  // pastilla «Gratis» salía arriba aunque usara este helper. Se fija
+  // la base ANTES de medir, no solo antes de dibujar.
+  ctx.textBaseline = 'alphabetic';
+  const m = ctx.measureText(text);
+  const asc = m.actualBoundingBoxAscent;
+  const desc = m.actualBoundingBoxDescent;
+  if (Number.isFinite(asc) && Number.isFinite(desc)) {
+    ctx.fillText(text, x, centerY + (asc - desc) / 2);
+  } else {
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, centerY);
+  }
+}
+
 export function drawExperienceShareCardCanvas(data, format, assets, layout) {
   const geo = layout || computeExperienceShareCardLayout(data, format);
   const { L } = geo;
@@ -569,38 +656,68 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
   canvas.height = geo.height;
   const ctx = canvas.getContext('2d');
 
-  // Foto a sangre completa; sin foto, degradado oscuro con la inicial.
-  if (assets?.photo) {
-    drawCoverImage(ctx, assets.photo, 0, 0, geo.width, geo.height);
-  } else {
+  if (L.centeredPhoto) {
+    // Historia (PR #177): fondo oscuro (igual que la tarjeta de
+    // eventos) y la foto en un bloque centrado con esquinas
+    // redondeadas; el texto blanco y el logo blanco se leen sobre el
+    // fondo, no sobre la foto. Sin foto, el bloque oscuro con la
+    // inicial, nunca una tarjeta en blanco ni un hueco roto.
     const bg = ctx.createLinearGradient(0, 0, 0, geo.height);
-    bg.addColorStop(0, '#262626');
-    bg.addColorStop(1, '#111111');
+    bg.addColorStop(0, '#1B1B1B');
+    bg.addColorStop(1, '#0B0B0B');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, geo.width, geo.height);
-    const initial = (data?.title || 'C').trim().charAt(0).toUpperCase() || 'C';
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.font = `800 ${Math.round(Math.min(geo.width, geo.height) * 0.3)}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(initial, geo.width / 2, geo.height * 0.35);
+    const p = geo.photo;
+    ctx.save();
+    roundRectPath(ctx, p.x, p.y, p.w, p.h, p.radius);
+    ctx.clip();
+    if (assets?.photo) {
+      drawCoverImage(ctx, assets.photo, p.x, p.y, p.w, p.h);
+    } else {
+      ctx.fillStyle = '#262626';
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+      const initial = (data?.title || 'C').trim().charAt(0).toUpperCase() || 'C';
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = `800 ${Math.round(Math.min(p.w, p.h) * 0.3)}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initial, p.x + p.w / 2, p.y + p.h / 2);
+    }
+    ctx.restore();
+  } else {
+    // Foto a sangre completa; sin foto, degradado oscuro con la inicial.
+    if (assets?.photo) {
+      drawCoverImage(ctx, assets.photo, 0, 0, geo.width, geo.height);
+    } else {
+      const bg = ctx.createLinearGradient(0, 0, 0, geo.height);
+      bg.addColorStop(0, '#262626');
+      bg.addColorStop(1, '#111111');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, geo.width, geo.height);
+      const initial = (data?.title || 'C').trim().charAt(0).toUpperCase() || 'C';
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = `800 ${Math.round(Math.min(geo.width, geo.height) * 0.3)}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initial, geo.width / 2, geo.height * 0.35);
+    }
+
+    // Degradados para que se lea el texto: arriba detrás de las
+    // pastillas, abajo detrás del bloque de texto.
+    const topH = Math.round(geo.height * L.gradTopH);
+    const topGrad = ctx.createLinearGradient(0, 0, 0, topH);
+    topGrad.addColorStop(0, 'rgba(0,0,0,0.5)');
+    topGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = topGrad;
+    ctx.fillRect(0, 0, geo.width, topH);
+
+    const botH = Math.round(geo.height * L.gradBottomH);
+    const botGrad = ctx.createLinearGradient(0, geo.height - botH, 0, geo.height);
+    botGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    botGrad.addColorStop(1, 'rgba(0,0,0,0.88)');
+    ctx.fillStyle = botGrad;
+    ctx.fillRect(0, geo.height - botH, geo.width, botH);
   }
-
-  // Degradados para que se lea el texto: arriba detrás de las
-  // pastillas, abajo detrás del bloque de texto.
-  const topH = Math.round(geo.height * L.gradTopH);
-  const topGrad = ctx.createLinearGradient(0, 0, 0, topH);
-  topGrad.addColorStop(0, 'rgba(0,0,0,0.5)');
-  topGrad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = topGrad;
-  ctx.fillRect(0, 0, geo.width, topH);
-
-  const botH = Math.round(geo.height * L.gradBottomH);
-  const botGrad = ctx.createLinearGradient(0, geo.height - botH, 0, geo.height);
-  botGrad.addColorStop(0, 'rgba(0,0,0,0)');
-  botGrad.addColorStop(1, 'rgba(0,0,0,0.88)');
-  ctx.fillStyle = botGrad;
-  ctx.fillRect(0, geo.height - botH, geo.width, botH);
 
   // Logotipo oficial arriba a la izquierda, en blanco sobre la foto
   // (el PNG ya es blanco sobre transparente): si no cargó, la tarjeta
@@ -611,24 +728,33 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
   }
 
   // Pastilla de calificación (arriba a la derecha): blanca, estrella
-  // ámbar, solo si la calificación es real.
+  // ámbar, solo si la calificación es real. Estrella y texto se
+  // dibujan por separado, cada uno centrado por su caja visual
+  // (drawInkCenteredText, 2º commit del PR #177): con fillText a la
+  // mitad de la pastilla y textBaseline alfabético, la tinta quedaba
+  // desplazada hacia arriba, igual que pasaba con la pastilla glass.
   if (geo.ratingPill) {
     const rp = geo.ratingPill;
     ctx.fillStyle = '#FFFFFF';
     roundRectPath(ctx, rp.x, rp.y, rp.w, rp.h, rp.h / 2);
     ctx.fill();
+    const centerY = rp.y + rp.h / 2;
     ctx.font = `800 ${rp.size}px ${SHARE_CARD_FONT_STACK}`;
     ctx.fillStyle = STAR;
-    ctx.fillText('★', rp.x + rp.padX, rp.y + rp.h / 2);
+    ctx.textAlign = 'left';
+    drawInkCenteredText(ctx, '★', rp.x + rp.padX, centerY);
     const starW = ctx.measureText('★').width;
     ctx.font = `600 ${rp.size}px ${SHARE_CARD_FONT_STACK}`;
     ctx.fillStyle = '#111827';
-    ctx.fillText(rp.text, rp.x + rp.padX + starW + 6, rp.y + rp.h / 2);
+    drawInkCenteredText(ctx, rp.text, rp.x + rp.padX + starW + 6, centerY);
   }
 
   // Pastilla GLASS de ciudad · tipo, encima del título: fondo
   // translúcido + borde claro (como el estilo glass de negocios);
-  // la pastilla de precio sigue AZUL sólida.
+  // la pastilla de precio sigue AZUL sólida. Pin y etiqueta se dibujan
+  // por separado, cada uno centrado por su caja visual (PR #177):
+  // con un solo fillText a la mitad de la pastilla, la tinta quedaba
+  // desplazada hacia arriba.
   if (geo.cityPill) {
     const cp = geo.cityPill;
     ctx.fillStyle = EXPERIENCE_SHARE_CARD_GLASS_BG;
@@ -639,7 +765,19 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
     ctx.stroke();
     ctx.font = `600 ${cp.size}px ${SHARE_CARD_FONT_STACK}`;
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillText(cp.text, cp.x + cp.padX, cp.y + cp.h / 2);
+    ctx.textAlign = 'left';
+    const centerY = cp.y + cp.h / 2;
+    if (cp.pin) {
+      drawInkCenteredText(ctx, cp.pin, cp.x + cp.padX, centerY);
+      drawInkCenteredText(
+        ctx,
+        cp.label,
+        cp.x + cp.padX + cp.pinW + cp.pinGap,
+        centerY,
+      );
+    } else {
+      drawInkCenteredText(ctx, cp.label, cp.x + cp.padX, centerY);
+    }
   }
 
   // Título: blanco, a la izquierda, con letter-spacing -1 como la demo.
@@ -689,8 +827,14 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
       priceY,
     );
   } else {
+    // «Gratis» (una sola línea) también se centra por su caja visual
+    // (2º commit del PR #177): con textBaseline 'middle' la tinta
+    // quedaba desplazada; drawInkCenteredText la centra por la tinta
+    // real, como en la pastilla glass. La rama con precio (DESDE +
+    // precio + «por persona», dos filas con posiciones propias) no se
+    // toca: no es una sola línea centrada en la pastilla.
     ctx.font = `800 ${pill.priceSize}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillText(pill.text, pill.x + pill.padX, pill.y + pill.h / 2);
+    drawInkCenteredText(ctx, pill.text, pill.x + pill.padX, pill.y + pill.h / 2);
   }
 
   return canvas;
