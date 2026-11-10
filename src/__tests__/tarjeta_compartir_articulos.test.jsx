@@ -8,6 +8,8 @@ import {
   EXPERIENCE_SHARE_CARD_FORMATS,
   EXPERIENCE_SHARE_CARD_FORMAT_LIST,
   EXPERIENCE_SHARE_CARD_BLUE,
+  EXPERIENCE_SHARE_CARD_GLASS_BG,
+  EXPERIENCE_SHARE_CARD_GLASS_BORDER,
   buildExperienceShareCardData,
   experienceShareCardFileName,
   experienceShareUrl,
@@ -312,8 +314,8 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
         );
         expect(lastEnd).toBeCloseTo(geo.height - geo.L.pad, 9);
         // Nada se sale de la tarjeta.
-        expect(geo.brandPill.x).toBeGreaterThanOrEqual(0);
-        expect(geo.brandPill.y).toBeGreaterThanOrEqual(0);
+        expect(geo.brandLogo.x).toBeGreaterThanOrEqual(0);
+        expect(geo.brandLogo.y).toBeGreaterThanOrEqual(0);
         expect(geo.pricePill.x + geo.pricePill.w).toBeLessThanOrEqual(geo.width);
         expect(geo.pricePill.y + geo.pricePill.h).toBeLessThanOrEqual(geo.height);
         if (geo.ratingPill) {
@@ -371,14 +373,18 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
     }
   });
 
-  it('las pastillas superiores: citymap.mx a la izquierda, calificación a la derecha (solo si es real)', () => {
+  it('el logotipo oficial arriba a la izquierda y la calificación a la derecha (solo si es real)', () => {
     for (const format of ALL_FORMATS) {
       const sin = computeExperienceShareCardLayout(
         buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' }),
         format,
       );
-      expect(sin.brandPill.x).toBe(sin.L.pad);
-      expect(sin.brandPill.y).toBe(sin.L.pad);
+      // Logotipo oficial (no pastilla de texto): mismo alto que en
+      // negocios (76) y ancho por la proporción 400×120 del PNG.
+      expect(sin.brandLogo.x).toBe(sin.L.pad);
+      expect(sin.brandLogo.y).toBe(sin.L.pad);
+      expect(sin.brandLogo.h).toBe(76);
+      expect(sin.brandLogo.w).toBe(Math.round(76 * 400 / 120));
       expect(sin.ratingPill).toBeNull();
       const con = computeExperienceShareCardLayout(
         buildExperienceShareCardData(CON_RESENAS, { cityName: 'Guadalajara' }),
@@ -388,10 +394,35 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
       expect(con.ratingPill.text).toBe('4.8 · 132 reseñas');
       expect(con.ratingPill.x + con.ratingPill.w).toBe(con.width - con.L.pad);
       expect(con.ratingPill.y).toBe(con.L.pad);
+      // Sin chocar con la calificación.
+      expect(con.brandLogo.x + con.brandLogo.w).toBeLessThan(con.ratingPill.x);
       // La de ciudad · tipo va encima del título, a la izquierda.
       expect(con.cityPill.text).toBe('📍 Guadalajara · Tour');
       expect(con.cityPill.x).toBe(con.L.pad);
     }
+  });
+
+  it('la pastilla de ubicación es glass (translúcida + borde claro), no azul sólida; el precio sigue azul', () => {
+    expect(EXPERIENCE_SHARE_CARD_GLASS_BG).toBe('rgba(255,255,255,0.12)');
+    expect(EXPERIENCE_SHARE_CARD_GLASS_BORDER).toBe('rgba(255,255,255,0.35)');
+    for (const format of ALL_FORMATS) {
+      const geo = computeExperienceShareCardLayout(
+        buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' }),
+        format,
+      );
+      expect(geo.cityPill.text).toBe('📍 Guadalajara · Tour');
+      expect(geo.pricePill.text).toBe('$1,881 MXN');
+      expect(geo.pricePill.priced).toBe(true);
+    }
+    // La plantilla pinta la de ubicación con el fondo glass y la de
+    // precio con el azul sólido.
+    const d = buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' });
+    const html = renderToStaticMarkup(
+      <ExperienceShareCardTemplate data={d} format={EXPERIENCE_SHARE_CARD_FORMATS.story} />,
+    );
+    expect(html).toContain('rgba(255,255,255,0.12)');
+    expect(html).toContain('rgba(255,255,255,0.35)');
+    expect(html).toContain('#2563EB');
   });
 
   it('el título cabe siempre completo, sin «…», en Historia y en Post', () => {
@@ -449,15 +480,14 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
 });
 
 describe('tarjeta para compartir el artículo: la plantilla se renderiza (vista previa real)', () => {
-  it('foto en Historia: pastilla citymap.mx, precio azul con DESDE, ciudad · Tour, datos; sin la calificación inventada', () => {
+  it('foto en Historia: logotipo oficial, precio azul con DESDE, ciudad · Tour, datos; sin la calificación inventada', () => {
     const d = buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' });
     const html = renderToStaticMarkup(
       <ExperienceShareCardTemplate data={d} format={EXPERIENCE_SHARE_CARD_FORMATS.story} />,
     );
     expect(html).toContain('Excursión a Tequila');
     expect(html).toContain('La Rojeña');
-    expect(html).toContain('citymap');
-    expect(html).toContain('.mx');
+    expect(html).toContain('/logo-brand.png');
     expect(html).toContain('DESDE');
     expect(html).toContain('$1,881 MXN');
     expect(html).toContain('por persona');
@@ -467,8 +497,8 @@ describe('tarjeta para compartir el artículo: la plantilla se renderiza (vista 
     expect(html).toContain('Español, Inglés');
     // La pastilla de precio es AZUL, como la demo (no blanca).
     expect(html).toContain('#2563EB');
-    // Sin logotipo grande ni pie: la marca es la pastilla citymap.mx.
-    expect(html).not.toContain('/logo-brand.png');
+    // La marca es el logotipo oficial arriba a la izquierda (sin pie).
+    expect(html).not.toContain('citymap');
     expect(html).not.toContain('Descúbrelo en');
     // La demo mostraba «4.9 · 13,275 reseñas»: ilustrativo, no real.
     expect(html).not.toContain('13,275');
@@ -564,10 +594,10 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(sheet).not.toContain('styleId');
   });
 
-  it('la plantilla lleva la foto a sangre, las pastillas y el precio azul; sin logo ni pie', () => {
-    expect(template).toContain('citymap');
-    expect(template).toContain('.mx');
-    expect(template).toContain('#60A5FA');
+  it('la plantilla lleva la foto a sangre, el logotipo oficial, la pastilla glass y el precio azul; sin pie', () => {
+    expect(template).toContain('/logo-brand.png');
+    expect(template).not.toContain('Pastilla citymap.mx');
+    expect(template).not.toContain('#60A5FA');
     expect(template).toContain('DESDE');
     expect(template).toContain('por persona');
     expect(template).toContain('EXPERIENCE_SHARE_CARD_BLUE');
@@ -576,7 +606,6 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(template).toContain('computeExperienceShareCardLayout');
     expect(template).toContain('objectFit:');
     expect(template).toContain("'cover'");
-    expect(template).not.toContain('/logo-brand.png');
     expect(template).not.toContain('Descúbrelo en');
     expect(template).not.toContain('styleId');
     expect(template).not.toContain('dividida');
@@ -594,8 +623,16 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(lib).toContain('assertCanvasNotBlank');
     expect(lib).not.toContain("import('html-to-image')");
     expect(lib).toContain('loadShareCardPhoto');
-    expect(lib).not.toContain('loadShareCardLogoWhite');
+    expect(lib).toContain('loadShareCardLogoWhite');
     expect(lib).not.toContain('loadShareCardLogoDark');
+    // Logotipo oficial + pastilla glass (no pastilla de texto).
+    expect(lib).toContain('EXPERIENCE_SHARE_CARD_GLASS_BG');
+    expect(lib).toContain('EXPERIENCE_SHARE_CARD_GLASS_BORDER');
+    expect(lib).toContain('brandLogo');
+    expect(lib).not.toContain('brandPill');
+    expect(lib).not.toContain('brandPillSize');
+    expect(lib).not.toContain('BRAND_BG');
+    expect(lib).not.toContain('BRAND_MX');
     expect(lib).toContain('drawCoverImage');
     expect(lib).toContain('EXPERIENCE_SHARE_CARD_BLUE');
     expect(lib).toContain("'#2563EB'");
