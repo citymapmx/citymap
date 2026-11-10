@@ -30,7 +30,6 @@
     "firebase": "^12.19.0",
     "firebase-admin": "^14.2.0",
     "framer-motion": "^12.40.0",
-    "html-to-image": "^1.11.13",
     "jsonwebtoken": "^9.0.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

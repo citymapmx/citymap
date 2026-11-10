@@ -3,10 +3,13 @@ import { readFileSync } from 'node:fs';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
-// Tarjeta para compartir el negocio (PR #142, v1), como la de «Qué Plan»:
-// al presionar Compartir en la ficha se genera una imagen PNG lista para
+// Tarjeta para compartir el negocio (PR #142, v1; PR #143): al presionar
+// Compartir en la ficha se genera una imagen PNG lista para
 // Instagram/Facebook. v1: UN estilo oscuro, dos formatos (Historia IG y
 // Post IG). Facebook y los otros estilos quedan para después.
+// PR #143: el PNG se dibuja en canvas (el de html-to-image salía en
+// blanco), con el logotipo oficial, la calificación de Google con su
+// conteo, sin precio y con la foto creciendo para llenar la tarjeta.
 describe('tarjeta para compartir el negocio', () => {
   const lib = read('../lib/shareCard.js');
   const template = read('../components/ShareCardTemplate.jsx');
@@ -33,7 +36,15 @@ describe('tarjeta para compartir el negocio', () => {
     expect(sheet).toContain('Post IG');
   });
 
-  it('la tarjeta lleva la marca CityMap', () => {
+  it('la tarjeta lleva el logotipo oficial de CityMap', () => {
+    // /logo-brand.png es el logo real de la app (encabezado y splash),
+    // en blanco sobre el fondo oscuro (misma inversión que Brand.jsx).
+    expect(template).toContain('src="/logo-brand.png"');
+    expect(template).toContain('brightness(0) invert(1)');
+    // El exportador de canvas también lo dibuja, en blanco.
+    expect(lib).toContain("'/logo-brand.png'");
+    expect(lib).toContain('source-in');
+    // El pie con la marca sigue.
     expect(template).toContain('Descúbrelo en CityMap');
   });
 
@@ -48,12 +59,28 @@ describe('tarjeta para compartir el negocio', () => {
     expect(sheet).toContain("e?.name === 'AbortError'");
   });
 
-  it('el precio no se inventa: sin precio no hay píldora', () => {
-    expect(lib).toContain("? biz.price.trim() : null");
-    expect(template).toContain('{data?.price ? (');
-    // La calificación y la ciudad también son condicionales.
-    expect(template).toContain('data.rating');
-    expect(template).toContain('data?.cityName ? (');
+  it('la calificación es la de Google, con su conteo de reseñas', () => {
+    // La hoja pasa el displayRating completo (misma fuente que las
+    // tarjetas de negocio: google_ratings_cache).
+    expect(sheet).toContain('displayRating(biz, googleRatings)');
+    expect(sheet).toContain('buildShareCardData(biz, { disp, cityName })');
+    // Solo con dato vigente de Google hay píldora: la interna de
+    // CityMap no se muestra en la tarjeta.
+    expect(lib).toContain("disp?.source === 'google'");
+    expect(lib).toContain('reviewCount');
+    expect(lib).toContain('formatReviewCount');
+    // La píldora muestra calificación + conteo, con la G de Google.
+    expect(template).toContain('data.rating.toFixed(1)');
+    expect(template).toContain('formatReviewCount(data.reviewCount');
+    expect(template).toContain('src="/googlelogo.svg"');
+    expect(lib).toContain("'/googlelogo.svg'");
+  });
+
+  it('el precio ya no se muestra en la tarjeta', () => {
+    // buildShareCardData conserva el campo como dato, pero ni la
+    // plantilla ni el exportador lo dibujan.
+    expect(template).not.toContain('price');
+    expect(lib).not.toContain('data.price');
   });
 
   it('la foto se lee con CORS y sin foto no hay imagen rota', () => {
@@ -66,14 +93,31 @@ describe('tarjeta para compartir el negocio', () => {
     expect(sheet).toContain('La foto no se pudo cargar');
   });
 
-  it('la imagen se genera con html-to-image en el teléfono', () => {
-    expect(lib).toContain("await import('html-to-image')");
-    expect(lib).toContain('toBlob');
-    expect(lib).toContain('pixelRatio: 1');
-    // El nodo de exportación vive fuera de pantalla pero renderizado
-    // (display:none no sirve para html-to-image) y no toca el layout.
-    expect(sheet).toContain('left: -10000');
-    expect(sheet).toContain('exportRef');
+  it('la imagen se genera dibujando en canvas, nunca en blanco', () => {
+    // PR #143: html-to-image sobre el nodo fuera de pantalla
+    // (left: -10000) devolvía un PNG 100% transparente. Ahora la imagen
+    // se dibuja directo en canvas 2D y se comprueba que no salga en
+    // blanco antes de descargar.
+    expect(lib).not.toContain("import('html-to-image')");
+    expect(lib).toContain("getContext('2d')");
+    expect(lib).toContain('createImageBitmap');
+    expect(lib).toContain('canvas.toBlob');
+    expect(lib).toContain('drawImage');
+    expect(lib).toContain('getImageData');
+    expect(lib).toContain('blank-canvas');
+    expect(sheet).not.toContain('left: -10000');
+    expect(sheet).not.toContain('exportRef');
+  });
+
+  it('la foto crece y llena la tarjeta: sin franja vacía', () => {
+    // Una sola geometría para la vista previa y el canvas.
+    expect(lib).toContain('SHARE_CARD_LAYOUT');
+    expect(lib).toContain('computeShareCardLayout');
+    expect(template).toContain('computeShareCardLayout');
+    expect(template).toContain('minHeight: L.photoMinH');
+    expect(template).toContain('flex: 1');
+    // El separador flexible que dejaba el hueco antes del pie ya no existe.
+    expect(template).not.toContain('<div style={{ flex: 1 }} />');
   });
 
   it('en web no se promete publicar directo en Instagram', () => {

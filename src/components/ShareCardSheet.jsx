@@ -1,4 +1,6 @@
-// Hoja para compartir el negocio como imagen (PR #142, v1).
+// Hoja para compartir el negocio como imagen (PR #142, v1; PR #143: la
+// imagen se dibuja en canvas, con el logo oficial y la calificación de
+// Google con su conteo, sin precio).
 // Al presionar Compartir se genera un PNG con la foto y los datos del
 // negocio, listo para Instagram/Facebook. v1: UN estilo oscuro, dos
 // formatos (Historia IG 1080×1920, Post IG 1080×1080). El botón de
@@ -6,8 +8,7 @@
 // conserva el comportamiento anterior (compartir la liga del negocio).
 // En web NO se puede publicar directo a Instagram: la hoja comparte la
 // imagen con el menú del sistema o la descarga, nunca promete publicarla.
-import React, { useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import React, { useState } from 'react';
 import { m } from 'framer-motion';
 import { useDataStore } from '../store/useDataStore.js';
 import { useUIStore } from '../store/useUIStore.js';
@@ -34,13 +35,15 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   const [status, setStatus] = useState('idle'); // idle | generating | error
   const [error, setError] = useState('');
   const [photoFailed, setPhotoFailed] = useState(false);
-  const exportRef = useRef(null);
 
   const format =
     SHARE_CARD_FORMAT_LIST.find((f) => f.id === formatId) || SHARE_CARD_FORMAT_LIST[0];
   const cityName = cities.find((c) => c.slug === biz?.city_slug)?.name || '';
-  const rating = displayRating(biz, googleRatings).rating;
-  const data = buildShareCardData(biz, { rating, cityName });
+  // La calificación y el conteo son los de Google (google_ratings_cache,
+  // la misma fuente que las tarjetas de negocio): buildShareCardData solo
+  // los pasa si displayRating trae dato de Google; si no, no hay píldora.
+  const disp = displayRating(biz, googleRatings);
+  const data = buildShareCardData(biz, { disp, cityName });
   const exportData = photoFailed ? { ...data, photoUrl: null } : data;
 
   const onExport = async () => {
@@ -48,15 +51,19 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
     setError('');
     setStatus('generating');
     try {
-      const node = exportRef.current;
-      if (!node) throw new Error('no-node');
       // Si la foto no se puede leer con CORS, la tarjeta sale sin foto
       // (nunca rota): se quita y se exporta el resto.
+      let dataToExport = exportData;
       if (exportData.photoUrl) {
         const ok = await isPhotoFetchable(exportData.photoUrl);
-        if (!ok) flushSync(() => setPhotoFailed(true));
+        if (!ok) {
+          setPhotoFailed(true);
+          dataToExport = { ...exportData, photoUrl: null };
+        }
       }
-      const blob = await exportShareCardPng(exportRef.current);
+      // La imagen se dibuja directo en canvas (PR #143): lo que se
+      // descarga es lo mismo que la vista previa, nunca en blanco.
+      const blob = await exportShareCardPng(dataToExport, format);
       const how = await shareOrDownloadPng(blob, shareCardFileName(biz));
       toast$(how === 'shared' ? 'Imagen lista para compartir' : 'Imagen descargada');
       setStatus('idle');
@@ -278,21 +285,6 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
           Compartir enlace
         </button>
       </m.div>
-
-      {/* Nodo de exportación: la plantilla a tamaño exacto, fuera de
-          pantalla pero renderizada (display:none no sirve para
-          html-to-image). No toca el layout ni se ve. */}
-      <div
-        ref={exportRef}
-        aria-hidden="true"
-        style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }}
-      >
-        <ShareCardTemplate
-          data={exportData}
-          format={format}
-          onPhotoError={() => setPhotoFailed(true)}
-        />
-      </div>
     </div>
   );
 }

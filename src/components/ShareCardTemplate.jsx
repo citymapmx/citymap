@@ -1,28 +1,38 @@
-// Plantilla de la tarjeta para compartir (PR #142, v1): UN estilo oscuro
-// tipo «Glass» — foto arriba, categoría en versales, nombre grande,
-// píldoras con calificación/ciudad/precio y «Descúbrelo en CityMap» al pie.
-// Solo estilos en línea: html-to-image clona el nodo y los estilos en
-// línea viajan con él sin depender de la hoja de la app. Sin
-// backdrop-filter ni animaciones: la tarjeta es una imagen estática.
-// La foto lleva crossOrigin="anonymous" para que html-to-image pueda
-// leerla (Supabase y Cloudinary responden Access-Control-Allow-Origin: *).
-// Sin foto no hay imagen rota: sale un bloque oscuro con la inicial del
-// nombre. Sin precio no hay píldora de precio: nunca se inventa.
+// Plantilla de la tarjeta para compartir (PR #142 v1, PR #143): UN estilo
+// oscuro tipo «Glass» — logotipo oficial arriba, foto, categoría en
+// versales, nombre grande, píldoras con la calificación de Google (con su
+// conteo de reseñas) y la ciudad, y «Descúbrelo en CityMap» al pie.
+// La vista previa y el PNG exportado comparten la misma geometría:
+// SHARE_CARD_LAYOUT + computeShareCardLayout en lib/shareCard.js, así que
+// lo que se ve es lo que se descarga. La foto crece (flex: 1, con altura
+// mínima) y se come el espacio libre: nunca queda franja vacía entre las
+// píldoras y el pie. El logotipo es /logo-brand.png, el mismo del
+// encabezado y del splash, en blanco sobre el fondo oscuro. Sin foto no
+// hay imagen rota: sale un bloque oscuro con la inicial del nombre. Sin
+// dato de Google no hay píldora de calificación: nunca se inventa. El
+// precio ya no se muestra.
 import { getThumbUrl } from '../lib/utils.js';
-
-const LAYOUT = {
-  story: { pad: 64, photoH: 1080, catSize: 32, nameSize: 76, pillSize: 34, footSize: 30, radius: 40 },
-  post: { pad: 48, photoH: 480, catSize: 28, nameSize: 60, pillSize: 30, footSize: 26, radius: 32 },
-};
+import { formatReviewCount } from '../lib/googleRatings.js';
+import {
+  SHARE_CARD_FORMATS,
+  SHARE_CARD_LAYOUT,
+  computeShareCardLayout,
+} from '../lib/shareCard.js';
 
 export default function ShareCardTemplate({ data, format, onPhotoError }) {
-  const f = format || { id: 'story', width: 1080, height: 1920 };
-  const L = LAYOUT[f.id] || LAYOUT.story;
+  const f = format || SHARE_CARD_FORMATS.story;
+  const L = SHARE_CARD_LAYOUT[f.id] || SHARE_CARD_LAYOUT.story;
   const width = f.width;
   const photoW = width - L.pad * 2;
+  // Las líneas del nombre se calculan con la misma función que usa el
+  // exportador de canvas: el corte a 2 líneas es idéntico en ambos.
+  const layout = computeShareCardLayout(data, format, true);
   // La foto se pide ancha (1600w por el bucket de getThumbUrl) para que
   // salga nítida en la exportación a 1080 px.
   const photoSrc = data?.photoUrl ? getThumbUrl(data.photoUrl, 1080) : null;
+  const gSize = Math.round(L.pillSize * 0.85);
+  const initial = (data?.name || 'C').trim().charAt(0).toUpperCase() || 'C';
+  const hasRating = typeof data?.rating === 'number' && data.rating > 0;
 
   return (
     <div
@@ -41,125 +51,155 @@ export default function ShareCardTemplate({ data, format, onPhotoError }) {
         overflow: 'hidden',
       }}
     >
-      {photoSrc ? (
-        <img
-          src={photoSrc}
-          crossOrigin="anonymous"
-          onError={onPhotoError}
-          alt=""
-          style={{
-            width: photoW,
-            height: L.photoH,
-            objectFit: 'cover',
-            borderRadius: L.radius,
-            display: 'block',
-            backgroundColor: '#262626',
-          }}
-        />
-      ) : (
-        <div
-          style={{
-            width: photoW,
-            height: L.photoH,
-            borderRadius: L.radius,
-            background: '#262626',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'rgba(255,255,255,0.35)',
-            fontSize: L.photoH * 0.45,
-            fontWeight: 800,
-            lineHeight: 1,
-          }}
-        >
-          {(data?.name || 'C').trim().charAt(0).toUpperCase()}
-        </div>
-      )}
+      <img
+        src="/logo-brand.png"
+        alt="CityMap"
+        style={{
+          height: L.logoH,
+          width: 'auto',
+          display: 'block',
+          filter: 'brightness(0) invert(1)',
+          marginBottom: L.logoGap,
+          flexShrink: 0,
+        }}
+      />
+
+      <div
+        style={{
+          width: photoW,
+          flex: 1,
+          minHeight: L.photoMinH,
+          borderRadius: L.photoRadius,
+          overflow: 'hidden',
+          background: '#262626',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {photoSrc ? (
+          <img
+            src={photoSrc}
+            crossOrigin="anonymous"
+            onError={onPhotoError}
+            alt=""
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+        ) : (
+          <span
+            style={{
+              color: 'rgba(255,255,255,0.35)',
+              fontSize: L.photoMinH * 0.45,
+              fontWeight: 800,
+              lineHeight: 1,
+            }}
+          >
+            {initial}
+          </span>
+        )}
+      </div>
 
       {data?.category ? (
         <div
           style={{
-            marginTop: L.pad * 0.55,
+            marginTop: L.catGap,
             fontSize: L.catSize,
             fontWeight: 700,
+            lineHeight: 1,
             letterSpacing: 6,
             textTransform: 'uppercase',
             color: '#A3A3A3',
+            flexShrink: 0,
           }}
         >
           {data.category}
         </div>
       ) : null}
 
-      <div
-        style={{
-          marginTop: 18,
-          fontSize: L.nameSize,
-          fontWeight: 800,
-          lineHeight: 1.12,
-          letterSpacing: -1,
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-        }}
-      >
-        {data?.name || ''}
-      </div>
+      {layout.name && layout.name.lines.length ? (
+        <div style={{ marginTop: L.nameGap, width: photoW, flexShrink: 0 }}>
+          {layout.name.lines.map((line, i) => (
+            <div
+              key={i}
+              style={{
+                fontSize: L.nameSize,
+                fontWeight: 800,
+                lineHeight: L.nameLineH,
+                letterSpacing: -1,
+              }}
+            >
+              {line}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {hasRating || data?.cityName ? (
+        <div
+          style={{
+            marginTop: L.pillsGap,
+            width: photoW,
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: L.pillGap,
+            flexShrink: 0,
+          }}
+        >
+          {hasRating ? (
+            <span
+              style={{
+                background: 'rgba(255,255,255,0.12)',
+                borderRadius: 999,
+                padding: `${L.pillPadY}px ${L.pillPadX}px`,
+                fontSize: L.pillSize,
+                fontWeight: 700,
+                lineHeight: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              ★ {data.rating.toFixed(1)} ({formatReviewCount(data.reviewCount || 0)})
+              <img
+                src="/googlelogo.svg"
+                alt="Google"
+                style={{ width: gSize, height: gSize, objectFit: 'contain', display: 'block' }}
+              />
+            </span>
+          ) : null}
+          {data?.cityName ? (
+            <span
+              style={{
+                background: 'rgba(255,255,255,0.12)',
+                borderRadius: 999,
+                padding: `${L.pillPadY}px ${L.pillPadX}px`,
+                fontSize: L.pillSize,
+                fontWeight: 700,
+                lineHeight: 1,
+              }}
+            >
+              {data.cityName}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       <div
         style={{
-          marginTop: 30,
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          gap: 16,
+          marginTop: L.footGap,
+          fontSize: L.footSize,
+          lineHeight: 1,
+          letterSpacing: 2,
+          color: '#A3A3A3',
+          flexShrink: 0,
         }}
       >
-        {typeof data?.rating === 'number' && data.rating > 0 ? (
-          <span
-            style={{
-              background: 'rgba(255,255,255,0.12)',
-              borderRadius: 999,
-              padding: '12px 26px',
-              fontSize: L.pillSize,
-              fontWeight: 700,
-            }}
-          >
-            ★ {data.rating.toFixed(1)}
-          </span>
-        ) : null}
-        {data?.cityName ? (
-          <span
-            style={{
-              background: 'rgba(255,255,255,0.12)',
-              borderRadius: 999,
-              padding: '12px 26px',
-              fontSize: L.pillSize,
-              fontWeight: 700,
-            }}
-          >
-            {data.cityName}
-          </span>
-        ) : null}
-        {data?.price ? (
-          <span
-            style={{
-              background: 'rgba(255,255,255,0.12)',
-              borderRadius: 999,
-              padding: '12px 26px',
-              fontSize: L.pillSize,
-              fontWeight: 700,
-            }}
-          >
-            {data.price}
-          </span>
-        ) : null}
-      </div>
-
-      <div style={{ flex: 1 }} />
-
-      <div style={{ fontSize: L.footSize, letterSpacing: 2, color: '#A3A3A3' }}>
         Descúbrelo en <span style={{ color: '#FFFFFF', fontWeight: 800 }}>CityMap</span>
       </div>
     </div>
