@@ -20,11 +20,13 @@
 // la base), la tarjeta usa el bloque degradado con la inicial, nunca
 // una tarjeta en blanco ni un hueco roto.
 //
-// Precio: mínimo REAL en MXN o «Entrada gratuita» o «Precio mínimo no
-// publicado» (nunca inventado), con getEventPrice/getEventPriceAmount
-// (la misma fuente que el detalle). Horas en formato 12 h y fechas en
-// español, como el detalle (EventInformation.jsx). El enlace que se
-// comparte es la URL del detalle: /evento/:ciudad/:slug-corto.
+// Precio: mínimo REAL en MXN («Boletos desde $X») o «Entrada gratuita»;
+// sin precio publicado NO se menciona nada (PR #153: ni píldora ni
+// línea de precio — la tarjeta simplemente no lleva precio). Con
+// getEventPrice/getEventPriceAmount (la misma fuente que el detalle).
+// Horas en formato 12 h y fechas en español, como el detalle
+// (EventInformation.jsx). El enlace que se comparte es la URL del
+// detalle: /evento/:ciudad/:slug-corto.
 import { createSlug } from './utils.js';
 import { getEventPrice, getEventPriceAmount } from './eventDetails.js';
 import { eventUrl, eventShortSlug } from './eventUrls.js';
@@ -66,14 +68,18 @@ export const EVENT_SHARE_CARD_LAYOUT = {
     // (subtítulo + 2 filas de información), así que el mínimo de la
     // foto es más bajo: con el heredado (1080/480) el peor caso (título
     // a 2 líneas + subtítulo a 2 líneas + 2 filas + píldora) desbordaba
-    // el pie hasta 95 px. Con 1000/360 el peor caso deja la foto en
-    // 1073/385 y la geometría nunca desborda la tarjeta.
-    photoMinH: 1000,
+    // el pie hasta 95 px. Con 960/300 el peor caso deja la foto en
+    // 988/318 y la geometría nunca desborda la tarjeta — el mínimo se
+    // bajó de 1000/360 en el PR #153 porque el título ahora puede ir a
+    // 3 líneas (ver fitEventShareCardTitle): la tercera línea a tamaño
+    // completo come ~85 px en Historia y ~68 px en Post.
+    photoMinH: 960,
     titleSize: 76,
     titleSizeFestival: 96,
+    titleMinSize: 48,
     titleGap: 18,
     titleLineH: 1.12,
-    titleMaxLines: 2,
+    titleMaxLines: 3,
     subSize: 36,
     subGap: 16,
     subLineH: 1.35,
@@ -88,12 +94,13 @@ export const EVENT_SHARE_CARD_LAYOUT = {
   },
   post: {
     ...SHARE_CARD_LAYOUT.post,
-    photoMinH: 360,
+    photoMinH: 300,
     titleSize: 60,
     titleSizeFestival: 76,
+    titleMinSize: 40,
     titleGap: 14,
     titleLineH: 1.12,
-    titleMaxLines: 2,
+    titleMaxLines: 3,
     subSize: 32,
     subGap: 14,
     subLineH: 1.35,
@@ -237,8 +244,11 @@ export function buildEventShareCardData(event, { cityName = '' } = {}) {
     priceText = `Boletos desde ${amount}`;
     priceKind = 'paid';
   } else {
-    priceText = 'Precio mínimo no publicado';
-    priceKind = 'unknown';
+    // Sin precio publicado no se menciona nada (PR #153): priceText
+    // vacío → eventPillText no devuelve píldora y la tarjeta no lleva
+    // ninguna línea de precio, ni en la vista previa ni en el PNG.
+    priceText = '';
+    priceKind = 'none';
   }
   const dateText = eventShareCardDateShort(event?.date) || 'Fecha por confirmar';
   const dateRangeText = eventShareCardDateRange(event) || dateText;
@@ -369,12 +379,45 @@ export function truncateShareCardLine(text, maxW, size, weight = 600) {
   return `${out}…`;
 }
 
+// El título cabe SIEMPRE completo (PR #153): se reparte en hasta
+// titleMaxLines (3) líneas y la fuente se achica desde el tamaño del
+// estilo hasta titleMinSize, de 4 en 4 px, hasta que entra entero sin
+// «…». Se devuelve el primer tamaño que cabe: un título corto queda a
+// tamaño completo y solo los largos se achican. La vista previa
+// (EventShareCardTemplate.jsx) y el canvas usan esta misma función vía
+// computeEventShareCardLayout, así que lo que se ve es lo que se
+// descarga. Caso que lo motivó: «ESLABÓN ARMADO TOUR E...» cortado en
+// la tarjeta de Eslabón Armado.
+function fitEventShareCardTitle(titleText, maxW, L, baseSize) {
+  const minSize = L.titleMinSize || 40;
+  for (let size = baseSize; size >= minSize; size -= 4) {
+    const lines = wrapShareCardName(titleText, maxW, {
+      ...L,
+      nameSize: size,
+      nameMaxLines: L.titleMaxLines,
+    });
+    if (lines.length && !lines.some((line) => line.endsWith('…'))) {
+      return { lines, size };
+    }
+  }
+  // Título patológico (una sola palabra más ancha que la tarjeta
+  // incluso al mínimo): se devuelve al mínimo y wrapShareCardName lo
+  // corta con «…». Los títulos reales de la base no llegan ahí.
+  const lines = wrapShareCardName(titleText, maxW, {
+    ...L,
+    nameSize: minSize,
+    nameMaxLines: L.titleMaxLines,
+  });
+  return { lines, size: minSize };
+}
+
 // ─── Geometría (vista previa y canvas dibujan lo mismo) ───
 
 // La píldora según el estilo: festival y editorial llevan el precio
-// (Boletos desde $X / Entrada gratuita / Precio mínimo no publicado);
-// experiencias lleva «Cupo limitado»; boleto y agenda no llevan píldora
-// (la feria lleva el código de barras y la agenda solo la información).
+// (Boletos desde $X / Entrada gratuita); sin precio publicado NO hay
+// píldora (PR #153). Experiencias lleva «Cupo limitado»; boleto y
+// agenda no llevan píldora (la feria lleva el código de barras y la
+// agenda solo la información).
 function eventPillText(data) {
   if (data?.style === 'festival' || data?.style === 'editorial') {
     return data?.priceText || '';
@@ -404,15 +447,15 @@ export function computeEventShareCardLayout(data, format) {
 
   // En festival el título va en mayúsculas y más grande: se pasa a
   // mayúsculas ANTES de medirlo, así la vista previa y el canvas
-  // cortan las líneas igual.
+  // cortan las líneas igual. El título se ajusta (fitEventShareCardTitle):
+  // hasta 3 líneas y fuente más chica si hace falta, para que quepa
+  // completo y nunca se corte con «…».
   const titleSize = style === 'festival' ? L.titleSizeFestival : L.titleSize;
   const titleText =
     style === 'festival' ? (data?.title || '').toUpperCase() : data?.title || '';
-  const titleLines = wrapShareCardName(titleText, maxW, {
-    ...L,
-    nameSize: titleSize,
-    nameMaxLines: L.titleMaxLines,
-  });
+  const fittedTitle = fitEventShareCardTitle(titleText, maxW, L, titleSize);
+  const titleLines = fittedTitle.lines;
+  const fittedTitleSize = fittedTitle.size;
 
   const showSubtitle =
     ['editorial', 'experiencias', 'agenda'].includes(style) &&
@@ -437,7 +480,7 @@ export function computeEventShareCardLayout(data, format) {
       : null;
 
   const catBlock = category ? L.catGap + L.catSize : 0;
-  const titleBlockH = titleLines.length * titleSize * L.titleLineH;
+  const titleBlockH = titleLines.length * fittedTitleSize * L.titleLineH;
   const titleBlock = titleLines.length ? L.titleGap + titleBlockH : 0;
   const subBlockH = subtitleLines.length * L.subSize * L.subLineH;
   const subBlock = subtitleLines.length ? L.subGap + subBlockH : 0;
@@ -488,9 +531,9 @@ export function computeEventShareCardLayout(data, format) {
     title = {
       lines: titleLines,
       x: W / 2,
-      y: y + (titleSize * L.titleLineH) / 2,
-      size: titleSize,
-      lineH: titleSize * L.titleLineH,
+      y: y + (fittedTitleSize * L.titleLineH) / 2,
+      size: fittedTitleSize,
+      lineH: fittedTitleSize * L.titleLineH,
     };
     y += titleBlockH;
   }

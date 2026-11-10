@@ -7,10 +7,12 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // PageSpeed móvil /tepic: Rendimiento 67, oportunidad #1 «Mejora la
 // entrega de imágenes» 483 KiB). Todo el ahorro viene de servir el ancho
 // adecuado por pantalla (srcset/sizes) y de lazy loading bajo el pliegue:
-// mismo aspecto en pantalla, menos bytes. Los pósters siguen con
-// `contain` para no recortar; el formato sigue siendo WebP (AVIF medido
-// en vivo salió MÁS pesado en el Render API de Supabase: 800w AVIF 62 KB
-// frente a 43 KB WebP, 400w AVIF 22 KB frente a 15 KB WebP).
+// mismo aspecto en pantalla, menos bytes. El formato sigue siendo WebP
+// (AVIF medido en vivo salió MÁS pesado en el Render API de Supabase:
+// 800w AVIF 62 KB frente a 43 KB WebP, 400w AVIF 22 KB frente a 15 KB
+// WebP). Los pósters de eventos van con `cover` desde el PR #153 (10
+// nov, decisión de Jonathan): la foto llena la tarjeta, sin fondo
+// difuminado (la regla contain + blur del PR #132 queda anulada).
 describe('imagenes: entrega más rápida sin bajar la calidad', () => {
   const utils = read('../lib/utils.js');
   const optimized = read('../components/ui/OptimizedImage.jsx');
@@ -64,12 +66,13 @@ describe('imagenes: entrega más rápida sin bajar la calidad', () => {
     expect(banner).toContain('widthRequest={1400}');
   });
 
-  it('Pósters de eventos: srcset + objectFit contain (nunca cover)', () => {
+  it('Pósters de eventos: srcset + objectFit cover (la foto llena la tarjeta)', () => {
     expect(events).toContain('srcSetWidths={SRCSET_CARD}');
-    expect(events).toContain("objectFit:'contain'");
-    expect(events).not.toContain("objectFit:'cover'");
-    // El fondo difuminado sigue usando la misma URL (el navegador la reutiliza).
-    expect(events).toContain('getThumbUrl(imgSrc, 600)');
+    expect(events).toContain("objectFit:'cover'");
+    expect(events).not.toContain("objectFit:'contain'");
+    // Sin fondo difuminado (PR #153: la regla contain + blur del PR #132
+    // queda anulada por decisión de Jonathan).
+    expect(events).not.toContain('blur(24px)');
   });
 
   it('Tarjetas de negocio: srcset en las tres variantes (ProgressiveImage)', () => {

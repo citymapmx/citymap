@@ -522,12 +522,14 @@ export default function EventsView() {
                       <div className={newBatchIds?.has(ev.id) ? 'scale-in-ver-top' : cascadeDelayById?.has(ev.id) ? 'cascade-in' : undefined} style={{ position: 'relative', ...(cascadeDelayById?.has(ev.id) ? { animationDelay: `${cascadeDelayById.get(ev.id)}s` } : {}) }}>
                       <button type="button" onClick={() => handleEventTap(ev)} aria-label={`${localizedTitle(ev, lang) || 'Evento'}. ${fmtCardDate(ev)}`} className="event-list-card" style={{ display:'block', width:'100%', textAlign:'left', border:0, padding:0, background:'transparent', color:T.text, cursor:'pointer', fontFamily:'inherit' }}>
                         <div style={{ aspectRatio:'5 / 7', position:'relative', overflow:'hidden', background:dark ? '#23252b' : '#edf0f4' }}>
-                          {/* Fondo difuminado con la misma imagen (misma URL optimizada que el póster, así el navegador la reutiliza): con contain el póster sale completo pero dejaba bandas grises arriba y abajo porque la mayoría son horizontales y la tarjeta es 5:7; el fondo cubre toda la tarjeta y el póster queda encima, completo y sin recortar texto. */}
+                          {/* La foto LLENA la tarjeta (cover, PR #153): sin
+                              bandas ni fondo difuminado. Un póster vertical
+                              apenas recorta en la tarjeta 5:7; una foto
+                              apaisada recorta los lados, que es lo que
+                              pidió Jonathan (la regla del PR #132 — contain
+                              + fondo difuminado — queda anulada). */}
                           {imgSrc ? (
-                            <>
-                              <div aria-hidden="true" style={{ position:'absolute', inset:0, backgroundImage:`url("${getThumbUrl(imgSrc, 600)}")`, backgroundSize:'cover', backgroundPosition:'center', filter:'blur(24px) brightness(0.85)', transform:'scale(1.15)' }} />
-                              <OptimizedImage src={imgSrc} alt={localizedTitle(ev, lang) || 'Evento'} widthRequest={600} priority={index < 2} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain', zIndex:1 }} />
-                            </>
+                            <OptimizedImage src={imgSrc} alt={localizedTitle(ev, lang) || 'Evento'} widthRequest={600} priority={index < 2} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:1 }} />
                           ) : <EventPosterFallback title={localizedTitle(ev, lang) || 'Evento'} radius={0} />}
                           <div style={{ position:'absolute', top:8, left:8, zIndex:2, borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF' }}>{fmtCardDate(ev)}</div>
                         </div>
