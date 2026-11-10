@@ -214,13 +214,14 @@ export default function MapView() {
 
           {/* Map Pin Card — Evento Centrado.
               Entrada con scale-in-center (Animista, .scale-in-center en
-              index.css): la animación va en el envoltorio interior, porque
-              un keyframe CSS de transform pisaría el x:"-50%" con el que
-              framer-motion centra la tarjeta, y el fill "both" dejaría
-              pisada también la animación de salida. El exterior solo
-              centra (x) y anima la salida; la entrada es la clase CSS, que
-              se re-dispara sola en cada apertura porque la tarjeta se
-              remonta con key={"ev_" + mapPin.id} al cambiar de pin. */}
+              index.css): el elemento animado ES la tarjeta visual completa
+              (fondo, bordes, sombra, borde) — antes la clase estaba en un
+              envoltorio interior sin estilos y la tarjeta blanca aparecía
+              de golpe. El exterior de framer-motion solo posiciona y
+              centra (x:"-50%") y anima la salida; el keyframe CSS no lo
+              toca porque va en el hijo. La animación se re-dispara sola
+              en cada apertura porque la tarjeta se remonta con
+              key={"ev_" + mapPin.id} al cambiar de pin. */}
           <AnimatePresence>
           {mapPin && mapPin._isEvent && (
             <m.div
@@ -234,19 +235,12 @@ export default function MapView() {
                 left: "50%",
                 x: "-50%",
                 width: 280,
-                background: T.white,
-                borderRadius: 24,
-                boxShadow: "0 16px 40px rgba(0,0,0,0.3)",
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-                border: `1px solid ${T.border}`,
                 zIndex: 100000,
                 cursor: "pointer"
               }}
               onClick={() => { setOpenedFromMap(true); setSelectedEvent(mapPin); setMapPin(null); }}
             >
-              <div className="scale-in-center" style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+              <div className="scale-in-center" style={{ background: T.white, borderRadius: 24, boxShadow: "0 16px 40px rgba(0,0,0,0.3)", border: `1px solid ${T.border}`, display: "flex", flexDirection: "column", width: "100%", overflow: "hidden" }}>
               <div style={{ width: "100%", height: 373, background: "#111", position: "relative" }}>
                 <button onClick={(e) => { e.stopPropagation(); setMapPin(null); }} style={{ position: "absolute", top: 12, left: 12, zIndex: 5, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="x" size={14} color="#fff" />
@@ -283,9 +277,10 @@ export default function MapView() {
           </AnimatePresence>
 
           {/* Map Pin Card — Negocio Centrado.
-              Misma entrada scale-in-center que la de evento: la clase va
-              en el envoltorio interior para no pisar el x:"-50%" del
-              exterior, y se re-dispara en cada apertura por el
+              Misma entrada scale-in-center que la de evento: el elemento
+              animado es la tarjeta visual completa (fondo, bordes, sombra,
+              borde); el exterior solo posiciona y centra (x:"-50%") y
+              anima la salida. Se re-dispara en cada apertura por el
               key={"biz_" + mapPin.id}. */}
           <AnimatePresence>
           {mapPin && !mapPin._isEvent && (
@@ -300,17 +295,10 @@ export default function MapView() {
                 left: "50%",
                 x: "-50%",
                 width: 320,
-                background: T.white,
-                borderRadius: 24,
-                boxShadow: "0 16px 40px rgba(0,0,0,0.3)",
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-                border: `1px solid ${T.border}`,
                 zIndex: 100000
               }}
             >
-              <div className="scale-in-center" style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+              <div className="scale-in-center" style={{ background: T.white, borderRadius: 24, boxShadow: "0 16px 40px rgba(0,0,0,0.3)", border: `1px solid ${T.border}`, display: "flex", flexDirection: "column", width: "100%", overflow: "hidden" }}>
               {/* Imagen Banner */}
               <div style={{ width: "100%", height: 160, background: T.bg, position: "relative" }}>
                 <button onClick={() => setMapPin(null)} style={{ position: "absolute", top: 12, left: 12, zIndex: 5, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.3)", backdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
