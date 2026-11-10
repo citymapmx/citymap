@@ -337,3 +337,27 @@ iframe[id^="credential_picker"] {
 /* ── Chat de evento privado: cursor palpitante del campo vacío ── */
 @keyframes chatCaretBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .chat-caret { animation: chatCaretBlink 1.1s step-end infinite; }
+
+/* ── scale-in-center (Animista, entrada de tarjetas flotantes) ──
+   La ventana de detalle del mapa (negocio o evento) y la ventana
+   "¿Qué hay cerca?" entran con esta animación: el elemento crece desde
+   el centro (scale 0 → 1) en 0.5 s con easeOutQuad, sin desvanecimiento
+   (opacity 1 todo el tiempo). Solo transform: no mueve el layout.
+   Se aplica sobre un envoltorio interior de la tarjeta, nunca sobre el
+   elemento que framer-motion centra con x:"-50%" (la animación CSS
+   sobrescribiría ese transform). Con "reducir movimiento" no anima. */
+.scale-in-center {
+  -webkit-animation: scale-in-center 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+  animation: scale-in-center 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+}
+@-webkit-keyframes scale-in-center {
+  0% { -webkit-transform: scale(0); transform: scale(0); opacity: 1; }
+  100% { -webkit-transform: scale(1); transform: scale(1); opacity: 1; }
+}
+@keyframes scale-in-center {
+  0% { -webkit-transform: scale(0); transform: scale(0); opacity: 1; }
+  100% { -webkit-transform: scale(1); transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scale-in-center { -webkit-animation: none; animation: none; }
+}
