@@ -27,6 +27,13 @@
 // inicio: ahora la pista es un carrusel infinito con clones (un clon
 // del último antes del primero y un clon del primero después del
 // último) y reseteo silencioso sin transición al llegar al clon.
+// PR #160: Jonathan pidió dos cosas más con capturas de Vulcanos
+// Chapalita (Clara, Historia y Post): (1) Clara también lleva el
+// logotipo DEL NEGOCIO (el de CityMap sí estaba; el círculo del
+// negocio no, por diseño del #154) — mismo círculo que en Oscura,
+// con anillo gris visible sobre blanco; (2) deslizar con el dedo
+// para cambiar de estilo (swipe táctil como las tiras del #149,
+// con el bucle del #158).
 // PR #146: la hoja entra con scale-in-center (la misma animación de las
 // tarjetas del mapa, PR #134/#135): el panel crece desde el centro en
 // 0,5 s, en vez del fundido de la librería de animación. La clase va en
@@ -50,7 +57,7 @@
 // conserva el comportamiento anterior (compartir la liga del negocio).
 // En web NO se puede publicar directo a Instagram: la hoja comparte la
 // imagen con el menú del sistema o la descarga, nunca promete publicarla.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDataStore } from '../store/useDataStore.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { displayRating } from '../lib/googleRatings.js';
@@ -69,6 +76,9 @@ import {
 } from '../lib/shareCard.js';
 
 const PREVIEW_W = 200;
+// Deslizamiento mínimo del dedo para cambiar de estilo (PR #160):
+// mismo umbral que las tiras del inicio (StoryStrip, PR #149).
+const SWIPE_MIN_PX = 60;
 
 // La tarjeta es compacta a propósito (PR #144): vista previa chica y
 // espacios apretados para que en cualquier teléfono se vean la vista
@@ -199,6 +209,10 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
     return i + 1;
   });
   const [noAnim, setNoAnim] = useState(false);
+  // Arrastre táctil en curso (null = sin arrastre): la pista sigue al
+  // dedo (PR #160, mismo patrón que StoryStrip, PR #149).
+  const [dragX, setDragX] = useState(null);
+  const touchStart = useRef(null);
   const goStyle = (delta) => {
     // Si la pista está en un clon (reseteo pendiente, dura 0,5 s), se
     // ignora el toque: así nunca se sale del rango de la pista y el
@@ -223,6 +237,51 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
     setNoAnim(reduceMotion);
     setTrackPos(index + 1);
   };
+  // Swipe táctil (PR #160): deslizar con el dedo cambia de estilo,
+  // como en las tiras del inicio (StoryStrip, PR #149). La pista sigue
+  // al dedo (sin transición durante el arrastre) y al soltar completa
+  // el cambio si el gesto supera SWIPE_MIN_PX; si no, vuelve a su
+  // sitio. Funciona CON el bucle del #158: goStyle avanza o retrocede
+  // desde el clon igual que el chevron, y los puntos siguen marcando
+  // el índice real. touchAction pan-y: el navegador conserva el scroll
+  // vertical del panel; si el gesto es claramente vertical, se cancela
+  // el arrastre y el panel hace scroll. Con «reducir movimiento» la
+  // pista no sigue al dedo (cambia al instante con goStyle, como el
+  // chevron), pero el gesto sí se registra y cambia de estilo.
+  const onTouchStart = (e) => {
+    if (trackPos === 0 || trackPos === styleCount + 1) return;
+    const touch = e.touches[0];
+    touchStart.current = { x: touch.clientX, y: touch.clientY };
+    setDragX(0);
+  };
+  const onTouchMove = (e) => {
+    if (!touchStart.current) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStart.current.x;
+    const dy = touch.clientY - touchStart.current.y;
+    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
+      touchStart.current = null;
+      setDragX(null);
+      return;
+    }
+    // El desplazamiento del gesto vive en el ref (sirve también con
+    // «reducir movimiento», donde la pista no se mueve en pantalla):
+    // el estado dragX solo es el desplazamiento visual.
+    touchStart.current.dx = dx;
+    if (!reduceMotion) setDragX(dx);
+  };
+  const onTouchEnd = () => {
+    const dx = touchStart.current?.dx ?? 0;
+    if (Math.abs(dx) > SWIPE_MIN_PX) {
+      goStyle(dx < 0 ? 1 : -1);
+    }
+    setDragX(null);
+    touchStart.current = null;
+  };
+  const onTouchCancel = () => {
+    setDragX(null);
+    touchStart.current = null;
+  };
   // Reseteo silencioso del bucle: tras deslizar hasta un clon, la
   // pista salta a la posición real equivalente sin transición. El
   // tiempo (0,5 s) es lo que dura la transición, así el salto cae
@@ -237,8 +296,10 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
     return () => clearTimeout(t);
   }, [trackPos, styleCount, reduceMotion]);
   const dotColor = dark ? '#FAFAFA' : '#18181B';
+  // Sin transición mientras se arrastra con el dedo: la pista sigue al
+  // dedo en vez de animar (PR #160, como StoryStrip).
   const trackTransition =
-    reduceMotion || noAnim
+    reduceMotion || noAnim || dragX !== null
       ? 'none'
       : 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)';
   // La pista lleva los clones en los extremos: [último, ...estilos,
@@ -400,6 +461,10 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
             ‹
           </button>
           <div
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            onTouchCancel={onTouchCancel}
             style={{
               width: PREVIEW_W,
               height: previewH,
@@ -408,13 +473,20 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
               boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
               background: '#0B0B0B',
               flexShrink: 0,
+              // El gesto vertical sigue siendo scroll del panel (PR
+              // #160): el swipe horizontal cambia de estilo, el
+              // vertical cancela el arrastre y el panel hace scroll.
+              touchAction: 'pan-y',
             }}
           >
             <div
               style={{
                 display: 'flex',
                 height: previewH,
-                transform: `translateX(${-trackPos * PREVIEW_W}px)`,
+                // Durante el arrastre la pista sigue al dedo (dragX);
+                // al soltar, goStyle mueve la pista y la transición
+                // vuelve a estar activa.
+                transform: `translateX(${-trackPos * PREVIEW_W + (dragX ?? 0)}px)`,
                 transition: trackTransition,
               }}
             >

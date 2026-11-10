@@ -22,9 +22,14 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
 // Dos estilos para la tarjeta de negocios (PR #154 los creó, PR #155
 // los deja en dos): Oscura (el de siempre, por defecto) y Clara
-// (claro tipo revista, sin círculo de logo: la limpieza es el estilo;
-// PR #156: antes se llamaba «Editorial», Jonathan la renombró «Clara»;
-// el id interno sigue siendo 'editorial').
+// (claro tipo revista; PR #156: antes se llamaba «Editorial»,
+// Jonathan la renombró «Clara»; el id interno sigue siendo
+// 'editorial'). PR #160: Clara TAMBIÉN lleva el círculo del logo del
+// negocio (misma regla que Oscura: logo_url + plan de pago), con
+// anillo gris visible sobre blanco; antes no lo llevaba por diseño
+// («la limpieza es el estilo»), pero Jonathan pidió que Clara también
+// tuviera el logotipo del negocio (Vulcanos Chapalita, con logo y plan
+// premium, salía sin nada en Clara).
 // La Ficha completa se quitó en el PR #155 (Jonathan): quedan solo
 // Oscura y Clara, que se cambian con chevrones ‹ › y puntos en la
 // hoja en vez de botones. La categoría sale de ambas versiones, la
@@ -253,7 +258,9 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     expect(sheet).toContain('SHARE_CARD_STYLE_LIST[styleCount - 1]');
     expect(sheet).toContain('...SHARE_CARD_STYLE_LIST');
     expect(sheet).toContain('SHARE_CARD_STYLE_LIST[0]');
-    expect(sheet).toContain('translateX(${-trackPos * PREVIEW_W}px)');
+    // PR #160: durante el arrastre táctil la pista sigue al dedo
+    // (dragX), así que el translateX lleva el desplazamiento.
+    expect(sheet).toContain('translateX(${-trackPos * PREVIEW_W + (dragX ?? 0)}px)');
     expect(sheet).toContain('transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)');
     // El reseteo silencioso: sin transición (noAnim), a los 0,5 s (lo
     // que dura el deslizamiento), y el clon vuelve a su posición real
@@ -300,10 +307,18 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     expect(sheet).toContain('Estilo siguiente');
   });
 
-  it('Clara: clara, sin círculo de logo y sin desbordar', () => {
+  it('Clara: con círculo de logo del negocio, con anillo visible sobre blanco y sin desbordar (PR #160)', () => {
     expect(SHARE_CARD_STYLE_COLORS.editorial.bg[0]).toBe('#FFFFFF');
     expect(SHARE_CARD_STYLE_COLORS.editorial.logoWhite).toBe(false);
     expect(SHARE_CARD_STYLE_COLORS.glass.logoWhite).toBe(true);
+    // La tabla de Clara lleva las medidas del círculo, igual que la
+    // oscura (mismo diámetro, a caballo sobre el borde de la foto).
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.story.showBizLogo).toBe(true);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.post.showBizLogo).toBe(true);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.story.bizLogoD).toBe(240);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.post.bizLogoD).toBe(190);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.story.bizLogoGap).toBe(28);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.post.bizLogoGap).toBe(22);
     for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       const d = buildShareCardData(bizLogo, {
         disp: googleDispBarbarella,
@@ -311,14 +326,46 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
       });
       const geo = computeShareCardLayout(d, format, true, 'editorial');
       expect(geo.style).toBe('editorial');
-      // Aunque tenga logo y plan de pago, Clara no lleva círculo:
-      // la limpieza es el estilo.
-      expect(geo.bizLogo).toBeNull();
+      // Con logo y plan de pago, Clara SÍ lleva círculo (antes no, por
+      // diseño del #154; Jonathan lo pidió con Vulcanos Chapalita).
+      expect(geo.bizLogo).not.toBeNull();
+      expect(geo.bizLogo.d).toBe(geo.L.bizLogoD);
+      expect(geo.bizLogo.x).toBe(Math.round((geo.width - geo.L.bizLogoD) / 2));
+      // El círculo no tapa el nombre (regla del #158, también en
+      // Clara): la primera línea empieza por debajo del círculo.
+      const nameTop = geo.name.y - (geo.L.nameSize * geo.L.nameLineH) / 2;
+      const circleBottom = geo.bizLogo.y + geo.bizLogo.d;
+      expect(nameTop - circleBottom).toBeCloseTo(geo.L.bizLogoGap, 0);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       const lastRow = geo.pillRows[geo.pillRows.length - 1];
       const pillsEnd = lastRow[0].y + lastRow[0].h;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
       expect(footTop - pillsEnd).toBe(geo.L.footGap);
+      // Vista previa: el círculo se pinta a la y calculada, con el
+      // anillo gris visible sobre blanco, y el nombre no se reparte.
+      const markup = renderToStaticMarkup(
+        <ShareCardTemplate data={d} format={format} styleId="editorial" />,
+      );
+      expect(markup).toContain(`top:${geo.bizLogo.y}px`);
+      expect(markup).toContain('border-radius:50%');
+      expect(markup).toContain('#D4D4D8');
+      expect(markup).toContain('white-space:nowrap');
+    }
+    // Sin logo o con plan gratuito, Clara NO lleva círculo (misma
+    // regla que en Oscura: el círculo es un beneficio de plan).
+    for (const noCircleBiz of [
+      { ...bizLogo, plan: 'free' },
+      { ...bizLogo, logo_url: '' },
+      biz,
+    ]) {
+      for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+        const d = buildShareCardData(noCircleBiz, {
+          disp: googleDispBarbarella,
+          cityName: 'Guadalajara',
+        });
+        const geo = computeShareCardLayout(d, format, true, 'editorial');
+        expect(geo.bizLogo).toBeNull();
+      }
     }
     // Peor caso (nombre largo, ciudad larga): tampoco se desborda.
     const longBiz = {
@@ -338,6 +385,58 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
       expect(footTop - pillsEnd).toBe(geo.L.footGap);
     }
+  });
+
+  it('el anillo del círculo se ve sobre blanco en Clara y sigue fino en Oscura (PR #160)', () => {
+    // El círculo blanco con su anillo fino casi invisible no se
+    // distinguía del fondo blanco de Clara. Ahora cada estilo define
+    // el color de su anillo: gris visible en Clara, fino en Oscura.
+    expect(SHARE_CARD_STYLE_COLORS.editorial.bizLogoRing).toBe('#D4D4D8');
+    expect(SHARE_CARD_STYLE_COLORS.glass.bizLogoRing).toBe('rgba(0,0,0,0.06)');
+    const lib = read('../lib/shareCard.js');
+    const template = read('../components/ShareCardTemplate.jsx');
+    // El canvas dibuja el anillo con el color de la paleta.
+    expect(lib).toContain('ctx.strokeStyle = palette.bizLogoRing;');
+    // La plantilla pone el anillo con el color de la paleta.
+    expect(template).toContain('palette.bizLogoRing');
+  });
+
+  it('la hoja cambia de estilo deslizando con el dedo (swipe táctil, PR #160)', () => {
+    const sheet = read('../components/ShareCardSheet.jsx');
+    // Mismo patrón que las tiras del inicio (StoryStrip, PR #149): la
+    // pista sigue al dedo durante el gesto, completa el cambio si el
+    // deslizamiento supera 60 px, touchAction pan-y para no robar el
+    // scroll vertical, y un gesto vertical cancela el cambio.
+    expect(sheet).toContain('SWIPE_MIN_PX = 60');
+    expect(sheet).toContain('onTouchStart');
+    expect(sheet).toContain('onTouchMove');
+    expect(sheet).toContain('onTouchEnd');
+    expect(sheet).toContain('onTouchCancel');
+    expect(sheet).toContain("touchAction: 'pan-y'");
+    // La pista sigue al dedo: el desplazamiento vive en dragX y se
+    // suma al translateX; sin transición mientras se arrastra.
+    expect(sheet).toContain('const [dragX, setDragX] = useState(null)');
+    expect(sheet).toContain('translateX(${-trackPos * PREVIEW_W + (dragX ?? 0)}px)');
+    expect(sheet).toContain('dragX !== null');
+    // Al soltar, si el gesto supera el umbral cambia de estilo con
+    // goStyle (a la izquierda avanza, a la derecha retrocede); si no,
+    // vuelve a su sitio sin cambiar nada.
+    expect(sheet).toContain('Math.abs(dx) > SWIPE_MIN_PX');
+    expect(sheet).toContain('goStyle(dx < 0 ? 1 : -1)');
+    // Gesto vertical: se cancela el arrastre y el panel hace scroll.
+    expect(sheet).toContain('Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10');
+    // Funciona CON el bucle del #158: goStyle avanza o retrocede
+    // desde el clon igual que el chevron; mientras la pista está en
+    // un clon (reseteo pendiente) el gesto no empieza.
+    expect(sheet).toContain('if (trackPos === 0 || trackPos === styleCount + 1) return;');
+    // Los puntos siguen marcando el índice real sin transición.
+    expect(sheet).toContain('n === styleIndex ? 16 : 6');
+    // Con «reducir movimiento» la pista no sigue al dedo (cambia al
+    // instante con goStyle), pero el gesto sí se registra.
+    expect(sheet).toContain('if (!reduceMotion) setDragX(dx)');
+    expect(sheet).toContain('touchStart.current.dx = dx');
+    // La exportación no cambia: sigue el estilo elegido.
+    expect(sheet).toContain('exportShareCardPng(dataToExport, format, styleId)');
   });
 
   it('Oscura: el peor caso con logo y círculo tampoco se desborda', () => {

@@ -10,10 +10,14 @@
 // PR #154: dos estilos (Oscura y Clara): la plantilla pinta el
 // estilo elegido con su paleta y su geometría (SHARE_CARD_STYLE_COLORS
 // + shareCardLayoutTable en lib/shareCard.js). La versión clara es tipo
-// revista, sin círculo de logo. PR #155: la Ficha completa se quita,
+// revista. PR #155: la Ficha completa se quita,
 // la categoría sale de ambas versiones, la foto es más corta y el
 // nombre y las píldoras más grandes; el logo de la versión clara va en
 // oscuro (el PNG es blanco y con 'none' no se veía sobre blanco).
+// PR #160: Clara TAMBIÉN lleva el círculo del logo del negocio
+// (misma regla que Oscura: logo_url + plan de pago), con anillo gris
+// visible sobre el fondo blanco; antes no lo llevaba por diseño y
+// Vulcanos Chapalita salía sin logo en Clara.
 // PR #156: el estilo claro se llama «Clara» (el id interno sigue
 // siendo 'editorial'); el logo de Post crece para que se vea en la
 // vista previa de 200 px.
@@ -155,7 +159,12 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
             height: layout.bizLogo.d,
             borderRadius: '50%',
             background: '#FFFFFF',
-            border: '1px solid rgba(0,0,0,0.06)',
+            // Anillo del círculo: en Clara es gris visible sobre el
+            // fondo blanco (palette.bizLogoRing, PR #160); en Oscura,
+            // fino y casi invisible, donde el círculo blanco ya se
+            // distingue. Sin anillo visible, el círculo blanco no se
+            // distinguía del fondo blanco de Clara.
+            border: `2px solid ${palette.bizLogoRing}`,
             boxShadow: `0 ${L.bizLogoShadowY}px ${L.bizLogoShadowBlur}px rgba(0,0,0,0.12)`,
             padding: layout.bizLogo.ring,
             boxSizing: 'border-box',
