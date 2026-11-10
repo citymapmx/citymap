@@ -369,13 +369,24 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
   const [themeFilter, setThemeFilter] = useState(null);
   const [searchQ, setSearchQ] = useState("");
   const [visibleCount, setVisibleCount] = useState(6);
+  // "Cargar más artículos": índice del primer artículo del lote recién
+  // cargado. Solo ese lote entra con scale-in-ver-top (se desenrolla desde
+  // arriba). Se limpia 600 ms después de que el lote llega (la animación
+  // dura 0.5 s) para que la clase no quede puesta.
+  const [newBatchFrom, setNewBatchFrom] = useState(null);
+  useEffect(() => {
+    if (newBatchFrom === null) return;
+    const t = window.setTimeout(() => setNewBatchFrom(null), 600);
+    return () => window.clearTimeout(t);
+  }, [visibleCount, newBatchFrom]);
 
   const clearFilters = () => { setTypeFilter("all"); setThemeFilter(null); };
   const hasActiveFilters = typeFilter !== "all" || Boolean(themeFilter);
-  
+
   useEffect(() => {
-     
+
     setVisibleCount(6);
+    setNewBatchFrom(null);
   }, [typeFilter, themeFilter, searchQ]);
 
   const widgetCode = cities.find(c => c.slug === activeCity)?.civitatis_widget_code || '';
@@ -586,7 +597,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
               {filteredDiscover.slice(0, visibleCount).map((exp, idx) => {
                 const href = `/revista/${activeCity}/${createSlug(exp.title)}`;
                 return (
-                <div key={exp.id} id={`revista-card-${exp.id}`} style={{ scrollMarginTop: 140 }}>
+                <div key={exp.id} id={`revista-card-${exp.id}`} className={newBatchFrom !== null && idx >= newBatchFrom ? 'scale-in-ver-top' : undefined} style={{ scrollMarginTop: 140 }}>
                 <ExperienceCard
                   exp={exp}
                   href={href}
@@ -603,8 +614,8 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
             </div>
             {visibleCount < filteredDiscover.length && (
               <div style={{ display: "flex", justifyContent: "center", marginTop: 24, marginBottom: 8 }}>
-                <button 
-                  onClick={() => setVisibleCount(prev => prev + 6)}
+                <button
+                  onClick={() => { setNewBatchFrom(visibleCount); setVisibleCount(prev => prev + 6); }}
                   className="press"
                   style={{ padding: "14px 28px", background: dark ? "#333" : "#fff", border: `1px solid ${T.border}`, borderRadius: 24, color: T.text, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}
                 >

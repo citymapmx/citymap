@@ -54,6 +54,16 @@ export default function EventsView() {
   const [priceFilter, setPriceFilter] = useState("todos");
   const [sortBy, setSortBy] = useState("fecha");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // "Ver más eventos": índice del primer evento del lote recién cargado.
+  // Solo ese lote entra con scale-in-ver-top (se desenrolla desde arriba).
+  // El lote se identifica por id (la lista se agrupa por mes y no hay un
+  // índice global en el render). Se limpia 600 ms después de que el lote
+  // llega (la animación dura 0.5 s) para que la clase no quede puesta.
+  const [newBatchFrom, setNewBatchFrom] = useState(null);
+  const newBatchIds = useMemo(
+    () => (newBatchFrom === null ? null : new Set(filteredEvents.slice(newBatchFrom, visibleCount).map(ev => ev.id))),
+    [newBatchFrom, filteredEvents, visibleCount]
+  );
   // "Ver más eventos": tras cargar la tanda nueva, la vista se desliza
   // suave hasta la primera tarjeta nueva; sin esto la lista crecía de golpe
   // y la pantalla no se movía (brusco). El botón guarda el id del primer
@@ -66,6 +76,8 @@ export default function EventsView() {
     pendingEventScrollRef.current = null;
     const el = eventListRef.current?.querySelector?.(`[data-event-id="${id}"]`);
     smoothScrollIntoView(el, 'nearest');
+    const t = window.setTimeout(() => setNewBatchFrom(null), 600);
+    return () => window.clearTimeout(t);
   }, [visibleCount]);
   // Tarjeta de filtros: se edita en borrador y se aplica con "Mostrar eventos".
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -192,7 +204,7 @@ export default function EventsView() {
   }, [visibleEvents, eventCategoryFilter, dateFilter, customDate, searchQuery, priceFilter, sortBy, todayLocal]);
 
   // Al cambiar cualquier filtro se vuelve a mostrar desde los primeros 20.
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchQuery, eventCategoryFilter, dateFilter, customDate, priceFilter, sortBy]);
+  useEffect(() => { setVisibleCount(PAGE_SIZE); setNewBatchFrom(null); }, [searchQuery, eventCategoryFilter, dateFilter, customDate, priceFilter, sortBy]);
 
   // Solo se renderizan los primeros visibleCount; el resto llega con "Ver más".
   const renderedEvents = useMemo(() => filteredEvents.slice(0, visibleCount), [filteredEvents, visibleCount]);
@@ -456,6 +468,14 @@ export default function EventsView() {
 
                   return (
                     <article key={ev.id} data-event-id={ev.id} ref={registerFlip(ev.id)} style={{ minWidth: 0, position:'relative', borderRadius:18, overflow:'hidden' }}>
+                      {/* Solo el lote recién cargado con "Ver más eventos"
+                          se desenrolla desde arriba. La clase va en este
+                          envoltorio interior, nunca en el <article>: FLIP
+                          (registerFlip) escribe transform inline en el
+                          artículo y la animación con fill both lo taparía
+                          para siempre. El corazón va dentro para que toda
+                          la tarjeta anime como una sola pieza. */}
+                      <div className={newBatchIds?.has(ev.id) ? 'scale-in-ver-top' : undefined} style={{ position: 'relative' }}>
                       <button type="button" onClick={() => handleEventTap(ev)} aria-label={`${localizedTitle(ev, lang) || 'Evento'}. ${fmtCardDate(ev)}`} className="event-list-card" style={{ display:'block', width:'100%', textAlign:'left', border:0, padding:0, background:'transparent', color:T.text, cursor:'pointer', fontFamily:'inherit' }}>
                         <div style={{ aspectRatio:'5 / 7', position:'relative', overflow:'hidden', background:dark ? '#23252b' : '#edf0f4' }}>
                           {/* Fondo difuminado con la misma imagen (misma URL optimizada que el póster, así el navegador la reutiliza): con contain el póster sale completo pero dejaba bandas grises arriba y abajo porque la mayoría son horizontales y la tarjeta es 5:7; el fondo cubre toda la tarjeta y el póster queda encima, completo y sin recortar texto. */}
@@ -471,6 +491,7 @@ export default function EventsView() {
                       <button type="button" onClick={e => handleToggleSaveEvent(ev, e)} aria-label={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")} aria-pressed={isSaved} style={{ position:'absolute', top:6, right:6, width:44, height:44, background:'rgba(0,0,0,0.24)', border:0, borderRadius:'50%', display:'grid', placeItems:'center', cursor:'pointer', zIndex:2 }}>
                         <Icon name={isSaved ? 'heart_overlay_f' : 'heart_overlay'} size={25} color="none" />
                       </button>
+                      </div>
                     </article>
                   );
                       })}
@@ -478,7 +499,7 @@ export default function EventsView() {
                   </div>
                 ))}
                 {filteredEvents.length > visibleCount && (
-                  <button onClick={() => { haptic(); pendingEventScrollRef.current = filteredEvents[visibleCount]?.id ?? null; setVisibleCount(c => c + PAGE_SIZE); }} className="press" style={{ width: "100%", minHeight: 48, background: T.green, color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, cursor: "pointer", fontFamily: "inherit" }}>
+                  <button onClick={() => { haptic(); pendingEventScrollRef.current = filteredEvents[visibleCount]?.id ?? null; setNewBatchFrom(visibleCount); setVisibleCount(c => c + PAGE_SIZE); }} className="press" style={{ width: "100%", minHeight: 48, background: T.green, color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, cursor: "pointer", fontFamily: "inherit" }}>
                     {t("eventos_ver_mas_eventos", "Ver más eventos")} ({filteredEvents.length - visibleCount} {t("eventos_restantes", "restantes")})
                   </button>
                 )}
