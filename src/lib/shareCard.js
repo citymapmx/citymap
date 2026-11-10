@@ -26,6 +26,11 @@
 // splash) va arriba en blanco; la calificación es SOLO la de Google
 // (google_ratings_cache, misma fuente que las tarjetas de negocio) con su
 // conteo de reseñas; el precio ya no se muestra.
+//
+// PR #144: el logo circular del negocio (mismo que la ficha, solo para
+// planes de pago con logo_url) va centrado a caballo sobre el borde
+// inferior de la foto, con anillo blanco; si no hay logo o no carga, la
+// tarjeta queda igual que en el #143.
 import { createSlug, getThumbUrl } from './utils.js';
 import { formatReviewCount } from './googleRatings.js';
 
@@ -54,6 +59,13 @@ export const SHARE_CARD_LAYOUT = {
     logoGap: 32,
     photoMinH: 1080,
     photoRadius: 40,
+    // Círculo del logo del negocio (PR #144): mismo estilo que la ficha
+    // (DetailView) — blanco, anillo y sombra — centrado a caballo sobre
+    // el borde inferior de la foto. bizLogoGap es el hueco entre el
+    // círculo y el primer texto.
+    bizLogoD: 190,
+    bizLogoRing: 6,
+    bizLogoGap: 28,
     catSize: 32,
     catGap: 36,
     nameSize: 76,
@@ -75,6 +87,9 @@ export const SHARE_CARD_LAYOUT = {
     logoGap: 24,
     photoMinH: 480,
     photoRadius: 32,
+    bizLogoD: 150,
+    bizLogoRing: 5,
+    bizLogoGap: 22,
     catSize: 28,
     catGap: 28,
     nameSize: 60,
@@ -92,6 +107,22 @@ export const SHARE_CARD_LAYOUT = {
   },
 };
 
+// El logo circular del negocio es el mismo que muestra la ficha
+// (DetailView.jsx): solo lo tienen los planes de pago (premium / pro /
+// destacado) con logo_url. En la ficha el círculo no sale para los
+// planes gratuitos aunque tengan logo_url (59 negocios tienen logo_url,
+// 52 son de pago); la tarjeta replica esa regla para no regalar un
+// beneficio de plan ni quedar distinta de la ficha. Sin círculo, la
+// tarjeta queda exactamente como en el #143.
+export const BIZ_LOGO_PLANS = ['premium', 'pro', 'destacado'];
+export function bizShowsLogoCircle(biz) {
+  return (
+    typeof biz?.logo_url === 'string' &&
+    biz.logo_url.trim() !== '' &&
+    BIZ_LOGO_PLANS.includes(String(biz?.plan || '').trim().toLowerCase())
+  );
+}
+
 // Datos que lleva la tarjeta. La calificación es SOLO la de Google: si
 // displayRating no trae dato vigente de google_ratings_cache (source
 // 'google'), no hay píldora de calificación — la interna de CityMap no
@@ -104,6 +135,7 @@ export function buildShareCardData(biz, { disp = null, cityName = '' } = {}) {
     disp?.source === 'google' && typeof disp?.rating === 'number';
   return {
     photoUrl,
+    bizLogoUrl: bizShowsLogoCircle(biz) ? biz.logo_url.trim() : null,
     name: biz?.name || '',
     category: (biz?.type?.trim() || biz?.category || '').trim(),
     rating: google ? disp.rating : null,
@@ -261,11 +293,27 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true) {
   const logo = { x: Math.round((W - logoW) / 2), y: L.pad, w: logoW, h: L.logoH };
 
   const category = (data?.category || '').trim().toUpperCase();
-  const catBlock = category ? L.catGap + L.catSize : 0;
+
+  // Con círculo, el primer bloque tras la foto deja el hueco del
+  // círculo (la mitad que sobresale bajo la foto + bizLogoGap) en vez
+  // de su margen normal; los demás bloques conservan sus márgenes.
+  // firstGap es el hueco que usa ese primer bloque: la plantilla lo
+  // aplica tal cual, así vista previa y canvas coinciden.
+  const hasBizLogo = !!data?.bizLogoUrl;
+  const circleClear = hasBizLogo ? L.bizLogoD / 2 + L.bizLogoGap : 0;
+  let firstGap = null;
+  const gapAfterPhoto = (normalGap) => {
+    const g = hasBizLogo && firstGap === null ? circleClear : normalGap;
+    if (firstGap === null) firstGap = g;
+    return g;
+  };
+  const catGapU = category ? gapAfterPhoto(L.catGap) : L.catGap;
+  const catBlock = category ? catGapU + L.catSize : 0;
 
   const nameLines = wrapShareCardName(data?.name, maxW, L);
   const nameBlockH = nameLines.length * L.nameSize * L.nameLineH;
-  const nameBlock = nameLines.length ? L.nameGap + nameBlockH : 0;
+  const nameGapU = nameLines.length ? gapAfterPhoto(L.nameGap) : L.nameGap;
+  const nameBlock = nameLines.length ? nameGapU + nameBlockH : 0;
 
   const pills = shareCardPills(data, hasGoogleMark, L);
   const pillRows = layoutPillRows(pills, maxW, L);
@@ -273,9 +321,11 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true) {
   const pillsBlockH = pillRows.length
     ? pillRows.length * pillH + (pillRows.length - 1) * L.pillRowGap
     : 0;
-  const pillsBlock = pillRows.length ? L.pillsGap + pillsBlockH : 0;
+  const pillsGapU = pillRows.length ? gapAfterPhoto(L.pillsGap) : L.pillsGap;
+  const pillsBlock = pillRows.length ? pillsGapU + pillsBlockH : 0;
 
-  const footBlock = L.footGap + L.footSize;
+  const footGapU = gapAfterPhoto(L.footGap);
+  const footBlock = footGapU + L.footSize;
 
   const photoH = Math.max(
     L.photoMinH,
@@ -292,16 +342,29 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true) {
   const photo = { x: L.pad, y, w: maxW, h: photoH, radius: L.photoRadius };
   y += photoH;
 
+  // Círculo del logo centrado a caballo sobre el borde inferior de la
+  // foto: su centro queda justo en ese borde (mitad sobre la foto,
+  // mitad sobre el fondo oscuro).
+  const photoBottom = photo.y + photo.h;
+  const bizLogo = hasBizLogo
+    ? {
+        x: Math.round((W - L.bizLogoD) / 2),
+        y: Math.round(photoBottom - L.bizLogoD / 2),
+        d: L.bizLogoD,
+        ring: L.bizLogoRing,
+      }
+    : null;
+
   let categoryBox = null;
   if (category) {
-    y += L.catGap;
+    y += catGapU;
     categoryBox = { text: category, x: W / 2, y: y + L.catSize / 2, size: L.catSize };
     y += L.catSize;
   }
 
   let nameBox = null;
   if (nameLines.length) {
-    y += L.nameGap;
+    y += nameGapU;
     nameBox = {
       lines: nameLines,
       x: W / 2,
@@ -314,7 +377,7 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true) {
 
   const pillRowsOut = [];
   if (pillRows.length) {
-    y += L.pillsGap;
+    y += pillsGapU;
     for (const row of pillRows) {
       const rowW =
         row.reduce((acc, p) => acc + p.w, 0) + L.pillGap * (row.length - 1);
@@ -338,6 +401,8 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true) {
     height: H,
     logo,
     photo,
+    bizLogo,
+    firstGap,
     category: categoryBox,
     name: nameBox,
     pillRows: pillRowsOut,
@@ -419,6 +484,23 @@ async function loadGoogleMark() {
   }
 }
 
+// El logo circular del negocio (misma miniatura 300×300 que usa la
+// ficha). Si no se puede leer con CORS o la imagen falla, null: la
+// tarjeta sale sin círculo (nunca rota, nunca un hueco vacío).
+async function loadShareCardBizLogo(bizLogoUrl) {
+  if (!bizLogoUrl) return null;
+  try {
+    const res = await fetch(getThumbUrl(bizLogoUrl, 300, 300), {
+      mode: 'cors',
+      cache: 'force-cache',
+    });
+    if (!res.ok) return null;
+    return await bitmapFromBlob(await res.blob());
+  } catch {
+    return null;
+  }
+}
+
 // ─── Dibujo en canvas ───
 
 function roundRectPath(ctx, x, y, w, h, r) {
@@ -463,6 +545,19 @@ function drawCoverImage(ctx, img, dx, dy, dw, dh) {
   ctx.drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, dx, dy, dw, dh);
 }
 
+// Como object-fit: contain — el logo entero dentro del marco, centrado
+// (igual que la ficha: el logo no se recorta, se ve completo sobre el
+// círculo blanco).
+function drawContainImage(ctx, img, dx, dy, dw, dh) {
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  if (!iw || !ih) return;
+  const scale = Math.min(dw / iw, dh / ih);
+  const w = iw * scale;
+  const h = ih * scale;
+  ctx.drawImage(img, dx + (dw - w) / 2, dy + (dh - h) / 2, w, h);
+}
+
 export function drawShareCardCanvas(data, format, assets, layout) {
   const geo = layout || computeShareCardLayout(data, format, !!assets?.googleMark);
   const { L } = geo;
@@ -501,6 +596,38 @@ export function drawShareCardCanvas(data, format, assets, layout) {
     ctx.fillText(initial, p.x + p.w / 2, p.y + p.h / 2);
   }
   ctx.restore();
+
+  // Círculo del logo del negocio (PR #144): mismo estilo que la ficha —
+  // blanco, borde fino y sombra — centrado a caballo sobre el borde
+  // inferior de la foto. El logo va con contain dentro del círculo
+  // interior, completo y sin recortar.
+  if (geo.bizLogo && assets?.bizLogo) {
+    const b = geo.bizLogo;
+    const cx = b.x + b.d / 2;
+    const cy = b.y + b.d / 2;
+    const r = b.d / 2;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.12)';
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 6;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    const innerR = r - b.ring;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+    ctx.clip();
+    drawContainImage(ctx, assets.bizLogo, cx - innerR, cy - innerR, innerR * 2, innerR * 2);
+    ctx.restore();
+  }
 
   // Categoría en versales espaciadas.
   if (geo.category) {
@@ -575,13 +702,22 @@ export function drawShareCardCanvas(data, format, assets, layout) {
 }
 
 export async function renderShareCardCanvas(data, format) {
-  const [photo, logoWhite, googleMark] = await Promise.all([
+  const [photo, logoWhite, googleMark, bizLogo] = await Promise.all([
     loadShareCardPhoto(data?.photoUrl),
     loadShareCardLogoWhite(),
     loadGoogleMark(),
+    loadShareCardBizLogo(data?.bizLogoUrl),
   ]);
-  const layout = computeShareCardLayout(data, format, !!googleMark);
-  return drawShareCardCanvas(data, format, { photo, logoWhite, googleMark }, layout);
+  // Si el logo no cargó, la geometría es la de sin círculo: sin hueco
+  // vacío y sin círculo a medias.
+  const layoutData = bizLogo ? data : { ...data, bizLogoUrl: null };
+  const layout = computeShareCardLayout(layoutData, format, !!googleMark);
+  return drawShareCardCanvas(
+    layoutData,
+    format,
+    { photo, logoWhite, googleMark, bizLogo },
+    layout,
+  );
 }
 
 // Guarda anti-blanco: si el canvas saliera vacío (todo transparente),
