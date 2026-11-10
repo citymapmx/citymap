@@ -303,19 +303,16 @@ export default function EventDetailModal() {
               <div style={{ position: "relative", zIndex: 2, background: luma ? "transparent" : T.bg, padding: "16px 16px 32px", flex: 1, display: "flex", flexDirection: "column" }}>
 
                 {/* Cabecera bajo la foto: la píldora de fecha (solo
-                    privados en claro), el título grande y el recinto.
-                    Antes iban superpuestos sobre la foto; ahora la foto
-                    va completa arriba y nada tapa el póster. */}
+                    privados en claro) y el título grande. El recinto
+                    ya no va aquí: va en la tarjeta de fecha/lugar,
+                    junto a la dirección (EventInformation). */}
                 <div style={{ marginBottom: showTopRow ? 8 : 12 }}>
                   {!isPast && heroDate && (
                     <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, letterSpacing: "0.4px", padding: "6px 10px", borderRadius: 9999, marginBottom: 10, background: dark ? "rgba(255,255,255,0.08)" : "rgba(15,26,20,0.06)", color: T.text, border: `1px solid ${T.border}` }}>
                       {heroDate.dia} {heroDate.num} {heroDate.mes} {heroDate.year}
                     </span>
                   )}
-                  <h1 style={{ fontFamily: FONT_BIZ, fontSize: isPast ? 24 : 30, fontWeight: 900, color: T.text, lineHeight: isPast ? 1.15 : 1.05, marginTop: 0, marginBottom: (!isPast && ev.venue_name) ? 6 : 0, textAlign: "left", letterSpacing: "-0.5px" }}>{displayTitle}</h1>
-                  {!isPast && ev.venue_name && (
-                    <div style={{ fontSize: 14, fontWeight: 600, color: T.sub }}>{ev.venue_name}</div>
-                  )}
+                  <h1 style={{ fontFamily: FONT_BIZ, fontSize: isPast ? 24 : 30, fontWeight: 900, color: T.text, lineHeight: isPast ? 1.15 : 1.05, marginTop: 0, marginBottom: 0, textAlign: "left", letterSpacing: "-0.5px" }}>{displayTitle}</h1>
                 </div>
 
                 {/* Fila superior: categoría en mayúsculas y precio, sin botón. */}
@@ -402,7 +399,7 @@ export default function EventDetailModal() {
                     </div>
 
                     {privateTab === 'chat' && <PrivateEventChat event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setChatCount} />}
-                    {privateTab === 'detalles' && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={false} heroShowsVenue={!isPast} hidePriceRow={Boolean(topPriceLabel)} />}
+                    {privateTab === 'detalles' && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={false} hidePriceRow={Boolean(topPriceLabel)} />}
                     {privateTab === 'invitados' && <PrivateEventRsvp event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setGuestCount} />}
 
                     {user?.id && ev.user_id && user.id === ev.user_id && (
@@ -417,7 +414,7 @@ export default function EventDetailModal() {
                   </>
                 ) : (
                   /* --- Datos del evento: en los pasados ya no se muestran (fecha, lugar y precio vencidos) --- */
-                  !isPast && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={isPast} heroShowsVenue={!isPast} hidePriceRow={Boolean(topPriceLabel)} />
+                  !isPast && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={isPast} hidePriceRow={Boolean(topPriceLabel)} />
                 )}
 
                 {/* --- MÚSICA DEL ARTISTA (adelantos de iTunes; si no hay canciones no se muestra nada) --- */}

@@ -22,11 +22,12 @@ function timeLabel(value, lang = 'es') {
 // sin etiquetas ("Cuándo", "Dónde") — el icono ya dice qué es cada dato.
 // La descripción ("Acerca del evento") va primero, antes de la tarjeta.
 // El botón de entradas queda fijo abajo mientras se lee la descripción.
-// heroShowsVenue: la cabecera bajo la foto ya muestra el lugar, así
-// que la fila solo lleva la dirección (si no hay dirección, se muestra
-// el lugar).
+// El recinto se muestra en la fila de lugar, junto a la dirección
+// (antes lo mostraba la cabecera bajo la foto). Si la dirección ya
+// lo trae («Auditorio Telmex, Industrial los Belenes…»), no se
+// repite: la fila solo lleva la dirección.
 // hidePriceRow: el precio ya se muestra en la fila superior del modal.
-export default function EventInformation({ event, associatedBiz, T, hideTickets = false, heroShowsVenue = false, hidePriceRow = false }) {
+export default function EventInformation({ event, associatedBiz, T, hideTickets = false, hidePriceRow = false }) {
   const { t, lang } = useTranslation();
   const locale = lang === 'en' ? 'en-US' : 'es-MX';
   const price = getEventPrice(event);
@@ -43,7 +44,16 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
   const address = event.venue_address || associatedBiz?.address;
   const coordinates = event.lat !== null && event.lat !== undefined && event.lat !== '' && event.lng !== null && event.lng !== undefined && event.lng !== '' && Number.isFinite(Number(event.lat)) && Number.isFinite(Number(event.lng));
   const destination = coordinates ? `${event.lat},${event.lng}` : [venue, address].filter(Boolean).join(', ');
-  const showVenueLine = venue && (!heroShowsVenue || !address);
+  // El recinto va en la fila de lugar, junto a la dirección. Si la
+  // dirección ya lo incluye («Auditorio Telmex, Industrial los
+  // Belenes…»), no se repite: se compara por palabras completas en
+  // orden, no por subcadena, para no esconderlo por una coincidencia
+  // parcial («La» dentro de «Guadalajara»).
+  const words = (s) => (s || '').toLowerCase().replace(/[^a-z0-9áéíóúñü]+/g, ' ').split(' ').filter(Boolean);
+  const venueWords = words(venue);
+  const addressWords = words(address);
+  const venueInAddress = venueWords.length > 0 && addressWords.some((_, i) => venueWords.every((w, j) => addressWords[i + j] === w));
+  const showVenueLine = Boolean(venue && !venueInAddress);
   const showPriceRow = Boolean(price && !hideTickets && !(isPrivateEvent(event) && price.free) && !hidePriceRow);
   const hasInfo = Boolean((start || times) || (venue || address || coordinates) || showPriceRow);
   const { lead, paragraphs } = splitDescription(event.description);
