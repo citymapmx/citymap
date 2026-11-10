@@ -12,15 +12,13 @@ import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import SaveHeartButton from '../components/ui/SaveHeartButton.jsx';
 import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
 import EventWheel3D from '../components/home/EventWheel3D.jsx';
+import StoryStrip from '../components/home/StoryStrip.jsx';
 import TravelAffiliateRow from '../components/home/TravelAffiliateRow.jsx';
 import Footer from '../components/Footer.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { localizedTitle } from '../lib/i18nContent.js';
 
 const BIZ_PAGE = 60;
-// Cada sección del muro muestra 5 tarjetas y al deslizar hasta el final
-// agrega 5 más, para no cargar/renderizar todo de golpe.
-const SECTION_STEP = 5;
 
 // Categorías de la tabla businesses que son lugares (no negocios): así se
 // clasifican en el filtro "Lugares" del muro, además de is_place.
@@ -135,10 +133,6 @@ export default function GlobalHomeView() {
   const [error, setError] = useState(false);
   const [query, setQuery] = useState('');
   const [showAllCities, setShowAllCities] = useState(false);
-  // Tarjetas visibles por sección (5 al inicio, 5 más al llegar al final
-  // del deslizamiento).
-  const [placesShown, setPlacesShown] = useState(SECTION_STEP);
-  const [restShown, setRestShown] = useState(SECTION_STEP);
 
   useEffect(() => {
     let cancelled = false;
@@ -355,59 +349,11 @@ export default function GlobalHomeView() {
   const placesList = useMemo(() => feed.filter((it) => it.kind === 'lugares').slice().sort(byRating), [feed, byRating]);
   const restaurantsList = useMemo(() => feed.filter((it) => it.kind === 'negocios' && normCat(it.raw.category) === 'restaurantes').slice().sort(byRating), [feed, byRating]);
 
-  // Al llegar al final del deslizamiento de una hilera, se agregan 5 tarjetas
-  // más (los datos ya están cargados; esto limita lo que se renderiza).
-  const onRowScroll = (list, shown, setShown) => (e) => {
-    const el = e.currentTarget;
-    if (shown >= list.length) return;
-    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 80) {
-      setShown((v) => Math.min(v + SECTION_STEP, list.length));
-    }
-  };
-
-  // Las tarjetas de las hileras se ven a 170-240 px (340-480 px en retina):
-  // 400 px alcanza y pesa ~la mitad que 800 px (PageSpeed: 515 KiB de ahorro).
-  // Solo las 2 primeras de "Próximos eventos" llevan prioridad: son las que
-  // se ven al abrir el muro y el LCP era una foto sin prioridad.
-  const renderCard = (item, idx, isPriority = false) => {
-    const isPoster = item.kind === 'eventos';
-    return (
-      <article
-        key={item.key}
-        onClick={() => openItem(item)}
-        style={{ flex: isPoster ? '0 0 170px' : '0 0 240px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: '#111', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
-      >
-        <div style={{ position: 'relative', ...(isPoster ? { aspectRatio: '3 / 4' } : { height: 168 }), background: 'linear-gradient(135deg,#111,#333)' }}>
-          {item.img
-            ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={400} priority={isPriority} srcSetWidths={SRCSET_THUMB} sizes="(max-width: 640px) 170px, 240px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{isPoster ? '🎟️' : '📍'}</div>}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)' }} />
-          <SaveHeartButton
-            isFav={isSaved(item)}
-            onToggle={(e) => toggleSave(e, item)}
-            size={26}
-            overlay
-            ariaLabel={t("home_guardar", "Guardar")}
-            buttonStyle={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
-          />
-          {isPoster ? (
-            item.img ? (
-              <span style={{ position: 'absolute', left: 12, right: 12, bottom: 10, color: '#fff', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{cityBySlug.get(item.citySlug)?.name || ''}</span>
-            ) : (
-              <div style={{ position: 'absolute', left: 12, right: 12, bottom: 10, textAlign: 'center' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: '0 0 2px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h3>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4 }}>{cityBySlug.get(item.citySlug)?.name || ''}</p>
-              </div>
-            )
-          ) : (
-            <div style={{ position: 'absolute', left: 12, right: 12, bottom: 10 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: '0 0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h3>
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cityBySlug.get(item.citySlug)?.name || ''}</p>
-            </div>
-          )}
-        </div>
-      </article>
-    );
+  // Calificación que muestra la tira de historias (la misma que ordena
+  // las listas: Google en caché cuando hay, si no la propia de CityMap).
+  const ratingFor = (item) => {
+    const d = displayRating(item.raw, googleRatings);
+    return d && typeof d.rating === 'number' ? { rating: d.rating, count: d.count } : null;
   };
 
   const openItem = (item) => {
@@ -674,23 +620,22 @@ export default function GlobalHomeView() {
               />
             )}
 
-            {/* Lugares increíbles: puntos de interés, unidades deportivas y playas */}
+            {/* Lugares increíbles: puntos de interés, unidades deportivas y playas.
+                Tira tipo historias (PR #148): un lugar a la vez, rota sola
+                cada 4 s y arranca en un lugar al azar en cada visita. */}
             {placesList.length > 0 && (
               <section style={{ marginBottom: 32 }}>
                 <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>{t("home_lugares_increibles", "Lugares increíbles")}</h2>
-                <div onScroll={onRowScroll(placesList, placesShown, setPlacesShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
-                  {placesList.slice(0, placesShown).map((item, idx) => renderCard(item, idx))}
-                </div>
+                <StoryStrip items={placesList} T={T} t={t} onSelect={openItem} isSaved={isSaved} onToggleSave={toggleSave} cityName={(slug) => cityBySlug.get(slug)?.name || ''} ratingFor={ratingFor} />
               </section>
             )}
 
-            {/* Restaurantes que debes conocer: los mejor calificados */}
+            {/* Restaurantes que debes conocer: los mejor calificados.
+                Tira tipo historias (PR #148), igual que Lugares increíbles. */}
             {restaurantsList.length > 0 && (
               <section style={{ marginBottom: 32 }}>
                 <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 14px' }}>{t("home_restaurantes_conocer", "Restaurantes que debes conocer")}</h2>
-                <div onScroll={onRowScroll(restaurantsList, restShown, setRestShown)} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
-                  {restaurantsList.slice(0, restShown).map((item, idx) => renderCard(item, idx))}
-                </div>
+                <StoryStrip items={restaurantsList} T={T} t={t} onSelect={openItem} isSaved={isSaved} onToggleSave={toggleSave} cityName={(slug) => cityBySlug.get(slug)?.name || ''} ratingFor={ratingFor} />
               </section>
             )}
 

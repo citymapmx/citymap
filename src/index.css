@@ -365,6 +365,40 @@ iframe[id^="credential_picker"] {
   .heart-pop-once { -webkit-animation: none; animation: none; }
   .heart-spark { -webkit-animation: none; animation: none; }
   .skel-shimmer { -webkit-animation: none; animation: none; }
+  .story-kenburns { -webkit-animation: none; animation: none; }
+  .story-progress-fill { -webkit-animation: none; animation: none; width: 100%; }
+}
+
+/* ── Tira tipo historias (PR #148: «Lugares increíbles» y «Restaurantes
+   que debes conocer» del inicio) ──
+   Zoom lento de la foto activa (kenburns, escala 1 → 1.08) y llenado del
+   segmento de progreso: ambos duran 4 s, lo mismo que la rotación
+   automática, y se reinician al cambiar de lugar (la clase va con
+   key={índice} en el componente). Solo transform/width: no mueven el
+   layout ni el texto. Con "reducir movimiento" no animan (ver arriba). */
+.story-kenburns {
+  -webkit-animation: story-kenburns 4s linear both;
+  animation: story-kenburns 4s linear both;
+}
+@-webkit-keyframes story-kenburns {
+  from { -webkit-transform: scale(1); transform: scale(1); }
+  to { -webkit-transform: scale(1.08); transform: scale(1.08); }
+}
+@keyframes story-kenburns {
+  from { -webkit-transform: scale(1); transform: scale(1); }
+  to { -webkit-transform: scale(1.08); transform: scale(1.08); }
+}
+.story-progress-fill {
+  -webkit-animation: story-progress-fill 4s linear both;
+  animation: story-progress-fill 4s linear both;
+}
+@-webkit-keyframes story-progress-fill {
+  from { width: 0; }
+  to { width: 100%; }
+}
+@keyframes story-progress-fill {
+  from { width: 0; }
+  to { width: 100%; }
 }
 
 /* ── scale-in-ver-top (Animista, entrada del lote nuevo de "Ver más") ──
