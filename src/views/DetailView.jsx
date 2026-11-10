@@ -36,6 +36,7 @@ import { CAT_EMOJI, getKm, createSlug, getEventStatus, isOpenNow, getThumbUrl, g
 const MapPicker = lazy(() => import('../components/map/MapPicker.jsx'));
 const Gallery = lazy(() => import('../components/Gallery.jsx'));
 const BookingModal = lazy(() => import('../components/BookingModal.jsx'));
+const ShareCardSheet = lazy(() => import('../components/ShareCardSheet.jsx'));
 import BusinessStore from '../components/store/BusinessStore.jsx';
 import MercadoLibreShowcase from '../components/MercadoLibreShowcase.jsx';
 import { Helmet } from 'react-helmet-async';
@@ -106,6 +107,7 @@ export default function DetailView() {
   const [googleData, setGoogleData] = useState(null);
   const [asyncEmbedUrl, setAsyncEmbedUrl] = useState(null);
   const [showBooking, setShowBooking] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [showIntentModal, setShowIntentModal] = useState(false);
 
@@ -252,7 +254,10 @@ export default function DetailView() {
                     iconStyle={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }}
                     buttonStyle={{ width: 'auto', height: 'auto', padding: 12, filter: 'none' }}
                   />
-                  <m.button whileTap={{ scale: 0.85 }} aria-label={t('compartir', 'Compartir')} className="press" onClick={e => doShare(selected, e)} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {/* Compartir como imagen (PR #142): abre la hoja de la
+                      tarjeta para Instagram/Facebook. El «Compartir enlace»
+                      de antes sigue dentro de la hoja. */}
+                  <m.button whileTap={{ scale: 0.85 }} aria-label={t('compartir', 'Compartir')} className="press" onClick={e => { e.stopPropagation(); setShowShareCard(true); }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon name="share" size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                   </m.button>
                 </div>
@@ -927,6 +932,18 @@ export default function DetailView() {
               </div>
             }>
               <BookingModal biz={selected} onClose={() => setShowBooking(false)} />
+            </Suspense>
+          </ErrorBoundary>
+        )}
+
+        {showShareCard && (
+          <ErrorBoundary>
+            <Suspense fallback={
+              <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+                <div style={{ textAlign: "center", padding: "40px", background: "#fff", borderRadius: 24, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>Cargando…</div>
+              </div>
+            }>
+              <ShareCardSheet biz={selected} onClose={() => setShowShareCard(false)} onShareLink={(b) => doShare(b)} />
             </Suspense>
           </ErrorBoundary>
         )}
