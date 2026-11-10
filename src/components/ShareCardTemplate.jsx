@@ -7,13 +7,16 @@
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
 // tarjeta queda igual que en el #143. PR #145: el círculo es más grande
 // (Ø 240 Historia / 190 Post) con anillo y sombra proporcionales.
-// PR #154: dos estilos (Oscura y Editorial): la plantilla pinta el
+// PR #154: dos estilos (Oscura y Clara): la plantilla pinta el
 // estilo elegido con su paleta y su geometría (SHARE_CARD_STYLE_COLORS
-// + shareCardLayoutTable en lib/shareCard.js). Editorial es clara tipo
+// + shareCardLayoutTable en lib/shareCard.js). La versión clara es tipo
 // revista, sin círculo de logo. PR #155: la Ficha completa se quita,
 // la categoría sale de ambas versiones, la foto es más corta y el
-// nombre y las píldoras más grandes; el logo de Editorial va en oscuro
-// (el PNG es blanco y con 'none' no se veía sobre blanco).
+// nombre y las píldoras más grandes; el logo de la versión clara va en
+// oscuro (el PNG es blanco y con 'none' no se veía sobre blanco).
+// PR #156: el estilo claro se llama «Clara» (el id interno sigue
+// siendo 'editorial'); el logo de Post crece para que se vea en la
+// vista previa de 200 px.
 // La vista previa y el PNG exportado comparten la misma geometría:
 // SHARE_CARD_LAYOUT + computeShareCardLayout en lib/shareCard.js, así que
 // lo que se ve es lo que se descarga. La foto crece (flex: 1, con altura

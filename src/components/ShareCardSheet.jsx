@@ -13,6 +13,12 @@
 // También sale la categoría de ambas versiones, la foto es más corta,
 // el nombre y las píldoras más grandes y el logo de Editorial va en
 // oscuro (el PNG es blanco y no se veía).
+// PR #156: el estilo claro pasa a llamarse «Clara» (el id interno sigue
+// siendo 'editorial'); al cambiar de estilo con el chevron o los puntos
+// la vista previa DESLIZA con fluidez (pista con translateX y
+// transición de 0,5 s, como las tiras del #149) en vez de cambiar de
+// golpe; y el logo de Post crece (76 px) para que se vea en la vista
+// previa de 200 px (en Post era tan chico que parecía no estar).
 // PR #146: la hoja entra con scale-in-center (la misma animación de las
 // tarjetas del mapa, PR #134/#135): el panel crece desde el centro en
 // 0,5 s, en vez del fundido de la librería de animación. La clase va en
@@ -78,6 +84,13 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   const [error, setError] = useState('');
   const [photoFailed, setPhotoFailed] = useState(false);
   const [bizLogoFailed, setBizLogoFailed] = useState(false);
+  // Con «reducir movimiento» la pista no desliza: cambia de estilo al
+  // instante, como las tiras (StoryStrip).
+  const [reduceMotion] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
+  );
 
   const format =
     SHARE_CARD_FORMAT_LIST.find((f) => f.id === formatId) || SHARE_CARD_FORMAT_LIST[0];
@@ -142,10 +155,16 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   const previewH = Math.round(format.height * previewScale);
   const shareLabel = canShareImageFiles() ? 'Compartir imagen' : 'Descargar imagen';
 
-  // Estilo de la tarjeta (PR #155): dos estilos (Oscura y Editorial)
+  // Estilo de la tarjeta (PR #155): dos estilos (Oscura y Clara)
   // que se cambian con chevrones ‹ › a los lados de la vista previa
   // (con envoltura 2→1 y 1→2) y puntos debajo indicando cuántas hay.
   // Los botones de formato (Historia/Post) se quedan como están.
+  // PR #156: la vista previa es una PISTA deslizante con los dos
+  // estilos en fila (como las tiras del #149): al cambiar de estilo la
+  // pista se mueve con translateX y una transición suave de 0,5 s, en
+  // vez del corte instantáneo de antes. Con 2 estilos no hay problema
+  // de envoltura (ir de Clara a Oscura es volver atrás, sin barrer).
+  // Los puntos siguen cambiando al instante sin transición (PR #151).
   const styleIndex = Math.max(
     0,
     SHARE_CARD_STYLE_LIST.findIndex((s) => s.id === styleId),
@@ -156,6 +175,9 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
     setStyleId(SHARE_CARD_STYLE_LIST[next].id);
   };
   const dotColor = dark ? '#FAFAFA' : '#18181B';
+  const trackTransition = reduceMotion
+    ? 'none'
+    : 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)';
 
   return (
     <div
@@ -266,7 +288,13 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
             que StoryStrip/Gallery: 6 px, inactivo opacidad 0.25, activo
             píldora de 16 px, SIN transición (PR #151: la transición se
             atascaba a mitad y dejaba una estela). Tocar un punto salta
-            a ese estilo. */}
+            a ese estilo.
+            PR #156: la vista previa es una pista deslizante con los dos
+            estilos en fila: al cambiar de estilo la pista se mueve con
+            translateX y una transición suave de 0,5 s (como las tiras
+            del #149), en vez del corte instantáneo de antes. Los
+            chevrones y los puntos van fuera de la pista, así no se
+            mueven con ella. */}
         <div
           style={{
             display: 'flex',
@@ -307,19 +335,40 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
           >
             <div
               style={{
-                width: format.width,
-                height: format.height,
-                transform: `scale(${previewScale})`,
-                transformOrigin: 'top left',
+                display: 'flex',
+                height: previewH,
+                transform: `translateX(${-styleIndex * PREVIEW_W}px)`,
+                transition: trackTransition,
               }}
             >
-              <ShareCardTemplate
-                data={exportData}
-                format={format}
-                styleId={styleId}
-                onPhotoError={() => setPhotoFailed(true)}
-                onBizLogoError={() => setBizLogoFailed(true)}
-              />
+              {SHARE_CARD_STYLE_LIST.map((s) => (
+                <div
+                  key={s.id}
+                  style={{
+                    width: PREVIEW_W,
+                    height: previewH,
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: format.width,
+                      height: format.height,
+                      transform: `scale(${previewScale})`,
+                      transformOrigin: 'top left',
+                    }}
+                  >
+                    <ShareCardTemplate
+                      data={exportData}
+                      format={format}
+                      styleId={s.id}
+                      onPhotoError={() => setPhotoFailed(true)}
+                      onBizLogoError={() => setBizLogoFailed(true)}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           <button
