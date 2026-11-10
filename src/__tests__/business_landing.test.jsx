@@ -113,11 +113,16 @@ describe('business landing', () => {
     expect(annualIdx).toBeLessThan(trialNoteIdx);
   });
 
-  it('el encabezado no tiene botón de regreso (solo el título)', () => {
+  it('el encabezado muestra el logotipo oficial centrado, sin título de texto ni botón de regreso', () => {
     const html = renderLanding();
-    expect(html).toContain('CityMap para negocios');
+    const header = html.match(/<header[\s\S]*?<\/header>/);
+    expect(header).not.toBeNull();
+    expect(header[0]).toContain('src="/logo-brand.png"');
+    expect(header[0]).not.toContain('CityMap para negocios');
     expect(html).not.toContain('Volver');
     expect(html).not.toContain('chevron');
+    // El texto sigue en el kicker del hero, no en el encabezado.
+    expect(html).toContain('CityMap para negocios');
   });
 
   it('muestra las 6 preguntas frecuentes y el cierre', () => {

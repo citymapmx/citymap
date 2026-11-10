@@ -127,7 +127,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
   };
 
   return (
-    <div className="business-landing" style={{ minHeight: '100vh', background: pageBg, color: ink, fontFamily: 'inherit', letterSpacing: 0, '--plans-accent': accent, '--plans-line': line, '--plans-surface': surface }}>
+    <div className="business-landing" style={{ minHeight: '100vh', background: pageBg, color: ink, fontFamily: 'inherit', letterSpacing: 0, '--plans-accent': accent, '--plans-line': line, '--plans-surface': surface, '--plans-shadow': dark ? '0 10px 28px rgba(0,0,0,0.40)' : '0 10px 28px rgba(15,26,20,0.08)', '--plans-shadow-pro': dark ? '0 16px 40px rgba(112,173,255,0.25)' : '0 16px 40px rgba(0,102,204,0.18)' }}>
       <Helmet>
         <title>{`${t("negocios_h1", "Haz que más personas encuentren tu negocio.")} | CityMap`}</title>
         <meta name="description" content={t("negocios_sub", "Publica tu negocio gratis en citymap. Te encuentran en el mapa, en el buscador y en Google, y te escriben directo por WhatsApp, sin comisiones.")} />
@@ -137,23 +137,26 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         .business-landing * {box-sizing:border-box}
         .business-landing button {font-family:inherit}
         .business-landing button:focus-visible,.business-landing summary:focus-visible {outline:3px solid var(--plans-accent);outline-offset:4px}
-        .plans-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
-        .plans-card{display:flex;flex-direction:column;padding:26px 24px;border:1px solid var(--plans-line);border-radius:26px;background:var(--plans-surface);min-width:0}
-        .plans-card[data-plan="pro"]{order:1;border-color:var(--plans-accent)}
-        .plans-card[data-plan="free"]{order:0}
-        .plans-card[data-plan="elite"]{order:2}
-        .plans-action{width:100%;min-height:46px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer}
-        .plans-action:disabled{cursor:default;opacity:.65}
-        .plans-feature{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.5}
+        .business-landing .plans-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+        .business-landing .plans-card{display:flex;flex-direction:column;padding:28px 24px 24px;border:1px solid var(--plans-line);border-radius:28px;background:var(--plans-surface);min-width:0;box-shadow:var(--plans-shadow)}
+        .business-landing .plans-card[data-plan="pro"]{order:1;border-color:var(--plans-accent);box-shadow:var(--plans-shadow-pro)}
+        .business-landing .plans-card[data-plan="free"]{order:0}
+        .business-landing .plans-card[data-plan="elite"]{order:2}
+        .business-landing .plans-action{width:100%;min-height:48px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px}
+        .business-landing .plans-action:disabled{cursor:default;opacity:.65}
+        .business-landing .plans-feature{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.5}
+        .business-landing .plans-features{flex:1;display:flex;flex-direction:column;gap:12px;padding-top:22px;margin-top:22px;border-top:1px solid var(--plans-line)}
+        .business-landing .stat-card{box-shadow:var(--plans-shadow)}
+        .business-landing .benefit-card{box-shadow:var(--plans-shadow)}
         .plans-faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px;font-size:15px;font-weight:600;line-height:1.5}
         .plans-faq summary::after{content:'+';font-size:20px;font-weight:400}
         .plans-faq[open] summary::after{content:'−'}
-        @media(min-width:900px){.plans-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.plans-card[data-plan="free"]{order:0}.plans-card[data-plan="pro"]{order:1}.plans-card[data-plan="elite"]{order:2}}
+        @media(min-width:900px){.business-landing .plans-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.business-landing .plans-card[data-plan="free"]{order:0}.business-landing .plans-card[data-plan="pro"]{order:1}.business-landing .plans-card[data-plan="elite"]{order:2}}
         @media(prefers-reduced-motion:reduce){.business-landing *{scroll-behavior:auto!important;transition:none!important}}
       `}</style>
       <header style={{ position: 'sticky', top: 0, zIndex: 10, background: dark ? 'rgba(22,22,23,.92)' : 'rgba(245,245,247,.92)', backdropFilter: 'blur(20px)', borderBottom: `1px solid ${line}` }}>
-        <div style={{ maxWidth: 1140, margin: 'auto', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10, minHeight: 62 }}>
-          <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: '-.025em' }}>{t("negocios_eyebrow", "CityMap para negocios")}</span>
+        <div style={{ maxWidth: 1140, margin: 'auto', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 62 }}>
+          <img src="/logo-brand.png" alt="CityMap" width={87} height={26} style={{ height: 26, width: 'auto', objectFit: 'contain', filter: dark ? undefined : 'brightness(0)' }} />
         </div>
       </header>
       <main style={{ maxWidth: 1140, margin: '0 auto', padding: '0 20px 64px' }}>
@@ -168,8 +171,8 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         </section>
         <section ref={statsRef} aria-label={t("negocios_eyebrow", "CityMap para negocios")} style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, maxWidth: 720, margin: '24px auto 0' }}>
           {stats.map(s => (
-            <div key={s.label} style={{ textAlign: 'center', padding: '20px 12px', background: surface, border: `1px solid ${line}`, borderRadius: 20 }}>
-              <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.04em', fontVariantNumeric: 'tabular-nums' }}><StatNumber value={s.value} active={statsInView} /></div>
+            <div className="stat-card" key={s.label} style={{ textAlign: 'center', padding: '22px 12px', background: surface, border: `1px solid ${line}`, borderRadius: 24 }}>
+              <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.04em', fontVariantNumeric: 'tabular-nums', color: accent }}><StatNumber value={s.value} active={statsInView} /></div>
               <div style={{ fontSize: 13, lineHeight: 1.4, color: muted, marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
@@ -179,9 +182,9 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
           <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_beneficios_sub", "Lo que gana tu negocio")}</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
             {benefits.map(b => (
-              <article key={b.title} style={{ padding: '24px', background: surface, border: `1px solid ${line}`, borderRadius: 22 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: dark ? '#18304A' : '#EDF5FF', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-                  <Icon name={b.icon} size={22} color={accent} />
+              <article className="benefit-card" key={b.title} style={{ padding: '24px', background: surface, border: `1px solid ${line}`, borderRadius: 24 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 16, background: dark ? '#18304A' : '#EDF5FF', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                  <Icon name={b.icon} size={24} color={accent} />
                 </div>
                 <h3 style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.3, margin: '0 0 8px' }}>{b.title}</h3>
                 <p style={{ fontSize: 14, lineHeight: 1.6, color: muted, margin: 0 }}>{b.text}</p>
@@ -222,8 +225,8 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
                   <p style={{ fontSize: 14, lineHeight: 1.5, color: muted, margin: '0 0 20px' }}>{p.desc}</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}><strong style={{ fontSize: 36, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.05em', fontVariantNumeric: 'tabular-nums' }}>{billing === 'annual' ? p.priceAnnual : p.priceMonthly}</strong><span style={{ fontSize: 12, color: muted }}>{pricing.currency} / {billing === 'annual' ? t("cuenta_ano", "año") : t("cuenta_mes", "mes")}</span></div>
                   <p style={{ minHeight: 34, margin: '7px 0 18px', fontSize: 12, lineHeight: 1.5, color: muted }}>{priceNote(p)}</p>
+                  <div className="plans-features">{p.features.map(f => <div className="plans-feature" key={f}><span aria-hidden="true" style={{ color: p.key === 'pro' ? accent : muted, fontSize: 15 }}>✓</span><span>{f}</span></div>)}</div>
                   <button className="plans-action" disabled={btn.disabled} onClick={btn.onClick} style={{ background: p.key === 'pro' ? accent : 'transparent', border: `1px solid ${p.key === 'pro' ? accent : line}`, color: p.key === 'pro' ? (dark ? '#101827' : '#FFFFFF') : ink }}>{btn.label}</button>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 22, marginTop: 22, borderTop: `1px solid ${line}` }}>{p.features.map(f => <div className="plans-feature" key={f}><span aria-hidden="true" style={{ color: p.key === 'pro' ? accent : muted, fontSize: 15 }}>✓</span><span>{f}</span></div>)}</div>
                 </article>
               );
             })}
