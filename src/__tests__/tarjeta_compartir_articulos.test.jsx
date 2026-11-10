@@ -118,6 +118,45 @@ const CHICHEN = {
     'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/playa-del-carmen-excursion-a-chichen-itza-y-el-cenote-chichikan-galeria-2.webp',
   ],
 };
+// Tour real de la base CON calificación real: Tour nocturno por
+// París, 8.6 · 5,072 reseñas, $352, 2 h, Español (2º commit del
+// PR #177: verifica la pastilla de calificación).
+const PARIS_NOCTURNO = {
+  title: 'Tour nocturno por París',
+  slug: 'paris-tour-nocturno-por-paris',
+  city_slug: 'paris',
+  activity_type: 'Tour',
+  description:
+    'Muchas ciudades se dicen la Ciudad de la Luz, pero ninguna como París de noche. Este tour nocturno a pie te lleva por los monumentos iluminados, de la Ópera Garnier a los Inválidos, con un guía en español que te cuenta la historia de cada lugar. Dura 2 horas, cuesta desde 352,06 pesos por persona y es uno de los tours más populares de París, con un 8,6 sobre 10 y 5.072 opiniones.',
+  duration: '2 horas',
+  languages: 'Español',
+  people: null,
+  price: 352.06,
+  rating: 8.6,
+  review_count: 5072,
+  gallery: [
+    'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/paris-tour-nocturno-por-paris-galeria-2.webp',
+  ],
+};
+// Tour real de la base GRATIS: Free tour por Mérida, $0, 1 h 30 min,
+// Español/Inglés (2º commit del PR #177: verifica la pastilla «Gratis»).
+const MERIDA_GRATIS = {
+  title: 'Free tour por Mérida',
+  slug: 'merida-free-tour-por-merida',
+  city_slug: 'merida',
+  activity_type: 'Tour',
+  description:
+    'La mejor forma de estrenarse en Mérida no cuesta nada: este free tour recorre a pie el centro histórico de la capital del Yucatán, donde cada edificio, plaza y monumento cuenta una historia. En una hora y media veréis la catedral, la Casa Montejo, el Palacio de Gobierno y el parque de Santa Lucía, con anécdotas y curiosidades de la ciudad.',
+  duration: '1 hora 30 minutos',
+  languages: 'Español, Inglés',
+  people: null,
+  price: 0,
+  rating: 0,
+  review_count: 0,
+  gallery: [
+    'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/merida-free-tour-por-merida-galeria-2.webp',
+  ],
+};
 // Peor caso de contenido en Historia: título a 3 líneas a tamaño
 // completo + descripción y datos a 2 líneas + precio. La foto sigue
 // con al menos photoMinH y sin comerse el contenido.
@@ -533,6 +572,40 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
     }
   });
 
+  it('la pastilla de calificación (★ + texto) y la de «Gratis» centran la tinta en los 3 formatos (2º commit del PR #177)', () => {
+    // París de noche: calificación real 8.6 · 5,072 reseñas.
+    for (const format of ALL_FORMATS) {
+      const paris = computeExperienceShareCardLayout(
+        buildExperienceShareCardData(PARIS_NOCTURNO, { cityName: 'París' }),
+        format,
+      );
+      expect(paris.ratingPill.text).toBe('8.6 · 5,072 reseñas');
+      expect(paris.ratingPill.x + paris.ratingPill.w).toBe(paris.width - paris.L.pad);
+      expect(paris.ratingPill.y).toBe(paris.L.pad);
+      // La geometría NO cambia con el arreglo: mismo alto (tamaño +
+      // paddings) y mismo ancho (★ + hueco + texto + paddings).
+      expect(paris.ratingPill.h).toBe(
+        paris.L.ratingSize + paris.L.ratingPadY * 2,
+      );
+      expect(paris.ratingPill.w).toBeCloseTo(
+        measureShareCardText('★', paris.L.ratingSize, 800) +
+          6 +
+          measureShareCardText('8.6 · 5,072 reseñas', paris.L.ratingSize, 600) +
+          paris.L.ratingPadX * 2,
+        9,
+      );
+      // Mérida: tour gratis, pastilla «Gratis» de una sola línea, sin
+      // calificación (rating 0).
+      const merida = computeExperienceShareCardLayout(
+        buildExperienceShareCardData(MERIDA_GRATIS, { cityName: 'Mérida' }),
+        format,
+      );
+      expect(merida.pricePill.text).toBe('Gratis');
+      expect(merida.pricePill.priced).toBe(false);
+      expect(merida.ratingPill).toBeNull();
+    }
+  });
+
   it('la pastilla de ubicación es glass (translúcida + borde claro), no azul sólida; el precio sigue azul', () => {
     expect(EXPERIENCE_SHARE_CARD_GLASS_BG).toBe('rgba(255,255,255,0.12)');
     expect(EXPERIENCE_SHARE_CARD_GLASS_BORDER).toBe('rgba(255,255,255,0.35)');
@@ -694,6 +767,30 @@ describe('tarjeta para compartir el artículo: la plantilla se renderiza (vista 
     expect(html).toContain('132 reseñas');
   });
 
+  it('la calificación va en spans separados (★ y texto) y «Gratis» en un solo span (2º commit del PR #177)', () => {
+    // París: la estrella y el texto son spans distintos, como el pin
+    // y la etiqueta de la glass: cada uno se centra por su propia
+    // línea en la pastilla flex.
+    const paris = buildExperienceShareCardData(PARIS_NOCTURNO, { cityName: 'París' });
+    for (const format of ALL_FORMATS) {
+      const html = renderToStaticMarkup(
+        <ExperienceShareCardTemplate data={paris} format={format} />,
+      );
+      expect(html).toContain('>★</span>');
+      expect(html).toContain('>8.6 · 5,072 reseñas</span>');
+    }
+    // Mérida: la pastilla de precio gratis es un solo span con el
+    // texto «Gratis», en los 3 formatos.
+    const merida = buildExperienceShareCardData(MERIDA_GRATIS, { cityName: 'Mérida' });
+    for (const format of ALL_FORMATS) {
+      const html = renderToStaticMarkup(
+        <ExperienceShareCardTemplate data={merida} format={format} />,
+      );
+      expect(html).toContain('>Gratis</span>');
+      expect(html).not.toContain('DESDE');
+    }
+  });
+
   it('sin foto: sale el bloque con la inicial, no una imagen rota', () => {
     const d = buildExperienceShareCardData(GUIA_GRATIS, { cityName: 'Guadalajara' });
     const html = renderToStaticMarkup(
@@ -783,6 +880,35 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     // Sin círculo de logo del negocio: eso es solo para negocios.
     expect(template).not.toContain('bizLogo');
     expect(template).not.toContain('logo circular');
+  });
+
+  it('la calificación y «Gratis» se dibujan con drawInkCenteredText, no con fillText a la mitad de la pastilla', () => {
+    // 2º commit del PR #177: mismo arreglo que la pastilla glass —
+    // centrado por la caja visual de tinta, no por la línea base.
+    expect(lib).toContain("drawInkCenteredText(ctx, '★'");
+    expect(lib).toContain('drawInkCenteredText(ctx, rp.text');
+    expect(lib).toContain('drawInkCenteredText(ctx, pill.text');
+    // Las líneas viejas ya no existen: ni la estrella ni el texto de
+    // la calificación ni el «Gratis» se dibujan a la mitad de la
+    // pastilla con la línea base por defecto.
+    expect(lib).not.toContain("ctx.fillText('★', rp.x + rp.padX, rp.y + rp.h / 2)");
+    expect(lib).not.toContain(
+      'ctx.fillText(rp.text, rp.x + rp.padX + starW + 6, rp.y + rp.h / 2)',
+    );
+    expect(lib).not.toContain(
+      'ctx.fillText(pill.text, pill.x + pill.padX, pill.y + pill.h / 2)',
+    );
+    // La rama con precio (DESDE + precio + «por persona») sigue con
+    // sus posiciones propias: no es una sola línea centrada y no se
+    // toca.
+    expect(lib).toContain("ctx.fillText('DESDE'");
+    expect(lib).toContain('ctx.fillText(pill.text, pill.x + pill.padX, priceY)');
+    // El helper mide la tinta con la base alfabética ANTES de medir:
+    // actualBoundingBox* se mide desde la base activa, y la sección
+    // de precio deja 'middle' — sin esto, «Gratis» salía ~17 px arriba.
+    expect(lib).toContain(
+      "  ctx.textBaseline = 'alphabetic';\n  const m = ctx.measureText(text);",
+    );
   });
 
   it('la imagen se genera dibujando en canvas, nunca en blanco', () => {

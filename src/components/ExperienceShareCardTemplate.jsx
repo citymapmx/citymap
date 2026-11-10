@@ -174,7 +174,11 @@ export default function ExperienceShareCardTemplate({ data, format, onPhotoError
         }}
       />
 
-      {/* Pastilla de calificación (arriba a la derecha, solo si es real) */}
+      {/* Pastilla de calificación (arriba a la derecha, solo si es real).
+          Estrella y texto en spans separados (mismo patrón que la glass
+          en el PR #177): cada uno se centra por su propia línea en la
+          pastilla flex; con un solo span, el glifo ★ arrastraba el
+          texto hacia arriba, igual que el pin 📍 en la glass. */}
       {layout.ratingPill
         ? pill(
             layout.ratingPill,
@@ -302,7 +306,11 @@ export default function ExperienceShareCardTemplate({ data, format, onPhotoError
         </div>
       ) : null}
 
-      {/* Pastilla AZUL de precio protagonista */}
+      {/* Pastilla AZUL de precio protagonista. La de «Gratis» es un solo
+          span con lineHeight 1 en la pastilla flex (mismo patrón que la
+          glass en el PR #177): el texto se centra por su propia línea;
+          en canvas se dibuja además con drawInkCenteredText para que
+          la tinta quede centrada por su caja visual. */}
       {pill(
         layout.pricePill,
         layout.pricePill.priced ? (

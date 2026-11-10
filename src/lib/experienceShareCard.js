@@ -629,11 +629,18 @@ function drawLeftLines(ctx, block, { color, weight }) {
 // hacia arriba. Sin métricas de tinta (contextos simulados), se usa
 // textBaseline 'middle' como aproximación.
 function drawInkCenteredText(ctx, text, x, centerY) {
+  // La tinta se mide SIEMPRE con la línea base alfabética: los
+  // valores actualBoundingBox* se miden desde la línea base ACTIVA
+  // del contexto, no siempre desde la alfabética. Si quien llama dejó
+  // 'middle' (como la sección de la pastilla de precio), la medida
+  // salía desplazada ~17 px a 56 px y el texto también — por eso la
+  // pastilla «Gratis» salía arriba aunque usara este helper. Se fija
+  // la base ANTES de medir, no solo antes de dibujar.
+  ctx.textBaseline = 'alphabetic';
   const m = ctx.measureText(text);
   const asc = m.actualBoundingBoxAscent;
   const desc = m.actualBoundingBoxDescent;
   if (Number.isFinite(asc) && Number.isFinite(desc)) {
-    ctx.textBaseline = 'alphabetic';
     ctx.fillText(text, x, centerY + (asc - desc) / 2);
   } else {
     ctx.textBaseline = 'middle';
@@ -721,19 +728,25 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
   }
 
   // Pastilla de calificación (arriba a la derecha): blanca, estrella
-  // ámbar, solo si la calificación es real.
+  // ámbar, solo si la calificación es real. Estrella y texto se
+  // dibujan por separado, cada uno centrado por su caja visual
+  // (drawInkCenteredText, 2º commit del PR #177): con fillText a la
+  // mitad de la pastilla y textBaseline alfabético, la tinta quedaba
+  // desplazada hacia arriba, igual que pasaba con la pastilla glass.
   if (geo.ratingPill) {
     const rp = geo.ratingPill;
     ctx.fillStyle = '#FFFFFF';
     roundRectPath(ctx, rp.x, rp.y, rp.w, rp.h, rp.h / 2);
     ctx.fill();
+    const centerY = rp.y + rp.h / 2;
     ctx.font = `800 ${rp.size}px ${SHARE_CARD_FONT_STACK}`;
     ctx.fillStyle = STAR;
-    ctx.fillText('★', rp.x + rp.padX, rp.y + rp.h / 2);
+    ctx.textAlign = 'left';
+    drawInkCenteredText(ctx, '★', rp.x + rp.padX, centerY);
     const starW = ctx.measureText('★').width;
     ctx.font = `600 ${rp.size}px ${SHARE_CARD_FONT_STACK}`;
     ctx.fillStyle = '#111827';
-    ctx.fillText(rp.text, rp.x + rp.padX + starW + 6, rp.y + rp.h / 2);
+    drawInkCenteredText(ctx, rp.text, rp.x + rp.padX + starW + 6, centerY);
   }
 
   // Pastilla GLASS de ciudad · tipo, encima del título: fondo
@@ -814,8 +827,14 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
       priceY,
     );
   } else {
+    // «Gratis» (una sola línea) también se centra por su caja visual
+    // (2º commit del PR #177): con textBaseline 'middle' la tinta
+    // quedaba desplazada; drawInkCenteredText la centra por la tinta
+    // real, como en la pastilla glass. La rama con precio (DESDE +
+    // precio + «por persona», dos filas con posiciones propias) no se
+    // toca: no es una sola línea centrada en la pastilla.
     ctx.font = `800 ${pill.priceSize}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillText(pill.text, pill.x + pill.padX, pill.y + pill.h / 2);
+    drawInkCenteredText(ctx, pill.text, pill.x + pill.padX, pill.y + pill.h / 2);
   }
 
   return canvas;
