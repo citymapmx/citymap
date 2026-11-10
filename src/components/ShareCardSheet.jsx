@@ -19,6 +19,15 @@
 // transición de 0,5 s, como las tiras del #149) en vez de cambiar de
 // golpe; y el logo de Post crece (76 px) para que se vea en la vista
 // previa de 200 px (en Post era tan chico que parecía no estar).
+// PR #159: con menú, la hoja gana DOS estilos más («Para pedir» y «QR
+// del menú»): 4 opciones y 4 puntos; sin menú sigue con solo Oscura y
+// Clara. El menú se carga al abrir la hoja (la misma consulta que
+// BusinessStore); hasta que llega, solo se ofrecen los 2 estilos de
+// siempre. Con «Para pedir» elegido, la hoja muestra además el botón
+// verde «Hacer pedido» (WhatsApp del negocio o el menú si no hay
+// número): el botón dibujado en la imagen no se puede tocar, este sí.
+// La lista de estilos de la pista (con sus clones del PR #158) es la
+// disponible, no la base: sin menú la pista lleva 2 estilos, con menú 4.
 // PR #158: Jonathan pidió dos cosas más con una captura de Vincent
 // Andares (Clara/Historia): (1) los chevrones ‹ › estaban muy pegados
 // a la vista previa, así que se separan más (más hueco a los lados);
@@ -57,21 +66,28 @@
 // conserva el comportamiento anterior (compartir la liga del negocio).
 // En web NO se puede publicar directo a Instagram: la hoja comparte la
 // imagen con el menú del sistema o la descarga, nunca promete publicarla.
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDataStore } from '../store/useDataStore.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { displayRating } from '../lib/googleRatings.js';
 import { getThumbUrl } from '../lib/utils.js';
+import { CITY_TZ } from '../lib/constants.js';
 import ShareCardTemplate from './ShareCardTemplate.jsx';
 import {
   SHARE_CARD_DEFAULT_STYLE,
   SHARE_CARD_FORMAT_LIST,
-  SHARE_CARD_STYLE_LIST,
+  buildMenuShareCardData,
+  buildMenuShareUrl,
   buildShareCardData,
   canShareImageFiles,
   exportShareCardPng,
+  generateMenuQrDataUrl,
   isPhotoFetchable,
+  loadMenuItems,
+  orderHoursLine,
+  orderWhatsappUrl,
   shareCardFileName,
+  shareCardStyleList,
   shareOrDownloadPng,
 } from '../lib/shareCard.js';
 
@@ -91,7 +107,7 @@ const SWIPE_MIN_PX = 60;
 // como una unidad (PR #147: sin pie sticky, los botones nunca quedan en
 // medio de la vista previa).
 
-export default function ShareCardSheet({ biz, onClose, onShareLink }) {
+export default function ShareCardSheet({ biz, hasMenu = false, onClose, onShareLink }) {
   const dark = useUIStore((s) => s.dark);
   const toast$ = useUIStore((s) => s.toast$);
   const googleRatings = useDataStore((s) => s.googleRatings);
@@ -102,6 +118,25 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   const [error, setError] = useState('');
   const [photoFailed, setPhotoFailed] = useState(false);
   const [bizLogoFailed, setBizLogoFailed] = useState(false);
+  // PR #159: el menú del negocio (null = aún no se cargó, [] = no
+  // tiene platillos con precio). Solo se carga si la ficha dice que
+  // hay menú (hasMenu, que DetailView ya consulta); sin menú, la hoja
+  // ni siquiera pregunta por él.
+  const [menuItems, setMenuItems] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    if (!hasMenu || !biz?.id) {
+      setMenuItems(null);
+      return undefined;
+    }
+    setMenuItems(null);
+    loadMenuItems(biz.id).then((items) => {
+      if (alive) setMenuItems(items);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [hasMenu, biz?.id]);
   // Con «reducir movimiento» la pista no desliza: cambia de estilo al
   // instante, como las tiras (StoryStrip).
   const [reduceMotion] = useState(
@@ -117,7 +152,29 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   // la misma fuente que las tarjetas de negocio): buildShareCardData solo
   // los pasa si displayRating trae dato de Google; si no, no hay píldora.
   const disp = displayRating(biz, googleRatings);
-  const data = buildShareCardData(biz, { disp, cityName });
+  // PR #159: con menú y platillos cargados, los datos llevan además el
+  // menú (3 platillos), el horario de hoy, el WhatsApp para pedir, la
+  // URL del menú y su QR. Sin menú, los datos son los de siempre.
+  const hasMenuItems = Array.isArray(menuItems) && menuItems.length > 0;
+  const menuUrl = useMemo(
+    () => (hasMenuItems ? buildMenuShareUrl(biz) : null),
+    [hasMenuItems, biz],
+  );
+  const qrDataUrl = useMemo(
+    () => (menuUrl ? generateMenuQrDataUrl(menuUrl) : null),
+    [menuUrl],
+  );
+  const data = hasMenuItems
+    ? buildMenuShareCardData(biz, {
+        disp,
+        cityName,
+        menuItems,
+        hoursLine: orderHoursLine(biz, CITY_TZ[biz?.city_slug] || 'America/Mazatlan'),
+        whatsappUrl: orderWhatsappUrl(biz),
+        menuUrl,
+        qrDataUrl,
+      })
+    : buildShareCardData(biz, { disp, cityName });
   // Sin foto o sin logo, la tarjeta sale sin esa parte (nunca rota):
   // el fallo de carga quita el dato y la geometría se recalcula sin él.
   let exportData = data;
@@ -193,18 +250,24 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   // que se note el salto; al revés con ‹ desde el primero. Los puntos
   // siguen marcando el índice real, no el clon. La exportación a PNG
   // no cambia: sigue el estilo elegido.
+  // PR #159: con menú hay 4 estilos (Oscura, Clara, Para pedir y QR
+  // del menú) y 4 puntos; sin menú, 2. La pista (con sus clones) y los
+  // chevrones usan la lista disponible, no la base. Si el menú llega
+  // tarde, la lista crece de 2 a 4 con el índice intacto (el estilo
+  // por defecto sigue siendo el primero).
+  const availableStyles = shareCardStyleList(hasMenuItems);
   const styleIndex = Math.max(
     0,
-    SHARE_CARD_STYLE_LIST.findIndex((s) => s.id === styleId),
+    availableStyles.findIndex((s) => s.id === styleId),
   );
-  const styleCount = SHARE_CARD_STYLE_LIST.length;
+  const styleCount = availableStyles.length;
   // Posición en la pista con clones: 0 = clon del último, 1..n =
   // estilos reales, n+1 = clon del primero. Empieza en el estilo por
   // defecto (el primero).
   const [trackPos, setTrackPos] = useState(() => {
     const i = Math.max(
       0,
-      SHARE_CARD_STYLE_LIST.findIndex((s) => s.id === SHARE_CARD_DEFAULT_STYLE),
+      availableStyles.findIndex((s) => s.id === SHARE_CARD_DEFAULT_STYLE),
     );
     return i + 1;
   });
@@ -219,7 +282,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
     // reseteo silencioso no se pisa.
     if (trackPos === 0 || trackPos === styleCount + 1) return;
     const next = (styleIndex + delta + styleCount) % styleCount;
-    setStyleId(SHARE_CARD_STYLE_LIST[next].id);
+    setStyleId(availableStyles[next].id);
     if (reduceMotion) {
       setNoAnim(true);
       setTrackPos(next + 1);
@@ -233,7 +296,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   const goToStyle = (index) => {
     if (index === styleIndex) return;
     if (trackPos === 0 || trackPos === styleCount + 1) return;
-    setStyleId(SHARE_CARD_STYLE_LIST[index].id);
+    setStyleId(availableStyles[index].id);
     setNoAnim(reduceMotion);
     setTrackPos(index + 1);
   };
@@ -306,9 +369,9 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   // primero]. Las claves llevan la posición, porque el id se repite
   // entre el clon y el estilo real.
   const trackStyles = [
-    SHARE_CARD_STYLE_LIST[styleCount - 1],
-    ...SHARE_CARD_STYLE_LIST,
-    SHARE_CARD_STYLE_LIST[0],
+    availableStyles[styleCount - 1],
+    ...availableStyles,
+    availableStyles[0],
   ];
 
   return (
@@ -550,7 +613,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
             marginBottom: 8,
           }}
         >
-          {SHARE_CARD_STYLE_LIST.map((s, n) => (
+          {availableStyles.map((s, n) => (
             <button
               key={s.id}
               aria-label={`Estilo ${s.label}`}
@@ -591,6 +654,34 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
             borderTop: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`,
           }}
         >
+          {/* PR #159: con «Para pedir» elegido, el botón verde abre
+              WhatsApp con el pedido (o el menú si el negocio no tiene
+              número). El botón dibujado en la imagen no se puede tocar:
+              este es el que hace el pedido de verdad. */}
+          {styleId === 'pedido' ? (
+            <button
+              onClick={() => {
+                const url = data.whatsappUrl || data.menuUrl;
+                if (url) window.open(url, '_blank', 'noopener,noreferrer');
+              }}
+              className="press"
+              style={{
+                width: '100%',
+                padding: 13,
+                marginBottom: 8,
+                background: '#25D366',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 16,
+                fontSize: 15,
+                fontWeight: 800,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Hacer pedido
+            </button>
+          ) : null}
           <button
             onClick={onExport}
             disabled={status === 'generating'}

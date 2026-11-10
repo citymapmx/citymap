@@ -36,8 +36,11 @@
 // planes de pago con logo_url) va centrado a caballo sobre el borde
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
 // tarjeta queda igual que en el #143.
-import { createSlug, getThumbUrl } from './utils.js';
+import qrcode from 'qrcode-generator';
+import { createSlug, getThumbUrl, cleanCityPrefix } from './utils.js';
 import { formatReviewCount } from './googleRatings.js';
+import { getProductPriceLabel } from './menuPricing.js';
+import { sb } from './supabase.js';
 
 export const SHARE_CARD_FORMATS = {
   story: { id: 'story', label: 'Historia IG', width: 1080, height: 1920 },
@@ -57,14 +60,14 @@ export const SHARE_CARD_FONT_STACK =
 // Geometría única de la tarjeta, por formato. photoMinH es la altura
 // MÍNIMA de la foto: la foto crece desde ahí hasta comerse todo el
 // espacio libre de la tarjeta (ver computeShareCardLayout).
-// El nombre se corta a 3 líneas como máximo (antes 2): con 2, un nombre
-// largo se cortaba con «…» en el PNG y en la vista previa el DOM lo
-// partía en una 3ª línea visual — el bloque crecía, la foto (flex: 1)
-// se acortaba, su borde real subía y el círculo, absoluto sobre el
-// borde calculado, tapaba la primera línea (Tangente Restaurante
-// Tlaquepaque, Carrito La Paz Tostadas de Atún). photoMinH deja hueco
-// para el peor caso (nombre de 3 líneas + píldoras en 2 filas) sin
-// comerse el hueco del pie.
+// El nombre se corta a 3 líneas como máximo (antes 2, PR #158): con 2,
+// un nombre largo se cortaba con «…» en el PNG y en la vista previa el
+// DOM lo partía en una 3ª línea visual — el bloque crecía, la foto
+// (flex: 1) se acortaba, su borde real subía y el círculo, absoluto
+// sobre el borde calculado, tapaba la primera línea (Tangente
+// Restaurante Tlaquepaque, Carrito La Paz Tostadas de Atún). photoMinH
+// deja hueco para el peor caso (nombre de 3 líneas + píldoras en 2
+// filas) sin comerse el hueco del pie.
 export const SHARE_CARD_LAYOUT = {
   story: {
     pad: 64,
@@ -150,11 +153,26 @@ export const SHARE_CARD_LAYOUT = {
 export const SHARE_CARD_STYLES = {
   glass: { id: 'glass', label: 'Oscura' },
   editorial: { id: 'editorial', label: 'Clara' },
+  // PR #159: dos estilos más, SOLO para negocios con menú (la carta
+  // para pedir y el QR del menú). No entran en la lista base: sin menú
+  // la hoja sigue con solo Oscura y Clara.
+  pedido: { id: 'pedido', label: 'Para pedir' },
+  qr: { id: 'qr', label: 'QR del menú' },
 };
 export const SHARE_CARD_STYLE_LIST = [
   SHARE_CARD_STYLES.glass,
   SHARE_CARD_STYLES.editorial,
 ];
+export const SHARE_CARD_MENU_STYLE_LIST = [
+  SHARE_CARD_STYLES.glass,
+  SHARE_CARD_STYLES.editorial,
+  SHARE_CARD_STYLES.pedido,
+  SHARE_CARD_STYLES.qr,
+];
+// La hoja usa esta lista: 4 opciones con menú, 2 sin él.
+export function shareCardStyleList(hasMenu) {
+  return hasMenu ? SHARE_CARD_MENU_STYLE_LIST : SHARE_CARD_STYLE_LIST;
+}
 export const SHARE_CARD_DEFAULT_STYLE = 'glass';
 export function resolveShareCardStyle(styleId) {
   return SHARE_CARD_STYLES[styleId] || SHARE_CARD_STYLES.glass;
@@ -192,6 +210,34 @@ export const SHARE_CARD_STYLE_COLORS = {
     // casi invisible no se distinguía del fondo, y Jonathan pidió
     // que Clara también llevara el logotipo del negocio.
     bizLogoRing: '#D4D4D8',
+  },
+  // PR #159: «Para pedir» es oscura como Glass (mismo fondo y textos)
+  // más el botón verde de WhatsApp; el QR del menú también es oscuro,
+  // con el QR sobre un bloque blanco para que se lea al escanear.
+  pedido: {
+    bg: ['#1B1B1B', '#0B0B0B'],
+    text: '#FFFFFF',
+    sub: '#A3A3A3',
+    pillBg: 'rgba(255,255,255,0.12)',
+    pillBorder: null,
+    pillText: '#FFFFFF',
+    logoWhite: true,
+    photoBg: '#262626',
+    initial: 'rgba(255,255,255,0.35)',
+    orderGreen: '#25D366',
+    orderText: '#FFFFFF',
+    dishLine: 'rgba(255,255,255,0.22)',
+  },
+  qr: {
+    bg: ['#1B1B1B', '#0B0B0B'],
+    text: '#FFFFFF',
+    sub: '#A3A3A3',
+    pillBg: 'rgba(255,255,255,0.12)',
+    pillBorder: null,
+    pillText: '#FFFFFF',
+    logoWhite: true,
+    photoBg: '#262626',
+    initial: 'rgba(255,255,255,0.35)',
   },
 };
 
@@ -265,9 +311,113 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
   },
 };
 
+// Geometría de «Para pedir» (PR #159, propuesta 1 «La carta» de la
+// demo): tarjeta oscura con la foto, el nombre completo, 3 platillos
+// del menú con su precio, la línea de horario y un botón verde de
+// «Hacer pedido». SIN píldoras (nada de etiqueta de ciudad, por
+// decisión de Jonathan) y SIN círculo de logo (showBizLogo: false):
+// el nombre va en su propio bloque y nada lo tapa (regla tras la
+// queja de Tangente). La foto es más corta que en Oscura porque los
+// platillos y el botón ocupan su sitio; sigue llenando su franja.
+export const PEDIDO_SHARE_CARD_LAYOUT = {
+  story: {
+    pad: 64,
+    logoH: 76,
+    logoGap: 40,
+    photoMinH: 560,
+    photoRadius: 40,
+    showBizLogo: false,
+    nameSize: 80,
+    nameGap: 28,
+    nameLineH: 1.12,
+    nameMaxLines: 3,
+    dishSize: 40,
+    dishRowH: 72,
+    dishGap: 18,
+    dishLineH: 1,
+    hoursSize: 36,
+    hoursGap: 28,
+    buttonH: 104,
+    buttonSize: 40,
+    buttonGap: 32,
+    buttonRadius: 52,
+    footSize: 32,
+    footGap: 48,
+  },
+  post: {
+    pad: 48,
+    logoH: 76,
+    logoGap: 36,
+    photoMinH: 220,
+    photoRadius: 28,
+    showBizLogo: false,
+    nameSize: 60,
+    nameGap: 20,
+    nameLineH: 1.12,
+    nameMaxLines: 3,
+    dishSize: 30,
+    dishRowH: 54,
+    dishGap: 14,
+    dishLineH: 1,
+    hoursSize: 28,
+    hoursGap: 20,
+    buttonH: 78,
+    buttonSize: 30,
+    buttonGap: 24,
+    buttonRadius: 39,
+    footSize: 28,
+    footGap: 36,
+  },
+};
+
+// Geometría del QR del menú (PR #159): tarjeta oscura sin foto ni
+// píldoras — el contenido es el QR grande sobre un bloque blanco
+// (contraste alto + zona de silencio), el nombre completo arriba y
+// «Escanea para ver el menú» debajo. El bloque del QR es flexible
+// (como la foto en los demás estilos) y el cuadrado blanco va
+// centrado en su franja, así nunca queda hueco vacío.
+export const QR_SHARE_CARD_LAYOUT = {
+  story: {
+    pad: 64,
+    logoH: 76,
+    logoGap: 40,
+    showBizLogo: false,
+    nameSize: 80,
+    nameGap: 32,
+    nameLineH: 1.12,
+    nameMaxLines: 3,
+    qrPad: 48,
+    qrRadius: 40,
+    ctaSize: 40,
+    ctaGap: 28,
+    footSize: 32,
+    footGap: 48,
+  },
+  post: {
+    pad: 48,
+    logoH: 76,
+    logoGap: 36,
+    showBizLogo: false,
+    nameSize: 60,
+    nameGap: 20,
+    nameLineH: 1.12,
+    nameMaxLines: 3,
+    qrPad: 36,
+    qrRadius: 28,
+    ctaSize: 30,
+    ctaGap: 20,
+    footSize: 28,
+    footGap: 36,
+  },
+};
+
+// Las tablas van ANTES del registro (las const no se pueden leer
+// antes de su declaración: TDZ, la lección del PR #136/#137).
 export const SHARE_CARD_STYLE_LAYOUTS = {
   glass: SHARE_CARD_LAYOUT,
   editorial: EDITORIAL_SHARE_CARD_LAYOUT,
+  pedido: PEDIDO_SHARE_CARD_LAYOUT,
+  qr: QR_SHARE_CARD_LAYOUT,
 };
 
 // La tabla de medidas de un estilo y formato (la plantilla la usa para
@@ -320,6 +470,173 @@ export function buildShareCardData(biz, { disp = null, cityName = '' } = {}) {
 
 export function shareCardFileName(biz) {
   return `citymap-${createSlug(biz?.name || 'negocio')}.png`;
+}
+
+// ─── Tarjetas de menú (PR #159: «Para pedir» y QR del menú) ───
+//
+// Datos que llevan esas dos tarjetas, encima de los de
+// buildShareCardData: los primeros 3 platillos del menú con su precio,
+// la línea de horario, el enlace de WhatsApp para pedir y la URL del
+// menú (para el QR). Sin menú no hay datos: la hoja ni siquiera ofrece
+// estos estilos.
+// El horario es el de HOY del negocio (su `schedule`, la misma fuente
+// que la ficha con getSmartScheduleInfo): «Hoy 11:00 a. m. – 10:00 p.
+// m.», nunca solo la hora de apertura. Sin horario no se pinta la
+// línea, nunca se inventa uno.
+export function buildMenuShareCardData(
+  biz,
+  { disp = null, cityName = '', menuItems = [], hoursLine = null, whatsappUrl = null, menuUrl = null, qrDataUrl = null } = {},
+) {
+  return {
+    ...buildShareCardData(biz, { disp, cityName }),
+    menuItems: Array.isArray(menuItems) ? menuItems.slice(0, 3) : [],
+    hoursLine: hoursLine || null,
+    whatsappUrl: whatsappUrl || null,
+    menuUrl: menuUrl || null,
+    qrDataUrl: qrDataUrl || null,
+  };
+}
+
+// «11:00am» → «11:00 a. m.» (12 h, como las horas de los eventos).
+export function formatOrderTime(s) {
+  const m = String(s || '')
+    .trim()
+    .match(/(\d{1,2})(?:\s*:\s*(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
+  if (!m) return null;
+  let hh = parseInt(m[1], 10);
+  const mm = parseInt(m[2] || '0', 10);
+  const p = (m[3] || '').replace(/\./g, '').toLowerCase();
+  if (p === 'pm' && hh !== 12) hh += 12;
+  if (p === 'am' && hh === 12) hh = 0;
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+  const h12 = hh % 12 || 12;
+  const ampm = hh >= 12 ? 'p. m.' : 'a. m.';
+  return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
+}
+
+function orderWeekdayKey(tz) {
+  try {
+    const wd = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz || 'America/Mexico_City',
+      weekday: 'short',
+    }).format(new Date());
+    return (
+      { Sun: 'dom', Mon: 'lun', Tue: 'mar', Wed: 'mie', Thu: 'jue', Fri: 'vie', Sat: 'sab' }[wd] ||
+      'lun'
+    );
+  } catch {
+    return ['dom', 'lun', 'mar', 'mie', 'jue', 'vie', 'sab'][new Date().getDay()];
+  }
+}
+
+// La línea de horario de hoy para la tarjeta «Para pedir»: el rango
+// completo de hoy («Hoy 11:00 a. m. – 10:00 p. m.»), «Abierto 24/7»,
+// «Cerrado hoy», o null si el negocio no tiene horario.
+export function orderHoursLine(biz, tz) {
+  const sch = biz?.schedule;
+  if (!sch || typeof sch !== 'object' || Object.keys(sch).length === 0) return null;
+  if (sch.type === 'none') return null;
+  if (sch.type === 'always_open') return 'Abierto 24/7';
+  const raw = sch[orderWeekdayKey(tz)];
+  if (!raw || /cerrado/i.test(String(raw))) return 'Cerrado hoy';
+  const first = String(raw)
+    .split(/,|\n/)
+    .map((s) => s.trim())
+    .filter(Boolean)[0];
+  if (!first) return null;
+  const segs = first.split(/\s*[-–]\s*|\s+a\s+/i).map((s) => s.trim());
+  if (segs.length < 2) return null;
+  const open = formatOrderTime(segs[0]);
+  const close = formatOrderTime(segs[1]);
+  if (!open || !close) return null;
+  return `Hoy ${open} – ${close}`;
+}
+
+// Enlace de WhatsApp para pedir: el mismo número que usa la ficha
+// (whatsapp o teléfono, como goWhatsApp en App.jsx), con el 52 de
+// México si falta (como el carrito en CartDrawer) y un mensaje
+// prellenado de pedido. Sin número, null: el botón lleva al menú.
+export function orderWhatsappUrl(biz) {
+  const digits = String(biz?.whatsapp || biz?.phone || '').replace(/\D/g, '');
+  if (!digits) return null;
+  const num = digits.startsWith('52') ? digits : `52${digits}`;
+  const text = encodeURIComponent(`Hola ${biz?.name || ''}, quiero hacer un pedido.`.trim());
+  return `https://wa.me/${num}?text=${text}`;
+}
+
+// URL del menú del negocio: la misma que abre el menú en la ficha
+// (`/${ciudad}/${slug}/menu`, como el botón «VER MENÚ» de DetailView
+// y el compartir de BusinessStore). Nunca se inventa: sin ciudad o
+// sin slug, null.
+export function buildMenuShareUrl(biz) {
+  const city = biz?.city_slug || '';
+  const slug = cleanCityPrefix(biz?.slug || biz?.id || '', city);
+  if (!city || !slug) return null;
+  const origin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'https://citymap.mx';
+  return `${origin}/${city}/${slug}/menu`;
+}
+
+// Platillos del menú, en el orden de la ficha (categorías por
+// sort_order, productos por sort_order): solo disponibles y solo con
+// precio válido (el precio es el de la ficha, getProductPriceLabel:
+// «$70» o «Desde: $70»). Sin precio no se muestra el platillo.
+export function flattenMenuProducts(categories) {
+  const out = [];
+  const cats = [...(Array.isArray(categories) ? categories : [])].sort(
+    (a, b) => (a?.sort_order || 0) - (b?.sort_order || 0),
+  );
+  for (const cat of cats) {
+    const products = [...(cat?.store_products || [])].sort(
+      (a, b) => (a?.sort_order || 0) - (b?.sort_order || 0),
+    );
+    for (const p of products) {
+      if (!p?.is_available) continue;
+      const label = getProductPriceLabel(p);
+      if (!label) continue;
+      out.push({ name: String(p?.name || '').trim(), priceLabel: label });
+    }
+  }
+  return out;
+}
+
+// La misma consulta que BusinessStore para cargar el menú del
+// negocio. Si falla o no hay platillos con precio, []: la hoja no
+// ofrece las tarjetas de menú (nunca rota).
+export async function loadMenuItems(bizId) {
+  if (!bizId) return [];
+  try {
+    const cats = await sb.get(
+      'store_categories',
+      `?business_id=eq.${bizId}&select=id,name,sort_order,store_products(id,name,price,is_available,sort_order,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`,
+    );
+    return flattenMenuProducts(cats);
+  } catch {
+    return [];
+  }
+}
+
+// QR del menú, generado en el cliente (qrcode-generator, la misma
+// librería que ya trae react-qr-code): nivel M, margen de 4 módulos
+// de zona de silencio. La imagen sale a ~700–850 px, nítida para el
+// bloque del QR en la tarjeta. Se cachea por URL: la misma URL da el
+// mismo QR en la vista previa y en el PNG.
+const _menuQrCache = new Map();
+export function generateMenuQrDataUrl(url) {
+  if (!url) return null;
+  if (_menuQrCache.has(url)) return _menuQrCache.get(url);
+  try {
+    const qr = qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    const dataUrl = qr.createDataURL(16, 4);
+    _menuQrCache.set(url, dataUrl);
+    return dataUrl;
+  } catch {
+    return null;
+  }
 }
 
 // ¿Puede este navegador compartir archivos con el menú del sistema?
@@ -408,8 +725,7 @@ export function wrapShareCardText(text, maxW, size, maxLines, weight = 700) {
   return lines;
 }
 
-// Nombre cortado a 3 líneas como máximo, con puntos suspensivos si sobra
-// (un nombre que necesita más de 3 líneas se recorta en la 3ª).
+// Nombre cortado a 3 líneas como máximo, con puntos suspensivos si sobra.
 export function wrapShareCardName(name, maxW, L) {
   return wrapShareCardText(name, maxW, L.nameSize, L.nameMaxLines, 800);
 }
@@ -456,6 +772,19 @@ function layoutPillRows(pills, maxW, L) {
   return rows;
 }
 
+// Texto recortado a una línea con puntos suspensivos (el nombre del
+// platillo en «Para pedir»: el precio va a la derecha y el nombre no
+// puede invadirlo).
+export function truncateShareCardText(text, maxW, size, weight = 700) {
+  const t = String(text || '').trim();
+  if (!t || measureShareCardText(t, size, weight) <= maxW) return t;
+  let out = t;
+  while (out.length > 1 && measureShareCardText(`${out}…`, size, weight) > maxW) {
+    out = out.slice(0, -1).trimEnd();
+  }
+  return `${out}…`;
+}
+
 // Geometría completa de la tarjeta. La foto es el único bloque flexible:
 // su alto es todo lo que sobra tras reservar logo, textos, píldoras y
 // pie, con photoMinH como mínimo — por eso nunca queda hueco vacío.
@@ -466,6 +795,8 @@ function layoutPillRows(pills, maxW, L) {
 // PR #155: sin categoría y sin panel de ficha; la foto es más corta y
 // el nombre y las píldoras más grandes, para que la información tenga
 // más presencia.
+// PR #159: «Para pedir» cambia las píldoras por platillos, horario y
+// botón verde; el QR cambia la foto por el área flexible del QR.
 export function computeShareCardLayout(data, format, hasGoogleMark = true, styleId = 'glass') {
   const f = format || SHARE_CARD_FORMATS.story;
   const style = resolveShareCardStyle(styleId);
@@ -473,6 +804,11 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   const W = f.width;
   const H = f.height;
   const maxW = W - L.pad * 2;
+
+  // PR #159: «Para pedir» y el QR del menú tienen sus propios bloques
+  // (platillos/horario/botón y área del QR) en vez de las píldoras.
+  const isPedido = style.id === 'pedido';
+  const isQr = style.id === 'qr';
 
   const logoW = Math.round(L.logoH * (400 / 120));
   const logo = { x: Math.round((W - logoW) / 2), y: L.pad, w: logoW, h: L.logoH };
@@ -500,7 +836,7 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   const nameGapU = nameLines.length ? gapAfterPhoto(L.nameGap) : L.nameGap;
   const nameBlock = nameLines.length ? nameGapU + nameBlockH : 0;
 
-  const pills = shareCardPills(data, hasGoogleMark, L);
+  const pills = isPedido || isQr ? [] : shareCardPills(data, hasGoogleMark, L);
   const pillRows = layoutPillRows(pills, maxW, L);
   const pillH = L.pillSize + L.pillPadY * 2;
   const pillsBlockH = pillRows.length
@@ -509,27 +845,67 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   const pillsGapU = pillRows.length ? gapAfterPhoto(L.pillsGap) : L.pillsGap;
   const pillsBlock = pillRows.length ? pillsGapU + pillsBlockH : 0;
 
+  // PR #159 — bloques de «Para pedir»: los platillos (nombre a la
+  // izquierda, precio a la derecha, renglón punteado entre ellos),
+  // la línea de horario y el botón verde. El precio va con su ancho
+  // medido: el nombre se recorta para no invadirlo.
+  const dishes = [];
+  if (isPedido) {
+    for (const item of (data?.menuItems || []).slice(0, 3)) {
+      const name = String(item?.name || '').trim();
+      const price = item?.priceLabel || '';
+      if (!name || !price) continue;
+      const priceW = measureShareCardText(price, L.dishSize, 800);
+      const nameMaxW = Math.max(0, maxW - priceW - 24);
+      dishes.push({
+        name: truncateShareCardText(name, nameMaxW, L.dishSize, 700),
+        price,
+        priceW,
+      });
+    }
+  }
+  const dishesBlock = dishes.length
+    ? L.dishGap + dishes.length * L.dishRowH + (dishes.length - 1) * L.dishGap
+    : 0;
+  const hoursLine = isPedido ? data?.hoursLine || null : null;
+  const hoursBlock = hoursLine ? L.hoursGap + L.hoursSize * 1.2 : 0;
+  const buttonBlock = isPedido ? L.buttonGap + L.buttonH : 0;
+
+  // PR #159 — el QR no tiene foto: su área flexible es la franja del
+  // QR (la CTA va debajo, con su hueco).
+  const ctaBlock = isQr ? L.ctaGap + L.ctaSize * 1.2 : 0;
+
   const footGapU = gapAfterPhoto(L.footGap);
   const footBlock = footGapU + L.footSize;
 
-  const photoH = Math.max(
-    L.photoMinH,
-    H -
-      L.pad * 2 -
-      (L.logoH + L.logoGap) -
-      nameBlock -
-      pillsBlock -
-      footBlock,
-  );
+  const photoH = isQr
+    ? Math.max(
+        0,
+        H - L.pad * 2 - (L.logoH + L.logoGap) - nameBlock - ctaBlock - footBlock,
+      )
+    : Math.max(
+        L.photoMinH,
+        H -
+          L.pad * 2 -
+          (L.logoH + L.logoGap) -
+          nameBlock -
+          pillsBlock -
+          dishesBlock -
+          hoursBlock -
+          buttonBlock -
+          footBlock,
+      );
 
   let y = L.pad + L.logoH + L.logoGap;
-  const photo = { x: L.pad, y, w: maxW, h: photoH, radius: L.photoRadius };
-  y += photoH;
+  const photo = isQr
+    ? null
+    : { x: L.pad, y, w: maxW, h: photoH, radius: L.photoRadius };
+  if (!isQr) y += photoH;
 
   // Círculo del logo centrado a caballo sobre el borde inferior de la
   // foto: su centro queda justo en ese borde (mitad sobre la foto,
-  // mitad sobre el fondo oscuro).
-  const photoBottom = photo.y + photo.h;
+  // mitad sobre el fondo oscuro). En el QR no hay foto ni círculo.
+  const photoBottom = isQr ? y : photo.y + photo.h;
   const bizLogo = hasBizLogo
     ? {
         x: Math.round((W - L.bizLogoD) / 2),
@@ -574,6 +950,69 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   }
 
   const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
+
+  // PR #159 — «Para pedir»: los platillos van tras el nombre, cada
+  // uno en su renglón (nombre a la izquierda, precio a la derecha),
+  // luego la línea de horario y el botón verde.
+  let dishesOut = [];
+  if (dishes.length) {
+    y += L.dishGap;
+    dishesOut = dishes.map((d) => {
+      const row = { ...d, x: L.pad, y, w: maxW, h: L.dishRowH };
+      y += L.dishRowH + L.dishGap;
+      return row;
+    });
+    // El bucle suma dishGap también tras la última fila; se quita
+    // para que el horario quede a su hueco diseñado, como las píldoras.
+    y -= L.dishGap;
+  }
+  let hoursBox = null;
+  if (hoursLine) {
+    y += L.hoursGap;
+    hoursBox = {
+      text: hoursLine,
+      x: W / 2,
+      y: y + (L.hoursSize * 1.2) / 2,
+      size: L.hoursSize,
+    };
+    y += L.hoursSize * 1.2;
+  }
+  let orderButtonBox = null;
+  if (isPedido) {
+    y += L.buttonGap;
+    orderButtonBox = {
+      label: 'Hacer pedido',
+      x: L.pad,
+      y,
+      w: maxW,
+      h: L.buttonH,
+      radius: L.buttonRadius,
+    };
+    y += L.buttonH;
+  }
+
+  // PR #159 — el QR: su área es la franja flexible tras el nombre; el
+  // cuadrado blanco va centrado en ella (lado = lo que quepa) y el QR
+  // dentro, con su zona de silencio (qrPad) por todos lados.
+  let qrBox = null;
+  if (isQr) {
+    const qrArea = { x: L.pad, y, w: maxW, h: photoH };
+    const side = Math.min(qrArea.w, qrArea.h);
+    const bx = Math.round(qrArea.x + (qrArea.w - side) / 2);
+    const by = Math.round(qrArea.y + (qrArea.h - side) / 2);
+    const inner = Math.max(0, side - L.qrPad * 2);
+    qrBox = {
+      area: qrArea,
+      box: { x: bx, y: by, size: side, radius: L.qrRadius },
+      img: { x: bx + L.qrPad, y: by + L.qrPad, size: inner },
+      cta: { text: 'Escanea para ver el menú', x: W / 2, y: 0, size: L.ctaSize },
+    };
+    y += qrArea.h;
+    y += L.ctaGap;
+    qrBox.cta.y = y + (L.ctaSize * 1.2) / 2;
+    y += L.ctaSize * 1.2;
+  }
+
   return {
     style: style.id,
     format: f,
@@ -586,6 +1025,10 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     firstGap,
     name: nameBox,
     pillRows: pillRowsOut,
+    dishes: dishesOut,
+    hours: hoursBox,
+    orderButton: orderButtonBox,
+    qr: qrBox,
     footer,
   };
 }
@@ -777,24 +1220,27 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     ctx.drawImage(logoImg, geo.logo.x, geo.logo.y, geo.logo.w, geo.logo.h);
   }
 
-  // Foto (o bloque con la inicial si no hay foto).
+  // Foto (o bloque con la inicial si no hay foto). El QR no tiene
+  // foto: su área la pinta el bloque del QR más abajo.
   const p = geo.photo;
-  ctx.save();
-  roundRectPath(ctx, p.x, p.y, p.w, p.h, p.radius);
-  ctx.clip();
-  if (assets?.photo) {
-    drawCoverImage(ctx, assets.photo, p.x, p.y, p.w, p.h);
-  } else {
-    ctx.fillStyle = palette.photoBg;
-    ctx.fillRect(p.x, p.y, p.w, p.h);
-    const initial = (data?.name || 'C').trim().charAt(0).toUpperCase() || 'C';
-    ctx.fillStyle = palette.initial;
-    ctx.font = `800 ${Math.round(L.photoMinH * 0.45)}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(initial, p.x + p.w / 2, p.y + p.h / 2);
+  if (p) {
+    ctx.save();
+    roundRectPath(ctx, p.x, p.y, p.w, p.h, p.radius);
+    ctx.clip();
+    if (assets?.photo) {
+      drawCoverImage(ctx, assets.photo, p.x, p.y, p.w, p.h);
+    } else {
+      ctx.fillStyle = palette.photoBg;
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+      const initial = (data?.name || 'C').trim().charAt(0).toUpperCase() || 'C';
+      ctx.fillStyle = palette.initial;
+      ctx.font = `800 ${Math.round(L.photoMinH * 0.45)}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initial, p.x + p.w / 2, p.y + p.h / 2);
+    }
+    ctx.restore();
   }
-  ctx.restore();
 
   // Círculo del logo del negocio (PR #144): mismo estilo que la ficha —
   // blanco, borde fino y sombra — centrado a caballo sobre el borde
@@ -895,16 +1341,84 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
   ctx.fillStyle = palette.text;
   drawSpacedText(ctx, run2, fx + w1 + 2, f.y, 2);
 
+  // PR #159 — «Para pedir»: platillos (nombre a la izquierda, precio
+  // a la derecha, renglón punteado entre ellos), línea de horario y
+  // botón verde de «Hacer pedido».
+  if (geo.dishes?.length) {
+    ctx.strokeStyle = palette.dishLine || 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([2, 8]);
+    ctx.lineCap = 'round';
+    geo.dishes.forEach((d, i) => {
+      if (i > 0) {
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y - L.dishGap / 2);
+        ctx.lineTo(d.x + d.w, d.y - L.dishGap / 2);
+        ctx.stroke();
+      }
+      ctx.font = `700 ${L.dishSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillStyle = palette.text;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(d.name, d.x, d.y + d.h / 2);
+      ctx.font = `800 ${L.dishSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.textAlign = 'right';
+      ctx.fillText(d.price, d.x + d.w, d.y + d.h / 2);
+    });
+    ctx.setLineDash([]);
+    ctx.lineCap = 'butt';
+  }
+  if (geo.hours) {
+    ctx.font = `600 ${geo.hours.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = palette.sub;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(geo.hours.text, geo.hours.x, geo.hours.y);
+  }
+  if (geo.orderButton) {
+    const b = geo.orderButton;
+    ctx.fillStyle = palette.orderGreen || '#25D366';
+    roundRectPath(ctx, b.x, b.y, b.w, b.h, b.radius);
+    ctx.fill();
+    ctx.font = `800 ${L.buttonSize}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = palette.orderText || '#FFFFFF';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h / 2);
+  }
+
+  // PR #159 — QR del menú: el cuadrado blanco con el QR dentro y la
+  // línea «Escanea para ver el menú» debajo. Sin imagen del QR (no
+  // se pudo generar), el bloque blanco queda vacío, nunca roto.
+  if (geo.qr) {
+    const q = geo.qr;
+    ctx.fillStyle = '#FFFFFF';
+    roundRectPath(ctx, q.box.x, q.box.y, q.box.size, q.box.size, q.box.radius);
+    ctx.fill();
+    if (assets?.qr) {
+      ctx.drawImage(assets.qr, q.img.x, q.img.y, q.img.size, q.img.size);
+    }
+    ctx.font = `600 ${q.cta.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = palette.text;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(q.cta.text, q.cta.x, q.cta.y);
+  }
+
   return canvas;
 }
 
 export async function renderShareCardCanvas(data, format, styleId = 'glass') {
-  const [photo, logoWhite, logoDark, googleMark, bizLogo] = await Promise.all([
+  const [photo, logoWhite, logoDark, googleMark, bizLogo, qr] = await Promise.all([
     loadShareCardPhoto(data?.photoUrl),
     loadShareCardLogoWhite(),
     loadShareCardLogoDark(),
     loadGoogleMark(),
     loadShareCardBizLogo(data?.bizLogoUrl),
+    // PR #159: el QR es una data URL generada en el cliente (sin red):
+    // si no se pudo generar, la tarjeta sale con el bloque blanco
+    // vacío, nunca rota.
+    loadShareCardQr(data?.qrDataUrl),
   ]);
   // Si el logo no cargó, la geometría es la de sin círculo: sin hueco
   // vacío y sin círculo a medias.
@@ -913,10 +1427,22 @@ export async function renderShareCardCanvas(data, format, styleId = 'glass') {
   return drawShareCardCanvas(
     layoutData,
     format,
-    { photo, logoWhite, logoDark, googleMark, bizLogo },
+    { photo, logoWhite, logoDark, googleMark, bizLogo, qr },
     layout,
     styleId,
   );
+}
+
+// El QR del menú como imagen para el canvas: la data URL se genera en
+// el cliente con qrcode-generator, así que no necesita CORS. Si no hay
+// QR (estilo sin menú), null.
+async function loadShareCardQr(qrDataUrl) {
+  if (!qrDataUrl) return null;
+  try {
+    return await loadImage(qrDataUrl);
+  } catch {
+    return null;
+  }
 }
 
 // Guarda anti-blanco: si el canvas saliera vacío (todo transparente),
