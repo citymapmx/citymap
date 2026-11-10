@@ -48,26 +48,30 @@ describe('Sección «Tu negocio ya aparece en Google» en /negocios', () => {
     expect(html.indexOf('Tu negocio ya aparece en Google')).toBeLessThan(html.indexOf('id="planes"'));
   });
 
-  it('muestra las cifras exactas de Search Console: 763 clics y 151 mil impresiones', () => {
+  it('muestra las cifras exactas de Search Console: 446 clics y 105 mil impresiones', () => {
     const section = googleSection(renderLanding(false));
-    expect(section).toContain('763');
-    expect(section).toContain('151 mil');
+    expect(section).toContain('446');
+    expect(section).toContain('105 mil');
     expect(section).toContain('clics');
     expect(section).toContain('impresiones');
     // La etiqueta de periodo se ve en la sección, no solo en un comentario.
-    expect(section).toContain('últimos 3 meses');
-    expect(section.match(/últimos 3 meses/g)).toHaveLength(3); // texto + 2 tarjetas
+    expect(section).toContain('últimos 28 días');
+    expect(section.match(/últimos 28 días/g)).toHaveLength(3); // texto + 2 tarjetas
+    // Search Console solo mide Google; el tráfico total es mayor.
+    expect(section).toContain('Esto es solo el tráfico que llega desde Google.');
   });
 
   it('muestra los 3 ejemplos reales con sus cifras', () => {
     const section = googleSection(renderLanding(false));
     expect(section).toContain('Formentera');
-    expect(section).toContain('34');
-    expect(section).toContain('Umami Ramen');
-    expect(section).toContain('31');
+    expect(section).toContain('27');
     expect(section).toContain('Campomar');
-    expect(section).toContain('30');
+    expect(section).toContain('15');
+    expect(section).toContain('Akami Sushi');
+    expect(section).toContain('14');
     expect(section).toContain('visitas desde Google');
+    // Umami Ramen salía en el top de 3 meses, pero no en el de 28 días.
+    expect(section).not.toContain('Umami Ramen');
   });
 
   it('lleva el logo de Google de la página', () => {
@@ -85,6 +89,7 @@ describe('Sección «Tu negocio ya aparece en Google» en /negocios', () => {
       'negocios_google_impresiones',
       'negocios_google_periodo',
       'negocios_google_ejemplos',
+      'negocios_google_solo_google',
     ];
     for (const key of keys) {
       expect(typeof es[key]).toBe('string');
@@ -100,17 +105,19 @@ describe('Sección «Tu negocio ya aparece en Google» en /negocios', () => {
     expect(en.negocios_google_texto).toContain('${clicks}');
     expect(en.negocios_google_texto).toContain('${impressions}');
     expect(es.negocios_google_ejemplos).toContain('${formentera}');
-    expect(es.negocios_google_ejemplos).toContain('${umami}');
     expect(es.negocios_google_ejemplos).toContain('${campomar}');
+    expect(es.negocios_google_ejemplos).toContain('${akami}');
     expect(en.negocios_google_ejemplos).toContain('${formentera}');
-    expect(en.negocios_google_ejemplos).toContain('${umami}');
     expect(en.negocios_google_ejemplos).toContain('${campomar}');
+    expect(en.negocios_google_ejemplos).toContain('${akami}');
+    expect(es.negocios_google_solo_google).toBe('Esto es solo el tráfico que llega desde Google.');
+    expect(en.negocios_google_solo_google).toBe('This is only the traffic that comes from Google.');
   });
 
   it('se ve igual en modo oscuro (mismo contenido)', () => {
     const section = googleSection(renderLanding(true));
-    expect(section).toContain('763');
-    expect(section).toContain('151 mil');
+    expect(section).toContain('446');
+    expect(section).toContain('105 mil');
     expect(section).toContain('Formentera');
   });
 });
