@@ -1,6 +1,7 @@
 import { searchCandidatePattern } from '../lib/searchPattern.js';
 import { create } from 'zustand';
 import { sb } from '../lib/supabase.js';
+import { preloadWheelFirstImage } from '../lib/wheelPreload.js';
 
 import { METRO_ZONES, updateMetroZones } from '../lib/utils.js';
 
@@ -363,6 +364,9 @@ export const useDataStore = create((set, get) => ({
               return ev.date >= todayStr;
             });
             set({ events: validCachedEvents });
+            // La primera imagen de la rueda ya se conoce: precargarla
+            // ahora, antes de que React pinte la rueda con el caché.
+            preloadWheelFirstImage(validCachedEvents, rawTarget);
           }
           if (c.ex) set({ experiences: c.ex.filter(Boolean) });
           if (c.p) set({ promos: c.p.filter(Boolean) });
@@ -398,6 +402,18 @@ export const useDataStore = create((set, get) => ({
 
     inFlightLoadPromise = (async () => {
       try {
+        // Las consultas de eventos y experiencias para la rueda no
+        // dependen de la lista de ciudades: si la ciudad ya se conoce
+        // (URL o guardada), se disparan en paralelo con refreshCities
+        // en vez de esperar a que resuelva. Hoy la primera imagen de
+        // la rueda no se descubre hasta que terminan las dos consultas
+        // en serie, y ese es el grueso del retraso del LCP.
+        const earlyCity = cityOverride || (typeof localStorage !== 'undefined' ? localStorage.getItem("cg_city_slug") : null);
+        const earlySecondary = earlyCity ? Promise.all([
+          sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
+          sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
+        ]) : null;
+
         const currentCities = await get().refreshCities();
 
         const targetCity = cityOverride || localStorage.getItem("cg_city_slug") || (currentCities?.[0]?.slug) || "";
@@ -416,10 +432,14 @@ export const useDataStore = create((set, get) => ({
       // Secondary fetches (Non-blocking)
       const fetchSecondary = async () => {
         try {
-          const [e, ex] = await Promise.all([
-            sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
-            sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
-          ]);
+          // Si la petición ya se disparó en paralelo con refreshCities,
+          // se espera esa misma promesa en vez de pedir de nuevo.
+          const [e, ex] = earlySecondary
+            ? await earlySecondary
+            : await Promise.all([
+              sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+              sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+            ]);
           
           const now = new Date();
           const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -459,6 +479,9 @@ export const useDataStore = create((set, get) => ({
           // El muro ya tiene eventos y experiencias: publicarlos ahora,
           // sin esperar a rifas, promos y cupones.
           if (get().mapPinsCity === targetCity) {
+            // La rueda va a pintarse con estos eventos: precargar la
+            // primera imagen ahora, antes del re-render.
+            preloadWheelFirstImage(updates.events || [], targetCity);
             set(updates);
             if (Object.keys(cacheUpdates).length > 0) {
               updateCityCache(cacheKey, cacheUpdates);
