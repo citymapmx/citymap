@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { getThumbUrl } from '../../lib/utils.js';
+import { getThumbUrl, getThumbSrcSet, SRCSET_THUMB } from '../../lib/utils.js';
 import { shortestDelta, springSettled, springStep } from '../../lib/spring.js';
 import EventPosterFallback from './EventPosterFallback.jsx';
 import { useTranslation } from '../../hooks/useTranslation.js';
@@ -47,6 +47,7 @@ function CoverflowPoster({ src, title, priority }) {
   return <>
     {!ready && <span className="event-coverflow-loading" aria-hidden="true">{title}</span>}
     {!failed && <img src={source} alt={title || t("home_poster_evento", "Póster del evento")}
+      srcSet={original ? undefined : getThumbSrcSet(src, SRCSET_THUMB)} sizes="(max-width: 640px) 50vw, 300px"
       loading={priority ? 'eager' : 'lazy'} fetchPriority={priority === 'center' ? 'high' : 'auto'}
       decoding="async" draggable="false"
       onLoad={async event => {

@@ -8,6 +8,7 @@ import { sb } from '../lib/supabase.js';
 import { localizedTitle } from '../lib/i18nContent.js';
 import { groupToursByCity, tourCardUrl, tourPriceLabel } from '../lib/tours.js';
 import OptimizedImage from './ui/OptimizedImage.jsx';
+import { SRCSET_CARD } from '../lib/utils.js';
 import Footer from './Footer.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 
@@ -36,7 +37,7 @@ function TourCard({ tour, T, onOpen }) {
     >
       <div style={{ position: 'relative', height: 180, background: 'linear-gradient(135deg,#111,#333)' }}>
         {typeof img === 'string' && img
-          ? <OptimizedImage src={img} alt={title || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          ? <OptimizedImage src={img} alt={title || ''} widthRequest={520} srcSetWidths={SRCSET_CARD} sizes="260px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           : <div style={{ width: '100%', height: '100%' }} />}
         <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>TOUR</span>
       </div>

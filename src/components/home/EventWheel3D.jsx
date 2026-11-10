@@ -1,6 +1,7 @@
 import './EventWheel3D.css';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
+import { SRCSET_CARD } from '../../lib/utils.js';
 import EventPosterFallback from './EventPosterFallback.jsx';
 import { faceBrightness, normalizeAngleDeg, springSettled, springStep } from '../../lib/spring.js';
 import { useTranslation } from '../../hooks/useTranslation.js';
@@ -211,7 +212,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
           {items.map((item) => (
             <article key={item.key} onClick={() => onSelect?.(item)} style={{ flex: '0 0 170px', borderRadius: 16, overflow: 'hidden', background: '#111', cursor: 'pointer' }}>
               <div style={{ position: 'relative', aspectRatio: '3 / 4' }}>
-                {item.img ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <EventPosterFallback title={item.title} radius={0} />}
+                {item.img ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <EventPosterFallback title={item.title} radius={0} />}
                 {pill(item)}
               </div>
             </article>
@@ -240,7 +241,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
             return (
               <div key={item.key} data-face={i} className="event-wheel-face" style={{ transform: `rotateY(${i * step}deg) translateZ(${radius}px)`, filter: `brightness(${faceBrightness(angle, T.dark).toFixed(2)})` }}>
                 {item.img
-                  ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} priority={i === 0} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} priority={i === 0} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   : <EventPosterFallback title={item.title} radius={12} dark={T.dark} />}
                 {pill(item)}
               </div>

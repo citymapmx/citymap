@@ -1,7 +1,7 @@
 import { parseMenuUrls } from "../lib/utils.js";
 import Uploader from "./Uploader.jsx";
 import Icon from "./ui/Icon.jsx";
-import { getThumbUrl } from "../lib/utils.js";
+import { getThumbUrl, getThumbSrcSet, SRCSET_THUMB } from "../lib/utils.js";
 
 export default function MenuManager({ menuPdfUrl, onChange }) {
   const MAX_MENU_IMAGES = 5;
@@ -46,7 +46,7 @@ export default function MenuManager({ menuPdfUrl, onChange }) {
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#1A7A5E", textAlign: "center" }}>Menú PDF</span>
                     </div>
                   ) : (
-                    <img src={getThumbUrl(u, 300, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img src={getThumbUrl(u, 300, 300)} alt="" srcSet={getThumbSrcSet(u, SRCSET_THUMB, 300)} sizes="(max-width: 640px) 50vw, 300px" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   )}
                   <button
                     onClick={(e) => { e.preventDefault(); handleRemove(i); }}

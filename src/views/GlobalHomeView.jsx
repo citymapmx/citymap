@@ -4,7 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { useDataStore } from '../store/useDataStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
-import { createSlug, getThumbUrl } from '../lib/utils.js';
+import { createSlug, getThumbUrl, SRCSET_THUMB, SRCSET_CARD } from '../lib/utils.js';
 import { typeLabel } from '../lib/postTaxonomy.js';
 import { groupToursByCity, tourCardUrl, tourPriceLabel } from '../lib/tours.js';
 import { displayRating } from '../lib/googleRatings.js';
@@ -379,7 +379,7 @@ export default function GlobalHomeView() {
       >
         <div style={{ position: 'relative', ...(isPoster ? { aspectRatio: '3 / 4' } : { height: 168 }), background: 'linear-gradient(135deg,#111,#333)' }}>
           {item.img
-            ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={400} priority={isPriority} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={400} priority={isPriority} srcSetWidths={SRCSET_THUMB} sizes="(max-width: 640px) 170px, 240px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{isPoster ? '🎟️' : '📍'}</div>}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)' }} />
           <SaveHeartButton
@@ -651,7 +651,7 @@ export default function GlobalHomeView() {
                       onClick={() => navigate(`/${city.slug}`)}
                       style={{ flex: '0 0 168px', position: 'relative', height: 132, borderRadius: 16, overflow: 'hidden', border: 'none', padding: 0, cursor: 'pointer', background: '#111', textAlign: 'left' }}
                     >
-                      {city.bg_image && <OptimizedImage src={city.bg_image} alt={city.name} widthRequest={400} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                      {city.bg_image && <OptimizedImage src={city.bg_image} alt={city.name} widthRequest={400} srcSetWidths={SRCSET_THUMB} sizes="168px" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.65), transparent 60%)' }} />
                       {/* bottom fijo en 26 y línea de conteos siempre reservada:
                           antes el nombre saltaba de bottom 10 a 26 cuando llegaban
@@ -719,7 +719,7 @@ export default function GlobalHomeView() {
                       <article key={`t-${tour.id}`} onClick={() => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } })} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.card, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
                         <div style={{ position: 'relative', height: 180, background: 'linear-gradient(135deg,#111,#333)' }}>
                           {typeof img === 'string' && img
-                            ? <OptimizedImage src={img} alt={localizedTitle(tour, lang) || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            ? <OptimizedImage src={img} alt={localizedTitle(tour, lang) || ''} widthRequest={520} srcSetWidths={SRCSET_CARD} sizes="260px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             : <div style={{ width: '100%', height: '100%' }} />}
                           <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>TOUR</span>
                         </div>
@@ -757,7 +757,7 @@ export default function GlobalHomeView() {
                       >
                         <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>
                           {typeof img === 'string' && img
-                            ? <OptimizedImage src={img} alt={localizedTitle(exp, lang) || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            ? <OptimizedImage src={img} alt={localizedTitle(exp, lang) || ''} widthRequest={520} srcSetWidths={SRCSET_CARD} sizes="260px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>📝</div>}
                           <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>{typeLabel(exp.activity_type)}</span>
                           <SaveHeartButton

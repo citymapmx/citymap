@@ -11,6 +11,12 @@ export default function ProgressiveImage({
   className = "",
   variants,
   transition,
+  // srcset del mismo patrón que OptimizedImage: cadena ya construida con
+  // getThumbSrcSet (el candidato mayor nunca supera el ancho de `src`) y
+  // sizes con el ancho en pantalla del hueco. Solo van en la imagen real,
+  // no en el placeholder borroso (20 px).
+  srcSet = undefined,
+  sizes = undefined,
   ...props
 }) {
   const [isLoaded, setIsLoaded] = useState(() => globalLoadedImages.has(src));
@@ -54,6 +60,8 @@ export default function ProgressiveImage({
       <img
         src={src}
         alt={alt}
+        srcSet={srcSet}
+        sizes={sizes}
         loading="lazy"
         onLoad={() => {
           globalLoadedImages.add(src);

@@ -11,7 +11,7 @@ import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { useShallow } from 'zustand/react/shallow';
-import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear, METRO_ZONES } from "../lib/utils";
+import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear, METRO_ZONES, SRCSET_CARD } from "../lib/utils";
 import { shouldShowCityEmptyState, shouldShowCategoryEmptyState } from "../lib/cityEmptyState.js";
 import { getAvailableSubcats } from "../lib/businessSubcats.js";
 import { getTimeSlot, spotForSlot, isFoodSpot, seededRand, shuffleBySeed } from "../lib/timeBasedLists.js";
@@ -590,6 +590,8 @@ export default function HomeView({ isBackground }) {
                         alt={spotlightBiz.name}
                         widthRequest={800} heightRequest={600}
                         priority
+                        srcSetWidths={SRCSET_CARD}
+                        sizes="(max-width: 640px) 100vw, 800px"
                         style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}
                       />
                     );

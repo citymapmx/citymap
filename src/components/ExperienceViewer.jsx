@@ -293,6 +293,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
           <img 
             src={heroSrc} 
             alt={displayTitle || ""} 
+            fetchPriority="high"
             style={{ 
               width: "100%", 
               height: "auto", 
@@ -628,7 +629,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                 <div key={i} onClick={() => openLink(prod.url)} className="press" style={{ flexShrink: 0, width: 160, background: dark ? "rgba(255,255,255,0.03)" : "#fff", borderRadius: 16, border: `1px solid ${T.border}`, overflow: "hidden", scrollSnapAlign: "start", cursor: "pointer", display: "flex", flexDirection: "column", boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
                   <div style={{ width: "100%", height: 140, background: dark ? "#111" : "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                     {prod.image_url ? (
-                      <img src={prod.image_url} alt={prod.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={prod.image_url} alt={prod.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     ) : (
                       <Icon name="shopping-bag" size={32} color={T.sub} />
                     )}

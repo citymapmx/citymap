@@ -16,7 +16,7 @@ import { useDataStore } from '../../store/useDataStore.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { AppContext } from '../../context/AppContext.jsx';
  
-import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic } from '../../lib/utils.js';
+import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic, SRCSET_CARD, SRCSET_THUMB } from '../../lib/utils.js';
 import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
 
@@ -345,6 +345,8 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                     src={business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url} 
                     widthRequest={800}
                     heightRequest={340}
+                    srcSetWidths={SRCSET_CARD}
+                    sizes="(max-width: 640px) 100vw, 800px"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                     alt={business.name} 
                   />
@@ -629,7 +631,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                     <div style={viewMode === 'list' ? { width: 120, height: 120, margin: 12, flexShrink: 0, position: 'relative' } : { width: '100%', aspectRatio: '1', position: 'relative', flexShrink: 0 }}>
                       <div style={{ width: '100%', height: '100%', borderRadius: viewMode === 'list' ? 16 : 0, overflow: 'hidden', background: dark ? '#3F3F46' : '#FAFAFA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {product.image_url ? (
-                          <OptimizedImage src={product.image_url} widthRequest={400} heightRequest={400} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                          <OptimizedImage src={product.image_url} widthRequest={400} heightRequest={400} srcSetWidths={SRCSET_THUMB} sizes="(max-width: 640px) 50vw, 400px" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                         ) : (
                           <Icon name="image" size={32} color={dark ? '#71717A' : '#D4D4D8'} />
                         )}

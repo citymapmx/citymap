@@ -4,7 +4,7 @@ import Icon from "../ui/Icon.jsx";
 import SaveHeartButton from "../ui/SaveHeartButton.jsx";
 import OptimizedImage from "../ui/OptimizedImage.jsx";
 import { FONT_BIZ } from "../../lib/constants.js";
-import { CAT_EMOJI, isOpenNow, getScheduleStatus, getThumbUrl, haptic } from "../../lib/utils.js";
+import { CAT_EMOJI, isOpenNow, getScheduleStatus, getThumbUrl, getThumbSrcSet, SRCSET_THUMB, SRCSET_CARD, haptic } from "../../lib/utils.js";
 import ProgressiveImage from "../ProgressiveImage.jsx";
 import { useTranslation } from "../../hooks/useTranslation.js";
 import { useDataStore } from "../../store/useDataStore.js";
@@ -250,6 +250,8 @@ export default memo(function BusinessCard({
                   transition={{ duration: 0.4, ease: "easeOut" }} 
                   src={getThumbUrl(thumb.url, 300, 300)} 
                   thumbSrc={getThumbUrl(thumb.url, 20, 20)}
+                  srcSet={getThumbSrcSet(thumb.url, SRCSET_THUMB, 400)}
+                  sizes="135px"
                   alt={b.name} 
                   style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }} 
                 />
@@ -336,6 +338,8 @@ export default memo(function BusinessCard({
                 transition={{ duration: 0.4, ease: "easeOut" }} 
                 src={getThumbUrl(thumb.url, 600, 400)} 
                 thumbSrc={getThumbUrl(thumb.url, 20, 20)}
+                srcSet={getThumbSrcSet(thumb.url, SRCSET_CARD, 533)}
+                sizes="(max-width: 640px) 100vw, 400px"
                 alt={b.name} 
                 style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }} 
               />
@@ -403,6 +407,8 @@ export default memo(function BusinessCard({
                 transition={{ duration: 0.4, ease: "easeOut" }} 
                 src={getThumbUrl(thumb.url, 800, 600)} 
                 thumbSrc={getThumbUrl(thumb.url, 20, 20)}
+                srcSet={getThumbSrcSet(thumb.url, SRCSET_CARD, 600)}
+                sizes="(max-width: 640px) 100vw, 800px"
                 alt={b.name} 
                 style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }} 
               />
