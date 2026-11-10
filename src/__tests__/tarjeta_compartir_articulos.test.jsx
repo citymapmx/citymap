@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ExperienceShareCardTemplate from '../components/ExperienceShareCardTemplate.jsx';
-import { wrapShareCardText } from '../lib/shareCard.js';
+import { wrapShareCardText, measureShareCardText } from '../lib/shareCard.js';
 import {
   EXPERIENCE_SHARE_CARD_LAYOUT,
   EXPERIENCE_SHARE_CARD_FORMATS,
@@ -28,7 +28,9 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // mal en vivo; el precio va en pastilla AZUL grande). Tres formatos:
 // Historia 1080×1920, Post 1080×1080 y Horizontal 1080×566 (el tamaño
 // oficial de Instagram para post horizontal). Sin círculo de logo (eso
-// es solo para negocios con plan de pago).
+// es solo para negocios con plan de pago). PR #177: en Historia la foto
+// va en bloque centrado como en eventos (Post y Horizontal siguen a
+// sangre) y la pastilla glass centra el pin y la etiqueta por separado.
 
 // Tour real de la base como caso de prueba: Excursión a Tequila con
 // La Rojeña, Guadalajara, $1,881, 6–8 horas, Español/Inglés, SIN
@@ -94,6 +96,40 @@ const LARGO = {
     'Excursión privada a Tequila y Amatitán con cata premium en la destilería La Rojeña de José Cuervo',
   slug: 'excursion-privada-tequila-amatitan',
 };
+// Tour real de la base como caso de prueba: Excursión a Chichén Itzá
+// y el cenote Chichikan, Playa del Carmen, $662, 12–13 h, Español,
+// SIN reseñas. Lo pidió Jonathan con capturas (10 Nov ~13:02): la
+// pastilla «📍 Playa del Carmen · Tour» salía descentrada y la foto de
+// Historia iba a sangre completa.
+const CHICHEN = {
+  title: 'Excursión a Chichén Itzá y el cenote Chichikan',
+  slug: 'playa-del-carmen-excursion-a-chichen-itza-y-el-cenote-chichikan',
+  city_slug: 'playa-del-carmen',
+  activity_type: 'Tour',
+  description:
+    'La excursión clásica desde la Riviera Maya a Chichén Itzá: la ciudad maya más famosa de México, un baño en el cenote Chichikan y un paseo por la ciudad colonial de Valladolid, con almuerzo incluido.',
+  duration: '12 horas - 13 horas',
+  languages: 'Español',
+  people: '',
+  price: 662,
+  rating: 0,
+  review_count: 0,
+  gallery: [
+    'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/playa-del-carmen-excursion-a-chichen-itza-y-el-cenote-chichikan-galeria-2.webp',
+  ],
+};
+// Peor caso de contenido en Historia: título a 3 líneas a tamaño
+// completo + descripción y datos a 2 líneas + precio. La foto sigue
+// con al menos photoMinH y sin comerse el contenido.
+const MAXIMO = {
+  ...TEQUILA,
+  title: 'Excursión a Chichén Itzá y el cenote Chichikan con guía certificado',
+  slug: 'excursion-a-chichen-itza-cenote-chichikan-guia',
+  description:
+    'Una excursión larguísima para recorrer la zona arqueológica entera con guía certificado, bañarse en el cenote y pasear por Valladolid con almuerzo incluido en el precio.',
+  duration: '12 horas - 13 horas',
+  languages: 'Español, Inglés, Francés, Alemán',
+};
 
 const ALL_FORMATS = [
   EXPERIENCE_SHARE_CARD_FORMATS.story,
@@ -140,6 +176,10 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
     expect(d.cityName).toBe('Guadalajara');
     expect(d.activityType).toBe('Tour');
     expect(d.cityLine).toBe('📍 Guadalajara · Tour');
+    // Pin y etiqueta por separado (PR #177): la pastilla los centra
+    // cada uno por su caja visual; la línea completa se conserva.
+    expect(d.cityPin).toBe('📍');
+    expect(d.cityLabel).toBe('Guadalajara · Tour');
     expect(d.priceText).toBe('$1,881 MXN');
     expect(d.priced).toBe(true);
     expect(d.dataLine).toBe('⏱ 6 horas - 8 horas · 🌐 Español, Inglés');
@@ -153,6 +193,26 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
     expect(experienceShareUrl(TEQUILA)).toBe(d.shareUrl);
     expect(experienceShareCardFileName(TEQUILA)).toBe(
       'citymap-experiencia-excursion-a-tequila-la-rojeña.png',
+    );
+  });
+
+  it('chichén itzá: datos reales de Playa del Carmen ($662, 12–13 h, Español)', () => {
+    const d = buildExperienceShareCardData(CHICHEN, { cityName: 'Playa del Carmen' });
+    expect(d.photoUrl).toContain(
+      'playa-del-carmen-excursion-a-chichen-itza-y-el-cenote-chichikan-galeria-2.webp',
+    );
+    expect(d.title).toBe('Excursión a Chichén Itzá y el cenote Chichikan');
+    expect(d.cityName).toBe('Playa del Carmen');
+    expect(d.activityType).toBe('Tour');
+    expect(d.cityLine).toBe('📍 Playa del Carmen · Tour');
+    expect(d.cityPin).toBe('📍');
+    expect(d.cityLabel).toBe('Playa del Carmen · Tour');
+    expect(d.priceText).toBe('$662 MXN');
+    expect(d.priced).toBe(true);
+    expect(d.dataLine).toBe('⏱ 12 horas - 13 horas · 🌐 Español');
+    expect(d.ratingText).toBe('');
+    expect(d.shareUrl).toBe(
+      'https://citymap.mx/revista/playa-del-carmen/playa-del-carmen-excursion-a-chichen-itza-y-el-cenote-chichikan',
     );
   });
 
@@ -299,13 +359,35 @@ describe('tarjeta para compartir el artículo: la descripción nunca se corta a 
 });
 
 describe('tarjeta para compartir el artículo: geometría «Foto completa» (vista previa = PNG)', () => {
-  it('la foto es a sangre completa y el bloque de texto termina en el margen inferior', () => {
+  it('la foto es a sangre completa en Post y Horizontal; en Historia va en bloque centrado como en eventos', () => {
     for (const format of ALL_FORMATS) {
-      for (const exp of [TEQUILA, GUIA_GRATIS, CON_RESENAS]) {
+      for (const exp of [TEQUILA, GUIA_GRATIS, CON_RESENAS, CHICHEN]) {
         const d = buildExperienceShareCardData(exp, { cityName: 'Guadalajara' });
         const geo = computeExperienceShareCardLayout(d, format);
-        // La foto llena TODA la tarjeta, como la demo.
-        expect(geo.photo).toEqual({ x: 0, y: 0, w: format.width, h: format.height });
+        if (format.id === 'story') {
+          // Bloque centrado con márgenes, como la tarjeta de eventos
+          // (PR #177): x = pad, ancho = W - 2*pad, radio 40, debajo
+          // del logotipo, y el contenido DEBAJO de la foto.
+          expect(geo.photo.x).toBe(geo.L.pad);
+          expect(geo.photo.w).toBe(geo.width - geo.L.pad * 2);
+          expect(geo.photo.radius).toBe(40);
+          expect(geo.photo.y).toBe(geo.L.pad + geo.L.logoH + geo.L.logoGap);
+          expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
+          // La foto termina justo photoGap antes del contenido.
+          expect(geo.photo.y + geo.photo.h + geo.L.photoGap).toBeCloseTo(
+            geo.cityPill.y,
+            9,
+          );
+        } else {
+          // La foto llena TODA la tarjeta, como la demo.
+          expect(geo.photo).toEqual({
+            x: 0,
+            y: 0,
+            w: format.width,
+            h: format.height,
+            radius: 0,
+          });
+        }
         // El bloque de texto (o la pastilla, que va debajo en
         // Historia/Post) termina exactamente en el margen inferior.
         const lastEnd = Math.max(
@@ -324,6 +406,55 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
           );
         }
       }
+    }
+  });
+
+  it('en Historia, ni el peor caso de contenido se come la foto', () => {
+    const d = buildExperienceShareCardData(MAXIMO, { cityName: 'Guadalajara' });
+    const geo = computeExperienceShareCardLayout(
+      d,
+      EXPERIENCE_SHARE_CARD_FORMATS.story,
+    );
+    // Título a 3 líneas, descripción y datos a 2 líneas.
+    expect(geo.title.lines.length).toBe(3);
+    expect(geo.desc.lines.length).toBe(2);
+    expect(geo.dataRows.lines.length).toBe(2);
+    // La foto sigue con al menos el mínimo y sin tocar el contenido.
+    expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
+    expect(geo.photo.y + geo.photo.h + geo.L.photoGap).toBeCloseTo(
+      geo.cityPill.y,
+      9,
+    );
+  });
+
+  it('la pastilla de ubicación guarda el pin y la etiqueta por separado, con el ancho exacto', () => {
+    for (const format of ALL_FORMATS) {
+      const geo = computeExperienceShareCardLayout(
+        buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' }),
+        format,
+      );
+      // La línea completa se conserva por compatibilidad.
+      expect(geo.cityPill.text).toBe('📍 Guadalajara · Tour');
+      expect(geo.cityPill.pin).toBe('📍');
+      expect(geo.cityPill.label).toBe('Guadalajara · Tour');
+      // El ancho es pin + espacio + etiqueta + los dos paddings.
+      expect(geo.cityPill.pinW).toBeGreaterThan(0);
+      expect(geo.cityPill.pinGap).toBeGreaterThan(0);
+      expect(geo.cityPill.w).toBeCloseTo(
+        geo.cityPill.pinW +
+          geo.cityPill.pinGap +
+          measureShareCardText('Guadalajara · Tour', geo.L.citySize, 600) +
+          geo.L.cityPadX * 2,
+        9,
+      );
+      // Sin ciudad no hay pin: solo la etiqueta (el tipo).
+      const soloTipo = computeExperienceShareCardLayout(
+        buildExperienceShareCardData(TEQUILA, { cityName: '' }),
+        format,
+      );
+      expect(soloTipo.cityPill.pin).toBe('');
+      expect(soloTipo.cityPill.label).toBe('Tour');
+      expect(soloTipo.cityPill.text).toBe('Tour');
     }
   });
 
@@ -519,6 +650,40 @@ describe('tarjeta para compartir el artículo: la plantilla se renderiza (vista 
     expect(html).toContain('height:566px');
   });
 
+  it('historia: foto en bloque centrado con radio 40, fondo oscuro y sin degradados; post sigue a sangre', () => {
+    const d = buildExperienceShareCardData(CHICHEN, { cityName: 'Playa del Carmen' });
+    const storyHtml = renderToStaticMarkup(
+      <ExperienceShareCardTemplate data={d} format={EXPERIENCE_SHARE_CARD_FORMATS.story} />,
+    );
+    // Fondo oscuro como en la tarjeta de eventos.
+    expect(storyHtml).toContain('#1B1B1B');
+    expect(storyHtml).toContain('#0B0B0B');
+    // La foto va en el bloque (x: pad, y: pad + logo + hueco, radio 40).
+    expect(storyHtml).toContain('left:64px');
+    expect(storyHtml).toContain('top:180px');
+    expect(storyHtml).toContain('border-radius:40px');
+    // Sin degradados encima de la foto: el texto va sobre el fondo oscuro.
+    expect(storyHtml).not.toContain('rgba(0,0,0,0.5)');
+    expect(storyHtml).not.toContain('rgba(0,0,0,0.88)');
+    // La pastilla lleva el pin y la etiqueta en spans separados.
+    expect(storyHtml).toContain('>📍</span>');
+    expect(storyHtml).toContain('>Playa del Carmen · Tour</span>');
+    // El contenido sigue ahí: título (repartido en 3 líneas), precio y datos.
+    expect(storyHtml).toContain('Excursión a Chichén');
+    expect(storyHtml).toContain('Chichikan');
+    expect(storyHtml).toContain('$662 MXN');
+    expect(storyHtml).toContain('12 horas - 13 horas');
+    // Post: la foto sigue a sangre completa, con degradados.
+    const postHtml = renderToStaticMarkup(
+      <ExperienceShareCardTemplate data={d} format={EXPERIENCE_SHARE_CARD_FORMATS.post} />,
+    );
+    expect(postHtml).toContain('background:#111111');
+    expect(postHtml).toContain('rgba(0,0,0,0.5)');
+    expect(postHtml).toContain('rgba(0,0,0,0.88)');
+    expect(postHtml).toContain('>📍</span>');
+    expect(postHtml).toContain('>Playa del Carmen · Tour</span>');
+  });
+
   it('con reseñas reales: la calificación sí se pinta (estrella + texto)', () => {
     const d = buildExperienceShareCardData(CON_RESENAS, { cityName: 'Guadalajara' });
     const html = renderToStaticMarkup(
@@ -594,7 +759,7 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(sheet).not.toContain('styleId');
   });
 
-  it('la plantilla lleva la foto a sangre, el logotipo oficial, la pastilla glass y el precio azul; sin pie', () => {
+  it('la plantilla lleva la foto en el bloque de la geometría (centrada en Historia, a sangre en Post/Horizontal), el logotipo oficial, la pastilla glass y el precio azul; sin pie', () => {
     expect(template).toContain('/logo-brand.png');
     expect(template).not.toContain('Pastilla citymap.mx');
     expect(template).not.toContain('#60A5FA');
@@ -604,6 +769,12 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(template).toContain('crossOrigin="anonymous"');
     expect(template).toContain('{photoSrc ? (');
     expect(template).toContain('computeExperienceShareCardLayout');
+    // La foto se pinta donde dice la geometría compartida (no a sangre
+    // fija): en Historia es el bloque centrado, en Post/Horizontal es
+    // toda la tarjeta; los degradados solo van con la foto a sangre.
+    expect(template).toContain('layout.photo');
+    expect(template).toContain('centeredPhoto');
+    expect(template).toContain('photo.radius');
     expect(template).toContain('objectFit:');
     expect(template).toContain("'cover'");
     expect(template).not.toContain('Descúbrelo en');
