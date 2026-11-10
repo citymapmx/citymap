@@ -152,18 +152,20 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
       const photoBottom = geo.photo.y + geo.photo.h;
       expect(geo.bizLogo.y + geo.bizLogo.d / 2).toBeCloseTo(photoBottom, 0);
       // La foto se acorta exactamente lo que sobresale el círculo más
-      // el hueco, menos el margen que había antes (catGap).
+      // el hueco, menos el margen que había antes (nameGap, el del
+      // nombre, primer bloque tras la foto desde el PR #155).
       const dNoLogo = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
       const geoNoLogo = computeShareCardLayout(dNoLogo, format, true);
-      const expectedDiff = geo.L.bizLogoD / 2 + geo.L.bizLogoGap - geo.L.catGap;
+      const expectedDiff = geo.L.bizLogoD / 2 + geo.L.bizLogoGap - geo.L.nameGap;
       expect(geoNoLogo.photo.h - geo.photo.h).toBeCloseTo(expectedDiff, 6);
       // El primer hueco tras la foto es el del círculo.
       expect(geo.firstGap).toBe(geo.L.bizLogoD / 2 + geo.L.bizLogoGap);
-      // Sigue sin franja vacía entre píldoras y pie.
+      // Sigue sin franja vacía entre píldoras y pie (toBeCloseTo: el
+      // 88 × 1,12 del nombre deja polvo de coma flotante, 44,000…114).
       const lastRow = geo.pillRows[geo.pillRows.length - 1];
       const pillsEnd = lastRow[0].y + lastRow[0].h;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - pillsEnd).toBe(geo.L.footGap);
+      expect(footTop - pillsEnd).toBeCloseTo(geo.L.footGap, 9);
     }
   });
 
@@ -172,18 +174,17 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
       const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
       const geo = computeShareCardLayout(d, format, true);
       expect(geo.bizLogo).toBeNull();
-      // La foto conserva su alto del #143 (Xokol, Historia: 1370,88;
-      // Post: 640,8) y el primer hueco es el margen normal.
+      // La foto conserva su alto calculado (Xokol, Historia: 1331,44;
+      // Post: 629,84) y el primer hueco es el margen normal del nombre.
       const expectedPhotoH =
         format.height -
         geo.L.pad * 2 -
         (geo.L.logoH + geo.L.logoGap) -
-        (geo.L.catGap + geo.L.catSize) -
         (geo.L.nameGap + geo.L.nameSize * geo.L.nameLineH) -
         (geo.L.pillsGap + geo.L.pillSize + geo.L.pillPadY * 2) -
         (geo.L.footGap + geo.L.footSize);
       expect(geo.photo.h).toBeCloseTo(expectedPhotoH, 6);
-      expect(geo.firstGap).toBe(geo.L.catGap);
+      expect(geo.firstGap).toBe(geo.L.nameGap);
     }
   });
 
@@ -210,14 +211,15 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
   });
 
   it('el círculo es más grande que en el #144, con anillo y sombra proporcionales (PR #145)', () => {
-    // «Un poco» más grande: ~+25% de diámetro; el logo CITYMAP de
-    // arriba no cambia de tamaño.
+    // «Un poco» más grande: ~+25% de diámetro. El logo CITYMAP de
+    // arriba creció en el PR #155 (76/60 en vez de 56/44) para que se
+    // vea más grande y visible.
     expect(SHARE_CARD_LAYOUT.story.bizLogoD).toBe(240);
     expect(SHARE_CARD_LAYOUT.post.bizLogoD).toBe(190);
     expect(SHARE_CARD_LAYOUT.story.bizLogoRing).toBe(8);
     expect(SHARE_CARD_LAYOUT.post.bizLogoRing).toBe(6);
-    expect(SHARE_CARD_LAYOUT.story.logoH).toBe(56);
-    expect(SHARE_CARD_LAYOUT.post.logoH).toBe(44);
+    expect(SHARE_CARD_LAYOUT.story.logoH).toBe(76);
+    expect(SHARE_CARD_LAYOUT.post.logoH).toBe(60);
   });
 
   it('el peor caso con logo y círculo grande no se solapa (nombre de 2 líneas, PR #145)', () => {
@@ -238,9 +240,10 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
       // La foto no se recorta a su mínimo: nada se desborda.
       expect(geo.photo.h).toBeGreaterThan(geo.L.photoMinH);
       // Entre el círculo y el primer texto queda el hueco diseñado
-      // (la y del círculo se redondea a píxel entero, ±0,5 px).
+      // (la y del círculo se redondea a píxel entero, ±0,5 px). El
+      // primer texto es el nombre (la categoría salió en el PR #155).
       const circleBottom = geo.bizLogo.y + geo.bizLogo.d;
-      const firstTextTop = geo.category.y - geo.category.size / 2;
+      const firstTextTop = geo.name.y - (geo.L.nameSize * geo.L.nameLineH) / 2;
       expect(firstTextTop - circleBottom).toBeCloseTo(geo.L.bizLogoGap, 0);
       // Y entre las píldoras y el pie queda exactamente footGap.
       const lastRow = geo.pillRows[geo.pillRows.length - 1];

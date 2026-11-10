@@ -4,7 +4,10 @@
 // v1: UN estilo oscuro, dos formatos (Historia IG 1080×1920, Post IG
 // 1080×1080). PR #154: tres estilos (Oscura, Editorial y Ficha
 // completa) que se eligen en la hoja; el oscuro sigue siendo el
-// por defecto.
+// por defecto. PR #155: la Ficha completa se quita (Jonathan) y quedan
+// DOS estilos (Oscura y Editorial), que se cambian con chevrones y
+// puntos en vez de botones; la categoría sale de ambas versiones y el
+// logo de Editorial va en oscuro (el PNG es blanco y no se veía).
 //
 // PR #143 — POR QUÉ YA NO SE USA html-to-image: la exportación del #142
 // salía 100% transparente (0 píxeles opacos, verificado por análisis de
@@ -33,7 +36,7 @@
 // planes de pago con logo_url) va centrado a caballo sobre el borde
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
 // tarjeta queda igual que en el #143.
-import { createSlug, getThumbUrl, isOpenNow } from './utils.js';
+import { createSlug, getThumbUrl } from './utils.js';
 import { formatReviewCount } from './googleRatings.js';
 
 export const SHARE_CARD_FORMATS = {
@@ -57,9 +60,9 @@ export const SHARE_CARD_FONT_STACK =
 export const SHARE_CARD_LAYOUT = {
   story: {
     pad: 64,
-    logoH: 56,
-    logoGap: 32,
-    photoMinH: 1080,
+    logoH: 76,
+    logoGap: 40,
+    photoMinH: 950,
     photoRadius: 40,
     // Círculo del logo del negocio (PR #144; PR #145: más grande, Ø 240
     // con anillo y sombra proporcionales): mismo estilo que la ficha
@@ -71,71 +74,69 @@ export const SHARE_CARD_LAYOUT = {
     bizLogoGap: 28,
     bizLogoShadowY: 8,
     bizLogoShadowBlur: 20,
-    catSize: 32,
-    catGap: 36,
-    nameSize: 76,
-    nameGap: 18,
+    nameSize: 88,
+    nameGap: 32,
     nameLineH: 1.12,
     nameMaxLines: 2,
-    pillSize: 34,
-    pillPadX: 26,
-    pillPadY: 12,
+    pillSize: 40,
+    pillPadX: 28,
+    pillPadY: 14,
     pillGap: 16,
     pillRowGap: 14,
-    pillsGap: 30,
-    footSize: 30,
-    footGap: 44,
+    pillsGap: 52,
+    footSize: 34,
+    footGap: 60,
   },
   post: {
     pad: 48,
-    logoH: 44,
-    logoGap: 24,
-    photoMinH: 480,
+    logoH: 60,
+    logoGap: 28,
+    photoMinH: 360,
     photoRadius: 32,
     bizLogoD: 190,
     bizLogoRing: 6,
     bizLogoGap: 22,
     bizLogoShadowY: 8,
     bizLogoShadowBlur: 20,
-    catSize: 28,
-    catGap: 28,
-    nameSize: 60,
-    nameGap: 14,
+    nameSize: 68,
+    nameGap: 20,
     nameLineH: 1.12,
     nameMaxLines: 2,
-    pillSize: 30,
-    pillPadX: 24,
-    pillPadY: 11,
+    pillSize: 34,
+    pillPadX: 26,
+    pillPadY: 13,
     pillGap: 14,
     pillRowGap: 12,
-    pillsGap: 24,
-    footSize: 26,
-    footGap: 36,
+    pillsGap: 36,
+    footSize: 30,
+    footGap: 44,
   },
 };
 
 // ─── Estilos de la tarjeta (PR #154) ───
 //
 // La tarjeta de negocios ya no tiene un solo estilo: el oscuro «Glass»
-// del #142 sigue siendo el por defecto, y se suman dos más que Jonathan
-// eligió de la demo de propuestas:
-//   - editorial: panel claro tipo revista (fondo blanco, tipografía
-//     cuidada, sin círculo de logo: la limpieza es el estilo).
-//   - ficha: la práctica, para que el cliente llegue al negocio: foto,
-//     nombre, calificación y una ficha con el horario de hoy, la
-//     dirección y el WhatsApp (solo las líneas con dato real).
+// del #142 sigue siendo el por defecto, y se suma Editorial, el claro
+// tipo revista que Jonathan eligió de la demo de propuestas (fondo
+// blanco, tipografía cuidada, sin círculo de logo: la limpieza es el
+// estilo). PR #155: la Ficha completa se quita (Jonathan) y quedan DOS
+// estilos, que se cambian con chevrones y puntos en la hoja en vez de
+// botones. La categoría sale de ambas versiones (PR #155) y el logo de
+// Editorial va en oscuro (el PNG es blanco y no se veía sobre blanco).
 // La hoja (ShareCardSheet) deja elegir el estilo junto al formato
 // (Historia/Post): la vista previa y el PNG comparten UNA geometría por
 // estilo, igual que la tarjeta actual. Sin precio en ningún estilo.
+//
+// PR #155 (ajustes 6–7): la foto se acorta y la información gana
+// presencia (nombre y píldoras más grandes, huecos más generosos) y el
+// logotipo oficial crece (logoH mayor en ambos estilos y formatos).
 export const SHARE_CARD_STYLES = {
   glass: { id: 'glass', label: 'Oscura' },
   editorial: { id: 'editorial', label: 'Editorial' },
-  ficha: { id: 'ficha', label: 'Ficha completa' },
 };
 export const SHARE_CARD_STYLE_LIST = [
   SHARE_CARD_STYLES.glass,
   SHARE_CARD_STYLES.editorial,
-  SHARE_CARD_STYLES.ficha,
 ];
 export const SHARE_CARD_DEFAULT_STYLE = 'glass';
 export function resolveShareCardStyle(styleId) {
@@ -155,8 +156,6 @@ export const SHARE_CARD_STYLE_COLORS = {
     logoWhite: true,
     photoBg: '#262626',
     initial: 'rgba(255,255,255,0.35)',
-    infoBg: 'rgba(255,255,255,0.08)',
-    infoText: '#F4F4F5',
   },
   editorial: {
     bg: ['#FFFFFF', '#FAF9F6'],
@@ -168,155 +167,61 @@ export const SHARE_CARD_STYLE_COLORS = {
     logoWhite: false,
     photoBg: '#F0EFEA',
     initial: 'rgba(0,0,0,0.30)',
-    infoBg: null,
-    infoText: '#111111',
-  },
-  ficha: {
-    bg: ['#1B1B1B', '#0B0B0B'],
-    text: '#FFFFFF',
-    sub: '#A3A3A3',
-    pillBg: 'rgba(255,255,255,0.12)',
-    pillBorder: null,
-    pillText: '#FFFFFF',
-    logoWhite: true,
-    photoBg: '#262626',
-    initial: 'rgba(255,255,255,0.35)',
-    infoBg: 'rgba(255,255,255,0.08)',
-    infoText: '#F4F4F5',
   },
 };
 
 // Geometría de Editorial: los mismos bloques que el estilo oscuro
-// (logo, foto, categoría, nombre, píldoras, pie), con medidas propias y
-// sin círculo de logo (showBizLogo: false): la limpieza es el estilo.
+// (logo, foto, nombre, píldoras, pie), con medidas propias y sin
+// círculo de logo (showBizLogo: false): la limpieza es el estilo.
+// PR #155: sin categoría (sale de ambas versiones), foto más corta y
+// nombre/píldoras más grandes para que la información tenga más
+// presencia; logo más grande (logoH 76/60).
 export const EDITORIAL_SHARE_CARD_LAYOUT = {
   story: {
     pad: 64,
-    logoH: 56,
-    logoGap: 36,
-    photoMinH: 1080,
+    logoH: 76,
+    logoGap: 40,
+    photoMinH: 950,
     photoRadius: 32,
     showBizLogo: false,
-    catSize: 30,
-    catGap: 40,
-    nameSize: 68,
+    nameSize: 80,
+    nameGap: 32,
+    nameLineH: 1.15,
+    nameMaxLines: 2,
+    pillSize: 38,
+    pillPadX: 26,
+    pillPadY: 13,
+    pillGap: 14,
+    pillRowGap: 12,
+    pillsGap: 52,
+    footSize: 32,
+    footGap: 60,
+  },
+  post: {
+    pad: 48,
+    logoH: 60,
+    logoGap: 28,
+    photoMinH: 360,
+    photoRadius: 28,
+    showBizLogo: false,
+    nameSize: 62,
     nameGap: 20,
     nameLineH: 1.15,
     nameMaxLines: 2,
     pillSize: 32,
     pillPadX: 24,
-    pillPadY: 11,
-    pillGap: 14,
-    pillRowGap: 12,
-    pillsGap: 32,
-    footSize: 28,
-    footGap: 44,
-  },
-  post: {
-    pad: 48,
-    logoH: 44,
-    logoGap: 28,
-    photoMinH: 480,
-    photoRadius: 28,
-    showBizLogo: false,
-    catSize: 26,
-    catGap: 32,
-    nameSize: 54,
-    nameGap: 16,
-    nameLineH: 1.15,
-    nameMaxLines: 2,
-    pillSize: 28,
-    pillPadX: 22,
-    pillPadY: 10,
+    pillPadY: 12,
     pillGap: 12,
     pillRowGap: 10,
-    pillsGap: 26,
-    footSize: 24,
-    footGap: 36,
-  },
-};
-
-// Geometría de Ficha completa: como el estilo oscuro pero con la foto
-// más corta y un panel de información tras las píldoras (horario,
-// dirección, WhatsApp). photoMinH es más bajo en Post (200) porque con
-// las 3 filas de la ficha el peor caso (nombre de 2 líneas, 2 filas de
-// píldoras, dirección larga) solo deja 246 px libres: con el mínimo del
-// estilo oscuro la tarjeta se desbordaría.
-export const FICHA_SHARE_CARD_LAYOUT = {
-  story: {
-    pad: 64,
-    logoH: 56,
-    logoGap: 32,
-    photoMinH: 720,
-    photoRadius: 40,
-    showBizLogo: true,
-    bizLogoD: 240,
-    bizLogoRing: 8,
-    bizLogoGap: 28,
-    bizLogoShadowY: 8,
-    bizLogoShadowBlur: 20,
-    catSize: 32,
-    catGap: 36,
-    nameSize: 76,
-    nameGap: 18,
-    nameLineH: 1.12,
-    nameMaxLines: 2,
-    pillSize: 34,
-    pillPadX: 26,
-    pillPadY: 12,
-    pillGap: 16,
-    pillRowGap: 14,
-    pillsGap: 30,
-    infoSize: 30,
-    infoLineH: 1.35,
-    infoMaxLines: 2,
-    infoRowGap: 14,
-    infoPad: 24,
-    infoRadius: 28,
-    infoGap: 28,
-    footSize: 30,
+    pillsGap: 36,
+    footSize: 28,
     footGap: 44,
-  },
-  post: {
-    pad: 48,
-    logoH: 44,
-    logoGap: 24,
-    photoMinH: 200,
-    photoRadius: 32,
-    showBizLogo: true,
-    bizLogoD: 190,
-    bizLogoRing: 6,
-    bizLogoGap: 22,
-    bizLogoShadowY: 8,
-    bizLogoShadowBlur: 20,
-    catSize: 28,
-    catGap: 28,
-    nameSize: 60,
-    nameGap: 14,
-    nameLineH: 1.12,
-    nameMaxLines: 2,
-    pillSize: 30,
-    pillPadX: 24,
-    pillPadY: 11,
-    pillGap: 14,
-    pillRowGap: 12,
-    pillsGap: 24,
-    infoSize: 26,
-    infoLineH: 1.35,
-    infoMaxLines: 2,
-    infoRowGap: 12,
-    infoPad: 20,
-    infoRadius: 24,
-    infoGap: 24,
-    footSize: 26,
-    footGap: 36,
   },
 };
 
 export const SHARE_CARD_STYLE_LAYOUTS = {
   glass: SHARE_CARD_LAYOUT,
   editorial: EDITORIAL_SHARE_CARD_LAYOUT,
-  ficha: FICHA_SHARE_CARD_LAYOUT,
 };
 
 // La tabla de medidas de un estilo y formato (la plantilla la usa para
@@ -343,100 +248,14 @@ export function bizShowsLogoCircle(biz) {
   );
 }
 
-// WhatsApp de la ficha (PR #154, estilo Ficha): el mismo que muestra
-// DetailView — solo si el negocio tiene número Y plan de pago
-// (premium/pro/destacado). En los planes gratuitos la ficha tampoco lo
-// muestra, así que la tarjeta no lo regala.
-export function shareCardWhatsapp(biz) {
-  if (typeof biz?.whatsapp !== 'string' || !biz.whatsapp.trim()) return null;
-  if (!BIZ_LOGO_PLANS.includes(String(biz?.plan || '').trim().toLowerCase())) return null;
-  return biz.whatsapp.trim();
-}
-
-// Una hora suelta en 12 h en español, como las horas de la app
-// («11:00 p. m.»). Misma expresión que formatBusinessHours.
-export function formatShareCardHour(value) {
-  const m = String(value || '')
-    .trim()
-    .match(/^(\d{1,2})(?::(\d{2}))?\s*([ap]\.?\s*m\.?)?$/i);
-  if (!m) return String(value || '').trim();
-  let hour = Number(m[1]);
-  const suffix = (m[3] || '').replace(/[.\\s]/g, '').toLowerCase();
-  if (suffix === 'pm' && hour < 12) hour += 12;
-  if (suffix === 'am' && hour === 12) hour = 0;
-  const ampm = hour >= 12 ? 'p. m.' : 'a. m.';
-  return `${hour % 12 || 12}:${m[2] || '00'} ${ampm}`;
-}
-
-const SHARE_CARD_SCHEDULE_DAYS = ['dom', 'lun', 'mar', 'mie', 'jue', 'vie', 'sab'];
-const SHARE_CARD_WEEKDAY = {
-  Sun: 'dom',
-  Mon: 'lun',
-  Tue: 'mar',
-  Wed: 'mie',
-  Thu: 'jue',
-  Fri: 'vie',
-  Sat: 'sab',
-};
-
-// La línea de horario de hoy para la ficha (PR #154): «Abierto ahora ·
-// Cierra 11:00 p. m.» o «Cerrado · Hoy 9:00 a. m. – 11:00 p. m.». Usa el
-// mismo horario (biz.schedule, días dom/lun/…) y la misma lógica de
-// abierto/cerrado (isOpenNow) que la ficha. Si no hay horario para hoy
-// o el negocio no publica horario, null: la línea no se pinta (nunca
-// texto inventado).
-export function shareCardHoursLine(biz, now = null) {
-  const sch = biz?.schedule;
-  if (!sch || typeof sch !== 'object') return biz?.open ? 'Abierto ahora' : null;
-  if (sch.type === 'none') return null;
-  if (sch.type === 'always_open') return 'Abierto 24/7';
-  if (sch.type === 'appointment') return 'Atención con cita previa';
-  const tz =
-    (typeof window !== 'undefined' && window.CITY_TZ) || 'America/Mexico_City';
-  const d =
-    now || (typeof window !== 'undefined' && window.APP_NOW) || new Date();
-  let dayKey;
-  try {
-    const wd = new Intl.DateTimeFormat('en-US', {
-      timeZone: tz,
-      weekday: 'short',
-    }).format(d);
-    dayKey = SHARE_CARD_WEEKDAY[wd] || null;
-  } catch {
-    dayKey = SHARE_CARD_SCHEDULE_DAYS[new Date(d).getDay()];
-  }
-  const raw = dayKey ? sch[dayKey] : null;
-  if (raw == null) return null;
-  if (/cerrado/i.test(String(raw))) return 'Cerrado hoy';
-  const shifts = String(raw)
-    .split(/\n|,|\by\b/i)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  let open12 = null;
-  let close12 = null;
-  if (shifts.length) {
-    const segs = shifts[0].split(/\s*[-–]\s*|\s+a\s+/i).map((s) => s.trim());
-    if (segs.length >= 2) {
-      open12 = formatShareCardHour(segs[0]);
-      close12 = formatShareCardHour(segs[1]);
-    }
-  }
-  const todayRange = open12 && close12 ? `${open12} – ${close12}` : null;
-  if (isOpenNow(biz, tz, d)) {
-    return close12 ? `Abierto ahora · Cierra ${close12}` : 'Abierto ahora';
-  }
-  return todayRange ? `Cerrado · Hoy ${todayRange}` : 'Cerrado hoy';
-}
-
 // Datos que lleva la tarjeta. La calificación es SOLO la de Google: si
 // displayRating no trae dato vigente de google_ratings_cache (source
 // 'google'), no hay píldora de calificación — la interna de CityMap no
 // se muestra en la tarjeta y ningún número se inventa. El precio se
 // conserva como dato pero la tarjeta ya no lo muestra (PR #143).
-// PR #154: la ficha suma el horario de hoy, la dirección (si no está
-// oculta) y el WhatsApp (solo planes de pago, como la ficha): las líneas
-// sin dato no se pintan.
-export function buildShareCardData(biz, { disp = null, cityName = '', now = null } = {}) {
+// PR #155: sin categoría (sale de ambas versiones) y sin los datos de
+// la Ficha (horario, dirección, WhatsApp), que se fue con ese estilo.
+export function buildShareCardData(biz, { disp = null, cityName = '' } = {}) {
   const photoUrl =
     biz?.photos?.find((p) => p?.url)?.url || biz?.banner_url || biz?.logo_url || null;
   const google =
@@ -445,20 +264,11 @@ export function buildShareCardData(biz, { disp = null, cityName = '', now = null
     photoUrl,
     bizLogoUrl: bizShowsLogoCircle(biz) ? biz.logo_url.trim() : null,
     name: biz?.name || '',
-    category: (biz?.type?.trim() || biz?.category || '').trim(),
     rating: google ? disp.rating : null,
     reviewCount: google ? disp.count || 0 : 0,
     cityName: (cityName || '').trim(),
     price:
       typeof biz?.price === 'string' && biz.price.trim() ? biz.price.trim() : null,
-    hoursLine: shareCardHoursLine(biz, now),
-    address:
-      !biz?.hide_location &&
-      typeof biz?.address === 'string' &&
-      biz.address.trim()
-        ? biz.address.trim()
-        : null,
-    whatsapp: shareCardWhatsapp(biz),
   };
 }
 
@@ -513,7 +323,7 @@ export function measureShareCardText(text, size, weight = 700) {
 }
 
 // Texto cortado a N líneas como máximo, con puntos suspensivos si sobra
-// (el nombre de la tarjeta y las filas de la ficha usan lo mismo).
+// (el nombre de la tarjeta usa lo mismo).
 export function wrapShareCardText(text, maxW, size, maxLines, weight = 700) {
   const words = String(text || '')
     .trim()
@@ -599,29 +409,16 @@ function layoutPillRows(pills, maxW, L) {
   return rows;
 }
 
-// Filas de la ficha (PR #154): horario, dirección y WhatsApp, solo las
-// que tienen dato. Cada fila se corta a infoMaxLines líneas; el icono
-// reserva su ancho para que el texto nunca se le monte encima.
-function shareCardInfoRows(data, maxW, L) {
-  const rows = [];
-  if (data?.hoursLine) rows.push({ icon: '🕐', text: data.hoursLine });
-  if (data?.address) rows.push({ icon: '📍', text: data.address });
-  if (data?.whatsapp) rows.push({ icon: '💬', text: `WhatsApp ${data.whatsapp}` });
-  const textW = maxW - L.infoPad * 2 - L.infoSize - 12;
-  return rows.map((r) => ({
-    ...r,
-    lines: wrapShareCardText(r.text, textW, L.infoSize, L.infoMaxLines, 600),
-  }));
-}
-
 // Geometría completa de la tarjeta. La foto es el único bloque flexible:
 // su alto es todo lo que sobra tras reservar logo, textos, píldoras y
 // pie, con photoMinH como mínimo — por eso nunca queda hueco vacío.
-// Las `y` de categoría, nombre y pie son el CENTRO vertical del texto
+// Las `y` de nombre y pie son el CENTRO vertical del texto
 // (el canvas dibuja con textBaseline 'middle').
 // PR #154: el estilo (4º parámetro, 'glass' por defecto) elige la tabla
-// de medidas y, en Ficha, añade el panel de información tras las
-// píldoras. Sin estilo, la geometría es la de siempre.
+// de medidas. Sin estilo, la geometría es la de siempre.
+// PR #155: sin categoría y sin panel de ficha; la foto es más corta y
+// el nombre y las píldoras más grandes, para que la información tenga
+// más presencia.
 export function computeShareCardLayout(data, format, hasGoogleMark = true, styleId = 'glass') {
   const f = format || SHARE_CARD_FORMATS.story;
   const style = resolveShareCardStyle(styleId);
@@ -632,8 +429,6 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
 
   const logoW = Math.round(L.logoH * (400 / 120));
   const logo = { x: Math.round((W - logoW) / 2), y: L.pad, w: logoW, h: L.logoH };
-
-  const category = (data?.category || '').trim().toUpperCase();
 
   // Con círculo, el primer bloque tras la foto deja el hueco del
   // círculo (la mitad que sobresale bajo la foto + bizLogoGap) en vez
@@ -651,8 +446,6 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     if (firstGap === null) firstGap = g;
     return g;
   };
-  const catGapU = category ? gapAfterPhoto(L.catGap) : L.catGap;
-  const catBlock = category ? catGapU + L.catSize : 0;
 
   const nameLines = wrapShareCardName(data?.name, maxW, L);
   const nameBlockH = nameLines.length * L.nameSize * L.nameLineH;
@@ -668,21 +461,6 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   const pillsGapU = pillRows.length ? gapAfterPhoto(L.pillsGap) : L.pillsGap;
   const pillsBlock = pillRows.length ? pillsGapU + pillsBlockH : 0;
 
-  // Panel de la ficha (solo estilo Ficha y solo si hay al menos una
-  // fila con dato): su alto sale de las líneas ya cortadas, con el
-  // relleno del panel y el hueco entre filas.
-  const infoRows = style.id === 'ficha' ? shareCardInfoRows(data, maxW, L) : [];
-  const infoBlockH = infoRows.length
-    ? infoRows.reduce(
-        (acc, r) => acc + r.lines.length * L.infoSize * L.infoLineH,
-        0,
-      ) +
-      (infoRows.length - 1) * L.infoRowGap +
-      L.infoPad * 2
-    : 0;
-  const infoGapU = infoRows.length ? gapAfterPhoto(L.infoGap) : L.infoGap;
-  const infoBlock = infoRows.length ? infoGapU + infoBlockH : 0;
-
   const footGapU = gapAfterPhoto(L.footGap);
   const footBlock = footGapU + L.footSize;
 
@@ -691,10 +469,8 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     H -
       L.pad * 2 -
       (L.logoH + L.logoGap) -
-      catBlock -
       nameBlock -
       pillsBlock -
-      infoBlock -
       footBlock,
   );
 
@@ -714,13 +490,6 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
         ring: L.bizLogoRing,
       }
     : null;
-
-  let categoryBox = null;
-  if (category) {
-    y += catGapU;
-    categoryBox = { text: category, x: W / 2, y: y + L.catSize / 2, size: L.catSize };
-    y += L.catSize;
-  }
 
   let nameBox = null;
   if (nameLines.length) {
@@ -752,38 +521,8 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
       y += pillH + L.pillRowGap;
     }
     // El bucle suma pillRowGap también tras la última fila; se quita
-    // para que el bloque siguiente (el panel de la ficha) quede a su
-    // hueco diseñado y no 14 px más abajo.
+    // para que el pie quede a su hueco diseñado y no 14 px más abajo.
     y -= L.pillRowGap;
-  }
-
-  // Panel de la ficha: el icono va centrado en la primera línea de su
-  // fila y el texto a su derecha, con las líneas ya cortadas por
-  // shareCardInfoRows. Las `y` de las líneas son su centro vertical.
-  let infoBox = null;
-  if (infoRows.length) {
-    y += infoGapU;
-    const rowsOut = [];
-    let ry = y + L.infoPad;
-    for (const row of infoRows) {
-      const rowH = row.lines.length * L.infoSize * L.infoLineH;
-      rowsOut.push({
-        icon: row.icon,
-        iconX: L.pad + L.infoPad,
-        iconY: ry + (L.infoSize * L.infoLineH) / 2,
-        iconSize: L.infoSize,
-        lines: row.lines.map((line, li) => ({
-          text: line,
-          x: L.pad + L.infoPad + L.infoSize + 12,
-          y: ry + (L.infoSize * L.infoLineH) / 2 + li * L.infoSize * L.infoLineH,
-          size: L.infoSize,
-          lineH: L.infoSize * L.infoLineH,
-        })),
-      });
-      ry += rowH + L.infoRowGap;
-    }
-    infoBox = { x: L.pad, y, w: maxW, h: infoBlockH, pad: L.infoPad, rows: rowsOut };
-    y += infoBlockH;
   }
 
   const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
@@ -797,10 +536,8 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     photo,
     bizLogo,
     firstGap,
-    category: categoryBox,
     name: nameBox,
     pillRows: pillRowsOut,
-    info: infoBox,
     footer,
   };
 }
@@ -850,9 +587,24 @@ export async function loadShareCardPhoto(photoUrl) {
   }
 }
 
-// El logotipo oficial es negro sobre transparente; en la tarjeta oscura
-// va en blanco (la misma inversión que usa Brand.jsx en modo oscuro).
+// El logotipo oficial (/logo-brand.png) es BLANCO sobre transparente
+// (verificado por píxeles el 10 nov 2026: RGB medio 254,8): en la
+// tarjeta oscura va tal cual en blanco, y para la clara de Editorial se
+// recolorea a oscuro (PR #155: el #154 lo cargaba tal cual y el logo
+// blanco no se veía sobre fondo blanco).
 export async function loadShareCardLogoWhite() {
+  try {
+    return await loadImage('/logo-brand.png');
+  } catch {
+    return null;
+  }
+}
+
+// El logotipo oficial recolorado a oscuro (#111111) para la tarjeta
+// clara de Editorial: el mismo recolorado `source-in` que usa el
+// blanco, pero al revés. Sin él, el PNG blanco es invisible sobre
+// fondo blanco.
+export async function loadShareCardLogoDark() {
   try {
     const img = await loadImage('/logo-brand.png');
     const c = document.createElement('canvas');
@@ -861,19 +613,9 @@ export async function loadShareCardLogoWhite() {
     const x = c.getContext('2d');
     x.drawImage(img, 0, 0);
     x.globalCompositeOperation = 'source-in';
-    x.fillStyle = '#FFFFFF';
+    x.fillStyle = '#111111';
     x.fillRect(0, 0, c.width, c.height);
     return c;
-  } catch {
-    return null;
-  }
-}
-
-// El logotipo oficial tal cual (negro sobre transparente) para la
-// tarjeta clara de Editorial: ahí no se invierte a blanco.
-export async function loadShareCardLogoDark() {
-  try {
-    return await loadImage('/logo-brand.png');
   } catch {
     return null;
   }
@@ -1038,23 +780,6 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     ctx.restore();
   }
 
-  // Categoría en versales espaciadas.
-  if (geo.category) {
-    const c = geo.category;
-    // Editorial: una regla fina centrada sobre la categoría, como las
-    // revistas (solo si hay categoría).
-    if (style.id === 'editorial') {
-      ctx.fillStyle = palette.text;
-      ctx.fillRect(geo.width / 2 - 36, c.y - c.size / 2 - 18, 72, 3);
-    }
-    ctx.font = `700 ${c.size}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillStyle = palette.sub;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    const w = spacedWidth(ctx, c.text, 6);
-    drawSpacedText(ctx, c.text, c.x - w / 2, c.y, 6);
-  }
-
   // Nombre, hasta 2 líneas.
   if (geo.name) {
     const n = geo.name;
@@ -1096,26 +821,6 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
           pill.gSize,
           pill.gSize,
         );
-      }
-    }
-  }
-
-  // Panel de la ficha (PR #154): horario, dirección y WhatsApp sobre
-  // un fondo apenas más claro, con el icono de cada fila.
-  if (geo.info) {
-    const panel = geo.info;
-    ctx.fillStyle = palette.infoBg;
-    roundRectPath(ctx, panel.x, panel.y, panel.w, panel.h, L.infoRadius);
-    ctx.fill();
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = palette.infoText;
-    for (const row of panel.rows) {
-      ctx.font = `${row.iconSize}px ${SHARE_CARD_FONT_STACK}`;
-      ctx.fillText(row.icon, row.iconX, row.iconY);
-      ctx.font = `600 ${L.infoSize}px ${SHARE_CARD_FONT_STACK}`;
-      for (const line of row.lines) {
-        ctx.fillText(line.text, line.x, line.y);
       }
     }
   }

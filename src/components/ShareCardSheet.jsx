@@ -6,6 +6,13 @@
 // PR #154: tres estilos (Oscura, Editorial y Ficha completa) que se
 // eligen en la hoja junto al formato (Historia/Post): la vista previa y
 // el PNG son del estilo elegido. El oscuro sigue siendo el por defecto.
+// PR #155: la Ficha completa se quita y quedan DOS estilos (Oscura y
+// Editorial), que se cambian con chevrones ‹ › a los lados de la vista
+// previa (con envoltura) y puntos debajo indicando cuántas hay — en
+// lugar de los botones de estilo. Los botones de formato se quedan.
+// También sale la categoría de ambas versiones, la foto es más corta,
+// el nombre y las píldoras más grandes y el logo de Editorial va en
+// oscuro (el PNG es blanco y no se veía).
 // PR #146: la hoja entra con scale-in-center (la misma animación de las
 // tarjetas del mapa, PR #134/#135): el panel crece desde el centro en
 // 0,5 s, en vez del fundido de la librería de animación. La clase va en
@@ -52,13 +59,13 @@ const PREVIEW_W = 200;
 // La tarjeta es compacta a propósito (PR #144): vista previa chica y
 // espacios apretados para que en cualquier teléfono se vean la vista
 // previa y los dos botones sin tener que bajar. Peor caso (Historia,
-// 200×356): 12 (padding sup.) + 30 (encabezado) + 56 (selector) + 50
-// (selector de estilo, PR #154) + 364 (vista previa) + 92 (botones en
-// flujo) + 10 (padding inf.) = 614 px, que cabe en 92dvh de una
-// pantalla típica de 844 px (776 px) y en una chica de 700 px (644 px);
-// si la pantalla es aún más chica, TODO el panel hace scroll como una
-// unidad (PR #147: sin pie sticky, los botones nunca quedan en medio de
-// la vista previa).
+// 200×356): 12 (padding sup.) + 30 (encabezado) + 56 (selector de
+// formato) + 364 (vista previa con chevrones) + 16 (puntos) + 92
+// (botones en flujo) + 10 (padding inf.) = 580 px, que cabe en 92dvh
+// de una pantalla típica de 844 px (776 px) y en una chica de 700 px
+// (644 px); si la pantalla es aún más chica, TODO el panel hace scroll
+// como una unidad (PR #147: sin pie sticky, los botones nunca quedan en
+// medio de la vista previa).
 
 export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   const dark = useUIStore((s) => s.dark);
@@ -134,6 +141,21 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   const previewScale = PREVIEW_W / format.width;
   const previewH = Math.round(format.height * previewScale);
   const shareLabel = canShareImageFiles() ? 'Compartir imagen' : 'Descargar imagen';
+
+  // Estilo de la tarjeta (PR #155): dos estilos (Oscura y Editorial)
+  // que se cambian con chevrones ‹ › a los lados de la vista previa
+  // (con envoltura 2→1 y 1→2) y puntos debajo indicando cuántas hay.
+  // Los botones de formato (Historia/Post) se quedan como están.
+  const styleIndex = Math.max(
+    0,
+    SHARE_CARD_STYLE_LIST.findIndex((s) => s.id === styleId),
+  );
+  const goStyle = (delta) => {
+    const n = SHARE_CARD_STYLE_LIST.length;
+    const next = (styleIndex + delta + n) % n;
+    setStyleId(SHARE_CARD_STYLE_LIST[next].id);
+  };
+  const dotColor = dark ? '#FAFAFA' : '#18181B';
 
   return (
     <div
@@ -238,59 +260,115 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
           ))}
         </div>
 
-        {/* Estilo de la tarjeta (PR #154): el oscuro es el de siempre y
-            el por defecto; Editorial y Ficha completa son los nuevos. */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-          {SHARE_CARD_STYLE_LIST.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setStyleId(s.id)}
-              className="press"
+        {/* Chevrones para cambiar de estilo (PR #155): ‹ › a los lados
+            de la vista previa, con envoltura; abajo, los puntos que
+            indican cuántas hay (2 estilos). Mismo lenguaje de puntos
+            que StoryStrip/Gallery: 6 px, inactivo opacidad 0.25, activo
+            píldora de 16 px, SIN transición (PR #151: la transición se
+            atascaba a mitad y dejaba una estela). Tocar un punto salta
+            a ese estilo. */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            marginBottom: 0,
+          }}
+        >
+          <button
+            aria-label="Estilo anterior"
+            onClick={() => goStyle(-1)}
+            className="press"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 26,
+              lineHeight: 1,
+              color: dark ? '#A1A1AA' : '#71717A',
+              padding: '8px 4px',
+              fontFamily: 'inherit',
+              flexShrink: 0,
+            }}
+          >
+            ‹
+          </button>
+          <div
+            style={{
+              width: PREVIEW_W,
+              height: previewH,
+              borderRadius: 20,
+              overflow: 'hidden',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+              background: '#0B0B0B',
+              flexShrink: 0,
+            }}
+          >
+            <div
               style={{
-                flex: 1,
-                padding: '7px 4px',
-                borderRadius: 14,
-                border: `1.5px solid ${styleId === s.id ? '#000000' : dark ? '#3F3F46' : '#E4E4E7'}`,
-                background: styleId === s.id ? '#000000' : 'transparent',
-                color: styleId === s.id ? '#FFFFFF' : dark ? '#FAFAFA' : '#18181B',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontSize: 13,
-                fontWeight: 800,
+                width: format.width,
+                height: format.height,
+                transform: `scale(${previewScale})`,
+                transformOrigin: 'top left',
               }}
             >
-              {s.label}
-            </button>
-          ))}
+              <ShareCardTemplate
+                data={exportData}
+                format={format}
+                styleId={styleId}
+                onPhotoError={() => setPhotoFailed(true)}
+                onBizLogoError={() => setBizLogoFailed(true)}
+              />
+            </div>
+          </div>
+          <button
+            aria-label="Estilo siguiente"
+            onClick={() => goStyle(1)}
+            className="press"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 26,
+              lineHeight: 1,
+              color: dark ? '#A1A1AA' : '#71717A',
+              padding: '8px 4px',
+              fontFamily: 'inherit',
+              flexShrink: 0,
+            }}
+          >
+            ›
+          </button>
         </div>
 
         <div
           style={{
-            width: PREVIEW_W,
-            height: previewH,
-            margin: '0 auto 8px',
-            borderRadius: 20,
-            overflow: 'hidden',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
-            background: '#0B0B0B',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 6,
+            marginTop: 10,
+            marginBottom: 8,
           }}
         >
-          <div
-            style={{
-              width: format.width,
-              height: format.height,
-              transform: `scale(${previewScale})`,
-              transformOrigin: 'top left',
-            }}
-          >
-            <ShareCardTemplate
-              data={exportData}
-              format={format}
-              styleId={styleId}
-              onPhotoError={() => setPhotoFailed(true)}
-              onBizLogoError={() => setBizLogoFailed(true)}
+          {SHARE_CARD_STYLE_LIST.map((s, n) => (
+            <button
+              key={s.id}
+              aria-label={`Estilo ${s.label}`}
+              onClick={() => setStyleId(s.id)}
+              style={{
+                width: n === styleIndex ? 16 : 6,
+                height: 6,
+                borderRadius: 3,
+                border: 'none',
+                padding: 0,
+                background: dotColor,
+                opacity: n === styleIndex ? 1 : 0.25,
+                cursor: 'pointer',
+              }}
             />
-          </div>
+          ))}
         </div>
 
         {photoFailed ? (

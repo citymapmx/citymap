@@ -33,7 +33,6 @@ import { eventUrl, eventShortSlug } from './eventUrls.js';
 import {
   SHARE_CARD_FORMATS,
   SHARE_CARD_FONT_STACK,
-  SHARE_CARD_LAYOUT,
   measureShareCardText,
   wrapShareCardName,
   loadShareCardPhoto,
@@ -57,13 +56,31 @@ export const EVENT_SHARE_CARD_STYLES = {
 };
 
 // Geometría de la tarjeta de evento, por formato. Reutiliza las medidas
-// base de la tarjeta de negocios (pad, logo, foto mínima, radio,
-// categoría, píldoras y pie) y añade las propias del evento: título
-// (más grande y en mayúsculas en festival), subtítulo, filas de
-// información (fecha/hora y lugar) y la tira del código de barras.
+// La geometría de la tarjeta de evento: su propia base (pad, logo,
+// foto mínima, radio, categoría, píldoras y pie) y las medidas propias
+// del evento: título (más grande y en mayúsculas en festival),
+// subtítulo, filas de información (fecha/hora y lugar) y la tira del
+// código de barras.
+// La base era un spread de SHARE_CARD_LAYOUT (la de negocios), pero el
+// PR #155 cambió las medidas de negocios (logo más grande, foto más
+// corta, sin categoría) y ese cambio se colaba en la tarjeta de
+// eventos: ahora la base está fijada aquí con los valores de antes, así
+// la tarjeta de eventos no cambia ni un píxel por los ajustes de
+// negocios.
 export const EVENT_SHARE_CARD_LAYOUT = {
   story: {
-    ...SHARE_CARD_LAYOUT.story,
+    pad: 64,
+    logoH: 56,
+    logoGap: 32,
+    photoRadius: 40,
+    catSize: 32,
+    catGap: 36,
+    pillSize: 34,
+    pillPadX: 26,
+    pillPadY: 12,
+    pillGap: 16,
+    footSize: 30,
+    footGap: 44,
     // La tarjeta de evento lleva más bloques que la de negocios
     // (subtítulo + 2 filas de información), así que el mínimo de la
     // foto es más bajo: con el heredado (1080/480) el peor caso (título
@@ -93,7 +110,18 @@ export const EVENT_SHARE_CARD_LAYOUT = {
     barcodePadY: 18,
   },
   post: {
-    ...SHARE_CARD_LAYOUT.post,
+    pad: 48,
+    logoH: 44,
+    logoGap: 24,
+    photoRadius: 32,
+    catSize: 28,
+    catGap: 28,
+    pillSize: 30,
+    pillPadX: 24,
+    pillPadY: 11,
+    pillGap: 14,
+    footSize: 26,
+    footGap: 36,
     photoMinH: 300,
     titleSize: 60,
     titleSizeFestival: 76,
