@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ExperienceShareCardTemplate from '../components/ExperienceShareCardTemplate.jsx';
+import { wrapShareCardText } from '../lib/shareCard.js';
 import {
   EXPERIENCE_SHARE_CARD_LAYOUT,
   EXPERIENCE_SHARE_CARD_FORMATS,
@@ -47,6 +48,15 @@ const TEQUILA = {
   gallery: [
     'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1794186715000_guadalajara-tequila.webp',
   ],
+};
+// Tour real de la base con su descripción REAL (primer párrafo,
+// textual): en vivo, en Horizontal 1080×566, la descripción se cortaba
+// a mitad de palabra («…la cuna de la bebida más famos…») porque el
+// recorte de la última línea quitaba caracteres uno a uno.
+const TEQUILA_REAL = {
+  ...TEQUILA,
+  description:
+    'Si estás en Guadalajara y quieres conocer de primera mano la cuna de la bebida más famosa de México, esta excursión a Tequila es el plan perfecto. En entre 6 y 8 horas te recogen en tu hotel, recorres los campos de agave, paseas por las calles de piedra del pueblo y terminas con una visita y una degustación en la destilería La Rojeña de José Cuervo.',
 };
 // Guía gratuita sin foto ni precio: el precio es «Gratis» y la tarjeta
 // sale con el bloque de la inicial, nunca rota.
@@ -216,6 +226,73 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
     expect(1080 / 566).toBeCloseTo(1200 / 630, 2);
     // Ya no hay estilos: solo «Foto completa» (la «Dividida» se quitó).
     expect(EXPERIENCE_SHARE_CARD_BLUE).toBe('#2563EB');
+  });
+});
+
+// Las palabras que muestra la descripción son siempre un prefijo de las
+// palabras del texto recortado: si una línea se cortara a mitad de
+// palabra, la última palabra mostrada sería un prefijo propio de la
+// palabra real y el prefijo ya no coincidiría.
+function descWordsArePrefix(excerpt, lines) {
+  const shown = lines
+    .join(' ')
+    .replace(/…/g, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const words = excerpt
+    .replace(/…/g, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return shown.every((w, i) => w === words[i]);
+}
+
+describe('tarjeta para compartir el artículo: la descripción nunca se corta a mitad de palabra', () => {
+  it('wrapShareCardText recorta la última línea en límite de palabra, nunca «famos…»', () => {
+    // Con la medida de los tests (sin document: ancho = nº de
+    // caracteres × tamaño × 0,55), esta entrada obliga a recortar la
+    // última línea: antes del arreglo salía «dddd eeee fff…».
+    const lines = wrapShareCardText(
+      'aaaa bbbb cccc dddd eeee ffff gggg hhhh',
+      80,
+      10,
+      2,
+    );
+    expect(lines).toEqual(['aaaa bbbb cccc', 'dddd eeee…']);
+    // Sin recorte no cambia nada.
+    expect(wrapShareCardText('Hola mundo', 1000, 30, 2)).toEqual(['Hola mundo']);
+  });
+
+  it('una sola palabra más ancha que la tarjeta sigue recortándose por caracteres (no hay límite de palabra posible)', () => {
+    const lines = wrapShareCardText('Supercalifragilisticoespialidoso corto', 80, 10, 1);
+    expect(lines.length).toBe(1);
+    expect(lines[0].endsWith('…')).toBe(true);
+    expect(lines[0].startsWith('Supercalifrag')).toBe(true);
+  });
+
+  it('caso Tequila en Horizontal: la descripción real termina en límite de palabra en los 3 formatos', () => {
+    const d = buildExperienceShareCardData(TEQUILA_REAL, { cityName: 'Guadalajara' });
+    for (const format of ALL_FORMATS) {
+      const geo = computeExperienceShareCardLayout(d, format);
+      expect(geo.desc.lines.length).toBeGreaterThan(0);
+      expect(descWordsArePrefix(d.description, geo.desc.lines)).toBe(true);
+      // Y la línea de datos tampoco se parte a mitad de palabra.
+      expect(descWordsArePrefix(d.dataLine, geo.dataRows.lines)).toBe(true);
+    }
+  });
+
+  it('la descripción no se solapa con la línea de datos en la geometría compartida (vista previa = PNG)', () => {
+    // La plantilla y el canvas usan el mismo layout: el fin del bloque
+    // de descripción más el hueco es justo el inicio de los datos.
+    const d = buildExperienceShareCardData(TEQUILA_REAL, { cityName: 'Guadalajara' });
+    for (const format of ALL_FORMATS) {
+      const geo = computeExperienceShareCardLayout(d, format);
+      const descEnd =
+        geo.desc.y + (geo.desc.lines.length - 1) * geo.desc.lineH + geo.desc.lineH / 2;
+      const dataTop = geo.dataRows.y - geo.dataRows.lineH / 2;
+      expect(dataTop - descEnd).toBeCloseTo(geo.L.dataGap, 9);
+    }
   });
 });
 
