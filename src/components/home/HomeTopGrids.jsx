@@ -5,6 +5,7 @@ import { smoothScrollIntoView } from '../../lib/smoothScroll.js';
 import { useDataStore } from "../../store/useDataStore.js";
 import { useUIStore } from "../../store/useUIStore.js";
 import Icon from '../ui/Icon.jsx';
+import { cascadeDelayS, CASCADE_WINDOW_MS } from '../../lib/cascade.js';
 
 export default memo(function HomeTopGrids({
   topFavs, showMoreTopFavs, setShowMoreTopFavs,
@@ -22,6 +23,18 @@ export default memo(function HomeTopGrids({
   // expandir (la animación dura 0.5 s) para que la clase no quede puesta.
   const [freshFavs, setFreshFavs] = React.useState(false);
   const [freshRated, setFreshRated] = React.useState(false);
+  // Cascada del lote inicial (demo #2 de "15 animaciones"): al entrar,
+  // las 5 primeras tarjetas de cada sección suben una tras otra. Solo el
+  // lote inicial; las 5 nuevas de "Ver 5 más" siguen con scale-in-ver-top.
+  const [cascadeActive, setCascadeActive] = React.useState(false);
+  const cascadeStartedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (cascadeStartedRef.current || (topFavs.length === 0 && topRated.length === 0)) return;
+    cascadeStartedRef.current = true;
+    setCascadeActive(true);
+    const t = window.setTimeout(() => setCascadeActive(false), CASCADE_WINDOW_MS);
+    return () => window.clearTimeout(t);
+  }, [topFavs.length, topRated.length]);
   React.useEffect(() => {
     if (showMoreTopFavs && !prevShowMoreTopFavs.current) {
       smoothScrollIntoView(firstNewFavRef.current, 'nearest');
@@ -88,10 +101,11 @@ export default memo(function HomeTopGrids({
               return (
                 <div key={b.id} ref={index === 5 ? firstNewFavRef : undefined} style={{ position: "relative", paddingBottom: 0 }}>
                   {/* Solo las 5 nuevas de "Ver 5 más" se desenrollan desde
-                      arriba. La clase va en este envoltorio interior con la
+                      arriba; las 5 primeras entran en cascada al cargar.
+                      La clase va en este envoltorio interior con la
                       insignia y la tarjeta juntas, para que toda la fila
                       anime como una sola pieza. */}
-                  <div className={freshFavs && index >= 5 ? 'scale-in-ver-top' : undefined} style={{ position: "relative" }}>
+                  <div className={freshFavs && index >= 5 ? 'scale-in-ver-top' : cascadeActive && index < 5 ? 'cascade-in' : undefined} style={{ position: "relative", ...(cascadeActive && index < 5 ? { animationDelay: `${cascadeDelayS(index)}s` } : {}) }}>
                   <div style={{ position: "absolute", top: index < 3 ? -2 : -2, left: index < 3 ? -2 : -2, width: index < 3 ? 38 : 34, height: index < 3 ? 38 : 34, borderRadius: "50%", background: index < 3 ? "transparent" : pillBg, color: numColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: index < 3 ? 32 : 15, fontWeight: 900, boxShadow: index < 3 ? "none" : "0 4px 10px rgba(0,0,0,0.15)", zIndex: 10, border: index < 3 ? "none" : `2.5px solid ${dark ? "#111" : "#f4f4f5"}`, filter: index < 3 ? "drop-shadow(0 4px 6px rgba(0,0,0,0.2))" : "none" }}>
                     {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
                   </div>
@@ -132,12 +146,13 @@ export default memo(function HomeTopGrids({
               return (
                 <div key={b.id} ref={el => { registerRated(b.id)(el); if (index === 5) firstNewRatedRef.current = el; }} style={{ position: "relative", paddingBottom: 0 }}>
                   {/* Solo las 5 nuevas de "Ver 5 más" se desenrollan desde
-                      arriba. La clase va en este envoltorio interior, nunca
+                      arriba; las 5 primeras entran en cascada al cargar.
+                      La clase va en este envoltorio interior, nunca
                       en el div de FLIP (registerRated escribe transform
                       inline ahí y la animación con fill both lo taparía
                       para siempre). La insignia va dentro para que toda la
                       fila anime como una sola pieza. */}
-                  <div className={freshRated && index >= 5 ? 'scale-in-ver-top' : undefined} style={{ position: "relative" }}>
+                  <div className={freshRated && index >= 5 ? 'scale-in-ver-top' : cascadeActive && index < 5 ? 'cascade-in' : undefined} style={{ position: "relative", ...(cascadeActive && index < 5 ? { animationDelay: `${cascadeDelayS(index)}s` } : {}) }}>
                   <div style={{ position: "absolute", top: index < 3 ? -2 : -2, left: index < 3 ? -2 : -2, width: index < 3 ? 38 : 34, height: index < 3 ? 38 : 34, borderRadius: "50%", background: index < 3 ? "transparent" : pillBg, color: numColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: index < 3 ? 32 : 15, fontWeight: 900, boxShadow: index < 3 ? "none" : "0 4px 10px rgba(0,0,0,0.15)", zIndex: 10, border: index < 3 ? "none" : `2.5px solid ${dark ? "#111" : "#f4f4f5"}`, filter: index < 3 ? "drop-shadow(0 4px 6px rgba(0,0,0,0.2))" : "none" }}>
                     {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
                   </div>

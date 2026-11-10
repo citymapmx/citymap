@@ -16,6 +16,7 @@ import { createSlug } from "../lib/utils.js";
 import { POST_TYPES, POST_THEMES, filterPostsByTypeAndTheme, themeBySlug, themeLabel } from "../lib/postTaxonomy.js";
 import { getThumbUrl, METRO_ZONES, isNear } from "../lib/utils.js";
 import { shouldShowCityEmptyState } from "../lib/cityEmptyState.js";
+import { cascadeDelayS, CASCADE_WINDOW_MS } from "../lib/cascade.js";
 import CityEmptyState from "./CityEmptyState.jsx";
 import * as dbService from "../services/dbService.js";
 import { sb } from "../lib/supabase.js";
@@ -374,6 +375,14 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
   // arriba). Se limpia 600 ms después de que el lote llega (la animación
   // dura 0.5 s) para que la clase no quede puesta.
   const [newBatchFrom, setNewBatchFrom] = useState(null);
+  // Cascada del lote inicial (demo #2 de "15 animaciones"): al entrar,
+  // los 6 primeros artículos suben uno tras otro. Solo el lote inicial;
+  // lo que llega con "Cargar más artículos" sigue con scale-in-ver-top.
+  const [cascadeActive, setCascadeActive] = useState(false);
+  const cascadeStartedRef = useRef(false);
+  // El useEffect que abre la ventana vive DESPUÉS de filteredDiscover:
+  // su arreglo de dependencias lee filteredDiscover.length, y leerlo
+  // antes de su const rompería la vista al montar (lección del PR #137).
   useEffect(() => {
     if (newBatchFrom === null) return;
     const t = window.setTimeout(() => setNewBatchFrom(null), 600);
@@ -425,6 +434,17 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
       return dateB - dateA;
     });
   }, [experiences, searchQ, activeCity, typeFilter, themeFilter, userCoords]);
+
+  // Cascada del lote inicial: la ventana se abre cuando aparecen los
+  // primeros artículos y se cierra 1,3 s después (retraso máximo +
+  // duración), para que la clase no quede puesta.
+  useEffect(() => {
+    if (cascadeStartedRef.current || filteredDiscover.length === 0) return;
+    cascadeStartedRef.current = true;
+    setCascadeActive(true);
+    const t = window.setTimeout(() => setCascadeActive(false), CASCADE_WINDOW_MS);
+    return () => window.clearTimeout(t);
+  }, [filteredDiscover.length]);
 
   // Temáticas con publicaciones en la ciudad actual (las vacías no se muestran).
   const availableThemes = useMemo(() => {
@@ -597,7 +617,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
               {filteredDiscover.slice(0, visibleCount).map((exp, idx) => {
                 const href = `/revista/${activeCity}/${createSlug(exp.title)}`;
                 return (
-                <div key={exp.id} id={`revista-card-${exp.id}`} className={newBatchFrom !== null && idx >= newBatchFrom ? 'scale-in-ver-top' : undefined} style={{ scrollMarginTop: 140 }}>
+                <div key={exp.id} id={`revista-card-${exp.id}`} className={newBatchFrom !== null && idx >= newBatchFrom ? 'scale-in-ver-top' : cascadeActive && idx < 6 ? 'cascade-in' : undefined} style={{ scrollMarginTop: 140, ...(cascadeActive && idx < 6 ? { animationDelay: `${cascadeDelayS(idx)}s` } : {}) }}>
                 <ExperienceCard
                   exp={exp}
                   href={href}

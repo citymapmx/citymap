@@ -9,7 +9,7 @@ import { typeLabel } from '../lib/postTaxonomy.js';
 import { groupToursByCity, tourCardUrl, tourPriceLabel } from '../lib/tours.js';
 import { displayRating } from '../lib/googleRatings.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
-import Icon from '../components/ui/Icon.jsx';
+import SaveHeartButton from '../components/ui/SaveHeartButton.jsx';
 import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
 import EventWheel3D from '../components/home/EventWheel3D.jsx';
 import TravelAffiliateRow from '../components/home/TravelAffiliateRow.jsx';
@@ -382,13 +382,14 @@ export default function GlobalHomeView() {
             ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={400} priority={isPriority} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>{isPoster ? '🎟️' : '📍'}</div>}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)' }} />
-          <button
-            aria-label={t("home_guardar", "Guardar")}
-            onClick={(e) => toggleSave(e, item)}
-            style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
-          >
-            <Icon name={isSaved(item) ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
-          </button>
+          <SaveHeartButton
+            isFav={isSaved(item)}
+            onToggle={(e) => toggleSave(e, item)}
+            size={26}
+            overlay
+            ariaLabel={t("home_guardar", "Guardar")}
+            buttonStyle={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
+          />
           {isPoster ? (
             item.img ? (
               <span style={{ position: 'absolute', left: 12, right: 12, bottom: 10, color: '#fff', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{cityBySlug.get(item.citySlug)?.name || ''}</span>
@@ -759,13 +760,14 @@ export default function GlobalHomeView() {
                             ? <OptimizedImage src={img} alt={localizedTitle(exp, lang) || ''} widthRequest={520} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>📝</div>}
                           <span style={{ position: 'absolute', top: 10, left: 10, background: '#fff', color: '#111', fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999 }}>{typeLabel(exp.activity_type)}</span>
-                          <button
-                            aria-label={t("home_guardar", "Guardar")}
-                            onClick={(e) => { e.stopPropagation(); if (!user) { setShowAuth(true); return; } const ids = savedExpIds || []; const nw = ids.includes(exp.id) ? ids.filter((x) => x !== exp.id) : [...ids, exp.id]; setSavedExpIds?.(nw); try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ } }}
-                            style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
-                          >
-                            <Icon name={saved ? 'heart_overlay_f' : 'heart_overlay'} size={26} color="none" />
-                          </button>
+                          <SaveHeartButton
+                            isFav={saved}
+                            onToggle={(e) => { e.stopPropagation(); if (!user) { setShowAuth(true); return; } const ids = savedExpIds || []; const nw = ids.includes(exp.id) ? ids.filter((x) => x !== exp.id) : [...ids, exp.id]; setSavedExpIds?.(nw); try { localStorage.setItem('cg_saved_exp', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ } }}
+                            size={26}
+                            overlay
+                            ariaLabel={t("home_guardar", "Guardar")}
+                            buttonStyle={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
+                          />
                         </div>
                         <div style={{ padding: '12px 14px 16px' }}>
                           <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{localizedTitle(exp, lang)}</h3>
