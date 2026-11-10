@@ -1111,11 +1111,11 @@ export const TRANSLATIONS = {
     "negocios_faq4_q": "¿Puedo probar los planes de pago gratis?",
     "negocios_faq4_a": "Sí. Los planes Destacado y Premium mensuales tienen 7 días de prueba gratis, sin compromiso.",
     "negocios_faq5_q": "¿En qué ciudades está CityMap?",
-    "negocios_faq5_a": "En 35 ciudades, entre ellas Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Ciudad de México, Mérida, Monterrey, Cancún y Playa del Carmen.",
+    "negocios_faq5_a": "En ${count} ciudades, entre ellas Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Ciudad de México, Mérida, Monterrey, Cancún y Playa del Carmen.",
     "negocios_faq6_q": "¿Qué necesito para registrar mi negocio?",
     "negocios_faq6_a": "Solo tu información básica: nombre, fotos, horarios y un teléfono o WhatsApp para que te contacten.",
     "negocios_cierre_titulo": "Tu negocio ya lo buscan. Que lo encuentren.",
-    "negocios_cierre_sub": "Súmate a los 330 negocios que ya están en CityMap.",
+    "negocios_cierre_sub": "Súmate a los ${count} negocios que ya están en CityMap.",
   },
   en: {
     // Hero & Search
@@ -2229,11 +2229,11 @@ export const TRANSLATIONS = {
     "negocios_faq4_q": "Can I try the paid plans for free?",
     "negocios_faq4_a": "Yes. The monthly Destacado and Premium plans include a 7-day free trial, no commitment.",
     "negocios_faq5_q": "Which cities is CityMap in?",
-    "negocios_faq5_a": "In 35 cities, including Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Mexico City, Mérida, Monterrey, Cancún, and Playa del Carmen.",
+    "negocios_faq5_a": "In ${count} cities, including Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Mexico City, Mérida, Monterrey, Cancún, and Playa del Carmen.",
     "negocios_faq6_q": "What do I need to register my business?",
     "negocios_faq6_a": "Just your basic information: name, photos, hours, and a phone or WhatsApp so customers can reach you.",
     "negocios_cierre_titulo": "Customers already search for your business. Let them find it.",
-    "negocios_cierre_sub": "Join the 330 businesses already on CityMap.",
+    "negocios_cierre_sub": "Join the ${count} businesses already on CityMap.",
   }
 };
 
