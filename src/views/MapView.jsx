@@ -12,6 +12,7 @@ import { useAuthStore } from "../store/useAuthStore.js";
 import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon.jsx";
 import { useTranslation } from "../hooks/useTranslation.js";
+import { prefersReducedMotion } from "../lib/smoothScroll.js";
 
 export default function MapView() {
   const { t } = useTranslation();
@@ -52,6 +53,10 @@ export default function MapView() {
   // a aparecer al cambiar de ciudad.
   const [gpsDismissed, setGpsDismissed] = useState(false);
   useEffect(() => { setGpsDismissed(false); }, [activeCity]);
+
+  // Sin animación de entrada ni de salida si el usuario prefiere reducir
+  // movimiento (la clase .scale-in-center ya se apaga sola por CSS).
+  const reduceMotion = prefersReducedMotion();
 
   // Sync URL to /mapa/:city for SEO
   useEffect(() => {
@@ -168,9 +173,13 @@ export default function MapView() {
 
             <Suspense fallback={<LoaderFallback/>}><GMap events={(events||[]).filter(e => e.city_slug === activeCity || e.city_slug === 'all')} businesses={displayedPins} selected={mapPin} onPin={b => { setMapPin(p => p?.id === b.id ? null : b); }} userLocation={userCoords} onRequestLocation={requestLocation} categories={cats} radiusKm={null} onBoundsChanged={(bounds) => loadMapPinsByBounds(activeCity, bounds)} showRoute={mapFullScreen} cityCenter={cityCenter} cityKey={activeCity} /></Suspense>
 
-            {/* GPS Overlay — se puede cerrar; al ocultarse deja de tapar el mapa y los pines se pueden tocar */}
+            {/* GPS Overlay — se puede cerrar; al ocultarse deja de tapar el mapa y los pines se pueden tocar.
+                La animación scale-in-center va en la tarjeta interior: si fuera
+                sobre este envoltorio, el keyframe (solo scale) pisaría el
+                translate(-50%, -50%) que la centra. */}
             {!userCoords && !gpsDismissed && (
-              <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 15, background: T.white, padding: "16px 20px", borderRadius: 20, boxShadow: "0 12px 32px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, maxWidth: 260, textAlign: "center", border: `1px solid ${T.border}` }}>
+              <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 15 }}>
+              <div className="scale-in-center" style={{ background: T.white, padding: "16px 20px", borderRadius: 20, boxShadow: "0 12px 32px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, maxWidth: 260, textAlign: "center", border: `1px solid ${T.border}`, position: "relative" }}>
                 <button type="button" aria-label={t("cerrar", "Cerrar")} onClick={() => setGpsDismissed(true)} style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: "50%", border: 0, background: "transparent", color: T.sub, fontSize: 16, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
                 <div style={{ fontWeight: 800, fontSize: 14, color: T.text }}>{t("que_hay_cerca", "¿Qué hay cerca?")}</div>
                 <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.3 }}>{t("activa_ubicacion_desc", "Activa tu ubicación para explorar lugares a tu alrededor.")}</div>
@@ -178,6 +187,7 @@ export default function MapView() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line></svg>
                   {t("activar_gps", "Activar GPS")}
                 </button>
+              </div>
               </div>
             )}
           </div>
@@ -202,19 +212,27 @@ export default function MapView() {
             )}
           </AnimatePresence>
 
-          {/* Map Pin Card — Evento Centrado */}
+          {/* Map Pin Card — Evento Centrado.
+              Entrada con scale-in-center (Animista, .scale-in-center en
+              index.css): la animación va en el envoltorio interior, porque
+              un keyframe CSS de transform pisaría el x:"-50%" con el que
+              framer-motion centra la tarjeta, y el fill "both" dejaría
+              pisada también la animación de salida. El exterior solo
+              centra (x) y anima la salida; la entrada es la clase CSS, que
+              se re-dispara sola en cada apertura porque la tarjeta se
+              remonta con key={"ev_" + mapPin.id} al cambiar de pin. */}
           <AnimatePresence>
           {mapPin && mapPin._isEvent && (
             <m.div
               key={"ev_" + mapPin.id}
-              initial={{ opacity: 0, scale: 0.95, y: -20, x: "-50%" }}
-              animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
-              exit={{ opacity: 0, scale: 0.9, y: 10, x: "-50%" }}
-              transition={{ type: "spring", bounce: 0.25, duration: 0.4 }}
+              initial={false}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 10, x: "-50%" }}
+              transition={reduceMotion ? { duration: 0 } : { type: "spring", bounce: 0.25, duration: 0.4 }}
               style={{
                 position: "absolute",
                 top: "20%",
                 left: "50%",
+                x: "-50%",
                 width: 280,
                 background: T.white,
                 borderRadius: 24,
@@ -228,6 +246,7 @@ export default function MapView() {
               }}
               onClick={() => { setOpenedFromMap(true); setSelectedEvent(mapPin); setMapPin(null); }}
             >
+              <div className="scale-in-center" style={{ display: "flex", flexDirection: "column", width: "100%" }}>
               <div style={{ width: "100%", height: 373, background: "#111", position: "relative" }}>
                 <button onClick={(e) => { e.stopPropagation(); setMapPin(null); }} style={{ position: "absolute", top: 12, left: 12, zIndex: 5, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="x" size={14} color="#fff" />
@@ -258,23 +277,28 @@ export default function MapView() {
                   <div style={{ display: "inline-block", background: "#FCD34D", color: "#000", padding: "3px 12px", borderRadius: 8, fontSize: 10, fontWeight: 800, lineHeight: 1.2 }}>{t("ver_detalles", "Ver detalles")}</div>
                 </div>
               </div>
+              </div>
             </m.div>
           )}
           </AnimatePresence>
 
-          {/* Map Pin Card — Negocio Centrado */}
+          {/* Map Pin Card — Negocio Centrado.
+              Misma entrada scale-in-center que la de evento: la clase va
+              en el envoltorio interior para no pisar el x:"-50%" del
+              exterior, y se re-dispara en cada apertura por el
+              key={"biz_" + mapPin.id}. */}
           <AnimatePresence>
           {mapPin && !mapPin._isEvent && (
             <m.div
               key={"biz_" + mapPin.id}
-              initial={{ opacity: 0, scale: 0.95, y: -20, x: "-50%" }}
-              animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
-              exit={{ opacity: 0, scale: 0.9, y: 10, x: "-50%" }}
-              transition={{ type: "spring", bounce: 0.25, duration: 0.4 }}
+              initial={false}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 10, x: "-50%" }}
+              transition={reduceMotion ? { duration: 0 } : { type: "spring", bounce: 0.25, duration: 0.4 }}
               style={{
                 position: "absolute",
                 top: "15%",
                 left: "50%",
+                x: "-50%",
                 width: 320,
                 background: T.white,
                 borderRadius: 24,
@@ -286,6 +310,7 @@ export default function MapView() {
                 zIndex: 100000
               }}
             >
+              <div className="scale-in-center" style={{ display: "flex", flexDirection: "column", width: "100%" }}>
               {/* Imagen Banner */}
               <div style={{ width: "100%", height: 160, background: T.bg, position: "relative" }}>
                 <button onClick={() => setMapPin(null)} style={{ position: "absolute", top: 12, left: 12, zIndex: 5, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.3)", backdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -366,6 +391,7 @@ export default function MapView() {
                   <button className="press" onClick={() => { setOpenedFromMap(true); handleCardTap(mapPin); setMapPin(null); }} style={{ flex: 1, background: T.text, border: "none", borderRadius: 10, padding: "8px 0", fontSize: 13, fontWeight: 800, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>{t("ver_detalles", "Ver detalles")}</button>
                   <button className="press" onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${mapPin.lat},${mapPin.lng}`, "_blank")} style={{ flex: 1, background: T.bg, border: `1.5px solid ${T.border}`, borderRadius: 10, padding: "8px 0", fontSize: 13, fontWeight: 700, color: T.text, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}><Icon name="nav" size={13} color={T.text} /> {t("como_llegar", "Cómo llegar")}</button>
                 </div>
+              </div>
               </div>
             </m.div>
           )}
