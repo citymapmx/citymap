@@ -6,7 +6,7 @@ import NextEventPoster from '../../web-next/src/components/detail/EventPoster.js
 
 const poster = 'https://example.supabase.co/storage/v1/object/public/media/event.jpeg';
 
-describe.each([['Vite', EventPoster], ['Next.js', NextEventPoster]])('%s event poster', (_name, Poster) => {
+describe.each([['Vite', EventPoster, '1600'], ['Next.js', NextEventPoster, '800']])('%s event poster', (_name, Poster, detailWidth) => {
   it('requests uncropped preview and detail images with matching proportions', () => {
     const html = renderToStaticMarkup(<Poster src={poster} alt="Festival" />);
     const urls = [...html.matchAll(/<img[^>]+src="([^"]+)"/g)].map(m => m[1].replaceAll('&amp;', '&'));
@@ -16,7 +16,7 @@ describe.each([['Vite', EventPoster], ['Next.js', NextEventPoster]])('%s event p
     expect(preview.searchParams.get('width')).toBe('400');
     expect(preview.searchParams.has('height')).toBe(false);
     expect(detail.pathname).toContain('/render/image/public/');
-    expect(detail.searchParams.get('width')).toBe('800');
+    expect(detail.searchParams.get('width')).toBe(detailWidth);
     expect([null, 'contain']).toContain(detail.searchParams.get('resize'));
     expect(detail.searchParams.has('height')).toBe(false);
     expect(urls).not.toContain(poster);
@@ -33,7 +33,7 @@ describe.each([['Vite', EventPoster], ['Next.js', NextEventPoster]])('%s event p
 
   it('keeps the complete Cloudinary poster instead of cropping the detail', () => {
     const html = renderToStaticMarkup(<Poster src="https://res.cloudinary.com/demo/image/upload/v123/poster.jpg" alt="Poster" />);
-    expect(html).toContain('c_limit,w_800');
+    expect(html).toContain(`c_limit,w_${detailWidth}`);
     expect(html).toContain('c_limit,w_400');
   });
 

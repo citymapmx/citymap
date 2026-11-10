@@ -22,8 +22,9 @@ function timeLabel(value, lang = 'es') {
 // sin etiquetas ("Cuándo", "Dónde") — el icono ya dice qué es cada dato.
 // La descripción ("Acerca del evento") va primero, antes de la tarjeta.
 // El botón de entradas queda fijo abajo mientras se lee la descripción.
-// heroShowsVenue: el héroe ya muestra el lugar, así que la fila solo
-// lleva la dirección (si no hay dirección, se muestra el lugar).
+// heroShowsVenue: la cabecera bajo la foto ya muestra el lugar, así
+// que la fila solo lleva la dirección (si no hay dirección, se muestra
+// el lugar).
 // hidePriceRow: el precio ya se muestra en la fila superior del modal.
 export default function EventInformation({ event, associatedBiz, T, hideTickets = false, heroShowsVenue = false, hidePriceRow = false }) {
   const { t, lang } = useTranslation();
