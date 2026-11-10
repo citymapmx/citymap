@@ -3,7 +3,7 @@ export function Sk({ w, h, r, dark, style }) {
   const bg = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
   const pulse = dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
   return (
-    <div style={{ width: w, height: h, borderRadius: r || 4, ...style }}>
+    <div style={{ width: w, height: h, borderRadius: r || 4, position: "relative", overflow: "hidden", ...style }}>
       <style>{`
         @keyframes skelPulse {
           0% { background-color: ${bg}; }
@@ -15,6 +15,8 @@ export function Sk({ w, h, r, dark, style }) {
         }
       `}</style>
       <div className="skel-block" style={{ width: '100%', height: '100%', borderRadius: r || 4 }} />
+      {/* Banda de luz diagonal (demo #3): cruza el bloque cada 1,3 s. */}
+      <div className="skel-shimmer" aria-hidden="true" />
     </div>
   );
 }
@@ -31,8 +33,12 @@ export function CardSk({ dark }) {
       display: "flex", 
       gap: 12, 
       marginBottom: 16,
-      border: `1px solid ${dark ? "#2A2A2A" : "#F0F0F0"}`
+      border: `1px solid ${dark ? "#2A2A2A" : "#F0F0F0"}`,
+      position: "relative",
+      overflow: "hidden"
     }}>
+      {/* Banda de luz diagonal (demo #3): cruza la tarjeta cada 1,3 s. */}
+      <div className="skel-shimmer" aria-hidden="true" />
       <style>{`
         @keyframes skelPulse {
           0% { background-color: ${bg}; }
@@ -73,6 +79,7 @@ export function DuoSk({ dark }) {
             }
           `}</style>
           <div style={{ width: '100%', height: '100%', animation: 'skelPulse 1.5s ease-in-out infinite' }} />
+          <div className="skel-shimmer" aria-hidden="true" />
         </div>
       ))}
     </div>
@@ -94,6 +101,7 @@ export function EventSk({ dark }) {
             }
           `}</style>
           <div style={{ width: '100%', height: '100%', animation: 'skelPulse 1.5s ease-in-out infinite' }} />
+          <div className="skel-shimmer" aria-hidden="true" />
         </div>
       ))}
     </div>
@@ -148,6 +156,40 @@ export function TimeListSk({ dark }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+// Esqueleto de la lista de Eventos (rejilla de 2 columnas): póster 5:7 +
+// dos líneas, con la forma de la tarjeta real de evento. Se muestra
+// mientras los eventos cargan (dbReady false) en vez del "Sin eventos
+// por ahora", que es mentira mientras todavía están llegando.
+export function EventGridSk({ dark }) {
+  return (
+    <div role="status" aria-label="Cargando eventos" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+      {[1, 2, 3, 4, 5, 6].map(i => (
+        <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ aspectRatio: "5 / 7", borderRadius: 18, overflow: "hidden" }}>
+            <Sk w="100%" h="100%" r={18} dark={dark} />
+          </div>
+          <Sk w="80%" h={15} r={6} dark={dark} />
+          <Sk w="50%" h={12} r={6} dark={dark} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Esqueleto de un artículo de Revista: collage 21/9 + título + meta, con
+// la forma de la tarjeta real de artículo. Se muestra mientras los
+// artículos cargan (dbReady false) en vez del "Pronto habrá experiencias".
+export function ArticleSk({ dark }) {
+  return (
+    <div role="status" aria-label="Cargando artículo" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ aspectRatio: "21 / 9", borderRadius: 16, overflow: "hidden" }}>
+        <Sk w="100%" h="100%" r={16} dark={dark} />
+      </div>
+      <Sk w="70%" h={17} r={6} dark={dark} />
+      <Sk w="45%" h={13} r={6} dark={dark} />
     </div>
   );
 }

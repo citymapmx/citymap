@@ -22,7 +22,10 @@ export default function GalleryModals() {
           </div>
           <div style={{ flex: 1, display: "flex", alignItems: "center", width: "100%" }}>
              <Suspense fallback={<div style={{height: "100dvh", width: "100%", background: "#000"}}/>}>
-               <Gallery photos={galleryPhotos} h="100dvh" fit="contain" bg="transparent" initialIndex={initialIdx} />
+               {/* Autoplay (demo #13) SOLO en la galería de fotos del negocio:
+                   la portada de evento tiene una sola foto y el menú es
+                   otro visor; ambos quedan manuales. */}
+               <Gallery photos={galleryPhotos} h="100dvh" fit="contain" bg="transparent" initialIndex={initialIdx} autoplay={!!selected && !selectedEvent && galleryPhotos.length > 1} />
              </Suspense>
           </div>
         </div>;
