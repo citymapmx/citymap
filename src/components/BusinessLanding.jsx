@@ -63,15 +63,15 @@ const prettyCitySlug = (slug) =>
   String(slug || "").split("-").map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(" ");
 
 // Visitas desde Google: cifras REALES de Search Console (captura de
-// Jonathan del 10 nov 2026, últimos 3 meses) del sitio COMPLETO, no por
+// Jonathan del 10 nov 2026, últimos 28 días) del sitio COMPLETO, no por
 // negocio y no inventadas. Para actualizarlas, cambiar solo los valores
 // de aquí: el texto, las cifras grandes y los ejemplos se arman solos.
-// impressionsThousands es el número en miles: 151 = "151 mil" (es) /
-// "151K" (en). Ejemplos: clics por página en esos 3 meses.
+// impressionsThousands es el número en miles: 105 = "105 mil" (es) /
+// "105K" (en). Ejemplos: clics por página en esos 28 días.
 const GOOGLE_SEARCH_CONSOLE = {
-  clicks: 763,
-  impressionsThousands: 151,
-  examples: { formentera: 34, umami: 31, campomar: 30 },
+  clicks: 446,
+  impressionsThousands: 105,
+  examples: { formentera: 27, campomar: 15, akami: 14 },
 };
 
 // Página /negocios: CityMap para negocios. Mismo lenguaje visual que
@@ -136,7 +136,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     { value: liveStats.events, label: t("negocios_stat_eventos", "eventos vigentes") },
     { value: liveStats.tours, label: t("negocios_stat_tours", "tours y guías") },
   ];
-  // "151 mil" en español, "151K" en inglés (ver GOOGLE_SEARCH_CONSOLE).
+  // "105 mil" en español, "105K" en inglés (ver GOOGLE_SEARCH_CONSOLE).
   const impressionsDisplay = lang === "en"
     ? `${GOOGLE_SEARCH_CONSOLE.impressionsThousands}K`
     : `${GOOGLE_SEARCH_CONSOLE.impressionsThousands} mil`;
@@ -250,20 +250,21 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
             <img src="/googlelogo.svg" alt="Google" style={{ width: 32, height: 32, objectFit: 'contain' }} />
           </div>
           <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_google_titulo", "Tu negocio ya aparece en Google")}</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 560 }}>{t("negocios_google_texto", "Los negocios de CityMap reciben visitas reales desde el buscador: ${clicks} clics y ${impressions} impresiones en los últimos 3 meses. Sin pagar anuncios, la gente ya llega a tu menú y a tu perfil desde Google.", { clicks: GOOGLE_SEARCH_CONSOLE.clicks, impressions: impressionsDisplay })}</p>
+          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 560 }}>{t("negocios_google_texto", "Los negocios de CityMap reciben visitas reales desde el buscador: ${clicks} clics y ${impressions} impresiones en los últimos 28 días. Sin pagar anuncios, la gente ya llega a tu menú y a tu perfil desde Google.", { clicks: GOOGLE_SEARCH_CONSOLE.clicks, impressions: impressionsDisplay })}</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, maxWidth: 720, margin: '0 auto' }}>
             <div className="stat-card" style={{ textAlign: 'center', padding: '22px 12px', background: surface, border: `1px solid ${line}`, borderRadius: 24 }}>
               <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.04em', fontVariantNumeric: 'tabular-nums', color: accent }}>{GOOGLE_SEARCH_CONSOLE.clicks}</div>
               <div style={{ fontSize: 13, lineHeight: 1.4, color: muted, marginTop: 4 }}>{t("negocios_google_clics", "clics")}</div>
-              <div style={{ fontSize: 12, lineHeight: 1.4, color: muted, marginTop: 2 }}>{t("negocios_google_periodo", "últimos 3 meses")}</div>
+              <div style={{ fontSize: 12, lineHeight: 1.4, color: muted, marginTop: 2 }}>{t("negocios_google_periodo", "últimos 28 días")}</div>
             </div>
             <div className="stat-card" style={{ textAlign: 'center', padding: '22px 12px', background: surface, border: `1px solid ${line}`, borderRadius: 24 }}>
               <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.04em', fontVariantNumeric: 'tabular-nums', color: accent }}>{impressionsDisplay}</div>
               <div style={{ fontSize: 13, lineHeight: 1.4, color: muted, marginTop: 4 }}>{t("negocios_google_impresiones", "impresiones")}</div>
-              <div style={{ fontSize: 12, lineHeight: 1.4, color: muted, marginTop: 2 }}>{t("negocios_google_periodo", "últimos 3 meses")}</div>
+              <div style={{ fontSize: 12, lineHeight: 1.4, color: muted, marginTop: 2 }}>{t("negocios_google_periodo", "últimos 28 días")}</div>
             </div>
           </div>
-          <p style={{ fontSize: 14, lineHeight: 1.6, color: muted, textAlign: 'center', margin: '20px auto 0', maxWidth: 560 }}>{t("negocios_google_ejemplos", "El menú de Formentera recibió ${formentera} visitas desde Google; Umami Ramen, ${umami}; y Campomar, ${campomar}.", { formentera: GOOGLE_SEARCH_CONSOLE.examples.formentera, umami: GOOGLE_SEARCH_CONSOLE.examples.umami, campomar: GOOGLE_SEARCH_CONSOLE.examples.campomar })}</p>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: muted, textAlign: 'center', margin: '20px auto 0', maxWidth: 560 }}>{t("negocios_google_ejemplos", "El menú de Formentera recibió ${formentera} visitas desde Google; Campomar, ${campomar}; y Akami Sushi, ${akami}.", { formentera: GOOGLE_SEARCH_CONSOLE.examples.formentera, campomar: GOOGLE_SEARCH_CONSOLE.examples.campomar, akami: GOOGLE_SEARCH_CONSOLE.examples.akami })}</p>
+          <p style={{ fontSize: 13, lineHeight: 1.5, color: muted, textAlign: 'center', margin: '12px auto 0', maxWidth: 560 }}>{t("negocios_google_solo_google", "Esto es solo el tráfico que llega desde Google.")}</p>
         </section>
         <section style={{ marginTop: 64 }}>
           <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_beneficios_titulo", "Por qué CityMap")}</h2>
