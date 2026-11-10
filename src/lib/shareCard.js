@@ -169,8 +169,20 @@ export const SHARE_CARD_MENU_STYLE_LIST = [
   SHARE_CARD_STYLES.pedido,
   SHARE_CARD_STYLES.qr,
 ];
-// La hoja usa esta lista: 4 opciones con menú, 2 sin él.
-export function shareCardStyleList(hasMenu) {
+// PR #162: los 2 estilos de menú, SOLOS, para la hoja del menú
+// (/{ciudad}/{slug}/menu): «Para pedir» y «QR del menú». En la ficha
+// ya no se ofrecen (Jonathan: «esas dos deben estar en el link del
+// menú no en la tarjeta del negocio»); las tarjetas no se borran del
+// código, solo cambian de sitio: la ficha vuelve a 2 estilos y la
+// página del menú ofrece solo estas 2.
+// La hoja usa esta lista: 4 opciones con menú, 2 sin él; en la página
+// del menú, solo las 2 de menú (menuOnly).
+export const SHARE_CARD_MENU_ONLY_STYLE_LIST = [
+  SHARE_CARD_STYLES.pedido,
+  SHARE_CARD_STYLES.qr,
+];
+export function shareCardStyleList(hasMenu, { menuOnly = false } = {}) {
+  if (menuOnly) return SHARE_CARD_MENU_ONLY_STYLE_LIST;
   return hasMenu ? SHARE_CARD_MENU_STYLE_LIST : SHARE_CARD_STYLE_LIST;
 }
 export const SHARE_CARD_DEFAULT_STYLE = 'glass';

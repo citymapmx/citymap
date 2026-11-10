@@ -292,13 +292,13 @@ describe('tarjeta para compartir: «Para pedir» y QR del menú (PR #159)', () =
     expect(html).not.toContain('Tepic');
   });
 
-  it('la hoja carga el menú, ofrece 4 estilos con menú y el botón de pedido', () => {
+  it('la hoja carga el menú si se le pasa hasMenu, y la ficha ya no se lo pasa (PR #162)', () => {
     const sheet = read('../components/ShareCardSheet.jsx');
     // La hoja recibe si hay menú y lo carga (la misma consulta que
     // BusinessStore); hasta que llega, solo ofrece Oscura y Clara.
     expect(sheet).toContain('hasMenu');
     expect(sheet).toContain('loadMenuItems(biz.id)');
-    expect(sheet).toContain('shareCardStyleList(hasMenuItems)');
+    expect(sheet).toContain('shareCardStyleList(hasMenuItems, { menuOnly })');
     // La pista (con sus clones del PR #158) y los puntos usan la
     // lista disponible, no la base de 2.
     expect(sheet).toContain('availableStyles');
@@ -306,9 +306,13 @@ describe('tarjeta para compartir: «Para pedir» y QR del menú (PR #159)', () =
     // El botón verde de la hoja abre WhatsApp o el menú.
     expect(sheet).toContain('Hacer pedido');
     expect(sheet).toContain('data.whatsappUrl || data.menuUrl');
-    // El detalle ya le pasa si el negocio tiene menú.
+    // PR #162: la ficha YA NO le pasa si el negocio tiene menú:
+    // «Para pedir» y «QR del menú» salen de la tarjeta del negocio
+    // y viven en la página del menú. La hoja de la ficha vuelve a
+    // 2 estilos (Oscura y Clara) para todos los negocios.
     const detail = read('../views/DetailView.jsx');
-    expect(detail).toContain('hasMenu={hasMenu}');
+    expect(detail).toContain('<ShareCardSheet biz={selected}');
+    expect(detail).not.toContain('hasMenu={hasMenu}');
   });
 
   it('el canvas dibuja los platillos, el botón y el QR (misma geometría que la vista previa)', () => {

@@ -1,7 +1,7 @@
 import {isCatalogBusiness} from '../../lib/storePresentation.js';
 import StorePromotions from './StorePromotions.jsx';
 import SlidingCategoryTrack from '../ui/SlidingCategoryTrack.jsx';
-import { useState, useEffect, useRef, useCallback, useContext } from 'react';
+import { useState, useEffect, useRef, useCallback, useContext, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import { sb } from '../../lib/supabase.js';
@@ -19,6 +19,11 @@ import { AppContext } from '../../context/AppContext.jsx';
 import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic, SRCSET_CARD, SRCSET_THUMB } from '../../lib/utils.js';
 import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
+import { flattenMenuProducts } from '../../lib/shareCard.js';
+
+// PR #162: la hoja Compartir de la página del menú (solo «Para pedir»
+// y «QR del menú»); perezosa como en DetailView.
+const ShareCardSheet = lazy(() => import('../ShareCardSheet.jsx'));
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
   const navigate = useNavigate();
@@ -27,6 +32,9 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  // PR #162: la hoja Compartir de la página del menú (solo «Para
+  // pedir» y «QR del menú»).
+  const [showMenuShareCard, setShowMenuShareCard] = useState(false);
   const [menuSearch, setMenuSearch] = useState('');
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('cg_menu_view') || 'list');
   
@@ -125,6 +133,11 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
 
   // Filter out empty categories
   const activeCategories = categories.filter(c => c.store_products && c.store_products.length > 0);
+  // PR #162: los platillos con precio del menú, para la hoja Compartir
+  // de la página del menú (sin otra consulta: la página ya los trae;
+  // la misma forma que loadMenuItems, para la hoja). useMemo para que
+  // la referencia sea estable y la hoja no recargue en cada render.
+  const menuShareItems = useMemo(() => flattenMenuProducts(activeCategories), [activeCategories]);
 
   useEffect(() => {
     if (!activeTabId && activeCategories.length > 0) {
@@ -467,6 +480,36 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                       </>
                     )}
                   </div>
+                )}
+                {/* PR #162: botón «Compartir» en la página del menú
+                    (inline): abre la hoja con solo «Para pedir» y «QR
+                    del menú». En la ficha (sin inline) no sale: ahí la
+                    hoja vuelve a 2 estilos. Solo si hay platillos con
+                    precio para compartir. */}
+                {inline && menuShareItems.length > 0 && (
+                  <button
+                    onClick={() => setShowMenuShareCard(true)}
+                    className="press"
+                    aria-label="Compartir menú"
+                    style={{
+                      marginTop: 12,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '10px 18px',
+                      borderRadius: 999,
+                      border: `1.5px solid ${dark ? '#3F3F46' : '#E4E4E7'}`,
+                      background: 'transparent',
+                      color: dark ? '#FAFAFA' : '#18181B',
+                      fontSize: 14,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    <Icon name="share" size={16} color="currentColor" />
+                    Compartir
+                  </button>
                 )}
               </div>
             </div>
@@ -855,6 +898,21 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
           T={T} 
           menuIntent={menuIntent}
         />
+      )}
+
+      {/* PR #162: la hoja Compartir de la página del menú: solo «Para
+          pedir» y «QR del menú». El «Compartir enlace» de la hoja
+          comparte la URL del menú (handleShare), no la de la ficha. */}
+      {showMenuShareCard && (
+        <Suspense fallback={null}>
+          <ShareCardSheet
+            biz={business}
+            menuOnly
+            menuItems={menuShareItems}
+            onClose={() => setShowMenuShareCard(false)}
+            onShareLink={() => handleShare()}
+          />
+        </Suspense>
       )}
 
       <CartDrawer business={business} T={T} />
