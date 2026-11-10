@@ -561,7 +561,7 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(viewer).toContain('window.location.href');
   });
 
-  it('la hoja es la misma centrada de eventos/negocios, con los tres formatos y SIN selector de estilo', () => {
+  it('la hoja es la misma centrada de eventos/negocios, con los tres formatos y selector de estilo (Foto completa / Grid)', () => {
     expect(sheet).toContain('EXPERIENCE_SHARE_CARD_FORMAT_LIST.map');
     expect(sheet).toContain('{f.label}');
     expect(sheet).toContain('{f.width} × {f.height}');
@@ -569,7 +569,7 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(sheet).toContain('Compartir enlace');
     expect(sheet).toContain("e?.name === 'AbortError'");
     expect(sheet).toContain('buildExperienceShareCardData(experience, { cityName })');
-    expect(sheet).toContain('exportExperienceShareCardPng(dataToExport, format)');
+    expect(sheet).toContain('exportExperienceShareCardPng(dataToExport, format, styleId)');
     expect(sheet).toContain('experienceShareCardFileName(experience)');
     expect(sheet).toContain('La foto no se pudo cargar');
     // Tarjeta centrada con las 4 esquinas redondeadas (PR #147).
@@ -584,17 +584,20 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     const m = sheet.match(/const PREVIEW_W = (\d+)/);
     expect(m).not.toBeNull();
     expect(Number(m[1])).toBeLessThanOrEqual(220);
-    // Sin selector de estilo: un solo estilo, sin chevrones, puntos ni swipe.
-    expect(sheet).not.toContain('EXPERIENCE_SHARE_CARD_STYLE_LIST');
-    expect(sheet).not.toContain('Estilo anterior');
-    expect(sheet).not.toContain('Estilo siguiente');
+    // Selector de estilo (chevrones + puntos, como el de negocios):
+    // aparece solo cuando el tour tiene 2 o más fotos en la galería
+    // (ver experienceShareCardStyleList); si no, solo «Foto completa».
+    // El cambio es instantáneo (sin pista deslizante ni swipe).
+    expect(sheet).toContain('experienceShareCardStyleList');
+    expect(sheet).toContain('Estilo anterior');
+    expect(sheet).toContain('Estilo siguiente');
+    expect(sheet).toContain('goStyle');
+    expect(sheet).toContain('styleId');
     expect(sheet).not.toContain('SWIPE_MIN_PX');
-    expect(sheet).not.toContain('goStyle');
     expect(sheet).not.toContain('trackPos');
-    expect(sheet).not.toContain('styleId');
   });
 
-  it('la plantilla lleva la foto a sangre, el logotipo oficial, la pastilla glass y el precio azul; sin pie', () => {
+  it('la plantilla lleva la foto a sangre, el logotipo oficial, la pastilla glass y el precio azul; sin pie en «Foto completa»', () => {
     expect(template).toContain('/logo-brand.png');
     expect(template).not.toContain('Pastilla citymap.mx');
     expect(template).not.toContain('#60A5FA');
@@ -606,8 +609,12 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(template).toContain('computeExperienceShareCardLayout');
     expect(template).toContain('objectFit:');
     expect(template).toContain("'cover'");
-    expect(template).not.toContain('Descúbrelo en');
-    expect(template).not.toContain('styleId');
+    // El pie «Descúbrelo en www.citymap.mx» es SOLO del estilo «Grid»
+    // (la demo lo lleva); «Foto completa» sigue sin pie (el render de
+    // arriba lo confirma: sin 'Descúbrelo en' en el HTML).
+    expect(template).toContain('Descúbrelo en');
+    expect(template).toContain("layout.style === 'grid'");
+    expect(template).toContain('styleId');
     expect(template).not.toContain('dividida');
     // Sin círculo de logo del negocio: eso es solo para negocios.
     expect(template).not.toContain('bizLogo');

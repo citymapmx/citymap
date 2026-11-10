@@ -2,10 +2,15 @@
 // que la tarjeta de eventos (PR #152) y la de negocios (PRs #142–#147)
 // pero con los datos de la fila de `experiences`.
 //
-// UN SOLO estilo, «Foto completa», EXACTAMENTE como la propuesta 2 de
+// DOS estilos: «Foto completa», EXACTAMENTE como la propuesta 2 de
 // la demo `propuestas-de-tarjetas-para-articulos` (corrección de
 // Jonathan 10 Nov ~10:54: el segundo estilo, de fondo claro, se veía
-// mal en vivo): la
+// mal en vivo), y «Grid» (demo `propuestas-de-tarjetas-con-grid`,
+// 10 nov 2026; Jonathan: «Haz las 4»): 1 foto grande arriba y 2
+// chicas abajo, sobre fondo blanco, con logotipo oficial, pastilla de
+// ubicación gris, título y precio en texto plano, pie «Descúbrelo en
+// www.citymap.mx». El Grid solo se ofrece con 2 o más fotos en la
+// galería. «Foto completa»: la
 // foto llena TODA la tarjeta a sangre, el texto va encima con
 // degradados para que se lea, logotipo oficial arriba a la izquierda
 // (corrección de Jonathan 10 Nov ~11:39: en lugar de la pastilla de
@@ -71,6 +76,40 @@ export const EXPERIENCE_SHARE_CARD_FORMAT_LIST = [
   EXPERIENCE_SHARE_CARD_FORMATS.post,
   EXPERIENCE_SHARE_CARD_FORMATS.horizontal,
 ];
+
+// Estilos de la tarjeta de artículo: «Foto completa» (el de siempre,
+// foto a sangre) y «Grid» (demo `propuestas-de-tarjetas-con-grid`,
+// 10 nov 2026; Jonathan: «Haz las 4»): 1 foto grande arriba y 2
+// chicas abajo, sobre fondo blanco, con logotipo oficial, pastilla de
+// ubicación, título y precio en texto (sin pastilla azul), y pie
+// «Descúbrelo en www.citymap.mx». El Grid solo se ofrece cuando el
+// tour tiene 2 o más fotos en su galería (ver
+// EXPERIENCE_SHARE_CARD_GRID_MIN_PHOTOS).
+export const EXPERIENCE_SHARE_CARD_STYLES = {
+  foto: { id: 'foto', label: 'Foto completa' },
+  grid: { id: 'grid', label: 'Grid' },
+};
+export const EXPERIENCE_SHARE_CARD_STYLE_LIST = [
+  EXPERIENCE_SHARE_CARD_STYLES.foto,
+  EXPERIENCE_SHARE_CARD_STYLES.grid,
+];
+export const EXPERIENCE_SHARE_CARD_GRID_MIN_PHOTOS = 2;
+export function resolveExperienceShareCardStyle(styleId) {
+  return EXPERIENCE_SHARE_CARD_STYLES[styleId] || EXPERIENCE_SHARE_CARD_STYLES.foto;
+}
+// Estilos que un artículo PUEDE llenar con sus fotos: «Foto completa»
+// siempre (con 1 foto o sin ella, sale el degradado con la inicial) y
+// «Grid» solo con 2 o más fotos en la galería.
+export function experienceShareCardStyleList(photoCount) {
+  const list = [EXPERIENCE_SHARE_CARD_STYLES.foto];
+  if ((Number(photoCount) || 0) >= EXPERIENCE_SHARE_CARD_GRID_MIN_PHOTOS) {
+    list.push(EXPERIENCE_SHARE_CARD_STYLES.grid);
+  }
+  return list;
+}
+export function experienceShareCardGridAvailable(photoCount) {
+  return (Number(photoCount) || 0) >= EXPERIENCE_SHARE_CARD_GRID_MIN_PHOTOS;
+}
 
 // Azul de la pastilla de precio (la de ciudad · tipo ya no es azul:
 // es glass, ver abajo), como la demo.
@@ -196,6 +235,105 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
   },
 };
 
+// Geometría del estilo «Grid» (demo `propuestas-de-tarjetas-con-grid`,
+// diseño 4, medidas de la demo en Historia 1080×1920, 1cqw = 10,8 px):
+// fondo blanco, 1 foto grande arriba (flexible, con el logotipo oficial
+// superpuesto arriba a la izquierda) y 2 chicas abajo, pastilla de
+// ubicación GRIS (como las píldoras de los estilos con grid de negocios,
+// no glass: sobre fondo blanco el glass no se ve), título centrado y
+// precio en texto plano («DESDE $1,941 MXN por persona», sin pastilla
+// azul), pie «Descúbrelo en www.citymap.mx». En Horizontal la tarjeta
+// es de dos columnas (fotos a la izquierda, información a la derecha);
+// en Historia y Post, pila vertical. `duoAspect` es la proporción
+// ancho/alto de las 2 fotos chicas; `bigMinH`, la altura mínima de la
+// foto grande.
+export const EXPERIENCE_SHARE_CARD_GRID_LAYOUT = {
+  story: {
+    pad: 59,
+    logoH: 56,
+    logoInset: 24,
+    bigRadius: 28,
+    duoGap: 17,
+    duoRadius: 24,
+    duoAspect: 1.5,
+    bigMinH: 300,
+    pillSize: 44,
+    pillPadX: 40,
+    pillPadY: 20,
+    titleSize: 93,
+    titleMinSize: 56,
+    titleLineH: 1.12,
+    titleMaxLines: 2,
+    titleGap: 28,
+    desdeSize: 38,
+    desdeGap: 8,
+    priceSize: 108,
+    porSize: 50,
+    porGap: 8,
+    priceGap: 24,
+    footSize: 42,
+    footGap: 24,
+    infoGap: 41,
+  },
+  post: {
+    pad: 48,
+    logoH: 48,
+    logoInset: 20,
+    bigRadius: 24,
+    duoGap: 14,
+    duoRadius: 20,
+    duoAspect: 1.8,
+    bigMinH: 200,
+    pillSize: 36,
+    pillPadX: 32,
+    pillPadY: 16,
+    titleSize: 62,
+    titleMinSize: 40,
+    titleLineH: 1.12,
+    titleMaxLines: 2,
+    titleGap: 20,
+    desdeSize: 30,
+    desdeGap: 6,
+    priceSize: 72,
+    porSize: 36,
+    porGap: 6,
+    priceGap: 18,
+    footSize: 34,
+    footGap: 20,
+    infoGap: 28,
+  },
+  horizontal: {
+    pad: 40,
+    logoH: 48,
+    logoInset: 20,
+    bigRadius: 24,
+    duoGap: 14,
+    duoRadius: 20,
+    duoAspect: 2,
+    bigMinH: 200,
+    pillSize: 32,
+    pillPadX: 28,
+    pillPadY: 14,
+    titleSize: 44,
+    titleMinSize: 32,
+    titleLineH: 1.12,
+    titleMaxLines: 3,
+    titleGap: 16,
+    desdeSize: 26,
+    desdeGap: 6,
+    priceSize: 64,
+    porSize: 30,
+    porGap: 6,
+    priceGap: 14,
+    footSize: 30,
+    footGap: 16,
+    infoGap: 0,
+    cols: true,
+    colGap: 24,
+    bigW: 580,
+  },
+};
+
 // ─── Datos que lleva la tarjeta (solo de la fila) ───
 
 // La descripción de la base trae HTML (<h2>, <p>…): se quitan las
@@ -260,12 +398,20 @@ export function buildExperienceShareCardData(exp, { cityName = '' } = {}) {
   if (city) cityParts.push(`📍 ${city}`);
   if (activityType) cityParts.push(activityType);
   const price = Number(exp?.price);
+  // Las fotos para el estilo «Grid»: hasta 3, en el orden de la
+  // galería. Sin galería, []: la hoja no ofrece el Grid (ver
+  // experienceShareCardStyleList). La foto principal (photoUrl) sigue
+  // siendo gallery[0] para «Foto completa».
+  const photoUrls = (Array.isArray(exp?.gallery) ? exp.gallery : [])
+    .filter((u) => typeof u === 'string' && u.trim() !== '')
+    .slice(0, 3);
   return {
     photoUrl:
       (Array.isArray(exp?.gallery) && exp.gallery[0]) ||
       exp?.img_url ||
       exp?.img ||
       null,
+    photoUrls,
     title: (exp?.title || '').trim(),
     cityName: city,
     activityType,
@@ -366,6 +512,219 @@ function pricePillSize(priceText, priced, L) {
   };
 }
 
+// ─── Geometría del estilo «Grid» (vista previa y canvas dibujan lo mismo) ───
+
+// La pastilla de ubicación GRIS del Grid (como las píldoras de los
+// estilos con grid de negocios: fondo #F4F4F6, texto oscuro).
+function gridPillSize(cityLine, L) {
+  return {
+    w: measureShareCardText(cityLine || '', L.pillSize, 600) + L.pillPadX * 2,
+    h: L.pillSize + L.pillPadY * 2,
+  };
+}
+
+// Alto del bloque de precio en texto plano: «DESDE» + precio + «por
+// persona» (o solo «Gratis» en una línea).
+function gridPriceBlockHeight(data, s) {
+  if (data?.priced) return s.desdeSize + s.desdeGap + s.priceSize + s.porGap + s.porSize;
+  return s.priceSize;
+}
+
+// El precio en texto plano también se achica si no cabe en la columna
+// (un precio largo en Horizontal se saldría por el borde derecho).
+function fitExperienceGridPrice(data, maxW, L) {
+  const sizes = { desdeSize: L.desdeSize, priceSize: L.priceSize, porSize: L.porSize };
+  if (!data?.priced || !data?.priceText) return sizes;
+  const w = measureShareCardText(data.priceText, L.priceSize, 900);
+  if (w <= maxW) return sizes;
+  const scale = maxW / w;
+  const shrink = (v) => Math.max(12, Math.round(v * scale));
+  return {
+    desdeSize: shrink(L.desdeSize),
+    priceSize: shrink(L.priceSize),
+    porSize: shrink(L.porSize),
+  };
+}
+
+// El pie «Descúbrelo en www.citymap.mx» se achica (pasos de 2) hasta
+// caber en la columna; en Horizontal a 30 px mide ~518 px y la columna
+// tiene 396 px, así que se salía por el borde derecho (visto en el PNG
+// horizontal, 10 nov 2026).
+function fitExperienceGridFooterSize(maxW, L) {
+  const run1 = 'Descúbrelo en ';
+  const run2 = 'www.citymap.mx';
+  for (let size = L.footSize; size >= 16; size -= 2) {
+    const w1 =
+      measureShareCardText(run1, size, 400) + 2 * (Array.from(run1).length - 1);
+    const w2 =
+      measureShareCardText(run2, size, 800) + 2 * (Array.from(run2).length - 1);
+    if (w1 + 2 + w2 <= maxW) return size;
+  }
+  return 16;
+}
+
+// Geometría del estilo «Grid»: fondo blanco, 1 foto grande arriba
+// (flexible, con el logotipo oficial superpuesto) y 2 chicas abajo,
+// pastilla de ubicación gris, título centrado y precio en texto plano,
+// pie «Descúbrelo en www.citymap.mx». En Horizontal, dos columnas
+// (fotos a la izquierda, información a la derecha); en Historia y Post,
+// pila vertical. Las `y` de título y precio son el CENTRO vertical de
+// la primera línea (el canvas dibuja con textBaseline 'middle'), igual
+// que en «Foto completa».
+function computeExperienceGridShareCardLayout(data, format, L) {
+  const f = format;
+  const W = f.width;
+  const H = f.height;
+  const pad = L.pad;
+  const maxW = W - pad * 2;
+  const logo = brandLogoSize(L);
+
+  // Ancho útil de la información: en Horizontal es la columna de la
+  // derecha (fotos a la izquierda), no el ancho completo de la tarjeta.
+  // El título, el precio y el pie se ajustan a ESA columna: con el
+  // ancho completo el título salía en una sola línea y se cortaba por
+  // el borde derecho (visto en el PNG horizontal, 10 nov 2026).
+  const contentW = L.cols ? W - (pad + L.bigW + L.colGap) - pad : maxW;
+
+  const pill = data?.cityLine ? gridPillSize(data.cityLine, L) : null;
+  const pillH = pill ? pill.h : 0;
+  const fitted = fitExperienceShareCardTitle(data?.title || '', contentW, L, L.titleSize);
+  const titleH = fitted.lines.length * fitted.size * L.titleLineH;
+  const priceSizes = fitExperienceGridPrice(data, contentW, L);
+  const priceH = gridPriceBlockHeight(data, { ...L, ...priceSizes });
+  const footSize = fitExperienceGridFooterSize(contentW, L);
+
+  // Bloque de información (píldora, título, precio, pie) en orden,
+  // con sus huecos; solo los presentes cuentan.
+  const infoBlocks = [];
+  if (pill) infoBlocks.push({ kind: 'pill', h: pillH, gap: 0 });
+  if (fitted.lines.length) {
+    infoBlocks.push({ kind: 'title', h: titleH, gap: L.titleGap });
+  }
+  infoBlocks.push({ kind: 'price', h: priceH, gap: L.priceGap });
+  infoBlocks.push({ kind: 'foot', h: footSize, gap: L.footGap });
+  const infoH = infoBlocks.reduce(
+    (sum, it, i) => sum + it.h + (i > 0 ? it.gap : 0),
+    0,
+  );
+
+  let bigPhoto;
+  let duo;
+  let brandLogo;
+  let infoTop;
+  let infoCenterX;
+  if (L.cols) {
+    // Horizontal: dos columnas. La foto grande y el dúo van a la
+    // izquierda (la foto grande es el bloque flexible); la información,
+    // centrada verticalmente, a la derecha.
+    const bigW = L.bigW;
+    const duoW = (bigW - L.duoGap) / 2;
+    const duoH = duoW / L.duoAspect;
+    const availH = H - pad * 2;
+    const bigH = Math.max(L.bigMinH, availH - L.duoGap - duoH);
+    bigPhoto = { x: pad, y: pad, w: bigW, h: bigH, radius: L.bigRadius, photoIndex: 0 };
+    duo = [1, 2].map((photoIndex) => ({
+      x: pad + (photoIndex - 1) * (duoW + L.duoGap),
+      y: pad + bigH + L.duoGap,
+      w: duoW,
+      h: duoH,
+      radius: L.duoRadius,
+      photoIndex,
+    }));
+    brandLogo = { x: pad + L.logoInset, y: pad + L.logoInset, w: logo.w, h: logo.h };
+    const colX = pad + bigW + L.colGap;
+    const colW = W - colX - pad;
+    infoCenterX = colX + colW / 2;
+    infoTop = pad + Math.max(0, (availH - infoH) / 2);
+  } else {
+    // Historia/Post: pila vertical. La foto grande es el bloque
+    // flexible: crece hasta comerse el espacio libre.
+    const duoW = (maxW - L.duoGap) / 2;
+    const duoH = duoW / L.duoAspect;
+    const bigH = Math.max(
+      L.bigMinH,
+      H - pad * 2 - (L.duoGap + duoH + L.infoGap + infoH),
+    );
+    bigPhoto = { x: pad, y: pad, w: maxW, h: bigH, radius: L.bigRadius, photoIndex: 0 };
+    duo = [1, 2].map((photoIndex) => ({
+      x: pad + (photoIndex - 1) * (duoW + L.duoGap),
+      y: pad + bigH + L.duoGap,
+      w: duoW,
+      h: duoH,
+      radius: L.duoRadius,
+      photoIndex,
+    }));
+    brandLogo = { x: pad + L.logoInset, y: pad + L.logoInset, w: logo.w, h: logo.h };
+    infoCenterX = W / 2;
+    infoTop = pad + bigH + L.duoGap + duoH + L.infoGap;
+  }
+
+  let y = infoTop;
+  let started = false;
+  const step = (gap) => {
+    if (started) y += gap;
+    started = true;
+  };
+  let pillBox = null;
+  if (pill) {
+    step(0);
+    pillBox = {
+      text: data.cityLine,
+      x: Math.round(infoCenterX - pill.w / 2),
+      y,
+      w: pill.w,
+      h: pill.h,
+      size: L.pillSize,
+      padX: L.pillPadX,
+    };
+    y += pill.h;
+  }
+  let title = null;
+  if (fitted.lines.length) {
+    step(L.titleGap);
+    title = {
+      lines: fitted.lines,
+      x: infoCenterX,
+      y: y + (fitted.size * L.titleLineH) / 2,
+      size: fitted.size,
+      lineH: fitted.size * L.titleLineH,
+    };
+    y += titleH;
+  }
+  step(L.priceGap);
+  const price = {
+    priced: data?.priced === true,
+    text: data?.priceText || '',
+    x: infoCenterX,
+    y,
+    desdeSize: priceSizes.desdeSize,
+    desdeGap: L.desdeGap,
+    priceSize: priceSizes.priceSize,
+    porSize: priceSizes.porSize,
+    porGap: L.porGap,
+  };
+  y += priceH;
+  step(L.footGap);
+  const footer = { y: y + footSize / 2, size: footSize, x: infoCenterX };
+
+  return {
+    style: 'grid',
+    format: f,
+    L,
+    width: W,
+    height: H,
+    infoW: contentW,
+    bigPhoto,
+    duo,
+    brandLogo,
+    pill: pillBox,
+    title,
+    price,
+    footer,
+    cols: !!L.cols,
+  };
+}
+
 // ─── Geometría (vista previa y canvas dibujan lo mismo) ───
 
 // La foto es a sangre (0,0,W,H) y el bloque de texto va anclado abajo:
@@ -376,8 +735,16 @@ function pricePillSize(priceText, priced, L) {
 // descripción y datos son el CENTRO vertical de la primera línea (el
 // canvas dibuja con textBaseline 'middle'), igual que en la tarjeta de
 // negocios y en la de eventos.
-export function computeExperienceShareCardLayout(data, format) {
+export function computeExperienceShareCardLayout(data, format, styleId = 'foto') {
   const f = format || EXPERIENCE_SHARE_CARD_FORMATS.story;
+  const style = resolveExperienceShareCardStyle(styleId);
+  // El estilo «Grid» tiene su propia geometría (fondo blanco, foto
+  // grande + dúo, precio en texto plano): no pasa por el flujo de foto
+  // a sangre + texto encima.
+  if (style.id === 'grid') {
+    const L = EXPERIENCE_SHARE_CARD_GRID_LAYOUT[f.id] || EXPERIENCE_SHARE_CARD_GRID_LAYOUT.story;
+    return computeExperienceGridShareCardLayout(data, f, L);
+  }
   const L = EXPERIENCE_SHARE_CARD_LAYOUT[f.id] || EXPERIENCE_SHARE_CARD_LAYOUT.story;
   const W = f.width;
   const H = f.height;
@@ -533,6 +900,7 @@ export function computeExperienceShareCardLayout(data, format) {
   }
 
   return {
+    style: 'foto',
     format: f,
     L,
     width: W,
@@ -561,8 +929,141 @@ function drawLeftLines(ctx, block, { color, weight }) {
   });
 }
 
-export function drawExperienceShareCardCanvas(data, format, assets, layout) {
-  const geo = layout || computeExperienceShareCardLayout(data, format);
+// Dibujo del estilo «Grid» (fondo blanco, foto grande + dúo, precio en
+// texto plano, pie «Descúbrelo en www.citymap.mx»). Sin degradados ni
+// pastilla azul: la pastilla de ubicación es GRIS (como las píldoras de
+// los estilos con grid de negocios) y el precio es texto, no pastilla.
+function drawExperienceGridShareCardCanvas(data, geo, assets) {
+  const { L } = geo;
+  const canvas = document.createElement('canvas');
+  canvas.width = geo.width;
+  canvas.height = geo.height;
+  const ctx = canvas.getContext('2d');
+
+  // Fondo blanco.
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, geo.width, geo.height);
+
+  // Foto grande (o bloque gris con la inicial si no hay foto) y dúo.
+  const drawCell = (cell) => {
+    ctx.save();
+    roundRectPath(ctx, cell.x, cell.y, cell.w, cell.h, cell.radius);
+    ctx.clip();
+    const img = assets?.photos?.[cell.photoIndex];
+    if (img) {
+      drawCoverImage(ctx, img, cell.x, cell.y, cell.w, cell.h);
+    } else {
+      ctx.fillStyle = '#F0EFEA';
+      ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
+      const initial = (data?.title || 'C').trim().charAt(0).toUpperCase() || 'C';
+      ctx.fillStyle = 'rgba(0,0,0,0.30)';
+      ctx.font = `800 ${Math.round(Math.min(cell.w, cell.h) * 0.45)}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initial, cell.x + cell.w / 2, cell.y + cell.h / 2);
+    }
+    ctx.restore();
+  };
+  drawCell(geo.bigPhoto);
+  for (const cell of geo.duo || []) drawCell(cell);
+
+  // Logotipo oficial superpuesto sobre la foto grande (blanco, con
+  // sombra para que se lea sobre la foto, como la demo).
+  if (assets?.logo && geo.brandLogo) {
+    const bl = geo.brandLogo;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.35)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 2;
+    ctx.drawImage(assets.logo, bl.x, bl.y, bl.w, bl.h);
+    ctx.restore();
+  }
+
+  // Pastilla de ubicación GRIS (pin + «Zapopan · Tour»), centrada.
+  if (geo.pill) {
+    const cp = geo.pill;
+    ctx.fillStyle = '#F4F4F6';
+    roundRectPath(ctx, cp.x, cp.y, cp.w, cp.h, cp.h / 2);
+    ctx.fill();
+    ctx.font = `600 ${cp.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = '#141419';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(cp.text, cp.x + cp.padX, cp.y + cp.h / 2);
+  }
+
+  // Título centrado.
+  if (geo.title) {
+    const n = geo.title;
+    ctx.font = `800 ${n.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = '#141419';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    n.lines.forEach((line, i) => {
+      ctx.fillText(line, n.x, n.y + i * n.lineH);
+    });
+  }
+
+  // Precio en texto plano, centrado: «DESDE» chico con letter-spacing,
+  // precio grande en negrita y «por persona» chico en gris; si es
+  // gratis, solo «Gratis».
+  if (geo.price) {
+    const pr = geo.price;
+    const cx = pr.x;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (pr.priced) {
+      ctx.font = `700 ${pr.desdeSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillStyle = '#8A8A96';
+      const desdeY = pr.y + pr.desdeSize / 2;
+      drawSpacedText(ctx, 'DESDE', cx - spacedWidth(ctx, 'DESDE', Math.round(pr.desdeSize * 0.3)) / 2, desdeY, Math.round(pr.desdeSize * 0.3));
+      const priceY = pr.y + pr.desdeSize + pr.desdeGap + pr.priceSize / 2;
+      ctx.font = `900 ${pr.priceSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillStyle = '#141419';
+      ctx.fillText(pr.text, cx, priceY);
+      ctx.font = `600 ${pr.porSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillStyle = '#6D6D78';
+      ctx.fillText(
+        'por persona',
+        cx,
+        pr.y + pr.desdeSize + pr.desdeGap + pr.priceSize + pr.porGap + pr.porSize / 2,
+      );
+    } else {
+      ctx.font = `900 ${pr.priceSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillStyle = '#141419';
+      ctx.fillText(pr.text, cx, pr.y + pr.priceSize / 2);
+    }
+  }
+
+  // Pie: «Descúbrelo en www.citymap.mx» (URL en negrita), centrado.
+  const f = geo.footer;
+  const run1 = 'Descúbrelo en ';
+  const run2 = 'www.citymap.mx';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
+  const w1 = spacedWidth(ctx, run1, 2);
+  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
+  const w2 = spacedWidth(ctx, run2, 2);
+  const total = w1 + 2 + w2;
+  let fx = f.x - total / 2;
+  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
+  ctx.fillStyle = '#6D6D78';
+  drawSpacedText(ctx, run1, fx, f.y, 2);
+  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
+  ctx.fillStyle = '#141419';
+  drawSpacedText(ctx, run2, fx + w1 + 2, f.y, 2);
+
+  return canvas;
+}
+
+export function drawExperienceShareCardCanvas(data, format, assets, layout, styleId = 'foto') {
+  const geo = layout || computeExperienceShareCardLayout(data, format, styleId);
+  // El estilo «Grid» se dibuja aparte (fondo blanco, foto grande +
+  // dúo, precio en texto plano): no lleva degradados ni pastilla azul.
+  if (geo.style === 'grid') {
+    return drawExperienceGridShareCardCanvas(data, geo, assets);
+  }
   const { L } = geo;
   const canvas = document.createElement('canvas');
   canvas.width = geo.width;
@@ -696,20 +1197,23 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
   return canvas;
 }
 
-export async function renderExperienceShareCardCanvas(data, format) {
-  const [photo, logo] = await Promise.all([
+export async function renderExperienceShareCardCanvas(data, format, styleId = 'foto') {
+  const [photo, photos, logo] = await Promise.all([
     loadShareCardPhoto(data?.photoUrl),
+    // Las fotos del Grid (hasta 3, en orden): si una no se puede leer,
+    // null en su posición y la celda sale con el bloque de la inicial.
+    Promise.all((data?.photoUrls || []).slice(0, 3).map((u) => loadShareCardPhoto(u))),
     loadShareCardLogoWhite(),
   ]);
-  const layout = computeExperienceShareCardLayout(data, format);
-  return drawExperienceShareCardCanvas(data, format, { photo, logo }, layout);
+  const layout = computeExperienceShareCardLayout(data, format, styleId);
+  return drawExperienceShareCardCanvas(data, format, { photo, photos, logo }, layout, styleId);
 }
 
 // Genera el PNG de la tarjeta del artículo dibujando en canvas (nada de
 // DOM ni de html-to-image): lo que se descarga es lo mismo que la vista
 // previa, y el guarda anti-blanco impide descargar un PNG vacío.
-export async function exportExperienceShareCardPng(data, format) {
-  const canvas = await renderExperienceShareCardCanvas(data, format);
+export async function exportExperienceShareCardPng(data, format, styleId = 'foto') {
+  const canvas = await renderExperienceShareCardCanvas(data, format, styleId);
   assertCanvasNotBlank(canvas);
   const blob = await new Promise((resolve, reject) => {
     canvas.toBlob(

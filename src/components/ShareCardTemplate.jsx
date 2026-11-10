@@ -36,6 +36,7 @@ import { getThumbUrl } from '../lib/utils.js';
 import { formatReviewCount } from '../lib/googleRatings.js';
 import {
   SHARE_CARD_FORMATS,
+  SHARE_CARD_SERIF_STACK,
   SHARE_CARD_STYLE_COLORS,
   computeShareCardLayout,
   resolveShareCardStyle,
@@ -65,14 +66,298 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
     ? 'name'
     : hasRating || data?.cityName
       ? 'pills'
-      : 'foot';
+      : layout.category
+        ? 'category'
+        : 'foot';
   // El logo circular se pide en 300×300, igual que la ficha.
   const logoSrc = data?.bizLogoUrl ? getThumbUrl(data.bizLogoUrl, 300, 300) : null;
   // PR #159: «Para pedir» y el QR no llevan píldoras (nada de
   // etiqueta de ciudad en la carta); el QR tampoco lleva foto.
-  const showPills = style.id === 'glass' || style.id === 'editorial';
+  // Los estilos con grid SÍ llevan píldoras (calificación Google +
+  // ciudad, como la demo); el Collage editorial no (su calificación va
+  // como texto plano en la banda).
+  const showPills =
+    style.id === 'glass' ||
+    style.id === 'editorial' ||
+    style.id === 'grid' ||
+    style.id === 'tira';
   const isPedido = style.id === 'pedido';
   const isQr = style.id === 'qr';
+  const isGrid = style.id === 'grid' || style.id === 'tira';
+  const isCollage = style.id === 'collage';
+
+  // Círculo del logo del negocio (PR #144): absoluto, con la misma
+  // geometría que el canvas (layout.bizLogo), así no ocupa espacio
+  // en el flujo y la foto conserva su alto exacto. Si el logo no
+  // carga, onBizLogoError lo quita y la tarjeta queda como en el
+  // #143. En Grid 2×2 y tira va centrado a caballo sobre el borde
+  // inferior del grid; en el collage, alineado a la izquierda sobre
+  // el borde inferior del hero (layout.bizLogo.x ya lo dice).
+  const circleEl =
+    layout.bizLogo && logoSrc ? (
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          left: layout.bizLogo.x,
+          top: layout.bizLogo.y,
+          width: layout.bizLogo.d,
+          height: layout.bizLogo.d,
+          borderRadius: '50%',
+          background: '#FFFFFF',
+          // Anillo del círculo: en Clara es solo blanco
+          // (palette.bizLogoRing; Jonathan, 10 nov 2026: el trazo
+          // gris se veía mal); en Oscura, fino y casi invisible,
+          // donde el círculo blanco ya se distingue.
+          border: `2px solid ${palette.bizLogoRing}`,
+          boxShadow: `0 ${L.bizLogoShadowY}px ${L.bizLogoShadowBlur}px rgba(0,0,0,0.12)`,
+          padding: layout.bizLogo.ring,
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1,
+        }}
+      >
+        <img
+          src={logoSrc}
+          crossOrigin="anonymous"
+          onError={onBizLogoError}
+          alt=""
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            borderRadius: '50%',
+            display: 'block',
+          }}
+        />
+      </div>
+    ) : null;
+
+  // Collage editorial: rama propia (hero a sangre + banda blanca con
+  // kicker, nombre en serif, calificación como texto plano y dúo de
+  // fotos). Todo en posiciones absolutas de la geometría, igual que el
+  // canvas, así vista previa y PNG coinciden.
+  if (isCollage) {
+    const heroSrc = data?.photoUrls?.[0]
+      ? getThumbUrl(data.photoUrls[0], 1080)
+      : photoSrc;
+    return (
+      <div
+        style={{
+          width,
+          height: f.height,
+          boxSizing: 'border-box',
+          background: palette.bg[0],
+          color: palette.text,
+          fontFamily: "var(--heading), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+          textAlign: 'left',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        {/* Hero a sangre arriba (o bloque con la inicial sin foto) */}
+        {layout.hero ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: layout.hero.x,
+              top: layout.hero.y,
+              width: layout.hero.w,
+              height: layout.hero.h,
+              overflow: 'hidden',
+              background: palette.photoBg,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {heroSrc ? (
+              <img
+                src={heroSrc}
+                crossOrigin="anonymous"
+                onError={onPhotoError}
+                alt=""
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+            ) : (
+              <span
+                style={{
+                  color: palette.initial,
+                  fontSize: Math.round(Math.min(layout.hero.w, layout.hero.h) * 0.3),
+                  fontWeight: 800,
+                  lineHeight: 1,
+                }}
+              >
+                {initial}
+              </span>
+            )}
+          </div>
+        ) : null}
+
+        {/* Logotipo oficial superpuesto sobre el hero (blanco) */}
+        {layout.logoOverlay ? (
+          <img
+            src="/logo-brand.png"
+            alt="CityMap"
+            style={{
+              position: 'absolute',
+              left: layout.logoOverlay.x,
+              top: layout.logoOverlay.y,
+              width: layout.logoOverlay.w,
+              height: layout.logoOverlay.h,
+              display: 'block',
+              zIndex: 1,
+            }}
+          />
+        ) : null}
+
+        {circleEl}
+
+        {/* Kicker: «RESTAURANTES · ZAPOPAN» */}
+        {layout.kicker ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: layout.kicker.x,
+              top: layout.kicker.y - (layout.kicker.size * 1.2) / 2,
+              fontSize: layout.kicker.size,
+              fontWeight: 700,
+              letterSpacing: Math.round(layout.kicker.size * 0.32),
+              color: palette.sub,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {layout.kicker.text}
+          </div>
+        ) : null}
+
+        {/* Nombre en serif, alineado a la izquierda */}
+        {layout.name && layout.name.lines.length ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: layout.name.x,
+              top: layout.name.y - layout.name.lineH / 2,
+              width: photoW,
+            }}
+          >
+            {layout.name.lines.map((line, i) => (
+              <div
+                key={i}
+                style={{
+                  fontSize: layout.name.size,
+                  fontWeight: 900,
+                  lineHeight: L.nameLineH,
+                  fontFamily: SHARE_CARD_SERIF_STACK,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {line}
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {/* Calificación como texto plano: «★ 4.3 (1,853 reseñas en Google)» */}
+        {layout.ratingLine ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: layout.ratingLine.x,
+              top: layout.ratingLine.y - (layout.ratingLine.size * 1.2) / 2,
+              display: 'flex',
+              alignItems: 'center',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span style={{ fontSize: layout.ratingLine.size, fontWeight: 700, lineHeight: 1, color: '#F59E0B', marginRight: 8 }}>
+              ★
+            </span>
+            <span style={{ fontSize: layout.ratingLine.size, fontWeight: 700, lineHeight: 1, color: palette.text, marginRight: 6 }}>
+              {layout.ratingLine.rating.toFixed(1)}
+            </span>
+            <span style={{ fontSize: layout.ratingLine.size, fontWeight: 600, lineHeight: 1, color: palette.sub }}>
+              ({formatReviewCount(layout.ratingLine.reviewCount)} reseñas en Google)
+            </span>
+          </div>
+        ) : null}
+
+        {/* Dúo de 2 fotos chicas */}
+        {(layout.duo || []).map((cell, i) => {
+          const src = cell.photoUrl ? getThumbUrl(cell.photoUrl, 1080) : null;
+          return (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: cell.x,
+                top: cell.y,
+                width: cell.w,
+                height: cell.h,
+                borderRadius: cell.radius,
+                overflow: 'hidden',
+                background: palette.photoBg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {src ? (
+                <img
+                  src={src}
+                  crossOrigin="anonymous"
+                  onError={onPhotoError}
+                  alt=""
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              ) : (
+                <span
+                  style={{
+                    color: palette.initial,
+                    fontSize: Math.round(Math.min(cell.w, cell.h) * 0.45),
+                    fontWeight: 800,
+                    lineHeight: 1,
+                  }}
+                >
+                  {initial}
+                </span>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Pie: «Descúbrelo en www.citymap.mx» */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            width,
+            top: layout.footer.y - L.footSize / 2,
+            fontSize: L.footSize,
+            lineHeight: 1,
+            letterSpacing: 2,
+            color: palette.sub,
+            textAlign: 'center',
+          }}
+        >
+          Descúbrelo en <span style={{ color: palette.text, fontWeight: 800 }}>www.citymap.mx</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -151,6 +436,67 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
             ) : null}
           </div>
         </div>
+      ) : isGrid ? (
+        // Grid 2×2 o tira: el área de la foto es el grid, con sus
+        // celdas en posiciones absolutas de la geometría (relativas al
+        // área: cell.x - layout.photo.x). Cada celda lleva su foto en
+        // cover; sin foto, bloque con la inicial, nunca rota.
+        <div
+          style={{
+            width: photoW,
+            flex: 1,
+            minHeight: L.photoMinH,
+            position: 'relative',
+          }}
+        >
+          {(layout.gridCells || []).map((cell, i) => {
+            const src = cell.photoUrl ? getThumbUrl(cell.photoUrl, 1080) : null;
+            return (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: cell.x - (layout.photo?.x ?? L.pad),
+                  top: cell.y - (layout.photo?.y ?? 0),
+                  width: cell.w,
+                  height: cell.h,
+                  borderRadius: cell.radius,
+                  overflow: 'hidden',
+                  background: palette.photoBg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {src ? (
+                  <img
+                    src={src}
+                    crossOrigin="anonymous"
+                    onError={onPhotoError}
+                    alt=""
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                ) : (
+                  <span
+                    style={{
+                      color: palette.initial,
+                      fontSize: Math.round(Math.min(cell.w, cell.h) * 0.45),
+                      fontWeight: 800,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {initial}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <div
           style={{
@@ -198,47 +544,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           en el flujo y la foto conserva su alto exacto. Si el logo no
           carga, onBizLogoError lo quita y la tarjeta queda como en el
           #143. */}
-      {layout.bizLogo && logoSrc ? (
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            left: layout.bizLogo.x,
-            top: layout.bizLogo.y,
-            width: layout.bizLogo.d,
-            height: layout.bizLogo.d,
-            borderRadius: '50%',
-            background: '#FFFFFF',
-            // Anillo del círculo: en Clara es solo blanco
-            // (palette.bizLogoRing; Jonathan, 10 nov 2026: el trazo
-            // gris se veía mal); en Oscura, fino y casi invisible,
-            // donde el círculo blanco ya se distingue.
-            border: `2px solid ${palette.bizLogoRing}`,
-            boxShadow: `0 ${L.bizLogoShadowY}px ${L.bizLogoShadowBlur}px rgba(0,0,0,0.12)`,
-            padding: layout.bizLogo.ring,
-            boxSizing: 'border-box',
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1,
-          }}
-        >
-          <img
-            src={logoSrc}
-            crossOrigin="anonymous"
-            onError={onBizLogoError}
-            alt=""
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              borderRadius: '50%',
-              display: 'block',
-            }}
-          />
-        </div>
-      ) : null}
+      {circleEl}
 
       {layout.name && layout.name.lines.length ? (
         <div style={{ marginTop: firstBlock === 'name' ? layout.firstGap : L.nameGap, width: photoW, flexShrink: 0 }}>
@@ -297,7 +603,11 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
                 gap: 8,
               }}
             >
-              ★ {data.rating.toFixed(1)} ({formatReviewCount(data.reviewCount || 0)})
+              {/* En los estilos con grid la estrella es ámbar (como la
+                  demo), no del color del texto. */}
+              <span style={{ color: palette.starAmber ? '#F59E0B' : palette.pillText }}>★</span>
+              {' '}
+              {data.rating.toFixed(1)} ({formatReviewCount(data.reviewCount || 0)})
               <img
                 src="/googlelogo.svg"
                 alt="Google"
@@ -321,6 +631,24 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
               {data.cityName}
             </span>
           ) : null}
+        </div>
+      ) : null}
+
+      {/* Categoría (solo Grid 2×2 y tira): línea centrada bajo las
+          píldoras, en el color secundario de la paleta. */}
+      {layout.category ? (
+        <div
+          style={{
+            marginTop: firstBlock === 'category' ? layout.firstGap : L.catGap,
+            width: photoW,
+            fontSize: L.catSize,
+            fontWeight: 600,
+            lineHeight: 1.2,
+            color: palette.sub,
+            flexShrink: 0,
+          }}
+        >
+          {layout.category.text}
         </div>
       ) : null}
 
