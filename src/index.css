@@ -360,4 +360,29 @@ iframe[id^="credential_picker"] {
 }
 @media (prefers-reduced-motion: reduce) {
   .scale-in-center { -webkit-animation: none; animation: none; }
+  .scale-in-ver-top { -webkit-animation: none; animation: none; }
+}
+
+/* ── scale-in-ver-top (Animista, entrada del lote nuevo de "Ver más") ──
+   Lo nuevo que carga un "Ver más" (negocios, eventos, artículos, "Ver 5
+   más", y la lista de estados al expandir un país en el selector) entra
+   desenrollándose desde arriba: scaleY 0 → 1 con origen arriba, 0.5 s
+   con easeOutQuad, sin desvanecimiento (opacity 1 todo el tiempo). Solo
+   transform: no mueve el layout ni cambia la altura que Virtuoso mide
+   (offsetHeight no lo afecta). Se aplica SOLO al lote recién cargado y
+   nunca sobre el elemento que FLIP anima (useFlipList escribe transform
+   inline ahí y la animación con fill both lo taparía para siempre):
+   en listas con FLIP la clase va en un envoltorio interior. Con
+   "reducir movimiento" no anima. */
+.scale-in-ver-top {
+  -webkit-animation: scale-in-ver-top 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+  animation: scale-in-ver-top 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+}
+@-webkit-keyframes scale-in-ver-top {
+  0% { -webkit-transform: scaleY(0); transform: scaleY(0); -webkit-transform-origin: 100% 0%; transform-origin: 100% 0%; opacity: 1; }
+  100% { -webkit-transform: scaleY(1); transform: scaleY(1); -webkit-transform-origin: 100% 0%; transform-origin: 100% 0%; opacity: 1; }
+}
+@keyframes scale-in-ver-top {
+  0% { -webkit-transform: scaleY(0); transform: scaleY(0); -webkit-transform-origin: 100% 0%; transform-origin: 100% 0%; opacity: 1; }
+  100% { -webkit-transform: scaleY(1); transform: scaleY(1); -webkit-transform-origin: 100% 0%; transform-origin: 100% 0%; opacity: 1; }
 }

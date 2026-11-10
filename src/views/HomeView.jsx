@@ -228,18 +228,33 @@ export default function HomeView({ isBackground }) {
   const virtuosoRef = React.useRef(null);
   const categoryLoadMoreRef = React.useRef(null);
   const categoryListKey = JSON.stringify([activeCity, activeCat, selectedSubcat]);
+  // "Ver más": índice del primer negocio del lote recién cargado. Solo
+  // ese lote entra con scale-in-ver-top (se desenrolla desde arriba); el
+  // resto de la lista no anima. Se limpia 600 ms después de que el lote
+  // llega (la animación dura 0.5 s) para que la clase no quede puesta.
+  const [newBatchFrom, setNewBatchFrom] = React.useState(null);
   React.useEffect(() => {
     const pending = categoryLoadMoreRef.current;
     if (!pending) return;
-    if (pending.key !== categoryListKey) { categoryLoadMoreRef.current = null; return; }
+    if (pending.key !== categoryListKey) { categoryLoadMoreRef.current = null; setNewBatchFrom(null); return; }
     if (finalDisplayList.length > pending.index) {
       categoryLoadMoreRef.current = null;
       virtuosoRef.current?.scrollToIndex({ index: pending.index, align: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     } else if (!loadingMore) {
       // La carga falló o no trajo nada nuevo: no desplazar.
       categoryLoadMoreRef.current = null;
+      setNewBatchFrom(null);
     }
   }, [finalDisplayList.length, loadingMore, categoryListKey]);
+  // La marca del lote nuevo se limpia 600 ms después de que el lote llega
+  // (la animación dura 0.5 s). Cubre los dos botones "Ver más" (categoría
+  // con Virtuoso y resultados de búsqueda): ambos crecen displayList.
+  React.useEffect(() => {
+    if (newBatchFrom === null) return;
+    if (displayList.length <= newBatchFrom) return;
+    const t = window.setTimeout(() => setNewBatchFrom(null), 600);
+    return () => window.clearTimeout(t);
+  }, [displayList.length, newBatchFrom]);
 
   const isOpen = React.useCallback((b) => isOpenNow(b, city?.timezone || "America/Mexico_City"), [city?.timezone]);
 
@@ -451,18 +466,21 @@ export default function HomeView({ isBackground }) {
                   {dbReady && businessListReady && showAllSearchResults && displayList.length > 0 && displayList.map((b, index) => {
                     const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
                     const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : null;
+                    // Igual que la lista de categoría: solo el lote recién
+                    // cargado con "Ver más" se desenrolla desde arriba.
+                    const newBatchClass = newBatchFrom !== null && index >= newBatchFrom ? 'scale-in-ver-top' : undefined;
                     if (b.plan === "premium") {
-                      return <div key={b.id} style={{ paddingBottom: 14 }}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div key={b.id} className={newBatchClass} style={{ paddingBottom: 14 }}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     } else if (b.plan === "destacado") {
-                      return <div key={b.id} style={{ paddingBottom: 14 }}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div key={b.id} className={newBatchClass} style={{ paddingBottom: 14 }}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     } else {
-                      return <div key={b.id} style={{ paddingBottom: 14 }}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div key={b.id} className={newBatchClass} style={{ paddingBottom: 14 }}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     }
                   })}
                   {dbReady && businessListReady && showAllSearchResults && hasMore && (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
                       <button
-                        onClick={() => loadPaginatedBiz(false)}
+                        onClick={() => { setNewBatchFrom(displayList.length); loadPaginatedBiz(false); }}
                         disabled={loadingMore}
                         style={{ padding: '10px 28px', borderRadius: 20, border: `1px solid ${T.border}`, background: 'none', color: T.text, fontWeight: 700, fontSize: 14, cursor: loadingMore ? 'default' : 'pointer', opacity: loadingMore ? 0.5 : 1 }}
                       >{loadingMore ? t("cargando", "Cargando...") : t("ver_mas", "Ver más")}</button>
@@ -719,13 +737,18 @@ export default function HomeView({ isBackground }) {
                   itemContent={(index, b) => {
                     const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
                     const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : null;
-                    
+                    // Solo el lote recién cargado con "Ver más" se
+                    // desenrolla desde arriba. El transform no cambia la
+                    // altura que Virtuoso mide (offsetHeight), así que no
+                    // pelea con su medición ni con el scroll suave.
+                    const newBatchClass = newBatchFrom !== null && index >= newBatchFrom ? 'scale-in-ver-top' : undefined;
+
                     if (b.plan === "premium") {
-                      return <div style={{ paddingBottom: 14 }}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div className={newBatchClass} style={{ paddingBottom: 14 }}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     } else if (b.plan === "destacado") {
-                      return <div style={{ paddingBottom: 14 }}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div className={newBatchClass} style={{ paddingBottom: 14 }}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     } else {
-                      return <div style={{ paddingBottom: 14 }}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div className={newBatchClass} style={{ paddingBottom: 14 }}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     }
                   }}
                   components={{
@@ -741,7 +764,7 @@ export default function HomeView({ isBackground }) {
               {dbReady && businessListReady && finalDisplayList.length > 0 && hasMore && (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0 20px' }}>
                   <button
-                    onClick={() => { categoryLoadMoreRef.current = { index: finalDisplayList.length, key: categoryListKey }; loadPaginatedBiz(false); }}
+                    onClick={() => { categoryLoadMoreRef.current = { index: finalDisplayList.length, key: categoryListKey }; setNewBatchFrom(finalDisplayList.length); loadPaginatedBiz(false); }}
                     disabled={loadingMore}
                     style={{ padding: '10px 28px', borderRadius: 20, border: `1px solid ${T.border}`, background: 'none', color: T.text, fontWeight: 700, fontSize: 14, cursor: loadingMore ? 'default' : 'pointer', opacity: loadingMore ? 0.5 : 1 }}
                   >{loadingMore ? t("cargando", "Cargando...") : t("ver_mas", "Ver más")}</button>

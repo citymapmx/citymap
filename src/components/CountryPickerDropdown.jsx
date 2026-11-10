@@ -336,7 +336,13 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
                           });
                           const sortedStates = Object.values(statesMap).sort((a, b) => b.count - a.count);
                           return (
-                            <div style={{ padding: "0 0 4px 12px", display: "flex", flexDirection: "column" }}>
+                            // Al expandir un país, su lista de estados entra
+                            // con scale-in-ver-top (se desenrolla desde
+                            // arriba). El contenedor se monta nuevo en cada
+                            // expansión, así que la animación se repite
+                            // siempre. No toca la animación propia del panel
+                            // lateral (el m.div con spring x:'100%'→0).
+                            <div className="scale-in-ver-top" style={{ padding: "0 0 4px 12px", display: "flex", flexDirection: "column" }}>
                               {sortedStates.map((st, stIdx) => {
                                 const stateKey = `${country}_${st.state}`;
                                 const isStateExpanded = expandedStates[stateKey];
@@ -352,9 +358,13 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
                                       <span>{st.state}</span>
                                       <Icon name="chevron" size={15} color={T.sub} />
                                     </button>
-                                    {isStateExpanded && st.cities.map(city => (
-                                      <CityRow key={city.slug} city={city} selected={city.slug === activeCity} />
-                                    ))}
+                                    {isStateExpanded && (
+                                      <div className="scale-in-ver-top" style={{ display: "flex", flexDirection: "column" }}>
+                                        {st.cities.map(city => (
+                                          <CityRow key={city.slug} city={city} selected={city.slug === activeCity} />
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}

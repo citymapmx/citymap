@@ -62,7 +62,10 @@ describe('categoría Restaurantes en Guadalajara: los 21 alcanzables', () => {
     const home = read('../views/HomeView.jsx');
     expect(home).toContain('{selectedSubcat === "todas" ? biz.length : finalDisplayList.length}');
     expect(home).toContain('t("lugares", "lugares")');
-    expect(home).toContain('onClick={() => loadPaginatedBiz(false)}');
+    // El onClick también marca el lote nuevo para la animación
+    // scale-in-ver-top (PR #136); lo que importa es que siga cargando
+    // la siguiente página con loadPaginatedBiz.
+    expect(home).toContain('loadPaginatedBiz(false)');
     expect(home).toContain('t("ver_mas", "Ver más")');
   });
 });

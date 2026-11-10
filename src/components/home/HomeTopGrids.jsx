@@ -17,15 +17,24 @@ export default memo(function HomeTopGrids({
   const firstNewRatedRef = React.useRef(null);
   const prevShowMoreTopFavs = React.useRef(showMoreTopFavs);
   const prevShowMoreTopRated = React.useRef(showMoreTopRated);
+  // "Ver 5 más": las 5 tarjetas nuevas entran con scale-in-ver-top (se
+  // desenrollan desde arriba). La marca se limpia 600 ms después de
+  // expandir (la animación dura 0.5 s) para que la clase no quede puesta.
+  const [freshFavs, setFreshFavs] = React.useState(false);
+  const [freshRated, setFreshRated] = React.useState(false);
   React.useEffect(() => {
     if (showMoreTopFavs && !prevShowMoreTopFavs.current) {
       smoothScrollIntoView(firstNewFavRef.current, 'nearest');
+      setFreshFavs(true);
+      window.setTimeout(() => setFreshFavs(false), 600);
     }
     prevShowMoreTopFavs.current = showMoreTopFavs;
   }, [showMoreTopFavs]);
   React.useEffect(() => {
     if (showMoreTopRated && !prevShowMoreTopRated.current) {
       smoothScrollIntoView(firstNewRatedRef.current, 'nearest');
+      setFreshRated(true);
+      window.setTimeout(() => setFreshRated(false), 600);
     }
     prevShowMoreTopRated.current = showMoreTopRated;
   }, [showMoreTopRated]);
@@ -78,10 +87,16 @@ export default memo(function HomeTopGrids({
 
               return (
                 <div key={b.id} ref={index === 5 ? firstNewFavRef : undefined} style={{ position: "relative", paddingBottom: 0 }}>
+                  {/* Solo las 5 nuevas de "Ver 5 más" se desenrollan desde
+                      arriba. La clase va en este envoltorio interior con la
+                      insignia y la tarjeta juntas, para que toda la fila
+                      anime como una sola pieza. */}
+                  <div className={freshFavs && index >= 5 ? 'scale-in-ver-top' : undefined} style={{ position: "relative" }}>
                   <div style={{ position: "absolute", top: index < 3 ? -2 : -2, left: index < 3 ? -2 : -2, width: index < 3 ? 38 : 34, height: index < 3 ? 38 : 34, borderRadius: "50%", background: index < 3 ? "transparent" : pillBg, color: numColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: index < 3 ? 32 : 15, fontWeight: 900, boxShadow: index < 3 ? "none" : "0 4px 10px rgba(0,0,0,0.15)", zIndex: 10, border: index < 3 ? "none" : `2.5px solid ${dark ? "#111" : "#f4f4f5"}`, filter: index < 3 ? "drop-shadow(0 4px 6px rgba(0,0,0,0.2))" : "none" }}>
                     {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
                   </div>
                   <CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} hideReviews={true} hideSchedule={true} />
+                  </div>
                 </div>
               );
             })}
@@ -116,10 +131,18 @@ export default memo(function HomeTopGrids({
 
               return (
                 <div key={b.id} ref={el => { registerRated(b.id)(el); if (index === 5) firstNewRatedRef.current = el; }} style={{ position: "relative", paddingBottom: 0 }}>
+                  {/* Solo las 5 nuevas de "Ver 5 más" se desenrollan desde
+                      arriba. La clase va en este envoltorio interior, nunca
+                      en el div de FLIP (registerRated escribe transform
+                      inline ahí y la animación con fill both lo taparía
+                      para siempre). La insignia va dentro para que toda la
+                      fila anime como una sola pieza. */}
+                  <div className={freshRated && index >= 5 ? 'scale-in-ver-top' : undefined} style={{ position: "relative" }}>
                   <div style={{ position: "absolute", top: index < 3 ? -2 : -2, left: index < 3 ? -2 : -2, width: index < 3 ? 38 : 34, height: index < 3 ? 38 : 34, borderRadius: "50%", background: index < 3 ? "transparent" : pillBg, color: numColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: index < 3 ? 32 : 15, fontWeight: 900, boxShadow: index < 3 ? "none" : "0 4px 10px rgba(0,0,0,0.15)", zIndex: 10, border: index < 3 ? "none" : `2.5px solid ${dark ? "#111" : "#f4f4f5"}`, filter: index < 3 ? "drop-shadow(0 4px 6px rgba(0,0,0,0.2))" : "none" }}>
                     {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
                   </div>
                   <CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} hideFavs={true} hideSchedule={true} />
+                  </div>
                 </div>
               );
             })}

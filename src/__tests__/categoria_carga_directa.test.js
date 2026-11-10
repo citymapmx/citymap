@@ -53,6 +53,9 @@ describe('carga directa de /:ciudad/:categoria', () => {
   it('el botón "Ver más" sigue presente y carga la siguiente página', () => {
     const home = read('../views/HomeView.jsx');
     expect(home).toContain('ver_mas');
-    expect(home).toContain('onClick={() => loadPaginatedBiz(false)}');
+    // El onClick también marca el lote nuevo para la animación
+    // scale-in-ver-top (PR #136); lo que importa es que siga cargando
+    // la siguiente página con loadPaginatedBiz.
+    expect(home).toContain('loadPaginatedBiz(false)');
   });
 });
