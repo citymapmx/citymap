@@ -1,7 +1,7 @@
 {
   "name": "cityguide",
   "private": true,
-  "version": "1.38.0",
+  "version": "1.39.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -18,8 +18,10 @@
     "@capacitor/app": "^8.1.0",
     "@capacitor/browser": "^8.0.3",
     "@capacitor/core": "^8.4.1",
+    "@capacitor/filesystem": "^8.1.5",
     "@capacitor/geolocation": "^8.2.0",
     "@capacitor/push-notifications": "^8.1.2",
+    "@capacitor/share": "^8.0.3",
     "@capacitor/status-bar": "^8.0.4",
     "@googlemaps/markerclusterer": "^2.6.2",
     "@hello-pangea/dnd": "^18.0.1",

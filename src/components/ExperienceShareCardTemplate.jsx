@@ -1,6 +1,7 @@
 // Plantilla de la tarjeta para compartir el artículo / experiencia
-// (mismo patrón que la de eventos, PR #152): UN SOLO estilo,
-// «Foto completa», EXACTAMENTE como la propuesta 2 de la demo
+// (mismo patrón que la de eventos, PR #152): DOS estilos, «Foto
+// completa» y «Grid» (PR #178), «Foto completa» EXACTAMENTE como la
+// propuesta 2 de la demo
 // `propuestas-de-tarjetas-para-articulos` (corrección de Jonathan
 // 10 Nov ~10:54: el segundo estilo, de fondo claro, se veía mal en vivo). En Post y
 // Horizontal la foto llena TODA la tarjeta a sangre, el texto va encima

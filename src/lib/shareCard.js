@@ -36,6 +36,7 @@
 // planes de pago con logo_url) va centrado a caballo sobre el borde
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
 // tarjeta queda igual que en el #143.
+import { Capacitor } from '@capacitor/core';
 import qrcode from 'qrcode-generator';
 import { createSlug, getThumbUrl, cleanCityPrefix } from './utils.js';
 import { formatReviewCount } from './googleRatings.js';
@@ -899,10 +900,26 @@ export function generateMenuQrDataUrl(url) {
   }
 }
 
+// ¿Corre este código dentro de la app nativa (Capacitor) en vez de en
+// un navegador? En la WebView de Android navigator.canShare({files})
+// es false y el <a download> se traga en silencio (no hay gestor de
+// descargas), así que el compartir va por plugins nativos.
+export function isNativeApp() {
+  try {
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
+}
+
 // ¿Puede este navegador compartir archivos con el menú del sistema?
 // Se comprueba con un archivo vacío para no crear la imagen antes de
 // saberlo; si algo falla, se asume que no y se descarga el PNG.
+// En la app nativa el menú del sistema SIEMPRE existe: el compartir va
+// por el plugin @capacitor/share, así que se devuelve true aunque la
+// WebView diga que navigator.canShare({files}) es false.
 export function canShareImageFiles() {
+  if (isNativeApp()) return true;
   try {
     if (typeof navigator === 'undefined' || typeof navigator.canShare !== 'function') return false;
     return navigator.canShare({
@@ -2094,7 +2111,16 @@ export async function exportShareCardPng(data, format, styleId = 'glass') {
 // compartir archivos, descarga el PNG (el usuario lo comparte manual
 // desde su galería). En web no se puede publicar directo a Instagram:
 // por eso el botón dice «Compartir» o «Descargar imagen».
+// En la app nativa el <a download> NO funciona (la WebView no tiene
+// gestor de descargas: el toque se traga en silencio sin guardar nada),
+// así que el PNG se escribe en el directorio temporal con Filesystem y
+// se comparte con el plugin nativo Share, que abre la hoja de Android
+// (WhatsApp, Instagram, guardar en galería…).
 export async function shareOrDownloadPng(blob, filename) {
+  if (isNativeApp()) {
+    await shareNativePng(blob, filename);
+    return 'shared';
+  }
   const file = new File([blob], filename, { type: 'image/png' });
   if (canShareImageFiles()) {
     await navigator.share({ files: [file] });
@@ -2109,4 +2135,50 @@ export async function shareOrDownloadPng(blob, filename) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
   return 'downloaded';
+}
+
+// Blob → base64 (lo que pide Filesystem.writeFile). Sin FileReader:
+// arrayBuffer + btoa funcionan en la WebView y en Node (tests).
+async function blobToBase64(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+// Comparte el PNG con la hoja nativa de Android: se escribe en el
+// directorio Cache, se pasa su URI al plugin Share y se borra el
+// temporal después (best-effort, también si el usuario cancela).
+// El plugin Share rechaza con «Share canceled» cuando el usuario cierra
+// la hoja sin elegir nada (SharePlugin.java: RESULT_CANCELED): se
+// traduce a AbortError para que las hojas lo traten como en web, donde
+// navigator.share cancelado también lanza AbortError (no es un error).
+async function shareNativePng(blob, filename) {
+  const { Filesystem, Directory } = await import('@capacitor/filesystem');
+  const { Share } = await import('@capacitor/share');
+  const data = await blobToBase64(blob);
+  const saved = await Filesystem.writeFile({
+    path: filename,
+    data,
+    directory: Directory.Cache,
+  });
+  try {
+    await Share.share({ files: [saved.uri], dialogTitle: 'Compartir imagen' });
+  } catch (e) {
+    if (String(e?.message || '').toLowerCase().includes('cancel')) {
+      const abort = new Error('Share canceled');
+      abort.name = 'AbortError';
+      throw abort;
+    }
+    throw e;
+  } finally {
+    try {
+      await Filesystem.deleteFile({ path: filename, directory: Directory.Cache });
+    } catch {
+      // El temporal se limpia solo con la caché; no es un error.
+    }
+  }
 }

@@ -2,7 +2,9 @@
 // que la tarjeta de eventos (PR #152) y la de negocios (PRs #142–#147)
 // pero con los datos de la fila de `experiences`.
 //
-// UN SOLO estilo, «Foto completa», EXACTAMENTE como la propuesta 2 de
+// DOS estilos (PR #178: «Foto completa» y «Grid», este último con la
+// foto grande + 2 chicas en la galería). «Foto completa» es EXACTAMENTE
+// como la propuesta 2 de
 // la demo `propuestas-de-tarjetas-para-articulos` (corrección de
 // Jonathan 10 Nov ~10:54: el segundo estilo, de fondo claro, se veía
 // mal en vivo). En Post y Horizontal la foto llena TODA la tarjeta a
