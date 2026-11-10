@@ -24,11 +24,15 @@ import {
   EXPERIENCE_SHARE_CARD_GLASS_BG,
   EXPERIENCE_SHARE_CARD_GLASS_BORDER,
   computeExperienceShareCardLayout,
+  computeExperienceShareCardLayoutStyled,
 } from '../lib/experienceShareCard.js';
 
-export default function ExperienceShareCardTemplate({ data, format, onPhotoError }) {
+export default function ExperienceShareCardTemplate({ data, format, styleId = 'foto', onPhotoError }) {
   const f = format || EXPERIENCE_SHARE_CARD_FORMATS.story;
-  const L = computeExperienceShareCardLayout(data, format).L;
+  const L = computeExperienceShareCardLayoutStyled(data, format, styleId).L;
+  // El estilo «Grid» usa su propia geometría (ver lib): se calcula
+  // aparte para no tocar la llamada de «Foto completa» de abajo.
+  const gridLayout = styleId === 'grid' ? computeExperienceShareCardLayoutStyled(data, format, styleId) : null;
   const width = f.width;
   // Las líneas (título, ciudad, descripción, datos, pastillas) se
   // calculan con la misma función que usa el exportador de canvas:
@@ -64,6 +68,188 @@ export default function ExperienceShareCardTemplate({ data, format, onPhotoError
       {children}
     </div>
   );
+
+  // Estilo «Grid» (demo `propuestas-de-tarjetas-con-grid`, diseño 4):
+  // fondo blanco, 1 foto grande arriba (con el logotipo oficial
+  // superpuesto) y 2 chicas abajo, pastilla de ubicación GRIS, título
+  // centrado y precio en texto plano, pie «Descúbrelo en www.citymap.mx».
+  // Todo en posiciones absolutas de la geometría, igual que el canvas,
+  // así vista previa y PNG coinciden.
+  if (gridLayout) {
+    const cellImg = (cell, key) => {
+      const src = (data?.photoUrls?.[cell.photoIndex] || null)
+        ? getThumbUrl(data.photoUrls[cell.photoIndex], 1080)
+        : null;
+      return (
+        <div
+          key={key}
+          style={{
+            position: 'absolute',
+            left: cell.x,
+            top: cell.y,
+            width: cell.w,
+            height: cell.h,
+            borderRadius: cell.radius,
+            overflow: 'hidden',
+            background: '#F0EFEA',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {src ? (
+            <img
+              src={src}
+              crossOrigin="anonymous"
+              onError={onPhotoError}
+              alt=""
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          ) : (
+            <span
+              style={{
+                color: 'rgba(0,0,0,0.30)',
+                fontSize: Math.round(Math.min(cell.w, cell.h) * 0.45),
+                fontWeight: 800,
+                lineHeight: 1,
+              }}
+            >
+              {initial}
+            </span>
+          )}
+        </div>
+      );
+    };
+    return (
+      <div
+        style={{
+          width,
+          height: f.height,
+          boxSizing: 'border-box',
+          background: '#FFFFFF',
+          color: '#141419',
+          fontFamily: "var(--heading), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+          textAlign: 'center',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        {/* Foto grande + dúo */}
+        {cellImg(gridLayout.bigPhoto, 'big')}
+        {(gridLayout.duo || []).map((cell, i) => cellImg(cell, `duo-${i}`))}
+
+        {/* Logotipo oficial superpuesto sobre la foto grande (blanco) */}
+        <img
+          src="/logo-brand.png"
+          alt="CityMap"
+          style={{
+            position: 'absolute',
+            left: gridLayout.brandLogo.x,
+            top: gridLayout.brandLogo.y,
+            width: gridLayout.brandLogo.w,
+            height: gridLayout.brandLogo.h,
+            display: 'block',
+            filter: 'drop-shadow(0 2px 12px rgba(0,0,0,0.35))',
+          }}
+        />
+
+        {/* Pastilla de ubicación GRIS */}
+        {gridLayout.pill
+          ? pill(
+              gridLayout.pill,
+              <span style={{ fontSize: gridLayout.pill.size, fontWeight: 600, lineHeight: 1, color: '#141419', whiteSpace: 'nowrap' }}>
+                {gridLayout.pill.text}
+              </span>,
+              { background: '#F4F4F6' },
+            )
+          : null}
+
+        {/* Título centrado (en Horizontal, en la columna de la
+            derecha: el ancho es gridLayout.infoW, no el de toda la tarjeta) */}
+        {gridLayout.title ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: gridLayout.title.x - gridLayout.infoW / 2,
+              top: gridLayout.title.y - gridLayout.title.lineH / 2,
+              width: gridLayout.infoW,
+              textAlign: 'center',
+            }}
+          >
+            {gridLayout.title.lines.map((line, i) => (
+              <div
+                key={i}
+                style={{
+                  fontSize: gridLayout.title.size,
+                  fontWeight: 800,
+                  lineHeight: L.titleLineH,
+                  letterSpacing: -1,
+                  color: '#141419',
+                }}
+              >
+                {line}
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {/* Precio en texto plano, centrado (ancho de la columna en
+            Horizontal, como el título) */}
+        {gridLayout.price ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: gridLayout.price.x - gridLayout.infoW / 2,
+              top: gridLayout.price.y,
+              width: gridLayout.infoW,
+              textAlign: 'center',
+            }}
+          >
+            {gridLayout.price.priced ? (
+              <>
+                <div style={{ fontSize: gridLayout.price.desdeSize, fontWeight: 700, lineHeight: 1, letterSpacing: Math.round(gridLayout.price.desdeSize * 0.3), color: '#8A8A96' }}>
+                  DESDE
+                </div>
+                <div style={{ fontSize: gridLayout.price.priceSize, fontWeight: 900, lineHeight: 1, color: '#141419', marginTop: gridLayout.price.desdeGap }}>
+                  {gridLayout.price.text}
+                </div>
+                <div style={{ fontSize: gridLayout.price.porSize, fontWeight: 600, lineHeight: 1, color: '#6D6D78', marginTop: gridLayout.price.porGap }}>
+                  por persona
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: gridLayout.price.priceSize, fontWeight: 900, lineHeight: 1, color: '#141419' }}>
+                {gridLayout.price.text}
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {/* Pie: «Descúbrelo en www.citymap.mx», centrado en la columna
+            (en Horizontal) con el tamaño ajustado de la geometría */}
+        <div
+          style={{
+            position: 'absolute',
+            left: gridLayout.footer.x - gridLayout.infoW / 2,
+            width: gridLayout.infoW,
+            top: gridLayout.footer.y - gridLayout.footer.size / 2,
+            fontSize: gridLayout.footer.size,
+            lineHeight: 1,
+            letterSpacing: 2,
+            color: '#6D6D78',
+            textAlign: 'center',
+          }}
+        >
+          Descúbrelo en <span style={{ color: '#141419', fontWeight: 800 }}>www.citymap.mx</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

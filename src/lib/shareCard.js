@@ -56,6 +56,11 @@ export const SHARE_CARD_FORMAT_LIST = [
 // y dibuja con la misma fuente que la vista previa.
 export const SHARE_CARD_FONT_STACK =
   "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+// La app no trae Source Serif 4 (la fuente del nombre en el Collage
+// editorial de la demo): el nombre del collage usa la pila serif del
+// sistema (Georgia), que es la más cercana disponible sin añadir una
+// fuente nueva. Desviación documentada de la demo, no un error.
+export const SHARE_CARD_SERIF_STACK = "Georgia, 'Times New Roman', serif";
 
 // Geometría única de la tarjeta, por formato. photoMinH es la altura
 // MÍNIMA de la foto: la foto crece desde ahí hasta comerse todo el
@@ -158,7 +163,36 @@ export const SHARE_CARD_STYLES = {
   // la hoja sigue con solo Oscura y Clara.
   pedido: { id: 'pedido', label: 'Para pedir' },
   qr: { id: 'qr', label: 'QR del menú' },
+  // Estilos con grid (demo `propuestas-de-tarjetas-con-grid`, 10 nov
+  // 2026; Jonathan: «Haz las 4»): las fotos del negocio en grid, con
+  // círculo de logo más grande y la categoría bajo las píldoras. No
+  // entran en la lista base: la hoja los suma SOLO cuando el negocio
+  // tiene fotos suficientes (ver SHARE_CARD_GRID_MIN_PHOTOS).
+  grid: { id: 'grid', label: 'Grid 2×2' },
+  tira: { id: 'tira', label: 'Foto + miniaturas' },
+  collage: { id: 'collage', label: 'Collage' },
 };
+// Mínimo de fotos para ofrecer cada estilo con grid (la demo los
+// diseñó así: el Grid 2×2 necesita las 4, la tira 1 grande + hasta 3
+// miniaturas, el collage 1 grande + 2 chicas).
+export const SHARE_CARD_GRID_MIN_PHOTOS = { grid: 4, tira: 2, collage: 3 };
+export const SHARE_CARD_GRID_STYLE_LIST = [
+  SHARE_CARD_STYLES.grid,
+  SHARE_CARD_STYLES.tira,
+  SHARE_CARD_STYLES.collage,
+];
+// Estilos con grid que un negocio PUEDE llenar con sus fotos, en el
+// orden de la demo (Grid 2×2, tira, collage). Con 1 foto o sin fotos,
+// ninguno: la hoja ofrece solo Oscura y Clara.
+export function shareCardGridStyles(photoCount) {
+  const n = Number(photoCount) || 0;
+  return SHARE_CARD_GRID_STYLE_LIST.filter(
+    (s) => n >= (SHARE_CARD_GRID_MIN_PHOTOS[s.id] || 0),
+  );
+}
+export function shareCardGridStyleAvailable(styleId, photoCount) {
+  return shareCardGridStyles(photoCount).some((s) => s.id === styleId);
+}
 export const SHARE_CARD_STYLE_LIST = [
   SHARE_CARD_STYLES.glass,
   SHARE_CARD_STYLES.editorial,
@@ -192,6 +226,22 @@ export function resolveShareCardStyle(styleId) {
 
 // Paleta de cada estilo: la plantilla y el canvas leen los mismos
 // colores, así la vista previa y el PNG coinciden.
+export const GRID_SHARE_CARD_COLORS = {
+  bg: ['#FFFFFF', '#FFFFFF'],
+  text: '#141419',
+  sub: '#6D6D78',
+  pillBg: '#F4F4F6',
+  pillBorder: null,
+  pillText: '#141419',
+  logoWhite: false,
+  photoBg: '#F0EFEA',
+  initial: 'rgba(0,0,0,0.30)',
+  // Anillo del círculo del logo del negocio: solo blanco (como en
+  // Clara tras el #176); la estrella de la píldora de calificación es
+  // ámbar (como la demo), no del color del texto.
+  bizLogoRing: '#FFFFFF',
+  starAmber: true,
+};
 export const SHARE_CARD_STYLE_COLORS = {
   glass: {
     bg: ['#1B1B1B', '#0B0B0B'],
@@ -223,6 +273,14 @@ export const SHARE_CARD_STYLE_COLORS = {
     // anillo fino casi invisible no se distinguía del fondo.
     bizLogoRing: '#FFFFFF',
   },
+  // Paleta de los 3 estilos con grid (demo `propuestas-de-tarjetas-con-grid`):
+  // fondo blanco, tinta oscura, píldoras gris claro y estrella ámbar
+  // (como la demo); el anillo del círculo es SOLO blanco, sin trazo
+  // gris (como en Clara tras el #176). La comparten los 3: la diferencia
+  // entre ellos es la geometría, no los colores.
+  grid: GRID_SHARE_CARD_COLORS,
+  tira: GRID_SHARE_CARD_COLORS,
+  collage: GRID_SHARE_CARD_COLORS,
   // PR #159: «Para pedir» es oscura como Glass (mismo fondo y textos)
   // más el botón verde de WhatsApp; el QR del menú también es oscuro,
   // con el QR sobre un bloque blanco para que se lea al escanear.
@@ -320,6 +378,170 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     pillsGap: 36,
     footSize: 28,
     footGap: 44,
+  },
+};
+
+// Geometría de los estilos con grid (demo `propuestas-de-tarjetas-con-grid`,
+// 10 nov 2026; medidas de la demo en Historia 1080×1920, 1cqw = 10,8 px):
+// fondo blanco, logotipo oficial arriba en negro, las fotos en grid, el
+// círculo del logo del negocio MÁS GRANDE (Ø 292 Historia / 232 Post, 27cqw
+// de la demo, frente a 240/190 de Oscura/Clara) a caballo sobre el borde
+// inferior del grid, nombre, píldoras (calificación Google + ciudad) y la
+// categoría bajo las píldoras, pie «Descúbrelo en www.citymap.mx». El
+// área del grid es el bloque flexible (como la foto en los demás
+// estilos): crece hasta comerse el espacio libre, así nunca queda
+// franja vacía entre las píldoras y el pie.
+// `gridAspect` es la proporción ancho/alto de las celdas del Grid 2×2
+// (1,14 en la demo); `stripAspect`, la de las miniaturas de la tira
+// (cuadradas en Historia, más anchas en Post para que la foto grande
+// no se vuelva una franja delgada).
+export const GRID_SHARE_CARD_LAYOUT = {
+  story: {
+    pad: 59,
+    logoH: 58,
+    logoGap: 24,
+    photoMinH: 300,
+    photoRadius: 0,
+    gridGap: 17,
+    gridRadius: 26,
+    gridAspect: 1.14,
+    showBizLogo: true,
+    bizLogoD: 292,
+    bizLogoRing: 22,
+    bizLogoGap: 24,
+    bizLogoShadowY: 12,
+    bizLogoShadowBlur: 28,
+    nameSize: 99,
+    nameGap: 38,
+    nameLineH: 1.1,
+    nameMaxLines: 3,
+    pillSize: 44,
+    pillPadX: 40,
+    pillPadY: 20,
+    pillGap: 16,
+    pillRowGap: 14,
+    pillsGap: 28,
+    catSize: 45,
+    catGap: 20,
+    footSize: 42,
+    footGap: 24,
+  },
+  post: {
+    pad: 48,
+    logoH: 48,
+    logoGap: 16,
+    photoMinH: 240,
+    photoRadius: 0,
+    gridGap: 14,
+    gridRadius: 22,
+    gridAspect: 1.14,
+    showBizLogo: true,
+    bizLogoD: 232,
+    bizLogoRing: 18,
+    bizLogoGap: 20,
+    bizLogoShadowY: 10,
+    bizLogoShadowBlur: 24,
+    nameSize: 72,
+    nameGap: 28,
+    nameLineH: 1.1,
+    nameMaxLines: 3,
+    pillSize: 36,
+    pillPadX: 32,
+    pillPadY: 16,
+    pillGap: 14,
+    pillRowGap: 12,
+    pillsGap: 20,
+    catSize: 34,
+    catGap: 16,
+    footSize: 34,
+    footGap: 20,
+  },
+};
+
+// Geometría de «Foto grande + tira de miniaturas»: 1 foto grande arriba
+// y tira de 3 miniaturas debajo (o las que haya: 1 grande + hasta 3).
+// Misma base que el Grid 2×2 (logo, círculo, nombre, píldoras,
+// categoría, pie); `bigRadius` es el radio de la foto grande,
+// `stripRadius` y `stripAspect` los de las miniaturas. photoMinH es la
+// tira completa (miniaturas + hueco + foto grande mínima).
+export const TIRA_SHARE_CARD_LAYOUT = {
+  story: {
+    ...GRID_SHARE_CARD_LAYOUT.story,
+    photoMinH: 626,
+    bigRadius: 28,
+    stripRadius: 24,
+    stripAspect: 1,
+    bigMinH: 300,
+  },
+  post: {
+    ...GRID_SHARE_CARD_LAYOUT.post,
+    photoMinH: 387,
+    bigRadius: 24,
+    stripRadius: 20,
+    stripAspect: 1.8,
+    bigMinH: 200,
+  },
+};
+
+// Geometría del «Collage editorial»: foto grande a sangre arriba (el
+// hero, flexible, con el logotipo oficial blanco superpuesto arriba a
+// la izquierda), círculo del logo alineado a la IZQUIERDA a caballo
+// sobre el borde inferior del hero, y banda blanca con kicker
+// («RESTAURANTES · ZAPOPAN»), nombre en serif, calificación como texto
+// plano (no pastilla) y dúo de 2 fotos chicas. Sin píldoras ni precio.
+// El hero es el bloque flexible: crece hasta comerse el espacio libre.
+export const COLLAGE_SHARE_CARD_LAYOUT = {
+  story: {
+    pad: 59,
+    logoH: 56,
+    logoOverlayX: 49,
+    logoOverlayY: 49,
+    heroMinH: 600,
+    showBizLogo: true,
+    bizLogoD: 292,
+    bizLogoRing: 22,
+    bizLogoGap: 24,
+    bizLogoShadowY: 12,
+    bizLogoShadowBlur: 28,
+    bandPad: 43,
+    kickerSize: 38,
+    nameSize: 135,
+    nameGap: 35,
+    nameLineH: 1,
+    nameMaxLines: 2,
+    ratingSize: 50,
+    ratingGap: 35,
+    duoGap: 22,
+    duoRadius: 24,
+    duoAspect: 1.55,
+    footSize: 42,
+    footGap: 24,
+  },
+  post: {
+    pad: 48,
+    logoH: 48,
+    logoOverlayX: 40,
+    logoOverlayY: 40,
+    heroMinH: 300,
+    showBizLogo: true,
+    bizLogoD: 232,
+    bizLogoRing: 18,
+    bizLogoGap: 20,
+    bizLogoShadowY: 10,
+    bizLogoShadowBlur: 24,
+    bandPad: 35,
+    kickerSize: 30,
+    nameSize: 96,
+    nameGap: 28,
+    nameLineH: 1,
+    nameMaxLines: 2,
+    ratingSize: 38,
+    ratingGap: 28,
+    duoGap: 18,
+    duoRadius: 20,
+    duoAspect: 2.2,
+    footSize: 34,
+    footGap: 20,
   },
 };
 
@@ -428,6 +650,9 @@ export const QR_SHARE_CARD_LAYOUT = {
 export const SHARE_CARD_STYLE_LAYOUTS = {
   glass: SHARE_CARD_LAYOUT,
   editorial: EDITORIAL_SHARE_CARD_LAYOUT,
+  grid: GRID_SHARE_CARD_LAYOUT,
+  tira: TIRA_SHARE_CARD_LAYOUT,
+  collage: COLLAGE_SHARE_CARD_LAYOUT,
   pedido: PEDIDO_SHARE_CARD_LAYOUT,
   qr: QR_SHARE_CARD_LAYOUT,
 };
@@ -457,19 +682,42 @@ export function bizShowsLogoCircle(biz) {
 }
 
 // Datos que lleva la tarjeta. La calificación es SOLO la de Google: si
+// Etiqueta de la categoría para la tarjeta («restaurantes» →
+// «Restaurantes»): la base guarda la categoría en minúsculas y la
+// demo la muestra capitalizada (y en mayúsculas en el kicker del
+// collage, con toUpperCase()).
+export function formatShareCardCategory(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 // displayRating no trae dato vigente de google_ratings_cache (source
 // 'google'), no hay píldora de calificación — la interna de CityMap no
 // se muestra en la tarjeta y ningún número se inventa. El precio se
 // conserva como dato pero la tarjeta ya no lo muestra (PR #143).
 // PR #155: sin categoría (sale de ambas versiones) y sin los datos de
 // la Ficha (horario, dirección, WhatsApp), que se fue con ese estilo.
+// Los estilos con grid SÍ llevan la categoría (línea bajo las
+// píldoras en Grid 2×2 y tira; kicker en el collage): por eso el dato
+// vuelve, pero solo esos estilos la pintan (ver computeShareCardLayout).
 export function buildShareCardData(biz, { disp = null, cityName = '' } = {}) {
   const photoUrl =
     biz?.photos?.find((p) => p?.url)?.url || biz?.banner_url || biz?.logo_url || null;
+  // Las fotos para los estilos con grid: hasta 4, en el orden de la
+  // ficha (biz.photos). Sin fotos, []: la hoja no ofrece esos estilos
+  // (ver shareCardGridStyles). El banner/logo no cuentan: el grid
+  // necesita fotos reales del negocio, no la portada ni el logo.
+  const photoUrls = (Array.isArray(biz?.photos) ? biz.photos : [])
+    .map((p) => p?.url)
+    .filter((u) => typeof u === 'string' && u.trim() !== '')
+    .slice(0, 4);
   const google =
     disp?.source === 'google' && typeof disp?.rating === 'number';
   return {
     photoUrl,
+    photoUrls,
+    category: formatShareCardCategory(biz?.category || biz?.type),
     bizLogoUrl: bizShowsLogoCircle(biz) ? biz.logo_url.trim() : null,
     name: biz?.name || '',
     rating: google ? disp.rating : null,
@@ -683,8 +931,8 @@ export async function isPhotoFetchable(photoUrl) {
 // ─── Medición de texto (misma fuente en la vista previa y en canvas) ───
 
 let _measureCtx = null;
-export function measureShareCardText(text, size, weight = 700) {
-  const font = `${weight} ${size}px ${SHARE_CARD_FONT_STACK}`;
+export function measureShareCardText(text, size, weight = 700, fontStack = SHARE_CARD_FONT_STACK) {
+  const font = `${weight} ${size}px ${fontStack}`;
   if (typeof document === 'undefined') {
     return String(text).length * size * 0.55;
   }
@@ -698,8 +946,9 @@ export function measureShareCardText(text, size, weight = 700) {
 }
 
 // Texto cortado a N líneas como máximo, con puntos suspensivos si sobra
-// (el nombre de la tarjeta usa lo mismo).
-export function wrapShareCardText(text, maxW, size, maxLines, weight = 700) {
+// (el nombre de la tarjeta usa lo mismo). `fontStack` es la pila de
+// fuentes para medir (el nombre del Collage editorial se mide en serif).
+export function wrapShareCardText(text, maxW, size, maxLines, weight = 700, fontStack = SHARE_CARD_FONT_STACK) {
   const words = String(text || '')
     .trim()
     .split(/\s+/)
@@ -713,7 +962,7 @@ export function wrapShareCardText(text, maxW, size, maxLines, weight = 700) {
     i += 1;
     while (i < words.length) {
       const test = `${line} ${words[i]}`;
-      if (measureShareCardText(test, size, weight) > maxW) break;
+      if (measureShareCardText(test, size, weight, fontStack) > maxW) break;
       line = test;
       i += 1;
     }
@@ -724,20 +973,20 @@ export function wrapShareCardText(text, maxW, size, maxLines, weight = 700) {
     // palabra más ancha que la tarjeta (no hay límite de palabra
     // posible) se recorta por caracteres, como antes.
     if (
-      measureShareCardText(line, size, weight) > maxW ||
+      measureShareCardText(line, size, weight, fontStack) > maxW ||
       (isLast && i < words.length)
     ) {
       const parts = line.split(' ');
       while (
         parts.length > 1 &&
-        measureShareCardText(`${parts.join(' ')}…`, size, weight) > maxW
+        measureShareCardText(`${parts.join(' ')}…`, size, weight, fontStack) > maxW
       ) {
         parts.pop();
       }
       let t = parts.join(' ');
       while (
         t.length > 1 &&
-        measureShareCardText(`${t}…`, size, weight) > maxW
+        measureShareCardText(`${t}…`, size, weight, fontStack) > maxW
       ) {
         t = t.slice(0, -1).trimEnd();
       }
@@ -808,6 +1057,145 @@ export function truncateShareCardText(text, maxW, size, weight = 700) {
   return `${out}…`;
 }
 
+// Geometría del «Collage editorial» (demo `propuestas-de-tarjetas-con-grid`):
+// el hero a sangre arriba es el bloque flexible; debajo, la banda blanca
+// con kicker («RESTAURANTES · ZAPOPAN»), nombre en serif, calificación
+// como texto plano y dúo de 2 fotos chicas. El círculo del logo va
+// alineado a la IZQUIERDA (no centrado) a caballo sobre el borde inferior
+// del hero, y el logotipo oficial va superpuesto sobre el hero (blanco,
+// arriba a la izquierda), no en su fila centrada de arriba. Sin
+// píldoras ni precio. Las `y` de kicker, nombre y calificación son el
+// CENTRO vertical del texto (el canvas dibuja con textBaseline 'middle').
+function computeCollageShareCardLayout(data, format, L) {
+  const f = format;
+  const W = f.width;
+  const H = f.height;
+  const maxW = W - L.pad * 2;
+
+  const hasBizLogo = !!data?.bizLogoUrl && L.showBizLogo !== false;
+  const circleD = L.bizLogoD;
+
+  // Kicker: «RESTAURANTES · ZAPOPAN» (categoría y ciudad en mayúsculas).
+  const kickerText = [data?.category, data?.cityName]
+    .map((s) => String(s || '').trim().toUpperCase())
+    .filter(Boolean)
+    .join(' · ');
+  const kickerH = kickerText ? L.kickerSize * 1.2 : 0;
+
+  // Nombre en serif (Source Serif 4 de la demo → Georgia, ver
+  // SHARE_CARD_SERIF_STACK): se mide con la pila serif, no con la de
+  // siempre, para que el corte coincida con el dibujo.
+  const nameLines = wrapShareCardText(
+    data?.name,
+    maxW,
+    L.nameSize,
+    L.nameMaxLines,
+    900,
+    SHARE_CARD_SERIF_STACK,
+  );
+  const nameBlockH = nameLines.length * L.nameSize * L.nameLineH;
+
+  // Calificación como texto plano (no pastilla): «★ 4.3 (1,853 reseñas
+  // en Google)». Solo si hay dato de Google.
+  const hasRating = typeof data?.rating === 'number' && data.rating > 0;
+  const ratingH = hasRating ? L.ratingSize * 1.2 : 0;
+
+  // Dúo: 2 fotos chicas (la 2ª y la 3ª de la galería).
+  const duoW = (maxW - L.duoGap) / 2;
+  const duoH = duoW / L.duoAspect;
+
+  // Alto de la banda bajo el hero: el hero es lo que sobra.
+  let bandH = (hasBizLogo ? circleD / 2 : 0) + L.bandPad;
+  if (kickerText) bandH += kickerH + L.nameGap;
+  if (nameLines.length) bandH += nameBlockH + L.ratingGap;
+  if (hasRating) bandH += ratingH + L.duoGap;
+  bandH += duoH + L.footGap + L.footSize + L.pad;
+  const heroH = Math.max(L.heroMinH, H - bandH);
+  const hero = { x: 0, y: 0, w: W, h: heroH, radius: 0 };
+  const heroBottom = heroH;
+
+  const logoW = Math.round(L.logoH * (400 / 120));
+  const logoOverlay = { x: L.logoOverlayX, y: L.logoOverlayY, w: logoW, h: L.logoH };
+
+  const bizLogo = hasBizLogo
+    ? {
+        x: L.pad,
+        y: Math.round(heroBottom - circleD / 2),
+        d: circleD,
+        ring: L.bizLogoRing,
+      }
+    : null;
+
+  const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
+
+  let y = heroBottom + (hasBizLogo ? circleD / 2 : 0) + L.bandPad;
+  let kicker = null;
+  if (kickerText) {
+    kicker = { text: kickerText, x: L.pad, y: y + kickerH / 2, size: L.kickerSize };
+    y += kickerH + L.nameGap;
+  }
+  let nameBox = null;
+  if (nameLines.length) {
+    nameBox = {
+      lines: nameLines,
+      x: L.pad,
+      y: y + (L.nameSize * L.nameLineH) / 2,
+      size: L.nameSize,
+      lineH: L.nameSize * L.nameLineH,
+      align: 'left',
+      serif: true,
+    };
+    y += nameBlockH + L.ratingGap;
+  }
+  let ratingLine = null;
+  if (hasRating) {
+    ratingLine = {
+      rating: data.rating,
+      reviewCount: data.reviewCount || 0,
+      x: L.pad,
+      y: y + ratingH / 2,
+      size: L.ratingSize,
+    };
+    y += ratingH + L.duoGap;
+  }
+  const urls = (data?.photoUrls || []).slice(0, 3);
+  const duo = [1, 2].map((photoIndex) => ({
+    x: L.pad + (photoIndex - 1) * (duoW + L.duoGap),
+    y,
+    w: duoW,
+    h: duoH,
+    radius: L.duoRadius,
+    photoIndex,
+    photoUrl: urls[photoIndex] || null,
+  }));
+
+  return {
+    style: 'collage',
+    format: f,
+    L,
+    width: W,
+    height: H,
+    logo: null,
+    logoOverlay,
+    photo: null,
+    hero,
+    bizLogo,
+    firstGap: null,
+    name: nameBox,
+    kicker,
+    ratingLine,
+    duo,
+    gridCells: null,
+    category: null,
+    pillRows: [],
+    dishes: [],
+    hours: null,
+    orderButton: null,
+    qr: null,
+    footer,
+  };
+}
+
 // Geometría completa de la tarjeta. La foto es el único bloque flexible:
 // su alto es todo lo que sobra tras reservar logo, textos, píldoras y
 // pie, con photoMinH como mínimo — por eso nunca queda hueco vacío.
@@ -827,6 +1215,17 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   const W = f.width;
   const H = f.height;
   const maxW = W - L.pad * 2;
+
+  // El Collage editorial tiene su propia geometría (hero a sangre +
+  // banda blanca): no pasa por el flujo de foto + nombre + píldoras.
+  if (style.id === 'collage') {
+    return computeCollageShareCardLayout(data, f, L);
+  }
+
+  // Grid 2×2 y tira: la foto del flujo es el ÁREA del grid (flexible,
+  // como la foto en los demás estilos); las celdas se calculan de ella
+  // más abajo, y la categoría va en su propio bloque tras las píldoras.
+  const isGrid = style.id === 'grid' || style.id === 'tira';
 
   // PR #159: «Para pedir» y el QR del menú tienen sus propios bloques
   // (platillos/horario/botón y área del QR) en vez de las píldoras.
@@ -867,6 +1266,13 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     : 0;
   const pillsGapU = pillRows.length ? gapAfterPhoto(L.pillsGap) : L.pillsGap;
   const pillsBlock = pillRows.length ? pillsGapU + pillsBlockH : 0;
+
+  // Categoría (solo Grid 2×2 y tira, como la demo): línea de texto
+  // bajo las píldoras («Restaurantes»). En Oscura/Clara no existe
+  // (PR #155) y el collage la lleva en el kicker, no aquí.
+  const hasCategory = isGrid && String(data?.category || '').trim() !== '';
+  const catGapU = hasCategory ? gapAfterPhoto(L.catGap) : L.catGap;
+  const catBlock = hasCategory ? catGapU + L.catSize * 1.2 : 0;
 
   // PR #159 — bloques de «Para pedir»: los platillos (nombre a la
   // izquierda, precio a la derecha, renglón punteado entre ellos),
@@ -913,6 +1319,7 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
           (L.logoH + L.logoGap) -
           nameBlock -
           pillsBlock -
+          catBlock -
           dishesBlock -
           hoursBlock -
           buttonBlock -
@@ -924,6 +1331,56 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     ? null
     : { x: L.pad, y, w: maxW, h: photoH, radius: L.photoRadius };
   if (!isQr) y += photoH;
+
+  // Celdas del grid (solo Grid 2×2 y tira): se calculan del área de la
+  // foto, que es flexible. El Grid 2×2 reparte el área en 4 celdas
+  // iguales; la tira, en 1 foto grande arriba (lo que sobra tras la
+  // tira) y hasta 3 miniaturas cuadradas abajo. Cada celda lleva su
+  // foto (photoIndex en data.photoUrls); sin foto, bloque con inicial.
+  let gridCells = null;
+  if (isGrid && photo) {
+    const urls = (data?.photoUrls || []).slice(0, 4);
+    if (style.id === 'grid') {
+      const cw = (photo.w - L.gridGap) / 2;
+      const ch = (photo.h - L.gridGap) / 2;
+      gridCells = [0, 1, 2, 3].map((i) => ({
+        x: photo.x + (i % 2) * (cw + L.gridGap),
+        y: photo.y + Math.floor(i / 2) * (ch + L.gridGap),
+        w: cw,
+        h: ch,
+        radius: L.gridRadius,
+        photoIndex: i,
+        photoUrl: urls[i] || null,
+      }));
+    } else {
+      const stripCount = Math.min(3, Math.max(0, urls.length - 1));
+      const stripW = (photo.w - L.gridGap * 2) / 3;
+      const stripH = stripW / (L.stripAspect || 1);
+      const bigH = Math.max(L.bigMinH || 0, photo.h - L.gridGap - stripH);
+      const big = {
+        x: photo.x,
+        y: photo.y,
+        w: photo.w,
+        h: bigH,
+        radius: L.bigRadius,
+        photoIndex: 0,
+        photoUrl: urls[0] || null,
+      };
+      const strip = [];
+      for (let i = 0; i < stripCount; i += 1) {
+        strip.push({
+          x: photo.x + i * (stripW + L.gridGap),
+          y: photo.y + bigH + L.gridGap,
+          w: stripW,
+          h: stripH,
+          radius: L.stripRadius,
+          photoIndex: i + 1,
+          photoUrl: urls[i + 1] || null,
+        });
+      }
+      gridCells = [big, ...strip];
+    }
+  }
 
   // Círculo del logo centrado a caballo sobre el borde inferior de la
   // foto: su centro queda justo en ese borde (mitad sobre la foto,
@@ -970,6 +1427,20 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     // El bucle suma pillRowGap también tras la última fila; se quita
     // para que el pie quede a su hueco diseñado y no 14 px más abajo.
     y -= L.pillRowGap;
+  }
+
+  // Categoría (solo Grid 2×2 y tira): línea centrada bajo las
+  // píldoras, en el color secundario de la paleta.
+  let categoryBox = null;
+  if (hasCategory) {
+    y += catGapU;
+    categoryBox = {
+      text: data.category,
+      x: W / 2,
+      y: y + (L.catSize * 1.2) / 2,
+      size: L.catSize,
+    };
+    y += L.catSize * 1.2;
   }
 
   const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
@@ -1043,10 +1514,17 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     width: W,
     height: H,
     logo,
+    logoOverlay: null,
     photo,
+    hero: null,
     bizLogo,
     firstGap,
     name: nameBox,
+    kicker: null,
+    ratingLine: null,
+    duo: null,
+    gridCells,
+    category: categoryBox,
     pillRows: pillRowsOut,
     dishes: dishesOut,
     hours: hoursBox,
@@ -1237,16 +1715,19 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
   ctx.fillRect(0, 0, geo.width, geo.height);
 
   // Logotipo oficial arriba y centrado: en blanco sobre fondo oscuro,
-  // tal cual (negro) sobre fondo claro.
+  // tal cual (negro) sobre fondo claro. El Collage editorial no lleva
+  // fila de logo: el logo va superpuesto sobre el hero (blanco).
   const logoImg = palette.logoWhite ? assets?.logoWhite : assets?.logoDark;
-  if (logoImg) {
+  if (logoImg && geo.logo) {
     ctx.drawImage(logoImg, geo.logo.x, geo.logo.y, geo.logo.w, geo.logo.h);
   }
 
   // Foto (o bloque con la inicial si no hay foto). El QR no tiene
-  // foto: su área la pinta el bloque del QR más abajo.
+  // foto: su área la pinta el bloque del QR más abajo. En los estilos
+  // con grid la foto es el área del grid: se pintan las celdas, no el
+  // rectángulo entero. En el collage, el hero a sangre.
   const p = geo.photo;
-  if (p) {
+  if (p && !geo.gridCells) {
     ctx.save();
     roundRectPath(ctx, p.x, p.y, p.w, p.h, p.radius);
     ctx.clip();
@@ -1263,6 +1744,52 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
       ctx.fillText(initial, p.x + p.w / 2, p.y + p.h / 2);
     }
     ctx.restore();
+  }
+  // Celdas del grid (Grid 2×2, tira y dúo del collage): cada una con su
+  // foto en cover; sin foto, bloque con la inicial, nunca rota.
+  const drawGridCell = (cell) => {
+    ctx.save();
+    roundRectPath(ctx, cell.x, cell.y, cell.w, cell.h, cell.radius);
+    ctx.clip();
+    const img = assets?.photos?.[cell.photoIndex];
+    if (img) {
+      drawCoverImage(ctx, img, cell.x, cell.y, cell.w, cell.h);
+    } else {
+      ctx.fillStyle = palette.photoBg;
+      ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
+      const initial = (data?.name || 'C').trim().charAt(0).toUpperCase() || 'C';
+      ctx.fillStyle = palette.initial;
+      ctx.font = `800 ${Math.round(Math.min(cell.w, cell.h) * 0.45)}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initial, cell.x + cell.w / 2, cell.y + cell.h / 2);
+    }
+    ctx.restore();
+  };
+  for (const cell of geo.gridCells || []) drawGridCell(cell);
+  for (const cell of geo.duo || []) drawGridCell(cell);
+  // Hero del collage a sangre (sin radio): la foto grande de arriba.
+  if (geo.hero) {
+    const h = geo.hero;
+    const img = assets?.photos?.[0];
+    if (img) {
+      drawCoverImage(ctx, img, h.x, h.y, h.w, h.h);
+    } else {
+      ctx.fillStyle = palette.photoBg;
+      ctx.fillRect(h.x, h.y, h.w, h.h);
+      const initial = (data?.name || 'C').trim().charAt(0).toUpperCase() || 'C';
+      ctx.fillStyle = palette.initial;
+      ctx.font = `800 ${Math.round(Math.min(h.w, h.h) * 0.3)}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initial, h.x + h.w / 2, h.y + h.h / 2);
+    }
+    // Logotipo oficial superpuesto sobre el hero (blanco, arriba a la
+    // izquierda, como la demo): el PNG ya es blanco sobre transparente.
+    if (assets?.logoWhite && geo.logoOverlay) {
+      const lo = geo.logoOverlay;
+      ctx.drawImage(assets.logoWhite, lo.x, lo.y, lo.w, lo.h);
+    }
   }
 
   // Círculo del logo del negocio (PR #144): mismo estilo que la ficha —
@@ -1300,16 +1827,23 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     ctx.restore();
   }
 
-  // Nombre, hasta 2 líneas.
+  // Nombre, hasta 2 líneas. En el Collage editorial va alineado a la
+  // izquierda y en serif (Source Serif 4 de la demo → Georgia); en los
+  // demás, centrado con letter-spacing -1, como siempre.
   if (geo.name) {
     const n = geo.name;
-    ctx.font = `800 ${n.size}px ${SHARE_CARD_FONT_STACK}`;
+    const fontStack = n.serif ? SHARE_CARD_SERIF_STACK : SHARE_CARD_FONT_STACK;
+    ctx.font = `${n.serif ? 900 : 800} ${n.size}px ${fontStack}`;
     ctx.fillStyle = palette.text;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     n.lines.forEach((line, i) => {
-      const w = spacedWidth(ctx, line, -1);
-      drawSpacedText(ctx, line, n.x - w / 2, n.y + i * n.lineH, -1);
+      if (n.align === 'left') {
+        ctx.fillText(line, n.x, n.y + i * n.lineH);
+      } else {
+        const w = spacedWidth(ctx, line, -1);
+        drawSpacedText(ctx, line, n.x - w / 2, n.y + i * n.lineH, -1);
+      }
     });
   }
 
@@ -1332,7 +1866,17 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
       const textW = ctx.measureText(pill.text).width;
       const contentW = textW + (pill.google ? 8 + pill.gSize : 0);
       const tx = pill.x + (pill.w - contentW) / 2;
-      ctx.fillText(pill.text, tx, pill.y + pill.h / 2);
+      // En los estilos con grid la estrella es ámbar (como la demo),
+      // no del color del texto.
+      if (palette.starAmber && pill.text.startsWith('★ ')) {
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillText('★ ', tx, pill.y + pill.h / 2);
+        const starW = ctx.measureText('★ ').width;
+        ctx.fillStyle = palette.pillText;
+        ctx.fillText(pill.text.slice(2), tx + starW, pill.y + pill.h / 2);
+      } else {
+        ctx.fillText(pill.text, tx, pill.y + pill.h / 2);
+      }
       if (pill.google && assets?.googleMark) {
         ctx.drawImage(
           assets.googleMark,
@@ -1343,6 +1887,54 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
         );
       }
     }
+  }
+
+  // Categoría (solo Grid 2×2 y tira): línea centrada bajo las píldoras.
+  if (geo.category) {
+    const c = geo.category;
+    ctx.font = `600 ${c.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = palette.sub;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(c.text, c.x, c.y);
+  }
+
+  // Kicker del collage: «RESTAURANTES · ZAPOPAN» (mayúsculas, con
+  // letter-spacing, en el color secundario).
+  if (geo.kicker) {
+    const k = geo.kicker;
+    ctx.font = `700 ${k.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = palette.sub;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    drawSpacedText(ctx, k.text, k.x, k.y, Math.round(k.size * 0.32));
+  }
+
+  // Calificación del collage como texto plano: «★ 4.3 (1,853 reseñas en
+  // Google)» (estrella ámbar, número en oscuro y en negrita, resto en
+  // gris). Sin pastilla y sin logo G: la palabra «Google» ya va en el
+  // texto, como en la demo.
+  if (geo.ratingLine) {
+    const r = geo.ratingLine;
+    const cy = r.y;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    let rx = r.x;
+    ctx.font = `700 ${r.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = '#F59E0B';
+    ctx.fillText('★', rx, cy);
+    rx += ctx.measureText('★').width + 8;
+    ctx.fillStyle = palette.text;
+    const num = `${r.rating.toFixed(1)}`;
+    ctx.fillText(num, rx, cy);
+    rx += ctx.measureText(num).width + 6;
+    ctx.font = `600 ${r.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = palette.sub;
+    ctx.fillText(
+      `(${formatReviewCount(r.reviewCount)} reseñas en Google)`,
+      rx,
+      cy,
+    );
   }
 
   // Pie: «Descúbrelo en www.citymap.mx».
@@ -1432,8 +2024,11 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
 }
 
 export async function renderShareCardCanvas(data, format, styleId = 'glass') {
-  const [photo, logoWhite, logoDark, googleMark, bizLogo, qr] = await Promise.all([
+  const [photo, photos, logoWhite, logoDark, googleMark, bizLogo, qr] = await Promise.all([
     loadShareCardPhoto(data?.photoUrl),
+    // Las fotos del grid (hasta 4, en orden): si una no se puede leer,
+    // null en su posición y la celda sale con el bloque de la inicial.
+    Promise.all((data?.photoUrls || []).slice(0, 4).map((u) => loadShareCardPhoto(u))),
     loadShareCardLogoWhite(),
     loadShareCardLogoDark(),
     loadGoogleMark(),
@@ -1450,7 +2045,7 @@ export async function renderShareCardCanvas(data, format, styleId = 'glass') {
   return drawShareCardCanvas(
     layoutData,
     format,
-    { photo, logoWhite, logoDark, googleMark, bizLogo, qr },
+    { photo, photos, logoWhite, logoDark, googleMark, bizLogo, qr },
     layout,
     styleId,
   );

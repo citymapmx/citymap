@@ -2,10 +2,14 @@
 // hoja centrada de la tarjeta de eventos (PR #152) y de negocios
 // (PR #147) — tarjeta con las 4 esquinas redondeadas, entrada con
 // scale-in-center, vista previa chica y botones en flujo normal al
-// final — pero con la tarjeta del artículo en su único estilo,
-// «Foto completa», EXACTAMENTE como la propuesta 2 de la demo
-// (corrección de Jonathan 10 Nov ~10:54: sin el segundo estilo ni
-// selector de estilo), en 3 formatos: Historia IG 1080×1920, Post IG 1080×1080
+// final — con la tarjeta del artículo en 2 estilos: «Foto completa»
+// (EXACTAMENTE como la propuesta 2 de la demo, corrección de Jonathan
+// 10 Nov ~10:54: sin el segundo estilo ni selector de estilo) y «Grid»
+// (demo `propuestas-de-tarjetas-con-grid`, 10 nov 2026: 1 foto grande
+// arriba y 2 chicas abajo, sobre fondo blanco). El selector de estilo
+// (chevrones + puntos) solo aparece cuando el tour tiene 2 o más fotos
+// en su galería; si no, la hoja ofrece solo «Foto completa» (sin
+// selector). En 3 formatos: Historia IG 1080×1920, Post IG 1080×1080
 // y Horizontal IG 1080×566 (el tamaño oficial de Instagram para post
 // horizontal). Al presionar Compartir se genera un PNG con la foto y
 // los datos del artículo, listo para Instagram/Facebook. El «Compartir
@@ -27,6 +31,7 @@ import {
   EXPERIENCE_SHARE_CARD_FORMAT_LIST,
   buildExperienceShareCardData,
   experienceShareCardFileName,
+  experienceShareCardStyleList,
   exportExperienceShareCardPng,
 } from '../lib/experienceShareCard.js';
 
@@ -44,6 +49,7 @@ export default function ExperienceShareCardSheet({ experience, onClose, onShareL
   const toast$ = useUIStore((s) => s.toast$);
   const cities = useDataStore((s) => s.cities);
   const [formatId, setFormatId] = useState('story');
+  const [styleId, setStyleId] = useState('foto');
   const [status, setStatus] = useState('idle'); // idle | generating | error
   const [error, setError] = useState('');
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -60,9 +66,32 @@ export default function ExperienceShareCardSheet({ experience, onClose, onShareL
     expCitySlug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const data = buildExperienceShareCardData(experience, { cityName });
   // Sin foto, la tarjeta sale sin esa parte (nunca rota): el fallo de
-  // carga quita el dato y la geometría se recalcula sin él.
+  // carga quita el dato y la geometría se recalcula sin él. En el Grid,
+  // una foto que falla quita TODAS las fotos del grid (igual que la foto
+  // única en «Foto completa»): las celdas salen con el bloque de la
+  // inicial, nunca rotas.
   let exportData = data;
-  if (photoFailed) exportData = { ...exportData, photoUrl: null };
+  if (photoFailed) {
+    exportData = { ...exportData, photoUrl: null, photoUrls: [] };
+  }
+  // Estilos de la tarjeta: «Foto completa» siempre y «Grid» solo cuando
+  // el tour tiene 2 o más fotos en su galería (demo
+  // `propuestas-de-tarjetas-con-grid`). Con 1 foto o sin fotos, la hoja
+  // ofrece solo «Foto completa» (sin selector).
+  const availableStyles = experienceShareCardStyleList(data?.photoUrls?.length || 0);
+  const styleIndex = Math.max(
+    0,
+    availableStyles.findIndex((s) => s.id === styleId),
+  );
+  const styleCount = availableStyles.length;
+  const goStyle = (delta) => {
+    const next = (styleIndex + delta + styleCount) % styleCount;
+    setStyleId(availableStyles[next].id);
+  };
+  const goToStyle = (index) => {
+    if (index === styleIndex) return;
+    setStyleId(availableStyles[index].id);
+  };
 
   const onExport = async () => {
     if (status === 'generating') return;
@@ -76,12 +105,26 @@ export default function ExperienceShareCardSheet({ experience, onClose, onShareL
         const ok = await isPhotoFetchable(exportData.photoUrl);
         if (!ok) {
           setPhotoFailed(true);
-          dataToExport = { ...exportData, photoUrl: null };
+          dataToExport = { ...exportData, photoUrl: null, photoUrls: [] };
+        }
+      }
+      // Las fotos del Grid: si UNA no se puede leer, salen todas (igual
+      // que la foto única de arriba): las celdas salen con el bloque de
+      // la inicial, nunca rotas.
+      if (dataToExport.photoUrls?.length) {
+        const checks = await Promise.all(
+          dataToExport.photoUrls.map((u) => isPhotoFetchable(u)),
+        );
+        if (checks.some((ok) => !ok)) {
+          setPhotoFailed(true);
+          dataToExport = { ...dataToExport, photoUrl: null, photoUrls: [] };
         }
       }
       // La imagen se dibuja directo en canvas (PR #143): lo que se
       // descarga es lo mismo que la vista previa, nunca en blanco.
-      const blob = await exportExperienceShareCardPng(dataToExport, format);
+      // El PNG es del estilo elegido en la hoja («Foto completa» o
+      // «Grid»).
+      const blob = await exportExperienceShareCardPng(dataToExport, format, styleId);
       const how = await shareOrDownloadPng(blob, experienceShareCardFileName(experience));
       toast$(how === 'shared' ? 'Imagen lista para compartir' : 'Imagen descargada');
       setStatus('idle');
@@ -204,14 +247,40 @@ export default function ExperienceShareCardSheet({ experience, onClose, onShareL
           ))}
         </div>
 
+        {/* Selector de estilo (como el de negocios, PR #155): chevrones
+            ‹ › a los lados de la vista previa y puntos debajo indicando
+            cuántas hay. Con 1 solo estilo («Foto completa», sin fotos
+            suficientes para el Grid) no hay selector: solo la vista
+            previa. El cambio es instantáneo (sin pista deslizante). */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            gap: 14,
             marginBottom: 8,
           }}
         >
+          {styleCount > 1 ? (
+            <button
+              aria-label="Estilo anterior"
+              onClick={() => goStyle(-1)}
+              className="press"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 26,
+                lineHeight: 1,
+                color: dark ? '#A1A1AA' : '#71717A',
+                padding: '8px 8px',
+                fontFamily: 'inherit',
+                flexShrink: 0,
+              }}
+            >
+              ‹
+            </button>
+          ) : null}
           <div
             style={{
               width: PREVIEW_W,
@@ -234,11 +303,62 @@ export default function ExperienceShareCardSheet({ experience, onClose, onShareL
               <ExperienceShareCardTemplate
                 data={exportData}
                 format={format}
+                styleId={styleId}
                 onPhotoError={() => setPhotoFailed(true)}
               />
             </div>
           </div>
+          {styleCount > 1 ? (
+            <button
+              aria-label="Estilo siguiente"
+              onClick={() => goStyle(1)}
+              className="press"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 26,
+                lineHeight: 1,
+                color: dark ? '#A1A1AA' : '#71717A',
+                padding: '8px 8px',
+                fontFamily: 'inherit',
+                flexShrink: 0,
+              }}
+            >
+              ›
+            </button>
+          ) : null}
         </div>
+
+        {styleCount > 1 ? (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: 8,
+            }}
+          >
+            {availableStyles.map((s, n) => (
+              <button
+                key={s.id}
+                aria-label={`Estilo ${s.label}`}
+                onClick={() => goToStyle(n)}
+                style={{
+                  width: n === styleIndex ? 16 : 6,
+                  height: 6,
+                  borderRadius: 3,
+                  border: 'none',
+                  padding: 0,
+                  background: dark ? '#FAFAFA' : '#18181B',
+                  opacity: n === styleIndex ? 1 : 0.25,
+                  cursor: 'pointer',
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
 
         {photoFailed ? (
           <p style={{ margin: '0 0 8px 0', fontSize: 12, color: '#B45309', textAlign: 'center' }}>

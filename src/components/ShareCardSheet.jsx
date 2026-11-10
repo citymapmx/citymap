@@ -88,6 +88,7 @@ import {
   orderHoursLine,
   orderWhatsappUrl,
   shareCardFileName,
+  shareCardGridStyles,
   shareCardStyleList,
   shareOrDownloadPng,
 } from '../lib/shareCard.js';
@@ -202,8 +203,13 @@ export default function ShareCardSheet({
     : buildShareCardData(biz, { disp, cityName });
   // Sin foto o sin logo, la tarjeta sale sin esa parte (nunca rota):
   // el fallo de carga quita el dato y la geometría se recalcula sin él.
+  // En los estilos con grid, una foto que falla quita TODAS las fotos
+  // del grid (igual que la foto única en los demás estilos): las celdas
+  // salen con el bloque de la inicial, nunca rotas.
   let exportData = data;
-  if (photoFailed) exportData = { ...exportData, photoUrl: null };
+  if (photoFailed) {
+    exportData = { ...exportData, photoUrl: null, photoUrls: [] };
+  }
   if (bizLogoFailed) exportData = { ...exportData, bizLogoUrl: null };
 
   const onExport = async () => {
@@ -218,7 +224,19 @@ export default function ShareCardSheet({
         const ok = await isPhotoFetchable(exportData.photoUrl);
         if (!ok) {
           setPhotoFailed(true);
-          dataToExport = { ...exportData, photoUrl: null };
+          dataToExport = { ...exportData, photoUrl: null, photoUrls: [] };
+        }
+      }
+      // Las fotos del grid: si UNA no se puede leer, salen todas (igual
+      // que la foto única de arriba): las celdas salen con el bloque de
+      // la inicial, nunca rotas.
+      if (dataToExport.photoUrls?.length) {
+        const checks = await Promise.all(
+          dataToExport.photoUrls.map((u) => isPhotoFetchable(u)),
+        );
+        if (checks.some((ok) => !ok)) {
+          setPhotoFailed(true);
+          dataToExport = { ...dataToExport, photoUrl: null, photoUrls: [] };
         }
       }
       // El logo circular: si no se puede leer, la tarjeta sale sin
@@ -285,7 +303,16 @@ export default function ShareCardSheet({
   // estilos (DetailView ya no pasa hasMenu). En el menú, la hoja no
   // se pinta hasta que los platillos están cargados: «Para pedir»
   // sin platillos y el QR sin URL serían una tarjeta a medias.
-  const availableStyles = shareCardStyleList(hasMenuItems, { menuOnly });
+  // Estilos con grid (demo `propuestas-de-tarjetas-con-grid`): se suman
+  // al carrusel SOLO cuando el negocio tiene fotos suficientes (Grid
+  // 2×2 necesita 4, tira 2, collage 3; ver shareCardGridStyles). Con
+  // pocas fotos la hoja ofrece solo Oscura y Clara (y las de menú).
+  const availableStyles = menuOnly
+    ? shareCardStyleList(hasMenuItems, { menuOnly })
+    : [
+        ...shareCardStyleList(hasMenuItems, { menuOnly }),
+        ...shareCardGridStyles(data?.photoUrls?.length || 0),
+      ];
   const menuReady = !menuOnly || hasMenuItems;
   const menuEmpty = menuOnly && menuItems !== null && menuItems.length === 0;
   const styleIndex = Math.max(

@@ -114,23 +114,30 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
   it('sin categoría en ninguna de las dos versiones (vista previa y canvas)', () => {
     const lib = read('../lib/shareCard.js');
     const template = read('../components/ShareCardTemplate.jsx');
-    // Los datos ya no llevan categoría.
+    // Los datos SÍ llevan la categoría (para los estilos con grid, que
+    // la muestran), pero Oscura y Clara no la pintan.
     const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
-    expect(d.category).toBeUndefined();
-    // La geometría no tiene bloque de categoría en ningún estilo.
+    expect(d.category).toBe('Restaurantes');
+    // La geometría no tiene bloque de categoría en ninguno de los dos
+    // estilos (en los estilos con grid sí lo hay: ver
+    // tarjeta_compartir_grid.test.jsx).
     for (const styleId of ['glass', 'editorial']) {
       for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
         const geo = computeShareCardLayout(d, format, true, styleId);
-        expect(geo.category).toBeUndefined();
+        expect(geo.category).toBeNull();
         expect(geo.name.lines.length).toBeGreaterThan(0);
       }
     }
-    // Ni la plantilla ni el canvas pintan categoría (ni su regla).
+    // La plantilla y el canvas pintan la categoría SOLO en los estilos
+    // con grid (Grid 2×2, tira y collage): la plantilla la lee de la
+    // geometría (layout.category), nunca del dato directo, y el canvas
+    // de geo.category.
     expect(template).not.toContain('data.category');
     expect(template).not.toContain('data?.category');
-    expect(lib).not.toContain('data?.category');
-    expect(lib).not.toContain('geo.category');
-    expect(lib).not.toContain('categoryBox');
+    expect(template).toContain('layout.category');
+    expect(lib).toContain('data?.category');
+    expect(lib).toContain('geo.category');
+    expect(lib).toContain('categoryBox');
   });
 
   it('sin regla en Clara (la línea negra sobre el título se fue con la categoría)', () => {
@@ -142,7 +149,10 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     // puerta de las píldoras («Para pedir» y el QR no llevan píldoras);
     // la línea negra sobre el título sigue sin existir.
     expect(template.match(/style\.id === 'editorial'/g)).toHaveLength(1);
-    expect(template).toContain("style.id === 'glass' || style.id === 'editorial'");
+    // Los estilos con grid también llevan píldoras (Grid 2×2 y tira);
+    // el Collage editorial no (su calificación va como texto plano).
+    expect(template).toContain("style.id === 'grid'");
+    expect(template).toContain("style.id === 'tira'");
     expect(template).not.toContain('geo.width / 2 - 36');
   });
 
