@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { renderToStaticMarkup } from 'react-dom/server';
+import ShareCardTemplate from '../components/ShareCardTemplate.jsx';
 import {
   buildShareCardData,
   bizShowsLogoCircle,
@@ -19,17 +21,19 @@ import { EVENT_SHARE_CARD_LAYOUT } from '../lib/eventShareCard.js';
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
 // Dos estilos para la tarjeta de negocios (PR #154 los creó, PR #155
-// los deja en dos): Oscura (el de siempre, por defecto) y Editorial
-// (claro tipo revista, sin círculo de logo: la limpieza es el estilo).
+// los deja en dos): Oscura (el de siempre, por defecto) y Clara
+// (claro tipo revista, sin círculo de logo: la limpieza es el estilo;
+// PR #156: antes se llamaba «Editorial», Jonathan la renombró «Clara»;
+// el id interno sigue siendo 'editorial').
 // La Ficha completa se quitó en el PR #155 (Jonathan): quedan solo
-// Oscura y Editorial, que se cambian con chevrones ‹ › y puntos en la
+// Oscura y Clara, que se cambian con chevrones ‹ › y puntos en la
 // hoja en vez de botones. La categoría sale de ambas versiones, la
 // foto es más corta y el nombre y las píldoras más grandes (la
-// información gana presencia), el logo oficial crece y en Editorial va
+// información gana presencia), el logo oficial crece y en Clara va
 // en oscuro (el PNG es blanco y no se veía sobre blanco).
 // La vista previa y el PNG comparten UNA geometría por estilo, como la
 // tarjeta actual.
-describe('tarjeta para compartir: estilos Oscura y Editorial (PR #154, ajustes PR #155)', () => {
+describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #155, PR #156)', () => {
   const biz = {
     name: 'Xokol',
     type: 'Restaurantes',
@@ -53,7 +57,7 @@ describe('tarjeta para compartir: estilos Oscura y Editorial (PR #154, ajustes P
       'editorial',
     ]);
     expect(SHARE_CARD_STYLE_LIST.find((s) => s.id === 'editorial').label).toBe(
-      'Editorial',
+      'Clara',
     );
     expect(resolveShareCardStyle('glass').id).toBe('glass');
     expect(resolveShareCardStyle('editorial').id).toBe('editorial');
@@ -124,7 +128,7 @@ describe('tarjeta para compartir: estilos Oscura y Editorial (PR #154, ajustes P
     expect(lib).not.toContain('categoryBox');
   });
 
-  it('sin regla en Editorial (la línea negra sobre el título se fue con la categoría)', () => {
+  it('sin regla en Clara (la línea negra sobre el título se fue con la categoría)', () => {
     const lib = read('../lib/shareCard.js');
     const template = read('../components/ShareCardTemplate.jsx');
     expect(lib).not.toContain("style.id === 'editorial'");
@@ -132,7 +136,7 @@ describe('tarjeta para compartir: estilos Oscura y Editorial (PR #154, ajustes P
     expect(lib).not.toContain('geo.width / 2 - 36');
   });
 
-  it('el logo oficial va en oscuro en Editorial y en blanco en Oscura', () => {
+  it('el logo oficial va en oscuro en Clara y en blanco en Oscura', () => {
     expect(SHARE_CARD_STYLE_COLORS.editorial.logoWhite).toBe(false);
     expect(SHARE_CARD_STYLE_COLORS.glass.logoWhite).toBe(true);
     const lib = read('../lib/shareCard.js');
@@ -143,19 +147,21 @@ describe('tarjeta para compartir: estilos Oscura y Editorial (PR #154, ajustes P
       "palette.logoWhite ? 'brightness(0) invert(1)' : 'brightness(0)'",
     );
     // El canvas recolorea el logo a oscuro (#111111) con source-in para
-    // Editorial, igual que el blanco lo hace para Oscura.
+    // Clara, igual que el blanco lo hace para Oscura.
     expect(lib).toContain("x.fillStyle = '#111111'");
     expect(lib).toContain('palette.logoWhite ? assets?.logoWhite : assets?.logoDark');
     expect(lib).toContain('loadShareCardLogoDark');
   });
 
-  it('el logo oficial es más grande en ambos estilos y formatos (PR #155)', () => {
+  it('el logo oficial es más grande en ambos estilos y formatos (PR #155, PR #156)', () => {
     expect(SHARE_CARD_LAYOUT.story.logoH).toBe(76);
-    expect(SHARE_CARD_LAYOUT.post.logoH).toBe(60);
+    expect(SHARE_CARD_LAYOUT.post.logoH).toBe(76);
     expect(EDITORIAL_SHARE_CARD_LAYOUT.story.logoH).toBe(76);
-    expect(EDITORIAL_SHARE_CARD_LAYOUT.post.logoH).toBe(60);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.post.logoH).toBe(76);
     // Más grande que antes (56/44) sin tapar la foto: el logo va
-    // arriba con su hueco y la foto empieza después.
+    // arriba con su hueco y la foto empieza después. En Post el logo
+    // subió a 76 en el PR #156 (era 60 y en la vista previa de 200 px
+    // no se apreciaba).
     for (const styleId of ['glass', 'editorial']) {
       for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
         const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
@@ -194,7 +200,65 @@ describe('tarjeta para compartir: estilos Oscura y Editorial (PR #154, ajustes P
     }
   });
 
-  it('Editorial: clara, sin círculo de logo y sin desbordar', () => {
+  it('el logo tiene presencia en Post: tan grande como en Historia (PR #156)', () => {
+    // Causa raíz (captura de Jonathan, Cristina en Post + Clara): el
+    // logo SÍ se pintaba, en negro, pero con logoH 60 en una vista
+    // previa de 200 px se veía a ~11 px y parecía no estar; en Historia
+    // (76 en 356 px) se leía claro. El logo de Post sube a 76, igual
+    // que en Historia, en ambos estilos.
+    expect(SHARE_CARD_LAYOUT.post.logoH).toBe(76);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.post.logoH).toBe(76);
+    expect(SHARE_CARD_LAYOUT.post.logoGap).toBe(36);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.post.logoGap).toBe(36);
+    for (const styleId of ['glass', 'editorial']) {
+      for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+        const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+        const geo = computeShareCardLayout(d, format, true, styleId);
+        // El logo va arriba, dentro de la tarjeta, y la foto empieza
+        // después de él: no se tapa ni se sale.
+        expect(geo.logo.h).toBe(76);
+        expect(geo.logo.y).toBe(geo.L.pad);
+        expect(geo.logo.y + geo.logo.h).toBeLessThanOrEqual(geo.photo.y);
+        expect(geo.logo.w).toBeLessThan(geo.width);
+      }
+    }
+    // La plantilla pinta el logo en la versión clara en Post (vista
+    // previa) con el filtro oscuro, igual que en Historia.
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+      const html = renderToStaticMarkup(
+        <ShareCardTemplate data={d} format={format} styleId="editorial" />,
+      );
+      expect(html).toContain('/logo-brand.png');
+      expect(html).toContain('brightness(0)');
+    }
+    // Y el canvas lo dibuja con el logo oscuro recolorado en la
+    // posición de la geometría.
+    const lib = read('../lib/shareCard.js');
+    expect(lib).toContain('palette.logoWhite ? assets?.logoWhite : assets?.logoDark');
+    expect(lib).toContain('ctx.drawImage(logoImg, geo.logo.x, geo.logo.y, geo.logo.w, geo.logo.h)');
+  });
+
+  it('la hoja desliza la vista previa al cambiar de estilo (PR #156)', () => {
+    const sheet = read('../components/ShareCardSheet.jsx');
+    // La pista lleva los dos estilos en fila y se mueve con translateX
+    // y una transición suave de 0,5 s, como las tiras del #149, en vez
+    // del corte instantáneo de antes.
+    expect(sheet).toContain('SHARE_CARD_STYLE_LIST.map((s) =>');
+    expect(sheet).toContain('translateX(${-styleIndex * PREVIEW_W}px)');
+    expect(sheet).toContain('transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)');
+    // Con «reducir movimiento» no desliza: cambia al instante.
+    expect(sheet).toContain('prefers-reduced-motion: reduce');
+    // Los chevrones y los puntos van fuera de la pista y siguen
+    // cambiando el índice; la exportación no cambia (sigue el estilo
+    // elegido).
+    expect(sheet).toContain('goStyle(-1)');
+    expect(sheet).toContain('goStyle(1)');
+    expect(sheet).toContain('setStyleId(s.id)');
+    expect(sheet).toContain('exportShareCardPng(dataToExport, format, styleId)');
+  });
+
+  it('Clara: clara, sin círculo de logo y sin desbordar', () => {
     expect(SHARE_CARD_STYLE_COLORS.editorial.bg[0]).toBe('#FFFFFF');
     expect(SHARE_CARD_STYLE_COLORS.editorial.logoWhite).toBe(false);
     expect(SHARE_CARD_STYLE_COLORS.glass.logoWhite).toBe(true);
@@ -205,7 +269,7 @@ describe('tarjeta para compartir: estilos Oscura y Editorial (PR #154, ajustes P
       });
       const geo = computeShareCardLayout(d, format, true, 'editorial');
       expect(geo.style).toBe('editorial');
-      // Aunque tenga logo y plan de pago, Editorial no lleva círculo:
+      // Aunque tenga logo y plan de pago, Clara no lleva círculo:
       // la limpieza es el estilo.
       expect(geo.bizLogo).toBeNull();
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
@@ -315,10 +379,10 @@ describe('tarjeta para compartir: estilos Oscura y Editorial (PR #154, ajustes P
     // del #154 sí la nombran, sin comillas.)
     expect(sheet.match(/\{s\.label\}/g)).toHaveLength(1);
     expect(sheet).not.toContain("'Ficha completa'");
-    // El PNG se exporta con el estilo elegido y la vista previa es de
-    // ese estilo.
+    // El PNG se exporta con el estilo elegido y la vista previa lleva
+    // los dos estilos en la pista (PR #156).
     expect(sheet).toContain('exportShareCardPng(dataToExport, format, styleId)');
-    expect(sheet).toContain('styleId={styleId}');
+    expect(sheet).toContain('styleId={s.id}');
     expect(lib).toContain('export async function exportShareCardPng(data, format, styleId');
     expect(lib).toContain('renderShareCardCanvas(data, format, styleId');
     expect(lib).toContain('loadShareCardLogoDark');

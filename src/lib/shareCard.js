@@ -89,8 +89,8 @@ export const SHARE_CARD_LAYOUT = {
   },
   post: {
     pad: 48,
-    logoH: 60,
-    logoGap: 28,
+    logoH: 76,
+    logoGap: 36,
     photoMinH: 360,
     photoRadius: 32,
     bizLogoD: 190,
@@ -116,13 +116,14 @@ export const SHARE_CARD_LAYOUT = {
 // ─── Estilos de la tarjeta (PR #154) ───
 //
 // La tarjeta de negocios ya no tiene un solo estilo: el oscuro «Glass»
-// del #142 sigue siendo el por defecto, y se suma Editorial, el claro
-// tipo revista que Jonathan eligió de la demo de propuestas (fondo
+// del #142 sigue siendo el por defecto, y se suma la versión clara
+// (PR #156: antes se llamaba «Editorial», Jonathan la renombró «Clara»;
+// el id interno sigue siendo 'editorial' para no romper nada), fondo
 // blanco, tipografía cuidada, sin círculo de logo: la limpieza es el
 // estilo). PR #155: la Ficha completa se quita (Jonathan) y quedan DOS
 // estilos, que se cambian con chevrones y puntos en la hoja en vez de
 // botones. La categoría sale de ambas versiones (PR #155) y el logo de
-// Editorial va en oscuro (el PNG es blanco y no se veía sobre blanco).
+// la versión clara va en oscuro (el PNG es blanco y no se veía sobre blanco).
 // La hoja (ShareCardSheet) deja elegir el estilo junto al formato
 // (Historia/Post): la vista previa y el PNG comparten UNA geometría por
 // estilo, igual que la tarjeta actual. Sin precio en ningún estilo.
@@ -130,9 +131,14 @@ export const SHARE_CARD_LAYOUT = {
 // PR #155 (ajustes 6–7): la foto se acorta y la información gana
 // presencia (nombre y píldoras más grandes, huecos más generosos) y el
 // logotipo oficial crece (logoH mayor en ambos estilos y formatos).
+// PR #156: en Post el logo era tan chico (60 px en una vista previa de
+// 200 px) que en la versión clara parecía no estar (Jonathan, captura
+// de Cristina en Post: el logo SÍ se pintaba, en negro, pero a ~11 px
+// no se apreciaba); el logo de Post sube a 76 px, igual que en Historia,
+// en ambos estilos, para que tenga presencia real en vista previa y PNG.
 export const SHARE_CARD_STYLES = {
   glass: { id: 'glass', label: 'Oscura' },
-  editorial: { id: 'editorial', label: 'Editorial' },
+  editorial: { id: 'editorial', label: 'Clara' },
 };
 export const SHARE_CARD_STYLE_LIST = [
   SHARE_CARD_STYLES.glass,
@@ -170,12 +176,13 @@ export const SHARE_CARD_STYLE_COLORS = {
   },
 };
 
-// Geometría de Editorial: los mismos bloques que el estilo oscuro
-// (logo, foto, nombre, píldoras, pie), con medidas propias y sin
+// Geometría de la versión clara: los mismos bloques que el estilo
+// oscuro (logo, foto, nombre, píldoras, pie), con medidas propias y sin
 // círculo de logo (showBizLogo: false): la limpieza es el estilo.
 // PR #155: sin categoría (sale de ambas versiones), foto más corta y
 // nombre/píldoras más grandes para que la información tenga más
-// presencia; logo más grande (logoH 76/60).
+// presencia; logo más grande (logoH 76/60). PR #156: el logo de Post
+// sube a 76 (era 60 y en la vista previa de 200 px no se apreciaba).
 export const EDITORIAL_SHARE_CARD_LAYOUT = {
   story: {
     pad: 64,
@@ -199,8 +206,8 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
   },
   post: {
     pad: 48,
-    logoH: 60,
-    logoGap: 28,
+    logoH: 76,
+    logoGap: 36,
     photoMinH: 360,
     photoRadius: 28,
     showBizLogo: false,
@@ -601,7 +608,7 @@ export async function loadShareCardLogoWhite() {
 }
 
 // El logotipo oficial recolorado a oscuro (#111111) para la tarjeta
-// clara de Editorial: el mismo recolorado `source-in` que usa el
+// clara (versión Clara): el mismo recolorado `source-in` que usa el
 // blanco, pero al revés. Sin él, el PNG blanco es invisible sobre
 // fondo blanco.
 export async function loadShareCardLogoDark() {

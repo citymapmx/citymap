@@ -212,14 +212,14 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
 
   it('el círculo es más grande que en el #144, con anillo y sombra proporcionales (PR #145)', () => {
     // «Un poco» más grande: ~+25% de diámetro. El logo CITYMAP de
-    // arriba creció en el PR #155 (76/60 en vez de 56/44) para que se
-    // vea más grande y visible.
+    // arriba creció en el PR #155 (76/60 en vez de 56/44) y en el
+    // PR #156 el de Post sube a 76 para que se vea en la vista previa.
     expect(SHARE_CARD_LAYOUT.story.bizLogoD).toBe(240);
     expect(SHARE_CARD_LAYOUT.post.bizLogoD).toBe(190);
     expect(SHARE_CARD_LAYOUT.story.bizLogoRing).toBe(8);
     expect(SHARE_CARD_LAYOUT.post.bizLogoRing).toBe(6);
     expect(SHARE_CARD_LAYOUT.story.logoH).toBe(76);
-    expect(SHARE_CARD_LAYOUT.post.logoH).toBe(60);
+    expect(SHARE_CARD_LAYOUT.post.logoH).toBe(76);
   });
 
   it('el peor caso con logo y círculo grande no se solapa (nombre de 2 líneas, PR #145)', () => {
