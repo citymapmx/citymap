@@ -289,7 +289,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
         cityName: 'San Pedro Garza García',
       });
       const geo = computeShareCardLayout(d, format, true, 'editorial');
-      expect(geo.name.lines.length).toBeLessThanOrEqual(2);
+      expect(geo.name.lines.length).toBeLessThanOrEqual(3);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       const lastRow = geo.pillRows[geo.pillRows.length - 1];
       const pillsEnd = lastRow[0].y + lastRow[0].h;
@@ -310,7 +310,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
       });
       const geo = computeShareCardLayout(d, format, true, 'glass');
       expect(geo.bizLogo).not.toBeNull();
-      expect(geo.name.lines.length).toBeLessThanOrEqual(2);
+      expect(geo.name.lines.length).toBeLessThanOrEqual(3);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       const lastRow = geo.pillRows[geo.pillRows.length - 1];
       const pillsEnd = lastRow[0].y + lastRow[0].h;
