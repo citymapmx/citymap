@@ -12,7 +12,9 @@ afterEach(() => {
 // sola, zoom lento y arranque al azar. Ajustes PR #149: puntos sutiles
 // debajo de la imagen (no barras sobre la foto), deslizamiento fluido
 // tipo carrusel con swipe, y las dos tiras desincronizadas (distinto
-// tiempo y sentido opuesto).
+// tiempo y sentido opuesto). PR #151: puntos sin transición (sin
+// estela) y arranque al azar de verdad (inicializador con
+// STORY_MAX_ITEMS, no con `total`).
 const T = { border: '#E5E7EB', text: '#0F1A14' };
 const t = (k, fb) => fb;
 const cityName = (slug) => ({ guadalajara: 'Guadalajara', tlaquepaque: 'Tlaquepaque', chapala: 'Chapala', tepic: 'Tepic' }[slug] || '');
@@ -48,7 +50,7 @@ async function renderStrip(items, opts = {}) {
   );
 }
 
-describe('tira tipo historias (PR #148, ajustes PR #149)', () => {
+describe('tira tipo historias (PR #148, ajustes PR #149, PR #151)', () => {
   const strip = read('../components/home/StoryStrip.jsx');
   const css = read('../index.css');
   const global = read('../views/GlobalHomeView.jsx');
@@ -85,6 +87,14 @@ describe('tira tipo historias (PR #148, ajustes PR #149)', () => {
     expect(html).not.toContain('story-progress-fill');
     expect(strip).not.toContain('story-progress-fill');
     expect(css).not.toContain('story-progress-fill');
+    // PR #151: los puntos NO llevan transición — el cambio de activo es
+    // instantáneo (la transición se atascaba a mitad en el WebView del
+    // teléfono con el avance automático y dejaba una estela de puntos
+    // a medio activar, una barra larga en vez de una sola píldora).
+    // La pista sí conserva su transición deslizante (transform 500 ms).
+    expect(html).not.toContain('transition:all');
+    const dotsBlock = strip.slice(strip.indexOf('Puntos sutiles debajo'));
+    expect(dotsBlock).not.toContain('transition');
   });
 
   it('pista deslizante con translateX y transición suave + swipe táctil', async () => {
@@ -128,7 +138,17 @@ describe('tira tipo historias (PR #148, ajustes PR #149)', () => {
     const html = await renderStrip(makeItems(4));
     expect(html).toContain('Lugar 3');
     expect(html).toContain('translateX(-300%)');
-    expect(strip).toContain('Math.floor(Math.random() * total)');
+    // PR #151: el inicializador tira entre 0 y STORY_MAX_ITEMS (12),
+    // no entre 0 y `total` — al montar `total` aún es 0 (los datos no
+    // han cargado) y antes el arranque quedaba siempre en el #1.
+    expect(strip).toContain('Math.floor(Math.random() * STORY_MAX_ITEMS)');
+    expect(strip).not.toContain('Math.random() * total');
+    // Con 4 lugares, el índice se acota con % total: 0.2 → 2 (antes,
+    // con `total`, 0.2 habría dado el #0: floor(0.2 * 4) = 0).
+    vi.spyOn(Math, 'random').mockReturnValue(0.2); // floor(0.2 * 12) = 2
+    const html2 = await renderStrip(makeItems(4));
+    expect(html2).toContain('Lugar 2');
+    expect(html2).toContain('translateX(-200%)');
   });
 
   it('flechas para avanzar/retroceder a mano sin abrir el detalle', async () => {
