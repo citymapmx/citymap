@@ -78,7 +78,7 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
     }
   });
 
-  it('el peor caso (nombre largo, 2 líneas, ciudad larga) tampoco deja hueco ni se desborda', () => {
+  it('el peor caso (nombre largo, 3 líneas, ciudad larga) tampoco deja hueco ni se desborda', () => {
     const longBiz = {
       ...biz,
       name: 'Restaurante El Gran Buffet Internacional de la Abuela María',
@@ -90,7 +90,7 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
         cityName: 'San Pedro Garza García',
       });
       const geo = computeShareCardLayout(d, format, true);
-      expect(geo.name.lines.length).toBeLessThanOrEqual(2);
+      expect(geo.name.lines.length).toBeLessThanOrEqual(3);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       const lastRow = geo.pillRows[geo.pillRows.length - 1];
       const pillsEnd = lastRow[0].y + lastRow[0].h;
@@ -99,16 +99,16 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
     }
   });
 
-  it('el nombre se corta a 2 líneas con puntos suspensivos', () => {
+  it('el nombre se corta a 3 líneas con puntos suspensivos', () => {
     const L = SHARE_CARD_LAYOUT.story;
     const lines = wrapShareCardName(
       'Restaurante El Gran Buffet Internacional de la Abuela María',
       1080 - L.pad * 2,
       L,
     );
-    expect(lines.length).toBeLessThanOrEqual(2);
-    expect(lines.length).toBe(2);
-    expect(lines[1].endsWith('…')).toBe(true);
+    expect(lines.length).toBeLessThanOrEqual(3);
+    expect(lines.length).toBe(3);
+    expect(lines[2].endsWith('…')).toBe(true);
     expect(wrapShareCardName('Xokol', 952, L)).toEqual(['Xokol']);
     expect(wrapShareCardName('', 952, L)).toEqual([]);
   });
@@ -188,7 +188,7 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
     }
   });
 
-  it('el peor caso con logo (nombre largo, 2 líneas, ciudad larga) tampoco deja hueco ni se desborda', () => {
+  it('el peor caso con logo (nombre largo, 3 líneas, ciudad larga) tampoco deja hueco ni se desborda', () => {
     const longBizLogo = {
       ...bizLogo,
       name: 'Restaurante El Gran Buffet Internacional de la Abuela María',
@@ -201,7 +201,7 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
       });
       const geo = computeShareCardLayout(d, format, true);
       expect(geo.bizLogo).not.toBeNull();
-      expect(geo.name.lines.length).toBeLessThanOrEqual(2);
+      expect(geo.name.lines.length).toBeLessThanOrEqual(3);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       const lastRow = geo.pillRows[geo.pillRows.length - 1];
       const pillsEnd = lastRow[0].y + lastRow[0].h;
@@ -222,7 +222,7 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
     expect(SHARE_CARD_LAYOUT.post.logoH).toBe(76);
   });
 
-  it('el peor caso con logo y círculo grande no se solapa (nombre de 2 líneas, PR #145)', () => {
+  it('el peor caso con logo y círculo grande no se solapa (nombre de 3 líneas, PR #145)', () => {
     const longBizLogo = {
       ...bizLogo,
       name: 'Restaurante El Gran Buffet Internacional de la Abuela María',
@@ -235,8 +235,8 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
       });
       const geo = computeShareCardLayout(d, format, true);
       expect(geo.bizLogo).not.toBeNull();
-      // El nombre ocupa las 2 líneas en el peor caso.
-      expect(geo.name.lines.length).toBe(2);
+      // El nombre ocupa las 3 líneas en el peor caso.
+      expect(geo.name.lines.length).toBe(3);
       // La foto no se recorta a su mínimo: nada se desborda.
       expect(geo.photo.h).toBeGreaterThan(geo.L.photoMinH);
       // Entre el círculo y el primer texto queda el hueco diseñado

@@ -184,6 +184,14 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
 
       {layout.name && layout.name.lines.length ? (
         <div style={{ marginTop: firstBlock === 'name' ? layout.firstGap : L.nameGap, width: photoW, flexShrink: 0 }}>
+          {/* Cada línea calculada va en UNA línea visual (whiteSpace:
+              nowrap): si el DOM repartiera una línea en dos (su fuente
+              mide más ancha que la del canvas, como en el Android de
+              Jonathan con «Tangente Restaurante»), el bloque del nombre
+              crecería, la foto (flex: 1) se acortaría, su borde real
+              subiría y el círculo —absoluto, sobre el borde calculado—
+              taparía la primera línea. Con nowrap el alto del bloque es
+              siempre el calculado y la foto conserva su borde. */}
           {layout.name.lines.map((line, i) => (
             <div
               key={i}
@@ -192,6 +200,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
                 fontWeight: 800,
                 lineHeight: L.nameLineH,
                 letterSpacing: -1,
+                whiteSpace: 'nowrap',
               }}
             >
               {line}

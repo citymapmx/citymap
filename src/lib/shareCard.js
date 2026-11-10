@@ -57,12 +57,20 @@ export const SHARE_CARD_FONT_STACK =
 // Geometría única de la tarjeta, por formato. photoMinH es la altura
 // MÍNIMA de la foto: la foto crece desde ahí hasta comerse todo el
 // espacio libre de la tarjeta (ver computeShareCardLayout).
+// El nombre se corta a 3 líneas como máximo (antes 2): con 2, un nombre
+// largo se cortaba con «…» en el PNG y en la vista previa el DOM lo
+// partía en una 3ª línea visual — el bloque crecía, la foto (flex: 1)
+// se acortaba, su borde real subía y el círculo, absoluto sobre el
+// borde calculado, tapaba la primera línea (Tangente Restaurante
+// Tlaquepaque, Carrito La Paz Tostadas de Atún). photoMinH deja hueco
+// para el peor caso (nombre de 3 líneas + píldoras en 2 filas) sin
+// comerse el hueco del pie.
 export const SHARE_CARD_LAYOUT = {
   story: {
     pad: 64,
     logoH: 76,
     logoGap: 40,
-    photoMinH: 950,
+    photoMinH: 900,
     photoRadius: 40,
     // Círculo del logo del negocio (PR #144; PR #145: más grande, Ø 240
     // con anillo y sombra proporcionales): mismo estilo que la ficha
@@ -77,7 +85,7 @@ export const SHARE_CARD_LAYOUT = {
     nameSize: 88,
     nameGap: 32,
     nameLineH: 1.12,
-    nameMaxLines: 2,
+    nameMaxLines: 3,
     pillSize: 40,
     pillPadX: 28,
     pillPadY: 14,
@@ -91,7 +99,7 @@ export const SHARE_CARD_LAYOUT = {
     pad: 48,
     logoH: 76,
     logoGap: 36,
-    photoMinH: 360,
+    photoMinH: 280,
     photoRadius: 32,
     bizLogoD: 190,
     bizLogoRing: 6,
@@ -101,7 +109,7 @@ export const SHARE_CARD_LAYOUT = {
     nameSize: 68,
     nameGap: 20,
     nameLineH: 1.12,
-    nameMaxLines: 2,
+    nameMaxLines: 3,
     pillSize: 34,
     pillPadX: 26,
     pillPadY: 13,
@@ -194,7 +202,7 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     nameSize: 80,
     nameGap: 32,
     nameLineH: 1.15,
-    nameMaxLines: 2,
+    nameMaxLines: 3,
     pillSize: 38,
     pillPadX: 26,
     pillPadY: 13,
@@ -214,7 +222,7 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     nameSize: 62,
     nameGap: 20,
     nameLineH: 1.15,
-    nameMaxLines: 2,
+    nameMaxLines: 3,
     pillSize: 32,
     pillPadX: 24,
     pillPadY: 12,
@@ -369,7 +377,8 @@ export function wrapShareCardText(text, maxW, size, maxLines, weight = 700) {
   return lines;
 }
 
-// Nombre cortado a 2 líneas como máximo, con puntos suspensivos si sobra.
+// Nombre cortado a 3 líneas como máximo, con puntos suspensivos si sobra
+// (un nombre que necesita más de 3 líneas se recorta en la 3ª).
 export function wrapShareCardName(name, maxW, L) {
   return wrapShareCardText(name, maxW, L.nameSize, L.nameMaxLines, 800);
 }
