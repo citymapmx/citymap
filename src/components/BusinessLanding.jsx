@@ -1,11 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import Icon from "./ui/Icon.jsx";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import { getCountryCode } from "../lib/domain.js";
 import { getBusinessPricing, buildBusinessPlans } from "../lib/businessPlans.js";
+import { NEGOCIOS_STATS_FALLBACK, fetchNegociosStats } from "../lib/negociosStats.js";
+import { useCountUp } from "../hooks/useCountUp.js";
 import { useTranslation } from "../hooks/useTranslation.js";
+
+// Cifra con conteo animado: sube de 0 a su valor cuando la sección entra en
+// pantalla (una sola vez). Antes de eso muestra el valor tal cual.
+function StatNumber({ value, active }) {
+  const display = useCountUp(value, active);
+  return <>{display.toLocaleString("es-MX")}</>;
+}
 
 // Página /negocios: CityMap para negocios. Mismo lenguaje visual que
 // PlansPage (encabezado sticky con blur, maxWidth 1140, tarjetas con borde
@@ -20,6 +29,32 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
   const plans = buildBusinessPlans(t, pricing, dark);
   const [billing, setBilling] = useState("monthly"); // "monthly" | "annual"
   useEffect(() => { window.scrollTo(0, 0); }, []);
+
+  // Cifras en vivo: se calculan de la base en cada visita (sin caché) y
+  // mientras cargan se muestran los valores fijos de antes como reserva.
+  const [liveStats, setLiveStats] = useState(NEGOCIOS_STATS_FALLBACK);
+  useEffect(() => {
+    let cancelled = false;
+    fetchNegociosStats().then((s) => { if (!cancelled) setLiveStats(s); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // La animación de conteo arranca cuando las cifras entran en pantalla.
+  const statsRef = useRef(null);
+  const [statsInView, setStatsInView] = useState(false);
+  useEffect(() => {
+    const el = statsRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") { setStatsInView(true); return; }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setStatsInView(true);
+        io.disconnect();
+      }
+    }, { threshold: 0.2 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   // Map the 'plan' DB field to the plan key used here (igual que PlansPage)
   // DB values: free, pro, elite, premium (premium = elite)
@@ -37,10 +72,10 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
   const line = dark ? '#353538' : '#E5E5E8';
 
   const stats = [
-    { value: "330", label: t("negocios_stat_negocios", "negocios publicados") },
-    { value: "35", label: t("negocios_stat_ciudades", "ciudades") },
-    { value: "167", label: t("negocios_stat_eventos", "eventos vigentes") },
-    { value: "153", label: t("negocios_stat_tours", "tours y guías") },
+    { value: liveStats.businesses, label: t("negocios_stat_negocios", "negocios publicados") },
+    { value: liveStats.cities, label: t("negocios_stat_ciudades", "ciudades") },
+    { value: liveStats.events, label: t("negocios_stat_eventos", "eventos vigentes") },
+    { value: liveStats.tours, label: t("negocios_stat_tours", "tours y guías") },
   ];
   const benefits = [
     { icon: "pin", title: t("negocios_ben_mapa_titulo", "Te encuentran en el mapa"), text: t("negocios_ben_mapa_texto", "Tu negocio aparece con su pin en el mapa de tu ciudad, junto a los lugares, restaurantes y eventos que la gente ya busca. Con Premium, tu logotipo se ve directo en el mapa.") },
@@ -60,7 +95,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     [t("negocios_faq2_q", "¿Necesito pagar para aparecer en CityMap?"), t("negocios_faq2_a", "No. Con el plan gratuito tu negocio ya tiene su página pública, con teléfono, dirección, horarios y portada.")],
     [t("negocios_faq3_q", "¿CityMap cobra comisión por mis ventas?"), t("negocios_faq3_a", "No. Los pedidos te llegan por WhatsApp y el pago es directo entre tu cliente y tú.")],
     [t("negocios_faq4_q", "¿Puedo probar los planes de pago gratis?"), t("negocios_faq4_a", "Sí. Los planes Destacado y Premium mensuales tienen 7 días de prueba gratis, sin compromiso.")],
-    [t("negocios_faq5_q", "¿En qué ciudades está CityMap?"), t("negocios_faq5_a", "En 35 ciudades, entre ellas Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Ciudad de México, Mérida, Monterrey, Cancún y Playa del Carmen.")],
+    [t("negocios_faq5_q", "¿En qué ciudades está CityMap?"), t("negocios_faq5_a", "En ${count} ciudades, entre ellas Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Ciudad de México, Mérida, Monterrey, Cancún y Playa del Carmen.", { count: liveStats.cities })],
     [t("negocios_faq6_q", "¿Qué necesito para registrar mi negocio?"), t("negocios_faq6_a", "Solo tu información básica: nombre, fotos, horarios y un teléfono o WhatsApp para que te contacten.")],
   ];
 
@@ -131,10 +166,10 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
             <button onClick={scrollToPlans} style={{ minHeight: 48, padding: '12px 24px', border: `1px solid ${line}`, borderRadius: 999, background: 'transparent', color: ink, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t("ver_planes", "Ver planes")}</button>
           </div>
         </section>
-        <section aria-label={t("negocios_eyebrow", "CityMap para negocios")} style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, maxWidth: 720, margin: '24px auto 0' }}>
+        <section ref={statsRef} aria-label={t("negocios_eyebrow", "CityMap para negocios")} style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, maxWidth: 720, margin: '24px auto 0' }}>
           {stats.map(s => (
             <div key={s.label} style={{ textAlign: 'center', padding: '20px 12px', background: surface, border: `1px solid ${line}`, borderRadius: 20 }}>
-              <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.04em', fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+              <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.04em', fontVariantNumeric: 'tabular-nums' }}><StatNumber value={s.value} active={statsInView} /></div>
               <div style={{ fontSize: 13, lineHeight: 1.4, color: muted, marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
@@ -200,7 +235,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         </section>
         <section style={{ textAlign: 'center', margin: '64px auto 0', padding: '40px 20px', maxWidth: 720, background: surface, borderRadius: 24, border: `1px solid ${line}` }}>
           <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', margin: '0 0 8px' }}>{t("negocios_cierre_titulo", "Tu negocio ya lo buscan. Que lo encuentren.")}</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, margin: '0 auto 20px', maxWidth: 420 }}>{t("negocios_cierre_sub", "Súmate a los 330 negocios que ya están en CityMap.")}</p>
+          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, margin: '0 auto 20px', maxWidth: 420 }}>{t("negocios_cierre_sub", "Súmate a los ${count} negocios que ya están en CityMap.", { count: liveStats.businesses })}</p>
           <button onClick={() => onAddBiz?.()} style={{ minHeight: 48, padding: '12px 28px', border: 0, borderRadius: 999, background: accent, color: dark ? '#101827' : '#FFFFFF', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t("cuenta_crear_perfil_gratis", "Crear perfil gratis")}</button>
         </section>
       </main>
