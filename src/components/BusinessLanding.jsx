@@ -3,7 +3,9 @@ import { Helmet } from "react-helmet-async";
 import Icon from "./ui/Icon.jsx";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
-import { getCountryCode } from "../lib/domain.js";
+import { getCountryCode, buildBizUrl, buildCityPath } from "../lib/domain.js";
+import { displayRating, formatReviewCount } from "../lib/googleRatings.js";
+import { getThumbUrl, cleanCityPrefix } from "../lib/utils.js";
 import { getBusinessPricing, buildBusinessPlans } from "../lib/businessPlans.js";
 import { NEGOCIOS_STATS_FALLBACK, fetchNegociosStats } from "../lib/negociosStats.js";
 import { useCountUp } from "../hooks/useCountUp.js";
@@ -16,6 +18,50 @@ function StatNumber({ value, active }) {
   return <>{display.toLocaleString("es-MX")}</>;
 }
 
+// Perfiles de ejemplo: 3 negocios REALES de la base (aprobados, con foto y
+// calificación real de Google en caché; verificados por PostgREST el 10 nov
+// 2026). Ciudades y giros distintos para que el ejemplo se sienta general:
+// un restaurante en Zapopan, un café en Guadalajara y un hospedaje en
+// Puerto Vallarta. La calificación NO se guarda aquí: se lee en vivo con
+// displayRating y solo se muestra si el caché de Google trae el dato
+// (source === 'google'); si no lo trae, la tarjeta no muestra calificación.
+// La foto es la primera de la galería del negocio (la misma que usa la
+// tarjeta del negocio en el resto de la app).
+const EJEMPLOS_NEGOCIOS = [
+  {
+    id: "c0ae3d8f-7417-4ca7-9e66-91fa5d55b7e8",
+    name: "Mochomos",
+    city_slug: "zapopan",
+    slug: "zapopan-mochomos",
+    category: "restaurantes",
+    categoryLabel: "Restaurantes",
+    photo: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787478894399_qk3fa.jpeg",
+  },
+  {
+    id: "6b146d7a-2bd9-41c6-9947-799cc68e1267",
+    name: "Dalila Casa Repostera",
+    city_slug: "guadalajara",
+    slug: "guadalajara-dalila-casa-repostera",
+    category: "cafe",
+    categoryLabel: "Café",
+    photo: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1791991285949_z4ojc.webp",
+  },
+  {
+    id: "6a49d84a-6feb-4b74-89a8-8f68bab27849",
+    name: "Four Seasons Resort Punta Mita",
+    city_slug: "puerto-vallarta",
+    slug: "puerto-vallarta-four-seasons-resort-punta-mita",
+    category: "hospedaje",
+    categoryLabel: "Hospedaje",
+    photo: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785787099442_qkable.avif",
+  },
+];
+
+// Nombre de ciudad legible cuando el store de ciudades aún no cargó
+// (en la app ya viene cargado; esto solo es la reserva).
+const prettyCitySlug = (slug) =>
+  String(slug || "").split("-").map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(" ");
+
 // Página /negocios: CityMap para negocios. Mismo lenguaje visual que
 // PlansPage (encabezado sticky con blur, maxWidth 1140, tarjetas con borde
 // y radio grande, claro/oscuro) y los mismos datos de planes del módulo
@@ -24,6 +70,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
   const { t } = useTranslation();
   const activeCity = useUIStore(s => s.activeCity);
   const cities = useDataStore(s => s.cities);
+  const googleRatings = useDataStore(s => s.googleRatings);
   const countryCode = getCountryCode(activeCity, cities);
   const pricing = getBusinessPricing(countryCode);
   const plans = buildBusinessPlans(t, pricing, dark);
@@ -148,6 +195,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         .business-landing .plans-features{flex:1;display:flex;flex-direction:column;gap:12px;padding-top:22px;margin-top:22px;border-top:1px solid var(--plans-line)}
         .business-landing .stat-card{box-shadow:var(--plans-shadow)}
         .business-landing .benefit-card{box-shadow:var(--plans-shadow)}
+        .business-landing .example-card{box-shadow:var(--plans-shadow)}
         .plans-faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px;font-size:15px;font-weight:600;line-height:1.5}
         .plans-faq summary::after{content:'+';font-size:20px;font-weight:400}
         .plans-faq[open] summary::after{content:'−'}
@@ -228,6 +276,38 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
                   <div className="plans-features">{p.features.map(f => <div className="plans-feature" key={f}><span aria-hidden="true" style={{ color: p.key === 'pro' ? accent : muted, fontSize: 15 }}>✓</span><span>{f}</span></div>)}</div>
                   <button className="plans-action" disabled={btn.disabled} onClick={btn.onClick} style={{ background: p.key === 'pro' ? accent : 'transparent', border: `1px solid ${p.key === 'pro' ? accent : line}`, color: p.key === 'pro' ? (dark ? '#101827' : '#FFFFFF') : ink }}>{btn.label}</button>
                 </article>
+              );
+            })}
+          </div>
+        </section>
+        <section style={{ marginTop: 64 }}>
+          <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_ejemplos_titulo", "Así se ve un perfil en CityMap")}</h2>
+          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_ejemplos_sub", "Negocios reales que ya están en CityMap. El tuyo puede verse así.")}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
+            {EJEMPLOS_NEGOCIOS.map(ex => {
+              const clean = cleanCityPrefix(ex.slug, ex.city_slug);
+              const path = `${buildCityPath(ex.city_slug, cities)}/${clean}`;
+              const url = buildBizUrl(ex.city_slug, clean, cities);
+              const cityName = cities.find(c => c.slug === ex.city_slug)?.name || prettyCitySlug(ex.city_slug);
+              // Solo calificación real de Google: si el caché no trae el
+              // dato, la tarjeta no muestra calificación (nunca inventada).
+              const disp = displayRating(ex, googleRatings);
+              return (
+                <a key={ex.id} className="example-card" href={url} onClick={(e) => { e.preventDefault(); navigate?.(path); }} style={{ display: 'block', overflow: 'hidden', background: surface, border: `1px solid ${line}`, borderRadius: 24, textDecoration: 'none', color: ink }}>
+                  <img src={getThumbUrl(ex.photo, 800, 600)} alt={ex.name} loading="lazy" style={{ display: 'block', width: '100%', height: 200, objectFit: 'cover' }} />
+                  <div style={{ padding: '18px 20px 20px' }}>
+                    <h3 style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.3, margin: 0 }}>{ex.name}</h3>
+                    <p style={{ fontSize: 13, lineHeight: 1.5, color: muted, margin: '4px 0 0' }}>{cityName} · {t(ex.category, ex.categoryLabel)}</p>
+                    {disp.source === "google" && typeof disp.rating === "number" && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
+                        <Icon name="star_f" size={14} color={accent} />
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>{disp.rating.toFixed(1)}</span>
+                        <span style={{ fontSize: 13, color: muted }}>({formatReviewCount(disp.count)})</span>
+                        <img src="/googlelogo.svg" alt="Google" style={{ width: 12, height: 12, objectFit: 'contain' }} />
+                      </div>
+                    )}
+                  </div>
+                </a>
               );
             })}
           </div>
