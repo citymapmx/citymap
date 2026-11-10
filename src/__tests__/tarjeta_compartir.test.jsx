@@ -88,9 +88,13 @@ describe('tarjeta para compartir el negocio', () => {
 
   it('el precio ya no se muestra en la tarjeta', () => {
     // buildShareCardData conserva el campo como dato, pero ni la
-    // plantilla ni el exportador lo dibujan.
-    expect(template).not.toContain('price');
+    // plantilla ni el exportador dibujan el precio del negocio
+    // (data.price). PR #159: los precios que SÍ se muestran son los
+    // de los platillos del menú en «Para pedir» (d.price).
+    expect(template).not.toContain('data.price');
+    expect(template).not.toContain('data?.price');
     expect(lib).not.toContain('data.price');
+    expect(template).toContain('d.price');
   });
 
   it('la foto se lee con CORS y sin foto no hay imagen rota', () => {

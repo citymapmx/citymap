@@ -132,8 +132,13 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     const lib = read('../lib/shareCard.js');
     const template = read('../components/ShareCardTemplate.jsx');
     expect(lib).not.toContain("style.id === 'editorial'");
-    expect(template).not.toContain("style.id === 'editorial'");
     expect(lib).not.toContain('geo.width / 2 - 36');
+    // PR #159: la única mención a 'editorial' en la plantilla es la
+    // puerta de las píldoras («Para pedir» y el QR no llevan píldoras);
+    // la línea negra sobre el título sigue sin existir.
+    expect(template.match(/style\.id === 'editorial'/g)).toHaveLength(1);
+    expect(template).toContain("style.id === 'glass' || style.id === 'editorial'");
+    expect(template).not.toContain('geo.width / 2 - 36');
   });
 
   it('el logo oficial va en oscuro en Clara y en blanco en Oscura', () => {
@@ -250,9 +255,9 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     // antes del primero y un clon del primero después del último — y
     // al llegar al clon se resetea al índice real SIN transición.
     expect(sheet).toContain('trackStyles');
-    expect(sheet).toContain('SHARE_CARD_STYLE_LIST[styleCount - 1]');
-    expect(sheet).toContain('...SHARE_CARD_STYLE_LIST');
-    expect(sheet).toContain('SHARE_CARD_STYLE_LIST[0]');
+    expect(sheet).toContain('availableStyles[styleCount - 1]');
+    expect(sheet).toContain('...availableStyles');
+    expect(sheet).toContain('availableStyles[0]');
     expect(sheet).toContain('translateX(${-trackPos * PREVIEW_W}px)');
     expect(sheet).toContain('transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)');
     // El reseteo silencioso: sin transición (noAnim), a los 0,5 s (lo
@@ -271,7 +276,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     expect(sheet).toContain('goStyle(-1)');
     expect(sheet).toContain('goStyle(1)');
     expect(sheet).toContain('goToStyle(n)');
-    expect(sheet).toContain('setStyleId(SHARE_CARD_STYLE_LIST[next].id)');
+    expect(sheet).toContain('setStyleId(availableStyles[next].id)');
     expect(sheet).toContain('exportShareCardPng(dataToExport, format, styleId)');
     // Con «reducir movimiento» no desliza: cambia al instante.
     expect(sheet).toContain('prefers-reduced-motion: reduce');

@@ -943,7 +943,7 @@ export default function DetailView() {
                 <div style={{ textAlign: "center", padding: "40px", background: "#fff", borderRadius: 24, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>Cargando…</div>
               </div>
             }>
-              <ShareCardSheet biz={selected} onClose={() => setShowShareCard(false)} onShareLink={(b) => doShare(b)} />
+              <ShareCardSheet biz={selected} hasMenu={hasMenu} onClose={() => setShowShareCard(false)} onShareLink={(b) => doShare(b)} />
             </Suspense>
           </ErrorBoundary>
         )}

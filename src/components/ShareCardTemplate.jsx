@@ -63,6 +63,11 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
       : 'foot';
   // El logo circular se pide en 300×300, igual que la ficha.
   const logoSrc = data?.bizLogoUrl ? getThumbUrl(data.bizLogoUrl, 300, 300) : null;
+  // PR #159: «Para pedir» y el QR no llevan píldoras (nada de
+  // etiqueta de ciudad en la carta); el QR tampoco lleva foto.
+  const showPills = style.id === 'glass' || style.id === 'editorial';
+  const isPedido = style.id === 'pedido';
+  const isQr = style.id === 'qr';
 
   return (
     <div
@@ -99,45 +104,89 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
         }}
       />
 
-      <div
-        style={{
-          width: photoW,
-          flex: 1,
-          minHeight: L.photoMinH,
-          borderRadius: L.photoRadius,
-          overflow: 'hidden',
-          background: palette.photoBg,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {photoSrc ? (
-          <img
-            src={photoSrc}
-            crossOrigin="anonymous"
-            onError={onPhotoError}
-            alt=""
+      {/* Foto (PR #159: el QR no lleva foto; su área flexible es el
+          cuadrado blanco con el QR, centrado en la franja). */}
+      {isQr ? (
+        <div
+          style={{
+            width: photoW,
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
             style={{
-              width: '100%',
               height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-            }}
-          />
-        ) : (
-          <span
-            style={{
-              color: palette.initial,
-              fontSize: L.photoMinH * 0.45,
-              fontWeight: 800,
-              lineHeight: 1,
+              aspectRatio: '1',
+              maxWidth: '100%',
+              background: '#FFFFFF',
+              borderRadius: L.qrRadius,
+              padding: L.qrPad,
+              boxSizing: 'border-box',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
-            {initial}
-          </span>
-        )}
-      </div>
+            {data?.qrDataUrl ? (
+              <img
+                src={data.qrDataUrl}
+                alt="QR del menú"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
+            ) : null}
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            width: photoW,
+            flex: 1,
+            minHeight: L.photoMinH,
+            borderRadius: L.photoRadius,
+            overflow: 'hidden',
+            background: palette.photoBg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {photoSrc ? (
+            <img
+              src={photoSrc}
+              crossOrigin="anonymous"
+              onError={onPhotoError}
+              alt=""
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          ) : (
+            <span
+              style={{
+                color: palette.initial,
+                fontSize: L.photoMinH * 0.45,
+                fontWeight: 800,
+                lineHeight: 1,
+              }}
+            >
+              {initial}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Círculo del logo del negocio (PR #144): absoluto, con la misma
           geometría que el canvas (layout.bizLogo), así no ocupa espacio
@@ -185,13 +234,15 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
       {layout.name && layout.name.lines.length ? (
         <div style={{ marginTop: firstBlock === 'name' ? layout.firstGap : L.nameGap, width: photoW, flexShrink: 0 }}>
           {/* Cada línea calculada va en UNA línea visual (whiteSpace:
-              nowrap): si el DOM repartiera una línea en dos (su fuente
-              mide más ancha que la del canvas, como en el Android de
-              Jonathan con «Tangente Restaurante»), el bloque del nombre
-              crecería, la foto (flex: 1) se acortaría, su borde real
-              subiría y el círculo —absoluto, sobre el borde calculado—
-              taparía la primera línea. Con nowrap el alto del bloque es
-              siempre el calculado y la foto conserva su borde. */}
+              nowrap, PR #158): si el DOM repartiera una línea en dos
+              (su fuente mide más ancha que la del canvas, como en el
+              Android de Jonathan con «Tangente Restaurante»), el bloque
+              del nombre crecería, la foto (flex: 1) se acortaría, su
+              borde real subiría y el círculo —absoluto, sobre el borde
+              calculado— taparía la primera línea. Con nowrap el alto
+              del bloque es siempre el calculado y la foto conserva su
+              borde. Vale también para «Para pedir» y el QR (nombres de
+              3 líneas sin truncar). */}
           {layout.name.lines.map((line, i) => (
             <div
               key={i}
@@ -209,7 +260,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
         </div>
       ) : null}
 
-      {hasRating || data?.cityName ? (
+      {showPills && (hasRating || data?.cityName) ? (
         <div
           style={{
             marginTop: firstBlock === 'pills' ? layout.firstGap : L.pillsGap,
@@ -261,6 +312,110 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
               {data.cityName}
             </span>
           ) : null}
+        </div>
+      ) : null}
+
+      {/* Platillos, horario y botón de «Para pedir» (PR #159): los
+          renglones van tras el nombre, con el precio a la derecha y
+          un renglón punteado entre ellos; el botón es verde WhatsApp.
+          Sin píldoras: nada de etiqueta de ciudad en esta tarjeta. */}
+      {isPedido && layout.dishes?.length ? (
+        <div style={{ marginTop: L.dishGap, width: photoW, flexShrink: 0 }}>
+          {layout.dishes.map((d, i) => (
+            <div
+              key={i}
+              style={{
+                height: L.dishRowH,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 24,
+                borderTop:
+                  i > 0 ? '2px dotted rgba(255,255,255,0.25)' : 'none',
+                boxSizing: 'border-box',
+              }}
+            >
+              <span
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                  textAlign: 'left',
+                  fontSize: L.dishSize,
+                  fontWeight: 700,
+                  lineHeight: 1,
+                }}
+              >
+                {d.name}
+              </span>
+              <span
+                style={{
+                  fontSize: L.dishSize,
+                  fontWeight: 800,
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {d.price}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {isPedido && layout.hours ? (
+        <div
+          style={{
+            marginTop: L.hoursGap,
+            width: photoW,
+            fontSize: L.hoursSize,
+            fontWeight: 600,
+            lineHeight: 1.2,
+            color: palette.sub,
+            flexShrink: 0,
+          }}
+        >
+          {layout.hours.text}
+        </div>
+      ) : null}
+
+      {isPedido && layout.orderButton ? (
+        <div
+          style={{
+            marginTop: L.buttonGap,
+            width: photoW,
+            height: L.buttonH,
+            borderRadius: L.buttonRadius,
+            background: '#25D366',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: L.buttonSize,
+            fontWeight: 800,
+            lineHeight: 1,
+            flexShrink: 0,
+          }}
+        >
+          Hacer pedido
+        </div>
+      ) : null}
+
+      {/* Línea bajo el QR (PR #159). */}
+      {isQr && layout.qr ? (
+        <div
+          style={{
+            marginTop: L.ctaGap,
+            width: photoW,
+            fontSize: L.ctaSize,
+            fontWeight: 600,
+            lineHeight: 1.2,
+            color: palette.text,
+            flexShrink: 0,
+          }}
+        >
+          Escanea para ver el menú
         </div>
       ) : null}
 
