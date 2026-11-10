@@ -4,12 +4,14 @@
 // `propuestas-de-tarjetas-para-articulos` (corrección de Jonathan
 // 10 Nov ~10:54: el segundo estilo, de fondo claro, se veía mal en vivo): la foto
 // llena TODA la tarjeta a sangre, el texto va encima con degradados,
-// pastilla «citymap.mx» arriba a la izquierda, pastilla de calificación
-// arriba a la derecha (solo si es real), pastilla azul de ciudad · tipo,
-// título, descripción, duración · idiomas, y el precio en una pastilla
-// AZUL grande («DESDE $1,881 MXN por persona»). Sin logotipo grande ni
-// pie: la marca es la pastilla citymap.mx, como en la demo. Sin foto no
-// hay imagen rota: sale un degradado oscuro con la inicial del título.
+// logotipo oficial arriba a la izquierda (corrección de Jonathan
+// 10 Nov ~11:39: en lugar de la pastilla de texto «citymap.mx»),
+// pastilla de calificación arriba a la derecha (solo si es real),
+// pastilla GLASS de ciudad · tipo (corrección de Jonathan
+// 10 Nov ~11:39: translúcida, no azul sólida), título, descripción,
+// duración · idiomas, y el precio en una pastilla AZUL grande
+// («DESDE $1,881 MXN por persona»). Sin pie. Sin foto no hay imagen
+// rota: sale un degradado oscuro con la inicial del título.
 // La vista previa y el PNG exportado comparten la misma geometría:
 // EXPERIENCE_SHARE_CARD_LAYOUT + computeExperienceShareCardLayout en
 // lib/experienceShareCard.js, así que lo que se ve es lo que se descarga.
@@ -17,6 +19,8 @@ import { getThumbUrl } from '../lib/utils.js';
 import {
   EXPERIENCE_SHARE_CARD_FORMATS,
   EXPERIENCE_SHARE_CARD_BLUE,
+  EXPERIENCE_SHARE_CARD_GLASS_BG,
+  EXPERIENCE_SHARE_CARD_GLASS_BORDER,
   computeExperienceShareCardLayout,
 } from '../lib/experienceShareCard.js';
 
@@ -131,19 +135,19 @@ export default function ExperienceShareCardTemplate({ data, format, onPhotoError
         }}
       />
 
-      {/* Pastilla citymap.mx (arriba a la izquierda) */}
-      {pill(
-        layout.brandPill,
-        <>
-          <span style={{ fontSize: layout.brandPill.size, fontWeight: 800, lineHeight: 1, color: '#FFFFFF' }}>
-            citymap
-          </span>
-          <span style={{ fontSize: layout.brandPill.size, fontWeight: 800, lineHeight: 1, color: '#60A5FA' }}>
-            .mx
-          </span>
-        </>,
-        { background: '#111827' },
-      )}
+      {/* Logotipo oficial (arriba a la izquierda): blanco sobre la foto */}
+      <img
+        src="/logo-brand.png"
+        alt="CityMap"
+        style={{
+          position: 'absolute',
+          left: layout.brandLogo.x,
+          top: layout.brandLogo.y,
+          width: layout.brandLogo.w,
+          height: layout.brandLogo.h,
+          display: 'block',
+        }}
+      />
 
       {/* Pastilla de calificación (arriba a la derecha, solo si es real) */}
       {layout.ratingPill
@@ -161,14 +165,17 @@ export default function ExperienceShareCardTemplate({ data, format, onPhotoError
           )
         : null}
 
-      {/* Pastilla azul de ciudad · tipo */}
+      {/* Pastilla GLASS de ciudad · tipo: translúcida + borde claro */}
       {layout.cityPill
         ? pill(
             layout.cityPill,
             <span style={{ fontSize: layout.cityPill.size, fontWeight: 600, lineHeight: 1, color: '#FFFFFF', whiteSpace: 'nowrap' }}>
               {layout.cityPill.text}
             </span>,
-            { background: EXPERIENCE_SHARE_CARD_BLUE },
+            {
+              background: EXPERIENCE_SHARE_CARD_GLASS_BG,
+              border: `1.5px solid ${EXPERIENCE_SHARE_CARD_GLASS_BORDER}`,
+            },
           )
         : null}
 

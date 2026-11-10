@@ -7,12 +7,13 @@
 // Jonathan 10 Nov ~10:54: el segundo estilo, de fondo claro, se veía
 // mal en vivo): la
 // foto llena TODA la tarjeta a sangre, el texto va encima con
-// degradados para que se lea, pastilla «citymap.mx» arriba a la
-// izquierda, pastilla de calificación arriba a la derecha (SOLO si es
-// real), pastilla azul de ciudad · tipo de actividad, título, parte de
-// la descripción, duración · idiomas, y el precio en una pastilla AZUL
-// grande («DESDE $1,881 MXN por persona»). Sin logotipo grande ni pie:
-// la marca es la pastilla citymap.mx, como en la demo.
+// degradados para que se lea, logotipo oficial arriba a la izquierda
+// (corrección de Jonathan 10 Nov ~11:39: en lugar de la pastilla de
+// texto «citymap.mx»), pastilla de calificación arriba a la derecha
+// (SOLO si es real), pastilla GLASS de ciudad · tipo de actividad
+// (corrección de Jonathan 10 Nov ~11:39: translúcida, no azul sólida),
+// título, parte de la descripción, duración · idiomas, y el precio en
+// una pastilla AZUL grande («DESDE $1,881 MXN por persona»). Sin pie.
 //
 // Tres formatos: Historia 1080×1920, Post 1080×1080 y Horizontal
 // 1080×566 (el tamaño oficial de Instagram para post horizontal,
@@ -49,6 +50,7 @@ import {
   wrapShareCardName,
   wrapShareCardText,
   loadShareCardPhoto,
+  loadShareCardLogoWhite,
   drawCoverImage,
   roundRectPath,
   spacedWidth,
@@ -70,10 +72,17 @@ export const EXPERIENCE_SHARE_CARD_FORMAT_LIST = [
   EXPERIENCE_SHARE_CARD_FORMATS.horizontal,
 ];
 
-// Azul de las pastillas (ciudad · tipo y precio), como la demo.
+// Azul de la pastilla de precio (la de ciudad · tipo ya no es azul:
+// es glass, ver abajo), como la demo.
 export const EXPERIENCE_SHARE_CARD_BLUE = '#2563EB';
-const BRAND_BG = '#111827';
-const BRAND_MX = '#60A5FA';
+// Glassmorphism de la pastilla de ubicación (como el estilo glass de
+// negocios, shareCard.js: fondo translúcido + borde claro). En canvas
+// no hay backdrop-filter: el translúcido sobre la foto y el degradado
+// ES el efecto.
+export const EXPERIENCE_SHARE_CARD_GLASS_BG = 'rgba(255,255,255,0.12)';
+export const EXPERIENCE_SHARE_CARD_GLASS_BORDER = 'rgba(255,255,255,0.35)';
+// El logotipo oficial (/logo-brand.png) mide 400×120.
+const LOGO_RATIO = 400 / 120;
 const STAR = '#F59E0B';
 
 // Geometría de la tarjeta, por formato. La foto va a sangre (0,0,W,H)
@@ -84,9 +93,7 @@ const STAR = '#F59E0B';
 export const EXPERIENCE_SHARE_CARD_LAYOUT = {
   story: {
     pad: 64,
-    brandSize: 34,
-    brandPadX: 26,
-    brandPadY: 12,
+    logoH: 76,
     ratingSize: 32,
     ratingPadX: 24,
     ratingPadY: 12,
@@ -120,9 +127,7 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
   },
   post: {
     pad: 48,
-    brandSize: 28,
-    brandPadX: 22,
-    brandPadY: 10,
+    logoH: 76,
     ratingSize: 26,
     ratingPadX: 20,
     ratingPadY: 10,
@@ -156,9 +161,7 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
   },
   horizontal: {
     pad: 48,
-    brandSize: 24,
-    brandPadX: 20,
-    brandPadY: 9,
+    logoH: 76,
     ratingSize: 22,
     ratingPadX: 18,
     ratingPadY: 9,
@@ -252,7 +255,7 @@ export function buildExperienceShareCardData(exp, { cityName = '' } = {}) {
   if (String(exp?.people || '').trim()) dataParts.push(String(exp.people).trim());
   const city = (cityName || '').trim();
   const activityType = (exp?.activity_type || '').trim();
-  // Pastilla azul de la demo: «📍 Guadalajara · Tour».
+  // Pastilla de ciudad · tipo: «📍 Guadalajara · Tour» (glass, no azul).
   const cityParts = [];
   if (city) cityParts.push(`📍 ${city}`);
   if (activityType) cityParts.push(activityType);
@@ -315,13 +318,12 @@ function fitExperienceShareCardTitle(titleText, maxW, L, baseSize) {
 
 // ─── Medición de pastillas ───
 
-function brandPillSize(L) {
+// El logotipo oficial arriba a la izquierda: alto logoH (76, como en
+// negocios) y ancho por la proporción 400×120 del PNG.
+function brandLogoSize(L) {
   return {
-    w:
-      measureShareCardText('citymap', L.brandSize, 800) +
-      measureShareCardText('.mx', L.brandSize, 800) +
-      L.brandPadX * 2,
-    h: L.brandSize + L.brandPadY * 2,
+    w: Math.round(L.logoH * LOGO_RATIO),
+    h: L.logoH,
   };
 }
 
@@ -381,14 +383,12 @@ export function computeExperienceShareCardLayout(data, format) {
   const H = f.height;
   const pad = L.pad;
 
-  const brand = brandPillSize(L);
-  const brandPill = {
+  const logo = brandLogoSize(L);
+  const brandLogo = {
     x: pad,
     y: pad,
-    w: brand.w,
-    h: brand.h,
-    size: L.brandSize,
-    padX: L.brandPadX,
+    w: logo.w,
+    h: logo.h,
   };
 
   let ratingPill = null;
@@ -538,7 +538,7 @@ export function computeExperienceShareCardLayout(data, format) {
     width: W,
     height: H,
     photo: { x: 0, y: 0, w: W, h: H },
-    brandPill,
+    brandLogo,
     ratingPill,
     cityPill,
     title,
@@ -602,20 +602,13 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
   ctx.fillStyle = botGrad;
   ctx.fillRect(0, geo.height - botH, geo.width, botH);
 
-  // Pastilla citymap.mx (arriba a la izquierda): oscura, «citymap» en
-  // blanco y «.mx» en azul, como la demo.
-  const bp = geo.brandPill;
-  ctx.fillStyle = BRAND_BG;
-  roundRectPath(ctx, bp.x, bp.y, bp.w, bp.h, bp.h / 2);
-  ctx.fill();
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.font = `800 ${bp.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillText('citymap', bp.x + bp.padX, bp.y + bp.h / 2);
-  const citymapW = ctx.measureText('citymap').width;
-  ctx.fillStyle = BRAND_MX;
-  ctx.fillText('.mx', bp.x + bp.padX + citymapW, bp.y + bp.h / 2);
+  // Logotipo oficial arriba a la izquierda, en blanco sobre la foto
+  // (el PNG ya es blanco sobre transparente): si no cargó, la tarjeta
+  // sale sin marca, como en negocios.
+  if (assets?.logo) {
+    const bl = geo.brandLogo;
+    ctx.drawImage(assets.logo, bl.x, bl.y, bl.w, bl.h);
+  }
 
   // Pastilla de calificación (arriba a la derecha): blanca, estrella
   // ámbar, solo si la calificación es real.
@@ -633,12 +626,17 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
     ctx.fillText(rp.text, rp.x + rp.padX + starW + 6, rp.y + rp.h / 2);
   }
 
-  // Pastilla azul de ciudad · tipo, encima del título.
+  // Pastilla GLASS de ciudad · tipo, encima del título: fondo
+  // translúcido + borde claro (como el estilo glass de negocios);
+  // la pastilla de precio sigue AZUL sólida.
   if (geo.cityPill) {
     const cp = geo.cityPill;
-    ctx.fillStyle = EXPERIENCE_SHARE_CARD_BLUE;
+    ctx.fillStyle = EXPERIENCE_SHARE_CARD_GLASS_BG;
     roundRectPath(ctx, cp.x, cp.y, cp.w, cp.h, cp.h / 2);
     ctx.fill();
+    ctx.strokeStyle = EXPERIENCE_SHARE_CARD_GLASS_BORDER;
+    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.font = `600 ${cp.size}px ${SHARE_CARD_FONT_STACK}`;
     ctx.fillStyle = '#FFFFFF';
     ctx.fillText(cp.text, cp.x + cp.padX, cp.y + cp.h / 2);
@@ -699,9 +697,12 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
 }
 
 export async function renderExperienceShareCardCanvas(data, format) {
-  const photo = await loadShareCardPhoto(data?.photoUrl);
+  const [photo, logo] = await Promise.all([
+    loadShareCardPhoto(data?.photoUrl),
+    loadShareCardLogoWhite(),
+  ]);
   const layout = computeExperienceShareCardLayout(data, format);
-  return drawExperienceShareCardCanvas(data, format, { photo }, layout);
+  return drawExperienceShareCardCanvas(data, format, { photo, logo }, layout);
 }
 
 // Genera el PNG de la tarjeta del artículo dibujando en canvas (nada de
