@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, lazy, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useUIStore } from '../../store/useUIStore';
@@ -34,6 +34,10 @@ const APPLE_MUSIC_RED = '#FA2D48';
 import { useAppContext } from '../../context/AppContext';
 import { useDataStore } from '../../store/useDataStore';
 
+// Tarjeta para compartir el evento como imagen (PR #152): la misma hoja
+// centrada de los negocios, con los 5 estilos según el tipo de evento.
+const EventShareCardSheet = lazy(() => import('../EventShareCardSheet.jsx'));
+
 export default function EventDetailModal() {
   const { t, lang } = useTranslation();
   const { selectedEvent, setSelectedEvent, activeCity, dark, toast$ } = useUIStore();
@@ -42,6 +46,8 @@ export default function EventDetailModal() {
   const mapPins = useDataStore(s => s.mapPins);
   const cities = useDataStore(s => s.cities);
   const [upcoming, setUpcoming] = useState([]);
+  // Hoja para compartir el evento como imagen (PR #152).
+  const [showShareCard, setShowShareCard] = useState(false);
   // Pestañas del evento privado: chat (default), detalles, invitados.
   const [privateTab, setPrivateTab] = useState('chat');
   const [chatCount, setChatCount] = useState(0);
@@ -242,7 +248,7 @@ export default function EventDetailModal() {
                   <button aria-label={t("eventos_volver", "Volver")} onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
                     <Icon name="arrow_left" size={22} color={T.text} />
                   </button>
-                  <button aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={(e) => { e.stopPropagation(); shareEvent(); }} style={{ width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                  <button aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={(e) => { e.stopPropagation(); setShowShareCard(true); }} style={{ width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
                     <Icon name="share" size={20} color={T.text} />
                   </button>
                 </div>
@@ -285,7 +291,7 @@ export default function EventDetailModal() {
                 </button>
                 
                 {/* Floating Share Button */}
-                <button aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={(e) => { e.stopPropagation(); shareEvent(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
+                <button aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={(e) => { e.stopPropagation(); setShowShareCard(true); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
                   <Icon name="share" size={20} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
                 </button>
 
@@ -516,6 +522,16 @@ export default function EventDetailModal() {
 
               </div>
             </div>
+
+            {/* Hoja para compartir el evento como imagen (PR #152):
+                dentro del modal, con el evento ya localizado (título y
+                descripción en el idioma activo). El «Compartir enlace»
+                de antes queda dentro de la hoja. */}
+            {showShareCard && (
+              <Suspense fallback={null}>
+                <EventShareCardSheet event={evLocalized} onClose={() => setShowShareCard(false)} onShareLink={() => shareEvent()} />
+              </Suspense>
+            )}
           </m.div>
         );
       })()}

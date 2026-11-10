@@ -446,7 +446,7 @@ async function bitmapFromBlob(blob) {
 // La foto se pide ancha (1600w por el bucket de getThumbUrl) para que
 // salga nítida a 1080 px. Si no se puede leer con CORS, null: la tarjeta
 // sale con el bloque de la inicial, nunca rota.
-async function loadShareCardPhoto(photoUrl) {
+export async function loadShareCardPhoto(photoUrl) {
   if (!photoUrl) return null;
   try {
     const res = await fetch(getThumbUrl(photoUrl, 1080), {
@@ -462,7 +462,7 @@ async function loadShareCardPhoto(photoUrl) {
 
 // El logotipo oficial es negro sobre transparente; en la tarjeta oscura
 // va en blanco (la misma inversión que usa Brand.jsx en modo oscuro).
-async function loadShareCardLogoWhite() {
+export async function loadShareCardLogoWhite() {
   try {
     const img = await loadImage('/logo-brand.png');
     const c = document.createElement('canvas');
@@ -508,7 +508,7 @@ async function loadShareCardBizLogo(bizLogoUrl) {
 
 // ─── Dibujo en canvas ───
 
-function roundRectPath(ctx, x, y, w, h, r) {
+export function roundRectPath(ctx, x, y, w, h, r) {
   const rr = Math.max(0, Math.min(r, w / 2, h / 2));
   ctx.beginPath();
   ctx.moveTo(x + rr, y);
@@ -521,7 +521,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
 
 // Ancho de un texto con espaciado entre letras (letter-spacing manual:
 // ctx.letterSpacing no existe en todos los navegadores).
-function spacedWidth(ctx, text, spacing) {
+export function spacedWidth(ctx, text, spacing) {
   let w = 0;
   const chars = Array.from(text);
   chars.forEach((ch, i) => {
@@ -531,7 +531,7 @@ function spacedWidth(ctx, text, spacing) {
   return w;
 }
 
-function drawSpacedText(ctx, text, x, y, spacing) {
+export function drawSpacedText(ctx, text, x, y, spacing) {
   let cx = x;
   for (const ch of Array.from(text)) {
     ctx.fillText(ch, cx, y);
@@ -540,7 +540,7 @@ function drawSpacedText(ctx, text, x, y, spacing) {
 }
 
 // Como object-fit: cover — recorta la foto para llenar el marco.
-function drawCoverImage(ctx, img, dx, dy, dw, dh) {
+export function drawCoverImage(ctx, img, dx, dy, dw, dh) {
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
   if (!iw || !ih) return;
@@ -728,7 +728,7 @@ export async function renderShareCardCanvas(data, format) {
 // Guarda anti-blanco: si el canvas saliera vacío (todo transparente),
 // se lanza error en vez de descargar un PNG en blanco. El degradado de
 // fondo cubre toda la tarjeta, así que un dibujo correcto es opaco.
-function assertCanvasNotBlank(canvas) {
+export function assertCanvasNotBlank(canvas) {
   const ctx = canvas.getContext('2d');
   const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
   for (let i = 3; i < data.length; i += 4000) {
