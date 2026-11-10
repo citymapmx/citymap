@@ -1,6 +1,7 @@
 import { useState, memo } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import Icon from "../ui/Icon.jsx";
+import SaveHeartButton from "../ui/SaveHeartButton.jsx";
 import OptimizedImage from "../ui/OptimizedImage.jsx";
 import { FONT_BIZ } from "../../lib/constants.js";
 import { CAT_EMOJI, isOpenNow, getScheduleStatus, getThumbUrl, haptic } from "../../lib/utils.js";
@@ -9,32 +10,19 @@ import { useTranslation } from "../../hooks/useTranslation.js";
 import { useDataStore } from "../../store/useDataStore.js";
 import { displayRating, formatReviewCount } from "../../lib/googleRatings.js";
 
-// Funciones de renderizado directo para evitar sobrecarga de instanciación de componentes en el Virtual DOM
+// Corazón de guardar con el diseño actual intacto (mismo botón 44x44,
+// misma posición, tamaño y colores): SaveHeartButton añade el pop único
+// + chispas + confeti solo al guardar; el "+1" de abajo se conserva.
 const renderFavoriteButton = (isFav, onClick, showPlus, overlay = false, T, iconSize = null) => {
   return (
     <div style={{ position: "relative" }}>
-      <m.button 
-        whileTap={{ scale: 0.7 }} 
-        onClick={onClick} 
-        style={{ 
-          width: 44, 
-          height: 44, 
-          background: "transparent", 
-          border: "none", 
-          display: "flex", 
-          alignItems: "center", 
-          justifyContent: "center", 
-          cursor: "pointer", 
-          outline: "none",
-          filter: overlay ? "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" : "none"
-        }}
-      >
-        <Icon 
-          name={overlay ? (isFav ? "heart_overlay_f" : "heart_overlay") : (isFav ? "heart_f" : "heart")} 
-          size={iconSize ?? (overlay ? 26 : 16)} 
-          color={overlay ? "none" : (isFav ? "#F07060" : T.sub)} 
-        />
-      </m.button>
+      <SaveHeartButton
+        isFav={isFav}
+        onToggle={onClick}
+        size={iconSize ?? (overlay ? 26 : 16)}
+        overlay={overlay}
+        T={T}
+      />
       <AnimatePresence>
         {showPlus && (
           <m.div 

@@ -361,6 +361,9 @@ iframe[id^="credential_picker"] {
 @media (prefers-reduced-motion: reduce) {
   .scale-in-center { -webkit-animation: none; animation: none; }
   .scale-in-ver-top { -webkit-animation: none; animation: none; }
+  .cascade-in { -webkit-animation: none; animation: none; }
+  .heart-pop-once { -webkit-animation: none; animation: none; }
+  .heart-spark { -webkit-animation: none; animation: none; }
 }
 
 /* ── scale-in-ver-top (Animista, entrada del lote nuevo de "Ver más") ──
@@ -385,4 +388,86 @@ iframe[id^="credential_picker"] {
 @keyframes scale-in-ver-top {
   0% { -webkit-transform: scaleY(0); transform: scaleY(0); -webkit-transform-origin: 100% 0%; transform-origin: 100% 0%; opacity: 1; }
   100% { -webkit-transform: scaleY(1); transform: scaleY(1); -webkit-transform-origin: 100% 0%; transform-origin: 100% 0%; opacity: 1; }
+}
+
+/* ── cascade-in (Animista fade-in-bottom, entrada en cascada del lote
+   inicial) ──
+   Al abrir una pantalla, las tarjetas del lote inicial suben una tras
+   otra con un mini retraso escalonado (ver lib/cascade.js: ~0.13 s por
+   tarjeta, tope 0.6 s). Animista fade-in-bottom verificado en
+   animista.net: su easing exacto es cubic-bezier(0.390, 0.575, 0.565,
+   1.000); su canon usa translateY(50px) y 0.6 s — aquí van los valores
+   de la demo que Jonathan eligió (22px, 0.55 s), más suaves para una
+   lista. Solo transform/opacity: no mueve el layout ni cambia la altura
+   que Virtuoso mide. Solo el lote inicial: lo que llega con "Ver más"
+   sigue con scale-in-ver-top, nunca con cascada. Con "reducir
+   movimiento" no anima (y como el estado base es visible, no esconde
+   nada). */
+.cascade-in {
+  -webkit-animation: cascade-in 0.55s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
+  animation: cascade-in 0.55s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
+}
+@-webkit-keyframes cascade-in {
+  0% { -webkit-transform: translateY(22px); transform: translateY(22px); opacity: 0; }
+  100% { -webkit-transform: translateY(0); transform: translateY(0); opacity: 1; }
+}
+@keyframes cascade-in {
+  0% { -webkit-transform: translateY(22px); transform: translateY(22px); opacity: 0; }
+  100% { -webkit-transform: translateY(0); transform: translateY(0); opacity: 1; }
+}
+
+/* ── Corazón al guardar: pop único + estallido de chispitas ──
+   Demo #1 de "15 animaciones para citymap". Animista heartbeat existe
+   en animista.net (/play/attention/heartbeat) pero late en bucle
+   infinito; aquí el pop es UNA sola vez al guardar, con los valores de
+   la demo: escala 0.4 → 1.35 → 1 en 0.45 s. Al quitar no hay pop.
+   Las chispitas (10, 0.65 s) vuelan en abanico desde el corazón.
+   NO es el confeti grande de celebración de la #15 (Jonathan: «No
+   el 15»): solo el burst pequeño propio de la demo #1. Todo va en un
+   span absoluto centrado en el botón (pointer-events: none, sin
+   layout): el botón, el corazón y la tarjeta quedan como están. Las
+   piezas parten de opacity 0, así que con "reducir movimiento"
+   (animation: none) no se ven. */
+.heart-pop-once {
+  -webkit-animation: heart-pop-once 0.45s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+  animation: heart-pop-once 0.45s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+}
+@-webkit-keyframes heart-pop-once {
+  0% { -webkit-transform: scale(0.4); transform: scale(0.4); }
+  55% { -webkit-transform: scale(1.35); transform: scale(1.35); }
+  100% { -webkit-transform: scale(1); transform: scale(1); }
+}
+@keyframes heart-pop-once {
+  0% { -webkit-transform: scale(0.4); transform: scale(0.4); }
+  55% { -webkit-transform: scale(1.35); transform: scale(1.35); }
+  100% { -webkit-transform: scale(1); transform: scale(1); }
+}
+.heart-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 30;
+  overflow: visible;
+}
+.heart-spark {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  left: -2.5px;
+  top: -2.5px;
+  opacity: 0;
+  -webkit-animation: heart-spark-fly 0.65s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+  animation: heart-spark-fly 0.65s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+}
+@-webkit-keyframes heart-spark-fly {
+  0% { -webkit-transform: translate(0, 0) scale(1); transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { -webkit-transform: translate(var(--tx), var(--ty)) scale(0.2); transform: translate(var(--tx), var(--ty)) scale(0.2); opacity: 0; }
+}
+@keyframes heart-spark-fly {
+  0% { -webkit-transform: translate(0, 0) scale(1); transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { -webkit-transform: translate(var(--tx), var(--ty)) scale(0.2); transform: translate(var(--tx), var(--ty)) scale(0.2); opacity: 0; }
 }

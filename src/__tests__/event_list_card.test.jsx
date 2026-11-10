@@ -42,6 +42,8 @@ describe('event list card: image only', () => {
     expect(src).toContain("aria-label={`${localizedTitle(ev, lang) || 'Evento'}. ${fmtCardDate(ev)}`");
     expect(card).toContain("alt={localizedTitle(ev, lang) || 'Evento'}");
     expect(src).toContain('handleToggleSaveEvent(ev, e)');
-    expect(src).toContain("top:6, right:6");
+    // El corazón sigue en top:6, right:6 (ahora va en el buttonStyle de
+    // SaveHeartButton, con espacios como el resto del archivo).
+    expect(src).toContain("top: 6, right: 6");
   });
 });

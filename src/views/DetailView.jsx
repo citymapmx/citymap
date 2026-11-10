@@ -25,6 +25,7 @@ import { useShallow } from 'zustand/react/shallow';
 import * as dbService from '../services/dbService';
 import useTimeStore from "../store/useTimeStore.js";
 import Icon from "../components/ui/Icon.jsx";
+import SaveHeartButton from "../components/ui/SaveHeartButton.jsx";
 import CouponCard from "../components/ui/CouponCard.jsx";
 import StarRow from "../components/ui/StarRow.jsx";
 import { ErrorBoundary } from "../components/ErrorBoundary.jsx";
@@ -234,11 +235,23 @@ export default function DetailView() {
                   <Icon name="chevron" size={26} color="#fff" style={{ transform: "rotate(180deg)", filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                 </button>
                 <div style={{ display: "flex", gap: 0, alignItems: "center" }}>
-                  <m.button whileTap={{ scale: 0.85 }} title={t('detalle_mis_favoritos', 'Mis favoritos')} aria-label={favIds.includes(selected.id) ? t('quitar_fav', 'Quitar de favoritos') : t('anadir_fav', 'Añadir a favoritos')} className="press" onClick={e => { haptic("light"); toggleFav(selected.id, e); }} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <m.div key={favIds.includes(selected.id) ? 'fav' : 'unfav'} initial={{ scale: 0.5 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 15 }}>
-                      <Icon name={favIds.includes(selected.id) ? "heart_overlay_f" : "heart_overlay"} size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
-                    </m.div>
-                  </m.button>
+                  {/* Corazón de guardar con el diseño actual intacto (misma
+                      posición, tamaño y colores): SaveHeartButton añade el
+                      pop único + chispas + confeti solo al guardar. El
+                      resorte anterior también saltaba al quitar; ahora el
+                      pop es solo al guardar, como en el resto de la app. */}
+                  <SaveHeartButton
+                    isFav={favIds.includes(selected.id)}
+                    onToggle={e => { haptic("light"); toggleFav(selected.id, e); }}
+                    size={24}
+                    overlay
+                    title={t('detalle_mis_favoritos', 'Mis favoritos')}
+                    ariaLabel={favIds.includes(selected.id) ? t('quitar_fav', 'Quitar de favoritos') : t('anadir_fav', 'Añadir a favoritos')}
+                    className="press"
+                    whileTapScale={0.85}
+                    iconStyle={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }}
+                    buttonStyle={{ width: 'auto', height: 'auto', padding: 12, filter: 'none' }}
+                  />
                   <m.button whileTap={{ scale: 0.85 }} aria-label={t('compartir', 'Compartir')} className="press" onClick={e => doShare(selected, e)} style={{ padding: 12, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon name="share" size={24} color="#fff" style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                   </m.button>

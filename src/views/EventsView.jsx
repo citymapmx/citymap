@@ -14,6 +14,8 @@ import Footer from "../components/Footer.jsx";
 import { getThumbUrl, haptic } from "../lib/utils";
 import { smoothScrollIntoView } from "../lib/smoothScroll.js";
 import { useFlipList } from "../lib/useFlipList.js";
+import SaveHeartButton from "../components/ui/SaveHeartButton.jsx";
+import { cascadeDelayS, CASCADE_WINDOW_MS } from "../lib/cascade.js";
 import useTimeStore from "../store/useTimeStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle } from "../lib/i18nContent.js";
@@ -221,6 +223,29 @@ export default function EventsView() {
   const monthGroups = useMemo(() => groupEventsByMonth(renderedEvents), [renderedEvents]);
   const allMonthGroups = useMemo(() => groupEventsByMonth(filteredEvents), [filteredEvents]);
   const monthTotal = useMemo(() => new Map(allMonthGroups.map(g => [g.key, g.events.length])), [allMonthGroups]);
+
+  // Cascada del lote inicial (demo #2 de "15 animaciones"): al entrar,
+  // las primeras 20 tarjetas suben una tras otra (fade-in-bottom con
+  // retraso escalonado, tope 0,6 s). Solo el lote inicial; lo que llega
+  // con "Ver más eventos" sigue con scale-in-ver-top. La ventana se abre
+  // cuando aparecen los primeros eventos y se cierra 1,3 s después
+  // (retraso máximo + duración), para que la clase no quede puesta.
+  const [cascadeActive, setCascadeActive] = useState(false);
+  const cascadeStartedRef = React.useRef(false);
+  useEffect(() => {
+    if (cascadeStartedRef.current || renderedEvents.length === 0) return;
+    cascadeStartedRef.current = true;
+    setCascadeActive(true);
+    const t = window.setTimeout(() => setCascadeActive(false), CASCADE_WINDOW_MS);
+    return () => window.clearTimeout(t);
+  }, [renderedEvents.length]);
+  // Id → retraso de entrada del lote inicial (solo las 20 primeras).
+  // Se declara DESPUÉS de renderedEvents: su useMemo lo lee (lección del
+  // PR #137: leer una variable antes de su const tumbó /eventos).
+  const cascadeDelayById = useMemo(() => {
+    if (!cascadeActive) return null;
+    return new Map(renderedEvents.slice(0, PAGE_SIZE).map((ev, i) => [ev.id, cascadeDelayS(i)]));
+  }, [cascadeActive, renderedEvents]);
 
   const hasActiveFilters = searchQuery.trim() !== "" || dateFilter !== "todos" || eventCategoryFilter !== "Todos" || priceFilter !== "todos" || sortBy !== "fecha";
   const activeFilterCount = (dateFilter !== "todos" ? 1 : 0) + (eventCategoryFilter !== "Todos" ? 1 : 0) + (priceFilter !== "todos" ? 1 : 0) + (sortBy !== "fecha" ? 1 : 0);
@@ -477,14 +502,16 @@ export default function EventsView() {
 
                   return (
                     <article key={ev.id} data-event-id={ev.id} ref={registerFlip(ev.id)} style={{ minWidth: 0, position:'relative', borderRadius:18, overflow:'hidden' }}>
-                      {/* Solo el lote recién cargado con "Ver más eventos"
-                          se desenrolla desde arriba. La clase va en este
-                          envoltorio interior, nunca en el <article>: FLIP
-                          (registerFlip) escribe transform inline en el
-                          artículo y la animación con fill both lo taparía
-                          para siempre. El corazón va dentro para que toda
-                          la tarjeta anime como una sola pieza. */}
-                      <div className={newBatchIds?.has(ev.id) ? 'scale-in-ver-top' : undefined} style={{ position: 'relative' }}>
+                      {/* El lote recién cargado con "Ver más eventos" se
+                          desenrolla desde arriba (scale-in-ver-top) y el
+                          lote inicial entra en cascada (cascade-in). La
+                          clase va en este envoltorio interior, nunca en
+                          el <article>: FLIP (registerFlip) escribe
+                          transform inline en el artículo y la animación
+                          con fill both lo taparía para siempre. El
+                          corazón va dentro para que toda la tarjeta anime
+                          como una sola pieza. */}
+                      <div className={newBatchIds?.has(ev.id) ? 'scale-in-ver-top' : cascadeDelayById?.has(ev.id) ? 'cascade-in' : undefined} style={{ position: 'relative', ...(cascadeDelayById?.has(ev.id) ? { animationDelay: `${cascadeDelayById.get(ev.id)}s` } : {}) }}>
                       <button type="button" onClick={() => handleEventTap(ev)} aria-label={`${localizedTitle(ev, lang) || 'Evento'}. ${fmtCardDate(ev)}`} className="event-list-card" style={{ display:'block', width:'100%', textAlign:'left', border:0, padding:0, background:'transparent', color:T.text, cursor:'pointer', fontFamily:'inherit' }}>
                         <div style={{ aspectRatio:'5 / 7', position:'relative', overflow:'hidden', background:dark ? '#23252b' : '#edf0f4' }}>
                           {/* Fondo difuminado con la misma imagen (misma URL optimizada que el póster, así el navegador la reutiliza): con contain el póster sale completo pero dejaba bandas grises arriba y abajo porque la mayoría son horizontales y la tarjeta es 5:7; el fondo cubre toda la tarjeta y el póster queda encima, completo y sin recortar texto. */}
@@ -497,9 +524,14 @@ export default function EventsView() {
                           <div style={{ position:'absolute', top:8, left:8, zIndex:2, borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF' }}>{fmtCardDate(ev)}</div>
                         </div>
                       </button>
-                      <button type="button" onClick={e => handleToggleSaveEvent(ev, e)} aria-label={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")} aria-pressed={isSaved} style={{ position:'absolute', top:6, right:6, width:44, height:44, background:'rgba(0,0,0,0.24)', border:0, borderRadius:'50%', display:'grid', placeItems:'center', cursor:'pointer', zIndex:2 }}>
-                        <Icon name={isSaved ? 'heart_overlay_f' : 'heart_overlay'} size={25} color="none" />
-                      </button>
+                      <SaveHeartButton
+                        isFav={isSaved}
+                        onToggle={e => handleToggleSaveEvent(ev, e)}
+                        size={25}
+                        overlay
+                        ariaLabel={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")}
+                        buttonStyle={{ position: 'absolute', top: 6, right: 6, width: 44, height: 44, background: 'rgba(0,0,0,0.24)', border: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', zIndex: 2, filter: 'none' }}
+                      />
                       </div>
                     </article>
                   );

@@ -94,7 +94,8 @@ describe('póster de evento con fondo difuminado', () => {
     const src = read('../views/EventsView.jsx');
     expect(src).toContain('EventPosterFallback');
     expect(src).toContain("top:8, left:8, zIndex:2");
-    // El corazón está fuera del contenedor de la imagen, con zIndex 2.
-    expect(src).toContain("top:6, right:6, width:44, height:44");
+    // El corazón está fuera del contenedor de la imagen, con zIndex 2
+    // (ahora va en el buttonStyle de SaveHeartButton, con espacios).
+    expect(src).toContain("top: 6, right: 6, width: 44, height: 44");
   });
 });

@@ -37,7 +37,9 @@ describe('ver mas: scale-in-ver-top entrance on the new batch', () => {
   it('HomeView: only the newly loaded category batch gets the class (Virtuoso)', () => {
     expect(home).toContain('const [newBatchFrom, setNewBatchFrom] = React.useState(null)');
     expect(home).toContain("setNewBatchFrom(finalDisplayList.length)");
-    expect(home).toContain("index >= newBatchFrom ? 'scale-in-ver-top' : undefined");
+    // El lote nuevo sigue con scale-in-ver-top primero en el ternario;
+    // la cascada (PR #138) solo cubre el lote inicial.
+    expect(home).toContain("isNewBatch ? 'scale-in-ver-top' : isInitialBatch ? 'cascade-in' : undefined");
     // La marca se limpia 600 ms después de que el lote llega.
     expect(home).toContain('window.setTimeout(() => setNewBatchFrom(null), 600)');
   });
@@ -49,7 +51,7 @@ describe('ver mas: scale-in-ver-top entrance on the new batch', () => {
   it('EventsView: the new batch gets the class on an inner wrapper, never on the FLIP article', () => {
     expect(events).toContain('const [newBatchFrom, setNewBatchFrom] = useState(null)');
     expect(events).toContain('setNewBatchFrom(visibleCount)');
-    expect(events).toContain("newBatchIds?.has(ev.id) ? 'scale-in-ver-top' : undefined");
+    expect(events).toContain("newBatchIds?.has(ev.id) ? 'scale-in-ver-top' : cascadeDelayById?.has(ev.id) ? 'cascade-in' : undefined");
     // El <article> con registerFlip no lleva la clase: FLIP escribe
     // transform inline ahí y la animación con fill both lo taparía.
     const articleTag = events.slice(events.indexOf('<article key={ev.id}'));
@@ -71,8 +73,8 @@ describe('ver mas: scale-in-ver-top entrance on the new batch', () => {
   });
 
   it('HomeTopGrids: only the 5 new cards of each "Ver 5 más" get the class, on an inner wrapper', () => {
-    expect(grids).toContain("freshFavs && index >= 5 ? 'scale-in-ver-top' : undefined");
-    expect(grids).toContain("freshRated && index >= 5 ? 'scale-in-ver-top' : undefined");
+    expect(grids).toContain("freshFavs && index >= 5 ? 'scale-in-ver-top' : cascadeActive && index < 5 ? 'cascade-in' : undefined");
+    expect(grids).toContain("freshRated && index >= 5 ? 'scale-in-ver-top' : cascadeActive && index < 5 ? 'cascade-in' : undefined");
     // El div de FLIP (registerRated) no lleva la clase.
     const flipDiv = grids.slice(grids.indexOf('registerRated(b.id)(el)'));
     expect(flipDiv.slice(0, flipDiv.indexOf('>'))).not.toContain('scale-in-ver-top');
@@ -84,7 +86,7 @@ describe('ver mas: scale-in-ver-top entrance on the new batch', () => {
   it('TripsView: only the newly loaded articles get the class', () => {
     expect(trips).toContain('const [newBatchFrom, setNewBatchFrom] = useState(null)');
     expect(trips).toContain('setNewBatchFrom(visibleCount)');
-    expect(trips).toContain("idx >= newBatchFrom ? 'scale-in-ver-top' : undefined");
+    expect(trips).toContain("newBatchFrom !== null && idx >= newBatchFrom ? 'scale-in-ver-top' : cascadeActive && idx < 6 ? 'cascade-in' : undefined");
   });
 
   it('CountryPickerDropdown: the expanded country states list gets the class', () => {

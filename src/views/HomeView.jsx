@@ -25,6 +25,7 @@ import CompactCard from "../components/cards/CompactCard.jsx";
 import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import { Virtuoso } from "react-virtuoso";
 import { prefersReducedMotion } from "../lib/smoothScroll.js";
+import { cascadeDelayS, CASCADE_WINDOW_MS } from "../lib/cascade.js";
 import { Helmet } from "react-helmet-async";
 import CouponCard from "../components/ui/CouponCard.jsx";
 import HomeEvents from "../components/home/HomeEvents.jsx";
@@ -233,6 +234,22 @@ export default function HomeView({ isBackground }) {
   // resto de la lista no anima. Se limpia 600 ms después de que el lote
   // llega (la animación dura 0.5 s) para que la clase no quede puesta.
   const [newBatchFrom, setNewBatchFrom] = React.useState(null);
+  // Cascada del lote inicial (demo #2 de "15 animaciones"): al entrar,
+  // las primeras 20 tarjetas suben una tras otra (fade-in-bottom con
+  // retraso escalonado, tope 0,6 s). Solo el lote inicial; lo que llega
+  // con "Ver más" sigue con scale-in-ver-top. La ventana se abre cuando
+  // aparecen los primeros negocios y se cierra 1,3 s después (retraso
+  // máximo + duración), para que las filas de Virtuoso no re-animen al
+  // remontarse al bajar y subir.
+  const [cascadeActive, setCascadeActive] = React.useState(false);
+  const cascadeStartedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (cascadeStartedRef.current || finalDisplayList.length === 0) return;
+    cascadeStartedRef.current = true;
+    setCascadeActive(true);
+    const t = window.setTimeout(() => setCascadeActive(false), CASCADE_WINDOW_MS);
+    return () => window.clearTimeout(t);
+  }, [finalDisplayList.length]);
   React.useEffect(() => {
     const pending = categoryLoadMoreRef.current;
     if (!pending) return;
@@ -466,15 +483,19 @@ export default function HomeView({ isBackground }) {
                   {dbReady && businessListReady && showAllSearchResults && displayList.length > 0 && displayList.map((b, index) => {
                     const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
                     const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : null;
-                    // Igual que la lista de categoría: solo el lote recién
-                    // cargado con "Ver más" se desenrolla desde arriba.
-                    const newBatchClass = newBatchFrom !== null && index >= newBatchFrom ? 'scale-in-ver-top' : undefined;
+                    // Igual que la lista de categoría: lote nuevo de
+                    // "Ver más" con scale-in-ver-top; lote inicial (20
+                    // primeras) en cascada.
+                    const isNewBatch = newBatchFrom !== null && index >= newBatchFrom;
+                    const isInitialBatch = cascadeActive && index < 20;
+                    const batchClass = isNewBatch ? 'scale-in-ver-top' : isInitialBatch ? 'cascade-in' : undefined;
+                    const batchStyle = { paddingBottom: 14, ...(isInitialBatch ? { animationDelay: `${cascadeDelayS(index)}s` } : {}) };
                     if (b.plan === "premium") {
-                      return <div key={b.id} className={newBatchClass} style={{ paddingBottom: 14 }}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div key={b.id} className={batchClass} style={batchStyle}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     } else if (b.plan === "destacado") {
-                      return <div key={b.id} className={newBatchClass} style={{ paddingBottom: 14 }}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div key={b.id} className={batchClass} style={batchStyle}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     } else {
-                      return <div key={b.id} className={newBatchClass} style={{ paddingBottom: 14 }}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div key={b.id} className={batchClass} style={batchStyle}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     }
                   })}
                   {dbReady && businessListReady && showAllSearchResults && hasMore && (
@@ -737,18 +758,23 @@ export default function HomeView({ isBackground }) {
                   itemContent={(index, b) => {
                     const dist = userCoords ? getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) : null;
                     const distStr = dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`) : null;
-                    // Solo el lote recién cargado con "Ver más" se
-                    // desenrolla desde arriba. El transform no cambia la
-                    // altura que Virtuoso mide (offsetHeight), así que no
-                    // pelea con su medición ni con el scroll suave.
-                    const newBatchClass = newBatchFrom !== null && index >= newBatchFrom ? 'scale-in-ver-top' : undefined;
+                    // Lote nuevo de "Ver más": scale-in-ver-top. Lote
+                    // inicial (20 primeras, solo mientras la ventana de
+                    // entrada está abierta): cascada. El transform no
+                    // cambia la altura que Virtuoso mide (offsetHeight),
+                    // así que no pelea con su medición ni con el scroll
+                    // suave.
+                    const isNewBatch = newBatchFrom !== null && index >= newBatchFrom;
+                    const isInitialBatch = cascadeActive && index < 20;
+                    const batchClass = isNewBatch ? 'scale-in-ver-top' : isInitialBatch ? 'cascade-in' : undefined;
+                    const batchStyle = { paddingBottom: 14, ...(isInitialBatch ? { animationDelay: `${cascadeDelayS(index)}s` } : {}) };
 
                     if (b.plan === "premium") {
-                      return <div className={newBatchClass} style={{ paddingBottom: 14 }}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div className={batchClass} style={batchStyle}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     } else if (b.plan === "destacado") {
-                      return <div className={newBatchClass} style={{ paddingBottom: 14 }}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div className={batchClass} style={batchStyle}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     } else {
-                      return <div className={newBatchClass} style={{ paddingBottom: 14 }}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
+                      return <div className={batchClass} style={batchStyle}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     }
                   }}
                   components={{
