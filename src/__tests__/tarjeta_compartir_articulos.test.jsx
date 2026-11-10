@@ -859,7 +859,7 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(sheet).not.toContain('trackPos');
   });
 
-  it('la plantilla lleva la foto en el bloque de la geometría (centrada en Historia, a sangre en Post/Horizontal), el logotipo oficial, la pastilla glass y el precio azul; sin pie en «Foto completa»', () => {
+  it('la plantilla lleva la foto en el bloque de la geometría (centrada en Historia, a sangre en Post/Horizontal), el logotipo oficial, la pastilla glass y el precio azul; sin pie', () => {
     expect(template).toContain('/logo-brand.png');
     expect(template).not.toContain('Pastilla citymap.mx');
     expect(template).not.toContain('#60A5FA');
@@ -881,7 +881,7 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     // (la demo lo lleva); «Foto completa» sigue sin pie (el render de
     // arriba lo confirma: sin 'Descúbrelo en' en el HTML).
     expect(template).toContain('Descúbrelo en');
-    expect(template).toContain("layout.style === 'grid'");
+    expect(template).toContain('if (gridLayout)');
     expect(template).toContain('styleId');
     expect(template).not.toContain('dividida');
     // Sin círculo de logo del negocio: eso es solo para negocios.

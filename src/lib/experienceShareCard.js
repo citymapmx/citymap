@@ -2,20 +2,14 @@
 // que la tarjeta de eventos (PR #152) y la de negocios (PRs #142–#147)
 // pero con los datos de la fila de `experiences`.
 //
-// DOS estilos: «Foto completa», EXACTAMENTE como la propuesta 2 de
+// UN SOLO estilo, «Foto completa», EXACTAMENTE como la propuesta 2 de
 // la demo `propuestas-de-tarjetas-para-articulos` (corrección de
 // Jonathan 10 Nov ~10:54: el segundo estilo, de fondo claro, se veía
-// mal en vivo), y «Grid» (demo `propuestas-de-tarjetas-con-grid`,
-// 10 nov 2026; Jonathan: «Haz las 4»): 1 foto grande arriba y 2
-// chicas abajo, sobre fondo blanco, con logotipo oficial, pastilla de
-// ubicación gris, título y precio en texto plano, pie «Descúbrelo en
-// www.citymap.mx». El Grid solo se ofrece con 2 o más fotos en la
-// galería. «Foto completa»: en Post y Horizontal la foto llena TODA
-// la tarjeta a sangre, el texto va encima con degradados para que se
-// lea; en Historia (PR #177) la foto va en un bloque CENTRADO con
-// márgenes y esquinas redondeadas, como en la tarjeta de eventos, y
-// el contenido va DEBAJO sobre fondo oscuro. Logotipo oficial arriba
-// a la izquierda
+// mal en vivo). En Post y Horizontal la foto llena TODA la tarjeta a
+// sangre, el texto va encima con degradados para que se lea; en
+// Historia (PR #177) la foto va en un bloque CENTRADO con márgenes y
+// esquinas redondeadas, como en la tarjeta de eventos, y el contenido
+// va DEBAJO sobre fondo oscuro. Logotipo oficial arriba a la izquierda
 // (corrección de Jonathan 10 Nov ~11:39: en lugar de la pastilla de
 // texto «citymap.mx»), pastilla de calificación arriba a la derecha
 // (SOLO si es real), pastilla GLASS de ciudad · tipo de actividad
@@ -610,6 +604,20 @@ function fitExperienceGridFooterSize(maxW, L) {
 // pila vertical. Las `y` de título y precio son el CENTRO vertical de
 // la primera línea (el canvas dibuja con textBaseline 'middle'), igual
 // que en «Foto completa».
+// Geometría según el estilo pedido: «Grid» tiene su propio layout
+// (fondo blanco, foto grande + dúo); cualquier otro estilo usa
+// «Foto completa» (computeExperienceShareCardLayout). Esta función
+// aparte existe para no tocar la firma de la original.
+export function computeExperienceShareCardLayoutStyled(data, format, styleId = 'foto') {
+  const f = format || EXPERIENCE_SHARE_CARD_FORMATS.story;
+  const style = resolveExperienceShareCardStyle(styleId);
+  if (style.id === 'grid') {
+    const L = EXPERIENCE_SHARE_CARD_GRID_LAYOUT[f.id] || EXPERIENCE_SHARE_CARD_GRID_LAYOUT.story;
+    return computeExperienceGridShareCardLayout(data, f, L);
+  }
+  return computeExperienceShareCardLayout(data, f);
+}
+
 function computeExperienceGridShareCardLayout(data, format, L) {
   const f = format;
   const W = f.width;
@@ -771,24 +779,11 @@ function computeExperienceGridShareCardLayout(data, format, L) {
 // centrado con márgenes y el contenido va debajo, sobre fondo oscuro:
 // la foto es todo lo que sobra entre el logotipo y el bloque de texto,
 // con photoMinH como mínimo, así nunca se come el contenido ni queda
-// hueco vacío. El estilo «Grid» tiene su propia geometría (fondo
-// blanco, foto grande + dúo, precio en texto plano): no pasa por el
-// flujo de foto a sangre + texto encima. Solo los bloques presentes
-// cuentan, y solo hay hueco ENTRE bloques — por eso nunca queda franja
-// vacía ni nada se sale por abajo. Las `y` de título, descripción y
-// datos son el CENTRO vertical de la primera línea (el canvas dibuja
-// con textBaseline 'middle'), igual que en la tarjeta de negocios y
-// en la de eventos.
-export function computeExperienceShareCardLayout(data, format, styleId = 'foto') {
+// hueco vacío. Las `y` de título, descripción y datos son el CENTRO
+// vertical de la primera línea (el canvas dibuja con textBaseline
+// 'middle'), igual que en la tarjeta de negocios y en la de eventos.
+export function computeExperienceShareCardLayout(data, format) {
   const f = format || EXPERIENCE_SHARE_CARD_FORMATS.story;
-  const style = resolveExperienceShareCardStyle(styleId);
-  // El estilo «Grid» tiene su propia geometría (fondo blanco, foto
-  // grande + dúo, precio en texto plano): no pasa por el flujo de foto
-  // a sangre + texto encima.
-  if (style.id === 'grid') {
-    const L = EXPERIENCE_SHARE_CARD_GRID_LAYOUT[f.id] || EXPERIENCE_SHARE_CARD_GRID_LAYOUT.story;
-    return computeExperienceGridShareCardLayout(data, f, L);
-  }
   const L = EXPERIENCE_SHARE_CARD_LAYOUT[f.id] || EXPERIENCE_SHARE_CARD_LAYOUT.story;
   const W = f.width;
   const H = f.height;
@@ -1022,138 +1017,12 @@ function drawInkCenteredText(ctx, text, x, centerY) {
   }
 }
 
-// Dibujo del estilo «Grid» (fondo blanco, foto grande + dúo, precio en
-// texto plano, pie «Descúbrelo en www.citymap.mx»). Sin degradados ni
-// pastilla azul: la pastilla de ubicación es GRIS (como las píldoras de
-// los estilos con grid de negocios) y el precio es texto, no pastilla.
-function drawExperienceGridShareCardCanvas(data, geo, assets) {
-  const { L } = geo;
-  const canvas = document.createElement('canvas');
-  canvas.width = geo.width;
-  canvas.height = geo.height;
-  const ctx = canvas.getContext('2d');
-
-  // Fondo blanco.
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, geo.width, geo.height);
-
-  // Foto grande (o bloque gris con la inicial si no hay foto) y dúo.
-  const drawCell = (cell) => {
-    ctx.save();
-    roundRectPath(ctx, cell.x, cell.y, cell.w, cell.h, cell.radius);
-    ctx.clip();
-    const img = assets?.photos?.[cell.photoIndex];
-    if (img) {
-      drawCoverImage(ctx, img, cell.x, cell.y, cell.w, cell.h);
-    } else {
-      ctx.fillStyle = '#F0EFEA';
-      ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
-      const initial = (data?.title || 'C').trim().charAt(0).toUpperCase() || 'C';
-      ctx.fillStyle = 'rgba(0,0,0,0.30)';
-      ctx.font = `800 ${Math.round(Math.min(cell.w, cell.h) * 0.45)}px ${SHARE_CARD_FONT_STACK}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(initial, cell.x + cell.w / 2, cell.y + cell.h / 2);
-    }
-    ctx.restore();
-  };
-  drawCell(geo.bigPhoto);
-  for (const cell of geo.duo || []) drawCell(cell);
-
-  // Logotipo oficial superpuesto sobre la foto grande (blanco, con
-  // sombra para que se lea sobre la foto, como la demo).
-  if (assets?.logo && geo.brandLogo) {
-    const bl = geo.brandLogo;
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.35)';
-    ctx.shadowBlur = 12;
-    ctx.shadowOffsetY = 2;
-    ctx.drawImage(assets.logo, bl.x, bl.y, bl.w, bl.h);
-    ctx.restore();
-  }
-
-  // Pastilla de ubicación GRIS (pin + «Zapopan · Tour»), centrada.
-  if (geo.pill) {
-    const cp = geo.pill;
-    ctx.fillStyle = '#F4F4F6';
-    roundRectPath(ctx, cp.x, cp.y, cp.w, cp.h, cp.h / 2);
-    ctx.fill();
-    ctx.font = `600 ${cp.size}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillStyle = '#141419';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(cp.text, cp.x + cp.padX, cp.y + cp.h / 2);
-  }
-
-  // Título centrado.
-  if (geo.title) {
-    const n = geo.title;
-    ctx.font = `800 ${n.size}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillStyle = '#141419';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    n.lines.forEach((line, i) => {
-      ctx.fillText(line, n.x, n.y + i * n.lineH);
-    });
-  }
-
-  // Precio en texto plano, centrado: «DESDE» chico con letter-spacing,
-  // precio grande en negrita y «por persona» chico en gris; si es
-  // gratis, solo «Gratis».
-  if (geo.price) {
-    const pr = geo.price;
-    const cx = pr.x;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    if (pr.priced) {
-      ctx.font = `700 ${pr.desdeSize}px ${SHARE_CARD_FONT_STACK}`;
-      ctx.fillStyle = '#8A8A96';
-      const desdeY = pr.y + pr.desdeSize / 2;
-      drawSpacedText(ctx, 'DESDE', cx - spacedWidth(ctx, 'DESDE', Math.round(pr.desdeSize * 0.3)) / 2, desdeY, Math.round(pr.desdeSize * 0.3));
-      const priceY = pr.y + pr.desdeSize + pr.desdeGap + pr.priceSize / 2;
-      ctx.font = `900 ${pr.priceSize}px ${SHARE_CARD_FONT_STACK}`;
-      ctx.fillStyle = '#141419';
-      ctx.fillText(pr.text, cx, priceY);
-      ctx.font = `600 ${pr.porSize}px ${SHARE_CARD_FONT_STACK}`;
-      ctx.fillStyle = '#6D6D78';
-      ctx.fillText(
-        'por persona',
-        cx,
-        pr.y + pr.desdeSize + pr.desdeGap + pr.priceSize + pr.porGap + pr.porSize / 2,
-      );
-    } else {
-      ctx.font = `900 ${pr.priceSize}px ${SHARE_CARD_FONT_STACK}`;
-      ctx.fillStyle = '#141419';
-      ctx.fillText(pr.text, cx, pr.y + pr.priceSize / 2);
-    }
-  }
-
-  // Pie: «Descúbrelo en www.citymap.mx» (URL en negrita), centrado.
-  const f = geo.footer;
-  const run1 = 'Descúbrelo en ';
-  const run2 = 'www.citymap.mx';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  const w1 = spacedWidth(ctx, run1, 2);
-  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  const w2 = spacedWidth(ctx, run2, 2);
-  const total = w1 + 2 + w2;
-  let fx = f.x - total / 2;
-  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = '#6D6D78';
-  drawSpacedText(ctx, run1, fx, f.y, 2);
-  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = '#141419';
-  drawSpacedText(ctx, run2, fx + w1 + 2, f.y, 2);
-
-  return canvas;
-}
-
-export function drawExperienceShareCardCanvas(data, format, assets, layout, styleId = 'foto') {
-  const geo = layout || computeExperienceShareCardLayout(data, format, styleId);
+export function drawExperienceShareCardCanvas(data, format, assets, layout) {
+  const geo = layout || computeExperienceShareCardLayout(data, format);
   // El estilo «Grid» se dibuja aparte (fondo blanco, foto grande +
   // dúo, precio en texto plano): no lleva degradados ni pastilla azul.
+  // Se detecta por geo.style, así esta función conserva la firma de
+  // main (sin styleId): el estilo lo trae el layout que pasa el render.
   if (geo.style === 'grid') {
     return drawExperienceGridShareCardCanvas(data, geo, assets);
   }
@@ -1347,6 +1216,142 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout, styl
   return canvas;
 }
 
+// Dibujo del estilo «Grid» (fondo blanco, foto grande + dúo, precio en
+// texto plano, pie «Descúbrelo en www.citymap.mx»). Sin degradados ni
+// pastilla azul: la pastilla de ubicación es GRIS (como las píldoras de
+// los estilos con grid de negocios) y el precio es texto, no pastilla.
+// Lienzo en blanco para el estilo «Grid» (el de «Foto completa» crea
+// el suyo inline, como antes).
+function createGridShareCardCanvas(w, h) {
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  return canvas;
+}
+
+function drawExperienceGridShareCardCanvas(data, geo, assets) {
+  const canvas = createGridShareCardCanvas(geo.width, geo.height);
+  const ctx = canvas.getContext('2d');
+  const { L } = geo;
+
+  // Fondo blanco.
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, geo.width, geo.height);
+
+  // Foto grande (o bloque gris con la inicial si no hay foto) y dúo.
+  const drawCell = (cell) => {
+    ctx.save();
+    roundRectPath(ctx, cell.x, cell.y, cell.w, cell.h, cell.radius);
+    ctx.clip();
+    const img = assets?.photos?.[cell.photoIndex];
+    if (img) {
+      drawCoverImage(ctx, img, cell.x, cell.y, cell.w, cell.h);
+    } else {
+      ctx.fillStyle = '#F0EFEA';
+      ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
+      const initial = (data?.title || 'C').trim().charAt(0).toUpperCase() || 'C';
+      ctx.fillStyle = 'rgba(0,0,0,0.30)';
+      ctx.font = `800 ${Math.round(Math.min(cell.w, cell.h) * 0.45)}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initial, cell.x + cell.w / 2, cell.y + cell.h / 2);
+    }
+    ctx.restore();
+  };
+  drawCell(geo.bigPhoto);
+  for (const cell of geo.duo || []) drawCell(cell);
+
+  // Logotipo oficial superpuesto sobre la foto grande (blanco, con
+  // sombra para que se lea sobre la foto, como la demo).
+  if (assets?.logo && geo.brandLogo) {
+    const bl = geo.brandLogo;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.35)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 2;
+    ctx.drawImage(assets.logo, bl.x, bl.y, bl.w, bl.h);
+    ctx.restore();
+  }
+
+  // Pastilla de ubicación GRIS (pin + «Zapopan · Tour»), centrada.
+  if (geo.pill) {
+    const cp = geo.pill;
+    ctx.fillStyle = '#F4F4F6';
+    roundRectPath(ctx, cp.x, cp.y, cp.w, cp.h, cp.h / 2);
+    ctx.fill();
+    ctx.font = `600 ${cp.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = '#141419';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(cp.text, cp.x + cp.padX, cp.y + cp.h / 2);
+  }
+
+  // Título centrado.
+  if (geo.title) {
+    const n = geo.title;
+    ctx.font = `800 ${n.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = '#141419';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    n.lines.forEach((line, i) => {
+      ctx.fillText(line, n.x, n.y + i * n.lineH);
+    });
+  }
+
+  // Precio en texto plano, centrado: «DESDE» chico con letter-spacing,
+  // precio grande en negrita y «por persona» chico en gris; si es
+  // gratis, solo «Gratis».
+  if (geo.price) {
+    const pr = geo.price;
+    const cx = pr.x;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (pr.priced) {
+      ctx.font = `700 ${pr.desdeSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillStyle = '#8A8A96';
+      const desdeY = pr.y + pr.desdeSize / 2;
+      drawSpacedText(ctx, 'DESDE', cx - spacedWidth(ctx, 'DESDE', Math.round(pr.desdeSize * 0.3)) / 2, desdeY, Math.round(pr.desdeSize * 0.3));
+      const priceY = pr.y + pr.desdeSize + pr.desdeGap + pr.priceSize / 2;
+      ctx.font = `900 ${pr.priceSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillStyle = '#141419';
+      ctx.fillText(pr.text, cx, priceY);
+      ctx.font = `600 ${pr.porSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillStyle = '#6D6D78';
+      ctx.fillText(
+        'por persona',
+        cx,
+        pr.y + pr.desdeSize + pr.desdeGap + pr.priceSize + pr.porGap + pr.porSize / 2,
+      );
+    } else {
+      ctx.font = `900 ${pr.priceSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillStyle = '#141419';
+      ctx.fillText(pr.text, cx, pr.y + pr.priceSize / 2);
+    }
+  }
+
+  // Pie: «Descúbrelo en www.citymap.mx» (URL en negrita), centrado.
+  const f = geo.footer;
+  const run1 = 'Descúbrelo en ';
+  const run2 = 'www.citymap.mx';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
+  const w1 = spacedWidth(ctx, run1, 2);
+  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
+  const w2 = spacedWidth(ctx, run2, 2);
+  const total = w1 + 2 + w2;
+  let fx = f.x - total / 2;
+  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
+  ctx.fillStyle = '#6D6D78';
+  drawSpacedText(ctx, run1, fx, f.y, 2);
+  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
+  ctx.fillStyle = '#141419';
+  drawSpacedText(ctx, run2, fx + w1 + 2, f.y, 2);
+
+  return canvas;
+}
+
+
 export async function renderExperienceShareCardCanvas(data, format, styleId = 'foto') {
   const [photo, photos, logo] = await Promise.all([
     loadShareCardPhoto(data?.photoUrl),
@@ -1355,8 +1360,8 @@ export async function renderExperienceShareCardCanvas(data, format, styleId = 'f
     Promise.all((data?.photoUrls || []).slice(0, 3).map((u) => loadShareCardPhoto(u))),
     loadShareCardLogoWhite(),
   ]);
-  const layout = computeExperienceShareCardLayout(data, format, styleId);
-  return drawExperienceShareCardCanvas(data, format, { photo, photos, logo }, layout, styleId);
+  const layout = computeExperienceShareCardLayoutStyled(data, format, styleId);
+  return drawExperienceShareCardCanvas(data, format, { photo, photos, logo }, layout);
 }
 
 // Genera el PNG de la tarjeta del artículo dibujando en canvas (nada de

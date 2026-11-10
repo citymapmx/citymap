@@ -1,12 +1,8 @@
 // Plantilla de la tarjeta para compartir el artículo / experiencia
-// (mismo patrón que la de eventos, PR #152): DOS estilos: «Foto
-// completa», EXACTAMENTE como la propuesta 2 de la demo
+// (mismo patrón que la de eventos, PR #152): UN SOLO estilo,
+// «Foto completa», EXACTAMENTE como la propuesta 2 de la demo
 // `propuestas-de-tarjetas-para-articulos` (corrección de Jonathan
-// 10 Nov ~10:54: el segundo estilo, de fondo claro, se veía mal en vivo), y
-// «Grid» (demo `propuestas-de-tarjetas-con-grid`, 10 nov 2026: 1 foto
-// grande arriba y 2 chicas abajo, sobre fondo blanco, con logotipo
-// oficial, pastilla de ubicación gris, título y precio en texto plano,
-// pie «Descúbrelo en www.citymap.mx»). «Foto completa»: en Post y
+// 10 Nov ~10:54: el segundo estilo, de fondo claro, se veía mal en vivo). En Post y
 // Horizontal la foto llena TODA la tarjeta a sangre, el texto va encima
 // con degradados; en Historia (PR #177) la foto va en un bloque
 // CENTRADO con márgenes y esquinas redondeadas, como en la tarjeta de
@@ -28,16 +24,20 @@ import {
   EXPERIENCE_SHARE_CARD_GLASS_BG,
   EXPERIENCE_SHARE_CARD_GLASS_BORDER,
   computeExperienceShareCardLayout,
+  computeExperienceShareCardLayoutStyled,
 } from '../lib/experienceShareCard.js';
 
 export default function ExperienceShareCardTemplate({ data, format, styleId = 'foto', onPhotoError }) {
   const f = format || EXPERIENCE_SHARE_CARD_FORMATS.story;
-  const L = computeExperienceShareCardLayout(data, format, styleId).L;
+  const L = computeExperienceShareCardLayoutStyled(data, format, styleId).L;
+  // El estilo «Grid» usa su propia geometría (ver lib): se calcula
+  // aparte para no tocar la llamada de «Foto completa» de abajo.
+  const gridLayout = styleId === 'grid' ? computeExperienceShareCardLayoutStyled(data, format, styleId) : null;
   const width = f.width;
   // Las líneas (título, ciudad, descripción, datos, pastillas) se
   // calculan con la misma función que usa el exportador de canvas:
   // el corte y los anchos son idénticos en ambos.
-  const layout = computeExperienceShareCardLayout(data, format, styleId);
+  const layout = computeExperienceShareCardLayout(data, format);
   // En Historia (PR #177) la foto va en un bloque centrado con
   // márgenes, como en eventos; en Post y Horizontal sigue a sangre.
   const centeredPhoto = Boolean(L.centeredPhoto);
@@ -75,7 +75,7 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
   // centrado y precio en texto plano, pie «Descúbrelo en www.citymap.mx».
   // Todo en posiciones absolutas de la geometría, igual que el canvas,
   // así vista previa y PNG coinciden.
-  if (layout.style === 'grid') {
+  if (gridLayout) {
     const cellImg = (cell, key) => {
       const src = (data?.photoUrls?.[cell.photoIndex] || null)
         ? getThumbUrl(data.photoUrls[cell.photoIndex], 1080)
@@ -140,8 +140,8 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
         }}
       >
         {/* Foto grande + dúo */}
-        {cellImg(layout.bigPhoto, 'big')}
-        {(layout.duo || []).map((cell, i) => cellImg(cell, `duo-${i}`))}
+        {cellImg(gridLayout.bigPhoto, 'big')}
+        {(gridLayout.duo || []).map((cell, i) => cellImg(cell, `duo-${i}`))}
 
         {/* Logotipo oficial superpuesto sobre la foto grande (blanco) */}
         <img
@@ -149,43 +149,43 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
           alt="CityMap"
           style={{
             position: 'absolute',
-            left: layout.brandLogo.x,
-            top: layout.brandLogo.y,
-            width: layout.brandLogo.w,
-            height: layout.brandLogo.h,
+            left: gridLayout.brandLogo.x,
+            top: gridLayout.brandLogo.y,
+            width: gridLayout.brandLogo.w,
+            height: gridLayout.brandLogo.h,
             display: 'block',
             filter: 'drop-shadow(0 2px 12px rgba(0,0,0,0.35))',
           }}
         />
 
         {/* Pastilla de ubicación GRIS */}
-        {layout.pill
+        {gridLayout.pill
           ? pill(
-              layout.pill,
-              <span style={{ fontSize: layout.pill.size, fontWeight: 600, lineHeight: 1, color: '#141419', whiteSpace: 'nowrap' }}>
-                {layout.pill.text}
+              gridLayout.pill,
+              <span style={{ fontSize: gridLayout.pill.size, fontWeight: 600, lineHeight: 1, color: '#141419', whiteSpace: 'nowrap' }}>
+                {gridLayout.pill.text}
               </span>,
               { background: '#F4F4F6' },
             )
           : null}
 
         {/* Título centrado (en Horizontal, en la columna de la
-            derecha: el ancho es layout.infoW, no el de toda la tarjeta) */}
-        {layout.title ? (
+            derecha: el ancho es gridLayout.infoW, no el de toda la tarjeta) */}
+        {gridLayout.title ? (
           <div
             style={{
               position: 'absolute',
-              left: layout.title.x - layout.infoW / 2,
-              top: layout.title.y - layout.title.lineH / 2,
-              width: layout.infoW,
+              left: gridLayout.title.x - gridLayout.infoW / 2,
+              top: gridLayout.title.y - gridLayout.title.lineH / 2,
+              width: gridLayout.infoW,
               textAlign: 'center',
             }}
           >
-            {layout.title.lines.map((line, i) => (
+            {gridLayout.title.lines.map((line, i) => (
               <div
                 key={i}
                 style={{
-                  fontSize: layout.title.size,
+                  fontSize: gridLayout.title.size,
                   fontWeight: 800,
                   lineHeight: L.titleLineH,
                   letterSpacing: -1,
@@ -200,31 +200,31 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
 
         {/* Precio en texto plano, centrado (ancho de la columna en
             Horizontal, como el título) */}
-        {layout.price ? (
+        {gridLayout.price ? (
           <div
             style={{
               position: 'absolute',
-              left: layout.price.x - layout.infoW / 2,
-              top: layout.price.y,
-              width: layout.infoW,
+              left: gridLayout.price.x - gridLayout.infoW / 2,
+              top: gridLayout.price.y,
+              width: gridLayout.infoW,
               textAlign: 'center',
             }}
           >
-            {layout.price.priced ? (
+            {gridLayout.price.priced ? (
               <>
-                <div style={{ fontSize: layout.price.desdeSize, fontWeight: 700, lineHeight: 1, letterSpacing: Math.round(layout.price.desdeSize * 0.3), color: '#8A8A96' }}>
+                <div style={{ fontSize: gridLayout.price.desdeSize, fontWeight: 700, lineHeight: 1, letterSpacing: Math.round(gridLayout.price.desdeSize * 0.3), color: '#8A8A96' }}>
                   DESDE
                 </div>
-                <div style={{ fontSize: layout.price.priceSize, fontWeight: 900, lineHeight: 1, color: '#141419', marginTop: layout.price.desdeGap }}>
-                  {layout.price.text}
+                <div style={{ fontSize: gridLayout.price.priceSize, fontWeight: 900, lineHeight: 1, color: '#141419', marginTop: gridLayout.price.desdeGap }}>
+                  {gridLayout.price.text}
                 </div>
-                <div style={{ fontSize: layout.price.porSize, fontWeight: 600, lineHeight: 1, color: '#6D6D78', marginTop: layout.price.porGap }}>
+                <div style={{ fontSize: gridLayout.price.porSize, fontWeight: 600, lineHeight: 1, color: '#6D6D78', marginTop: gridLayout.price.porGap }}>
                   por persona
                 </div>
               </>
             ) : (
-              <div style={{ fontSize: layout.price.priceSize, fontWeight: 900, lineHeight: 1, color: '#141419' }}>
-                {layout.price.text}
+              <div style={{ fontSize: gridLayout.price.priceSize, fontWeight: 900, lineHeight: 1, color: '#141419' }}>
+                {gridLayout.price.text}
               </div>
             )}
           </div>
@@ -235,10 +235,10 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
         <div
           style={{
             position: 'absolute',
-            left: layout.footer.x - layout.infoW / 2,
-            width: layout.infoW,
-            top: layout.footer.y - layout.footer.size / 2,
-            fontSize: layout.footer.size,
+            left: gridLayout.footer.x - gridLayout.infoW / 2,
+            width: gridLayout.infoW,
+            top: gridLayout.footer.y - gridLayout.footer.size / 2,
+            fontSize: gridLayout.footer.size,
             lineHeight: 1,
             letterSpacing: 2,
             color: '#6D6D78',

@@ -8,7 +8,7 @@ import {
   EXPERIENCE_SHARE_CARD_GRID_MIN_PHOTOS,
   EXPERIENCE_SHARE_CARD_STYLE_LIST,
   buildExperienceShareCardData,
-  computeExperienceShareCardLayout,
+  computeExperienceShareCardLayoutStyled,
   experienceShareCardGridAvailable,
   experienceShareCardStyleList,
   resolveExperienceShareCardStyle,
@@ -95,7 +95,7 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
       EXPERIENCE_SHARE_CARD_FORMATS.post,
     ]) {
       const d = dataFor(FUTBOL);
-      const geo = computeExperienceShareCardLayout(d, format, 'grid');
+      const geo = computeExperienceShareCardLayoutStyled(d, format, 'grid');
       expect(geo.style).toBe('grid');
       expect(geo.cols).toBe(false);
       // Foto grande arriba, con márgenes y radio; el dúo debajo.
@@ -141,7 +141,7 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
 
   it('Grid en Horizontal: dos columnas (fotos a la izquierda, información a la derecha)', () => {
     const d = dataFor(FUTBOL);
-    const geo = computeExperienceShareCardLayout(
+    const geo = computeExperienceShareCardLayoutStyled(
       d,
       EXPERIENCE_SHARE_CARD_FORMATS.horizontal,
       'grid',
@@ -206,7 +206,7 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
   it('un precio largo en Horizontal se achica hasta caber en la columna', () => {
     const d = dataFor({ ...FUTBOL, price: 123456 });
     expect(d.priceText).toBe('$123,456 MXN');
-    const geo = computeExperienceShareCardLayout(
+    const geo = computeExperienceShareCardLayoutStyled(
       d,
       EXPERIENCE_SHARE_CARD_FORMATS.horizontal,
       'grid',
@@ -216,7 +216,7 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
       measureShareCardText(geo.price.text, geo.price.priceSize, 900),
     ).toBeLessThanOrEqual(geo.infoW + 1);
     // En Historia el mismo precio cabe sin achicarse.
-    const geoStory = computeExperienceShareCardLayout(
+    const geoStory = computeExperienceShareCardLayoutStyled(
       d,
       EXPERIENCE_SHARE_CARD_FORMATS.story,
       'grid',
@@ -226,7 +226,7 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
 
   it('tour gratis: el precio es solo «Gratis» en texto, sin DESDE', () => {
     const d = dataFor({ ...FUTBOL, price: 0 });
-    const geo = computeExperienceShareCardLayout(
+    const geo = computeExperienceShareCardLayoutStyled(
       d,
       EXPERIENCE_SHARE_CARD_FORMATS.story,
       'grid',
@@ -242,7 +242,7 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
       EXPERIENCE_SHARE_CARD_FORMATS.post,
       EXPERIENCE_SHARE_CARD_FORMATS.horizontal,
     ]) {
-      const geo = computeExperienceShareCardLayout(d, format, 'foto');
+      const geo = computeExperienceShareCardLayoutStyled(d, format, 'foto');
       expect(geo.style).toBe('foto');
       expect(geo.bigPhoto).toBeUndefined();
       expect(geo.duo).toBeUndefined();
@@ -261,7 +261,7 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
       }
     }
     // Por defecto, sin estilo, sigue siendo «Foto completa».
-    expect(computeExperienceShareCardLayout(d, EXPERIENCE_SHARE_CARD_FORMATS.story).style).toBe(
+    expect(computeExperienceShareCardLayoutStyled(d, EXPERIENCE_SHARE_CARD_FORMATS.story).style).toBe(
       'foto',
     );
   });
