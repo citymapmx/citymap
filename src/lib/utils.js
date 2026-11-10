@@ -472,6 +472,40 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
   return url;
 }
 
+// Anchos de bucket de getThumbUrl (200/400/800/1600/2400): pasar solo
+// estos valores para que el descriptor "Nw" del srcset sea exacto.
+export const SRCSET_THUMB = Object.freeze([200, 400]);
+export const SRCSET_CARD = Object.freeze([400, 800]);
+export const SRCSET_BANNER = Object.freeze([400, 800, 1400]);
+
+// srcset para una misma imagen en varios anchos, sin bajar la calidad
+// visible: el navegador elige el candidato según el ancho en pantalla
+// (sizes) y la densidad de píxeles. Medido en vivo (nov 2026, imágenes
+// reales de Supabase): 400w WebP 15-25 KB, 800w WebP 43-57 KB, 1400w
+// WebP 57-72 KB — servir 400w en vez de 800w ahorra ~50-65% por imagen.
+// El candidato mayor nunca supera el ancho que ya se servía hoy, así que
+// ningún dispositivo descarga más que antes; los teléfonos 1x descargan
+// el candidato pequeño. hForMaxWidth es la altura del candidato mayor
+// (se escala proporcionalmente para conservar el recorte). Devuelve
+// undefined si no hay al menos 2 candidatos distintos (p. ej. URL
+// externa que getThumbUrl no transforma), para no ensuciar el <img>.
+export function getThumbSrcSet(url, widths, hForMaxWidth = null, fit = "cover") {
+  if (!url || typeof url !== "string" || !Array.isArray(widths) || widths.length === 0) return undefined;
+  const sorted = [...new Set(widths.filter((w) => Number.isFinite(w) && w > 0))].sort((a, b) => a - b);
+  if (sorted.length === 0) return undefined;
+  const maxW = sorted[sorted.length - 1];
+  const byUrl = new Map();
+  for (const w of sorted) {
+    const h = hForMaxWidth ? Math.round((hForMaxWidth * w) / maxW) : null;
+    const u = getThumbUrl(url, w, h, fit);
+    if (!u) continue;
+    // Si dos anchos caen en el mismo bucket, quédate con el descriptor mayor.
+    byUrl.set(u, Math.max(byUrl.get(u) || 0, w));
+  }
+  if (byUrl.size < 2) return undefined;
+  return [...byUrl.entries()].map(([u, w]) => `${u} ${w}w`).join(", ");
+}
+
 export const getCategoryDescription = (categoryId, categoryLabel, cityLabel) => {
   const city = (cityLabel || "tu ciudad").split(',')[0].trim();
   const label = categoryLabel ? categoryLabel.toLowerCase().trim() : (categoryId || "").toLowerCase().trim();

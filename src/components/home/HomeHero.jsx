@@ -5,6 +5,7 @@ import {getCityDisplayName} from '../../hooks/useGeolocation.js';
 import React, { useEffect, memo } from 'react';
 import DebouncedSearchBar from './DebouncedSearchBar.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
+import { SRCSET_CARD } from '../../lib/utils.js';
 import { Sk } from '../ui/Skeleton.jsx';
 
 export default memo(function HomeHero({
@@ -184,7 +185,7 @@ export default memo(function HomeHero({
       {hasBg && (
         <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 0 }}>
           <div ref={bgImgRef} style={{ position: "absolute", left: 0, right: 0, top: "-9%", height: "118%" }}>
-            <OptimizedImage src={cityImg} alt="" widthRequest={800} priority style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+            <OptimizedImage src={cityImg} alt="" widthRequest={800} priority srcSetWidths={SRCSET_CARD} sizes="100vw" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.20) 45%, rgba(0,0,0,0.55) 100%)" }} />
         </div>

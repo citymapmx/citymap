@@ -14,7 +14,7 @@ import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle } from "../lib/i18nContent.js";
 import { createSlug } from "../lib/utils.js";
 import { POST_TYPES, POST_THEMES, filterPostsByTypeAndTheme, themeBySlug, themeLabel } from "../lib/postTaxonomy.js";
-import { getThumbUrl, METRO_ZONES, isNear } from "../lib/utils.js";
+import { getThumbUrl, getThumbSrcSet, SRCSET_CARD, SRCSET_THUMB, METRO_ZONES, isNear } from "../lib/utils.js";
 import { shouldShowCityEmptyState } from "../lib/cityEmptyState.js";
 import { cascadeDelayS, CASCADE_WINDOW_MS } from "../lib/cascade.js";
 import CityEmptyState from "./CityEmptyState.jsx";
@@ -198,15 +198,15 @@ function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark, pr
     <a href={href} onClick={(e) => { e.preventDefault(); onClick(); }} className="press" style={{ display: "block", textDecoration: "none", background: dark ? "rgba(255,255,255,0.03)" : "#fff", borderRadius: 20, overflow: "hidden", cursor: "pointer", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: `1px solid ${T.border}`, position: "relative" }}>
       <div style={{ display: showGrid ? "grid" : "block", gridTemplateColumns: showGrid ? "1.5fr 1fr" : "none", gridTemplateRows: showGrid ? "1fr 1fr" : "none", aspectRatio: "21/9", width: "100%", gap: 3, position: "relative", background: T.border }}>
         <div style={{ gridRow: showGrid ? "1 / 3" : "auto", height: showGrid ? "auto" : "100%", background: T.border, position: "relative", overflow: "hidden" }}>
-          {photos[0] && <img src={getThumbUrl(photos[0], 800)} alt="" loading={priority ? "eager" : "lazy"} decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+          {photos[0] && <img src={getThumbUrl(photos[0], 800)} alt="" srcSet={getThumbSrcSet(photos[0], SRCSET_CARD)} sizes="(max-width: 640px) 100vw, 800px" loading={priority ? "eager" : "lazy"} decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
         </div>
         {showGrid && (
           <>
             <div style={{ background: T.border, position: "relative", overflow: "hidden" }}>
-              {photos[1] && <img src={getThumbUrl(photos[1], 400)} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+              {photos[1] && <img src={getThumbUrl(photos[1], 400)} alt="" srcSet={getThumbSrcSet(photos[1], SRCSET_THUMB)} sizes="(max-width: 640px) 50vw, 400px" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
             </div>
             <div style={{ background: T.border, position: "relative", overflow: "hidden" }}>
-              {photos[2] && <img src={getThumbUrl(photos[2], 400)} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+              {photos[2] && <img src={getThumbUrl(photos[2], 400)} alt="" srcSet={getThumbSrcSet(photos[2], SRCSET_THUMB)} sizes="(max-width: 640px) 50vw, 400px" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
             </div>
           </>
         )}

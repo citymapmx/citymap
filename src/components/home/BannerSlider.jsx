@@ -1,6 +1,7 @@
 import React from "react";
 import { m, AnimatePresence } from "framer-motion";
 import OptimizedImage from "../ui/OptimizedImage.jsx";
+import { SRCSET_BANNER } from "../../lib/utils.js";
 import { useUIStore } from "../../store/useUIStore.js";
 import { useTranslation } from "../../hooks/useTranslation.js";
 
@@ -162,6 +163,8 @@ export default function BannerSlider({ activeBanners }) {
                 src={bn.img_url}
                 widthRequest={1400}
                 priority
+                srcSetWidths={SRCSET_BANNER}
+                sizes="100vw"
                 alt={bn.title || ""}
                 style={{ width: "100%", height: "100%", objectFit: "cover", cursor: bn.link_url ? "pointer" : "default" }}
               />

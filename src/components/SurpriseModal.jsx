@@ -5,7 +5,7 @@ import {CITY_TZ} from '../lib/constants.js';
 import React, { useState, useRef, useEffect } from 'react';
 import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import ReactDOM from 'react-dom';
-import { METRO_ZONES, isOpenNow as checkOpenNow } from '../lib/utils';
+import { METRO_ZONES, isOpenNow as checkOpenNow, getThumbUrl, getThumbSrcSet, SRCSET_CARD } from '../lib/utils';
 import { useTranslation } from '../hooks/useTranslation.js';
 
 // ── MOODS ──────────────────────────────────────────────────────────────────────
@@ -363,7 +363,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
               height: pick.isEvent ? 'auto' : 220, background: dCard, boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
             }}>
               {imgSrc
-                ? <img src={imgSrc} alt={pick.name || pick.title} style={{ display: 'block', width: '100%', height: pick.isEvent ? 'auto' : '100%', maxHeight: pick.isEvent ? '46dvh' : undefined, objectFit: pick.isEvent ? 'contain' : 'cover' }} />
+                ? <img src={getThumbUrl(imgSrc, 800)} alt={pick.name || pick.title} srcSet={getThumbSrcSet(imgSrc, SRCSET_CARD)} sizes="(max-width: 640px) 100vw, 800px" style={{ display: 'block', width: '100%', height: pick.isEvent ? 'auto' : '100%', maxHeight: pick.isEvent ? '46dvh' : undefined, objectFit: pick.isEvent ? 'contain' : 'cover' }} />
                 : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#E2E8F0,#CBD5E1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>{pick.isEvent ? '🎫' : pick.isExperience ? '🧭' : '🏪'}</div>
               }
               {!pick.isEvent && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />}

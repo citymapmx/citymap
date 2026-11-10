@@ -11,7 +11,7 @@ import Icon from "../components/ui/Icon.jsx";
 import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import EventPosterFallback from "../components/home/EventPosterFallback.jsx";
 import Footer from "../components/Footer.jsx";
-import { getThumbUrl, haptic } from "../lib/utils";
+import { getThumbUrl, haptic, SRCSET_CARD } from "../lib/utils";
 import { smoothScrollIntoView } from "../lib/smoothScroll.js";
 import { useFlipList } from "../lib/useFlipList.js";
 import SaveHeartButton from "../components/ui/SaveHeartButton.jsx";
@@ -518,7 +518,7 @@ export default function EventsView() {
                           {imgSrc ? (
                             <>
                               <div aria-hidden="true" style={{ position:'absolute', inset:0, backgroundImage:`url("${getThumbUrl(imgSrc, 600)}")`, backgroundSize:'cover', backgroundPosition:'center', filter:'blur(24px) brightness(0.85)', transform:'scale(1.15)' }} />
-                              <OptimizedImage src={imgSrc} alt={localizedTitle(ev, lang) || 'Evento'} widthRequest={600} priority={index < 2} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain', zIndex:1 }} />
+                              <OptimizedImage src={imgSrc} alt={localizedTitle(ev, lang) || 'Evento'} widthRequest={600} priority={index < 2} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain', zIndex:1 }} />
                             </>
                           ) : <EventPosterFallback title={localizedTitle(ev, lang) || 'Evento'} radius={0} />}
                           <div style={{ position:'absolute', top:8, left:8, zIndex:2, borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF' }}>{fmtCardDate(ev)}</div>
