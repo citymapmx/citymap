@@ -1,28 +1,29 @@
 // Plantilla de la tarjeta para compartir (PR #142 v1, PR #143): UN estilo
-// oscuro tipo «Glass» — logotipo oficial arriba, foto, categoría en
-// versales, nombre grande, píldoras con la calificación de Google (con su
-// conteo de reseñas) y la ciudad, y «Descúbrelo en CityMap» al pie.
+// oscuro tipo «Glass» — logotipo oficial arriba, foto, nombre grande,
+// píldoras con la calificación de Google (con su conteo de reseñas) y
+// la ciudad, y «Descúbrelo en CityMap» al pie.
 // PR #144: el logo circular del negocio (mismo que la ficha, solo para
 // planes de pago con logo_url) va centrado a caballo sobre el borde
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
 // tarjeta queda igual que en el #143. PR #145: el círculo es más grande
 // (Ø 240 Historia / 190 Post) con anillo y sombra proporcionales.
-// PR #154: tres estilos (Oscura, Editorial y Ficha completa): la
-// plantilla pinta el estilo elegido con su paleta y su geometría
-// (SHARE_CARD_STYLE_COLORS + shareCardLayoutTable en lib/shareCard.js).
-// Editorial es clara tipo revista, sin círculo de logo; Ficha suma un
-// panel con el horario de hoy, la dirección y el WhatsApp (solo las
-// líneas con dato real).
+// PR #154: dos estilos (Oscura y Editorial): la plantilla pinta el
+// estilo elegido con su paleta y su geometría (SHARE_CARD_STYLE_COLORS
+// + shareCardLayoutTable en lib/shareCard.js). Editorial es clara tipo
+// revista, sin círculo de logo. PR #155: la Ficha completa se quita,
+// la categoría sale de ambas versiones, la foto es más corta y el
+// nombre y las píldoras más grandes; el logo de Editorial va en oscuro
+// (el PNG es blanco y con 'none' no se veía sobre blanco).
 // La vista previa y el PNG exportado comparten la misma geometría:
 // SHARE_CARD_LAYOUT + computeShareCardLayout en lib/shareCard.js, así que
 // lo que se ve es lo que se descarga. La foto crece (flex: 1, con altura
 // mínima) y se come el espacio libre: nunca queda franja vacía entre las
 // píldoras y el pie. El logotipo es /logo-brand.png, el mismo del
-// encabezado y del splash, en blanco sobre el fondo oscuro (en Editorial
-// va tal cual, negro sobre fondo claro). Sin foto no hay imagen rota:
-// sale un bloque oscuro con la inicial del nombre. Sin dato de Google
-// no hay píldora de calificación: nunca se inventa. El precio ya no se
-// muestra.
+// encabezado y del splash: en blanco sobre el fondo oscuro, en negro
+// (brightness(0), como Brand.jsx en modo claro) sobre fondo claro. Sin
+// foto no hay imagen rota: sale un bloque oscuro con la inicial del
+// nombre. Sin dato de Google no hay píldora de calificación: nunca se
+// inventa. El precio ya no se muestra.
 import { getThumbUrl } from '../lib/utils.js';
 import { formatReviewCount } from '../lib/googleRatings.js';
 import {
@@ -52,15 +53,11 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
   // El primer bloque tras la foto usa el hueco del círculo
   // (layout.firstGap) cuando hay logo; los demás conservan sus
   // márgenes normales, igual que en el canvas.
-  const firstBlock = data?.category
-    ? 'cat'
-    : layout.name && layout.name.lines.length
-      ? 'name'
-      : hasRating || data?.cityName
-        ? 'pills'
-        : layout.info
-          ? 'info'
-          : 'foot';
+  const firstBlock = layout.name && layout.name.lines.length
+    ? 'name'
+    : hasRating || data?.cityName
+      ? 'pills'
+      : 'foot';
   // El logo circular se pide en 300×300, igual que la ficha.
   const logoSrc = data?.bizLogoUrl ? getThumbUrl(data.bizLogoUrl, 300, 300) : null;
 
@@ -89,7 +86,11 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           height: L.logoH,
           width: 'auto',
           display: 'block',
-          filter: palette.logoWhite ? 'brightness(0) invert(1)' : 'none',
+          // El PNG es BLANCO sobre transparente: en oscuro va en blanco
+          // (brightness(0) invert(1)) y en claro en negro (brightness(0),
+          // como Brand.jsx en modo claro). Con 'none' el blanco no se
+          // veía sobre fondo blanco (PR #155).
+          filter: palette.logoWhite ? 'brightness(0) invert(1)' : 'brightness(0)',
           marginBottom: L.logoGap,
           flexShrink: 0,
         }}
@@ -178,40 +179,6 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
         </div>
       ) : null}
 
-      {/* Editorial: una regla fina centrada sobre la categoría, como
-          las revistas (misma posición que en el canvas). */}
-      {style.id === 'editorial' && layout.category ? (
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: layout.category.y - L.catSize / 2 - 18,
-            width: 72,
-            height: 3,
-            background: palette.text,
-            transform: 'translateX(-50%)',
-          }}
-        />
-      ) : null}
-
-      {data?.category ? (
-        <div
-          style={{
-            marginTop: firstBlock === 'cat' ? layout.firstGap : L.catGap,
-            fontSize: L.catSize,
-            fontWeight: 700,
-            lineHeight: 1,
-            letterSpacing: 6,
-            textTransform: 'uppercase',
-            color: palette.sub,
-            flexShrink: 0,
-          }}
-        >
-          {data.category}
-        </div>
-      ) : null}
-
       {layout.name && layout.name.lines.length ? (
         <div style={{ marginTop: firstBlock === 'name' ? layout.firstGap : L.nameGap, width: photoW, flexShrink: 0 }}>
           {layout.name.lines.map((line, i) => (
@@ -282,49 +249,6 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
               {data.cityName}
             </span>
           ) : null}
-        </div>
-      ) : null}
-
-      {/* Panel de la ficha (PR #154): horario, dirección y WhatsApp,
-          solo las líneas con dato real. La geometría (huecos, relleno,
-          radio) es la misma que en el canvas. */}
-      {layout.info ? (
-        <div
-          style={{
-            marginTop: firstBlock === 'info' ? layout.firstGap : L.infoGap,
-            width: photoW,
-            background: palette.infoBg,
-            borderRadius: L.infoRadius,
-            padding: L.infoPad,
-            boxSizing: 'border-box',
-            flexShrink: 0,
-            textAlign: 'left',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: L.infoRowGap,
-          }}
-        >
-          {layout.info.rows.map((row, i) => (
-            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: row.iconSize, lineHeight: L.infoLineH }}>{row.icon}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {row.lines.map((line, j) => (
-                  <div
-                    key={j}
-                    style={{
-                      fontSize: L.infoSize,
-                      fontWeight: 600,
-                      lineHeight: L.infoLineH,
-                      color: palette.infoText,
-                      overflowWrap: 'break-word',
-                    }}
-                  >
-                    {line.text}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
         </div>
       ) : null}
 

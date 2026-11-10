@@ -4,29 +4,32 @@ import {
   buildShareCardData,
   bizShowsLogoCircle,
   computeShareCardLayout,
-  formatShareCardHour,
   resolveShareCardStyle,
-  shareCardHoursLine,
   shareCardLayoutTable,
-  shareCardWhatsapp,
   wrapShareCardText,
   SHARE_CARD_FORMATS,
+  SHARE_CARD_LAYOUT,
+  EDITORIAL_SHARE_CARD_LAYOUT,
   SHARE_CARD_STYLE_COLORS,
   SHARE_CARD_STYLE_LIST,
 } from '../lib/shareCard.js';
 
+import { EVENT_SHARE_CARD_LAYOUT } from '../lib/eventShareCard.js';
+
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
-// Dos estilos nuevos para la tarjeta de negocios (PR #154), elegidos
-// por Jonathan de la demo de propuestas:
-//   1. Editorial: panel claro tipo revista (fondo blanco, sin círculo
-//      de logo: la limpieza es el estilo).
-//   6. Ficha completa: foto, nombre, calificación y una ficha con el
-//      horario de hoy, la dirección y el WhatsApp (solo las líneas con
-//      dato real, de los mismos campos que muestra la ficha).
-// El estilo oscuro sigue siendo el por defecto y la vista previa y el
-// PNG comparten UNA geometría por estilo, como la tarjeta actual.
-describe('tarjeta para compartir: estilos Editorial y Ficha completa (PR #154)', () => {
+// Dos estilos para la tarjeta de negocios (PR #154 los creó, PR #155
+// los deja en dos): Oscura (el de siempre, por defecto) y Editorial
+// (claro tipo revista, sin círculo de logo: la limpieza es el estilo).
+// La Ficha completa se quitó en el PR #155 (Jonathan): quedan solo
+// Oscura y Editorial, que se cambian con chevrones ‹ › y puntos en la
+// hoja en vez de botones. La categoría sale de ambas versiones, la
+// foto es más corta y el nombre y las píldoras más grandes (la
+// información gana presencia), el logo oficial crece y en Editorial va
+// en oscuro (el PNG es blanco y no se veía sobre blanco).
+// La vista previa y el PNG comparten UNA geometría por estilo, como la
+// tarjeta actual.
+describe('tarjeta para compartir: estilos Oscura y Editorial (PR #154, ajustes PR #155)', () => {
   const biz = {
     name: 'Xokol',
     type: 'Restaurantes',
@@ -43,41 +46,20 @@ describe('tarjeta para compartir: estilos Editorial y Ficha completa (PR #154)',
     plan: 'premium',
   };
   const googleDispBarbarella = { rating: 4.5, count: 4569, source: 'google' };
-  // Lunes 9 nov 2026, 20:00 hora de Guadalajara (el 10 nov es martes).
-  const mondayNight = new Date('2026-11-09T20:00:00-06:00');
-  const mondayMorning = new Date('2026-11-09T08:00:00-06:00');
-  const bizHours = {
-    ...biz,
-    address: 'Av. Chapultepec Sur 123, Guadalajara',
-    whatsapp: '33 1234 5678',
-    plan: 'premium',
-    schedule: {
-      lun: '9:00 AM - 11:00 PM',
-      mar: '9:00 AM - 11:00 PM',
-      mie: '9:00 AM - 11:00 PM',
-      jue: '9:00 AM - 11:00 PM',
-      vie: '9:00 AM - 1:00 AM',
-      sab: '10:00 AM - 1:00 AM',
-      dom: 'Cerrado',
-    },
-  };
 
-  it('tres estilos y el oscuro sigue siendo el por defecto', () => {
+  it('solo dos estilos y el oscuro sigue siendo el por defecto', () => {
     expect(SHARE_CARD_STYLE_LIST.map((s) => s.id)).toEqual([
       'glass',
       'editorial',
-      'ficha',
     ]);
     expect(SHARE_CARD_STYLE_LIST.find((s) => s.id === 'editorial').label).toBe(
       'Editorial',
     );
-    expect(SHARE_CARD_STYLE_LIST.find((s) => s.id === 'ficha').label).toBe(
-      'Ficha completa',
-    );
     expect(resolveShareCardStyle('glass').id).toBe('glass');
     expect(resolveShareCardStyle('editorial').id).toBe('editorial');
-    expect(resolveShareCardStyle('ficha').id).toBe('ficha');
-    // Un estilo desconocido cae al oscuro, nunca a una tarjeta rota.
+    // La Ficha completa ya no existe: cae al oscuro, nunca a una
+    // tarjeta rota. Igual un estilo desconocido o ausente.
+    expect(resolveShareCardStyle('ficha').id).toBe('glass');
     expect(resolveShareCardStyle('invento').id).toBe('glass');
     expect(resolveShareCardStyle(undefined).id).toBe('glass');
     // Sin estilo, la geometría es la de siempre.
@@ -89,175 +71,127 @@ describe('tarjeta para compartir: estilos Editorial y Ficha completa (PR #154)',
     expect(def.name.lines).toEqual(glass.name.lines);
   });
 
-  it('la hora en 12 h en español, como las horas de la app', () => {
-    expect(formatShareCardHour('11:00 PM')).toBe('11:00 p. m.');
-    expect(formatShareCardHour('9:00 AM')).toBe('9:00 a. m.');
-    expect(formatShareCardHour('12:30 PM')).toBe('12:30 p. m.');
-    expect(formatShareCardHour('12:00 AM')).toBe('12:00 a. m.');
-    expect(formatShareCardHour('1:00 AM')).toBe('1:00 a. m.');
-  });
-
-  it('la línea de horario de hoy: abierto, cerrado y sin horario', () => {
-    // Lunes 20:00, horario 9:00–23:00: abierto y cierra a las 11.
-    expect(shareCardHoursLine(bizHours, mondayNight)).toBe(
-      'Abierto ahora · Cierra 11:00 p. m.',
+  it('la Ficha completa no queda en ningún lado (ni código muerto)', () => {
+    const lib = read('../lib/shareCard.js');
+    const template = read('../components/ShareCardTemplate.jsx');
+    const sheet = read('../components/ShareCardSheet.jsx');
+    for (const src of [lib, template, sheet]) {
+      expect(src).not.toContain('FICHA_SHARE_CARD_LAYOUT');
+      // La etiqueta 'Ficha completa' como valor (los comentarios de
+      // historia del #154/#155 sí la nombran, sin comillas).
+      expect(src).not.toContain("'Ficha completa'");
+      expect(src).not.toContain('shareCardHoursLine');
+      expect(src).not.toContain('shareCardWhatsapp');
+      expect(src).not.toContain('formatShareCardHour');
+      expect(src).not.toContain("style.id === 'ficha'");
+      expect(src).not.toContain("'ficha'");
+    }
+    // buildShareCardData ya no lleva los datos de la Ficha.
+    const d = buildShareCardData(
+      {
+        ...biz,
+        address: 'Av. Chapultepec Sur 123, Guadalajara',
+        whatsapp: '33 1234 5678',
+        plan: 'premium',
+        schedule: { lun: '9:00 AM - 11:00 PM' },
+      },
+      { disp: googleDisp, cityName: 'Guadalajara' },
     );
-    // Lunes 08:00, antes de abrir: cerrado con el horario de hoy.
-    expect(shareCardHoursLine(bizHours, mondayMorning)).toBe(
-      'Cerrado · Hoy 9:00 a. m. – 11:00 p. m.',
-    );
-    // Domingo cerrado.
-    const sunday = new Date('2026-11-08T12:00:00-06:00');
-    expect(shareCardHoursLine(bizHours, sunday)).toBe('Cerrado hoy');
-    // Sin horario para hoy (solo martes en el horario).
-    expect(
-      shareCardHoursLine({ schedule: { mar: '9:00 AM - 5:00 PM' } }, mondayNight),
-    ).toBeNull();
-    // Sin horario en absoluto y sin campo open: no hay línea.
-    expect(shareCardHoursLine(biz, mondayNight)).toBeNull();
-    expect(shareCardHoursLine({ ...biz, open: true }, mondayNight)).toBe('Abierto ahora');
-    // Tipos especiales del horario.
-    expect(
-      shareCardHoursLine({ schedule: { type: 'none' } }, mondayNight),
-    ).toBeNull();
-    expect(
-      shareCardHoursLine({ schedule: { type: 'always_open' } }, mondayNight),
-    ).toBe('Abierto 24/7');
-    expect(
-      shareCardHoursLine({ schedule: { type: 'appointment' } }, mondayNight),
-    ).toBe('Atención con cita previa');
+    expect(d.hoursLine).toBeUndefined();
+    expect(d.address).toBeUndefined();
+    expect(d.whatsapp).toBeUndefined();
   });
 
-  it('el WhatsApp es el de la ficha: solo con número y plan de pago', () => {
-    expect(shareCardWhatsapp(bizHours)).toBe('33 1234 5678');
-    expect(shareCardWhatsapp({ ...bizHours, plan: 'pro' })).toBe('33 1234 5678');
-    expect(shareCardWhatsapp({ ...bizHours, plan: 'destacado' })).toBe(
-      '33 1234 5678',
-    );
-    // Plan gratuito con número: la ficha tampoco lo muestra.
-    expect(shareCardWhatsapp({ ...bizHours, plan: 'free' })).toBeNull();
-    expect(shareCardWhatsapp({ ...bizHours, plan: '' })).toBeNull();
-    expect(shareCardWhatsapp({ ...bizHours, whatsapp: '' })).toBeNull();
-    expect(shareCardWhatsapp({ ...bizHours, whatsapp: null })).toBeNull();
-    expect(shareCardWhatsapp(biz)).toBeNull();
-  });
-
-  it('buildShareCardData suma horario, dirección y WhatsApp (solo con dato)', () => {
-    const d = buildShareCardData(bizHours, {
-      disp: googleDisp,
-      cityName: 'Guadalajara',
-      now: mondayNight,
-    });
-    expect(d.hoursLine).toBe('Abierto ahora · Cierra 11:00 p. m.');
-    expect(d.address).toBe('Av. Chapultepec Sur 123, Guadalajara');
-    expect(d.whatsapp).toBe('33 1234 5678');
-    // Dirección oculta o vacía: no hay línea.
-    expect(
-      buildShareCardData({ ...bizHours, hide_location: true }, { now: mondayNight })
-        .address,
-    ).toBeNull();
-    expect(
-      buildShareCardData({ ...bizHours, address: '   ' }, { now: mondayNight })
-        .address,
-    ).toBeNull();
-    // Sin horario ni WhatsApp: las líneas son null, nunca relleno.
-    const dPlain = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
-    expect(dPlain.hoursLine).toBeNull();
-    expect(dPlain.address).toBeNull();
-    expect(dPlain.whatsapp).toBeNull();
-  });
-
-  it('Ficha: el panel trae las 3 filas y la tarjeta no se desborda', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
-      const d = buildShareCardData(bizHours, {
-        disp: googleDisp,
-        cityName: 'Guadalajara',
-        now: mondayNight,
-      });
-      const geo = computeShareCardLayout(d, format, true, 'ficha');
-      expect(geo.style).toBe('ficha');
-      expect(geo.info).not.toBeNull();
-      expect(geo.info.rows.map((r) => r.icon)).toEqual(['🕐', '📍', '💬']);
-      expect(geo.info.rows[0].lines[0].text).toBe('Abierto ahora · Cierra 11:00 p. m.');
-      expect(geo.info.rows[1].lines.map((l) => l.text).join(' ')).toContain(
-        'Av. Chapultepec Sur 123',
-      );
-      expect(geo.info.rows[2].lines[0].text).toBe('WhatsApp 33 1234 5678');
-      for (const row of geo.info.rows) {
-        expect(row.lines.length).toBeLessThanOrEqual(2);
+  it('sin categoría en ninguna de las dos versiones (vista previa y canvas)', () => {
+    const lib = read('../lib/shareCard.js');
+    const template = read('../components/ShareCardTemplate.jsx');
+    // Los datos ya no llevan categoría.
+    const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+    expect(d.category).toBeUndefined();
+    // La geometría no tiene bloque de categoría en ningún estilo.
+    for (const styleId of ['glass', 'editorial']) {
+      for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+        const geo = computeShareCardLayout(d, format, true, styleId);
+        expect(geo.category).toBeUndefined();
+        expect(geo.name.lines.length).toBeGreaterThan(0);
       }
-      // La foto no baja de su mínimo y el panel no se come el pie.
-      expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
-      const infoEnd = geo.info.y + geo.info.h;
-      const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - infoEnd).toBe(geo.L.footGap);
-      expect(infoEnd + geo.L.footGap + geo.L.footSize + geo.L.pad).toBeLessThanOrEqual(
-        geo.height,
-      );
+    }
+    // Ni la plantilla ni el canvas pintan categoría (ni su regla).
+    expect(template).not.toContain('data.category');
+    expect(template).not.toContain('data?.category');
+    expect(lib).not.toContain('data?.category');
+    expect(lib).not.toContain('geo.category');
+    expect(lib).not.toContain('categoryBox');
+  });
+
+  it('sin regla en Editorial (la línea negra sobre el título se fue con la categoría)', () => {
+    const lib = read('../lib/shareCard.js');
+    const template = read('../components/ShareCardTemplate.jsx');
+    expect(lib).not.toContain("style.id === 'editorial'");
+    expect(template).not.toContain("style.id === 'editorial'");
+    expect(lib).not.toContain('geo.width / 2 - 36');
+  });
+
+  it('el logo oficial va en oscuro en Editorial y en blanco en Oscura', () => {
+    expect(SHARE_CARD_STYLE_COLORS.editorial.logoWhite).toBe(false);
+    expect(SHARE_CARD_STYLE_COLORS.glass.logoWhite).toBe(true);
+    const lib = read('../lib/shareCard.js');
+    const template = read('../components/ShareCardTemplate.jsx');
+    // La vista previa usa el mismo patrón que Brand.jsx en modo claro:
+    // brightness(0) vuelve negro el PNG blanco.
+    expect(template).toContain(
+      "palette.logoWhite ? 'brightness(0) invert(1)' : 'brightness(0)'",
+    );
+    // El canvas recolorea el logo a oscuro (#111111) con source-in para
+    // Editorial, igual que el blanco lo hace para Oscura.
+    expect(lib).toContain("x.fillStyle = '#111111'");
+    expect(lib).toContain('palette.logoWhite ? assets?.logoWhite : assets?.logoDark');
+    expect(lib).toContain('loadShareCardLogoDark');
+  });
+
+  it('el logo oficial es más grande en ambos estilos y formatos (PR #155)', () => {
+    expect(SHARE_CARD_LAYOUT.story.logoH).toBe(76);
+    expect(SHARE_CARD_LAYOUT.post.logoH).toBe(60);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.story.logoH).toBe(76);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.post.logoH).toBe(60);
+    // Más grande que antes (56/44) sin tapar la foto: el logo va
+    // arriba con su hueco y la foto empieza después.
+    for (const styleId of ['glass', 'editorial']) {
+      for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+        const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+        const geo = computeShareCardLayout(d, format, true, styleId);
+        expect(geo.logo.h).toBeGreaterThan(44);
+        expect(geo.logo.y + geo.logo.h).toBeLessThanOrEqual(geo.photo.y);
+        expect(geo.logo.w).toBeLessThan(geo.width);
+      }
     }
   });
 
-  it('Ficha: el peor caso (nombre largo, dirección larga) tampoco se desborda', () => {
-    const worst = {
-      ...bizHours,
-      name: 'Restaurante El Gran Buffet Internacional de la Abuela María',
-      address:
-        'Av. Chapultepec Sur 123, Colonia Americana, Guadalajara, Jalisco, México',
-    };
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
-      const d = buildShareCardData(worst, {
-        disp: googleDisp,
-        cityName: 'San Pedro Garza García',
-        now: mondayNight,
-      });
-      const geo = computeShareCardLayout(d, format, true, 'ficha');
-      expect(geo.info).not.toBeNull();
-      expect(geo.name.lines.length).toBeLessThanOrEqual(2);
-      for (const row of geo.info.rows) {
-        expect(row.lines.length).toBeLessThanOrEqual(2);
-      }
-      expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
-      const infoEnd = geo.info.y + geo.info.h;
-      const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - infoEnd).toBe(geo.L.footGap);
-      expect(infoEnd + geo.L.footGap + geo.L.footSize + geo.L.pad).toBeLessThanOrEqual(
-        geo.height,
-      );
-    }
-  });
-
-  it('Ficha: sin horario, dirección ni WhatsApp no hay panel', () => {
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+  it('la foto es más corta y la información gana presencia (PR #155)', () => {
+    // Nombre y píldoras más grandes que antes (76→88 y 34→40 en
+    // Oscura Historia; 68→80 y 32→38 en Editorial Historia).
+    expect(SHARE_CARD_LAYOUT.story.nameSize).toBe(88);
+    expect(SHARE_CARD_LAYOUT.story.pillSize).toBe(40);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.story.nameSize).toBe(80);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.story.pillSize).toBe(38);
+    // La foto de un negocio típico es más baja que antes (Historia
+    // ~1439 → ~1331; Post ~697 → ~630) y sigue llenando su franja.
+    for (const styleId of ['glass', 'editorial']) {
       const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
-      const geo = computeShareCardLayout(d, format, true, 'ficha');
-      expect(geo.info).toBeNull();
-      // La foto crece y llena la tarjeta, como en el estilo oscuro.
-      expect(geo.photo.h).toBeGreaterThan(geo.L.photoMinH);
-      const lastRow = geo.pillRows[geo.pillRows.length - 1];
-      const pillsEnd = lastRow[0].y + lastRow[0].h;
-      const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - pillsEnd).toBe(geo.L.footGap);
+      const geoStory = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true, styleId);
+      const geoPost = computeShareCardLayout(d, SHARE_CARD_FORMATS.post, true, styleId);
+      expect(geoStory.photo.h).toBeLessThan(1400);
+      expect(geoStory.photo.h).toBeGreaterThanOrEqual(geoStory.L.photoMinH);
+      expect(geoPost.photo.h).toBeLessThan(700);
+      expect(geoPost.photo.h).toBeGreaterThanOrEqual(geoPost.L.photoMinH);
+      // Sin franja vacía entre píldoras y pie.
+      for (const geo of [geoStory, geoPost]) {
+        const lastRow = geo.pillRows[geo.pillRows.length - 1];
+        const pillsEnd = lastRow[0].y + lastRow[0].h;
+        const footTop = geo.height - geo.L.pad - geo.L.footSize;
+        expect(footTop - pillsEnd).toBe(geo.L.footGap);
+      }
     }
-  });
-
-  it('Ficha: el círculo de logo sigue la regla de la ficha (solo pago con logo)', () => {
-    const d = buildShareCardData(bizLogo, {
-      disp: googleDispBarbarella,
-      cityName: 'Guadalajara',
-    });
-    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
-      const geo = computeShareCardLayout(d, format, true, 'ficha');
-      expect(geo.bizLogo).not.toBeNull();
-      expect(geo.bizLogo.d).toBe(geo.L.bizLogoD);
-      const photoBottom = geo.photo.y + geo.photo.h;
-      expect(geo.bizLogo.y + geo.bizLogo.d / 2).toBeCloseTo(photoBottom, 0);
-    }
-    const dFree = buildShareCardData(
-      { ...bizLogo, plan: 'free' },
-      { disp: googleDispBarbarella, cityName: 'Guadalajara' },
-    );
-    const geoFree = computeShareCardLayout(dFree, SHARE_CARD_FORMATS.story, true, 'ficha');
-    expect(geoFree.bizLogo).toBeNull();
   });
 
   it('Editorial: clara, sin círculo de logo y sin desbordar', () => {
@@ -274,7 +208,6 @@ describe('tarjeta para compartir: estilos Editorial y Ficha completa (PR #154)',
       // Aunque tenga logo y plan de pago, Editorial no lleva círculo:
       // la limpieza es el estilo.
       expect(geo.bizLogo).toBeNull();
-      expect(geo.info).toBeNull();
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       const lastRow = geo.pillRows[geo.pillRows.length - 1];
       const pillsEnd = lastRow[0].y + lastRow[0].h;
@@ -301,6 +234,27 @@ describe('tarjeta para compartir: estilos Editorial y Ficha completa (PR #154)',
     }
   });
 
+  it('Oscura: el peor caso con logo y círculo tampoco se desborda', () => {
+    const worst = {
+      ...bizLogo,
+      name: 'Restaurante El Gran Buffet Internacional de la Abuela María',
+    };
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      const d = buildShareCardData(worst, {
+        disp: googleDispBarbarella,
+        cityName: 'San Pedro Garza García',
+      });
+      const geo = computeShareCardLayout(d, format, true, 'glass');
+      expect(geo.bizLogo).not.toBeNull();
+      expect(geo.name.lines.length).toBeLessThanOrEqual(2);
+      expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
+      const lastRow = geo.pillRows[geo.pillRows.length - 1];
+      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      const footTop = geo.height - geo.L.pad - geo.L.footSize;
+      expect(footTop - pillsEnd).toBe(geo.L.footGap);
+    }
+  });
+
   it('wrapShareCardText corta a N líneas con puntos suspensivos', () => {
     expect(wrapShareCardText('Hola mundo', 1000, 30, 2)).toEqual(['Hola mundo']);
     expect(wrapShareCardText('', 1000, 30, 2)).toEqual([]);
@@ -312,8 +266,8 @@ describe('tarjeta para compartir: estilos Editorial y Ficha completa (PR #154)',
     );
     expect(lines.length).toBe(2);
     expect(lines[1].endsWith('…')).toBe(true);
-    // La tabla de medidas existe para los 3 estilos y los 2 formatos.
-    for (const styleId of ['glass', 'editorial', 'ficha']) {
+    // La tabla de medidas existe para los 2 estilos y los 2 formatos.
+    for (const styleId of ['glass', 'editorial']) {
       for (const formatId of ['story', 'post']) {
         const L = shareCardLayoutTable(styleId, formatId);
         expect(typeof L.pad).toBe('number');
@@ -324,34 +278,53 @@ describe('tarjeta para compartir: estilos Editorial y Ficha completa (PR #154)',
     expect(bizShowsLogoCircle(bizLogo)).toBe(true);
   });
 
-  it('la hoja deja elegir el estilo y la vista previa y el PNG son de ese estilo', () => {
+  it('la tarjeta de eventos no hereda los cambios de negocios (PR #155)', () => {
+    // La geometría de eventos era un spread de la de negocios: los
+    // cambios de este PR (logo más grande, foto más corta, sin
+    // categoría) se le colaban y la foto salía NaN por el catSize que
+    // ya no existe. Ahora fija su propia base con los valores de antes.
+    expect(EVENT_SHARE_CARD_LAYOUT.story.logoH).toBe(56);
+    expect(EVENT_SHARE_CARD_LAYOUT.post.logoH).toBe(44);
+    expect(EVENT_SHARE_CARD_LAYOUT.story.catSize).toBe(32);
+    expect(EVENT_SHARE_CARD_LAYOUT.post.catSize).toBe(28);
+    expect(EVENT_SHARE_CARD_LAYOUT.story.pillSize).toBe(34);
+    expect(EVENT_SHARE_CARD_LAYOUT.post.pillSize).toBe(30);
+    expect(EVENT_SHARE_CARD_LAYOUT.story.photoMinH).toBe(960);
+    expect(EVENT_SHARE_CARD_LAYOUT.post.photoMinH).toBe(300);
+  });
+
+  it('la hoja cambia de estilo con chevrones y puntos, sin botones de estilo', () => {
     const lib = read('../lib/shareCard.js');
     const template = read('../components/ShareCardTemplate.jsx');
     const sheet = read('../components/ShareCardSheet.jsx');
-    // El selector de estilo está en la hoja, junto al de formato.
-    expect(sheet).toContain('SHARE_CARD_STYLE_LIST');
-    expect(sheet).toContain('setStyleId');
-    expect(sheet).toContain('SHARE_CARD_DEFAULT_STYLE');
-    expect(sheet).toContain('styleId={styleId}');
-    // El PNG se exporta con el estilo elegido.
+    // Chevrones ‹ › a los lados de la vista previa, con envoltura.
+    expect(sheet).toContain('Estilo anterior');
+    expect(sheet).toContain('Estilo siguiente');
+    expect(sheet).toContain('‹');
+    expect(sheet).toContain('›');
+    expect(sheet).toContain('goStyle');
+    // Puntos debajo de la vista previa, mismo lenguaje que StoryStrip:
+    // activo píldora de 16 px, inactivo 6 px con opacidad 0.25, sin
+    // transición; tocar un punto salta a ese estilo.
+    expect(sheet).toContain('n === styleIndex ? 16 : 6');
+    expect(sheet).toContain('n === styleIndex ? 1 : 0.25');
+    expect(sheet).toContain('setStyleId(s.id)');
+    // Ya no hay botones de estilo: las etiquetas solo aparecen en el
+    // aria-label de los puntos, nunca como texto de botón. (La etiqueta
+    // 'Ficha completa' como valor tampoco: los comentarios de historia
+    // del #154 sí la nombran, sin comillas.)
+    expect(sheet.match(/\{s\.label\}/g)).toHaveLength(1);
+    expect(sheet).not.toContain("'Ficha completa'");
+    // El PNG se exporta con el estilo elegido y la vista previa es de
+    // ese estilo.
     expect(sheet).toContain('exportShareCardPng(dataToExport, format, styleId)');
+    expect(sheet).toContain('styleId={styleId}');
     expect(lib).toContain('export async function exportShareCardPng(data, format, styleId');
     expect(lib).toContain('renderShareCardCanvas(data, format, styleId');
     expect(lib).toContain('loadShareCardLogoDark');
-    // La plantilla pinta el estilo elegido: paleta, panel de la ficha
-    // y regla editorial.
+    // La plantilla pinta el estilo elegido con su paleta.
     expect(template).toContain('styleId');
     expect(template).toContain('SHARE_CARD_STYLE_COLORS');
-    expect(template).toContain('layout.info');
-    expect(template).toContain('palette.infoBg');
-    expect(template).toContain("style.id === 'editorial'");
-    // El logo va en blanco sobre fondo oscuro y tal cual sobre claro.
-    expect(template).toContain("palette.logoWhite ? 'brightness(0) invert(1)' : 'none'");
-    expect(lib).toContain('logoDark');
-    // El canvas dibuja el panel de la ficha y la regla editorial.
-    expect(lib).toContain('geo.info');
-    expect(lib).toContain('palette.infoBg');
-    expect(lib).toContain("style.id === 'editorial'");
     // La tarjeta de eventos sigue usando la base sin cambios: sus
     // imports y su layout no se tocaron.
     const eventLib = read('../lib/eventShareCard.js');
