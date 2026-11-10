@@ -7,31 +7,42 @@
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
 // tarjeta queda igual que en el #143. PR #145: el círculo es más grande
 // (Ø 240 Historia / 190 Post) con anillo y sombra proporcionales.
+// PR #154: tres estilos (Oscura, Editorial y Ficha completa): la
+// plantilla pinta el estilo elegido con su paleta y su geometría
+// (SHARE_CARD_STYLE_COLORS + shareCardLayoutTable en lib/shareCard.js).
+// Editorial es clara tipo revista, sin círculo de logo; Ficha suma un
+// panel con el horario de hoy, la dirección y el WhatsApp (solo las
+// líneas con dato real).
 // La vista previa y el PNG exportado comparten la misma geometría:
 // SHARE_CARD_LAYOUT + computeShareCardLayout en lib/shareCard.js, así que
 // lo que se ve es lo que se descarga. La foto crece (flex: 1, con altura
 // mínima) y se come el espacio libre: nunca queda franja vacía entre las
 // píldoras y el pie. El logotipo es /logo-brand.png, el mismo del
-// encabezado y del splash, en blanco sobre el fondo oscuro. Sin foto no
-// hay imagen rota: sale un bloque oscuro con la inicial del nombre. Sin
-// dato de Google no hay píldora de calificación: nunca se inventa. El
-// precio ya no se muestra.
+// encabezado y del splash, en blanco sobre el fondo oscuro (en Editorial
+// va tal cual, negro sobre fondo claro). Sin foto no hay imagen rota:
+// sale un bloque oscuro con la inicial del nombre. Sin dato de Google
+// no hay píldora de calificación: nunca se inventa. El precio ya no se
+// muestra.
 import { getThumbUrl } from '../lib/utils.js';
 import { formatReviewCount } from '../lib/googleRatings.js';
 import {
   SHARE_CARD_FORMATS,
-  SHARE_CARD_LAYOUT,
+  SHARE_CARD_STYLE_COLORS,
   computeShareCardLayout,
+  resolveShareCardStyle,
+  shareCardLayoutTable,
 } from '../lib/shareCard.js';
 
-export default function ShareCardTemplate({ data, format, onPhotoError, onBizLogoError }) {
+export default function ShareCardTemplate({ data, format, styleId, onPhotoError, onBizLogoError }) {
   const f = format || SHARE_CARD_FORMATS.story;
-  const L = SHARE_CARD_LAYOUT[f.id] || SHARE_CARD_LAYOUT.story;
+  const style = resolveShareCardStyle(styleId);
+  const palette = SHARE_CARD_STYLE_COLORS[style.id] || SHARE_CARD_STYLE_COLORS.glass;
+  const L = shareCardLayoutTable(style.id, f.id);
   const width = f.width;
   const photoW = width - L.pad * 2;
   // Las líneas del nombre se calculan con la misma función que usa el
   // exportador de canvas: el corte a 2 líneas es idéntico en ambos.
-  const layout = computeShareCardLayout(data, format, true);
+  const layout = computeShareCardLayout(data, format, true, style.id);
   // La foto se pide ancha (1600w por el bucket de getThumbUrl) para que
   // salga nítida en la exportación a 1080 px.
   const photoSrc = data?.photoUrl ? getThumbUrl(data.photoUrl, 1080) : null;
@@ -47,7 +58,9 @@ export default function ShareCardTemplate({ data, format, onPhotoError, onBizLog
       ? 'name'
       : hasRating || data?.cityName
         ? 'pills'
-        : 'foot';
+        : layout.info
+          ? 'info'
+          : 'foot';
   // El logo circular se pide en 300×300, igual que la ficha.
   const logoSrc = data?.bizLogoUrl ? getThumbUrl(data.bizLogoUrl, 300, 300) : null;
 
@@ -61,8 +74,8 @@ export default function ShareCardTemplate({ data, format, onPhotoError, onBizLog
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        background: 'linear-gradient(180deg, #1B1B1B 0%, #0B0B0B 100%)',
-        color: '#FFFFFF',
+        background: `linear-gradient(180deg, ${palette.bg[0]} 0%, ${palette.bg[1]} 100%)`,
+        color: palette.text,
         fontFamily: "var(--heading), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
         textAlign: 'center',
         overflow: 'hidden',
@@ -76,7 +89,7 @@ export default function ShareCardTemplate({ data, format, onPhotoError, onBizLog
           height: L.logoH,
           width: 'auto',
           display: 'block',
-          filter: 'brightness(0) invert(1)',
+          filter: palette.logoWhite ? 'brightness(0) invert(1)' : 'none',
           marginBottom: L.logoGap,
           flexShrink: 0,
         }}
@@ -89,7 +102,7 @@ export default function ShareCardTemplate({ data, format, onPhotoError, onBizLog
           minHeight: L.photoMinH,
           borderRadius: L.photoRadius,
           overflow: 'hidden',
-          background: '#262626',
+          background: palette.photoBg,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -111,7 +124,7 @@ export default function ShareCardTemplate({ data, format, onPhotoError, onBizLog
         ) : (
           <span
             style={{
-              color: 'rgba(255,255,255,0.35)',
+              color: palette.initial,
               fontSize: L.photoMinH * 0.45,
               fontWeight: 800,
               lineHeight: 1,
@@ -165,6 +178,23 @@ export default function ShareCardTemplate({ data, format, onPhotoError, onBizLog
         </div>
       ) : null}
 
+      {/* Editorial: una regla fina centrada sobre la categoría, como
+          las revistas (misma posición que en el canvas). */}
+      {style.id === 'editorial' && layout.category ? (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: layout.category.y - L.catSize / 2 - 18,
+            width: 72,
+            height: 3,
+            background: palette.text,
+            transform: 'translateX(-50%)',
+          }}
+        />
+      ) : null}
+
       {data?.category ? (
         <div
           style={{
@@ -174,7 +204,7 @@ export default function ShareCardTemplate({ data, format, onPhotoError, onBizLog
             lineHeight: 1,
             letterSpacing: 6,
             textTransform: 'uppercase',
-            color: '#A3A3A3',
+            color: palette.sub,
             flexShrink: 0,
           }}
         >
@@ -215,12 +245,14 @@ export default function ShareCardTemplate({ data, format, onPhotoError, onBizLog
           {hasRating ? (
             <span
               style={{
-                background: 'rgba(255,255,255,0.12)',
+                background: palette.pillBg,
+                border: palette.pillBorder ? `1.5px solid ${palette.pillBorder}` : 'none',
                 borderRadius: 999,
                 padding: `${L.pillPadY}px ${L.pillPadX}px`,
                 fontSize: L.pillSize,
                 fontWeight: 700,
                 lineHeight: 1,
+                color: palette.pillText,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
@@ -237,17 +269,62 @@ export default function ShareCardTemplate({ data, format, onPhotoError, onBizLog
           {data?.cityName ? (
             <span
               style={{
-                background: 'rgba(255,255,255,0.12)',
+                background: palette.pillBg,
+                border: palette.pillBorder ? `1.5px solid ${palette.pillBorder}` : 'none',
                 borderRadius: 999,
                 padding: `${L.pillPadY}px ${L.pillPadX}px`,
                 fontSize: L.pillSize,
                 fontWeight: 700,
                 lineHeight: 1,
+                color: palette.pillText,
               }}
             >
               {data.cityName}
             </span>
           ) : null}
+        </div>
+      ) : null}
+
+      {/* Panel de la ficha (PR #154): horario, dirección y WhatsApp,
+          solo las líneas con dato real. La geometría (huecos, relleno,
+          radio) es la misma que en el canvas. */}
+      {layout.info ? (
+        <div
+          style={{
+            marginTop: firstBlock === 'info' ? layout.firstGap : L.infoGap,
+            width: photoW,
+            background: palette.infoBg,
+            borderRadius: L.infoRadius,
+            padding: L.infoPad,
+            boxSizing: 'border-box',
+            flexShrink: 0,
+            textAlign: 'left',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: L.infoRowGap,
+          }}
+        >
+          {layout.info.rows.map((row, i) => (
+            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: row.iconSize, lineHeight: L.infoLineH }}>{row.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {row.lines.map((line, j) => (
+                  <div
+                    key={j}
+                    style={{
+                      fontSize: L.infoSize,
+                      fontWeight: 600,
+                      lineHeight: L.infoLineH,
+                      color: palette.infoText,
+                      overflowWrap: 'break-word',
+                    }}
+                  >
+                    {line.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       ) : null}
 
@@ -257,11 +334,11 @@ export default function ShareCardTemplate({ data, format, onPhotoError, onBizLog
           fontSize: L.footSize,
           lineHeight: 1,
           letterSpacing: 2,
-          color: '#A3A3A3',
+          color: palette.sub,
           flexShrink: 0,
         }}
       >
-        Descúbrelo en <span style={{ color: '#FFFFFF', fontWeight: 800 }}>CityMap</span>
+        Descúbrelo en <span style={{ color: palette.text, fontWeight: 800 }}>CityMap</span>
       </div>
     </div>
   );

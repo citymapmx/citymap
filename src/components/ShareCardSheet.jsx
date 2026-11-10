@@ -3,6 +3,9 @@
 // Google con su conteo, sin precio; PR #144: logo circular del negocio y
 // hoja compacta con los botones en un pie fijo, para que se vean sin
 // bajar en cualquier teléfono).
+// PR #154: tres estilos (Oscura, Editorial y Ficha completa) que se
+// eligen en la hoja junto al formato (Historia/Post): la vista previa y
+// el PNG son del estilo elegido. El oscuro sigue siendo el por defecto.
 // PR #146: la hoja entra con scale-in-center (la misma animación de las
 // tarjetas del mapa, PR #134/#135): el panel crece desde el centro en
 // 0,5 s, en vez del fundido de la librería de animación. La clase va en
@@ -33,7 +36,9 @@ import { displayRating } from '../lib/googleRatings.js';
 import { getThumbUrl } from '../lib/utils.js';
 import ShareCardTemplate from './ShareCardTemplate.jsx';
 import {
+  SHARE_CARD_DEFAULT_STYLE,
   SHARE_CARD_FORMAT_LIST,
+  SHARE_CARD_STYLE_LIST,
   buildShareCardData,
   canShareImageFiles,
   exportShareCardPng,
@@ -47,11 +52,11 @@ const PREVIEW_W = 200;
 // La tarjeta es compacta a propósito (PR #144): vista previa chica y
 // espacios apretados para que en cualquier teléfono se vean la vista
 // previa y los dos botones sin tener que bajar. Peor caso (Historia,
-// 200×356): 12 (padding sup.) + 30 (encabezado) + 56 (selector) + 364
-// (vista previa) + 92 (botones en flujo) + 10 (padding inf.) = 564 px,
-// que cabe en 92dvh de una pantalla chica de 640 px (589 px) y sobra en
-// una típica de 844 px (776 px). Si aparece un aviso (foto sin cargar o
-// error) o la pantalla es muy chica, TODO el panel hace scroll como una
+// 200×356): 12 (padding sup.) + 30 (encabezado) + 56 (selector) + 50
+// (selector de estilo, PR #154) + 364 (vista previa) + 92 (botones en
+// flujo) + 10 (padding inf.) = 614 px, que cabe en 92dvh de una
+// pantalla típica de 844 px (776 px) y en una chica de 700 px (644 px);
+// si la pantalla es aún más chica, TODO el panel hace scroll como una
 // unidad (PR #147: sin pie sticky, los botones nunca quedan en medio de
 // la vista previa).
 
@@ -61,6 +66,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
   const googleRatings = useDataStore((s) => s.googleRatings);
   const cities = useDataStore((s) => s.cities);
   const [formatId, setFormatId] = useState('story');
+  const [styleId, setStyleId] = useState(SHARE_CARD_DEFAULT_STYLE);
   const [status, setStatus] = useState('idle'); // idle | generating | error
   const [error, setError] = useState('');
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -108,7 +114,8 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
       }
       // La imagen se dibuja directo en canvas (PR #143): lo que se
       // descarga es lo mismo que la vista previa, nunca en blanco.
-      const blob = await exportShareCardPng(dataToExport, format);
+      // El PNG es del estilo elegido en la hoja (PR #154).
+      const blob = await exportShareCardPng(dataToExport, format, styleId);
       const how = await shareOrDownloadPng(blob, shareCardFileName(biz));
       toast$(how === 'shared' ? 'Imagen lista para compartir' : 'Imagen descargada');
       setStatus('idle');
@@ -231,6 +238,32 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
           ))}
         </div>
 
+        {/* Estilo de la tarjeta (PR #154): el oscuro es el de siempre y
+            el por defecto; Editorial y Ficha completa son los nuevos. */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          {SHARE_CARD_STYLE_LIST.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setStyleId(s.id)}
+              className="press"
+              style={{
+                flex: 1,
+                padding: '7px 4px',
+                borderRadius: 14,
+                border: `1.5px solid ${styleId === s.id ? '#000000' : dark ? '#3F3F46' : '#E4E4E7'}`,
+                background: styleId === s.id ? '#000000' : 'transparent',
+                color: styleId === s.id ? '#FFFFFF' : dark ? '#FAFAFA' : '#18181B',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 13,
+                fontWeight: 800,
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
         <div
           style={{
             width: PREVIEW_W,
@@ -253,6 +286,7 @@ export default function ShareCardSheet({ biz, onClose, onShareLink }) {
             <ShareCardTemplate
               data={exportData}
               format={format}
+              styleId={styleId}
               onPhotoError={() => setPhotoFailed(true)}
               onBizLogoError={() => setBizLogoFailed(true)}
             />
