@@ -1,4 +1,4 @@
-import { seoSite } from '../lib/seoRoutes.js';
+import { seoSite, citySlugFromPath } from '../lib/seoRoutes.js';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUIStore } from '../store/useUIStore.js';
@@ -41,7 +41,12 @@ export function useAppSEO({ city }) {
     // e.g. citymap.mx or citymap.world — not citymap.mx/tepic or citymap.mx/cancun
     const pathSegments = location.pathname.split('/').filter(Boolean);
     const urlHasCity = pathSegments.length > 0 && cities.some(c => c.slug === pathSegments[0] || (pathSegments[1] && c.slug === pathSegments[1]));
-    const isGenericRoot = location.pathname === '/' || (!urlHasCity && !selected?.id && !selectedEvent?.id);
+    // Ciudad de la URL (fuente de verdad): activeCity tarda en llegar y
+    // en la primera pintura puede ser la ciudad guardada o venir vacío;
+    // con él solo, el canonical de /tepic caía a la raíz.
+    const pathCity = citySlugFromPath(location.pathname, IS_WORLD);
+    const seoCity = pathCity || activeCity;
+    const isGenericRoot = location.pathname === '/' || (!pathCity && !urlHasCity && !selected?.id && !selectedEvent?.id);
 
     let title, desc;
     if (isGenericRoot) {
@@ -56,7 +61,7 @@ export function useAppSEO({ city }) {
     let image = activeCityData?.bg_image || `${BASE_URL}/og-image.png`;
     let schemaJson = "";
     // eslint-disable-next-line no-useless-assignment
-    let canonical = isGenericRoot ? BASE_URL + "/" : BASE_URL + buildCityPath(activeCity, cities);
+    let canonical = isGenericRoot ? BASE_URL + "/" : BASE_URL + buildCityPath(seoCity, cities);
 
 
     if (selected?.id) {
@@ -327,7 +332,7 @@ export function useAppSEO({ city }) {
         canonical = `${BASE_URL}/terms`;
       } else {
          
-        canonical = isGenericRoot ? BASE_URL + "/" : BASE_URL + buildCityPath(activeCity, cities);
+        canonical = isGenericRoot ? BASE_URL + "/" : BASE_URL + buildCityPath(seoCity, cities);
 
         if (isGenericRoot) {
           // Homepage root — describe the platform, not just the current city

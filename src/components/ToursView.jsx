@@ -117,11 +117,11 @@ export default function ToursView({ T, dark, cities, initialTours }) {
         <p style={{ fontSize: 13, fontWeight: 600, color: T.sub, margin: '0 0 20px', textAlign: 'center', lineHeight: 1.4 }}>
           {loading ? t("revista_cargando_tours", "Cargando tours…") : selectedGroup
             ? <>{t("revista_mejores_tours_de", "Los mejores tours y experiencias de ")}<span className="exp-city-anim">{selectedGroup.name}</span></>
-            : t("revista_tours_resumen", `${tours.length} tours en ${groups.length} ciudades${minPrice ? ` · desde $${minPrice.toLocaleString('es-MX')} MXN` : ''}`, {tours: tours.length, cities: groups.length, minPriceText: minPrice ? ` · ${lang === 'en' ? 'from' : 'desde'} $${minPrice.toLocaleString(lang === 'en' ? 'en-US' : 'es-MX')} MXN` : ''})}
+            : t("revista_tours_resumen", `${tours.length} tours en ${groups.length} ciudades${minPrice ? ` · desde $${Math.round(minPrice).toLocaleString('es-MX')} MXN` : ''}`, {tours: tours.length, cities: groups.length, minPriceText: minPrice ? ` · ${lang === 'en' ? 'from' : 'desde'} $${Math.round(minPrice).toLocaleString(lang === 'en' ? 'en-US' : 'es-MX')} MXN` : ''})}
         </p>
 
         {!loading && groups.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, marginBottom: 8, scrollbarWidth: 'none' }}>
+          <div className="scroll-fade-x" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, marginBottom: 8, scrollbarWidth: 'none' }}>
             <button
               key="todas"
               onClick={() => setSelectedCity('todas')}

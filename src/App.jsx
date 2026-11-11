@@ -24,7 +24,7 @@ import { CITY_TZ, FONT_BIZ, EVENT_CATS, getT } from './lib/constants.js';
 import { searchMatches } from './lib/utils.js';
 import { SPRING_UI } from './lib/spring.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
-import { eventUrl } from './lib/eventUrls.js';
+import { eventUrl, resolveEventSlug } from './lib/eventUrls.js';
 import Icon from './components/ui/Icon.jsx';
 import BrandSplash from './components/ui/BrandSplash.jsx';
 
@@ -548,7 +548,7 @@ useEffect(() => {
       }
       // Abrir negocio directo si la URL tiene ?b=
      const urlB = initialBizParam.current;
-     const urlEv = initialEvParam.current;
+     const urlEv = resolveEventSlug(initialEvParam.current);
       if (urlB) {
         try {
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(urlB);

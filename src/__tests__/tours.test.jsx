@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { formatTourPrice, tourCardUrl, groupToursByCity, tourPriceLabel } from '../lib/tours.js';
 
 describe('formatTourPrice', () => {
-  it('formatea con separador de miles y "desde"', () => {
-    expect(formatTourPrice(1475.1)).toBe('desde $1,475.1 MXN');
-    expect(formatTourPrice(2332.39)).toBe('desde $2,332.39 MXN');
+  it('formatea con separador de miles y "desde", siempre en pesos enteros', () => {
+    expect(formatTourPrice(1475.1)).toBe('desde $1,475 MXN');
+    expect(formatTourPrice(2332.39)).toBe('desde $2,332 MXN');
+    expect(formatTourPrice(919.1)).toBe('desde $919 MXN');
+    expect(formatTourPrice(785.33)).toBe('desde $785 MXN');
     expect(formatTourPrice(790)).toBe('desde $790 MXN');
     expect(formatTourPrice('1075')).toBe('desde $1,075 MXN');
   });
@@ -51,6 +53,15 @@ describe('groupToursByCity', () => {
     expect(groups[0]).toMatchObject({ slug: 'paris', name: 'paris', count: 1 });
   });
 
+  it('casa la ciudad aunque el slug de la base traiga mayúsculas y acentos', () => {
+    // La base guarda la ciudad como 'San-Pedro-Garza-García' y los tours
+    // como 'san-pedro-garza-garcia': sin normalizar acentos la etiqueta
+    // caía al slug crudo en minúsculas y con guiones.
+    const spggCities = [{ slug: 'San-Pedro-Garza-García', name: 'San Pedro Garza García' }];
+    const groups = groupToursByCity([{ city_slug: 'san-pedro-garza-garcia', title: 'Chipinque' }], spggCities);
+    expect(groups[0]).toMatchObject({ slug: 'san-pedro-garza-garcia', name: 'San Pedro Garza García', count: 1 });
+  });
+
   it('devuelve [] sin tours', () => {
     expect(groupToursByCity([], cities)).toEqual([]);
     expect(groupToursByCity(null, cities)).toEqual([]);
@@ -90,7 +101,7 @@ describe('ToursView', () => {
     expect(html).toContain('Guadalajara (1)');
     expect(html).toContain('Excursión a Guachimontones');
     expect(html).toContain('Tour de la cultura huichol');
-    expect(html).toContain('desde $1,475.1 MXN');
+    expect(html).toContain('desde $1,475 MXN');
     expect(html).toContain('Ver más detalles →');
     expect(html).not.toContain('Reservar →');
     // Cabecera estilo Revista: sin "← Inicio", sin título grande con emoji,

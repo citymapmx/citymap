@@ -2,16 +2,19 @@
 // sección "Tours por ciudad" del inicio global (GlobalHomeView).
 import { createSlug } from './utils.js';
 
-// "desde $1,475 MXN" / "from $1,475 MXN" (con separador de miles; sin
-// decimales si es entero). Sin precio válido devuelve null (el tour se
-// muestra sin precio). lang 'es' por defecto para no romper los llamados
-// existentes; las tarjetas pasan el idioma activo.
+// "desde $1,475 MXN" / "from $1,475 MXN" (con separador de miles; siempre
+// en pesos enteros: los decimales crudos de la conversión EUR→MXN
+// ($919.1, $785.33) se veían descuidados y poco confiables). Sin precio
+// válido devuelve null (el tour se muestra sin precio). lang 'es' por
+// defecto para no romper los llamados existentes; las tarjetas pasan el
+// idioma activo. Solo cambia la presentación: el valor guardado en la
+// base no se toca.
 export function formatTourPrice(price, lang = 'es') {
   const value = Number(price);
   if (!Number.isFinite(value) || value <= 0) return null;
   const locale = lang === 'en' ? 'en-US' : 'es-MX';
   const prefix = lang === 'en' ? 'from' : 'desde';
-  return `${prefix} $${value.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} MXN`;
+  return `${prefix} $${Math.round(value).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} MXN`;
 }
 
 // URL del artículo del tour en la Revista (igual que las tarjetas del muro).
@@ -40,20 +43,30 @@ export function tourPriceLabel(tour, lang = 'es') {
   return hasTourBooking(tour) ? null : free;
 }
 
+// Clave de ciudad para comparar slugs: minúsculas y sin acentos. La tabla
+// cities guarda slugs como 'San-Pedro-Garza-García' y los tours traen
+// 'san-pedro-garza-garcia': sin quitar los acentos no coinciden y la
+// etiqueta cae al slug crudo. Misma normalización que createSlug.
+function normalizeCityKey(slug) {
+  return String(slug || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 // Agrupa los tours por ciudad: [{ slug, name, count, tours }], ordenados por
 // cantidad (más tours primero) y a igualdad por nombre. `cities` es la lista
 // de ciudades del sitio (para el nombre bonito); si la ciudad no está en la
 // lista, el slug hace de nombre. La coincidencia de slug no distingue
-// mayúsculas (la tabla cities guarda 'Barcelona' y los tours 'barcelona').
+// mayúsculas ni acentos (la tabla cities guarda 'Barcelona' y los tours
+// 'barcelona'; 'San-Pedro-Garza-García' y 'san-pedro-garza-garcia' son la
+// misma ciudad).
 export function groupToursByCity(tours, cities = []) {
   const bySlug = new Map(
-    (cities || []).map((c) => [String(c.slug || '').toLowerCase(), c.name || c.slug]),
+    (cities || []).map((c) => [normalizeCityKey(c.slug), c.name || c.slug]),
   );
   const groups = new Map();
   for (const tour of tours || []) {
     const slug = tour?.city_slug || 'todas';
     if (!groups.has(slug)) {
-      groups.set(slug, { slug, name: bySlug.get(String(slug).toLowerCase()) || slug, count: 0, tours: [] });
+      groups.set(slug, { slug, name: bySlug.get(normalizeCityKey(slug)) || slug, count: 0, tours: [] });
     }
     const group = groups.get(slug);
     group.count += 1;

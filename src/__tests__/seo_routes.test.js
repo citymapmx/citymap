@@ -4,6 +4,7 @@ import sitemap from '../../api/sitemap.xml.js';
 import robots from '../../api/robots.txt.js';
 import middleware from '../../middleware.js';
 import og from '../../api/og.js';
+import { citySlugFromPath } from '../lib/seoRoutes.js';
 
 const cities = [
   { id: 'mx-city', slug: 'tepic', name: 'Tepic', country_code: 'mx', bg_image: 'https://images.test/tepic.webp' },
@@ -141,5 +142,28 @@ describe('crawler page content', () => {
     fetch.mockResolvedValue(json([]));
     const response = await og(request('/api/og?city=missing&_bot=1'));
     expect(response.status).toBe(404);
+  });
+});
+
+describe('citySlugFromPath', () => {
+  it('saca la ciudad de la URL sin depender de la tienda de datos', () => {
+    expect(citySlugFromPath('/tepic')).toBe('tepic');
+    expect(citySlugFromPath('/tepic/restaurantes')).toBe('tepic');
+    expect(citySlugFromPath('/guadalajara/dalila-casa-repostera')).toBe('guadalajara');
+  });
+
+  it('devuelve vacío en la raíz y en rutas del sistema', () => {
+    expect(citySlugFromPath('/')).toBe('');
+    expect(citySlugFromPath('/tours')).toBe('');
+    expect(citySlugFromPath('/negocios')).toBe('');
+    expect(citySlugFromPath('/evento/guadalajara/zz-top')).toBe('');
+    expect(citySlugFromPath('/revista/tepic')).toBe('');
+    expect(citySlugFromPath('/eventos/tepic')).toBe('');
+    expect(citySlugFromPath('/mapa')).toBe('');
+  });
+
+  it('en citymap.world quita el prefijo de país', () => {
+    expect(citySlugFromPath('/mx/tepic', true)).toBe('tepic');
+    expect(citySlugFromPath('/mx/tours', true)).toBe('');
   });
 });

@@ -19,3 +19,29 @@ export function seoSegments(pathname, isWorld) {
   if (isWorld && SEO_COUNTRIES.has(parts[0])) parts.shift();
   return parts;
 }
+
+// Primeros segmentos que NUNCA son ciudad: rutas del sistema y secciones
+// de nivel superior. Cualquier otro primer segmento es la ciudad por el
+// propio enrutado de la app (/:ciudad, /:ciudad/:categoria,
+// /:ciudad/:negocio).
+export const SYSTEM_FIRST_SEGMENTS = new Set([
+  'mapa', 'admin', 'mis-planes', 'planes', 'cuenta', 'eventos', 'explorar',
+  'admin_notifs', 'user_notifs', 'about', 'privacy', 'terms', 'favoritos',
+  'explorer', 'itinerarios', 'revista', 'experiencias', 'manage', 'stats',
+  'itinerario', 'plan', 'evento', 'precios', 'lealtad', 'wallet', 'scan',
+  'login', 'tours', 'negocios',
+]);
+
+// Ciudad de la URL, sin depender de la tienda de datos (que carga
+// después): en /tepic es 'tepic'; en / y en rutas del sistema es ''.
+// La URL es la fuente de verdad de la ciudad — el canonical y el título
+// de la página de ciudad deben salir de aquí, no de activeCity, que en
+// la primera pintura puede ser la ciudad guardada o venir vacío (en ese
+// caso el canonical caía a la raíz y PageSpeed lo marcaba inválido).
+export function citySlugFromPath(pathname, isWorld = false) {
+  const parts = seoSegments(pathname || '', isWorld);
+  if (parts.length === 0) return '';
+  const first = String(parts[0] || '').toLowerCase();
+  if (SYSTEM_FIRST_SEGMENTS.has(first)) return '';
+  return first;
+}

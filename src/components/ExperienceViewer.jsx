@@ -218,7 +218,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const galleryPhotos = galleryWithoutCover(gallery);
   const curr = (exp.booking_config && exp.booking_config.currency) ? exp.booking_config.currency : 'MXN';
   const isFree = !(exp.price > 0);
-  const priceFormatted = isFree ? t("gratis", "Gratis") : `${exp.price.toLocaleString("en-US")} ${curr}`;
+  const priceFormatted = isFree ? t("gratis", "Gratis") : `${Math.round(exp.price).toLocaleString("en-US")} ${curr}`;
   const isBlog = exp.activity_type && (exp.activity_type.toLowerCase().includes("blog") || exp.activity_type.toLowerCase().includes("guía"));
 
   const PLATFORM_STYLES = {
