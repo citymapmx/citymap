@@ -15,6 +15,7 @@ import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle } from "../lib/i18nContent.js";
 import { createSlug } from "../lib/utils.js";
 import { POST_TYPES, POST_THEMES, filterPostsByTypeAndTheme, themeBySlug, themeLabel } from "../lib/postTaxonomy.js";
+import { tourDurationLabel } from "../lib/tours.js";
 import { getThumbUrl, getThumbSrcSet, SRCSET_CARD, SRCSET_THUMB, METRO_ZONES, isNear } from "../lib/utils.js";
 import { shouldShowCityEmptyState } from "../lib/cityEmptyState.js";
 import { cascadeDelayS, CASCADE_WINDOW_MS } from "../lib/cascade.js";
@@ -192,6 +193,9 @@ function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark, pr
   const photos = Array.isArray(exp.gallery) ? exp.gallery : [];
   const priceFormatted = exp.price > 0 ? `$${exp.price} MXN` : t("gratis", "Gratis");
   const theme = themeBySlug(exp.theme);
+  // Duración real (columna duration o «⏱️ Tiempo:» de quick_facts);
+  // si no hay, la tarjeta no la muestra (nunca se inventa).
+  const duration = tourDurationLabel(exp);
 
   const showGrid = photos.length >= 3;
 
@@ -221,9 +225,9 @@ function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark, pr
         </button>
         
         <div style={{ position: "absolute", bottom: 12, left: 12, right: 12, display: "flex", gap: 12, zIndex: 10 }}>
-          {exp.duration && (
+          {duration && (
             <span style={{ fontSize: 12, color: "#fff", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
-              <Icon name="clock" size={12} color="#fff" /> {exp.duration}
+              <Icon name="clock" size={12} color="#fff" /> {duration}
             </span>
           )}
           {exp.people && (

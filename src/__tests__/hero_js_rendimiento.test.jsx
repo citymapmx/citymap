@@ -50,10 +50,14 @@ describe('hero y js: PageSpeed tras el PR #140', () => {
 
   it('mapa: GMap y MapView se siguen montando (el lazy no los eliminó)', () => {
     // MapView se monta en la ruta /mapa y GMap dentro de MapView, ambos
-    // con estado de carga (Suspense + LoaderFallback), no pantalla en blanco.
+    // con estado de carga (Suspense), no pantalla en blanco.
     expect(appRouter).toContain('<Route path="/mapa"');
     expect(appRouter).toContain('<MapView />');
-    expect(mapView).toContain('<Suspense fallback={<LoaderFallback/>}><GMap');
+    // 11 nov 2026 (Jonathan, mejora 6): el pedazo del mapa ya no abre
+    // con la pantalla negra de marca; el fallback es null (la página de
+    // atrás se queda visible mientras carga).
+    expect(mapView).toContain('<Suspense fallback={null}><GMap');
+    expect(mapView).not.toContain('LoaderFallback');
   });
 
   it('admin: AdminPanel es lazy en la app y /admin carga su propio bundle', () => {
@@ -65,7 +69,10 @@ describe('hero y js: PageSpeed tras el PR #140', () => {
   });
 
   it('admin: el panel se sigue montando cuando el admin lo abre', () => {
-    expect(app).toContain('<Suspense fallback={<LoaderFallback/>}><AdminPanel');
+    // 11 nov 2026 (Jonathan, mejora 6): el panel ya no abre con la
+    // pantalla negra de marca; el fallback es null (la página de atrás
+    // se queda visible mientras carga).
+    expect(app).toContain('<Suspense fallback={null}><AdminPanel');
     expect(app).toContain('showAdmin &&');
   });
 

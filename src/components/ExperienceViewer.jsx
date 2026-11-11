@@ -180,6 +180,12 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   }, [coverUrl]);
   
   const { handleCardTap, reviews, loadExperienceReviews, postExperienceReview, showReview, setShowReview, reviewStar, setReviewStar, reviewText, setReviewText, reviewImgFile, setReviewImgFile, reviewImgLoading, toggleLikeReview, sb, isAdmin, toast$ } = useAppContext();
+  // Valoración real de las reseñas internas: promedio de estrellas de
+  // quienes ya dejaron reseña. Si no hay reseñas, no se pinta ninguna
+  // estrella (nunca «0 de 5 estrellas»).
+  const reviewAvg = reviews.length > 0
+    ? reviews.reduce((sum, r) => sum + (Number(r?.stars) || 0), 0) / reviews.length
+    : 0;
   const { setSelected } = useUIStore(useShallow(s => ({ setSelected: s.setSelected })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   const mapPins = useDataStore(s => s.mapPins);
@@ -709,7 +715,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <div style={{ width: 48, height: 48, background: "#fff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}><img src="/estrella.svg" alt={t("revista_estrella", "Estrella")} style={{ width: 24, height: 24, objectFit: "contain" }} /></div>
               <div>
-                <StarRow n={0} size={16} />
+                {reviewAvg > 0 && <StarRow n={reviewAvg} size={16} />}
                 <div className="text-xs" style={{ color: T.sub, marginTop: 4 }}>{reviews.length > 0 ? t("revista_comparte_experiencia", "Comparte tu experiencia") : t("revista_primero_resena", "Sé el primero en dejar reseña")}</div>
               </div>
             </div>

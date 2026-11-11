@@ -1,6 +1,7 @@
 import React, { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { createSlug, getThumbUrl, getThumbSrcSet, SRCSET_CARD } from "../../lib/utils.js";
+import { tourDurationLabel } from "../../lib/tours.js";
 import { useTranslation } from "../../hooks/useTranslation.js";
 import { localizedTitle } from "../../lib/i18nContent.js";
 
@@ -50,6 +51,9 @@ export default memo(function TopImperdibles({ experiences, T, city }) {
           const slug = createSlug(exp.title) || exp.id;
           const cSlug = exp.city_slug ? exp.city_slug.split(',')[0] : (city?.slug || "");
           const href = `/revista/${cSlug}/${slug}`;
+          // Duración real cuando existe en la base; si no hay, la tarjeta
+          // no la muestra (nunca se inventa).
+          const duration = tourDurationLabel(exp);
           return (
             <a 
               key={exp.id} 
@@ -78,7 +82,10 @@ export default memo(function TopImperdibles({ experiences, T, city }) {
             >
               {imgUrl && <img src={imgUrl} srcSet={imgSrcSet} sizes="(max-width: 640px) 100vw, 800px" loading="lazy" decoding="async" alt="" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition:"center", display:"block" }} />}
               <div aria-hidden="true" style={{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(0,0,0,0.04) 15%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.85) 100%)',pointerEvents:'none'}} />
-              <h3 style={{position:'relative',zIndex:1,margin:0,color:'#fff',fontFamily:'var(--sans, system-ui, sans-serif)',fontSize:'clamp(18px, 4.8vw, 22px)',fontWeight:700,lineHeight:1.25,letterSpacing:'-0.025em',textAlign:'left',overflowWrap:'anywhere',textShadow:'0 1px 4px rgba(0,0,0,0.4)'}}>{localizedTitle(exp, lang)}</h3>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <h3 style={{margin:0,color:'#fff',fontFamily:'var(--sans, system-ui, sans-serif)',fontSize:'clamp(18px, 4.8vw, 22px)',fontWeight:700,lineHeight:1.25,letterSpacing:'-0.025em',textAlign:'left',overflowWrap:'anywhere',textShadow:'0 1px 4px rgba(0,0,0,0.4)'}}>{localizedTitle(exp, lang)}</h3>
+                {duration && <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>⏱ {duration}</p>}
+              </div>
               <div style={{ position: "absolute", top: 12, left: 12, width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.2)", zIndex: 2 }}>
                  <span style={{ fontSize: 18, fontWeight: 900, color: index === 0 ? "#FCD34D" : (index === 1 ? "#E5E7EB" : (index === 2 ? "#FCA5A5" : "#fff")), fontStyle: "italic", lineHeight: 1 }}>
                    {index + 1}

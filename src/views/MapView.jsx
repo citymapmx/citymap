@@ -42,7 +42,7 @@ export default function MapView() {
 
   
   
-  const { viewStyle, T, activeCat, setActiveCat, GMap, navigate, userCoords, requestLocation, allNearby, nearbyRadius, setNearbyRadius, setNearbyFilter, nearbyFilter, LoaderFallback, city, handleCardTap } = ctx;
+  const { viewStyle, T, activeCat, setActiveCat, GMap, navigate, userCoords, requestLocation, allNearby, nearbyRadius, setNearbyRadius, setNearbyFilter, nearbyFilter, city, handleCardTap } = ctx;
   const isOpen = (b) => isOpenNow(b, city?.timezone || "America/Mexico_City");
 
 
@@ -171,7 +171,7 @@ export default function MapView() {
               <Icon name={mapFullScreen ? "minimize-2" : "maximize-2"} size={20} color={dark ? "#F4F4F5" : "#0F172A"} />
             </button>
 
-            <Suspense fallback={<LoaderFallback/>}><GMap events={(events||[]).filter(e => e.city_slug === activeCity || e.city_slug === 'all')} businesses={displayedPins} selected={mapPin} onPin={b => { setMapPin(p => p?.id === b.id ? null : b); }} userLocation={userCoords} onRequestLocation={requestLocation} categories={cats} radiusKm={null} onBoundsChanged={(bounds) => loadMapPinsByBounds(activeCity, bounds)} showRoute={mapFullScreen} cityCenter={cityCenter} cityKey={activeCity} /></Suspense>
+            <Suspense fallback={null}><GMap events={(events||[]).filter(e => e.city_slug === activeCity || e.city_slug === 'all')} businesses={displayedPins} selected={mapPin} onPin={b => { setMapPin(p => p?.id === b.id ? null : b); }} userLocation={userCoords} onRequestLocation={requestLocation} categories={cats} radiusKm={null} onBoundsChanged={(bounds) => loadMapPinsByBounds(activeCity, bounds)} showRoute={mapFullScreen} cityCenter={cityCenter} cityKey={activeCity} /></Suspense>
 
             {/* GPS Overlay — se puede cerrar; al ocultarse deja de tapar el mapa y los pines se pueden tocar.
                 La animación scale-in-center va en la tarjeta interior: si fuera

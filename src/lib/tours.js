@@ -17,6 +17,23 @@ export function formatTourPrice(price, lang = 'es') {
   return `${prefix} $${Math.round(value).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} MXN`;
 }
 
+// Duración real del tour para las tarjetas: primero la columna
+// `duration` («6 horas - 8 horas», «2 horas»); si está vacía, el dato
+// rápido «⏱️ Tiempo: 6-8 hrs» de booking_config.quick_facts. Si no hay
+// ninguna, null: la tarjeta no muestra duración, nunca se inventa.
+export function tourDurationLabel(tour) {
+  const direct = String(tour?.duration || '').trim();
+  if (direct) return direct;
+  const facts = tour?.booking_config?.quick_facts;
+  if (Array.isArray(facts)) {
+    for (const fact of facts) {
+      const m = String(fact || '').match(/⏱️?\s*Tiempo:\s*(.+)$/i);
+      if (m && m[1].trim()) return m[1].trim();
+    }
+  }
+  return null;
+}
+
 // URL del artículo del tour en la Revista (igual que las tarjetas del muro).
 export function tourCardUrl(tour) {
   return `/revista/${tour?.city_slug || ''}/${createSlug(tour?.title || '')}`;

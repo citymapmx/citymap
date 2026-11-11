@@ -10,7 +10,7 @@ import { sb, cloudUpload } from '../../lib/supabase';
 import { EVENT_IMAGE_OPTIMIZE, resolveOptimizeOptions, shouldOptimizeImage } from '../../lib/imageOptimize.js';
 import Icon from '../ui/Icon';
 import EventPoster from '../detail/EventPoster.jsx';
-import EventInformation from '../detail/EventInformation.jsx';
+import EventInformation, { EventTicketBar } from '../detail/EventInformation.jsx';
 import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
 import PrivateEventChat from '../detail/PrivateEventChat.jsx';
 import { isPrivateEvent, privateEventUrl, summarizeRsvps, heroDateParts } from '../../lib/privateEvents';
@@ -510,6 +510,18 @@ export default function EventDetailModal() {
                 )}
 
               </div>
+
+              {/* Barra fija de boletos (11 nov 2026, mejora 3): hija
+                  directa del wrapper para que el sticky bottom:0 la
+                  mantenga pegada abajo durante todo el scroll. Dentro
+                  de EventInformation su bloque contenedor terminaba a
+                  mitad del contenido y la barra se iba al bajar. En
+                  privados solo sale en la pestaña de detalles; en
+                  públicos, nunca en los pasados. Sin enlaces, la barra
+                  no se pinta (lo decide EventTicketBar). */}
+              {(!isPrivateEvent(ev) || privateTab === 'detalles') && (
+                <EventTicketBar event={evLocalized} T={T} hideTickets={isPast} onShare={() => setShowShareCard(true)} />
+              )}
             </div>
 
             {/* Hoja para compartir el evento como imagen (PR #152):

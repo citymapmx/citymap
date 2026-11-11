@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
 import { createSlug, getThumbUrl, SRCSET_THUMB, SRCSET_CARD } from '../lib/utils.js';
 import { typeLabel } from '../lib/postTaxonomy.js';
-import { groupToursByCity, tourCardUrl, tourPriceLabel } from '../lib/tours.js';
+import { groupToursByCity, tourCardUrl, tourPriceLabel, tourDurationLabel } from '../lib/tours.js';
 import { displayRating } from '../lib/googleRatings.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import SaveHeartButton from '../components/ui/SaveHeartButton.jsx';
@@ -671,6 +671,7 @@ export default function GlobalHomeView() {
                     const gallery = parseGallery(tour);
                     const img = gallery[0]?.url || gallery[0] || null;
                     const price = tourPriceLabel(tour, lang);
+                    const duration = tourDurationLabel(tour);
                     return (
                       <article key={`t-${tour.id}`} onClick={() => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } })} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.card, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
                         <div style={{ position: 'relative', height: 180, background: 'linear-gradient(135deg,#111,#333)' }}>
@@ -682,6 +683,7 @@ export default function GlobalHomeView() {
                         <div style={{ padding: '12px 14px 16px', background: T.card }}>
                           <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{localizedTitle(tour, lang)}</h3>
                           <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || t("home_precio_no_publicado", "Precio no publicado")}</p>
+                          {duration && <p style={{ fontSize: 13, color: T.sub, margin: '0 0 8px' }}>⏱ {duration}</p>}
                           <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>{t("home_ver_mas_detalles", "Ver más detalles")} →</span>
                         </div>
                       </article>
@@ -705,6 +707,7 @@ export default function GlobalHomeView() {
                     const gallery = parseGallery(exp);
                     const img = gallery[0]?.url || gallery[0] || null;
                     const saved = savedExpIds?.includes(exp.id);
+                    const duration = tourDurationLabel(exp);
                     return (
                       <article
                         key={`g-${exp.id}`}
@@ -728,7 +731,7 @@ export default function GlobalHomeView() {
                         <div style={{ padding: '12px 14px 16px' }}>
                           <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{localizedTitle(exp, lang)}</h3>
                           <p style={{ fontSize: 13, color: T.sub, margin: 0 }}>
-                            {cityBySlug.get(exp.city_slug)?.name || ''}{exp.duration ? ` · ⏱ ${exp.duration}` : ''}{exp.price > 0 ? ` · $${exp.price} MXN` : ` · ${t("home_gratis", "Gratis")}`}
+                            {cityBySlug.get(exp.city_slug)?.name || ''}{duration ? ` · ⏱ ${duration}` : ''}{exp.price > 0 ? ` · $${exp.price} MXN` : ` · ${t("home_gratis", "Gratis")}`}
                           </p>
                         </div>
                       </article>
