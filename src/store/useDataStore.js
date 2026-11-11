@@ -4,6 +4,7 @@ import { sb } from '../lib/supabase.js';
 import { preloadWheelFirstImage } from '../lib/wheelPreload.js';
 
 import { METRO_ZONES, updateMetroZones } from '../lib/utils.js';
+import { selectNearbyEvents } from '../lib/nearbyEvents.js';
 
 const getCityFilterEq = (city) => {
   const zone = METRO_ZONES[city];
@@ -15,9 +16,20 @@ const getCityFilterOr = (city) => {
   return zone ? zone.map(z => `city_slug.ilike.*${z}*`).join(',') : `city_slug.ilike.*${city}*`;
 };
 
+// Unión por id/slug, sin duplicados: el refetch de zona es un
+// superconjunto del early fetch, pero fusionar es más seguro que
+// reemplazar si algún filtro se comporta distinto.
+const mergeById = (first, second) => {
+  if (!Array.isArray(second)) return first;
+  if (!Array.isArray(first)) return second;
+  const seen = new Set(first.map(row => row?.id ?? row?.slug));
+  return [...first, ...second.filter(row => row && !seen.has(row?.id ?? row?.slug))];
+};
+
 let inFlightLoadPromise = null;
 let inFlightCity = null;
 let citiesRefreshPromise = null;
+let nearbyEventsPromise = null;
 let googleRatingsInFlight = null;
 
 const updateCityCache = (key, updates) => {
@@ -85,6 +97,28 @@ export const useDataStore = create((set, get) => ({
     })();
     return citiesRefreshPromise;
   },
+  // Eventos de otras ciudades para el estado vacío de una ciudad sin
+  // eventos: se piden una vez por ciudad (los próximos 60 globales,
+  // como el muro) y se eligen los cercanos con selectNearbyEvents
+  // (primero la zona metropolitana, luego las ciudades más cercanas
+  // por lat/lng; sin coordenadas, los próximos en fecha).
+  loadNearbyEvents: async (citySlug) => {
+    if (!citySlug) return [];
+    if (get().nearbyEventsCity === citySlug) return get().nearbyEvents;
+    if (nearbyEventsPromise) return nearbyEventsPromise;
+    nearbyEventsPromise = (async () => {
+      try {
+        const rows = await sb.get('events', '?status=eq.approved&order=date.asc&limit=60').catch(() => null);
+        const picked = selectNearbyEvents(Array.isArray(rows) ? rows : [], citySlug, get().cities);
+        set({ nearbyEvents: picked, nearbyEventsCity: citySlug });
+        return picked;
+      } catch (err) {
+        console.warn('Could not load nearby events', err);
+        return [];
+      } finally { nearbyEventsPromise = null; }
+    })();
+    return nearbyEventsPromise;
+  },
   wallet: (() => { try { return JSON.parse(localStorage.getItem("citymap_wallet") || "[]"); } catch { return []; } })(),
   setWallet: (val) => set(s => ({ wallet: typeof val === 'function' ? val(s.wallet) : val })),
   claimedCoupons: (() => { try { return JSON.parse(localStorage.getItem("citymap_claims") || "{}"); } catch { return {}; } })(),
@@ -93,6 +127,10 @@ export const useDataStore = create((set, get) => ({
   homeCoreError: false,
   homeSecondaryCity: null,
   homeSecondaryError: false,
+  // Eventos cercanos para el estado vacío de una ciudad sin eventos
+  // (HomeEvents y EventsView los piden con loadNearbyEvents).
+  nearbyEvents: [],
+  nearbyEventsCity: null,
   dbReady: false, setDbReady: (val) => set(s => ({ dbReady: typeof val === 'function' ? val(s.dbReady) : val })),
   dbError: false, setDbError: (val) => set(s => ({ dbError: typeof val === 'function' ? val(s.dbError) : val })),
   mapPins: [], setMapPins: (val) => set(s => ({ mapPins: typeof val === 'function' ? val(s.mapPins) : val })),
@@ -343,7 +381,7 @@ export const useDataStore = create((set, get) => ({
 
     // Instant synchronous cache restoration before any network call
     if (rawTarget) {
-      const cacheKey = `cg_data_${rawTarget}_v4`;
+      const cacheKey = `cg_data_${rawTarget}_v5`;
       const currentActiveCity = localStorage.getItem("cg_city_slug");
 
       if (cityOverride && currentActiveCity && cityOverride !== currentActiveCity) {
@@ -409,6 +447,12 @@ export const useDataStore = create((set, get) => ({
         // la rueda no se descubre hasta que terminan las dos consultas
         // en serie, y ese es el grueso del retraso del LCP.
         const earlyCity = cityOverride || (typeof localStorage !== 'undefined' ? localStorage.getItem("cg_city_slug") : null);
+        // Si la zona metropolitana ya se conoce (ciudades en caché de
+        // una sesión anterior), el early fetch sale con el filtro ancho.
+        // Si no, sale estrecho (solo la ciudad) y fetchSecondary lo
+        // vuelve a pedir con la zona ya poblada: el PR #166 introdujo
+        // esa carrera (los 37 eventos de Zapopan faltaban en Guadalajara).
+        const earlyZoneReady = earlyCity ? Boolean(METRO_ZONES[earlyCity]) : false;
         const earlySecondary = earlyCity ? Promise.all([
           sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
           sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
@@ -422,7 +466,7 @@ export const useDataStore = create((set, get) => ({
            return; // Avoid crashing if no cities are loaded yet
         }
         
-        const cacheKey = `cg_data_${targetCity}_v4`;
+        const cacheKey = `cg_data_${targetCity}_v5`;
         const pPins = get().loadMapPins(targetCity);
         // La lista completa para las secciones por horario corre en fondo
         // y se actualiza sola; HomeView usa mapPins mientras tanto.
@@ -434,12 +478,29 @@ export const useDataStore = create((set, get) => ({
         try {
           // Si la petición ya se disparó en paralelo con refreshCities,
           // se espera esa misma promesa en vez de pedir de nuevo.
-          const [e, ex] = earlySecondary
+          let [e, ex] = earlySecondary
             ? await earlySecondary
             : await Promise.all([
               sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
               sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
             ]);
+
+          // El early fetch se disparó en paralelo con refreshCities: si
+          // la zona aún no se conocía, su filtro fue estrecho (solo la
+          // ciudad) y faltan los eventos de la zona metropolitana
+          // (Zapopan/Tlaquepaque en Guadalajara). Se vuelve a pedir con
+          // la zona ya poblada y se fusiona por id. Solo cuando la
+          // ciudad tiene zona (si no, la consulta sería idéntica).
+          // Costo: una consulta extra solo en la primera carga en frío;
+          // con ciudades en caché la zona ya está y no se repite.
+          if (earlySecondary && !earlyZoneReady && METRO_ZONES[targetCity] && METRO_ZONES[targetCity].length > 1) {
+            const [e2, ex2] = await Promise.all([
+              sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+              sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+            ]);
+            e = mergeById(e, e2);
+            ex = mergeById(ex, ex2);
+          }
           
           const now = new Date();
           const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;

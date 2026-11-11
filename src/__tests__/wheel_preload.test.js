@@ -167,7 +167,7 @@ describe('loadData: eventos en paralelo con refreshCities', () => {
   });
 
   it('precarga la primera imagen desde el caché, antes de que resuelva ninguna red', async () => {
-    localStorage.setItem('cg_data_tepic_v4', JSON.stringify({ e: [eventRow] }));
+    localStorage.setItem('cg_data_tepic_v5', JSON.stringify({ e: [eventRow] }));
     const citiesGate = deferred();
     get.mockImplementation((table) => {
       if (table === 'cities') return citiesGate.promise;

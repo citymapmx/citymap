@@ -110,6 +110,8 @@ export default function HomeView({ isBackground }) {
   const events = useDataStore(s => s.events);
   const raffles = useDataStore(s => s.raffles);
   const cities = useDataStore(s => s.cities);
+  const nearbyEvents = useDataStore(s => s.nearbyEvents);
+  const loadNearbyEvents = useDataStore(s => s.loadNearbyEvents);
   const experiences = useDataStore(s => s.experiences);
   const mapPins = useDataStore(s => s.mapPins);
   const timeBasedBiz = useDataStore(s => s.timeBasedBiz);
@@ -554,7 +556,7 @@ export default function HomeView({ isBackground }) {
           )}
 
           {/* ── EVENTOS ── */}
-          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} lang={lang} handleEventTap={handleEventTap} T={T} city={city} />}
+          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} lang={lang} handleEventTap={handleEventTap} T={T} city={city} cities={cities} nearbyEvents={nearbyEvents} onRequestNearbyEvents={loadNearbyEvents} />}
 
           {/* ── LUGAR DEL DÍA (Recomendación) ── */}
           {/* Esqueleto del spotlight mientras cargan los negocios: misma altura (240 px)

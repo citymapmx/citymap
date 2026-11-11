@@ -446,7 +446,7 @@ useEffect(() => {
         const savedCity = localStorage.getItem("cg_city_slug");
         if (savedCity) {
           try {
-            const cached = JSON.parse(localStorage.getItem(`cg_data_${savedCity}_v4`) || "null");
+            const cached = JSON.parse(localStorage.getItem(`cg_data_${savedCity}_v5`) || "null");
             const knownCities = Array.isArray(cached?.ci) ? cached.ci : [];
             if (knownCities.some((c) => c.slug === savedCity)) {
               routerNavigate(buildCityPath(savedCity, knownCities), { replace: true });
