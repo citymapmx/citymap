@@ -125,7 +125,7 @@ describe('Performance Optimizations - Banner & Event Loading', () => {
 
   describe('3. useDataStore Deduplication and Event Caching', () => {
     it('restores cached events from localStorage immediately on loadData', async () => {
-      const cacheKey = 'cg_data_guadalajara_v4';
+      const cacheKey = 'cg_data_guadalajara_v5';
       const cachedEvents = [
         { id: 'cached-1', title: 'Cached Event', date: '2099-01-01', status: 'approved' }
       ];

@@ -93,3 +93,49 @@ describe('Next home events (coverflow)', () => {
     expect(html).toContain(`Hasta el ${shortDate(longEnd)}`);
   });
 });
+
+describe('Vite home events: ciudad sin eventos (estado vacío honesto)', () => {
+  // t() que interpola ${ciudad} como el de useTranslation.
+  const t = (k, f, vars) => {
+    const v = f !== undefined ? f : k;
+    return vars && typeof v === 'string' ? v.replace(/\$\{(\w+)\}/g, (m, n) => vars[n] ?? m) : v;
+  };
+  const cities = [
+    { slug: 'tlaquepaque', name: 'Tlaquepaque' },
+    { slug: 'guadalajara', name: 'Guadalajara' },
+    { slug: 'zapopan', name: 'Zapopan' },
+  ];
+  const nearby = [
+    { id: 'n1', title: 'Concierto Cercano', date: dayKey(5), city_slug: 'guadalajara', status: 'approved', venue_name: 'Teatro Diana', img_url: 'https://example.supabase.co/n1.jpg' },
+    { id: 'n2', title: 'Festival Vecino', date: dayKey(9), city_slug: 'zapopan', status: 'approved', venue_name: 'Auditorio Telmex', img_url: 'https://example.supabase.co/n2.jpg' },
+  ];
+
+  it('muestra el mensaje y los eventos cercanos con su ciudad visible', () => {
+    const html = renderToStaticMarkup(
+      <HomeEvents events={[]} activeCity="tlaquepaque" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} t={t} cities={cities} nearbyEvents={nearby} onRequestNearbyEvents={() => {}} />,
+    );
+    expect(html).toContain('En Tlaquepaque todavía no hay eventos');
+    expect(html).toContain('Pero hay eventos cerca que te pueden gustar.');
+    expect(html).toContain('Eventos cerca de Tlaquepaque');
+    expect(html).toContain('Concierto Cercano');
+    expect(html).toContain('Festival Vecino');
+    // La ciudad de cada evento cercano se ve en su fila.
+    expect(html).toContain('Guadalajara');
+    expect(html).toContain('Zapopan');
+  });
+
+  it('sin eventos cercanos solo muestra el mensaje', () => {
+    const html = renderToStaticMarkup(
+      <HomeEvents events={[]} activeCity="tlaquepaque" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} cities={cities} nearbyEvents={[]} onRequestNearbyEvents={() => {}} />,
+    );
+    expect(html).toContain('En Tlaquepaque todavía no hay eventos');
+    expect(html).not.toContain('Eventos cerca de');
+  });
+
+  it('mientras carga muestra el esqueleto, no el mensaje', () => {
+    const html = renderToStaticMarkup(
+      <HomeEvents events={[]} activeCity="tlaquepaque" userCoords={null} dbReady={false} dark={false} handleEventTap={() => {}} T={T} cities={cities} nearbyEvents={[]} onRequestNearbyEvents={() => {}} />,
+    );
+    expect(html).not.toContain('todavía no hay eventos');
+  });
+});
