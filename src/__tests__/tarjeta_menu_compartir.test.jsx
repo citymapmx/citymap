@@ -59,21 +59,25 @@ describe('tarjeta para compartir: «Para pedir» y QR solo en el menú (PR #162)
     expect(detail).toContain('selected.plan === "premium" && hasMenu');
   });
 
-  it('la página del menú tiene un botón «Compartir» que abre solo los 2 estilos de menú', () => {
+  it('la página del menú ya NO tiene botón «Compartir» en píldora; el icono superior se queda', () => {
+    // 11 nov 2026 (Jonathan, con capturas de El Tentempié): la píldora
+    // «Compartir» de abajo de la dirección sale de la página pública
+    // del menú; las tarjetas pasan al panel del dueño. El icono de
+    // compartir de la esquina superior se conserva (comparte el enlace
+    // con el menú nativo del sistema, no es la hoja de tarjetas).
     const store = read('../components/store/BusinessStore.jsx');
-    // El botón va en la cabecera, junto al nombre, y solo en la
-    // página del menú (inline): en la ficha (sin inline) no sale.
-    expect(store).toContain('Compartir');
-    expect(store).toContain('inline && menuShareItems.length > 0');
-    expect(store).toContain('setShowMenuShareCard(true)');
-    // La hoja se abre en modo solo-menú, con los platillos que la
-    // página ya trae (sin otra consulta) y el enlace del menú.
-    expect(store).toContain('menuOnly');
-    expect(store).toContain('menuItems={menuShareItems}');
-    expect(store).toContain('flattenMenuProducts(activeCategories)');
-    expect(store).toContain('onShareLink={() => handleShare()}');
-    // La hoja del menú es perezosa, como en la ficha.
-    expect(store).toContain("lazy(() => import('../ShareCardSheet.jsx'))");
+    expect(store).not.toContain('setShowMenuShareCard');
+    expect(store).not.toContain('menuShareItems');
+    expect(store).not.toContain('menuOnly');
+    expect(store).not.toContain('Compartir menú');
+    expect(store).not.toContain('ShareCardSheet');
+    // El icono superior sigue ahí.
+    expect(store).toContain('aria-label="Compartir"');
+    expect(store).toContain('onClick={handleShare}');
+    // La ficha conserva su botón de compartir (ahí no se tocó nada).
+    const detail = read('../views/DetailView.jsx');
+    expect(detail).toContain('setShowShareCard(true)');
+    expect(detail).toContain('<ShareCardSheet biz={selected}');
   });
 
   it('la hoja en modo menú arranca en «Para pedir» y espera a los platillos', () => {
