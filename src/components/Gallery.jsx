@@ -147,6 +147,9 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
       {total > 1 && (
         <div
           ref={thumbsRef}
+          // Desvanecido solo cuando las miniaturas desbordan: con 5 o
+          // menos van centradas y no hay nada que deslizar.
+          className={total > 5 ? "scroll-fade-x" : undefined}
           style={{
             display: "flex",
             justifyContent: total <= 5 ? "center" : "flex-start",

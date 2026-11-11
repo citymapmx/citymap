@@ -125,7 +125,7 @@ export default function NoMenuLanding({ business, T, dark, onBack }) {
         <div style={{ width: '100%', maxWidth: 560, marginTop: 32, textAlign: 'left' }}>
           <h3 style={{ fontSize: 18, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', margin: '0 0 4px' }}>{eventsTitle}</h3>
           <p style={{ fontSize: 13, color: dark ? '#A1A1AA' : '#71717A', margin: '0 0 14px' }}>Mientras tanto, esto hay en {cityName}.</p>
-          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
+          <div className="scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
             {eventsToShow.map(ev => {
               const img = ev.img_url || ev.img;
               return (

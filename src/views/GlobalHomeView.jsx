@@ -460,7 +460,7 @@ export default function GlobalHomeView() {
                 <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>{t("home_explora_por_ciudad", "Explora por ciudad")}</h2>
                 <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, whiteSpace: 'nowrap' }}>{t("home_ver_todas_ciudades", "Ver todas las ciudades")} →</span>
               </div>
-              <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+              <div className="scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
                 {[0, 1, 2, 3, 4].map((i) => (
                   <div key={i} style={{ flex: '0 0 168px', height: 132, borderRadius: 16, background: dark ? '#1e1e1e' : '#f1f1f1' }} />
                 ))}
@@ -471,7 +471,7 @@ export default function GlobalHomeView() {
                (casi todo el CLS 0.44 del reporte nuevo) */}
             <section style={{ marginBottom: 32 }} aria-hidden="true">
               <div style={{ width: 220, height: 22, borderRadius: 8, background: dark ? '#1e1e1e' : '#f1f1f1', marginBottom: 14 }} />
-              <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+              <div className="scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
                 {[0, 1, 2].map((i) => (
                   <div key={i} style={{ flex: '0 0 170px', aspectRatio: '3 / 4', borderRadius: 16, background: dark ? '#1e1e1e' : '#f1f1f1' }} />
                 ))}
@@ -480,7 +480,7 @@ export default function GlobalHomeView() {
             {[0, 1].map((s) => (
               <section key={s} style={{ marginBottom: 32 }} aria-hidden="true">
                 <div style={{ width: 220, height: 22, borderRadius: 8, background: dark ? '#1e1e1e' : '#f1f1f1', marginBottom: 14 }} />
-                <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                <div className="scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
                   {[0, 1, 2].map((i) => (
                     <div key={i} style={{ flex: '0 0 240px', height: 168, borderRadius: 16, background: dark ? '#1e1e1e' : '#f1f1f1' }} />
                   ))}
@@ -489,7 +489,7 @@ export default function GlobalHomeView() {
             ))}
             <section style={{ marginBottom: 32 }} aria-hidden="true">
               <div style={{ width: 220, height: 22, borderRadius: 8, background: dark ? '#1e1e1e' : '#f1f1f1', marginBottom: 14 }} />
-              <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+              <div className="scroll-fade-x" style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
                 {[0, 1].map((i) => (
                   <div key={i} style={{ flex: '0 0 260px', height: 150, borderRadius: 16, background: dark ? '#1e1e1e' : '#f1f1f1' }} />
                 ))}
@@ -590,7 +590,7 @@ export default function GlobalHomeView() {
                     {showAllCities ? <>{t("ver_menos", "Ver menos")} ←</> : <>{t("home_ver_todas_ciudades", "Ver todas las ciudades")} →</>}
                   </button>
                 </div>
-                <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                <div className="scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
                   {shownCities.map((city) => (
                     <button
                       key={city.id || city.slug}

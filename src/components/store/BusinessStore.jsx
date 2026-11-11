@@ -552,7 +552,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
 
         {/* Category Tabs */}
         {activeCategories.length > 1 && (
-          <div ref={tabsRef} style={{ padding: '0 16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div ref={tabsRef} className="scroll-fade-x" style={{ padding: '0 16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <SlidingCategoryTrack dark={dark} selectedKey={activeTabId}  style={{ display: 'inline-flex', gap: 8 }}>
               {[{id: 'all', name: 'Todos'}, ...activeCategories].map(cat => {
                 const isActive = activeTabId === cat.id;

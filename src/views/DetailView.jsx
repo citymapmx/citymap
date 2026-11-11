@@ -548,7 +548,7 @@ export default function DetailView() {
           {Array.isArray(selected.affiliate_products) && selected.affiliate_products.length > 0 && (
             <div style={{ padding: "20px 0 0" }}>
               <div className="text-base" style={{ fontWeight: 800, color: dText, marginBottom: 12, padding: "0 20px" }}>{t('detalle_productos_recomendados', 'Productos Recomendados')}</div>
-              <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 20px 10px", scrollSnapType: "x mandatory" }} className="no-scrollbar">
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 20px 10px", scrollSnapType: "x mandatory" }} className="no-scrollbar scroll-fade-x">
                 {selected.affiliate_products.map((ap, i) => (
                   <a key={i} href={ap.url} target="_blank" rel="noreferrer" style={{ flexShrink: 0, width: 140, background: T.white, borderRadius: 12, overflow: "hidden", textDecoration: "none", border: `1px solid ${T.border}`, scrollSnapAlign: "start", display: "flex", flexDirection: "column", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
                     <div style={{ width: "100%", height: 140, background: T.bg, position: "relative" }}>
@@ -674,7 +674,7 @@ export default function DetailView() {
                 </div>
 
                 {!isSinglePdf && (
-                  <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 10, scrollSnapType: "x mandatory" }} className="no-scrollbar">
+                  <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 10, scrollSnapType: "x mandatory" }} className="no-scrollbar scroll-fade-x">
                     {menuUrls.slice(0, 3).map((url, i) => (
                       <div key={i} onClick={() => setShowMenuGallery(true)} style={{ flexShrink: 0, width: 140, height: 180, borderRadius: 12, overflow: "hidden", background: "transparent", scrollSnapAlign: "start", cursor: "pointer", border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, position: "relative" }}>
                         <img src={getThumbUrl(url, 400, 600)} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={isCatalog ? t('detalle_catalogo', 'Catálogo') : t('detalle_menu', 'Menú')} />
@@ -757,7 +757,7 @@ export default function DetailView() {
                 <div className="text-base" style={{ fontWeight: 800, color: dText }}>{t('detalle_agenda', 'Agenda')}</div>
                 <div className="text-xs" style={{ color: dSub, fontWeight: 600 }}>{bizEvents.length} {bizEvents.length === 1 ? t('detalle_evento', 'evento') : t('detalle_eventos', 'eventos')}</div>
               </div>
-              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingLeft: 20, paddingRight: 20, paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+              <div className="scroll-fade-x" style={{ display: "flex", gap: 12, overflowX: "auto", paddingLeft: 20, paddingRight: 20, paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
                 {bizEvents.map(ev => {
                   const d = fmtDate(ev.date);
                   return (

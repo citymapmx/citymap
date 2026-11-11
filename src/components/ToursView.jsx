@@ -148,7 +148,7 @@ export default function ToursView({ T, dark, cities, initialTours }) {
         {visibleGroups.map((g) => (
           <section key={g.slug} style={{ marginBottom: 32 }}>
             <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 14px' }}>{g.name} · {g.count} {g.count === 1 ? 'tour' : 'tours'}</h2>
-            <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+            <div className="scroll-fade-x" style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
               {g.tours.map((tour) => (
                 <TourCard key={tour.id || tour.slug} tour={tour} T={T} onOpen={openTour} />
               ))}

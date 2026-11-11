@@ -10,7 +10,7 @@ export default function StorePromotions({products = [],intent,timeZone,T,onSelec
   if(!active.length) return null;
   return <section aria-label="Promociones del menú" style={{margin:'4px 0 18px'}}>
     <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:12,margin:'0 16px 10px'}}><h2 style={{fontSize:18,letterSpacing:-.3,fontWeight:800,margin:0,color:T.text}}>Promociones</h2>{active.length>1&&<span style={{fontSize:12,color:T.sub}}>Desliza para ver más</span>}</div>
-    <div style={{display:'flex',gap:12,overflowX:'auto',scrollSnapType:'x mandatory',scrollbarWidth:'none',padding:'0 16px 4px'}}>
+    <div className="scroll-fade-x" style={{display:'flex',gap:12,overflowX:'auto',scrollSnapType:'x mandatory',scrollbarWidth:'none',padding:'0 16px 4px'}}>
       {active.map(product=>{const p=product.promotion,promoted=getPromotionProduct(product,timeZone),current=getProductDisplayPrice(promoted),original=getProductDisplayPrice(product);return <article key={product.id} style={{flex:`0 0 ${active.length>1?'88%':'100%'}`,minWidth:0,scrollSnapAlign:'center',background:'#30120E',color:'#fff',borderRadius:20,overflow:'hidden',position:'relative',boxSizing:'border-box'}}>
         {product.image_url&&<img src={getThumbUrl(product.image_url,800)} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:.58}}/>}
         <div style={{position:'absolute',inset:0,background:'linear-gradient(90deg,rgba(29,12,8,.96) 0%,rgba(29,12,8,.78) 52%,rgba(29,12,8,.12) 100%)'}}/>

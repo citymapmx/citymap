@@ -423,6 +423,7 @@ export default function MapView() {
                       <div 
                         ref={scrollRef}
                         onScroll={handleScroll}
+                        className="scroll-fade-x"
                         style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, scrollbarWidth: "none", alignItems: "flex-start" }}
                       >
                         {renderedNearby.map(b => {
