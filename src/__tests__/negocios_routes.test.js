@@ -50,11 +50,14 @@ describe('ruta /negocios registrada en todas las listas del sistema', () => {
     expect(m[1]).toContain("'/negocios'");
   });
 
-  it('App.jsx: nonHomePrefixes de la rama de carga incluye /negocios', () => {
-    const src = read('../App.jsx');
-    const m = src.match(/const nonHomePrefixes = \[([^\]]+)\]/);
+  it('initialRoute.js: NON_HOME_PREFIXES_INIT de la rama de carga incluye /negocios', () => {
+    // La lista de la rama de carga vive en src/lib/initialRoute.js
+    // (NON_HOME_PREFIXES_INIT) y App.jsx la usa vía isStayOnInitialPath.
+    const src = read('../lib/initialRoute.js');
+    const m = src.match(/export const NON_HOME_PREFIXES_INIT = \[([\s\S]*?)\];/);
     expect(m).not.toBeNull();
     expect(m[1]).toContain("'/negocios'");
+    expect(read('../App.jsx')).toContain('isStayOnInitialPath(currentPath)');
   });
 
   it('useAppInitialization.js: SYSTEM_ROUTES incluye "negocios"', () => {
