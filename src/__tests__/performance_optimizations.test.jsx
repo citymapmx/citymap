@@ -95,13 +95,12 @@ describe('Performance Optimizations - Banner & Event Loading', () => {
       );
 
       // Should render the event cards and NOT the skeleton loader!
-      expect(html).toContain('Eventos en guadalajara');
+      // (La rueda 3D del PR #192 reemplazó la lista vieja: el encabezado
+      // es "Próximos eventos", no "Eventos en guadalajara"; con 2 eventos
+      // es hilera simple, sin prioridad en las imágenes.)
+      expect(html).toContain('Próximos eventos');
       expect(html).toContain('Festival Gourmet');
-      // Should NOT contain the skeleton height: 180px
-      expect(html).not.toContain('height:180px');
-      // First 2 images should have eager/priority loading
-      expect(html).toContain('loading="eager"');
-      expect(html).toContain('fetchPriority="high"');
+      expect(html).not.toContain('skel-block');
     });
 
     it('shows skeleton when dbReady is false and NO events exist', () => {
@@ -117,9 +116,11 @@ describe('Performance Optimizations - Banner & Event Loading', () => {
         />
       );
 
-      // Skeleton should be rendered
-      expect(html).toContain('Eventos en guadalajara');
-      expect(html).toContain('height:180px');
+      // Skeleton should be rendered (CoverflowSk del PR #188, geometría
+      // corregida en la Fase 2); el estado vacío honesto solo aparece
+      // cuando la secundaria ya resolvió (PR #202).
+      expect(html).toContain('skel-block');
+      expect(html).not.toContain('todavía no hay eventos');
     });
   });
 

@@ -103,6 +103,9 @@ export default function HomeView({ isBackground }) {
   const toast$ = useUIStore(s => s.toast$);
 
   const dbReady = useDataStore(s => s.dbReady);
+  const dbError = useDataStore(s => s.dbError);
+  const homeCoreCity = useDataStore(s => s.homeCoreCity);
+  const homeSecondaryCity = useDataStore(s => s.homeSecondaryCity);
   const cats = useDataStore(s => s.cats);
   const banners = useDataStore(s => s.banners);
   const globalFavCounts = useDataStore(s => s.globalFavCounts);
@@ -551,12 +554,15 @@ export default function HomeView({ isBackground }) {
 
           
           {/* ── BANNERS ── */}
+          {/* Mientras la carga principal no termina, BannerSlider reserva
+              el hueco del banner (loading) para que nada salte al aparecer;
+              si ya cargó y no hay banners, no reserva nada. */}
           {!search && activeCat === "explorar" && (
-            <BannerSlider activeBanners={activeBannersMemo} />
+            <BannerSlider activeBanners={activeBannersMemo} loading={homeCoreCity !== activeCity && !dbError} />
           )}
 
           {/* ── EVENTOS ── */}
-          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} dark={dark} t={t} lang={lang} handleEventTap={handleEventTap} T={T} city={city} cities={cities} nearbyEvents={nearbyEvents} onRequestNearbyEvents={loadNearbyEvents} />}
+          {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} secondaryReady={homeSecondaryCity === activeCity} dark={dark} t={t} lang={lang} handleEventTap={handleEventTap} T={T} city={city} cities={cities} nearbyEvents={nearbyEvents} onRequestNearbyEvents={loadNearbyEvents} />}
 
           {/* ── LUGAR DEL DÍA (Recomendación) ── */}
           {/* Esqueleto del spotlight mientras cargan los negocios: misma altura (240 px)

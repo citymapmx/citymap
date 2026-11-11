@@ -45,8 +45,12 @@ export default function BrandSplash({
         pointerEvents: fading ? "none" : "auto",
       }}
     >
+      {/* Logo en PNG (11 KB) en vez del SVG (99 KB, con un PNG base64
+          dentro): mismo logo blanco sobre negro, a 200 px se ve igual
+          (el PNG es de 400 px, 2x) y la primera pintura descarga 61 KB
+          menos, que antes competían con la imagen del héroe. */}
       <img
-        src="/logo-brand.svg"
+        src="/logo-brand.png"
         alt="CityMap"
         width={200}
         style={{ width: 200, maxWidth: "60%", objectFit: "contain", display: "block" }}

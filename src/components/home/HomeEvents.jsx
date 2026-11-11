@@ -14,7 +14,7 @@ import { cityDisplayName } from '../../lib/nearbyEvents.js';
 // de inicio y su píldora muestra el rango ("28 NOV — 6 DIC", o "HASTA
 // 6 DIC" si ya empezó) en vez de solo el día de inicio. La rueda muestra
 // los 10 más próximos; la lista completa sigue en la pestaña Eventos.
-export default memo(function HomeEvents({events = [], activeCity, userCoords, dbReady, dark, handleEventTap, T, t = (k, f) => (f !== undefined ? f : k), lang = 'es', cities = [], nearbyEvents = [], onRequestNearbyEvents}) {
+export default memo(function HomeEvents({events = [], activeCity, userCoords, dbReady, secondaryReady = true, dark, handleEventTap, T, t = (k, f) => (f !== undefined ? f : k), lang = 'es', cities = [], nearbyEvents = [], onRequestNearbyEvents}) {
   const timeZone = CITY_TZ[activeCity];
   const [today, setToday] = useState(() => eventDayKey(new Date(), timeZone));
   useEffect(() => {
@@ -49,7 +49,14 @@ export default memo(function HomeEvents({events = [], activeCity, userCoords, db
     if (!all.length && dbReady && onRequestNearbyEvents) onRequestNearbyEvents(activeCity);
   }, [all.length, dbReady, activeCity, onRequestNearbyEvents]);
   if (!all.length) {
-    if (!dbReady) return <CoverflowSk dark={dark}/>;
+    // Sin eventos todavía: el esqueleto mientras falte CUALQUIER carga
+    // (la principal o la secundaria, que trae los eventos). Antes, al
+    // hacerse dbReady=true con los eventos aún en camino, se pintaba un
+    // instante el estado vacío (~123 px) y luego la rueda (355 px): la
+    // tarjeta de abajo saltaba dos veces (CLS 0.129 + 0.076). El estado
+    // vacío honesto solo aparece cuando la secundaria ya resolvió y
+    // confirmó que no hay eventos.
+    if (!dbReady || !secondaryReady) return <CoverflowSk dark={dark}/>;
     // Estado vacío honesto: la ciudad no tiene eventos, pero hay cerca.
     // Cada evento cercano lleva su ciudad visible en su fila, nunca se
     // presenta como si fuera de esta ciudad.

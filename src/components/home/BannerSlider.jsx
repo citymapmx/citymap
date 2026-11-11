@@ -1,6 +1,7 @@
 import React from "react";
 import { m, AnimatePresence } from "framer-motion";
 import OptimizedImage from "../ui/OptimizedImage.jsx";
+import { Sk } from "../ui/Skeleton.jsx";
 import { SRCSET_BANNER } from "../../lib/utils.js";
 import { useUIStore } from "../../store/useUIStore.js";
 import { useTranslation } from "../../hooks/useTranslation.js";
@@ -46,7 +47,7 @@ const slideVariants = {
   exit: (dir) => ({ x: dir >= 0 ? "-100%" : "100%", opacity: 0 }),
 };
 
-export default function BannerSlider({ activeBanners }) {
+export default function BannerSlider({ activeBanners, loading = false }) {
   const { t } = useTranslation();
   const dark = useUIStore(s => s.dark);
   const [idx, setIdx] = React.useState(0);
@@ -79,7 +80,18 @@ export default function BannerSlider({ activeBanners }) {
     return () => clearInterval(interval);
   }, [activeBanners, idx, count]);
 
-  if (count === 0) return null;
+  // Sin banners todavía: si aún se están cargando, se reserva el hueco
+  // exacto del banner (margen 6px 20px 8px + 21/9) para que la rueda y lo
+  // de abajo no salten cuando aparece; si ya se cargó y no hay banners,
+  // no se reserva nada. El Sk usa el mismo fondo que los esqueletos.
+  if (count === 0) {
+    if (!loading) return null;
+    return (
+      <div style={{ margin: "6px 20px 8px" }} aria-hidden="true">
+        <Sk w="100%" h={undefined} r={14} dark={dark} style={{ aspectRatio: "21/9", height: "auto" }} />
+      </div>
+    );
+  }
 
   const safeIdx = idx % count;
   const bn = activeBanners[safeIdx];

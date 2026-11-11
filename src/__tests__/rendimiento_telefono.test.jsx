@@ -12,24 +12,31 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // 467 KiB). Cada cambio con su número medido está en su prueba.
 
 describe('rendimiento teléfono: el esqueleto de la rueda mide como la rueda (CLS)', () => {
-  it('CoverflowSk tiene la geometría de EventWheel3D (encabezado + 306 px + pie + 32 px)', () => {
+  it('CoverflowSk tiene la geometría de EventWheel3D (encabezado + tambor + pie + 32 px)', () => {
     const html = renderToStaticMarkup(<CoverflowSk dark={false} />);
-    // Tambor de 306 px (EventWheel3D.css: .event-wheel-viewport) y 32 px
-    // abajo (.event-wheel{margin:0 0 32px}): si el esqueleto mide menos,
-    // la página salta al llegar los eventos.
-    expect(html).toContain('height:306px');
+    // Tambor con la misma altura que .event-wheel-viewport: 306 px en
+    // escritorio y 262 px en el teléfono (mismo punto de corte, 640 px).
+    // Medido en vivo en /tepic (412 px): la rueda real mide 355 px
+    // (encabezado 26 + 16 + tambor 262 + pie 51); el esqueleto anterior
+    // medía 432 px y la página saltaba 77 px al llegar los eventos.
+    expect(html).toContain('.coverflow-sk-drum');
+    expect(html).toContain('height: 306px');
+    expect(html).toContain('height: 262px');
     expect(html).toContain('margin:0 0 32px');
     // El pie de la rueda (puntos + nombre del evento) también va en el
     // esqueleto, con su misma altura, para que no salte al llegar.
     expect(html).toContain('width:80px');
     expect(html).toContain('height:8px');
-    expect(html).toContain('height:20px');
-    // El encabezado (título + subtítulo) va ARRIBA del tambor, como en la
-    // rueda; antes el bloque medía clamp(240px, 70vw, 326px) con el texto
-    // debajo, ~70 px menos que la rueda en el teléfono.
+    expect(html).toContain('height:21px');
+    // El encabezado es UNA línea (26 px, como el h2 de la rueda): la
+    // rueda ya no tiene subtítulo desde el PR #196, y el esqueleto
+    // llevaba dos líneas (19 + 18 px), 16 px de más.
+    expect(html).toContain('height:26px');
+    expect(html).not.toContain('height:19px');
+    expect(html).not.toContain('height:12px');
     expect(html).not.toContain('clamp(240px');
-    const headerPos = html.indexOf('height:19px');
-    const blockPos = html.indexOf('height:306px');
+    const headerPos = html.indexOf('height:26px');
+    const blockPos = html.indexOf('class="coverflow-sk-drum"');
     expect(headerPos).toBeGreaterThan(-1);
     expect(blockPos).toBeGreaterThan(-1);
     expect(headerPos).toBeLessThan(blockPos);
@@ -46,9 +53,9 @@ describe('rendimiento teléfono: caché de 24 h para los archivos de public/ (ve
     expect(rule).toBeDefined();
   });
 
-  it('la regla cubre /logo-brand.svg y /favicon.png pero no /assets/ ni el HTML', () => {
+  it('la regla cubre /logo-brand.png y /favicon.png pero no /assets/ ni el HTML', () => {
     const re = new RegExp(`^${rule.source}$`);
-    expect(re.test('/logo-brand.svg')).toBe(true);
+    expect(re.test('/logo-brand.png')).toBe(true);
     expect(re.test('/favicon.png')).toBe(true);
     expect(re.test('/Coolvetica Rg.otf')).toBe(true);
     expect(re.test('/manifest.webmanifest')).toBe(true);

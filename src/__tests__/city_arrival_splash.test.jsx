@@ -19,7 +19,7 @@ describe('city arrival splash', () => {
   it('shows the brand splash: black background, official logo and three white dots', () => {
     const html = renderSplash();
     expect(html).toContain('background:#000');
-    expect(html).toContain('/logo-brand.svg');
+    expect(html).toContain('/logo-brand.png');
     expect(html).toContain('three-dots-bounce');
     expect(html).toContain('background:#fff');
     expect(html).toContain('Preparando Zapopan');
