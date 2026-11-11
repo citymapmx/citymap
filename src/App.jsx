@@ -1657,8 +1657,11 @@ useEffect(() => {
         <EventReminderPrompt />
 
         {/* ════ DETALLE EVENTO ════ */}
+        {/* Solo se monta cuando hay un evento seleccionado: el componente
+            no pinta nada sin selectedEvent, y montarlo siempre descargaba
+            su chunk (13,4 KB) en cada carga inicial aunque nunca se abriera. */}
         <Suspense fallback={null}>
-          <EventDetailModal savedEventIds={savedEventIds} setSavedEventIds={setSavedEventIds} />
+          {selectedEvent && <EventDetailModal savedEventIds={savedEventIds} setSavedEventIds={setSavedEventIds} />}
         </Suspense>
 
         {showLocPicker && <Suspense fallback={<LoaderFallback/>}><MapPicker

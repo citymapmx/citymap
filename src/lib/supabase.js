@@ -385,7 +385,10 @@ const sb = {
 // `private, no-cache` (URL cruda) y `max-age=3600` (URL transformada).
 // Verificado 10 nov 2026 con una subida de prueba: la transformada sirvió
 // `Cache-Control: max-age=86400`.
-const STORAGE_CACHE_CONTROL = "max-age=86400";
+// Caché de las subidas a Storage: 1 año. Las rutas son inmutables (cada
+// subida tiene una ruta única), así que un max-age largo es seguro; con
+// 24 h PageSpeed marcaba ~490 KiB con caché corta en cada carga.
+const STORAGE_CACHE_CONTROL = "max-age=31536000";
 
 async function cloudUpload(file, onPct = () => {}, folder = "cityguide") {
   const ext = file.name.split('.').pop();
