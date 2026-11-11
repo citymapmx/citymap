@@ -108,23 +108,32 @@ export function EventSk({ dark }) {
   );
 }
 
-// Esqueleto con la misma altura que el carrusel de eventos (EventCoverflow):
-// escenario clamp(240px, 70vw, 326px) + título y subtítulo centrados.
+// Esqueleto con la misma altura que el carrusel de eventos (EventWheel3D):
+// encabezado + tambor de 306 px + pie (puntos + nombre del evento).
 // Evita que el contenido de abajo salte cuando llegan los eventos.
 export function CoverflowSk({ dark }) {
-  // Misma geometría que EventWheel3D (encabezado + tambor de 300 px +
-  // 32 px abajo): si el esqueleto mide distinto que la rueda, la página
-  // salta ~70 px al llegar los eventos (parte del CLS 0.23 de PageSpeed).
-  // El bloque de antes medía clamp(240px, 70vw, 326px) con el texto
-  // debajo, ~70 px menos que la rueda en el teléfono.
+  // Misma geometría que EventWheel3D (encabezado + tambor de 306 px +
+  // pie de ~71 px + 32 px abajo): si el esqueleto mide distinto que la
+  // rueda, la página salta al llegar los eventos (parte del CLS 0.23 de
+  // PageSpeed). El bloque de antes medía clamp(240px, 70vw, 326px) con el
+  // texto debajo, ~70 px menos que la rueda en el teléfono.
   return (
     <div style={{ margin: '0 0 32px' }}>
       <div style={{ margin: '0 20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
         <Sk w="60%" h={19} r={6} dark={dark} />
         <Sk w="40%" h={18} r={6} dark={dark} />
       </div>
-      <div style={{ height: 300, padding: '0 20px' }}>
+      <div style={{ height: 306, padding: '0 20px' }}>
         <Sk w="100%" h="100%" r={14} dark={dark} />
+      </div>
+      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center' }}>
+        <Sk w={80} h={8} r={999} dark={dark} />
+      </div>
+      <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center' }}>
+        <Sk w="60%" h={20} r={6} dark={dark} />
+      </div>
+      <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center' }}>
+        <Sk w={90} h={12} r={6} dark={dark} />
       </div>
     </div>
   );

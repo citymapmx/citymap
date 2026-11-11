@@ -3,27 +3,35 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { SRCSET_CARD, SRCSET_THUMB } from '../../lib/utils.js';
 import { wheelFrontIndex, wheelNearFaces } from '../../lib/wheelPreload.js';
+import {
+  WHEEL_AUTO_RESUME_MS,
+  WHEEL_FACE_W,
+  WHEEL_FACE_W_MOBILE,
+  wheelAutoStep,
+  wheelFaceRadius,
+  wheelShouldAutoRotate,
+} from '../../lib/wheelMotion.js';
 import EventPosterFallback from './EventPosterFallback.jsx';
 import { faceBrightness, normalizeAngleDeg, springSettled, springStep } from '../../lib/spring.js';
 import { useTranslation } from '../../hooks/useTranslation.js';
 
-// Rueda 3D de eventos para el inicio global y las páginas de ciudad, como
-// el "Museo de eventos" de QuePlan: los próximos 10 eventos en un tambor
-// que gira solo, con el diseño claro del carrusel de ciudad: sin banda
-// oscura ni ficha debajo, solo el tambor con el título encima. Cada póster
-// lleva una etiqueta discreta al pie: en el inicio global, el nombre de su
-// ciudad (cityName); en la página de ciudad, la fecha del evento
-// (pillLabel). El subtítulo también cambia según la página.
+// Rueda 3D de eventos para el inicio global y las páginas de ciudad,
+// opción #5 elegida por Jonathan (PR #192): un cilindro con tarjetas de
+// SOLO IMAGEN — el póster completo, sin título, fecha ni precio encima —
+// casi pegadas entre sí, que gira solo de forma continua y fluida (una
+// vuelta en ~33 s). Debajo de la rueda van los puntos, las flechas, el
+// nombre del evento de enfrente y el estado del giro. El giro se pausa al
+// pasar el mouse, al tocar o al esconder la pestaña, y se reanuda solo
+// unos segundos después de un salto manual (flecha, punto o lanzamiento
+// con el dedo). Con prefers-reduced-motion no gira solo.
 //
-// Idea 6 de motion.dev (Coverflow): el giro no es una transición CSS de
-// cara en cara, sino un resorte físico — el tambor lleva velocidad e
-// inercia, se puede lanzar con el dedo y se asienta con un leve sobrepaso.
-// La cara del frente brilla más y las vecinas se apagan un poco, como en
-// el Coverflow.
+// El giro continuo lo mueve un bucle requestAnimationFrame (el tambor
+// avanza a velocidad constante); los saltos manuales y los lanzamientos
+// siguen usando el resorte físico de antes, que se asienta con un leve
+// sobrepaso. La cara del frente brilla más y las vecinas se apagan un
+// poco, como en el Coverflow.
 const MAX_FACES = 10;
-const FACE_W = 160;
-const AUTO_MS = 4000;
-// La cara del frente se ve a ~212 px CSS y en el teléfono a 3x son ~640 px
+// La cara del frente se ve a ~216 px CSS y en el teléfono a 3x son ~650 px
 // de dispositivo: a 400 px el póster se veía blando. A 800 px se ve nítido.
 const WHEEL_IMG_W = 800;
 
@@ -38,9 +46,21 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   const [rotation, setRotation] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [held, setHeld] = useState(false);
   const [tabHidden, setTabHidden] = useState(false);
   const [canHover] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(hover: hover) and (pointer: fine)').matches));
   const [reducedMotion] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches));
+  // Formato corto de la tarjeta: nominal 162 px en escritorio, 140 px en
+  // teléfono (la perspectiva la magnifica a ~216 px y ~178 px al frente).
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 640px)').matches));
+  useEffect(() => {
+    const mq = typeof window !== 'undefined' ? window.matchMedia?.('(max-width: 640px)') : null;
+    if (!mq) return;
+    const onChange = () => setIsMobile(mq.matches);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+  const faceW = isMobile ? WHEEL_FACE_W_MOBILE : WHEEL_FACE_W;
   const indexRef = useRef(0);
   const rotationRef = useRef(0);
   const velocityRef = useRef(0);
@@ -48,9 +68,27 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   const rafRef = useRef(null);
   const dragRef = useRef(null);
   const movedRef = useRef(false);
+  const resumeTimerRef = useRef(null);
+  const holdUntilRef = useRef(0);
+  // Espejos en refs de lo que el bucle de animación necesita leer sin
+  // quedarse con un cierre viejo.
+  const pausedRef = useRef(false);
+  const draggingRef = useRef(false);
+  const tabHiddenRef = useRef(false);
+  const nRef = useRef(n);
+  const stepRef = useRef(0);
+  const reducedMotionRef = useRef(reducedMotion);
 
   const step = n >= 3 ? 360 / n : 0;
-  const radius = n >= 3 ? Math.round((FACE_W / 2) / Math.tan(Math.PI / n)) : 0;
+  // Cilindro cerrado: la apotema del polígono deja las caras tocándose en
+  // los bordes (casi pegadas, sin hueco entre tarjetas).
+  const radius = wheelFaceRadius(faceW, n);
+
+  useEffect(() => {
+    nRef.current = n;
+    stepRef.current = step;
+    reducedMotionRef.current = reducedMotion;
+  }, [n, step, reducedMotion]);
 
   // Caras con <img> montada: las cercanas al frente ahora (la del frente y
   // 2 a cada lado, wheelNearFaces) más las que ya estuvieron cerca
@@ -65,47 +103,95 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     wheelNearFaces(frontIdx, n).forEach((i) => s.add(i));
   }, [frontIdx, n]);
 
-  const stopSpring = useCallback(() => {
+  const setPausedBoth = useCallback((v) => {
+    pausedRef.current = v;
+    setPaused(v);
+  }, []);
+  const setDraggingBoth = useCallback((v) => {
+    draggingRef.current = v;
+    setDragging(v);
+  }, []);
+
+  const stopLoop = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
   }, []);
 
-  useEffect(() => stopSpring, [stopSpring]);
-
-  // Bucle del resorte: integra hasta asentarse sobre la cara objetivo.
-  const startSpring = useCallback(() => {
-    if (rafRef.current || reducedMotion) return;
+  // Un solo bucle: integra el resorte si hay un salto en marcha; si no,
+  // avanza el giro continuo; si no hay nada que animar, se para (lo vuelve
+  // a arrancar el efecto de abajo o el temporizador de reanudación).
+  const ensureLoop = useCallback(() => {
+    if (rafRef.current || typeof window === 'undefined') return;
     let last = performance.now();
     const tick = (now) => {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
-      const t = targetRef.current;
-      if (!t) {
-        rafRef.current = null;
-        return;
-      }
-      const s = springStep(rotationRef.current, velocityRef.current, t.rotation, dt);
-      rotationRef.current = s.x;
-      velocityRef.current = s.v;
-      setRotation(s.x);
-      // La cara del frente se confirma cuando el póster casi llegó.
-      if (Math.abs(s.x - t.rotation) < 8 && indexRef.current !== t.index) {
-        indexRef.current = t.index;
-      }
-      if (springSettled(s.x, s.v, t.rotation)) {
-        rotationRef.current = t.rotation;
-        velocityRef.current = 0;
-        setRotation(t.rotation);
-        if (indexRef.current !== t.index) {
-          indexRef.current = t.index;
+      const target = targetRef.current;
+      if (target) {
+        const s = springStep(rotationRef.current, velocityRef.current, target.rotation, dt);
+        rotationRef.current = s.x;
+        velocityRef.current = s.v;
+        setRotation(s.x);
+        // La cara del frente se confirma cuando el póster casi llegó.
+        if (Math.abs(s.x - target.rotation) < 8 && indexRef.current !== target.index) {
+          indexRef.current = target.index;
         }
-        rafRef.current = null;
+        if (springSettled(s.x, s.v, target.rotation)) {
+          rotationRef.current = target.rotation;
+          velocityRef.current = 0;
+          setRotation(target.rotation);
+          if (indexRef.current !== target.index) {
+            indexRef.current = target.index;
+          }
+          targetRef.current = null;
+          // El giro solo se reanuda tras la pausa: si el bucle se para
+          // aquí, el temporizador lo vuelve a arrancar.
+          holdUntilRef.current = performance.now() + WHEEL_AUTO_RESUME_MS;
+          setHeld(true);
+          if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+          resumeTimerRef.current = setTimeout(() => {
+            setHeld(false);
+            ensureLoop();
+          }, WHEEL_AUTO_RESUME_MS);
+          rafRef.current = null;
+          return;
+        }
+        rafRef.current = requestAnimationFrame(tick);
         return;
       }
-      rafRef.current = requestAnimationFrame(tick);
+      if (wheelShouldAutoRotate({
+        paused: pausedRef.current,
+        dragging: draggingRef.current,
+        tabHidden: tabHiddenRef.current,
+        reducedMotion: reducedMotionRef.current,
+        hasTarget: false,
+        heldUntil: holdUntilRef.current,
+        now,
+      })) {
+        rotationRef.current = wheelAutoStep(rotationRef.current, dt);
+        // La rotación se mantiene en una vuelta para que el número no
+        // crezca sin límite (360° es múltiplo del paso: mismo ángulo).
+        if (rotationRef.current <= -360) rotationRef.current += 360;
+        const front = nRef.current >= 3 ? wheelFrontIndex(rotationRef.current, stepRef.current, nRef.current) : 0;
+        if (front !== indexRef.current) indexRef.current = front;
+        setRotation(rotationRef.current);
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      rafRef.current = null;
     };
     rafRef.current = requestAnimationFrame(tick);
-  }, [reducedMotion]);
+  }, []);
+
+  // Arranca (o reanuda) el giro al montar y cada vez que cambia algo que
+  // lo pausa; al desmontar se cancela el bucle y el temporizador.
+  useEffect(() => {
+    ensureLoop();
+  }, [paused, dragging, tabHidden, reducedMotion, n, ensureLoop]);
+  useEffect(() => () => {
+    stopLoop();
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+  }, [stopLoop]);
 
   // Gira a la cara target por el camino más corto, desde donde esté el
   // tambor (puede ir a mitad de giro). v0 es la velocidad inicial en
@@ -120,6 +206,8 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     // la rotación objetivo. Si quedó descentrado tras un arrastre corto,
     // el resorte lo vuelve al centro en vez de dejarlo torcido.
     if (!rafRef.current && Math.abs(snapped - rotationRef.current) < 0.5) return;
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    setHeld(false);
     targetRef.current = { index: nextIndex, rotation: snapped };
     // Si el resorte ya va en marcha, conserva su velocidad (el giro sigue
     // fluido al cambiar de objetivo); solo se fija v0 al arrancar parado.
@@ -128,35 +216,40 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
       rotationRef.current = snapped;
       velocityRef.current = 0;
       indexRef.current = nextIndex;
+      targetRef.current = null;
       setRotation(snapped);
       return;
     }
-    startSpring();
-  }, [n, step, reducedMotion, startSpring]);
+    ensureLoop();
+  }, [n, step, reducedMotion, ensureLoop]);
 
-  // Avance automático, en pausa al tocar, arrastrar, pasar el mouse o
-  // esconder la pestaña. Con reduced-motion no gira solo.
-  useEffect(() => {
-    if (n < 3 || paused || dragging || tabHidden || reducedMotion) return;
-    const t = setInterval(() => goTo(((targetRef.current?.index ?? indexRef.current) + 1) % n), AUTO_MS);
-    return () => clearInterval(t);
-  }, [n, paused, dragging, tabHidden, reducedMotion, goTo]);
+  // Salto manual (flecha o punto): resorte a esa cara; el giro solo se
+  // reanuda solo tras la pausa (ver el bucle).
+  const jumpTo = useCallback((target) => goTo(target), [goTo]);
+  const stepBy = useCallback((dir) => {
+    if (n < 3) return;
+    goTo(((targetRef.current?.index ?? indexRef.current) + dir + n) % n);
+  }, [n, goTo]);
 
   useEffect(() => {
-    const onVis = () => setTabHidden(document.hidden);
+    const onVis = () => {
+      tabHiddenRef.current = document.hidden;
+      setTabHidden(document.hidden);
+    };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
 
   const onPointerDown = (e) => {
     if (n < 3) return;
-    stopSpring();
+    stopLoop();
     targetRef.current = null;
     velocityRef.current = 0;
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
     dragRef.current = { x: e.clientX, rotation: rotationRef.current, t: performance.now(), v: 0 };
     movedRef.current = false;
-    setDragging(true);
-    setPaused(true);
+    setDraggingBoth(true);
+    setPausedBoth(true);
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
 
@@ -179,8 +272,8 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     const d = dragRef.current;
     if (!d) return;
     dragRef.current = null;
-    setDragging(false);
-    setPaused(false);
+    setDraggingBoth(false);
+    setPausedBoth(false);
     if (!movedRef.current) {
       const el = typeof document !== 'undefined' ? document.elementFromPoint(e.clientX, e.clientY) : null;
       const face = el?.closest?.('[data-face]');
@@ -207,8 +300,10 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     </header>
   );
 
-  // Etiqueta discreta al pie del póster: la ciudad (inicio global) o la
-  // fecha del evento (página de ciudad, vía pillLabel).
+  // Etiqueta discreta al pie del póster: solo en la hilera simple (menos
+  // de 3 eventos, sin tambor): la ciudad (inicio global) o la fecha del
+  // evento (página de ciudad, vía pillLabel). En el tambor las tarjetas
+  // son solo imagen, sin texto encima.
   const pill = (item) => {
     const label = pillLabel ? pillLabel(item) : cityName?.(item.citySlug);
     if (!label) return null;
@@ -238,6 +333,9 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     );
   }
 
+  const frontItem = items[frontIdx];
+  const autoActive = !paused && !dragging && !tabHidden && !held && !reducedMotion;
+
   return (
     <section className="event-wheel" aria-label={headingText}>
       {header}
@@ -248,8 +346,8 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onMouseEnter={() => { if (canHover) setPaused(true); }}
-        onMouseLeave={() => { if (canHover) setPaused(false); }}
+        onMouseEnter={() => { if (canHover) setPausedBoth(true); }}
+        onMouseLeave={() => { if (canHover) setPausedBoth(false); }}
       >
         <div className="event-wheel-drum" style={{ transform: `rotateY(${rotation}deg)` }}>
           {items.map((item, i) => {
@@ -263,12 +361,36 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
                 {item.img
                   ? (faceLoaded ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} priority={i === 0} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null)
                   : <EventPosterFallback title={item.title} radius={12} dark={T.dark} />}
-                {pill(item)}
               </div>
             );
           })}
         </div>
       </div>
+      <footer className="event-wheel-footer">
+        <div className="event-wheel-dots" role="group" aria-label={t('home_rueda_eventos', 'Eventos')}>
+          {items.map((item, i) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`event-wheel-dot${i === frontIdx ? ' event-wheel-dot-active' : ''}`}
+              style={{ background: i === frontIdx ? (T.text || '#111') : 'rgba(128,128,128,0.45)' }}
+              aria-label={`${t('home_rueda_ir_evento', 'Ir al evento')} ${i + 1}`}
+              aria-current={i === frontIdx || undefined}
+              onClick={() => jumpTo(i)}
+            />
+          ))}
+        </div>
+        <div className="event-wheel-nav">
+          <button type="button" className="event-wheel-arrow" style={{ color: T.text, borderColor: T.border }} aria-label={t('home_rueda_anterior', 'Evento anterior')} onClick={() => stepBy(-1)}>‹</button>
+          <button type="button" className="event-wheel-front-name" style={{ color: T.text }} onClick={() => onSelect?.(frontItem)}>{frontItem?.title || ''}</button>
+          <button type="button" className="event-wheel-arrow" style={{ color: T.text, borderColor: T.border }} aria-label={t('home_rueda_siguiente', 'Evento siguiente')} onClick={() => stepBy(1)}>›</button>
+        </div>
+        {!reducedMotion && (
+          <p className="event-wheel-state" style={{ color: T.sub }}>
+            {autoActive ? t('home_rueda_girando', 'Girando sola') : t('home_rueda_pausa', 'En pausa')}
+          </p>
+        )}
+      </footer>
     </section>
   );
 }

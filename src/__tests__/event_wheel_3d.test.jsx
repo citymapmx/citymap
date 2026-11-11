@@ -34,29 +34,48 @@ describe('event wheel 3D', () => {
   it('renders one drum face per event, capped at the next 10', () => {
     const html = renderWheel();
     expect(html.match(/event-wheel-face/g)).toHaveLength(10);
-    // 10 faces -> 36 deg per face, radius 246 px; the first event is in front.
-    expect(html).toContain('rotateY(0deg) translateZ(246px)');
-    expect(html).toContain('rotateY(36deg) translateZ(246px)');
-    expect(html).toContain('rotateY(324deg) translateZ(246px)');
+    // 10 caras de 162 px -> radio 249 px (apotema: las tarjetas quedan
+    // casi pegadas); la primera está al frente.
+    expect(html).toContain('rotateY(0deg) translateZ(249px)');
+    expect(html).toContain('rotateY(36deg) translateZ(249px)');
+    expect(html).toContain('rotateY(324deg) translateZ(249px)');
     // The 11th and 12th events stay out of the drum.
     expect(html).not.toContain('Evento 11');
     expect(html).not.toContain('Evento 12');
   });
 
-  it('shows the city heading, a city pill on each poster and no detail card below', () => {
+  it('shows the heading and subheading, with image-only faces (no pill, no detail card)', () => {
     const html = renderWheel();
     expect(html).toContain('Próximos eventos');
     expect(html).toContain('Los eventos que vienen en todas las ciudades');
-    expect(html.match(/event-wheel-city/g)).toHaveLength(10);
-    expect(html).toContain('Guadalajara');
-    // Sin banda oscura: ni ficha con fecha/título/corazón, ni puntos ni contador.
+    // Opción #5: las tarjetas del tambor son solo imagen, sin texto
+    // encima (sin píldora de ciudad ni de fecha).
+    expect(html).not.toContain('event-wheel-city');
+    expect(html).not.toContain('Guadalajara');
+    expect(html).not.toContain('2026-11');
     expect(html).not.toContain('event-wheel-detail');
-    expect(html).not.toContain('event-wheel-dot');
-    expect(html).not.toContain('01/10');
     expect(html).not.toContain('Ver detalles');
-    // El giro lo mueve un resorte por requestAnimationFrame, no una
+    // El giro continuo lo mueve un bucle requestAnimationFrame, no una
     // transición CSS: el tambor solo lleva el transform.
     expect(html).toContain('class="event-wheel-drum" style="transform:rotateY(0deg)"');
+  });
+
+  it('shows dots, arrows, the front event name and the rotation state below the wheel', () => {
+    const html = renderWheel();
+    // Un punto por cara, el primero activo; tocan para saltar de evento.
+    expect(html.match(/event-wheel-dot[ "]/g)).toHaveLength(10);
+    expect(html).toContain('event-wheel-dot-active');
+    expect(html).toContain('Ir al evento 1');
+    expect(html).toContain('Ir al evento 10');
+    // Flechas a los lados del nombre del evento de enfrente.
+    expect(html.match(/event-wheel-arrow/g)).toHaveLength(2);
+    expect(html).toContain('Evento anterior');
+    expect(html).toContain('Evento siguiente');
+    // El nombre del evento de enfrente se lee debajo de la rueda.
+    expect(html).toContain('event-wheel-front-name');
+    expect(html).toContain('>Evento 1</button>');
+    // En reposo (sin tocar, sin arrastrar) el giro va solo.
+    expect(html).toContain('Girando sola');
   });
 
   it('shows the black fallback with the title for events without a poster', () => {
@@ -64,7 +83,7 @@ describe('event wheel 3D', () => {
     const html = renderWheel({ events: noImg });
     expect(html).toContain('Evento 1');
     expect(html.match(/event-wheel-face/g)).toHaveLength(10);
-    expect(html.match(/event-wheel-city/g)).toHaveLength(10);
+    expect(html).not.toContain('event-wheel-city');
   });
 
   it('mounts <img> only on the faces near the front (5 of 10 at rest)', () => {
@@ -92,6 +111,9 @@ describe('event wheel 3D', () => {
     expect(html).toContain('Evento 1');
     expect(html).toContain('Evento 2');
     expect(html).toContain('Próximos eventos');
+    // La hilera simple no es el tambor: ahí sí va la píldora con la
+    // ciudad, como antes (es la única que muestra ese dato).
+    expect(html.match(/event-wheel-city/g)).toHaveLength(2);
   });
 
   it('the plain row serves 400 px posters (170 px cards, not 800 px)', () => {
@@ -106,12 +128,13 @@ describe('event wheel 3D', () => {
     expect(renderWheel({ events: [] })).toBe('');
   });
 
-  it('shows a custom pill label and subheading when provided (city pages)', () => {
+  it('shows a custom subheading when provided (city pages) and ignores pill props in the drum', () => {
     const html = renderWheel({ pillLabel: () => '13 NOV', subheading: 'Los eventos que vienen en tu ciudad' });
     expect(html).toContain('Los eventos que vienen en tu ciudad');
     expect(html).not.toContain('Los eventos que vienen en todas las ciudades');
-    expect(html.match(/event-wheel-city/g)).toHaveLength(10);
-    expect(html).toContain('13 NOV');
-    expect(html).not.toContain('Guadalajara');
+    // La píldora de fecha ya no se pinta sobre las tarjetas del tambor.
+    expect(html).not.toContain('13 NOV');
+    expect(html).not.toContain('event-wheel-city');
+    expect(html.match(/event-wheel-dot[ "]/g)).toHaveLength(10);
   });
 });
