@@ -268,13 +268,20 @@ export default memo(function BusinessCard({
               )}
             </h3>
             
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "nowrap", overflow: "hidden" }}>
+            {/* Fila de estado: envuelve en vez de recortar. En columnas
+            angostas (como la cuadrícula de planes) la calificación + el
+            horario no caben en una línea y con nowrap + overflow hidden
+            «Cerrado» se partía a media letra («• Cerrad»). Con wrap, el
+            horario baja entero a la siguiente línea; en su sección (los
+            listados, a lo ancho) cabe todo y no cambia nada. Sin medidas
+            fijas: se ajusta al ancho que tenga la tarjeta. */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap", overflow: "hidden" }}>
               {renderRatingRow(b, 0, hideReviews, hideFavs, T, {}, { fontSize: 11 }, googleRatings)}
               {!hideSchedule && !schedHidden && (
-                <>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   {!hideReviews && <span style={{ fontSize: 10, color: T.border, margin: "0 2px", flexShrink: 0 }}>·</span>}
                   {renderScheduleRow(b, T, t)}
-                </>
+                </div>
               )}
             </div>
 
@@ -439,8 +446,11 @@ export default memo(function BusinessCard({
           {/* Text overlay bottom */}
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "30px 14px 4px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
             {b.badge && <div style={{ fontSize: 9, fontWeight: 800, color: "#C9A84C", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 2 }}>{b.badge}</div>}
+            {/* El nombre puede tomar 2 líneas (mismo patrón que la variante
+            compacta): con una sola línea y elipsis, «Four Seasons Resort
+            Punta Mita» se leía «Four Seasons Resor…». */}
             <h3 style={{ fontFamily: FONT_BIZ, fontSize: 22, color: "#fff", lineHeight: 1.15, fontWeight: 800, letterSpacing: 0, marginBottom: 2, textShadow: "0 2px 4px rgba(0,0,0,0.5)", paddingRight: 8, display: "flex", alignItems: "center" }}>
-              <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</span>
+              <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{b.name}</span>
               {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
                 <img src="/verificado.png" alt={t("card_verificado", "Verificado")} width="18" height="18" style={{ marginLeft: 6, flexShrink: 0, filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.5))" }} />
               )}

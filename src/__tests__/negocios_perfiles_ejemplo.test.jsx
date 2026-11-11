@@ -110,10 +110,47 @@ describe('Ejemplos por plan en /negocios', () => {
     // Dato real del caché (verificado por PostgREST el 10 nov 2026).
     const conDato = displayRating({ id: MOCHOMOS_ID }, { [MOCHOMOS_ID]: { rating: 4.9, count: 13275 } });
     expect(conDato).toEqual({ rating: 4.9, count: 13275, source: 'google' });
+    // Four Seasons (ejemplo Premium): el caché SÍ tiene su dato (4.8,
+    // 3,766 reseñas), así que con showStars la tarjeta lo muestra.
+    const FOUR_SEASONS_ID = "6a49d84a-6feb-4b74-89a8-8f68bab27849";
+    expect(displayRating({ id: FOUR_SEASONS_ID }, { [FOUR_SEASONS_ID]: { rating: 4.8, count: 3766 } }))
+      .toEqual({ rating: 4.8, count: 3766, source: 'google' });
     // Sin dato en el caché, la tarjeta no muestra calificación: el
     // componente solo la pinta cuando source === 'google'.
     const sinDato = displayRating({ id: MOCHOMOS_ID }, {});
     expect(sinDato.source).toBe('citymap');
     expect(sinDato.rating).toBeNull();
+  });
+
+  it('defecto 1: la fila de estado de Dalila envuelve en vez de recortar «Cerrado»', () => {
+    const card = planCard(renderLanding(false), 'free', 'pro');
+    // La fila (calificación · horario) ya no es nowrap: con wrap, el
+    // horario baja entero a la siguiente línea en columnas angostas, en
+    // vez de partirse a media letra («• Cerrad») en el borde.
+    expect(card).toContain('flex-wrap:wrap;overflow:hidden');
+    expect(card).not.toContain('flex-wrap:nowrap');
+    // «Cerrado» sigue presente entero (el horario no se inventó ni se quitó).
+    expect(card).toContain('Cerrado');
+  });
+
+  it('defecto 2: el ejemplo Premium muestra la fila de calificación (ya no esconde las estrellas)', () => {
+    const card = planCard(renderLanding(false), 'elite', null);
+    // Sin dato en el store, la fila cae en sus 5 estrellas vacías: eso
+    // prueba que la fila de calificación SÍ se renderiza (showStars ya
+    // no es false). Con dato real de Google, esa misma fila muestra
+    // ★ 4.8 (3,766) con el logo de Google (ver test de displayRating).
+    const STAR_POINTS = '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2';
+    expect(card.split(STAR_POINTS).length - 1).toBe(5);
+    // Y ya no muestra la rama de solo-guardados (corazón + 45) en su lugar.
+    expect(card).not.toContain('Sé el primero en apoyar');
+  });
+
+  it('defecto 2: el nombre de Four Seasons ya no se trunca con elipsis', () => {
+    const card = planCard(renderLanding(false), 'elite', null);
+    expect(card).toContain('Four Seasons Resort Punta Mita');
+    // El nombre puede tomar 2 líneas (mismo patrón que la variante
+    // compacta) en vez de una sola con elipsis («Four Seasons Resor…»).
+    expect(card).toContain('-webkit-line-clamp:2');
+    expect(card).not.toContain('text-overflow:ellipsis');
   });
 });
