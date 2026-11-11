@@ -23,7 +23,7 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
 // Tarjeta para compartir el EVENTO (PR #152): lo mismo que la tarjeta
 // de los negocios (PRs #142–#147) — botón Compartir en el detalle del
-// evento, hoja centrada solo Historia, PNG dibujado en canvas — pero con
+// evento, hoja centrada Historia y Post, PNG dibujado en canvas — pero con
 // los datos del evento y uno de los 5 estilos de la imagen de Jonathan:
 // concierto → festival, exposición/cultural → editorial, feria → boleto
 // (código de barras decorativo), cata/taller → experiencias,
@@ -234,7 +234,7 @@ describe('tarjeta para compartir el evento: datos reales', () => {
 
 describe('tarjeta para compartir el evento: geometría (vista previa = PNG)', () => {
   it('la foto crece y no queda franja vacía entre el último bloque y el pie', () => {
-    for (const format of [SHARE_CARD_FORMATS.story]) {
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       for (const ev of [CONCIERTO, EXPOSICION, FERIA]) {
         const d = buildEventShareCardData(ev, { cityName: 'Guadalajara' });
         const geo = computeEventShareCardLayout(d, format);
@@ -395,7 +395,7 @@ describe('tarjeta para compartir el evento: la plantilla se renderiza (vista pre
 
 describe('tarjeta para compartir el evento: sin precio no se menciona (PR #153)', () => {
   it('sin precio: la geometría no lleva píldora en ningún formato ni estilo', () => {
-    for (const format of [SHARE_CARD_FORMATS.story]) {
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       // Editorial sin precio (Expo Tattoo) y festival sin precio (Eslabón).
       for (const ev of [EXPOSICION, ESLABON]) {
         const geo = computeEventShareCardLayout(
@@ -422,21 +422,23 @@ describe('tarjeta para compartir el evento: sin precio no se menciona (PR #153)'
   });
 
   it('la plantilla sin precio no pinta ningún texto de precio', () => {
-    for (const ev of [EXPOSICION, ESLABON]) {
-      const d = buildEventShareCardData(ev, { cityName: 'Guadalajara' });
-      const html = renderToStaticMarkup(
-        <EventShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} />,
-      );
-      expect(html).not.toContain('Precio mínimo');
-      expect(html).not.toContain('Boletos desde');
-      expect(html).not.toContain('Entrada gratuita');
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      for (const ev of [EXPOSICION, ESLABON]) {
+        const d = buildEventShareCardData(ev, { cityName: 'Guadalajara' });
+        const html = renderToStaticMarkup(
+          <EventShareCardTemplate data={d} format={format} />,
+        );
+        expect(html).not.toContain('Precio mínimo');
+        expect(html).not.toContain('Boletos desde');
+        expect(html).not.toContain('Entrada gratuita');
+      }
     }
   });
 });
 
 describe('tarjeta para compartir el evento: el título siempre completo (PR #153)', () => {
   it('título largo (Eslabón Armado): cabe completo sin «…» en Historia', () => {
-    for (const format of [SHARE_CARD_FORMATS.story]) {
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       const d = buildEventShareCardData(ESLABON, { cityName: 'Guadalajara' });
       const geo = computeEventShareCardLayout(d, format);
       expect(geo.title.lines.length).toBeGreaterThan(0);
@@ -454,7 +456,7 @@ describe('tarjeta para compartir el evento: el título siempre completo (PR #153
   });
 
   it('título muy largo en editorial: la fuente se achica hasta caber en 3 líneas', () => {
-    for (const format of [SHARE_CARD_FORMATS.story]) {
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       const d = buildEventShareCardData(LARGO_EDITORIAL, {
         cityName: 'Guadalajara',
       });
@@ -472,7 +474,7 @@ describe('tarjeta para compartir el evento: el título siempre completo (PR #153
   });
 
   it('la geometría no desborda con el peor caso (título a 3 líneas + subtítulo + 2 filas + píldora)', () => {
-    for (const format of [SHARE_CARD_FORMATS.story]) {
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       for (const ev of [LARGO_EDITORIAL, ESLABON, FERIA]) {
         const d = buildEventShareCardData(ev, { cityName: 'Guadalajara' });
         const geo = computeEventShareCardLayout(d, format);
@@ -541,25 +543,24 @@ describe('tarjeta para compartir el evento: cableado', () => {
     expect(modal).toContain('eventUrl(ev, window.location.origin)');
   });
 
-  it('la hoja es la misma centrada de los negocios, con solo Historia y selector de tema', () => {
-    // Solo queda Historia IG (el Post se quitó el 10 nov 2026): la hoja
-    // ya no lista formatos y en su lugar ofrece los dos temas
-    // (Oscura/Clara) como botones.
-    expect(sheet).not.toContain('SHARE_CARD_FORMAT_LIST');
-    expect(sheet).not.toContain('Post IG');
-    expect(sheet).not.toContain('formatId');
+  it('la hoja es la misma centrada de los negocios, con Historia y Post y selector de tema', () => {
+    // El Post volvió el 11 nov 2026: la hoja lista los dos formatos
+    // (Historia/Post) y los dos temas (Oscura/Clara) como botones.
+    expect(sheet).toContain('EVENT_SHARE_CARD_FORMAT_LIST');
+    expect(sheet).toContain('Post IG');
+    expect(sheet).toContain('formatId');
     expect(sheet).toContain('EVENT_SHARE_CARD_THEME_LIST.map');
     expect(sheet).toContain('Oscura');
     expect(sheet).toContain('Clara');
     expect(sheet).toContain('Fondo oscuro');
     expect(sheet).toContain('Fondo claro');
-    expect(sheet).toContain("SHARE_CARD_FORMATS.story");
+    expect(sheet).toContain('EVENT_SHARE_CARD_FORMAT_LIST.find((f) => f.id === formatId)');
     expect(sheet).toContain('Compartir imagen');
     expect(sheet).toContain('Compartir enlace');
     expect(sheet).toContain("e?.name === 'AbortError'");
     expect(sheet).toContain('buildEventShareCardData(event, { cityName })');
     expect(sheet).toContain('exportEventShareCardPng(dataToExport, format)');
-    expect(sheet).toContain('eventShareCardFileName(event)');
+    expect(sheet).toContain('eventShareCardFileName(event, format)');
     expect(sheet).toContain('La foto no se pudo cargar');
     // Tarjeta centrada con las 4 esquinas redondeadas (PR #147).
     expect(sheet).toContain("alignItems: 'center'");
@@ -653,19 +654,47 @@ describe('tarjeta para compartir el evento: pie nuevo (10 nov 2026)', () => {
   });
 });
 
-describe('tarjeta para compartir el evento: solo Historia (sin Post)', () => {
-  it('la geometría de eventos ya no tiene entrada de Post', () => {
+describe('tarjeta para compartir el evento: Post de vuelta, sin descripción (11 nov 2026)', () => {
+  it('la geometría de eventos tiene entrada de Post con las medidas de antes', () => {
     expect(EVENT_SHARE_CARD_LAYOUT.story).toBeDefined();
-    expect(EVENT_SHARE_CARD_LAYOUT.post).toBeUndefined();
-    expect(Object.keys(EVENT_SHARE_CARD_LAYOUT)).toEqual(['story']);
+    expect(EVENT_SHARE_CARD_LAYOUT.post).toBeDefined();
+    expect(Object.keys(EVENT_SHARE_CARD_LAYOUT)).toEqual(['story', 'post']);
+    expect(EVENT_SHARE_CARD_LAYOUT.post.logoH).toBe(44);
+    expect(EVENT_SHARE_CARD_LAYOUT.post.catSize).toBe(28);
+    expect(EVENT_SHARE_CARD_LAYOUT.post.pillSize).toBe(30);
+    expect(EVENT_SHARE_CARD_LAYOUT.post.photoMinH).toBe(300);
   });
 
-  it('la hoja no ofrece Post: solo Historia y el tema', () => {
+  it('en Post no va la descripción: sin subtítulo en la geometría ni en la plantilla; en Historia sigue', () => {
+    const d = buildEventShareCardData(EXPOSICION, { cityName: 'Puerto Vallarta' });
+    expect(d.subtitle).toContain('Exposición de tatuajes');
+    const post = computeEventShareCardLayout(d, SHARE_CARD_FORMATS.post);
+    expect(post.subtitle).toBeNull();
+    const postHtml = renderToStaticMarkup(
+      <EventShareCardTemplate data={d} format={SHARE_CARD_FORMATS.post} />,
+    );
+    expect(postHtml).not.toContain('Exposición de tatuajes');
+    const story = computeEventShareCardLayout(d, SHARE_CARD_FORMATS.story);
+    expect(story.subtitle.lines.length).toBeGreaterThan(0);
+    const storyHtml = renderToStaticMarkup(
+      <EventShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} />,
+    );
+    expect(storyHtml).toContain('Exposición de tatuajes');
+  });
+
+  it('la hoja ofrece Post: Historia y Post con sus medidas, y el archivo de Post lleva -post', () => {
     const sheet = read('../components/EventShareCardSheet.jsx');
-    expect(sheet).not.toContain('SHARE_CARD_FORMAT_LIST');
-    expect(sheet).not.toContain('Post IG');
-    expect(sheet).not.toContain('1080 × 1080');
-    expect(sheet).toContain('SHARE_CARD_FORMATS.story');
+    expect(sheet).toContain('EVENT_SHARE_CARD_FORMAT_LIST');
+    expect(sheet).toContain('Post IG');
+    expect(sheet).toContain('{f.width} × {f.height}');
+    expect(sheet).toContain('formatId');
+    expect(sheet).toContain('EVENT_SHARE_CARD_FORMAT_LIST.find((f) => f.id === formatId)');
+    expect(eventShareCardFileName(CONCIERTO)).toBe(
+      'citymap-evento-carlos-rivera-fiestas-de-octubre.png',
+    );
+    expect(eventShareCardFileName(CONCIERTO, SHARE_CARD_FORMATS.post)).toBe(
+      'citymap-evento-carlos-rivera-fiestas-de-octubre-post.png',
+    );
   });
 });
 

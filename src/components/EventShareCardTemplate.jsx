@@ -8,7 +8,9 @@
 // libre: nunca queda franja vacía entre la información y el pie. El
 // logotipo es /logo-brand.png: en blanco en Oscura y en negro
 // (brightness(0)) en Clara. Sin foto no hay imagen rota: sale un bloque
-// con la inicial del título. Solo formato Historia.
+// con la inicial del título. Dos formatos: Historia 1080×1920 y Post
+// 1080×1080 (el Post volvió el 11 nov 2026, SIN descripción para
+// ahorrar espacio: en Post el subtítulo no se produce).
 // La vista previa y el PNG exportado comparten la misma geometría:
 // EVENT_SHARE_CARD_LAYOUT + computeEventShareCardLayout en
 // lib/eventShareCard.js, así que lo que se ve es lo que se descarga.

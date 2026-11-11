@@ -7,13 +7,14 @@
 // otro tipo → editorial (estilo por defecto).
 //
 // Reutiliza TODA la base de la tarjeta de negocios (lib/shareCard.js):
-// el formato Historia 1080×1920 (el Post 1080×1080 se quitó el 10 nov
-// 2026: la tarjeta de eventos solo se comparte como Historia), el
-// logotipo oficial en blanco, la exportación a canvas 2D (nada de
-// html-to-image: el PNG salía transparente, PR #143), la foto flexible
-// que llena la tarjeta, el guarda anti-blanco y los helpers de
-// medición/dibujo. NO lleva el círculo de logo del negocio: eso es solo
-// para negocios con plan de pago (PR #144); en eventos no hay círculo.
+// los formatos Historia 1080×1920 y Post 1080×1080 (el Post se quitó
+// el 10 nov 2026 y volvió el 11 nov 2026, SIN descripción para ahorrar
+// espacio — ver computeEventShareCardLayout), el logotipo oficial en
+// blanco, la exportación a canvas 2D (nada de html-to-image: el PNG
+// salía transparente, PR #143), la foto flexible que llena la tarjeta,
+// el guarda anti-blanco y los helpers de medición/dibujo. NO lleva el
+// círculo de logo del negocio: eso es solo para negocios con plan de
+// pago (PR #144); en eventos no hay círculo.
 //
 // La vista previa (EventShareCardTemplate.jsx) y el PNG comparten UNA
 // sola geometría: EVENT_SHARE_CARD_LAYOUT + computeEventShareCardLayout,
@@ -46,8 +47,14 @@ import {
   assertCanvasNotBlank,
 } from './shareCard.js';
 
-// El formato es solo Historia (el mismo de la tarjeta de negocios).
+// El formato es Historia y Post (el Post volvió el 11 nov 2026, sin
+// descripción). La hoja ofrece los dos; el tema (Oscura/Clara) es
+// independiente del formato.
 export { SHARE_CARD_FORMATS } from './shareCard.js';
+export const EVENT_SHARE_CARD_FORMAT_LIST = [
+  SHARE_CARD_FORMATS.story,
+  SHARE_CARD_FORMATS.post,
+];
 
 export const EVENT_SHARE_CARD_STYLES = {
   festival: { id: 'festival', label: 'Festival' },
@@ -146,7 +153,7 @@ export const EVENT_SHARE_CARD_LAYOUT = {
     // 988/318 y la geometría nunca desborda la tarjeta — el mínimo se
     // bajó de 1000/360 en el PR #153 porque el título ahora puede ir a
     // 3 líneas (ver fitEventShareCardTitle): la tercera línea a tamaño
-    // completo come ~85 px en Historia.
+    // completo come ~85 px en Historia y ~68 px en Post.
     photoMinH: 960,
     titleSize: 76,
     titleSizeFestival: 96,
@@ -166,8 +173,43 @@ export const EVENT_SHARE_CARD_LAYOUT = {
     barcodePadX: 28,
     barcodePadY: 18,
   },
-  // Sin entrada de Post: la tarjeta de eventos solo se comparte como
-  // Historia (10 nov 2026), así que su geometría no existe.
+  // Post 1080×1080 (11 nov 2026, Jonathan): vuelve tras quitarse en el
+  // #183, con las mismas medidas de antes. La descripción NO va en Post
+  // (para ahorrar espacio): computeEventShareCardLayout no produce
+  // subtítulo en este formato, así que subSize/subGap no se usan aquí;
+  // la foto crece y se come ese espacio.
+  post: {
+    pad: 48,
+    logoH: 44,
+    logoGap: 24,
+    photoRadius: 32,
+    catSize: 28,
+    catGap: 28,
+    pillSize: 30,
+    pillPadX: 24,
+    pillPadY: 11,
+    pillGap: 14,
+    footSize: 26,
+    footGap: 36,
+    photoMinH: 300,
+    titleSize: 60,
+    titleSizeFestival: 76,
+    titleMinSize: 40,
+    titleGap: 14,
+    titleLineH: 1.12,
+    titleMaxLines: 3,
+    subSize: 32,
+    subGap: 14,
+    subLineH: 1.35,
+    subMaxLines: 2,
+    infoSize: 30,
+    infoGap: 14,
+    infoLineH: 1.4,
+    barcodeH: 96,
+    barcodeGap: 24,
+    barcodePadX: 24,
+    barcodePadY: 16,
+  },
 };
 
 // ─── Estilo por tipo de evento ───
@@ -338,9 +380,12 @@ export function buildEventShareCardData(event, { cityName = '' } = {}) {
   };
 }
 
-export function eventShareCardFileName(event) {
+export function eventShareCardFileName(event, format) {
   const slug = eventShortSlug(event) || createSlug(event?.title || 'evento');
-  return `citymap-evento-${slug}.png`;
+  // En Post el archivo lleva el sufijo -post para no pisar el de
+  // Historia al descargar los dos.
+  const suffix = format?.id === 'post' ? '-post' : '';
+  return `citymap-evento-${slug}${suffix}.png`;
 }
 
 // ─── Código de barras decorativo (estilo boleto) ───
@@ -514,7 +559,12 @@ export function computeEventShareCardLayout(data, format) {
   const titleLines = fittedTitle.lines;
   const fittedTitleSize = fittedTitle.size;
 
+  // En Post NO va la descripción (11 nov 2026, Jonathan: para ahorrar
+  // espacio): el subtítulo solo se produce en Historia. Sin subtítulo,
+  // la foto crece y se come ese espacio — la geometría ya lo contempla
+  // (subBlock = 0 en Post).
   const showSubtitle =
+    f.id !== 'post' &&
     ['editorial', 'experiencias', 'agenda'].includes(style) &&
     (data?.subtitle || '').trim();
   const subtitleLines = showSubtitle

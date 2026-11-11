@@ -505,9 +505,12 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     // cambios de este PR (logo más grande, foto más corta, sin
     // categoría) se le colaban y la foto salía NaN por el catSize que
     // ya no existe. Ahora fija su propia base con los valores de antes.
-    // (La entrada de Post se quitó el 10 nov 2026: eventos solo Historia.)
+    // (El Post volvió el 11 nov 2026: eventos Historia y Post.)
     expect(EVENT_SHARE_CARD_LAYOUT.story.logoH).toBe(56);
-    expect(EVENT_SHARE_CARD_LAYOUT.post).toBeUndefined();
+    expect(EVENT_SHARE_CARD_LAYOUT.post.logoH).toBe(44);
+    expect(EVENT_SHARE_CARD_LAYOUT.post.catSize).toBe(28);
+    expect(EVENT_SHARE_CARD_LAYOUT.post.pillSize).toBe(30);
+    expect(EVENT_SHARE_CARD_LAYOUT.post.photoMinH).toBe(300);
     expect(EVENT_SHARE_CARD_LAYOUT.story.catSize).toBe(32);
     expect(EVENT_SHARE_CARD_LAYOUT.story.pillSize).toBe(34);
     expect(EVENT_SHARE_CARD_LAYOUT.story.photoMinH).toBe(960);
