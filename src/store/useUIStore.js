@@ -35,11 +35,14 @@ export const useUIStore = create((set) => ({
       return stored; 
     } catch { return ""; } 
   })(),
-  setActiveCity: (activeCity) => {
+  setActiveCity: (activeCity, { persist = true } = {}) => {
     if (activeCity && INVALID_CITY_SLUGS.has(activeCity.toLowerCase())) {
       return;
     }
-    if (activeCity) {
+    // persist:false es solo para la ciudad por defecto del arranque: vive
+    // en memoria para cargar datos, pero no se guarda como elección del
+    // usuario, para que "/" no redirija en la primera visita.
+    if (activeCity && persist) {
       localStorage.setItem("cg_city_slug", activeCity);
     }
     set({ activeCity });

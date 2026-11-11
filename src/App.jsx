@@ -218,7 +218,11 @@ export default function CityGuide() {
 
   useEffect(() => {
     if (initialParams.current.citySlug && initialParams.current.citySlug !== activeCity) {
-      setActiveCity(initialParams.current.citySlug);
+      // La ciudad por defecto no se persiste: si se guardara como
+      // "guadalajara", la entrada rápida y la "Segunda entrada" del
+      // arranque leerían cg_city_slug y sacarían de "/" a esa ciudad en
+      // la primera visita. En memoria sigue valiendo para cargar datos.
+      setActiveCity(initialParams.current.citySlug, { persist: !initialParams.current.citySlugIsDefault });
       loadData(initialParams.current.citySlug);
     }
     
