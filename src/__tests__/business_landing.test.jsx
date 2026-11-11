@@ -91,7 +91,7 @@ describe('business landing', () => {
     expect(monthlyIdx).toBeGreaterThan(proIdx);
     expect(trialIdx).toBeGreaterThan(monthlyIdx);
     // ...y en anual, el CTA normal de pago ("Elegir Destacado", la misma
-    // etiqueta que usa PlansPage para el plan de pago).
+    // etiqueta que usa el modal de pago para el plan de pago).
     const elegirIdx = planButton.indexOf('cuenta_elegir_plan', proIdx);
     expect(elegirIdx).toBeGreaterThan(trialIdx);
     expect(planButton.slice(elegirIdx, elegirIdx + 120)).toContain('Elegir ${p.name}');
@@ -148,7 +148,7 @@ describe('business landing', () => {
 describe('business plans module', () => {
   const t = (k, f) => f;
 
-  it('devuelve los precios MXN exactos de PlansPage', () => {
+  it('devuelve los precios MXN exactos del módulo de planes', () => {
     const pricing = getBusinessPricing('mx');
     expect(pricing.currency).toBe('MXN');
     const plans = buildBusinessPlans(t, pricing);
@@ -165,7 +165,7 @@ describe('business plans module', () => {
     expect(plans[2].oldPriceAnnual).toBe('$4,990');
   });
 
-  it('devuelve las mismas listas de features que muestra PlansPage', () => {
+  it('devuelve las mismas listas de features que muestra /negocios', () => {
     const plans = buildBusinessPlans(t, getBusinessPricing('mx'));
     expect(plans[0].features).toEqual([
       'Página pública del negocio en CityMap',

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { TRANSLATIONS } from '../lib/i18n.js';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
@@ -126,5 +126,55 @@ describe('i18n: las 53 claves negocios_* existen en es y en', () => {
       expect(TRANSLATIONS.es[k], `es.${k}`).toBeTruthy();
       expect(TRANSLATIONS.en[k], `en.${k}`).toBeTruthy();
     }
+  });
+});
+
+// /negocios es LA página de planes (10 nov 2026): la antigua «ver planes»
+// (PlansPage, /precios) se eliminó y /precios redirige a /negocios. El pago
+// sigue funcionando: el modal de Stripe vive en PlanPaymentModal y lo abre
+// App.jsx cuando hay un plan pendiente.
+describe('/precios redirige a /negocios y PlansPage ya no existe', () => {
+  it('AppRouter.jsx: la ruta /precios es una redirección a /negocios', () => {
+    const src = read('../router/AppRouter.jsx');
+    expect(src).toContain('<Route path="/precios" element={<Navigate to="/negocios" replace />} />');
+    expect(src).not.toContain('PlansPage');
+  });
+
+  it('useAppInitialization.js: /precios resuelve a la vista "negocios"', () => {
+    const src = read('../hooks/useAppInitialization.js');
+    expect(src).toContain('if (p.startsWith("/precios")) return "negocios";');
+  });
+
+  it('App.jsx: la vista "precios" navega a /negocios', () => {
+    const src = read('../App.jsx');
+    expect(src).toContain('else if (v === "precios") navigate("/negocios");');
+    expect(src).toContain('else if (v === "precios") path = "/negocios";');
+  });
+
+  it('AccountView.jsx: «Ver planes» de Mi Negocio lleva a /negocios', () => {
+    const src = read('../components/AccountView.jsx');
+    expect(src).toContain('else if (act === "business_plans") navigate("/negocios");');
+    expect(src).not.toContain('setShowPlans');
+  });
+
+  it('App.jsx: con un plan pendiente se abre el modal de pago (PlanPaymentModal)', () => {
+    const src = read('../App.jsx');
+    expect(src).toContain("const PlanPaymentModal = lazy(() => import('./components/PlanPaymentModal.jsx'));");
+    expect(src).toContain('<PlanPaymentModal');
+    expect(src).toContain('pendingPlan={pendingPlan}');
+    expect(src).toContain('onConsumePendingPlan={() => setPendingPlan(null)}');
+    expect(src).not.toContain('PlansPage');
+  });
+
+  it('PlansPage.jsx ya no existe en el repo', () => {
+    expect(existsSync(new URL('../components/PlansPage.jsx', import.meta.url))).toBe(false);
+  });
+
+  it('PlanPaymentModal.jsx existe y conserva el checkout de Stripe', () => {
+    expect(existsSync(new URL('../components/PlanPaymentModal.jsx', import.meta.url))).toBe(true);
+    const src = read('../components/PlanPaymentModal.jsx');
+    expect(src).toContain('/api/stripe-checkout');
+    expect(src).toContain('isTrialSelection');
+    expect(src).toContain('onConsumePendingPlan');
   });
 });

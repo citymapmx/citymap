@@ -89,7 +89,7 @@ describe('Tarjetas modernas de /negocios: planes sin hueco y botón al final', (
     expect(src).toContain('.business-landing .plans-card[data-plan="pro"]{order:1;border-color:var(--plans-accent);box-shadow:var(--plans-shadow-pro)}');
   });
 
-  it('las reglas de planes van con el ámbito .business-landing: no se cuelan en PlansPage', () => {
+  it('las reglas de planes van con el ámbito .business-landing: no se cuelan fuera de /negocios', () => {
     const src = read('../components/BusinessLanding.jsx');
     expect(src).not.toMatch(/^\s*\.plans-card\{/m);
     expect(src).not.toMatch(/^\s*\.plans-grid\{/m);
@@ -134,20 +134,22 @@ describe('Tarjetas modernas de /negocios: cifras y beneficios', () => {
 });
 
 describe('Modal de registro: abrirlo ya no navega al inicio', () => {
-  it('AppRouter.jsx: ningún onAddBiz de /precios ni /negocios navega a "/"', () => {
+  it('AppRouter.jsx: el onAddBiz de /negocios no navega a "/"', () => {
     const src = read('../router/AppRouter.jsx');
     expect(src).not.toContain('setShowAddBiz(true); navigate("/")');
   });
 
-  it('AppRouter.jsx: ambas rutas siguen abriendo el modal (setShowAddBiz)', () => {
+  it('AppRouter.jsx: solo /negocios abre el modal (setShowAddBiz); /precios redirige a /negocios', () => {
     const src = read('../router/AppRouter.jsx');
     const handlers = src.match(/onAddBiz=\{\(\) => \{ if \(!user\) \{ setShowAuth\(true\); return; \} setShowAddBiz\(true\); \}\}/g);
     expect(handlers).not.toBeNull();
-    expect(handlers).toHaveLength(2);
+    expect(handlers).toHaveLength(1);
+    expect(src).toContain('<Route path="/precios" element={<Navigate to="/negocios" replace />} />');
+    expect(src).not.toContain('PlansPage');
   });
 
-  it('AppRouter.jsx: el cierre de /precios sigue llevando al inicio (eso no cambia)', () => {
+  it('AppRouter.jsx: /precios ya no renderiza una página de planes', () => {
     const src = read('../router/AppRouter.jsx');
-    expect(src).toContain('onClose={() => navigate("/")}');
+    expect(src).not.toContain('onClose={() => navigate("/")}');
   });
 });

@@ -23,7 +23,7 @@ export function useAppInitialization() {
     if (p.startsWith("/manage/")) return "owner_dashboard";
     // Removed section: keep a non-onboarding view so the router can render its 404.
     if (p.startsWith("/planes")) return "planes";
-    if (p.startsWith("/precios")) return "plans";
+    if (p.startsWith("/precios")) return "negocios"; // /precios redirige a /negocios (la página de planes)
     if (p.startsWith("/itinerarios")) return "itineraries";
     if (p.startsWith("/itinerario/")) return "itinerary_detail_" + p.split('/')[2];
     if (p.startsWith("/plan/")) return "plan_" + p.split('/')[2];

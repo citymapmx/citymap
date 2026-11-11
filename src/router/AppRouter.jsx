@@ -13,7 +13,6 @@ const ItinerariesList = React.lazy(() => import('../views/ItinerariesList.jsx'))
 const ItineraryDetail = React.lazy(() => import('../views/ItineraryDetail.jsx'));
 const DetailView = React.lazy(() => import('../views/DetailView.jsx'));
 const MenuView = React.lazy(() => import('../views/MenuView.jsx'));
-const PlansPage = React.lazy(() => import('../components/PlansPage.jsx'));
 const WalletView = React.lazy(() => import('../views/WalletView.jsx'));
 const FavsView = React.lazy(() => import('../views/FavsView.jsx'));
 const NotFoundView = React.lazy(() => import('../views/NotFoundView.jsx'));
@@ -78,7 +77,6 @@ export default function AppRouter(props) {
     claimedCoupons,
     myBizList,
     setShowAdmin,
-    setShowPlans,
     setShowAuth,
     setAuthMode,
     setEditBizId,
@@ -174,7 +172,10 @@ export default function AppRouter(props) {
         {/* ── ALL OTHER ROUTES (non-home, non-detail) ───────────────── */}
         {!showHomeView && (!showDetail || background) && (
           <div inert={showDetail || undefined}><Routes location={contentLocation}>
-            <Route path="/precios" element={<PlansPage T={T} onClose={() => navigate("/")} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); }} />} />
+            {/* /precios ya no existe como página: redirige a /negocios, LA
+                página de planes (10 nov 2026). Se mantiene la ruta para no
+                romper enlaces ni marcadores viejos. */}
+            <Route path="/precios" element={<Navigate to="/negocios" replace />} />
             <Route path="/negocios" element={<BusinessLanding T={T} dark={dark} navigate={navigate} user={user} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); }} onStartPaidPlan={startPaidPlan} setShowAuth={setShowAuth} />} />
             
             <Route path="/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />
@@ -202,7 +203,7 @@ export default function AppRouter(props) {
               user={user} authChecked={authChecked} profile={profile} isAdmin={isAdmin} T={T} dark={dark} setDark={setDark}
               favIds={favIds} reviews={reviews} wallet={wallet} coupons={coupons} claimedCoupons={claimedCoupons}
               biz={mapPins} myBizList={myBizList}
-              setShowAdmin={setShowAdmin} setShowPlans={setShowPlans}
+              setShowAdmin={setShowAdmin}
               setShowAuth={setShowAuth} setAuthMode={setAuthMode}
               setEditBizId={setEditBizId} setAddBizForm={setAddBizForm}
               setShowAddBiz={setShowAddBiz} setOwnerView={setOwnerView}
