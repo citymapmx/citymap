@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { firstWheelEvent, preloadWheelFirstImage, wheelFirstImageUrl } from '../lib/wheelPreload.js';
+import { firstWheelEvent, preloadWheelFirstImage, wheelFirstImageUrl, wheelFrontIndex, wheelNearFaces, WHEEL_NEAR_RADIUS } from '../lib/wheelPreload.js';
 import { useDataStore } from '../store/useDataStore.js';
 import { sb } from '../lib/supabase.js';
 
@@ -194,5 +194,31 @@ describe('loadData: eventos en paralelo con refreshCities', () => {
     await useDataStore.getState().loadData();
     expect(get.mock.calls.filter(([t]) => t === 'events')).toHaveLength(1);
     expect(useDataStore.getState().events.map((e) => e.id)).toContain('ev-1');
+  });
+});
+
+describe('wheelPreload: caras diferidas (rendimiento teléfono)', () => {
+  it('la cara del frente es la 0 con rotation 0 y avanza al bajar la rotación', () => {
+    expect(wheelFrontIndex(0, 36, 10)).toBe(0);
+    expect(wheelFrontIndex(-36, 36, 10)).toBe(1);
+    expect(wheelFrontIndex(-72, 36, 10)).toBe(2);
+    expect(wheelFrontIndex(-360, 36, 10)).toBe(0);
+    expect(wheelFrontIndex(-396, 36, 10)).toBe(1);
+    expect(wheelFrontIndex(36, 36, 10)).toBe(9);
+  });
+
+  it('redondea a la cara más cercana a mitad de giro', () => {
+    expect(wheelFrontIndex(-20, 36, 10)).toBe(1);
+    expect(wheelFrontIndex(-17, 36, 10)).toBe(0);
+  });
+
+  it('las cercanas al frente son el frente y 2 a cada lado, en círculo', () => {
+    expect(WHEEL_NEAR_RADIUS).toBe(2);
+    expect(wheelNearFaces(0, 10)).toEqual([8, 9, 0, 1, 2]);
+    expect(wheelNearFaces(9, 10)).toEqual([7, 8, 9, 0, 1]);
+    expect(wheelNearFaces(0, 6)).toEqual([4, 5, 0, 1, 2]);
+    expect(wheelNearFaces(0, 3)).toEqual([1, 2, 0, 1, 2]);
+    expect(wheelNearFaces(0, 1)).toEqual([0, 0, 0, 0, 0]);
+    expect(wheelNearFaces(0, 0)).toEqual([]);
   });
 });

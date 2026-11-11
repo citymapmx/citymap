@@ -1,9 +1,21 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useUIStore } from "../store/useUIStore.js";
-import { TRANSLATIONS, translateDynamicStatus } from "../lib/i18n.js";
+import { TRANSLATIONS, ensureEnglishTranslations, translateDynamicStatus } from "../lib/i18n.js";
 
 export function useTranslation() {
   const lang = useUIStore(s => s.lang);
+  // El diccionario en inglés se carga en diferido (ver i18n.js): cuando
+  // llega, este contador fuerza un re-render para que t() ya lo use. Hasta
+  // entonces t() usa el español (el fallback de siempre).
+  const [, setI18nTick] = useState(0);
+  useEffect(() => {
+    if (lang !== 'en' || TRANSLATIONS.en) return undefined;
+    let live = true;
+    ensureEnglishTranslations()
+      .then(() => { if (live) setI18nTick((v) => v + 1); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [lang]);
   
   const t = useCallback((key, fallback, vars) => {
     if (!key) return "";

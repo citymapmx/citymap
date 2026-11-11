@@ -26,8 +26,31 @@ export function wheelFirstImageUrl(events, citySlug, today) {
   return typeof img === 'string' && img ? img : null;
 }
 
-// Precarga la imagen de la primera cara de la rueda: el navegador la
-// descubre en cuanto llegan los datos (del caché o de la red), antes de
+// ─── Caras diferidas de la rueda ─────────────────────────────────────────────
+// La rueda es el LCP de la página de ciudad y sus 10 caras pedían la imagen
+// a 800 px nada más montar (474 KB en Tepic con 6 pósteres; a 400 px son
+// 185 KB). Las caras de atrás no se ven — van giradas y apagadas — así que
+// solo montan su <img> las cercanas al frente: la del frente y 2 a cada
+// lado. Las demás esperan a que el giro las acerque (el auto-avance les da
+// ~8 s) y una vez cargadas ya no se desmontan, para que el póster no
+// parpadee al volver a pasar por el frente.
+export const WHEEL_NEAR_RADIUS = 2;
+
+// Índice de la cara del frente a partir de la rotación del tambor
+// (grados; step = 360 / n). Con rotation 0 la cara 0 está al frente; al
+// avanzar, rotation baja (-step por cara).
+export function wheelFrontIndex(rotation, step, n) {
+  if (!n || n < 1 || !step) return 0;
+  return (((-Math.round(rotation / step)) % n) + n) % n;
+}
+
+// Caras a menos de `radius` pasos circulares del frente (incluido él).
+export function wheelNearFaces(front, n, radius = WHEEL_NEAR_RADIUS) {
+  if (!n || n < 1) return [];
+  const out = [];
+  for (let k = -radius; k <= radius; k++) out.push(((front + k) % n + n) % n);
+  return out;
+}
 // que React pinte la rueda. Con imagesrcset/imagesizes iguales a los del
 // <img>, la precarga se reutiliza y no hay doble descarga. Si ya hay un
 // enlace para otra imagen (cambio de ciudad), se reemplaza; si ya no hay

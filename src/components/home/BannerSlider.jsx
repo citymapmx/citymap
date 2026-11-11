@@ -189,18 +189,35 @@ export default function BannerSlider({ activeBanners }) {
               aria-current={i === safeIdx}
               onClick={() => goTo(i)}
               style={{
-                width: i === safeIdx ? 18 : 6,
-                height: 6,
-                borderRadius: 999,
-                border: "none",
+                // Área táctil de 24×24 (WCAG 2.2): el punto visual sigue
+                // midiendo 6 px de alto; el margen negativo compensa el
+                // alto para que la fila no crezca (el diseño no cambia).
+                width: 24,
+                height: 24,
+                margin: "-9px 0",
                 padding: 0,
+                border: "none",
+                background: "transparent",
                 cursor: "pointer",
-                background: i === safeIdx
-                  ? (dark ? "#FFFFFF" : "#0F172A")
-                  : (dark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.22)"),
-                transition: "width 0.3s ease, background 0.3s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
-            />
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: i === safeIdx ? 18 : 6,
+                  height: 6,
+                  borderRadius: 999,
+                  background: i === safeIdx
+                    ? (dark ? "#FFFFFF" : "#0F172A")
+                    : (dark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.22)"),
+                  transition: "width 0.3s ease, background 0.3s ease",
+                  display: "block",
+                }}
+              />
+            </button>
           ))}
         </div>
       )}

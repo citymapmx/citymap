@@ -133,6 +133,15 @@
       ]
     },
     {
+      "source": "/((?!assets/).*).(png|jpg|jpeg|webp|svg|ico|otf|ttf|woff|woff2|webmanifest)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {
