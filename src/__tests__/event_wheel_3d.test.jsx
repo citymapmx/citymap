@@ -45,10 +45,17 @@ describe('event wheel 3D', () => {
     expect(html).not.toContain('Evento 12');
   });
 
-  it('shows the heading and subheading, with image-only faces (no pill, no detail card)', () => {
+  it('shows the heading without a subheading, same size as the other section titles', () => {
     const html = renderWheel();
     expect(html).toContain('Próximos eventos');
-    expect(html).toContain('Los eventos que vienen en todas las ciudades');
+    // Sin subtítulo (PR #196): ni el de ciudad ni el global aparecen.
+    expect(html).not.toContain('Los eventos que vienen en tu ciudad');
+    expect(html).not.toContain('Los eventos que vienen en todas las ciudades');
+    // Título de sección unificado: 22 px como «Para cerrar el día» y
+    // «Los 5 imperdibles», en mayúsculas y centrado.
+    expect(html).toContain('font-size:22px');
+    expect(html).toContain('text-transform:uppercase');
+    expect(html).toContain('text-align:center');
     // Opción #5: las tarjetas del tambor son solo imagen, sin texto
     // encima (sin píldora de ciudad ni de fecha).
     expect(html).not.toContain('event-wheel-city');
@@ -161,9 +168,10 @@ describe('event wheel 3D', () => {
     expect(renderWheel({ events: [] })).toBe('');
   });
 
-  it('shows a custom subheading when provided (city pages) and ignores pill props in the drum', () => {
+  it('ignores a subheading prop (city pages no longer pass one) and ignores pill props in the drum', () => {
     const html = renderWheel({ pillLabel: () => '13 NOV', subheading: 'Los eventos que vienen en tu ciudad' });
-    expect(html).toContain('Los eventos que vienen en tu ciudad');
+    // La prop subheading ya no existe (PR #196): no se pinta nada.
+    expect(html).not.toContain('Los eventos que vienen en tu ciudad');
     expect(html).not.toContain('Los eventos que vienen en todas las ciudades');
     // La píldora de fecha ya no se pinta sobre las tarjetas del tambor.
     expect(html).not.toContain('13 NOV');

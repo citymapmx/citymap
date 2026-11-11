@@ -37,6 +37,6 @@ export default memo(function HomeEvents({events = [], activeCity, userCoords, db
   // title_en) queda intacto para el modal de detalle.
   const items = all.map(event => ({ ...event, key: event.id || event.slug, title: localizedTitle(event, lang), img: event.img_url || event.img || event.poster_url }));
   return <div style={{padding:'4px 0 0'}}>
-    <EventWheel3D events={items} onSelect={handleEventTap} T={T} heading={t("home_proximos_eventos", "Próximos eventos")} subheading={t("home_eventos_ciudad", "Los eventos que vienen en tu ciudad")} pillLabel={event => isMultiDay(event) ? rangeTag(event) : tagDate(event.date)} />
+    <EventWheel3D events={items} onSelect={handleEventTap} T={T} heading={t("home_proximos_eventos", "Próximos eventos")} pillLabel={event => isMultiDay(event) ? rangeTag(event) : tagDate(event.date)} />
   </div>;
 });

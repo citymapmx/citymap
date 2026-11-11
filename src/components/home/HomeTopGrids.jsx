@@ -83,8 +83,8 @@ export default memo(function HomeTopGrids({
     <div ref={sectionRef} style={{ minHeight: 1 }}>
       {topFavs.length > 0 && (
         <div style={{ margin: "32px 20px 24px" }}>
-          <div style={{ textAlign: "left", marginBottom: 16 }}>
-            <h2 style={{ fontFamily: "var(--heading)", fontWeight: 800, fontSize: 20, color: T.text, letterSpacing: "-0.5px", margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, textTransform: "uppercase" }}>
               <div style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))", display: "flex" }}><Icon name="heart_overlay_f" size={20} color="#EF4444" /></div>
               {t("los_mas_guardados", "Los más guardados")}
             </h2>
@@ -125,14 +125,14 @@ export default memo(function HomeTopGrids({
       )}
 
       <div id="mejor-calificados" style={{scrollMarginTop:20}} />
-      {ratedStatus && topRated.length === 0 && <section style={{margin:'32px 20px 24px',textAlign:'left'}}>
-        <h2 style={{fontSize:20,fontWeight:800,color:T.text}}>⭐ {t('los_mas_valorados','Los más valorados')}</h2>
+      {ratedStatus && topRated.length === 0 && <section style={{margin:'32px 20px 24px',textAlign:'center'}}>
+        <h2 style={{fontFamily: "var(--heading)", fontSize:22,fontWeight:900,color:T.text,letterSpacing:"-0.5px",textTransform:"uppercase"}}>{t('los_mas_valorados','Los más valorados')}</h2>
         <p role="status" style={{fontSize:14,color:T.sub}}>{ratedStatus === 'loading' ? t("home_cargando_calificaciones", "Cargando calificaciones…") : ratedStatus === 'error' ? t("home_error_calificaciones", "No pudimos cargar las calificaciones. Vuelve a intentarlo cuando tengas conexión.") : t("home_sin_resenas_ciudad", "Todavía no hay negocios con reseñas en esta ciudad.")}</p>
       </section>}
       {topRated.length > 0 && (
         <div style={{ margin: "32px 20px 24px" }}>
-          <div style={{ textAlign: "left", marginBottom: 16 }}>
-            <h2 style={{ fontFamily: "var(--heading)", fontWeight: 800, fontSize: 20, color: T.text, letterSpacing: "-0.5px", margin: 0 }}>⭐ {t("los_mas_valorados", "Los más valorados")}</h2>
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", margin: 0, textTransform: "uppercase" }}>{t("los_mas_valorados", "Los más valorados")}</h2>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
