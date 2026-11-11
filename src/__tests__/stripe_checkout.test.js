@@ -46,7 +46,7 @@ async function createSession(body) {
 }
 
 describe('stripe checkout', () => {
-  it('charges the page prices in MXN (pro $99/$990, elite $249/$2,490)', async () => {
+  it('charges the page prices in MXN (pro $99/$990, elite $199/$1,990)', async () => {
     const monthly = await createSession({ biz_id: 'b1', plan_id: 'pro', interval: 'month', host_url: 'https://citymap.mx', currency: 'MXN' });
     expect(monthly.line_items[0].price_data.unit_amount).toBe(9900);
     expect(monthly.line_items[0].price_data.currency).toBe('mxn');
@@ -56,10 +56,10 @@ describe('stripe checkout', () => {
     expect(annual.line_items[0].price_data.unit_amount).toBe(99000);
 
     const eliteMonthly = await createSession({ biz_id: 'b1', plan_id: 'elite', interval: 'month', host_url: 'https://citymap.mx', currency: 'MXN' });
-    expect(eliteMonthly.line_items[0].price_data.unit_amount).toBe(24900);
+    expect(eliteMonthly.line_items[0].price_data.unit_amount).toBe(19900);
 
     const eliteAnnual = await createSession({ biz_id: 'b1', plan_id: 'elite', interval: 'year', host_url: 'https://citymap.mx', currency: 'MXN' });
-    expect(eliteAnnual.line_items[0].price_data.unit_amount).toBe(249000);
+    expect(eliteAnnual.line_items[0].price_data.unit_amount).toBe(199000);
   });
 
   it('charges EUR/USD prices', async () => {

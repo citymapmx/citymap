@@ -38,9 +38,9 @@ export function getBusinessPricing(countryCode) {
       oldProMonthly: "$199",
       proAnnual: "$990",
       oldProAnnual: "$1,990",
-      eliteMonthly: "$249",
+      eliteMonthly: "$199",
       oldEliteMonthly: "$499",
-      eliteAnnual: "$2,490",
+      eliteAnnual: "$1,990",
       oldEliteAnnual: "$4,990",
     };
   }
