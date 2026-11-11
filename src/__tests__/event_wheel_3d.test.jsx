@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { readFileSync } from 'node:fs';
 import EventWheel3D from '../components/home/EventWheel3D.jsx';
 
 function makeEvent(i) {
@@ -60,17 +61,20 @@ describe('event wheel 3D', () => {
     expect(html).toContain('class="event-wheel-drum" style="transform:rotateY(0deg)"');
   });
 
-  it('shows dots, arrows and the front event name below the wheel', () => {
+  it('shows dots and the front event name below the wheel, without chevrons', () => {
     const html = renderWheel();
     // Un punto por cara, el primero activo; tocan para saltar de evento.
     expect(html.match(/event-wheel-dot[ "]/g)).toHaveLength(10);
     expect(html).toContain('event-wheel-dot-active');
     expect(html).toContain('Ir al evento 1');
     expect(html).toContain('Ir al evento 10');
-    // Flechas a los lados del nombre del evento de enfrente.
-    expect(html.match(/event-wheel-arrow/g)).toHaveLength(2);
-    expect(html).toContain('Evento anterior');
-    expect(html).toContain('Evento siguiente');
+    // Sin chevrones (PR #194): no hay flechas ‹ › a los lados del nombre;
+    // se navega con los puntos, el giro automático o el arrastre.
+    expect(html).not.toContain('event-wheel-arrow');
+    expect(html).not.toContain('Evento anterior');
+    expect(html).not.toContain('Evento siguiente');
+    expect(html).not.toContain('home_rueda_anterior');
+    expect(html).not.toContain('home_rueda_siguiente');
     // El nombre del evento de enfrente se lee debajo de la rueda.
     expect(html).toContain('event-wheel-front-name');
     expect(html).toContain('>Evento 1</button>');
@@ -79,6 +83,32 @@ describe('event wheel 3D', () => {
     expect(html).not.toContain('event-wheel-state');
     expect(html).not.toContain('Girando sola');
     expect(html).not.toContain('En pausa');
+  });
+
+  it('the front event name is uppercase and bigger (CSS), and faces dim with a shade, not a filter', () => {
+    const html = renderWheel();
+    const css = readFileSync(new URL('../components/home/EventWheel3D.css', import.meta.url), 'utf8');
+    // Nombre en mayúsculas y más grande (PR #194): 19 px en escritorio,
+    // 17 px en teléfono; se corta con «…» si no cabe, no se desborda.
+    expect(css).toMatch(/\.event-wheel-front-name\{[^}]*text-transform:\s*uppercase/);
+    expect(css).toMatch(/\.event-wheel-front-name\{[^}]*font-size:\s*19px/);
+    expect(css).toMatch(/@media \(max-width:640px\)\{[\s\S]*\.event-wheel-front-name\{font-size:17px\}/);
+    expect(css).not.toContain('event-wheel-arrow');
+    // Sin `filter: brightness` en las caras: el brillo cambiaba en cada
+    // fotograma y obligaba a re-rasterizar las 10 caras sin parar, lo que
+    // hacía parpadear la sección en blanco y negro al hacer scroll en el
+    // teléfono (PR #194). El velo negro con opacidad da el mismo
+    // oscurecido sin re-rasterizar (la opacidad la mueve el compositor).
+    expect(html).not.toContain('filter:brightness');
+    expect(html).toContain('class="event-wheel-face" style="transform:rotateY(0deg) translateZ(249px)"');
+    expect(html.match(/event-wheel-shade/g)).toHaveLength(10);
+    // Frente sin velo (opacidad 0), vecinas con velo (0.12 a ±36°, 0.24
+    // a ±72°, 0.3 atrás): mismo oscurecido que brightness(0.88/0.76/0.7).
+    expect(html).toContain('opacity:0');
+    expect(html).toContain('opacity:0.12');
+    expect(html).toContain('opacity:0.24');
+    expect(html).toContain('opacity:0.3');
+    expect(css).toMatch(/\.event-wheel-shade\{[^}]*background:#000/);
   });
 
   it('shows the black fallback with the title for events without a poster', () => {

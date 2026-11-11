@@ -19,17 +19,19 @@ import { useTranslation } from '../../hooks/useTranslation.js';
 // opción #5 elegida por Jonathan (PR #192): un cilindro con tarjetas de
 // SOLO IMAGEN — el póster completo, sin título, fecha ni precio encima —
 // casi pegadas entre sí, que gira solo de forma continua y fluida (una
-// vuelta en ~33 s). Debajo de la rueda van los puntos, las flechas y el
-// nombre del evento de enfrente. El giro se pausa al
+// vuelta en ~33 s). Debajo de la rueda van los puntos y el nombre del
+// evento de enfrente en mayúsculas. Sin chevrones (PR #194): se navega
+// con los puntos, el giro automático o el arrastre. El giro se pausa al
 // pasar el mouse, al tocar o al esconder la pestaña, y se reanuda solo
-// unos segundos después de un salto manual (flecha, punto o lanzamiento
+// unos segundos después de un salto manual (punto o lanzamiento
 // con el dedo). Con prefers-reduced-motion no gira solo.
 //
 // El giro continuo lo mueve un bucle requestAnimationFrame (el tambor
 // avanza a velocidad constante); los saltos manuales y los lanzamientos
 // siguen usando el resorte físico de antes, que se asienta con un leve
 // sobrepaso. La cara del frente brilla más y las vecinas se apagan un
-// poco, como en el Coverflow.
+// poco con un velo negro de opacidad, como en el Coverflow — nunca con
+// `filter`, que parpadeaba en el teléfono (PR #194).
 const MAX_FACES = 10;
 // La cara del frente se ve a ~216 px CSS y en el teléfono a 3x son ~650 px
 // de dispositivo: a 400 px el póster se veía blando. A 800 px se ve nítido.
@@ -223,13 +225,9 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     ensureLoop();
   }, [n, step, reducedMotion, ensureLoop]);
 
-  // Salto manual (flecha o punto): resorte a esa cara; el giro solo se
+  // Salto manual (punto): resorte a esa cara; el giro solo se
   // reanuda solo tras la pausa (ver el bucle).
   const jumpTo = useCallback((target) => goTo(target), [goTo]);
-  const stepBy = useCallback((dir) => {
-    if (n < 3) return;
-    goTo(((targetRef.current?.index ?? indexRef.current) + dir + n) % n);
-  }, [n, goTo]);
 
   useEffect(() => {
     const onVis = () => {
@@ -355,11 +353,23 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
             // la cara queda con su fondo oscuro hasta que entra en la
             // ventana de cercanas (va girada y apagada, no se nota).
             const faceLoaded = loadedFacesRef.current.has(i) || nearFaces.includes(i);
+            // Oscurecido de la cara lateral SIN filter: antes iba un
+            // `filter: brightness(...)` en línea que cambiaba en cada
+            // fotograma (el tambor gira a 60 fps) y obligaba al navegador
+            // a re-rasterizar las 10 caras sin parar; en el teléfono, al
+            // hacer scroll, el compositor no daba abasto y la sección
+            // parpadeaba en blanco y negro (PR #194). Ahora la sombra es
+            // un velo negro con opacidad —propiedad que el compositor
+            // mueve sin re-rasterizar— y el resultado es idéntico:
+            // velo negro al (1 - brillo) sobre la imagen da rgb*brillo,
+            // lo mismo que brightness(brillo).
+            const shadeOpacity = Math.round((1 - faceBrightness(angle, T.dark)) * 100) / 100;
             return (
-              <div key={item.key} data-face={i} className="event-wheel-face" style={{ transform: `rotateY(${i * step}deg) translateZ(${radius}px)`, filter: `brightness(${faceBrightness(angle, T.dark).toFixed(2)})` }}>
+              <div key={item.key} data-face={i} className="event-wheel-face" style={{ transform: `rotateY(${i * step}deg) translateZ(${radius}px)` }}>
                 {item.img
                   ? (faceLoaded ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} priority={i === 0} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null)
                   : <EventPosterFallback title={item.title} radius={12} dark={T.dark} />}
+                <span className="event-wheel-shade" aria-hidden="true" style={{ opacity: shadeOpacity }} />
               </div>
             );
           })}
@@ -380,9 +390,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
           ))}
         </div>
         <div className="event-wheel-nav">
-          <button type="button" className="event-wheel-arrow" style={{ color: T.text, borderColor: T.border }} aria-label={t('home_rueda_anterior', 'Evento anterior')} onClick={() => stepBy(-1)}>‹</button>
           <button type="button" className="event-wheel-front-name" style={{ color: T.text }} onClick={() => onSelect?.(frontItem)}>{frontItem?.title || ''}</button>
-          <button type="button" className="event-wheel-arrow" style={{ color: T.text, borderColor: T.border }} aria-label={t('home_rueda_siguiente', 'Evento siguiente')} onClick={() => stepBy(1)}>›</button>
         </div>
       </footer>
     </section>

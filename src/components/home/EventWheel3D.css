@@ -1,24 +1,29 @@
 /* Rueda 3D de eventos del inicio global y las páginas de ciudad (opción
    #5, PR #192): cilindro con tarjetas de SOLO IMAGEN, casi pegadas, que
    gira solo de forma continua y fluida. Sin banda oscura ni ficha debajo:
-   el nombre del evento de enfrente, los puntos y las flechas van debajo
-   de la rueda. Formato corto: la tarjeta se VE a ~216x282 (nominal
-   162x212; la perspectiva la magnifica) y a ~178x234 en teléfono, dentro
-   de una escena de 306 px (262 px en teléfono) que no tapa el encabezado. */
+   el nombre del evento de enfrente (en mayúsculas) y los puntos van debajo
+   de la rueda; sin chevrones (PR #194). Formato corto: la tarjeta se VE a
+   ~216x282 (nominal 162x212; la perspectiva la magnifica) y a ~178x234 en
+   teléfono, dentro de una escena de 306 px (262 px en teléfono) que no tapa
+   el encabezado. El oscurecido lateral es un velo negro con opacidad
+   (.event-wheel-shade), nunca `filter`: el filtro cambiaba en cada
+   fotograma y hacía parpadear la sección en blanco y negro al hacer scroll
+   en el teléfono (PR #194). */
 .event-wheel{margin:0 0 32px;color:inherit}
 .event-wheel-viewport{position:relative;height:306px;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
 .event-wheel-dragging{cursor:grabbing}
 .event-wheel-drum{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
 .event-wheel-face{position:absolute;left:50%;top:50%;width:162px;height:212px;margin:-106px 0 0 -81px;border-radius:12px;overflow:hidden;background:#111;box-shadow:0 10px 24px rgba(0,0,0,.3);backface-visibility:hidden}
+.event-wheel-shade{position:absolute;inset:0;background:#000;border-radius:12px;pointer-events:none}
 .event-wheel-city{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:2;padding:3px 8px;border-radius:999px;background:rgba(0,0,0,.65);color:#fff;font-size:10px;font-weight:700;letter-spacing:.3px;line-height:1;white-space:nowrap;pointer-events:none}
 .event-wheel-footer{margin-top:12px;padding:0 20px;text-align:center}
 .event-wheel-dots{display:flex;justify-content:center;gap:8px;margin-bottom:10px}
 .event-wheel-dot{width:8px;height:8px;border-radius:999px;border:0;padding:0;cursor:pointer;transition:transform .2s ease}
 .event-wheel-dot-active{transform:scale(1.35)}
-.event-wheel-nav{display:flex;align-items:center;justify-content:center;gap:12px}
-.event-wheel-arrow{flex:0 0 32px;width:32px;height:32px;border-radius:999px;border:1px solid currentColor;background:transparent;font-size:18px;line-height:1;cursor:pointer;opacity:.75}
-.event-wheel-front-name{flex:1 1 auto;min-width:0;border:0;background:none;padding:0;font:inherit;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.event-wheel-nav{display:flex;align-items:center;justify-content:center}
+.event-wheel-front-name{flex:1 1 auto;min-width:0;border:0;background:none;padding:0;font:inherit;font-size:19px;font-weight:700;line-height:1.25;text-transform:uppercase;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 @media (max-width:640px){
   .event-wheel-viewport{height:262px}
   .event-wheel-face{width:140px;height:184px;margin:-92px 0 0 -70px}
+  .event-wheel-front-name{font-size:17px}
 }
