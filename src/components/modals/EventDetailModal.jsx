@@ -25,11 +25,12 @@ import { localizedTitle, localizedDescription } from '../../lib/i18nContent.js';
 // constante: cambiar LUMA_TINT_TOP cambia todo el degradado del modal.
 const LUMA_TINT_TOP = '#E7F1EA';
 
-// Rojo oficial de Apple Music: acentos de la tarjeta «Música del artista»
-// (distintivo con el logo, botones de reproducir y enlace a Apple Music).
-// El fondo de la tarjeta sigue siendo el del tema; el rojo va solo en
-// los acentos para que se note la marca sin volverla un bloque rojo.
+// Rojo oficial de Apple Music: FONDO de la tarjeta «Música del artista»
+// (colores invertidos, PR #195: la tarjeta es un bloque rosa para que
+// resalte y no se vea igual a todo lo demás; los botones y el distintivo
+// van en negro y los textos en blanco, en modo claro y en modo oscuro).
 const APPLE_MUSIC_RED = '#FA2D48';
+const APPLE_MUSIC_BLACK = '#000000';
 
 import { useAppContext } from '../../context/AppContext';
 import { useDataStore } from '../../store/useDataStore';
@@ -419,29 +420,29 @@ export default function EventDetailModal() {
 
                 {/* --- MÚSICA DEL ARTISTA (adelantos de iTunes; si no hay canciones no se muestra nada) --- */}
                 {musicQuery && musicTracks && musicTracks.length > 0 && (
-                  <div style={{ margin: '0 0 24px 0', background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, boxShadow: T.shadow }}>
+                  <div style={{ margin: '0 0 24px 0', background: APPLE_MUSIC_RED, border: '1px solid rgba(255,255,255,0.25)', borderRadius: 16, padding: 16, boxShadow: T.shadow }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>{t("eventos_musica_artista", "Música del artista")}</div>
-                      {/* Distintivo oficial de Apple Music: logo blanco sobre su rojo. */}
-                      <span style={{ flexShrink: 0, background: APPLE_MUSIC_RED, borderRadius: 8, padding: '7px 10px', display: 'inline-flex', alignItems: 'center', lineHeight: 0 }} title="Apple Music">
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#FFFFFF' }}>{t("eventos_musica_artista", "Música del artista")}</div>
+                      {/* Distintivo oficial de Apple Music: logo blanco sobre negro. */}
+                      <span style={{ flexShrink: 0, background: APPLE_MUSIC_BLACK, borderRadius: 8, padding: '7px 10px', display: 'inline-flex', alignItems: 'center', lineHeight: 0 }} title="Apple Music">
                         <img src="/apple-music-logo.svg" alt="Apple Music" style={{ height: 16, width: 'auto', display: 'block' }} />
                       </span>
                     </div>
-                    <div style={{ fontSize: 13, color: T.sub, marginBottom: 10 }}>{t("eventos_musica_desc", "Escucha un adelanto de sus canciones sin salir de aquí.")}</div>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', marginBottom: 10 }}>{t("eventos_musica_desc", "Escucha un adelanto de sus canciones sin salir de aquí.")}</div>
                     {musicTracks.map((track, i) => {
                       const playing = playingTrackId === track.id;
                       return (
-                        <div key={track.id} onClick={() => toggleMusicTrack(track)} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? `1px solid ${T.border}` : 'none', cursor: 'pointer' }}>
-                          <img src={track.artwork} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', background: T.border, flexShrink: 0 }} />
+                        <div key={track.id} onClick={() => toggleMusicTrack(track)} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.25)' : 'none', cursor: 'pointer' }}>
+                          <img src={track.artwork} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', background: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.name}</div>
-                            <div style={{ fontSize: 13, color: T.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artist}</div>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.name}</div>
+                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artist}</div>
                           </div>
-                          <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: '50%', background: APPLE_MUSIC_RED, color: '#FFFFFF', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800 }}>{playing ? '❚❚' : '▶'}</span>
+                          <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: '50%', background: APPLE_MUSIC_BLACK, color: '#FFFFFF', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800 }}>{playing ? '❚❚' : '▶'}</span>
                         </div>
                       );
                     })}
-                    <a href={`https://music.apple.com/mx/search?term=${encodeURIComponent(musicQuery)}`} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: 10, fontSize: 13, fontWeight: 700, color: APPLE_MUSIC_RED, textAlign: 'center', textDecoration: 'none' }}>{t("eventos_ver_mas_apple_music", "Ver más en Apple Music ↗")}</a>
+                    <a href={`https://music.apple.com/mx/search?term=${encodeURIComponent(musicQuery)}`} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: 10, fontSize: 13, fontWeight: 700, color: '#FFFFFF', textAlign: 'center', textDecoration: 'none' }}>{t("eventos_ver_mas_apple_music", "Ver más en Apple Music ↗")}</a>
                   </div>
                 )}
 
