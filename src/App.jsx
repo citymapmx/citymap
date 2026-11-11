@@ -25,6 +25,7 @@ import { searchMatches } from './lib/utils.js';
 import { SPRING_UI } from './lib/spring.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
 import { eventUrl, resolveEventSlug } from './lib/eventUrls.js';
+import { isStayOnInitialPath, resolveHomePath } from './lib/initialRoute.js';
 import Icon from './components/ui/Icon.jsx';
 import BrandSplash from './components/ui/BrandSplash.jsx';
 
@@ -654,14 +655,15 @@ useEffect(() => {
         setActiveCat(initialCatParam.current);
         // Keep the category URL on reload; navigating home clears this selection.
       } else {
-        // If already on a detail/category/non-home path (e.g. hard refresh on /tepic/restaurante),
-        // do NOT navigate away — let AppRouter handle the URL as-is.
+        // Si ya estamos en una ruta válida (detalle, categoría, sección o
+        // inicio de ciudad como /tepic), NO navegar: AppRouter ya muestra
+        // lo que corresponde a la URL. Antes, una ruta de ciudad de un solo
+        // segmento caía en navigate("home") y, con la ciudad activa todavía
+        // vacía en este efecto (perfil limpio), la app acababa en el muro
+        // global ("/"). La URL de una ciudad borrada sigue su
+        // comportamiento actual (no se redirige nada aquí).
         const currentPath = window.location.pathname;
-        const nonHomePrefixes = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
-        const isNonHome = nonHomePrefixes.some(p => currentPath.startsWith(p));
-        const segments = currentPath.split('/').filter(Boolean);
-        const isDetailOrCategory = segments.length >= 2; // e.g. /tepic/emilianos or /tepic/c/restaurantes
-        if (!isNonHome && !isDetailOrCategory && currentPath !== "/") {
+        if (!isStayOnInitialPath(currentPath) && currentPath !== "/") {
           navigate("home");
         } else if (currentPath === "/" && !window.location.hash) {
           // Segunda entrada: abrir directo la ciudad guardada en vez del muro.
@@ -754,7 +756,15 @@ useEffect(() => {
       setSelectedEvent(null);
       setMapPin(null);
       // En el muro global ("/"), Inicio se queda en el muro, no salta a la ciudad.
-      path = location.pathname === "/" ? "/" : cityPrefix;
+      // La ciudad se lee del store en vivo: este navigate también se llama
+      // desde el efecto de arranque, cuyo cierre capturó la ciudad inicial
+      // (vacía en perfil limpio, o la ciudad anterior al abrir otro enlace),
+      // y con ella la URL acababa en "/" o en la ciudad equivocada.
+      path = resolveHomePath({
+        pathname: location.pathname,
+        activeCity: useUIStore.getState().activeCity || city,
+        cities,
+      });
 
       if (location.pathname !== path || location.search) {
         routerNavigate(path, { replace: false, viewTransition: true });
