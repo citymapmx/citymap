@@ -40,7 +40,7 @@ function planCard(html, key, nextKey) {
   return html.slice(start, end);
 }
 
-const MOCHOMOS_ID = "c0ae3d8f-7417-4ca7-9e66-91fa5d55b7e8";
+const AKAMI_ID = "b5bed88e-8d6d-4c4a-88fe-5a89e5190a61";
 
 describe('Ejemplos por plan en /negocios', () => {
   it('ya no existe la sección independiente «Así se ve un perfil en CityMap»', () => {
@@ -65,14 +65,14 @@ describe('Ejemplos por plan en /negocios', () => {
     const card = planCard(renderLanding(false), 'free', 'pro');
     expect(card).toContain('Dalila Casa Repostera');
     expect(card).toContain('1791991285949_z4ojc.webp');
-    expect(card).not.toContain('Mochomos');
+    expect(card).not.toContain('Akami Sushi');
     expect(card).not.toContain('Four Seasons');
   });
 
-  it('Destacado → Mochomos, con su foto real', () => {
+  it('Destacado → Akami Sushi, con su foto real', () => {
     const card = planCard(renderLanding(false), 'pro', 'elite');
-    expect(card).toContain('Mochomos');
-    expect(card).toContain('1787478894399_qk3fa.jpeg');
+    expect(card).toContain('Akami Sushi');
+    expect(card).toContain('1792683841443_qbw057.webp');
     expect(card).not.toContain('Dalila');
     expect(card).not.toContain('Four Seasons');
   });
@@ -87,7 +87,7 @@ describe('Ejemplos por plan en /negocios', () => {
     expect(card).toContain('Menú Interactivo y Carrito');
     expect(card).toContain('Panel de Estadísticas');
     expect(card).toContain('Gestión de Reservas');
-    expect(card).not.toContain('Mochomos');
+    expect(card).not.toContain('Akami Sushi');
     expect(card).not.toContain('Dalila');
   });
 
@@ -107,9 +107,9 @@ describe('Ejemplos por plan en /negocios', () => {
   });
 
   it('la calificación se lee en vivo con displayRating: solo con dato real de Google (source google)', () => {
-    // Dato real del caché (verificado por PostgREST el 10 nov 2026).
-    const conDato = displayRating({ id: MOCHOMOS_ID }, { [MOCHOMOS_ID]: { rating: 4.9, count: 13275 } });
-    expect(conDato).toEqual({ rating: 4.9, count: 13275, source: 'google' });
+    // Dato real del caché (verificado por PostgREST el 11 nov 2026).
+    const conDato = displayRating({ id: AKAMI_ID }, { [AKAMI_ID]: { rating: 4.6, count: 47 } });
+    expect(conDato).toEqual({ rating: 4.6, count: 47, source: 'google' });
     // Four Seasons (ejemplo Premium): el caché SÍ tiene su dato (4.8,
     // 3,766 reseñas), así que con showStars la tarjeta lo muestra.
     const FOUR_SEASONS_ID = "6a49d84a-6feb-4b74-89a8-8f68bab27849";
@@ -117,7 +117,7 @@ describe('Ejemplos por plan en /negocios', () => {
       .toEqual({ rating: 4.8, count: 3766, source: 'google' });
     // Sin dato en el caché, la tarjeta no muestra calificación: el
     // componente solo la pinta cuando source === 'google'.
-    const sinDato = displayRating({ id: MOCHOMOS_ID }, {});
+    const sinDato = displayRating({ id: AKAMI_ID }, {});
     expect(sinDato.source).toBe('citymap');
     expect(sinDato.rating).toBeNull();
   });
