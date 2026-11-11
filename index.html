@@ -5,15 +5,19 @@
 
     <!-- Analytics se carga de forma diferida vía React (useThirdPartyScripts) para mejorar TTI/LCP -->
 
-    <!-- Fuentes Optimizadas -->
-    <link rel="preload" href="/Coolvetica Rg.otf" as="font" type="font/otf" crossorigin />
+    <!-- Fuentes Optimizadas: solo las familias que usa la app (DM Sans es
+         el texto y Montserrat el título del hero). DM Serif Display y Plus
+         Jakarta Sans venían en la URL pero ningún componente las usa: sus
+         archivos nunca se descargaban, solo engordaban el CSS. Coolvetica
+         tampoco se usa en la app Vite (su @font-face se quitó de index.css):
+         ya no se precarga su OTF de 67 KB en cada visita. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://dpkjxhjkzdlkvyotoeai.supabase.co" crossorigin="anonymous" />
     <link rel="preconnect" href="https://accounts.google.com" crossorigin="anonymous" />
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@600;700;800&family=Montserrat:wght@800&display=swap" as="style" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@600;700;800&family=Montserrat:wght@800&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@600;700;800&family=Montserrat:wght@800&display=swap" /></noscript>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Montserrat:wght@800&display=swap" as="style" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Montserrat:wght@800&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Montserrat:wght@800&display=swap" /></noscript>
     <!-- Favicon optimizado para Google (múltiplo de 48px) -->
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />

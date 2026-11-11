@@ -17,7 +17,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       selfDestroying: true,
-      includeAssets: ['favicon.png', 'apple-icon.png', 'Coolvetica Rg.otf'],
+      includeAssets: ['favicon.png', 'apple-icon.png'],
       workbox: {
         navigateFallbackDenylist: [/^\/native-auth\.html/],
         // Only precache static assets, NOT JS chunks (they change every deploy)

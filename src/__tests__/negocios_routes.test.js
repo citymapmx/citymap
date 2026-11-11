@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
-import { TRANSLATIONS } from '../lib/i18n.js';
+import { TRANSLATIONS, ensureEnglishTranslations } from '../lib/i18n.js';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
@@ -120,7 +120,9 @@ describe('enlaces de entrada a /negocios', () => {
 });
 
 describe('i18n: las 53 claves negocios_* existen en es y en', () => {
-  it('las 53 claves existen y no están vacías en ambos idiomas', () => {
+  it('las 53 claves existen y no están vacías en ambos idiomas', async () => {
+    // El inglés se carga en diferido (rendimiento teléfono).
+    await ensureEnglishTranslations();
     expect(NEGOCIOS_KEYS).toHaveLength(53);
     for (const k of NEGOCIOS_KEYS) {
       expect(TRANSLATIONS.es[k], `es.${k}`).toBeTruthy();

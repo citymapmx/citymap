@@ -261,16 +261,33 @@ export default function StoryStrip({ items = [], T, t, onSelect, isSaved, onTogg
               aria-label={t ? t('story_ir_a', `Ir al lugar ${n + 1} de ${total}`) : `Ir al lugar ${n + 1} de ${total}`}
               onClick={(e) => { e.stopPropagation(); goTo(n); }}
               style={{
-                width: n === idx ? 16 : 6,
-                height: 6,
-                borderRadius: 3,
-                border: 'none',
+                // Área táctil de 24×24 (WCAG 2.2): el punto visual sigue
+                // midiendo 6 px de alto; el margen negativo compensa el
+                // alto para que la fila no crezca (el diseño no cambia).
+                width: 24,
+                height: 24,
+                margin: '-9px 0',
                 padding: 0,
-                background: T.text,
-                opacity: n === idx ? 1 : 0.25,
+                border: 'none',
+                background: 'transparent',
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
-            />
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: n === idx ? 16 : 6,
+                  height: 6,
+                  borderRadius: 3,
+                  background: T.text,
+                  opacity: n === idx ? 1 : 0.25,
+                  display: 'block',
+                }}
+              />
+            </button>
           ))}
         </div>
       )}

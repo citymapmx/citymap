@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import BusinessLanding from '../components/BusinessLanding.jsx';
-import { TRANSLATIONS } from '../lib/i18n.js';
+import { TRANSLATIONS, ensureEnglishTranslations } from '../lib/i18n.js';
 
 // useUIStore lee localStorage y window.location al importar; en Node no
 // existen (mismo patrón que negocios_perfiles_ejemplo.test.jsx).
@@ -79,7 +79,9 @@ describe('Sección «Tu negocio ya aparece en Google» en /negocios', () => {
     expect(section).toContain('/googlelogo.svg');
   });
 
-  it('las claves i18n existen en español e inglés, con los mismos huecos', () => {
+  it('las claves i18n existen en español e inglés, con los mismos huecos', async () => {
+    // El inglés se carga en diferido (rendimiento teléfono).
+    await ensureEnglishTranslations();
     const es = TRANSLATIONS.es;
     const en = TRANSLATIONS.en;
     const keys = [

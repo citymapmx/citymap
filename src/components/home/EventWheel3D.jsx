@@ -1,7 +1,8 @@
 import './EventWheel3D.css';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
-import { SRCSET_CARD } from '../../lib/utils.js';
+import { SRCSET_CARD, SRCSET_THUMB } from '../../lib/utils.js';
+import { wheelFrontIndex, wheelNearFaces } from '../../lib/wheelPreload.js';
 import EventPosterFallback from './EventPosterFallback.jsx';
 import { faceBrightness, normalizeAngleDeg, springSettled, springStep } from '../../lib/spring.js';
 import { useTranslation } from '../../hooks/useTranslation.js';
@@ -50,6 +51,19 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
 
   const step = n >= 3 ? 360 / n : 0;
   const radius = n >= 3 ? Math.round((FACE_W / 2) / Math.tan(Math.PI / n)) : 0;
+
+  // Caras con <img> montada: las cercanas al frente ahora (la del frente y
+  // 2 a cada lado, wheelNearFaces) más las que ya estuvieron cerca
+  // (loadedFacesRef): una vez cargada, la cara no se desmonta para que el
+  // póster no parpadee en cada giro. Las caras de atrás no montan imagen
+  // hasta que el giro las acerca (ver wheelPreload.js).
+  const frontIdx = n >= 3 ? wheelFrontIndex(rotation, step, n) : 0;
+  const nearFaces = n >= 3 ? wheelNearFaces(frontIdx, n) : [];
+  const loadedFacesRef = useRef(new Set());
+  useEffect(() => {
+    const s = loadedFacesRef.current;
+    wheelNearFaces(frontIdx, n).forEach((i) => s.add(i));
+  }, [frontIdx, n]);
 
   const stopSpring = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -204,6 +218,8 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   if (n === 0) return null;
 
   // Con menos de 3 eventos no hay tambor: hilera simple con los pósters.
+  // Las tarjetas miden 170 px, así que 400 px sobra (antes pedían 800 px
+  // como las caras del tambor, el doble de lo necesario).
   if (n < 3) {
     return (
       <section style={{ marginBottom: 32 }}>
@@ -212,7 +228,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
           {items.map((item) => (
             <article key={item.key} onClick={() => onSelect?.(item)} style={{ flex: '0 0 170px', borderRadius: 16, overflow: 'hidden', background: '#111', cursor: 'pointer' }}>
               <div style={{ position: 'relative', aspectRatio: '3 / 4' }}>
-                {item.img ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <EventPosterFallback title={item.title} radius={0} />}
+                {item.img ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={400} srcSetWidths={SRCSET_THUMB} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <EventPosterFallback title={item.title} radius={0} />}
                 {pill(item)}
               </div>
             </article>
@@ -238,10 +254,14 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
         <div className="event-wheel-drum" style={{ transform: `rotateY(${rotation}deg)` }}>
           {items.map((item, i) => {
             const angle = normalizeAngleDeg(i * step + rotation);
+            // Sin imagen montada hasta que la cara se acerca al frente:
+            // la cara queda con su fondo oscuro hasta que entra en la
+            // ventana de cercanas (va girada y apagada, no se nota).
+            const faceLoaded = loadedFacesRef.current.has(i) || nearFaces.includes(i);
             return (
               <div key={item.key} data-face={i} className="event-wheel-face" style={{ transform: `rotateY(${i * step}deg) translateZ(${radius}px)`, filter: `brightness(${faceBrightness(angle, T.dark).toFixed(2)})` }}>
                 {item.img
-                  ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} priority={i === 0} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  ? (faceLoaded ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} priority={i === 0} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null)
                   : <EventPosterFallback title={item.title} radius={12} dark={T.dark} />}
                 {pill(item)}
               </div>

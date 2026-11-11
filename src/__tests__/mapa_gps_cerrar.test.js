@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { TRANSLATIONS } from '../lib/i18n.js';
+import { TRANSLATIONS, ensureEnglishTranslations } from '../lib/i18n.js';
 
 const mapView = readFileSync(new URL('../views/MapView.jsx', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../App.jsx', import.meta.url), 'utf8');
@@ -47,7 +47,9 @@ describe('Mapa: el error de GPS avisa en vez de fallar en silencio', () => {
     expect(block).toContain('toast$(t("ubicacion_error"');
   });
 
-  it('la clave del mensaje existe en español e inglés', () => {
+  it('la clave del mensaje existe en español e inglés', async () => {
+    // El inglés se carga en diferido (rendimiento teléfono).
+    await ensureEnglishTranslations();
     expect(TRANSLATIONS.es.ubicacion_error).toBeTruthy();
     expect(TRANSLATIONS.en.ubicacion_error).toBeTruthy();
   });

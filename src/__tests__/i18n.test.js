@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { TRANSLATIONS, translateDynamicStatus } from '../lib/i18n.js';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { TRANSLATIONS, ensureEnglishTranslations, translateDynamicStatus } from '../lib/i18n.js';
+
+// El inglés se carga en diferido (rendimiento teléfono): antes de comparar
+// los diccionarios hay que pedirlo explícitamente.
+beforeAll(async () => {
+  await ensureEnglishTranslations();
+});
 
 const getPlaceholders = (s) => new Set([
   ...s.matchAll(/\$\{(\w+)\}/g),
