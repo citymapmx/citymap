@@ -24,6 +24,7 @@ import { CITY_TZ, FONT_BIZ, EVENT_CATS, getT } from './lib/constants.js';
 import { searchMatches } from './lib/utils.js';
 import { SPRING_UI } from './lib/spring.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
+import { sectionPathForCity, isSectionCityPath } from './lib/sectionRouting.js';
 import { eventUrl, resolveEventSlug } from './lib/eventUrls.js';
 import { isStayOnInitialPath, resolveHomePath } from './lib/initialRoute.js';
 import Icon from './components/ui/Icon.jsx';
@@ -369,7 +370,7 @@ export default function CityGuide() {
     })();
   }, [user, loadMyBiz]);
   
-  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ activeCity, cities, mapPins, toast$, setActiveCity: (s) => { setActiveCity(s); loadData(s); const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === "/" || location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/"); if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true, viewTransition: true }); } } });
+  const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ activeCity, cities, mapPins, toast$, setActiveCity: (s) => { const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === "/" || location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/"); const sectionPath = sectionPathForCity(location.pathname, s); /* La navegación va ANTES de cambiar la ciudad en el store: así el splash «Preparando {ciudad}» se dispara al cambiar citySlug con la sección ya puesta (si fuera al revés, el efecto del splash vería el cambio de ciudad con la ruta vieja y no entraría). */ if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true, viewTransition: true }); } else if (sectionPath) { routerNavigate(sectionPath, { replace: true, viewTransition: true }); } setActiveCity(s); loadData(s); } });
   const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites({ sb, user, setShowAuth });
   
   useEffect(() => {
@@ -1427,7 +1428,7 @@ useEffect(() => {
   return (
     <AppContext.Provider value={appContextValue}>
       <OfflineScreen />
-      <CityArrivalSplash enabled={!requireCitySelection && isHomePath(location.pathname) && location.pathname !== '/'} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && homeCoreCity===activeCity} error={dbError || businessListError || homeCoreError || homeSecondaryError} />
+      <CityArrivalSplash enabled={!requireCitySelection && (isHomePath(location.pathname) || isSectionCityPath(location.pathname)) && location.pathname !== '/'} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && homeCoreCity===activeCity} error={dbError || businessListError || homeCoreError || homeSecondaryError} />
 
       <div style={{ fontFamily: "'DM Sans',system-ui,sans-serif", background: dark ? "transparent" : T.bg, minHeight: "100vh", width: "100%", position: "relative", transition: "background .3s" }}>
         {dark && <CosmicBackground />}
@@ -1439,14 +1440,8 @@ useEffect(() => {
 
         {toast && <div className="tb">{toast}</div>}
 
-        {/* ── GLOBAL GLASS NAVBAR (Fixed, home only) ── */}
-        {(!location.pathname.startsWith("/mapa") && 
-          !location.pathname.startsWith("/eventos") && 
-          !location.pathname.startsWith("/explorar") && 
-          !location.pathname.startsWith("/mis-planes") && 
-          !location.pathname.startsWith("/revista") && 
-          !location.pathname.startsWith("/experiencias") && 
-          !location.pathname.startsWith("/planes") && 
+        {/* ── GLOBAL GLASS NAVBAR (Fixed: inicio, Revista, Mapa y Eventos) ── */}
+        {(!location.pathname.startsWith("/planes") && 
           !location.pathname.startsWith("/cuenta") && 
           !location.pathname.startsWith("/admin") && 
           !location.pathname.startsWith("/favoritos") && 

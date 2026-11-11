@@ -39,18 +39,21 @@ function renderInfo(event, props = {}) {
 }
 
 // 11 nov 2026 (Jonathan): detalle de evento con (a) barra fija abajo con
-// precio y botón de boletos, (b) «Agregar al calendario» en la tarjeta de
-// fecha y (c) compartir junto al botón de boletos. La barra es
+// botón de boletos (SIN el precio: salió de la barra el mismo día, el precio
+// queda en la fila de precio del detalle), (b) «Agregar al calendario» en
+// la tarjeta de fecha y (c) compartir junto al botón de boletos. La barra es
 // EventTicketBar y el modal la pinta como hija directa del wrapper del
 // detalle: dentro de EventInformation su bloque contenedor terminaba a
 // mitad del contenido y la barra se iba al bajar en vez de quedarse
 // pegada abajo.
 describe('detalle de evento: barra fija, calendario y compartir', () => {
-  it('la barra fija lleva el precio y el botón de boletos', () => {
+  it('la barra fija lleva el botón de boletos, sin el precio', () => {
     const html = renderBar(baseEvent);
     expect(html).toContain('position:sticky');
     expect(html).toContain('bottom:0');
-    expect(html).toContain('Entrada: $850');
+    // El precio salió de la barra (nov 2026, Jonathan): queda en la fila
+    // de precio del detalle, no encima del botón.
+    expect(html).not.toContain('Entrada: $850');
     expect(html).toContain('Comprar boletos');
     expect(html).toContain('ticketmaster.com.mx/evento');
   });
@@ -84,9 +87,13 @@ describe('detalle de evento: barra fija, calendario y compartir', () => {
     expect(html).not.toContain('calendar.google.com');
   });
 
-  it('evento gratis: la barra dice «Entrada gratuita»', () => {
+  it('evento gratis: la barra lleva el botón sin precio (el precio queda en la tarjeta de información)', () => {
     const html = renderBar({ ...baseEvent, price_type: 'gratis', price: 0 });
-    expect(html).toContain('Entrada gratuita');
+    expect(html).not.toContain('Entrada gratuita');
+    // Gratis: el botón dice «Consultar entradas» (no «Comprar boletos»).
+    expect(html).toContain('Consultar entradas');
+    expect(html).toContain('ticketmaster.com.mx/evento');
+    expect(renderInfo({ ...baseEvent, price_type: 'gratis', price: 0 })).toContain('Entrada gratuita');
   });
 
   it('sin precio ni boletos no hay barra fija', () => {
