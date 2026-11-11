@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import * as dbService from '../services/dbService';
 import { Helmet } from "react-helmet-async";
 import { useAppContext } from "../context/AppContext";
@@ -7,14 +7,21 @@ import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon";
 import ReservationsAgenda from "../components/ReservationsAgenda";
 import GamificationWidget from "../components/admin/GamificationWidget";
+import { ErrorBoundary } from "../components/ErrorBoundary.jsx";
+
+// La hoja de tarjetas para compartir del negocio (la misma de la
+// ficha): Oscura/Clara, grids y, si el negocio tiene menú, «Para
+// pedir» y «QR del menú». Solo el dueño la ve, aquí en su panel.
+const ShareCardSheet = lazy(() => import('../components/ShareCardSheet.jsx'));
 
 export default function OwnerDashboardView() {
   const ctx = useAppContext();
-  const { T, FONT_BIZ, navigate, setShowPlans } = ctx;
+  const { T, FONT_BIZ, navigate, setShowPlans, doShare } = ctx;
   const { toast$, ownerView, setOwnerView } = useUIStore(useShallow(s => ({ toast$: s.toast$, ownerView: s.ownerView, setOwnerView: s.setOwnerView })));
 
   const [ownerRes, setOwnerRes] = useState([]);
   const [ownerStats, setOwnerStats] = useState({ views: 0, whatsapp: 0, phone: 0 });
+  const [showShareCard, setShowShareCard] = useState(false);
 
   // Si no hay ownerView, redirigimos a cuenta
   useEffect(() => {
@@ -94,6 +101,19 @@ export default function OwnerDashboardView() {
           </button>
         </div>
 
+        {/* COMPARTIR MI NEGOCIO (solo el dueño, en su panel): abre la
+            hoja de tarjetas para compartir del negocio. Ya no está en
+            la página pública del menú. */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.white, border: `1.5px solid ${T.border}`, padding: "12px 16px", borderRadius: 16, marginBottom: 24, boxShadow: "0 4px 12px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: T.iconBg, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="share" size={16} color={T.sub} /></div>
+            <span className="text-sm" style={{ fontWeight: 700, color: T.text }}>Compartir mi negocio</span>
+          </div>
+          <button className="press text-xs" onClick={() => setShowShareCard(true)} style={{ background: T.text, padding: "8px 16px", borderRadius: 10, fontWeight: 800, color: T.bg, border: "none", cursor: "pointer" }}>
+            Compartir
+          </button>
+        </div>
+
         {/* GAMIFICATION WIDGET */}
         <GamificationWidget ownerView={ownerView} />
 
@@ -106,6 +126,17 @@ export default function OwnerDashboardView() {
         )}
         
       </div>
+
+      {/* Hoja de tarjetas para compartir del negocio (Oscura/Clara y,
+          si tiene menú, «Para pedir» y «QR del menú»): hasMenu hace que
+          la hoja cargue los platillos; sin menú solo salen 2 estilos. */}
+      {showShareCard && (
+        <ErrorBoundary>
+          <Suspense fallback={null}>
+            <ShareCardSheet biz={ownerView} hasMenu onClose={() => setShowShareCard(false)} onShareLink={(b) => doShare(b)} />
+          </Suspense>
+        </ErrorBoundary>
+      )}
     </div>
   );
 }

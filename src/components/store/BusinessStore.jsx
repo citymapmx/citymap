@@ -1,7 +1,7 @@
 import {isCatalogBusiness} from '../../lib/storePresentation.js';
 import StorePromotions from './StorePromotions.jsx';
 import SlidingCategoryTrack from '../ui/SlidingCategoryTrack.jsx';
-import { useState, useEffect, useRef, useCallback, useContext, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import { sb } from '../../lib/supabase.js';
@@ -19,11 +19,6 @@ import { AppContext } from '../../context/AppContext.jsx';
 import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic, SRCSET_CARD, SRCSET_THUMB } from '../../lib/utils.js';
 import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
-import { flattenMenuProducts } from '../../lib/shareCard.js';
-
-// PR #162: la hoja Compartir de la página del menú (solo «Para pedir»
-// y «QR del menú»); perezosa como en DetailView.
-const ShareCardSheet = lazy(() => import('../ShareCardSheet.jsx'));
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
   const navigate = useNavigate();
@@ -32,9 +27,6 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  // PR #162: la hoja Compartir de la página del menú (solo «Para
-  // pedir» y «QR del menú»).
-  const [showMenuShareCard, setShowMenuShareCard] = useState(false);
   const [menuSearch, setMenuSearch] = useState('');
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('cg_menu_view') || 'list');
   
@@ -133,11 +125,6 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
 
   // Filter out empty categories
   const activeCategories = categories.filter(c => c.store_products && c.store_products.length > 0);
-  // PR #162: los platillos con precio del menú, para la hoja Compartir
-  // de la página del menú (sin otra consulta: la página ya los trae;
-  // la misma forma que loadMenuItems, para la hoja). useMemo para que
-  // la referencia sea estable y la hoja no recargue en cada render.
-  const menuShareItems = useMemo(() => flattenMenuProducts(activeCategories), [activeCategories]);
 
   useEffect(() => {
     if (!activeTabId && activeCategories.length > 0) {
@@ -234,6 +221,11 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   };
 
   const coverPhoto = business.banner_url || business.logo_url || (business.photos && business.photos[0] ? business.photos[0].url : null);
+  // La portada del menú mide lo mismo que la de la ficha (DetailView):
+  // 220 px con foto, 64 sin foto (isElite está desactivado en la ficha,
+  // así que ahí siempre son 220). Sin esto, el paso ficha → menú
+  // cambiaba la altura de la portada y se sentía brusco.
+  const coverHeight = coverPhoto ? 220 : 64;
   const isOpen = isOpenNow(business, business.timezone);
   const scheduleInfo = getSmartScheduleInfo(business, business.timezone);
 
@@ -352,7 +344,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             >
             {/* Banner Area (Baryo Style) */}
             <div style={{ position: 'relative', width: '100%', background: dark ? '#18181B' : '#FFFFFF' }}>
-              <div style={{ position: 'relative', width: '100%', height: business.banner_url ? "auto" : 170, aspectRatio: business.banner_url ? "800/340" : "auto", background: '#232326' }}>
+              <div style={{ position: 'relative', width: '100%', height: coverHeight, background: '#232326' }}>
                 {(business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url) && (
                   <OptimizedImage 
                     src={business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url} 
@@ -404,11 +396,16 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 </div>
               </div>
 
-              {/* Profile Logo Circular Superpuesto */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: -45, position: 'relative', zIndex: 3 }}>
+              {/* Profile Logo Circular Superpuesto: en la misma posición
+                  que en la ficha (DetailView): a la izquierda, de 96 px,
+                  con la parte superior 68 px por encima del borde
+                  inferior de la portada (en la ficha la tarjeta blanca
+                  sube 20 px sobre la portada y el logo va 48 px sobre
+                  la tarjeta: 20 + 48 = 68). */}
+              <div style={{ display: 'flex', justifyContent: 'flex-start', padding: '0 16px', marginTop: -68, position: 'relative', zIndex: 3 }}>
                 <div style={{ 
-                  width: 90, 
-                  height: 90, 
+                  width: 96, 
+                  height: 96, 
                   borderRadius: '50%', 
                   background: '#FFFFFF', 
                   border: `4px solid ${dark ? '#18181B' : '#FFFFFF'}`,
@@ -468,48 +465,22 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                             color: dark ? '#A1A1AA' : '#71717A',
                             textDecoration: 'none',
                             maxWidth: '100%',
+                            minWidth: 0,
                             cursor: 'pointer'
                           }}
                           title={business.address}
                         >
                           <Icon name="pin" size={13} color={dark ? '#A1A1AA' : '#71717A'} style={{ flexShrink: 0 }} />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {/* La dirección se ajusta a la pantalla: pasa a
+                              varias líneas en vez de cortarse con puntos
+                              suspensivos en el borde derecho (móvil). */}
+                          <span style={{ overflowWrap: 'break-word', wordBreak: 'break-word', minWidth: 0 }}>
                             {cleanShortAddress(business.address)}
                           </span>
                         </a>
                       </>
                     )}
                   </div>
-                )}
-                {/* PR #162: botón «Compartir» en la página del menú
-                    (inline): abre la hoja con solo «Para pedir» y «QR
-                    del menú». En la ficha (sin inline) no sale: ahí la
-                    hoja vuelve a 2 estilos. Solo si hay platillos con
-                    precio para compartir. */}
-                {inline && menuShareItems.length > 0 && (
-                  <button
-                    onClick={() => setShowMenuShareCard(true)}
-                    className="press"
-                    aria-label="Compartir menú"
-                    style={{
-                      marginTop: 12,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '10px 18px',
-                      borderRadius: 999,
-                      border: `1.5px solid ${dark ? '#3F3F46' : '#E4E4E7'}`,
-                      background: 'transparent',
-                      color: dark ? '#FAFAFA' : '#18181B',
-                      fontSize: 14,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    <Icon name="share" size={16} color="currentColor" />
-                    Compartir
-                  </button>
                 )}
               </div>
             </div>
@@ -898,21 +869,6 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
           T={T} 
           menuIntent={menuIntent}
         />
-      )}
-
-      {/* PR #162: la hoja Compartir de la página del menú: solo «Para
-          pedir» y «QR del menú». El «Compartir enlace» de la hoja
-          comparte la URL del menú (handleShare), no la de la ficha. */}
-      {showMenuShareCard && (
-        <Suspense fallback={null}>
-          <ShareCardSheet
-            biz={business}
-            menuOnly
-            menuItems={menuShareItems}
-            onClose={() => setShowMenuShareCard(false)}
-            onShareLink={() => handleShare()}
-          />
-        </Suspense>
       )}
 
       <CartDrawer business={business} T={T} />
