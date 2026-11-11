@@ -33,14 +33,14 @@ function timeLabel(value, lang = 'es') {
 // lo trae («Auditorio Telmex, Industrial los Belenes…»), no se
 // repite: la fila solo lleva la dirección.
 // hidePriceRow: el precio ya se muestra en la fila superior del modal.
+// En la barra fija NO va el precio (nov 2026, Jonathan): solo el botón
+// de boletos y el compartir; el precio queda en la fila de precio de
+// esta tarjeta (y en la fila superior del modal).
 export function EventTicketBar({ event, T, hideTickets = false, onShare = null }) {
   const { t } = useTranslation();
   const price = getEventPrice(event);
   const links = getEventLinks(event);
   const showLinks = !hideTickets && links.length > 0;
-  // El precio también va en la barra fija de boletos (aunque la fila
-  // superior del modal ya lo muestre: esa queda arriba al bajar).
-  const showBarPrice = Boolean(price && !hideTickets && !(isPrivateEvent(event) && price.free));
   // Etiqueta del botón de entradas según la boletera (misma lógica de
   // antes) y botón reutilizable: el primero va lleno y junto al de
   // compartir; los demás, en borde, apilados debajo.
@@ -58,7 +58,6 @@ export function EventTicketBar({ event, T, hideTickets = false, onShare = null }
   if (!showLinks) return null;
   return (
     <div style={{ position: 'sticky', bottom: 0, zIndex: 5, padding: '20px 16px calc(8px + env(safe-area-inset-bottom, 0px))', background: `linear-gradient(180deg, transparent, ${T.bg} 55%)` }}>
-      {showBarPrice && <p style={{ margin: '0 0 8px', color: T.text, fontSize: 15, fontWeight: 800 }}>{price.text}</p>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 8 }}>
           {ticketButton(links[0], true)}

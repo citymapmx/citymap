@@ -16,7 +16,7 @@ import { useDataStore } from '../../store/useDataStore.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { AppContext } from '../../context/AppContext.jsx';
  
-import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic, SRCSET_CARD, SRCSET_THUMB } from '../../lib/utils.js';
+import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic, SRCSET_THUMB } from '../../lib/utils.js';
 import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
 
@@ -346,14 +346,16 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             <div style={{ position: 'relative', width: '100%', background: dark ? '#18181B' : '#FFFFFF' }}>
               <div style={{ position: 'relative', width: '100%', height: coverHeight, background: '#232326' }}>
                 {(business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url) && (
-                  <OptimizedImage 
-                    src={business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url} 
-                    widthRequest={800}
-                    heightRequest={340}
-                    srcSetWidths={SRCSET_CARD}
-                    sizes="(max-width: 640px) 100vw, 800px"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                    alt={business.name} 
+                  // El mismo encuadre que la ficha (DetailView: getThumbUrl
+                  // 1200×900 + cover): antes se pedía 800×340 y el servidor
+                  // recortaba la foto a panorámica 2.35:1, así que en el
+                  // menú se veía acercada, recortada por los lados (nov
+                  // 2026, Jonathan). Con 1200×900 la foto se ve como en
+                  // la ficha, con el mismo recorte en ambas páginas.
+                  <img
+                    src={getThumbUrl(business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url, 1200, 900)}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    alt={business.name}
                   />
                 )}
                 
