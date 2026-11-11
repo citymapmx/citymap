@@ -1,19 +1,19 @@
 // Ejemplo por plan: los mismos 3 negocios REALES de la base que ya se
 // mostraban en la sección de ejemplos (aprobados, con foto; verificados
-// por PostgREST el 10 nov 2026), ahora debajo de su plan, con la tarjeta
-// que le toca en «ver planes» (la antigua página de planes): Gratuito → CompactCard,
+// por PostgREST el 10 nov 2026; Akami Sushi verificado el 11 nov 2026),
+// ahora debajo de su plan, con la tarjeta que le toca en «ver planes» (la antigua página de planes): Gratuito → CompactCard,
 // Destacado → DestacadoCard, Premium → FeaturedCard. La calificación NO
 // se guarda aquí: BusinessCard la lee en vivo con displayRating y solo la
 // muestra si el caché de Google trae el dato; por eso no se pasan rating
 // ni review_count (los de la base son 5.0 / 1, valores por defecto, no
-// reales). `plan` es el plan REAL del negocio en la base (Mochomos y
+// reales). `plan` es el plan REAL del negocio en la base (Akami Sushi y
 // Four Seasons son premium); la variante de la tarjeta es la que muestra
 // cómo se vería con el plan de esta columna. `distStr` y `realFavs` son
 // los valores de muestra de la antigua página de planes (no hay distancia ni guardados
 // reales para un ejemplo).
 //
 // El horario es el REAL de cada negocio en la base (verificado por
-// PostgREST el 10 nov 2026): sin `schedule` la tarjeta caía en «Cerrado»
+// PostgREST el 10 nov 2026; Akami Sushi el 11 nov 2026): sin `schedule` la tarjeta caía en «Cerrado»
 // por defecto (isOpenNow sin horario devuelve `!!b.open`, y aquí no había
 // `open`), así los 3 ejemplos vendían un negocio cerrado aunque estuviera
 // abierto. Si un negocio cambia su horario en la base, hay que actualizar
@@ -34,18 +34,22 @@ export const EJEMPLO_POR_PLAN = {
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1791991285949_z4ojc.webp" }],
   },
   pro: {
-    id: "c0ae3d8f-7417-4ca7-9e66-91fa5d55b7e8",
-    name: "Mochomos",
+    id: "b5bed88e-8d6d-4c4a-88fe-5a89e5190a61",
+    name: "Akami Sushi",
     category: "restaurantes",
     plan: "premium",
     open: true,
     schedule: {
-      lun: "01:00 p.m. - 12:00 a.m.", mar: "01:00 p.m. - 02:00 a.m.",
-      mie: "01:00 p.m. - 02:00 a.m.", jue: "01:00 p.m. - 02:00 a.m.",
-      vie: "01:00 p.m. - 02:00 a.m.", sab: "01:00 p.m. - 02:00 a.m.",
-      dom: "01:00 p.m. - 12:00 a.m.",
+      lun: "01:30 p.m. - 09:00 p.m.", mar: "01:30 p.m. - 09:00 p.m.",
+      mie: "01:30 p.m. - 09:00 p.m.", jue: "01:30 p.m. - 09:00 p.m.",
+      vie: "01:30 p.m. - 09:00 p.m.", sab: "01:30 p.m. - 09:00 p.m.",
+      dom: "01:30 p.m. - 09:00 p.m.",
     },
-    photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787478894399_qk3fa.jpeg" }],
+    photos: [
+      { url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1792683841443_qbw057.webp" },
+      { url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1792683841460_o3klkf.webp" },
+      { url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1792683841427_v7nhu6.jpg" },
+    ],
   },
   elite: {
     id: "6a49d84a-6feb-4b74-89a8-8f68bab27849",

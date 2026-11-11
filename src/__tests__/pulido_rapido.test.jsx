@@ -27,7 +27,7 @@ describe('ejemplos de /negocios', () => {
 
   it('los 3 están abiertos un martes a las 19:25 (la hora de la crítica)', () => {
     // Martes 19:25, cuando el crítico vio «Cerrado» en los 3 ejemplos y
-    // Mochomos estaba abierto (su ficha decía «Abierto ahora»).
+    // Akami Sushi estaba abierto (abre 13:30–21:00 todos los días).
     const tuesday1925 = makeDate(2, 19, 25);
     for (const plan of ['free', 'pro', 'elite']) {
       expect(isOpenNow(EJEMPLO_POR_PLAN[plan], TZ, tuesday1925)).toBe(true);
