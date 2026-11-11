@@ -12,6 +12,7 @@ import OptimizedImage from '../components/ui/OptimizedImage.jsx';
 import SaveHeartButton from '../components/ui/SaveHeartButton.jsx';
 import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
 import EventWheel3D from '../components/home/EventWheel3D.jsx';
+import { CoverflowSk } from '../components/ui/Skeleton.jsx';
 import StoryStrip from '../components/home/StoryStrip.jsx';
 import TravelAffiliateRow from '../components/home/TravelAffiliateRow.jsx';
 import Footer from '../components/Footer.jsx';
@@ -466,6 +467,13 @@ export default function GlobalHomeView() {
                 ))}
               </div>
             </section>
+            {/* Esqueleto de la rueda con SU medida (355 px en el teléfono,
+               399 px en escritorio + 32 px abajo, igual que EventWheel3D):
+               la rueda no tenía hueco reservado y al llegar los eventos la
+               sección aparecía de golpe empujando todo lo de abajo. Mismo
+               esqueleto que /tepic (Fase 2, PR #203): si mide distinto que
+               la rueda, la página salta al llegar los datos. */}
+            <CoverflowSk dark={dark} />
             {/* Esqueletos de las secciones del muro con sus mismas medidas:
                sin ellos el pie de página se movía cuando el contenido aparecía
                (casi todo el CLS 0.44 del reporte nuevo) */}
