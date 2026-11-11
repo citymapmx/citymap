@@ -13,6 +13,7 @@ import { EJEMPLO_POR_PLAN, YA_ESTAN_EN_CITYMAP } from "../lib/negociosEjemplos.j
 import { displayRating, formatReviewCount } from "../lib/googleRatings.js";
 import { useCountUp } from "../hooks/useCountUp.js";
 import { useTranslation } from "../hooks/useTranslation.js";
+import { Reveal } from "./ui/Reveal.jsx";
 
 // Cifra con conteo animado: sube de 0 a su valor cuando la sección entra en
 // pantalla (una sola vez). Antes de eso muestra el valor tal cual.
@@ -175,6 +176,9 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         .business-landing .ya-estan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
         .business-landing .ya-estan-card{display:block;background:var(--plans-surface);border:1px solid var(--plans-line);border-radius:24px;overflow:hidden;text-decoration:none;color:inherit;box-shadow:var(--plans-shadow)}
         .business-landing .ya-estan-name{font-size:15px;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+        .business-landing .reveal{opacity:0;transform:translateY(14px);transition:opacity .55s cubic-bezier(.390,.575,.565,1),transform .55s cubic-bezier(.390,.575,.565,1)}
+        .business-landing .reveal.is-visible{opacity:1;transform:translateY(0)}
+        @media(prefers-reduced-motion:reduce){.business-landing .reveal{opacity:1;transform:none}}
         .plans-faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px;font-size:15px;font-weight:600;line-height:1.5}
         .plans-faq summary::after{content:'+';font-size:20px;font-weight:400}
         .plans-faq[open] summary::after{content:'−'}
@@ -188,9 +192,9 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
       </header>
       <main style={{ maxWidth: 1140, margin: '0 auto', padding: '0 20px 64px' }}>
         <section style={{ textAlign: 'center', padding: '48px 0 24px', maxWidth: 680, margin: 'auto' }}>
-          <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '.06em', color: muted, margin: '0 0 12px', textTransform: 'uppercase' }}>{t("negocios_eyebrow", "CityMap para negocios")}</p>
-          <h1 style={{ fontFamily: 'var(--heading)', fontSize: 'clamp(30px,5vw,44px)', fontWeight: 700, lineHeight: 1.08, letterSpacing: '-.045em', margin: '0 auto 16px', maxWidth: 620 }}>{t("negocios_h1", "Haz que más personas encuentren tu negocio.")}</h1>
-          <p style={{ fontSize: 16, lineHeight: 1.55, color: muted, margin: '0 auto 24px', maxWidth: 560 }}>{t("negocios_sub", "Publica tu negocio gratis en citymap. Te encuentran en el mapa, en el buscador y en Google, y te escriben directo por WhatsApp, sin comisiones.")}</p>
+          <Reveal><p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '.06em', color: muted, margin: '0 0 12px', textTransform: 'uppercase' }}>{t("negocios_eyebrow", "CityMap para negocios")}</p></Reveal>
+          <Reveal delay={90}><h1 style={{ fontFamily: 'var(--heading)', fontSize: 'clamp(30px,5vw,44px)', fontWeight: 700, lineHeight: 1.08, letterSpacing: '-.045em', margin: '0 auto 16px', maxWidth: 620 }}>{t("negocios_h1", "Haz que más personas encuentren tu negocio.")}</h1></Reveal>
+          <Reveal delay={180}><p style={{ fontSize: 16, lineHeight: 1.55, color: muted, margin: '0 auto 24px', maxWidth: 560 }}>{t("negocios_sub", "Publica tu negocio gratis en citymap. Te encuentran en el mapa, en el buscador y en Google, y te escriben directo por WhatsApp, sin comisiones.")}</p></Reveal>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12 }}>
             <button onClick={() => onAddBiz?.()} style={{ minHeight: 48, padding: '12px 24px', border: 0, borderRadius: 999, background: accent, color: dark ? '#101827' : '#FFFFFF', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t("cuenta_crear_perfil_gratis", "Crear perfil gratis")}</button>
             <button onClick={scrollToPlans} style={{ minHeight: 48, padding: '12px 24px', border: `1px solid ${line}`, borderRadius: 999, background: 'transparent', color: ink, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t("ver_planes", "Ver planes")}</button>
@@ -212,8 +216,8 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
             <img src="/googlelogo.svg" alt="Google" style={{ width: 32, height: 32, objectFit: 'contain' }} />
           </div>
-          <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_google_titulo", "Tu negocio ya aparece en Google")}</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 560 }}>{t("negocios_google_texto", "Los negocios de CityMap reciben visitas reales desde el buscador: ${clicks} clics y ${impressions} impresiones en los últimos 28 días. Sin pagar anuncios, la gente ya llega a tu menú y a tu perfil desde Google.", { clicks: GOOGLE_SEARCH_CONSOLE.clicks, impressions: impressionsDisplay })}</p>
+          <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_google_titulo", "Tu negocio ya aparece en Google")}</h2></Reveal>
+          <Reveal delay={90}><p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 560 }}>{t("negocios_google_texto", "Los negocios de CityMap reciben visitas reales desde el buscador: ${clicks} clics y ${impressions} impresiones en los últimos 28 días. Sin pagar anuncios, la gente ya llega a tu menú y a tu perfil desde Google.", { clicks: GOOGLE_SEARCH_CONSOLE.clicks, impressions: impressionsDisplay })}</p></Reveal>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, maxWidth: 720, margin: '0 auto' }}>
             <div className="stat-card" style={{ textAlign: 'center', padding: '22px 12px', background: surface, border: `1px solid ${line}`, borderRadius: 24 }}>
               <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.04em', fontVariantNumeric: 'tabular-nums', color: accent }}>{GOOGLE_SEARCH_CONSOLE.clicks}</div>
@@ -226,8 +230,8 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
               <div style={{ fontSize: 12, lineHeight: 1.4, color: muted, marginTop: 2 }}>{t("negocios_google_periodo", "últimos 28 días")}</div>
             </div>
           </div>
-          <p style={{ fontSize: 14, lineHeight: 1.6, color: muted, textAlign: 'center', margin: '20px auto 0', maxWidth: 560 }}>{t("negocios_google_ejemplos", "El menú de Formentera recibió ${formentera} visitas desde Google; Campomar, ${campomar}; y Akami Sushi, ${akami}.", { formentera: GOOGLE_SEARCH_CONSOLE.examples.formentera, campomar: GOOGLE_SEARCH_CONSOLE.examples.campomar, akami: GOOGLE_SEARCH_CONSOLE.examples.akami })}</p>
-          <p style={{ fontSize: 13, lineHeight: 1.5, color: muted, textAlign: 'center', margin: '12px auto 0', maxWidth: 560 }}>{t("negocios_google_solo_google", "Esto es solo el tráfico que llega desde Google.")}</p>
+          <Reveal><p style={{ fontSize: 14, lineHeight: 1.6, color: muted, textAlign: 'center', margin: '20px auto 0', maxWidth: 560 }}>{t("negocios_google_ejemplos", "El menú de Formentera recibió ${formentera} visitas desde Google; Campomar, ${campomar}; y Akami Sushi, ${akami}.", { formentera: GOOGLE_SEARCH_CONSOLE.examples.formentera, campomar: GOOGLE_SEARCH_CONSOLE.examples.campomar, akami: GOOGLE_SEARCH_CONSOLE.examples.akami })}</p></Reveal>
+          <Reveal delay={90}><p style={{ fontSize: 13, lineHeight: 1.5, color: muted, textAlign: 'center', margin: '12px auto 0', maxWidth: 560 }}>{t("negocios_google_solo_google", "Esto es solo el tráfico que llega desde Google.")}</p></Reveal>
         </section>
         <section style={{ marginTop: 64 }}>
           <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_beneficios_titulo", "Por qué CityMap")}</h2>
@@ -257,8 +261,8 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
           </div>
         </section>
         <section id="planes" style={{ marginTop: 64, scrollMarginTop: 80 }}>
-          <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_planes_titulo", "Planes")}</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 24px', maxWidth: 480 }}>{t("negocios_planes_sub", "Precios por negocio. Pago mensual o anual (el anual sale 17% menos).")}</p>
+          <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_planes_titulo", "Planes")}</h2></Reveal>
+          <Reveal delay={90}><p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 24px', maxWidth: 480 }}>{t("negocios_planes_sub", "Precios por negocio. Pago mensual o anual (el anual sale 17% menos).")}</p></Reveal>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 26 }}>
             <div role="group" aria-label={t("cuenta_periodo_facturacion", "Periodo de facturación")} style={{ display: 'inline-flex', padding: 4, borderRadius: 999, background: dark ? '#2B2B2E' : '#E8E8ED', gap: 3 }}>
               {[['monthly', t("cuenta_mensual", "Mensual")], ['annual', t("cuenta_anual", "Anual")]].map(([value, label]) => <button key={value} aria-pressed={billing === value} onClick={() => setBilling(value)} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 38, padding: '8px 17px', border: 0, borderRadius: 999, background: billing === value ? surface : 'transparent', boxShadow: billing === value ? '0 1px 5px rgba(0,0,0,.09)' : 'none', color: billing === value ? ink : muted, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{label}{value === 'annual' && <span style={{ color: accent, fontSize: 11 }}>−17%</span>}</button>)}
@@ -280,7 +284,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
                   <div className="plans-features">{p.features.map(f => <div className="plans-feature" key={f}><span aria-hidden="true" style={{ color: p.key === 'pro' ? accent : muted, fontSize: 15 }}>✓</span><span>{f}</span></div>)}</div>
                   <button className="plans-action" disabled={btn.disabled} onClick={btn.onClick} style={{ background: p.key === 'pro' ? accent : 'transparent', border: `1px solid ${p.key === 'pro' ? accent : line}`, color: p.key === 'pro' ? (dark ? '#101827' : '#FFFFFF') : ink }}>{btn.label}</button>
                   <section aria-label={t("cuenta_vista_previa_plan", `Vista previa del plan ${p.name}`, { name: p.name })} style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${line}`, color: muted }}>
-                    <h3 style={{ fontSize: 13, fontWeight: 600, textAlign: "center", margin: "0 0 12px" }}>{t("cuenta_asi_se_vera", "Así se verá tu negocio")}</h3>
+                    <Reveal><h3 style={{ fontSize: 13, fontWeight: 600, textAlign: "center", margin: "0 0 12px" }}>{t("cuenta_asi_se_vera", "Así se verá tu negocio")}</h3></Reveal>
                     <div style={{ pointerEvents: 'none', borderRadius: 14, overflow: 'hidden', marginTop: 12 }}>
                       {p.key === 'free' ? <CompactCard b={EJEMPLO_POR_PLAN.free} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={4} /> : p.key === 'pro' ? <DestacadoCard b={EJEMPLO_POR_PLAN.pro} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={12} /> : <FeaturedCard b={EJEMPLO_POR_PLAN.elite} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={45} />}
                     </div>
@@ -298,8 +302,8 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         la «G» se muestra cuando el dato es de Google, incluido el valor
         verificado que se guarda como reserva en la constante. */}
         <section style={{ marginTop: 64 }}>
-          <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_ya_estan_titulo", "Ya están en CityMap")}</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_ya_estan_sub", "Negocios reales que ya reciben clientes desde CityMap.")}</p>
+          <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_ya_estan_titulo", "Ya están en CityMap")}</h2></Reveal>
+          <Reveal delay={90}><p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_ya_estan_sub", "Negocios reales que ya reciben clientes desde CityMap.")}</p></Reveal>
           <div className="ya-estan-grid">
             {YA_ESTAN_EN_CITYMAP.map((b) => {
               const shortSlug = b.slug.startsWith(`${b.city_slug}-`) ? b.slug.slice(b.city_slug.length + 1) : b.slug;
@@ -327,12 +331,12 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
           </div>
         </section>
         <section style={{ maxWidth: 720, margin: '64px auto 0' }}>
-          <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 22px' }}>{t("negocios_faq_titulo", "Preguntas frecuentes")}</h2>
+          <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 22px' }}>{t("negocios_faq_titulo", "Preguntas frecuentes")}</h2></Reveal>
           {faqs.map(([q, a]) => <details className="plans-faq" key={q} style={{ padding: '20px 0', borderBottom: `1px solid ${line}` }}><summary>{q}</summary><p style={{ fontSize: 14, lineHeight: 1.65, color: muted, margin: '12px 26px 0 0' }}>{a}</p></details>)}
         </section>
         <section style={{ textAlign: 'center', margin: '64px auto 0', padding: '40px 20px', maxWidth: 720, background: surface, borderRadius: 24, border: `1px solid ${line}` }}>
-          <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', margin: '0 0 8px' }}>{t("negocios_cierre_titulo", "Tu negocio ya lo buscan. Que lo encuentren.")}</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, margin: '0 auto 20px', maxWidth: 420 }}>{t("negocios_cierre_sub", "Súmate a los ${count} negocios que ya están en CityMap.", { count: liveStats.businesses })}</p>
+          <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', margin: '0 0 8px' }}>{t("negocios_cierre_titulo", "Tu negocio ya lo buscan. Que lo encuentren.")}</h2></Reveal>
+          <Reveal delay={90}><p style={{ fontSize: 15, lineHeight: 1.55, color: muted, margin: '0 auto 20px', maxWidth: 420 }}>{t("negocios_cierre_sub", "Súmate a los ${count} negocios que ya están en CityMap.", { count: liveStats.businesses })}</p></Reveal>
           <button onClick={() => onAddBiz?.()} style={{ minHeight: 48, padding: '12px 28px', border: 0, borderRadius: 999, background: accent, color: dark ? '#101827' : '#FFFFFF', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t("cuenta_crear_perfil_gratis", "Crear perfil gratis")}</button>
         </section>
       </main>
