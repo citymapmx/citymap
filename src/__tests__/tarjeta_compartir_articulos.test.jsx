@@ -54,15 +54,16 @@ const TEQUILA = {
   ],
 };
 // Tour real de la base con su descripción REAL (primer párrafo,
-// textual): en vivo, en Horizontal 1080×566, la descripción se cortaba
-// a mitad de palabra («…la cuna de la bebida más famos…») porque el
-// recorte de la última línea quitaba caracteres uno a uno.
+// textual): la tarjeta ya NO muestra la descripción (10 Nov ~18:18:
+// salía recortada con «…»), pero el caso sigue sirviendo para
+// verificar que la línea de datos no se corta a mitad de palabra.
 const TEQUILA_REAL = {
   ...TEQUILA,
   description:
     'Si estás en Guadalajara y quieres conocer de primera mano la cuna de la bebida más famosa de México, esta excursión a Tequila es el plan perfecto. En entre 6 y 8 horas te recogen en tu hotel, recorres los campos de agave, paseas por las calles de piedra del pueblo y terminas con una visita y una degustación en la destilería La Rojeña de José Cuervo.',
 };
-// Guía gratuita sin foto ni precio: el precio es «Gratis» y la tarjeta
+// Guía gratuita sin foto ni precio: es contenido, no algo que se
+// compra — la tarjeta NO lleva pastilla de precio (antes «Gratis») y
 // sale con el bloque de la inicial, nunca rota.
 const GUIA_GRATIS = {
   title: 'Guía de Chapala: qué hacer en un día',
@@ -158,7 +159,7 @@ const MERIDA_GRATIS = {
   ],
 };
 // Peor caso de contenido en Historia: título a 3 líneas a tamaño
-// completo + descripción y datos a 2 líneas + precio. La foto sigue
+// completo + datos a 2 líneas + precio. La foto sigue
 // con al menos photoMinH y sin comerse el contenido.
 const MAXIMO = {
   ...TEQUILA,
@@ -168,6 +169,38 @@ const MAXIMO = {
     'Una excursión larguísima para recorrer la zona arqueológica entera con guía certificado, bañarse en el cenote y pasear por Valladolid con almuerzo incluido en el precio.',
   duration: '12 horas - 13 horas',
   languages: 'Español, Inglés, Francés, Alemán',
+};
+
+// Blog real de la base: «¿Fantasía o realidad? La verdad detrás de
+// los túneles ocultos bajo la Catedral de Tepic», Tepic, precio 0,
+// 5.0 · 1 reseña, 1 foto. Es contenido, no algo que se compra: la
+// tarjeta NO lleva pastilla de precio (antes salía «Gratis») y
+// tampoco descripción.
+const BLOG_CATEDRAL = {
+  title: '¿Fantasía o realidad? La verdad detrás de los túneles ocultos bajo la Catedral de Tepic',
+  slug: 'tepic-fantasia-o-realidad-la-verdad-detras-de-los-tuneles-ocultos-bajo-la-catedral-de-tepic',
+  city_slug: 'tepic',
+  activity_type: 'Blog',
+  description:
+    '<p>Entre las historias más intrigantes del centro histórico de Tepic, ninguna despierta tanto misterio e imaginación como el relato de los túneles secretos bajo la Catedral de la Asunción.</p>',
+  duration: '',
+  languages: '',
+  people: null,
+  price: 0,
+  rating: 5,
+  review_count: 1,
+  gallery: [
+    'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1792722264647_sqtnzl.webp',
+  ],
+};
+// Experiencia real gratis: precio 0 verificado gratis, tipo comprable —
+// la pastilla «Gratis» SÍ se muestra (igual que en un tour gratis).
+const EXPERIENCIA_GRATIS = {
+  ...TEQUILA,
+  title: 'Experiencia gratuita en el centro de Guadalajara',
+  slug: 'experiencia-gratuita-centro-guadalajara',
+  activity_type: 'Experiencia',
+  price: 0,
 };
 
 const ALL_FORMATS = [
@@ -188,13 +221,6 @@ function textBlockEnd(geo) {
         geo.title.lineH / 2,
     );
   }
-  if (geo.desc) {
-    ends.push(
-      geo.desc.y +
-        (geo.desc.lines.length - 1) * geo.desc.lineH +
-        geo.desc.lineH / 2,
-    );
-  }
   if (geo.dataRows) {
     ends.push(
       geo.dataRows.y +
@@ -206,7 +232,7 @@ function textBlockEnd(geo) {
 }
 
 describe('tarjeta para compartir el artículo: datos reales', () => {
-  it('tequila: foto de la galería, ciudad · tipo, precio real, duración e idiomas', () => {
+  it('tequila: foto de la galería, solo la ciudad, precio real, duración e idiomas, sin descripción', () => {
     const d = buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' });
     expect(d.photoUrl).toContain('1794186715000_guadalajara-tequila.webp');
     expect(d.title).toBe(
@@ -214,17 +240,19 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
     );
     expect(d.cityName).toBe('Guadalajara');
     expect(d.activityType).toBe('Tour');
-    expect(d.cityLine).toBe('📍 Guadalajara · Tour');
+    expect(d.cityLine).toBe('📍 Guadalajara');
     // Pin y etiqueta por separado (PR #177): la pastilla los centra
     // cada uno por su caja visual; la línea completa se conserva.
+    // Desde 10 Nov ~18:18 la etiqueta es SOLO la ciudad, sin el tipo.
     expect(d.cityPin).toBe('📍');
-    expect(d.cityLabel).toBe('Guadalajara · Tour');
+    expect(d.cityLabel).toBe('Guadalajara');
     expect(d.priceText).toBe('$1,881 MXN');
     expect(d.priced).toBe(true);
+    expect(d.showPrice).toBe(true);
     expect(d.dataLine).toBe('⏱ 6 horas - 8 horas · 🌐 Español, Inglés');
-    // La descripción trae HTML: se quitan las etiquetas, sin inventar nada.
-    expect(d.description).not.toContain('<');
-    expect(d.description).toContain('destilería La Rojeña');
+    // Sin descripción: la tarjeta ya no la lleva, aunque la fila la
+    // tenga (con HTML y todo).
+    expect(d.description).toBeUndefined();
     // El enlace es la URL del detalle: /revista/:ciudad/:slug.
     expect(d.shareUrl).toBe(
       'https://citymap.mx/revista/guadalajara/excursion-a-tequila-la-rojeña',
@@ -243,11 +271,12 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
     expect(d.title).toBe('Excursión a Chichén Itzá y el cenote Chichikan');
     expect(d.cityName).toBe('Playa del Carmen');
     expect(d.activityType).toBe('Tour');
-    expect(d.cityLine).toBe('📍 Playa del Carmen · Tour');
+    expect(d.cityLine).toBe('📍 Playa del Carmen');
     expect(d.cityPin).toBe('📍');
-    expect(d.cityLabel).toBe('Playa del Carmen · Tour');
+    expect(d.cityLabel).toBe('Playa del Carmen');
     expect(d.priceText).toBe('$662 MXN');
     expect(d.priced).toBe(true);
+    expect(d.showPrice).toBe(true);
     expect(d.dataLine).toBe('⏱ 12 horas - 13 horas · 🌐 Español');
     expect(d.ratingText).toBe('');
     expect(d.shareUrl).toBe(
@@ -255,14 +284,31 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
     );
   });
 
-  it('precio 0 → «Gratis»; sin foto → photoUrl null', () => {
-    const d = buildExperienceShareCardData(GUIA_GRATIS, { cityName: 'Guadalajara' });
-    expect(d.priceText).toBe('Gratis');
-    expect(d.priced).toBe(false);
+  it('Blog y Guía no llevan pastilla de precio (son contenido, no algo que se compra); un tour gratis sí lleva «Gratis»', () => {
+    // Guía con precio 0: sin pastilla (antes salía «Gratis»).
+    const guia = buildExperienceShareCardData(GUIA_GRATIS, { cityName: 'Guadalajara' });
+    expect(guia.showPrice).toBe(false);
+    expect(guia.cityLine).toBe('📍 Guadalajara');
+    expect(guia.photoUrl).toBeNull();
+    expect(guia.dataLine).toBe('');
+    // Blog con precio 0: sin pastilla (antes salía «Gratis»).
+    const blog = buildExperienceShareCardData(BLOG_CATEDRAL, { cityName: 'Tepic' });
+    expect(blog.showPrice).toBe(false);
+    expect(blog.cityLine).toBe('📍 Tepic');
+    expect(blog.priceText).toBe('Gratis');
+    expect(blog.priced).toBe(false);
+    // El texto «Gratis» sigue existiendo como texto (lo usan los
+    // tours gratis), pero la pastilla no se muestra en Blog/Guía.
     expect(experienceShareCardPriceText(GUIA_GRATIS)).toBe('Gratis');
-    expect(d.photoUrl).toBeNull();
-    expect(d.dataLine).toBe('');
-    expect(d.cityLine).toBe('📍 Guadalajara · Guía');
+    // Tour con precio 0 verificado gratis: la pastilla «Gratis» SÍ sale.
+    const tourGratis = buildExperienceShareCardData(MERIDA_GRATIS, { cityName: 'Mérida' });
+    expect(tourGratis.showPrice).toBe(true);
+    expect(tourGratis.priceText).toBe('Gratis');
+    expect(tourGratis.priced).toBe(false);
+    // Experiencia con precio 0 verificado gratis: también la lleva.
+    const expGratis = buildExperienceShareCardData(EXPERIENCIA_GRATIS, { cityName: 'Guadalajara' });
+    expect(expGratis.showPrice).toBe(true);
+    expect(expGratis.priceText).toBe('Gratis');
   });
 
   it('calificación SOLO si es real: sin reseñas no se muestra nada (nunca el 4.9 de la demo)', () => {
@@ -286,7 +332,7 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
     ).toBe('');
   });
 
-  it('la descripción se recorta a 170 caracteres y sin HTML', () => {
+  it('la tarjeta no lleva descripción: no se incluye aunque la fila tenga HTML', () => {
     const d = buildExperienceShareCardData(
       {
         ...TEQUILA,
@@ -294,9 +340,11 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
       },
       { cityName: 'Guadalajara' },
     );
-    expect(d.description).not.toContain('<');
-    expect(d.description.length).toBeLessThanOrEqual(171);
-    expect(d.description.endsWith('…')).toBe(true);
+    expect(d.description).toBeUndefined();
+    for (const format of ALL_FORMATS) {
+      const geo = computeExperienceShareCardLayout(d, format);
+      expect(geo.desc).toBeUndefined();
+    }
   });
 
   it('los formatos son Historia, Post y Horizontal (1080×566, oficial de Instagram)', () => {
@@ -330,10 +378,12 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
   });
 });
 
-// Las palabras que muestra la descripción son siempre un prefijo de las
-// palabras del texto recortado: si una línea se cortara a mitad de
-// palabra, la última palabra mostrada sería un prefijo propio de la
-// palabra real y el prefijo ya no coincidiría.
+// Las palabras que muestra una línea son siempre un prefijo de las
+// palabras del texto: si una línea se cortara a mitad de palabra, la
+// última palabra mostrada sería un prefijo propio de la palabra real
+// y el prefijo ya no coincidiría. (Antes se verificaba con la
+// descripción; la tarjeta ya no la lleva, así que ahora se verifica
+// con la línea de datos.)
 function descWordsArePrefix(excerpt, lines) {
   const shown = lines
     .join(' ')
@@ -349,7 +399,7 @@ function descWordsArePrefix(excerpt, lines) {
   return shown.every((w, i) => w === words[i]);
 }
 
-describe('tarjeta para compartir el artículo: la descripción nunca se corta a mitad de palabra', () => {
+describe('tarjeta para compartir el artículo: el texto nunca se corta a mitad de palabra (sin descripción)', () => {
   it('wrapShareCardText recorta la última línea en límite de palabra, nunca «famos…»', () => {
     // Con la medida de los tests (sin document: ancho = nº de
     // caracteres × tamaño × 0,55), esta entrada obliga a recortar la
@@ -372,27 +422,25 @@ describe('tarjeta para compartir el artículo: la descripción nunca se corta a 
     expect(lines[0].startsWith('Supercalifrag')).toBe(true);
   });
 
-  it('caso Tequila en Horizontal: la descripción real termina en límite de palabra en los 3 formatos', () => {
+  it('caso Tequila: la línea de datos nunca se parte a mitad de palabra en los 3 formatos', () => {
     const d = buildExperienceShareCardData(TEQUILA_REAL, { cityName: 'Guadalajara' });
     for (const format of ALL_FORMATS) {
       const geo = computeExperienceShareCardLayout(d, format);
-      expect(geo.desc.lines.length).toBeGreaterThan(0);
-      expect(descWordsArePrefix(d.description, geo.desc.lines)).toBe(true);
-      // Y la línea de datos tampoco se parte a mitad de palabra.
+      expect(geo.desc).toBeUndefined();
       expect(descWordsArePrefix(d.dataLine, geo.dataRows.lines)).toBe(true);
     }
   });
 
-  it('la descripción no se solapa con la línea de datos en la geometría compartida (vista previa = PNG)', () => {
+  it('el título no se solapa con la línea de datos en la geometría compartida (vista previa = PNG)', () => {
     // La plantilla y el canvas usan el mismo layout: el fin del bloque
-    // de descripción más el hueco es justo el inicio de los datos.
+    // de título más el hueco es justo el inicio de los datos.
     const d = buildExperienceShareCardData(TEQUILA_REAL, { cityName: 'Guadalajara' });
     for (const format of ALL_FORMATS) {
       const geo = computeExperienceShareCardLayout(d, format);
-      const descEnd =
-        geo.desc.y + (geo.desc.lines.length - 1) * geo.desc.lineH + geo.desc.lineH / 2;
+      const titleEnd =
+        geo.title.y + (geo.title.lines.length - 1) * geo.title.lineH + geo.title.lineH / 2;
       const dataTop = geo.dataRows.y - geo.dataRows.lineH / 2;
-      expect(dataTop - descEnd).toBeCloseTo(geo.L.dataGap, 9);
+      expect(dataTop - titleEnd).toBeCloseTo(geo.L.dataGap, 9);
     }
   });
 });
@@ -431,14 +479,16 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
         // Historia/Post) termina exactamente en el margen inferior.
         const lastEnd = Math.max(
           textBlockEnd(geo),
-          geo.pricePill.y + geo.pricePill.h,
+          geo.pricePill ? geo.pricePill.y + geo.pricePill.h : 0,
         );
         expect(lastEnd).toBeCloseTo(geo.height - geo.L.pad, 9);
         // Nada se sale de la tarjeta.
         expect(geo.brandLogo.x).toBeGreaterThanOrEqual(0);
         expect(geo.brandLogo.y).toBeGreaterThanOrEqual(0);
-        expect(geo.pricePill.x + geo.pricePill.w).toBeLessThanOrEqual(geo.width);
-        expect(geo.pricePill.y + geo.pricePill.h).toBeLessThanOrEqual(geo.height);
+        if (geo.pricePill) {
+          expect(geo.pricePill.x + geo.pricePill.w).toBeLessThanOrEqual(geo.width);
+          expect(geo.pricePill.y + geo.pricePill.h).toBeLessThanOrEqual(geo.height);
+        }
         if (geo.ratingPill) {
           expect(geo.ratingPill.x + geo.ratingPill.w).toBeLessThanOrEqual(
             geo.width - geo.L.pad,
@@ -454,9 +504,9 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
       d,
       EXPERIENCE_SHARE_CARD_FORMATS.story,
     );
-    // Título a 3 líneas, descripción y datos a 2 líneas.
+    // Título a 3 líneas y datos a 2 líneas (sin descripción).
     expect(geo.title.lines.length).toBe(3);
-    expect(geo.desc.lines.length).toBe(2);
+    expect(geo.desc).toBeUndefined();
     expect(geo.dataRows.lines.length).toBe(2);
     // La foto sigue con al menos el mínimo y sin tocar el contenido.
     expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
@@ -473,27 +523,25 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
         format,
       );
       // La línea completa se conserva por compatibilidad.
-      expect(geo.cityPill.text).toBe('📍 Guadalajara · Tour');
+      expect(geo.cityPill.text).toBe('📍 Guadalajara');
       expect(geo.cityPill.pin).toBe('📍');
-      expect(geo.cityPill.label).toBe('Guadalajara · Tour');
+      expect(geo.cityPill.label).toBe('Guadalajara');
       // El ancho es pin + espacio + etiqueta + los dos paddings.
       expect(geo.cityPill.pinW).toBeGreaterThan(0);
       expect(geo.cityPill.pinGap).toBeGreaterThan(0);
       expect(geo.cityPill.w).toBeCloseTo(
         geo.cityPill.pinW +
           geo.cityPill.pinGap +
-          measureShareCardText('Guadalajara · Tour', geo.L.citySize, 600) +
+          measureShareCardText('Guadalajara', geo.L.citySize, 600) +
           geo.L.cityPadX * 2,
         9,
       );
-      // Sin ciudad no hay pin: solo la etiqueta (el tipo).
-      const soloTipo = computeExperienceShareCardLayout(
+      // Sin ciudad no hay pastilla: la pastilla es de ubicación.
+      const sinCiudad = computeExperienceShareCardLayout(
         buildExperienceShareCardData(TEQUILA, { cityName: '' }),
         format,
       );
-      expect(soloTipo.cityPill.pin).toBe('');
-      expect(soloTipo.cityPill.label).toBe('Tour');
-      expect(soloTipo.cityPill.text).toBe('Tour');
+      expect(sinCiudad.cityPill).toBeNull();
     }
   });
 
@@ -507,8 +555,15 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
       expect(geo.pricePill.priced).toBe(true);
       // A la derecha, pegada al margen.
       expect(geo.pricePill.x + geo.pricePill.w).toBe(geo.width - geo.L.pad);
-      const gratis = computeExperienceShareCardLayout(
+      // La Guía no lleva pastilla de precio (es contenido).
+      const guia = computeExperienceShareCardLayout(
         buildExperienceShareCardData(GUIA_GRATIS, { cityName: 'Guadalajara' }),
+        format,
+      );
+      expect(guia.pricePill).toBeNull();
+      // Un tour gratis SÍ lleva la pastilla «Gratis».
+      const gratis = computeExperienceShareCardLayout(
+        buildExperienceShareCardData(MERIDA_GRATIS, { cityName: 'Mérida' }),
         format,
       );
       expect(gratis.pricePill.text).toBe('Gratis');
@@ -566,8 +621,8 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
       expect(con.ratingPill.y).toBe(con.L.pad);
       // Sin chocar con la calificación.
       expect(con.brandLogo.x + con.brandLogo.w).toBeLessThan(con.ratingPill.x);
-      // La de ciudad · tipo va encima del título, a la izquierda.
-      expect(con.cityPill.text).toBe('📍 Guadalajara · Tour');
+      // La de ciudad va encima del título, a la izquierda.
+      expect(con.cityPill.text).toBe('📍 Guadalajara');
       expect(con.cityPill.x).toBe(con.L.pad);
     }
   });
@@ -614,7 +669,7 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
         buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' }),
         format,
       );
-      expect(geo.cityPill.text).toBe('📍 Guadalajara · Tour');
+      expect(geo.cityPill.text).toBe('📍 Guadalajara');
       expect(geo.pricePill.text).toBe('$1,881 MXN');
       expect(geo.pricePill.priced).toBe(true);
     }
@@ -627,6 +682,32 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
     expect(html).toContain('rgba(255,255,255,0.12)');
     expect(html).toContain('rgba(255,255,255,0.35)');
     expect(html).toContain('#2563EB');
+  });
+
+  it('Blog: sin pastilla de precio ni descripción, el bloque termina justo en el margen inferior (sin hueco vacío)', () => {
+    for (const format of ALL_FORMATS) {
+      const geo = computeExperienceShareCardLayout(
+        buildExperienceShareCardData(BLOG_CATEDRAL, { cityName: 'Tepic' }),
+        format,
+      );
+      expect(geo.pricePill).toBeNull();
+      expect(geo.desc).toBeUndefined();
+      expect(geo.cityPill.text).toBe('📍 Tepic');
+      // La calificación real sí se muestra (5.0 · 1 reseña).
+      expect(geo.ratingPill.text).toBe('5.0 · 1 reseña');
+      // El último bloque (el título: el blog no tiene duración ni
+      // idiomas) termina exactamente en el margen inferior: al quitar
+      // la descripción y el precio no queda un hueco vacío.
+      expect(textBlockEnd(geo)).toBeCloseTo(geo.height - geo.L.pad, 9);
+      if (format.id === 'story') {
+        // Y la foto en Historia crece hasta el contenido.
+        expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
+        expect(geo.photo.y + geo.photo.h + geo.L.photoGap).toBeCloseTo(
+          geo.cityPill.y,
+          9,
+        );
+      }
+    }
   });
 
   it('el título cabe siempre completo, sin «…», en Historia y en Post', () => {
@@ -684,7 +765,7 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
 });
 
 describe('tarjeta para compartir el artículo: la plantilla se renderiza (vista previa real)', () => {
-  it('foto en Historia: logotipo oficial, precio azul con DESDE, ciudad · Tour, datos; sin la calificación inventada', () => {
+  it('foto en Historia: logotipo oficial, precio azul con DESDE, solo la ciudad, datos; sin la calificación inventada', () => {
     const d = buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' });
     const html = renderToStaticMarkup(
       <ExperienceShareCardTemplate data={d} format={EXPERIENCE_SHARE_CARD_FORMATS.story} />,
@@ -696,9 +777,13 @@ describe('tarjeta para compartir el artículo: la plantilla se renderiza (vista 
     expect(html).toContain('$1,881 MXN');
     expect(html).toContain('por persona');
     expect(html).toContain('Guadalajara');
-    expect(html).toContain('Tour');
+    // La pastilla de ubicación es solo la ciudad (sin «· Tour»).
+    expect(html).not.toContain('· Tour');
     expect(html).toContain('6 horas - 8 horas');
     expect(html).toContain('Español, Inglés');
+    // Sin descripción: el texto de la descripción no aparece.
+    expect(html).not.toContain('degustación');
+    expect(html).not.toContain('Excursión de día completo');
     // La pastilla de precio es AZUL, como la demo (no blanca).
     expect(html).toContain('#2563EB');
     // La marca es el logotipo oficial arriba a la izquierda (sin pie).
@@ -740,7 +825,7 @@ describe('tarjeta para compartir el artículo: la plantilla se renderiza (vista 
     expect(storyHtml).not.toContain('rgba(0,0,0,0.88)');
     // La pastilla lleva el pin y la etiqueta en spans separados.
     expect(storyHtml).toContain('>📍</span>');
-    expect(storyHtml).toContain('>Playa del Carmen · Tour</span>');
+    expect(storyHtml).toContain('>Playa del Carmen</span>');
     // El contenido sigue ahí: título (repartido en 3 líneas), precio y datos.
     expect(storyHtml).toContain('Excursión a Chichén');
     expect(storyHtml).toContain('Chichikan');
@@ -754,7 +839,7 @@ describe('tarjeta para compartir el artículo: la plantilla se renderiza (vista 
     expect(postHtml).toContain('rgba(0,0,0,0.5)');
     expect(postHtml).toContain('rgba(0,0,0,0.88)');
     expect(postHtml).toContain('>📍</span>');
-    expect(postHtml).toContain('>Playa del Carmen · Tour</span>');
+    expect(postHtml).toContain('>Playa del Carmen</span>');
   });
 
   it('con reseñas reales: la calificación sí se pinta (estrella + texto)', () => {
@@ -791,13 +876,38 @@ describe('tarjeta para compartir el artículo: la plantilla se renderiza (vista 
     }
   });
 
+  it('blog: sin «Gratis», sin descripción y con solo la ciudad, en los 3 formatos', () => {
+    const d = buildExperienceShareCardData(BLOG_CATEDRAL, { cityName: 'Tepic' });
+    for (const format of ALL_FORMATS) {
+      const html = renderToStaticMarkup(
+        <ExperienceShareCardTemplate data={d} format={format} />,
+      );
+      expect(html).toContain('¿Fantasía o realidad?');
+      expect(html).toContain('Catedral de Tepic');
+      // Pastilla de ubicación: solo la ciudad.
+      expect(html).toContain('>📍</span>');
+      expect(html).toContain('>Tepic</span>');
+      expect(html).not.toContain('· Blog');
+      // Sin pastilla de precio ni descripción.
+      expect(html).not.toContain('Gratis');
+      expect(html).not.toContain('DESDE');
+      expect(html).not.toContain('#2563EB');
+      expect(html).not.toContain('Entre las historias más intrigantes');
+      expect(html).not.toContain('túneles secretos');
+      // La calificación real sí se muestra (5.0 · 1 reseña).
+      expect(html).toContain('5.0 · 1 reseña');
+    }
+  });
+
   it('sin foto: sale el bloque con la inicial, no una imagen rota', () => {
     const d = buildExperienceShareCardData(GUIA_GRATIS, { cityName: 'Guadalajara' });
     const html = renderToStaticMarkup(
       <ExperienceShareCardTemplate data={d} format={EXPERIENCE_SHARE_CARD_FORMATS.post} />,
     );
     expect(html).toContain('Guía de Chapala');
-    expect(html).toContain('Gratis');
+    // La Guía no lleva pastilla de precio (antes «Gratis», azul).
+    expect(html).not.toContain('Gratis');
+    expect(html).not.toContain('#2563EB');
     expect(html).toContain('>G</span>');
     expect(html).not.toContain('<img src=""');
   });

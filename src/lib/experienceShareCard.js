@@ -12,10 +12,13 @@
 // va DEBAJO sobre fondo oscuro. Logotipo oficial arriba a la izquierda
 // (corrección de Jonathan 10 Nov ~11:39: en lugar de la pastilla de
 // texto «citymap.mx»), pastilla de calificación arriba a la derecha
-// (SOLO si es real), pastilla GLASS de ciudad · tipo de actividad
-// (corrección de Jonathan 10 Nov ~11:39: translúcida, no azul sólida),
-// título, parte de la descripción, duración · idiomas, y el precio en
-// una pastilla AZUL grande («DESDE $1,881 MXN por persona»). Sin pie.
+// (SOLO si es real), pastilla GLASS de ciudad (corrección de Jonathan
+// 10 Nov ~11:39: translúcida, no azul sólida; desde 10 Nov ~18:18 solo
+// la ciudad, sin el tipo: «📍 Tepic», no «📍 Tepic · Tour»), título,
+// duración · idiomas, y el precio en una pastilla AZUL grande
+// («DESDE $1,881 MXN por persona»). Sin descripción (10 Nov ~18:18:
+// salía recortada a ~170 caracteres con «…» y todas se veían
+// incompletas) y sin pie.
 //
 // Tres formatos: Historia 1080×1920, Post 1080×1080 y Horizontal
 // 1080×566 (el tamaño oficial de Instagram para post horizontal,
@@ -36,9 +39,10 @@
 // inicial, nunca una tarjeta en blanco ni un hueco roto.
 //
 // Contenido REAL de la fila, nunca inventado: imagen (`gallery[0]`),
-// título, ciudad (de `city_slug`), tipo de actividad (`activity_type`),
-// parte de la descripción (sin HTML y recortada), datos del tour
-// (duración, idiomas y personas si hay) y precio (`price`; 0 → «Gratis»).
+// título, ciudad (de `city_slug`), duración, idiomas y personas si
+// hay, y precio (`price`; 0 → «Gratis» solo en los tipos comprables:
+// Tour/Experiencia. Un Blog o una Guía son contenido, no algo que se
+// compra, y no llevan pastilla de precio).
 // La calificación SOLO si es real (`rating > 0` y `review_count > 0`):
 // la demo mostraba un «4.9 · 13,275 reseñas» ilustrativo que NO existe
 // en la base (el tour de ejemplo no tiene reseñas) — aquí nunca se
@@ -129,8 +133,8 @@ const STAR = '#F59E0B';
 // W - 2*pad), esquinas redondeadas y el contenido DEBAJO sobre fondo
 // oscuro: el alto de la foto es todo lo que sobra entre el logotipo y
 // el bloque de texto, con photoMinH como mínimo. El peor caso de
-// contenido (título a 3 líneas a tamaño completo + descripción y datos
-// a 2 líneas + pastilla de precio) deja 926 px libres, así que
+// contenido (título a 3 líneas a tamaño completo + datos a 2 líneas
+// + pastilla de precio) deja 926 px libres, así que
 // photoMinH 900 nunca se come el texto (en eventos es 960 porque su
 // bloque de contenido es más bajo). `priceBeside` (solo Horizontal): la
 // pastilla de precio va a la derecha del bloque de texto, con la base
@@ -149,9 +153,6 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
     titleMinSize: 48,
     titleLineH: 1.1,
     titleMaxLines: 3,
-    descSize: 36,
-    descLineH: 1.35,
-    descMaxLines: 2,
     dataSize: 34,
     dataLineH: 1.4,
     dataMaxLines: 2,
@@ -163,7 +164,6 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
     desdeGap: 6,
     priceRowGap: 12,
     titleGap: 20,
-    descGap: 16,
     dataGap: 18,
     priceGap: 28,
     priceBeside: false,
@@ -190,9 +190,6 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
     titleMinSize: 40,
     titleLineH: 1.1,
     titleMaxLines: 3,
-    descSize: 30,
-    descLineH: 1.35,
-    descMaxLines: 2,
     dataSize: 28,
     dataLineH: 1.4,
     dataMaxLines: 2,
@@ -204,7 +201,6 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
     desdeGap: 5,
     priceRowGap: 10,
     titleGap: 16,
-    descGap: 12,
     dataGap: 14,
     priceGap: 22,
     priceBeside: false,
@@ -224,9 +220,6 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
     titleMinSize: 30,
     titleLineH: 1.1,
     titleMaxLines: 3,
-    descSize: 26,
-    descLineH: 1.35,
-    descMaxLines: 2,
     dataSize: 24,
     dataLineH: 1.4,
     dataMaxLines: 2,
@@ -238,7 +231,6 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
     desdeGap: 4,
     priceRowGap: 10,
     titleGap: 14,
-    descGap: 10,
     dataGap: 12,
     priceGap: 0,
     priceBeside: true,
@@ -349,28 +341,6 @@ export const EXPERIENCE_SHARE_CARD_GRID_LAYOUT = {
 
 // ─── Datos que lleva la tarjeta (solo de la fila) ───
 
-// La descripción de la base trae HTML (<h2>, <p>…): se quitan las
-// etiquetas y se colapsa el espacio; el layout la parte a 2 líneas
-// como máximo.
-function stripExperienceDescription(value) {
-  return String(value || '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function experienceExcerpt(description, maxChars = 170) {
-  const text = stripExperienceDescription(description);
-  if (!text) return '';
-  if (text.length <= maxChars) return text;
-  const cut = text.slice(0, maxChars);
-  const lastSpace = cut.lastIndexOf(' ');
-  return `${(lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
-}
-
 export function experienceShareCardPriceText(exp) {
   const price = Number(exp?.price);
   if (!Number.isFinite(price) || price <= 0) return 'Gratis';
@@ -406,19 +376,22 @@ export function buildExperienceShareCardData(exp, { cityName = '' } = {}) {
   if (String(exp?.people || '').trim()) dataParts.push(String(exp.people).trim());
   const city = (cityName || '').trim();
   const activityType = (exp?.activity_type || '').trim();
-  // Pastilla de ciudad · tipo: «📍 Guadalajara · Tour» (glass, no azul).
-  // El pin va SEPARADO del texto (PR #177): el emoji 📍 se dibuja más
-  // alto que el centro visual del texto y la pastilla salía
-  // descentrada; la geometría guarda pin y etiqueta por separado para
-  // centrar cada uno por su caja visual. `cityLine` sigue siendo la
-  // línea completa, por compatibilidad.
-  const cityLabelParts = [];
-  if (city) cityLabelParts.push(city);
-  if (activityType) cityLabelParts.push(activityType);
-  const cityLabel = cityLabelParts.join(' · ');
+  // Pastilla de ubicación: SOLO la ciudad («📍 Tepic»), sin el tipo
+  // de actividad (antes «📍 Tepic · Tour»). La pastilla es de
+  // ubicación, no de categoría.
+  const cityLabel = city;
   const cityPin = city ? '📍' : '';
   const cityLine = cityPin ? `${cityPin} ${cityLabel}` : cityLabel;
   const price = Number(exp?.price);
+  // La pastilla de precio solo existe para los tipos comprables
+  // (Tour/Experiencia): un Blog o una Guía son contenido, no algo que
+  // se compra, y su precio 0 no es «Gratis» sino ausencia de precio —
+  // por eso salía «Gratis» en los blogs. En la base, los 50 Blogs y
+  // las 27 Guías tienen precio 0, así que a todos les pasa lo mismo.
+  // Un Tour/Experiencia con precio 0 verificado gratis SÍ muestra
+  // «Gratis». Sin tipo conocido, se muestra (comportamiento de antes).
+  const showPrice =
+    !activityType || activityType === 'Tour' || activityType === 'Experiencia';
   // Las fotos para el estilo «Grid»: hasta 3, en el orden de la
   // galería. Sin galería, []: la hoja no ofrece el Grid (ver
   // experienceShareCardStyleList). La foto principal (photoUrl) sigue
@@ -442,10 +415,10 @@ export function buildExperienceShareCardData(exp, { cityName = '' } = {}) {
     ratingText: hasRating
       ? `${rating.toFixed(1)} · ${formatReviewCount(reviewCount)} ${reviewCount === 1 ? 'reseña' : 'reseñas'}`
       : '',
-    description: experienceExcerpt(exp?.description),
     dataLine: dataParts.join(' · '),
     priceText: experienceShareCardPriceText(exp),
     priced: Number.isFinite(price) && price > 0,
+    showPrice,
     shareUrl: experienceShareUrl(exp),
     slug:
       String(exp?.slug || '').trim() || createSlug(exp?.title || 'experiencia'),
@@ -635,10 +608,15 @@ function computeExperienceGridShareCardLayout(data, format, L) {
 
   const pill = data?.cityLine ? gridPillSize(data.cityLine, L) : null;
   const pillH = pill ? pill.h : 0;
+  // Sin pastilla de precio (Blog/Guía: no son comprables), el bloque
+  // de precio no existe: ni su alto ni su hueco cuentan.
+  const showPrice = data?.showPrice !== false;
   const fitted = fitExperienceShareCardTitle(data?.title || '', contentW, L, L.titleSize);
   const titleH = fitted.lines.length * fitted.size * L.titleLineH;
-  const priceSizes = fitExperienceGridPrice(data, contentW, L);
-  const priceH = gridPriceBlockHeight(data, { ...L, ...priceSizes });
+  const priceSizes = showPrice
+    ? fitExperienceGridPrice(data, contentW, L)
+    : { desdeSize: L.desdeSize, priceSize: L.priceSize, porSize: L.porSize };
+  const priceH = showPrice ? gridPriceBlockHeight(data, { ...L, ...priceSizes }) : 0;
   const footSize = fitExperienceGridFooterSize(contentW, L);
 
   // Bloque de información (píldora, título, precio, pie) en orden,
@@ -648,7 +626,7 @@ function computeExperienceGridShareCardLayout(data, format, L) {
   if (fitted.lines.length) {
     infoBlocks.push({ kind: 'title', h: titleH, gap: L.titleGap });
   }
-  infoBlocks.push({ kind: 'price', h: priceH, gap: L.priceGap });
+  if (showPrice) infoBlocks.push({ kind: 'price', h: priceH, gap: L.priceGap });
   infoBlocks.push({ kind: 'foot', h: footSize, gap: L.footGap });
   const infoH = infoBlocks.reduce(
     (sum, it, i) => sum + it.h + (i > 0 ? it.gap : 0),
@@ -738,19 +716,22 @@ function computeExperienceGridShareCardLayout(data, format, L) {
     };
     y += titleH;
   }
-  step(L.priceGap);
-  const price = {
-    priced: data?.priced === true,
-    text: data?.priceText || '',
-    x: infoCenterX,
-    y,
-    desdeSize: priceSizes.desdeSize,
-    desdeGap: L.desdeGap,
-    priceSize: priceSizes.priceSize,
-    porSize: priceSizes.porSize,
-    porGap: L.porGap,
-  };
-  y += priceH;
+  let price = null;
+  if (showPrice) {
+    step(L.priceGap);
+    price = {
+      priced: data?.priced === true,
+      text: data?.priceText || '',
+      x: infoCenterX,
+      y,
+      desdeSize: priceSizes.desdeSize,
+      desdeGap: L.desdeGap,
+      priceSize: priceSizes.priceSize,
+      porSize: priceSizes.porSize,
+      porGap: L.porGap,
+    };
+    y += priceH;
+  }
   step(L.footGap);
   const footer = { y: y + footSize / 2, size: footSize, x: infoCenterX };
 
@@ -779,7 +760,7 @@ function computeExperienceGridShareCardLayout(data, format, L) {
 // centrado con márgenes y el contenido va debajo, sobre fondo oscuro:
 // la foto es todo lo que sobra entre el logotipo y el bloque de texto,
 // con photoMinH como mínimo, así nunca se come el contenido ni queda
-// hueco vacío. Las `y` de título, descripción y datos son el CENTRO
+// hueco vacío. Las `y` de título y datos son el CENTRO
 // vertical de la primera línea (el canvas dibuja con textBaseline
 // 'middle'), igual que en la tarjeta de negocios y en la de eventos.
 export function computeExperienceShareCardLayout(data, format) {
@@ -811,26 +792,33 @@ export function computeExperienceShareCardLayout(data, format) {
     };
   }
 
-  const priced = data?.priced === true;
-  const price = pricePillSize(data?.priceText || '', priced, L);
-  const pricePillBase = {
-    text: data?.priceText || '',
-    priced,
-    w: price.w,
-    h: price.h,
-    priceSize: L.priceSize,
-    desdeSize: L.desdeSize,
-    porSize: L.porSize,
-    padX: L.pricePadX,
-    padY: L.pricePadY,
-    desdeGap: L.desdeGap,
-    rowGap: L.priceRowGap,
-  };
+  // La pastilla de precio solo existe para los tipos comprables
+  // (Tour/Experiencia): Blog y Guía no la llevan (ver
+  // buildExperienceShareCardData). Sin pastilla, el texto usa todo el
+  // ancho también en Horizontal y el bloque no reserva su hueco.
+  const showPrice = data?.showPrice !== false;
+  const priced = showPrice && data?.priced === true;
+  const price = showPrice ? pricePillSize(data?.priceText || '', priced, L) : null;
+  const pricePillBase = showPrice
+    ? {
+        text: data?.priceText || '',
+        priced,
+        w: price.w,
+        h: price.h,
+        priceSize: L.priceSize,
+        desdeSize: L.desdeSize,
+        porSize: L.porSize,
+        padX: L.pricePadX,
+        padY: L.pricePadY,
+        desdeGap: L.desdeGap,
+        rowGap: L.priceRowGap,
+      }
+    : null;
 
-  // Ancho del texto: si el precio va al lado (Horizontal), la columna
-  // es lo que queda tras reservar la pastilla; si va debajo (Historia
-  // y Post), el texto usa todo el ancho.
-  const textW = L.priceBeside
+  // Ancho del texto: si el precio va al lado (Horizontal) Y hay
+  // pastilla, la columna es lo que queda tras reservarla; si no, el
+  // texto usa todo el ancho.
+  const textW = L.priceBeside && showPrice
     ? W - pad * 2 - price.w - L.colGap
     : W - pad * 2;
 
@@ -842,9 +830,6 @@ export function computeExperienceShareCardLayout(data, format) {
   );
   const titleLines = fittedTitle.lines;
   const titleSize = fittedTitle.size;
-  const descLines = data?.description
-    ? wrapShareCardText(data.description, textW, L.descSize, L.descMaxLines, 600)
-    : [];
   const dataLines = data?.dataLine
     ? wrapShareCardText(data.dataLine, textW, L.dataSize, L.dataMaxLines, 600)
     : [];
@@ -862,13 +847,10 @@ export function computeExperienceShareCardLayout(data, format) {
   if (titleLines.length) {
     items.push({ kind: 'title', h: titleLines.length * titleSize * L.titleLineH, gap: L.titleGap });
   }
-  if (descLines.length) {
-    items.push({ kind: 'desc', h: descLines.length * L.descSize * L.descLineH, gap: L.descGap });
-  }
   if (dataLines.length) {
     items.push({ kind: 'data', h: dataLines.length * L.dataSize * L.dataLineH, gap: L.dataGap });
   }
-  if (!L.priceBeside) items.push({ kind: 'price', h: price.h, gap: L.priceGap });
+  if (showPrice && !L.priceBeside) items.push({ kind: 'price', h: price.h, gap: L.priceGap });
   const blockH = items.reduce((sum, it, i) => sum + it.h + (i > 0 ? it.gap : 0), 0);
   const blockBottom = H - pad;
   const blockTop = blockBottom - blockH;
@@ -923,19 +905,6 @@ export function computeExperienceShareCardLayout(data, format) {
     y += titleLines.length * titleSize * L.titleLineH;
   }
 
-  let desc = null;
-  if (descLines.length) {
-    step(L.descGap);
-    desc = {
-      lines: descLines,
-      x: pad,
-      y: y + (L.descSize * L.descLineH) / 2,
-      size: L.descSize,
-      lineH: L.descSize * L.descLineH,
-    };
-    y += descLines.length * L.descSize * L.descLineH;
-  }
-
   let dataRows = null;
   if (dataLines.length) {
     step(L.dataGap);
@@ -949,14 +918,16 @@ export function computeExperienceShareCardLayout(data, format) {
     y += dataLines.length * L.dataSize * L.dataLineH;
   }
 
-  let pricePill;
-  if (L.priceBeside) {
-    // Al lado del texto (Horizontal): a la derecha, con la base
-    // alineada con la del bloque de texto, como en la demo.
-    pricePill = { ...pricePillBase, x: W - pad - price.w, y: blockBottom - price.h };
-  } else {
-    step(L.priceGap);
-    pricePill = { ...pricePillBase, x: W - pad - price.w, y };
+  let pricePill = null;
+  if (showPrice) {
+    if (L.priceBeside) {
+      // Al lado del texto (Horizontal): a la derecha, con la base
+      // alineada con la del bloque de texto, como en la demo.
+      pricePill = { ...pricePillBase, x: W - pad - price.w, y: blockBottom - price.h };
+    } else {
+      step(L.priceGap);
+      pricePill = { ...pricePillBase, x: W - pad - price.w, y };
+    }
   }
 
   return {
@@ -969,7 +940,6 @@ export function computeExperienceShareCardLayout(data, format) {
     ratingPill,
     cityPill,
     title,
-    desc,
     dataRows,
     pricePill,
     photo,
@@ -1125,7 +1095,7 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
     drawInkCenteredText(ctx, rp.text, rp.x + rp.padX + starW + 6, centerY);
   }
 
-  // Pastilla GLASS de ciudad · tipo, encima del título: fondo
+  // Pastilla GLASS de ciudad, encima del título: fondo
   // translúcido + borde claro (como el estilo glass de negocios);
   // la pastilla de precio sigue AZUL sólida. Pin y etiqueta se dibujan
   // por separado, cada uno centrado por su caja visual (PR #177):
@@ -1168,10 +1138,6 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
     });
   }
 
-  drawLeftLines(ctx, geo.desc, {
-    color: 'rgba(255,255,255,0.75)',
-    weight: 600,
-  });
   drawLeftLines(ctx, geo.dataRows, {
     color: 'rgba(255,255,255,0.85)',
     weight: 600,
@@ -1179,38 +1145,41 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
 
   // Pastilla de precio AZUL protagonista (como la demo): «DESDE» chico
   // arriba, precio grande y «por persona» chico en la misma línea; si
-  // es gratis, solo «Gratis».
+  // es gratis, solo «Gratis». Blog y Guía no llevan pastilla de precio
+  // (no son comprables): geo.pricePill es null y no se dibuja nada.
   const pill = geo.pricePill;
-  ctx.fillStyle = EXPERIENCE_SHARE_CARD_BLUE;
-  roundRectPath(ctx, pill.x, pill.y, pill.w, pill.h, pill.h / 2);
-  ctx.fill();
-  ctx.fillStyle = '#FFFFFF';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  if (pill.priced) {
-    ctx.font = `800 ${pill.desdeSize}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillText('DESDE', pill.x + pill.padX, pill.y + pill.padY + pill.desdeSize / 2);
-    const priceY =
-      pill.y + pill.padY + pill.desdeSize + pill.desdeGap + pill.priceSize / 2;
-    ctx.font = `800 ${pill.priceSize}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillText(pill.text, pill.x + pill.padX, priceY);
-    const priceW = ctx.measureText(pill.text).width;
-    ctx.font = `600 ${pill.porSize}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.fillText(
-      'por persona',
-      pill.x + pill.padX + priceW + pill.rowGap,
-      priceY,
-    );
-  } else {
-    // «Gratis» (una sola línea) también se centra por su caja visual
-    // (2º commit del PR #177): con textBaseline 'middle' la tinta
-    // quedaba desplazada; drawInkCenteredText la centra por la tinta
-    // real, como en la pastilla glass. La rama con precio (DESDE +
-    // precio + «por persona», dos filas con posiciones propias) no se
-    // toca: no es una sola línea centrada en la pastilla.
-    ctx.font = `800 ${pill.priceSize}px ${SHARE_CARD_FONT_STACK}`;
-    drawInkCenteredText(ctx, pill.text, pill.x + pill.padX, pill.y + pill.h / 2);
+  if (pill) {
+    ctx.fillStyle = EXPERIENCE_SHARE_CARD_BLUE;
+    roundRectPath(ctx, pill.x, pill.y, pill.w, pill.h, pill.h / 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    if (pill.priced) {
+      ctx.font = `800 ${pill.desdeSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillText('DESDE', pill.x + pill.padX, pill.y + pill.padY + pill.desdeSize / 2);
+      const priceY =
+        pill.y + pill.padY + pill.desdeSize + pill.desdeGap + pill.priceSize / 2;
+      ctx.font = `800 ${pill.priceSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillText(pill.text, pill.x + pill.padX, priceY);
+      const priceW = ctx.measureText(pill.text).width;
+      ctx.font = `600 ${pill.porSize}px ${SHARE_CARD_FONT_STACK}`;
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fillText(
+        'por persona',
+        pill.x + pill.padX + priceW + pill.rowGap,
+        priceY,
+      );
+    } else {
+      // «Gratis» (una sola línea) también se centra por su caja visual
+      // (2º commit del PR #177): con textBaseline 'middle' la tinta
+      // quedaba desplazada; drawInkCenteredText la centra por la tinta
+      // real, como en la pastilla glass. La rama con precio (DESDE +
+      // precio + «por persona», dos filas con posiciones propias) no se
+      // toca: no es una sola línea centrada en la pastilla.
+      ctx.font = `800 ${pill.priceSize}px ${SHARE_CARD_FONT_STACK}`;
+      drawInkCenteredText(ctx, pill.text, pill.x + pill.padX, pill.y + pill.h / 2);
+    }
   }
 
   return canvas;
@@ -1273,7 +1242,7 @@ function drawExperienceGridShareCardCanvas(data, geo, assets) {
     ctx.restore();
   }
 
-  // Pastilla de ubicación GRIS (pin + «Zapopan · Tour»), centrada.
+  // Pastilla de ubicación GRIS (pin + ciudad), centrada.
   if (geo.pill) {
     const cp = geo.pill;
     ctx.fillStyle = '#F4F4F6';
