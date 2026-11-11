@@ -9,7 +9,8 @@ import DestacadoCard from "./cards/DestacadoCard.jsx";
 import FeaturedCard from "./cards/FeaturedCard.jsx";
 import { getBusinessPricing, buildBusinessPlans } from "../lib/businessPlans.js";
 import { NEGOCIOS_STATS_FALLBACK, fetchNegociosStats } from "../lib/negociosStats.js";
-import { EJEMPLO_POR_PLAN } from "../lib/negociosEjemplos.js";
+import { EJEMPLO_POR_PLAN, YA_ESTAN_EN_CITYMAP } from "../lib/negociosEjemplos.js";
+import { displayRating, formatReviewCount } from "../lib/googleRatings.js";
 import { useCountUp } from "../hooks/useCountUp.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 
@@ -42,6 +43,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
   const { t, lang } = useTranslation();
   const activeCity = useUIStore(s => s.activeCity);
   const cities = useDataStore(s => s.cities);
+  const googleRatings = useDataStore(s => s.googleRatings);
   const countryCode = getCountryCode(activeCity, cities);
   const pricing = getBusinessPricing(countryCode);
   const plans = buildBusinessPlans(t, pricing, dark);
@@ -170,10 +172,13 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         .business-landing .plans-features{flex:1;display:flex;flex-direction:column;gap:12px;padding-top:22px;margin-top:22px;border-top:1px solid var(--plans-line)}
         .business-landing .stat-card{box-shadow:var(--plans-shadow)}
         .business-landing .benefit-card{box-shadow:var(--plans-shadow)}
+        .business-landing .ya-estan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+        .business-landing .ya-estan-card{display:block;background:var(--plans-surface);border:1px solid var(--plans-line);border-radius:24px;overflow:hidden;text-decoration:none;color:inherit;box-shadow:var(--plans-shadow)}
+        .business-landing .ya-estan-name{font-size:15px;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
         .plans-faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px;font-size:15px;font-weight:600;line-height:1.5}
         .plans-faq summary::after{content:'+';font-size:20px;font-weight:400}
         .plans-faq[open] summary::after{content:'−'}
-        @media(min-width:900px){.business-landing .plans-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.business-landing .plans-card[data-plan="free"]{order:0}.business-landing .plans-card[data-plan="pro"]{order:1}.business-landing .plans-card[data-plan="elite"]{order:2}}
+        @media(min-width:900px){.business-landing .plans-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.business-landing .plans-card[data-plan="free"]{order:0}.business-landing .plans-card[data-plan="pro"]{order:1}.business-landing .plans-card[data-plan="elite"]{order:2}.business-landing .ya-estan-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}}
         @media(prefers-reduced-motion:reduce){.business-landing *{scroll-behavior:auto!important;transition:none!important}}
       `}</style>
       <header style={{ position: 'sticky', top: 0, zIndex: 10, background: dark ? 'rgba(22,22,23,.92)' : 'rgba(245,245,247,.92)', backdropFilter: 'blur(20px)', borderBottom: `1px solid ${line}` }}>
@@ -282,6 +287,41 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
                     {p.screenshots && <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 14 }}>{p.screenshots.map((shot) => <div key={shot.url} style={{ flex: '0 0 100px', color: muted }}><img src={shot.url} alt={shot.label} style={{ width: '100%', borderRadius: 10 }} /><span style={{ fontSize: 11 }}>{shot.label}</span></div>)}</div>}
                   </section>
                 </article>
+              );
+            })}
+          </div>
+        </section>
+        {/* Ya están en CityMap: prueba social con negocios reales de la base
+        (ver YA_ESTAN_EN_CITYMAP en negociosEjemplos.js). Va después de los
+        planes y antes de las preguntas frecuentes. La calificación se lee
+        en vivo con displayRating (caché de Google vigente cuando lo hay);
+        la «G» se muestra cuando el dato es de Google, incluido el valor
+        verificado que se guarda como reserva en la constante. */}
+        <section style={{ marginTop: 64 }}>
+          <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_ya_estan_titulo", "Ya están en CityMap")}</h2>
+          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_ya_estan_sub", "Negocios reales que ya reciben clientes desde CityMap.")}</p>
+          <div className="ya-estan-grid">
+            {YA_ESTAN_EN_CITYMAP.map((b) => {
+              const shortSlug = b.slug.startsWith(`${b.city_slug}-`) ? b.slug.slice(b.city_slug.length + 1) : b.slug;
+              const href = `/${b.city_slug}/${shortSlug}`;
+              const disp = displayRating(b, googleRatings);
+              const isGoogle = disp.source === "google" || b.googleRating;
+              return (
+                <a key={b.id} href={href} onClick={(e) => { if (navigate) { e.preventDefault(); navigate(href); } }} className="ya-estan-card">
+                  <img src={b.photos[0].url} alt={b.name} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', display: 'block' }} />
+                  <div style={{ padding: '14px 14px 16px' }}>
+                    <div className="ya-estan-name" title={b.name}>{b.name}</div>
+                    <div style={{ fontSize: 13, lineHeight: 1.4, color: muted, marginTop: 2 }}>{b.cityName}</div>
+                    {disp.rating != null && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 6 }}>
+                        <Icon name="star_f" size={14} color={ink} style={{ marginTop: -2 }} />
+                        <span style={{ fontSize: 12, fontWeight: 700 }}>{disp.rating.toFixed(1)}</span>
+                        <span style={{ fontSize: 12, color: muted, fontWeight: 700 }}>({formatReviewCount(disp.count)})</span>
+                        {isGoogle && <img src="/googlelogo.svg" alt="Google" style={{ width: 12, height: 12, objectFit: 'contain' }} />}
+                      </div>
+                    )}
+                  </div>
+                </a>
               );
             })}
           </div>

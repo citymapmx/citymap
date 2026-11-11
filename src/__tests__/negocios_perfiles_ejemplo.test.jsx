@@ -30,12 +30,13 @@ function renderLanding(dark = false) {
 
 // Cada plan es un <article class="plans-card" data-plan="...">: recorta el
 // HTML de esa tarjeta (desde su <article> hasta el <article> siguiente, o
-// hasta Preguntas frecuentes para el último). El <article> es necesario:
+// hasta la sección «Ya están en CityMap» para el último, que va después
+// de los planes y antes de las preguntas frecuentes). El <article> es necesario:
 // el <style> de la página también menciona data-plan="...".
 function planCard(html, key, nextKey) {
   const start = html.indexOf(`<article class="plans-card" data-plan="${key}"`);
   expect(start).toBeGreaterThan(-1);
-  const end = nextKey ? html.indexOf(`<article class="plans-card" data-plan="${nextKey}"`, start) : html.indexOf('Preguntas frecuentes', start);
+  const end = nextKey ? html.indexOf(`<article class="plans-card" data-plan="${nextKey}"`, start) : html.indexOf('Ya están en CityMap', start);
   expect(end).toBeGreaterThan(start);
   return html.slice(start, end);
 }
@@ -129,8 +130,10 @@ describe('Ejemplos por plan en /negocios', () => {
     // vez de partirse a media letra («• Cerrad») en el borde.
     expect(card).toContain('flex-wrap:wrap;overflow:hidden');
     expect(card).not.toContain('flex-wrap:nowrap');
-    // «Cerrado» sigue presente entero (el horario no se inventó ni se quitó).
-    expect(card).toContain('Cerrado');
+    // El estado sigue presente entero (el horario no se inventó ni se quitó).
+    // Dalila abre a las 09:30, así que antes es «Cerrado» y después «Abierto»:
+    // fijar uno solo haría el test dependiente de la hora del día.
+    expect(card).toMatch(/Cerrado|Abierto/);
   });
 
   it('defecto 2: el ejemplo Premium muestra la fila de calificación (ya no esconde las estrellas)', () => {
