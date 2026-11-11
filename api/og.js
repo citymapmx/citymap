@@ -1,6 +1,6 @@
 import { seoSite } from '../src/lib/seoRoutes.js';
 import { tourSchemaNodes } from '../src/lib/tourSchema.js';
-import { eventUrl } from '../src/lib/eventUrls.js';
+import { eventUrl, resolveEventSlug } from '../src/lib/eventUrls.js';
 const SUPABASE_URL  = "https://dpkjxhjkzdlkvyotoeai.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
 
@@ -205,6 +205,9 @@ async function getBiz(id, city) {
 }
 
 async function getEv(id, city) {
+  // Slugs viejos con errata (p. ej. el de Eslabón): se corrigen al slug
+  // actual antes de buscar, igual que en la app.
+  id = resolveEventSlug(id);
   try {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     let q = isUUID ? `id=eq.${id}` : `slug=in.(${id},${city ? `${city}-${id}` : id})`;

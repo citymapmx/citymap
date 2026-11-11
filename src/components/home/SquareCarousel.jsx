@@ -10,7 +10,7 @@ export default memo(function SquareCarousel({ title, list, handleCardTap, getThu
       <div style={{ padding: "0 20px", marginBottom: 12 }}>
         <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0 }}>{title}</h2>
       </div>
-      <div style={{ display: "flex", gap: 10, overflowX: isSingle ? "visible" : "auto", paddingLeft: 20, paddingRight: 20, paddingBottom: 6, scrollbarWidth: "none" }}>
+      <div className="scroll-fade-x" style={{ display: "flex", gap: 10, overflowX: isSingle ? "visible" : "auto", paddingLeft: 20, paddingRight: 20, paddingBottom: 6, scrollbarWidth: "none" }}>
         {list.map((b) => {
           const imgToUse = b.logo_url || b.photos?.[0]?.url;
           
@@ -39,7 +39,7 @@ export default memo(function SquareCarousel({ title, list, handleCardTap, getThu
                   : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>{(b.emoji || CAT_EMOJI[b.category]) || "📍"}</div>
                 }
               </div>
-              <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 11, color: T.text, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.1 }}>{b.name}</div>
+              <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 11, color: T.text, textAlign: "center", lineHeight: 1.2, minHeight: 26, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{b.name}</div>
             </div>
           );
         })}

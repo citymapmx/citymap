@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { eventShortSlug, eventUrl, eventFullSlug } from '../lib/eventUrls.js';
+import { eventShortSlug, eventUrl, eventFullSlug, resolveEventSlug } from '../lib/eventUrls.js';
 
 // Formato nuevo de URLs de eventos (pedido de Jonathan, nov 2026):
 // /evento/:ciudad/:slug-corto — p. ej. /evento/zapopan/zz-top
@@ -48,5 +48,22 @@ describe('eventFullSlug', () => {
     expect(eventFullSlug('zapopan', 'zz-top')).toBe('zapopan-zz-top');
     expect(eventFullSlug('zapopan', 'zapopan-zz-top')).toBe('zapopan-zz-top');
     expect(eventFullSlug('', 'zz-top')).toBe('zz-top');
+  });
+});
+
+describe('resolveEventSlug', () => {
+  it('corrige el slug de Eslabón con errata (corto y completo)', () => {
+    // La base guardaba '...-eslabon-aramado-...' (errata); el slug correcto
+    // es '...-eslabon-armado-...'. La URL vieja debe seguir resolviendo.
+    expect(resolveEventSlug('eslabon-aramado-tour-el-amor-nocturno-en-guadalajara'))
+      .toBe('eslabon-armado-tour-el-amor-nocturno-en-guadalajara');
+    expect(resolveEventSlug('guadalajara-eslabon-aramado-tour-el-amor-nocturno-en-guadalajara'))
+      .toBe('guadalajara-eslabon-armado-tour-el-amor-nocturno-en-guadalajara');
+  });
+
+  it('no toca los slugs que no están en el mapa', () => {
+    expect(resolveEventSlug('zapopan-zz-top')).toBe('zapopan-zz-top');
+    expect(resolveEventSlug('')).toBe('');
+    expect(resolveEventSlug(null)).toBe('');
   });
 });

@@ -651,14 +651,14 @@ export default function GlobalHomeView() {
                     {t("home_ver_todos_tours", "Ver todos los tours")} →
                   </button>
                 </div>
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none' }}>
+                <div className="scroll-fade-x" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none' }}>
                   {tourGroups.map((g) => (
                     <button key={g.slug} onClick={() => setTourCity(g.slug)} style={{ flex: '0 0 auto', padding: '8px 14px', borderRadius: 999, border: `1px solid ${T.border}`, background: effectiveTourCity === g.slug ? T.text : 'transparent', color: effectiveTourCity === g.slug ? T.bg : T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       {g.name} ({g.count})
                     </button>
                   ))}
                 </div>
-                <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                <div className="scroll-fade-x" style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
                   {visibleTours.map((tour) => {
                     const gallery = parseGallery(tour);
                     const img = gallery[0]?.url || gallery[0] || null;
@@ -692,7 +692,7 @@ export default function GlobalHomeView() {
                     {t("home_ver_todas_guias", "Ver todas las guías")} →
                   </button>
                 </div>
-                <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                <div className="scroll-fade-x" style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
                   {experiences.map((exp) => {
                     const gallery = parseGallery(exp);
                     const img = gallery[0]?.url || gallery[0] || null;

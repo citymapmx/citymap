@@ -21,6 +21,10 @@ export default function Footer() {
   return (
     <footer style={{
       padding: '48px 24px 24px',
+      // El pie es el último elemento de la página y la navegación inferior
+      // es fija (57 px + safe-area): sin este hueco, al bajar del todo la
+      // barra tapaba la línea del copyright y el pie se veía cortado.
+      paddingBottom: 'calc(24px + 57px + env(safe-area-inset-bottom, 8px) + 16px)',
       borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
       marginTop: 40,
       background: dark ? T.white : '#F9FAFB',

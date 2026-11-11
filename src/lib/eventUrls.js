@@ -34,3 +34,22 @@ export function eventFullSlug(city, short) {
   if (!c || !s) return s;
   return s.startsWith(c + '-') ? s : `${c}-${s}`;
 }
+
+// Slugs viejos que ya no existen en la base (erratas corregidas): se
+// corrigen al slug actual ANTES de buscar el evento. App.jsx busca con el
+// slug corregido y, al encontrarlo, reemplaza la dirección por la
+// canónica (eventUrl), así la URL vieja sigue funcionando y se corrige
+// sola — igual que las URLs viejas /evento/<slug-completo>. Se mapea la
+// forma corta y la completa porque la app resuelve por ambas (la URL
+// nueva /evento/:ciudad/:slug-corto y la vieja /evento/<slug-completo>).
+// og.js usa el mismo mapa para que los enlaces compartidos sigan
+// sirviendo su tarjeta.
+export const EVENT_SLUG_REDIRECTS = {
+  'eslabon-aramado-tour-el-amor-nocturno-en-guadalajara': 'eslabon-armado-tour-el-amor-nocturno-en-guadalajara',
+  'guadalajara-eslabon-aramado-tour-el-amor-nocturno-en-guadalajara': 'guadalajara-eslabon-armado-tour-el-amor-nocturno-en-guadalajara',
+};
+
+export function resolveEventSlug(slug) {
+  const s = String(slug || '');
+  return EVENT_SLUG_REDIRECTS[s] || s;
+}
