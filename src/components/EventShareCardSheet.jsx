@@ -10,19 +10,24 @@
 // imagen con el menú del sistema o la descarga, nunca promete publicarla.
 // Sin foto la tarjeta sale con el bloque de la inicial, nunca rota.
 // Dos formatos: Historia IG 1080×1920 y Post IG 1080×1080 (el Post
-// volvió el 11 nov 2026, sin descripción) y dos temas: Oscura (la de
-// siempre) y Clara (fondo blanco, texto oscuro).
-import React, { useState } from 'react';
+// volvió el 11 nov 2026, sin descripción y sin categoría) y dos temas:
+// Oscura (la de siempre) y Clara (fondo blanco, texto oscuro). La foto
+// se puede reposicionar arrastrándola en la vista previa (11 nov 2026,
+// Jonathan): el desplazamiento solo vive en la sesión de la hoja y el
+// PNG refleja exactamente lo que se ve.
+import React, { useRef, useState } from 'react';
 import { useDataStore } from '../store/useDataStore.js';
 import { useUIStore } from '../store/useUIStore.js';
 import EventShareCardTemplate from './EventShareCardTemplate.jsx';
 import {
   canShareImageFiles,
+  clampPhotoOffset,
   isPhotoFetchable,
   shareOrDownloadPng,
 } from '../lib/shareCard.js';
 import {
   buildEventShareCardData,
+  computeEventShareCardLayout,
   eventShareCardFileName,
   exportEventShareCardPng,
   EVENT_SHARE_CARD_FORMAT_LIST,
@@ -47,6 +52,14 @@ export default function EventShareCardSheet({ event, onClose, onShareLink }) {
   const [status, setStatus] = useState('idle'); // idle | generating | error
   const [error, setError] = useState('');
   const [photoFailed, setPhotoFailed] = useState(false);
+  // Desplazamiento de la foto dentro del marco (11 nov 2026, Jonathan:
+  // se arrastra en la vista previa antes de guardar). { x, y } en
+  // [-1, 1], 0 = centrada (comportamiento actual); solo vive en la
+  // sesión de la hoja, no se guarda en la base. Viaja en exportData
+  // para que la vista previa y el PNG usen el mismo valor.
+  const [photoOffset, setPhotoOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef(null);
 
   // Dos formatos (el Post volvió el 11 nov 2026): Historia IG
   // 1080×1920 y Post IG 1080×1080, sin descripción en Post.
@@ -62,10 +75,59 @@ export default function EventShareCardSheet({ event, onClose, onShareLink }) {
   // Sin foto, la tarjeta sale sin esa parte (nunca rota): el fallo de
   // carga quita el dato y la geometría se recalcula sin él. El tema
   // (Oscura/Clara) viaja en el dato para que la vista previa y el PNG
-  // usen los mismos colores.
+  // usen los mismos colores; el desplazamiento de la foto también
+  // viaja en el dato para que ambos usen la misma posición.
   let exportData = data;
   if (photoFailed) exportData = { ...exportData, photoUrl: null };
-  exportData = { ...exportData, theme: themeId };
+  exportData = { ...exportData, theme: themeId, photoOffset };
+
+  // Arrastre de la foto (11 nov 2026, Jonathan): arrastrar la vista
+  // previa mueve la foto dentro del marco. Eventos de puntero (ratón
+  // y táctil en uno solo, con captura para no perder el gesto) y
+  // touchAction 'none' en el marco para que el dedo mueva la foto y
+  // no haga scroll del panel. El desplazamiento sigue al dedo: al
+  // arrastrar a la derecha se ve más de la izquierda de la foto (el
+  // offset baja), igual que al mover una foto dentro de un marco. El
+  // gesto se mide en píxeles de tarjeta (dividido por previewScale) y
+  // se convierte a offset: arrastrar medio marco en un eje equivale a
+  // un offset de 1 en ese eje (de un borde al otro). Se fija al
+  // [-1, 1] con clampPhotoOffset: la ventana de origen nunca se sale
+  // de la foto, así que el arrastre se detiene en el borde.
+  const previewScale = PREVIEW_W / format.width;
+  const previewH = Math.round(format.height * previewScale);
+  const previewLayout = computeEventShareCardLayout(exportData, format);
+  const photoFrameW = previewLayout.photo.w;
+  const photoFrameH = previewLayout.photo.h;
+  const canDragPhoto = Boolean(exportData.photoUrl) && !photoFailed;
+  const photoMoved = photoOffset.x !== 0 || photoOffset.y !== 0;
+
+  const onPhotoPointerDown = (e) => {
+    if (!canDragPhoto || status === 'generating') return;
+    e.preventDefault();
+    dragRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      offsetX: photoOffset.x,
+      offsetY: photoOffset.y,
+    };
+    setIsDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPhotoPointerMove = (e) => {
+    const start = dragRef.current;
+    if (!start) return;
+    const dx = (e.clientX - start.x) / previewScale;
+    const dy = (e.clientY - start.y) / previewScale;
+    setPhotoOffset({
+      x: clampPhotoOffset(start.offsetX - (2 * dx) / photoFrameW),
+      y: clampPhotoOffset(start.offsetY - (2 * dy) / photoFrameH),
+    });
+  };
+  const onPhotoPointerEnd = () => {
+    dragRef.current = null;
+    setIsDragging(false);
+  };
+  const onResetPhotoOffset = () => setPhotoOffset({ x: 0, y: 0 });
 
   const onExport = async () => {
     if (status === 'generating') return;
@@ -100,8 +162,6 @@ export default function EventShareCardSheet({ event, onClose, onShareLink }) {
     }
   };
 
-  const previewScale = PREVIEW_W / format.width;
-  const previewH = Math.round(format.height * previewScale);
   const shareLabel = canShareImageFiles() ? 'Compartir imagen' : 'Descargar imagen';
 
   return (
@@ -244,7 +304,15 @@ export default function EventShareCardSheet({ event, onClose, onShareLink }) {
           ))}
         </div>
 
+        {/* Vista previa: se puede arrastrar la foto dentro del marco
+            (11 nov 2026, Jonathan) para ajustar su posición antes de
+            guardar. touchAction 'none': el dedo mueve la foto, no hace
+            scroll del panel. Sin foto no hay nada que arrastrar. */}
         <div
+          onPointerDown={onPhotoPointerDown}
+          onPointerMove={onPhotoPointerMove}
+          onPointerUp={onPhotoPointerEnd}
+          onPointerCancel={onPhotoPointerEnd}
           style={{
             width: PREVIEW_W,
             height: previewH,
@@ -253,6 +321,8 @@ export default function EventShareCardSheet({ event, onClose, onShareLink }) {
             overflow: 'hidden',
             boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
             background: '#0B0B0B',
+            touchAction: canDragPhoto ? 'none' : 'auto',
+            cursor: canDragPhoto ? (isDragging ? 'grabbing' : 'grab') : 'default',
           }}
         >
           <div
@@ -271,6 +341,40 @@ export default function EventShareCardSheet({ event, onClose, onShareLink }) {
           </div>
         </div>
 
+        {canDragPhoto ? (
+          <p
+            style={{
+              margin: '0 0 8px 0',
+              fontSize: 12,
+              color: dark ? '#A1A1AA' : '#71717A',
+              textAlign: 'center',
+            }}
+          >
+            Arrastra la foto para ajustar su posición
+            {photoMoved ? (
+              <>
+                {' · '}
+                <button
+                  onClick={onResetPhotoOffset}
+                  className="press"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: dark ? '#FAFAFA' : '#18181B',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  Centrar foto
+                </button>
+              </>
+            ) : null}
+          </p>
+        ) : null}
         {photoFailed ? (
           <p style={{ margin: '0 0 8px 0', fontSize: 12, color: '#B45309', textAlign: 'center' }}>
             La foto no se pudo cargar: la tarjeta se genera sin foto.

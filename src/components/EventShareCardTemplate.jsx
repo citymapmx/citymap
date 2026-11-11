@@ -10,13 +10,19 @@
 // (brightness(0)) en Clara. Sin foto no hay imagen rota: sale un bloque
 // con la inicial del título. Dos formatos: Historia 1080×1920 y Post
 // 1080×1080 (el Post volvió el 11 nov 2026, SIN descripción para
-// ahorrar espacio: en Post el subtítulo no se produce).
+// ahorrar espacio: en Post el subtítulo no se produce; y desde el 11
+// nov 2026 TAMPOCO lleva la categoría: en Post no se produce el chip).
+// La foto se puede reposicionar: el usuario la arrastra en la hoja y
+// la plantilla aplica el desplazamiento con object-position
+// (layout.photoOffset), la misma matemática que el canvas, así lo que
+// se ve es lo que se descarga.
 // La vista previa y el PNG exportado comparten la misma geometría:
 // EVENT_SHARE_CARD_LAYOUT + computeEventShareCardLayout en
 // lib/eventShareCard.js, así que lo que se ve es lo que se descarga.
 // Los colores vienen de layout.palette (el tema Oscura/Clara de
 // data.theme), igual que el canvas.
 import { getThumbUrl } from '../lib/utils.js';
+import { coverObjectPosition } from '../lib/shareCard.js';
 import {
   SHARE_CARD_FORMATS,
   EVENT_SHARE_CARD_LAYOUT,
@@ -104,7 +110,12 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
             style={{
               width: '100%',
               height: '100%',
+              // cover + posición del desplazamiento que el usuario
+              // ajustó arrastrando en la hoja (layout.photoOffset):
+              // la misma matemática que el canvas (drawCoverImage),
+              // así la vista previa y el PNG muestran lo mismo.
               objectFit: 'cover',
+              objectPosition: coverObjectPosition(layout.photoOffset),
               display: 'block',
             }}
           />

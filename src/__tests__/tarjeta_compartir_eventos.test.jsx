@@ -3,6 +3,12 @@ import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import EventShareCardTemplate from '../components/EventShareCardTemplate.jsx';
 import {
+  clampPhotoOffset,
+  normalizePhotoOffset,
+  coverObjectPosition,
+  drawCoverImage,
+} from '../lib/shareCard.js';
+import {
   eventShareCardStyle,
   buildEventShareCardData,
   eventShareCardFileName,
@@ -789,5 +795,180 @@ describe('tarjeta para compartir el evento: versión Clara', () => {
     expect(sheet).toContain('Fondo oscuro');
     expect(sheet).toContain('Fondo claro');
     expect(sheet).toContain('theme: themeId');
+  });
+});
+
+describe('tarjeta para compartir el evento: Post sin categoría (11 nov 2026)', () => {
+  // En Post ya no va la etiqueta de categoría (para ahorrar espacio):
+  // el chip no se produce en la geometría ni en la plantilla, y la
+  // foto crece y se come ese hueco (catGap + catSize). En Historia
+  // se queda como está.
+  it('en Post el chip es null en los 5 estilos; en Historia sigue', () => {
+    const cases = [
+      CONCIERTO, // festival
+      EXPOSICION, // editorial
+      FERIA, // boleto
+      { ...CONCIERTO, event_category: 'Gastronomía', price: '' }, // experiencias
+      { ...CONCIERTO, event_category: 'Conferencia ' }, // agenda
+    ];
+    for (const ev of cases) {
+      const d = buildEventShareCardData(ev, { cityName: 'Guadalajara' });
+      const post = computeEventShareCardLayout(d, SHARE_CARD_FORMATS.post);
+      expect(post.chip).toBeNull();
+      const story = computeEventShareCardLayout(d, SHARE_CARD_FORMATS.story);
+      expect(story.chip).not.toBeNull();
+      expect(story.chip.text).toBe(d.category.toUpperCase());
+    }
+  });
+
+  it('la plantilla Post no pinta la categoría; la de Historia sí', () => {
+    for (const ev of [CONCIERTO, EXPOSICION, FERIA]) {
+      const d = buildEventShareCardData(ev, { cityName: 'Guadalajara' });
+      const postHtml = renderToStaticMarkup(
+        <EventShareCardTemplate data={d} format={SHARE_CARD_FORMATS.post} />,
+      );
+      expect(postHtml).not.toContain(d.category.toUpperCase());
+      const storyHtml = renderToStaticMarkup(
+        <EventShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} />,
+      );
+      expect(storyHtml).toContain(d.category.toUpperCase());
+    }
+  });
+
+  it('en Post la foto crece el hueco de la categoría (catGap + catSize) sin desbordar', () => {
+    // La geometría sin chip reserva 0 para la categoría: la foto es
+    // catGap + catSize más alta que si el chip existiera. Se comprueba
+    // contra la altura que tendría con el chip (foto + hueco).
+    const d = buildEventShareCardData(EXPOSICION, { cityName: 'Puerto Vallarta' });
+    const post = computeEventShareCardLayout(d, SHARE_CARD_FORMATS.post);
+    const L = EVENT_SHARE_CARD_LAYOUT.post;
+    expect(post.chip).toBeNull();
+    expect(post.photo.h).toBeGreaterThan(L.photoMinH);
+    // Sin chip ni subtítulo en Post, todo el espacio libre es foto:
+    // la foto mide la tarjeta menos logo, título, información y pie.
+    const titleBlockH =
+      post.title.lines.length * post.title.size * L.titleLineH;
+    const infoBlockH = post.info.length * L.infoSize * L.infoLineH;
+    const expected =
+      post.height -
+      L.pad * 2 -
+      (L.logoH + L.logoGap) -
+      (L.titleGap + titleBlockH) -
+      (L.infoGap + infoBlockH) -
+      (L.footGap + L.footSize);
+    expect(post.photo.h).toBeCloseTo(expected, 9);
+    expect(post.photo.h - L.photoMinH).toBeGreaterThanOrEqual(L.catGap + L.catSize);
+  });
+});
+
+describe('tarjeta para compartir el evento: foto reposicionable (11 nov 2026)', () => {
+  it('el offset se fija a [-1, 1] y por defecto es 0 (centrada)', () => {
+    expect(clampPhotoOffset(0)).toBe(0);
+    expect(clampPhotoOffset(0.5)).toBe(0.5);
+    expect(clampPhotoOffset(-0.5)).toBe(-0.5);
+    expect(clampPhotoOffset(2)).toBe(1);
+    expect(clampPhotoOffset(-2)).toBe(-1);
+    expect(clampPhotoOffset(NaN)).toBe(0);
+    expect(clampPhotoOffset(undefined)).toBe(0);
+    expect(clampPhotoOffset('0.3')).toBe(0.3);
+    expect(normalizePhotoOffset(undefined)).toEqual({ x: 0, y: 0 });
+    expect(normalizePhotoOffset({ x: 2 })).toEqual({ x: 1, y: 0 });
+    expect(normalizePhotoOffset({ x: -0.5, y: 0.25 })).toEqual({ x: -0.5, y: 0.25 });
+  });
+
+  it('object-position es la misma posición que la ventana de origen del canvas', () => {
+    // 50% = centrada; 100% = el borde derecho/inferior pegado al
+    // marco; 0% = el izquierdo/superior. Es la misma matemática que
+    // drawCoverImage (ver el test del rectángulo de origen abajo).
+    expect(coverObjectPosition({ x: 0, y: 0 })).toBe('50% 50%');
+    expect(coverObjectPosition({ x: 1, y: 1 })).toBe('100% 100%');
+    expect(coverObjectPosition({ x: -1, y: -1 })).toBe('0% 0%');
+    expect(coverObjectPosition({ x: 0.5, y: -0.5 })).toBe('75% 25%');
+    expect(coverObjectPosition(undefined)).toBe('50% 50%');
+  });
+
+  it('el layout lleva el offset (normalizado) y por defecto es centrado', () => {
+    const d = buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' });
+    const centered = computeEventShareCardLayout(d, SHARE_CARD_FORMATS.post);
+    expect(centered.photoOffset).toEqual({ x: 0, y: 0 });
+    const moved = computeEventShareCardLayout(
+      { ...d, photoOffset: { x: 0.5, y: -1 } },
+      SHARE_CARD_FORMATS.post,
+    );
+    expect(moved.photoOffset).toEqual({ x: 0.5, y: -1 });
+    const clamped = computeEventShareCardLayout(
+      { ...d, photoOffset: { x: 2, y: -3 } },
+      SHARE_CARD_FORMATS.story,
+    );
+    expect(clamped.photoOffset).toEqual({ x: 1, y: -1 });
+    // El offset no cambia la geometría: solo mueve la foto dentro del
+    // marco (misma foto, mismo título, mismo pie).
+    expect(moved.photo).toEqual(centered.photo);
+    expect(moved.title).toEqual(centered.title);
+    expect(moved.footer).toEqual(centered.footer);
+  });
+
+  it('la plantilla aplica el offset con object-position', () => {
+    const d = buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' });
+    const centeredHtml = renderToStaticMarkup(
+      <EventShareCardTemplate data={d} format={SHARE_CARD_FORMATS.post} />,
+    );
+    expect(centeredHtml).toContain('object-position:50% 50%');
+    const movedHtml = renderToStaticMarkup(
+      <EventShareCardTemplate
+        data={{ ...d, photoOffset: { x: 1, y: 0 } }}
+        format={SHARE_CARD_FORMATS.post}
+      />,
+    );
+    expect(movedHtml).toContain('object-position:100% 50%');
+  });
+
+  it('drawCoverImage mueve la ventana de origen sin salirse de la foto', () => {
+    const calls = [];
+    const ctx = { drawImage: (...args) => calls.push(args) };
+    // Foto apaisada 1000×500 en marco 400×400: escala 0.8, ventana
+    // 500×500; el sobrante horizontal es 500 (sx de 0 a 500) y el
+    // vertical es 0 (sy siempre 0).
+    const wide = { naturalWidth: 1000, naturalHeight: 500 };
+    drawCoverImage(ctx, wide, 0, 0, 400, 400);
+    expect(calls[0]).toEqual([wide, 250, 0, 500, 500, 0, 0, 400, 400]);
+    drawCoverImage(ctx, wide, 0, 0, 400, 400, { x: 1, y: 0 });
+    expect(calls[1]).toEqual([wide, 500, 0, 500, 500, 0, 0, 400, 400]);
+    drawCoverImage(ctx, wide, 0, 0, 400, 400, { x: -1, y: 1 });
+    expect(calls[2]).toEqual([wide, 0, 0, 500, 500, 0, 0, 400, 400]);
+    // Fuera de rango se fija al borde, no se sale de la foto.
+    drawCoverImage(ctx, wide, 0, 0, 400, 400, { x: 2, y: -2 });
+    expect(calls[3]).toEqual([wide, 500, 0, 500, 500, 0, 0, 400, 400]);
+    // Foto vertical 500×1000 en el mismo marco: el sobrante es
+    // vertical (sy de 0 a 500) y el horizontal es 0.
+    const tall = { naturalWidth: 500, naturalHeight: 1000 };
+    drawCoverImage(ctx, tall, 0, 0, 400, 400, { x: 1, y: -1 });
+    expect(calls[4]).toEqual([tall, 0, 0, 500, 500, 0, 0, 400, 400]);
+    drawCoverImage(ctx, tall, 0, 0, 400, 400, { x: -1, y: 1 });
+    expect(calls[5]).toEqual([tall, 0, 500, 500, 500, 0, 0, 400, 400]);
+    // Sin sobrante en ningún eje, el offset no mueve nada.
+    const exact = { naturalWidth: 400, naturalHeight: 400 };
+    drawCoverImage(ctx, exact, 0, 0, 400, 400, { x: 1, y: 1 });
+    expect(calls[6]).toEqual([exact, 0, 0, 400, 400, 0, 0, 400, 400]);
+  });
+
+  it('la hoja cablea el arrastre: puntero, ayuda, centrar y el offset en la exportación', () => {
+    const sheet = read('../components/EventShareCardSheet.jsx');
+    const template = read('../components/EventShareCardTemplate.jsx');
+    expect(sheet).toContain('photoOffset');
+    expect(sheet).toContain('setPhotoOffset');
+    expect(sheet).toContain('onPointerDown');
+    expect(sheet).toContain('onPointerMove');
+    expect(sheet).toContain('onPointerUp');
+    expect(sheet).toContain("touchAction: canDragPhoto ? 'none' : 'auto'");
+    expect(sheet).toContain('setPointerCapture');
+    expect(sheet).toContain('Arrastra la foto para ajustar su posición');
+    expect(sheet).toContain('Centrar foto');
+    expect(sheet).toContain('setPhotoOffset({ x: 0, y: 0 })');
+    expect(sheet).toContain('clampPhotoOffset');
+    expect(sheet).toContain('computeEventShareCardLayout');
+    expect(sheet).toContain('theme: themeId, photoOffset');
+    expect(template).toContain('objectPosition');
+    expect(template).toContain('coverObjectPosition');
   });
 });

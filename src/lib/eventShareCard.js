@@ -9,12 +9,16 @@
 // Reutiliza TODA la base de la tarjeta de negocios (lib/shareCard.js):
 // los formatos Historia 1080×1920 y Post 1080×1080 (el Post se quitó
 // el 10 nov 2026 y volvió el 11 nov 2026, SIN descripción para ahorrar
-// espacio — ver computeEventShareCardLayout), el logotipo oficial en
+// espacio — ver computeEventShareCardLayout — y desde el 11 nov 2026
+// TAMPOCO lleva la categoría en Post), el logotipo oficial en
 // blanco, la exportación a canvas 2D (nada de html-to-image: el PNG
 // salía transparente, PR #143), la foto flexible que llena la tarjeta,
-// el guarda anti-blanco y los helpers de medición/dibujo. NO lleva el
-// círculo de logo del negocio: eso es solo para negocios con plan de
-// pago (PR #144); en eventos no hay círculo.
+// el guarda anti-blanco y los helpers de medición/dibujo. La foto se
+// puede reposicionar arrastrándola en la hoja (data.photoOffset,
+// { x, y } en [-1, 1], solo en la sesión): la vista previa y el canvas
+// usan la misma matemática, así lo que se ve es lo que se descarga.
+// NO lleva el círculo de logo del negocio: eso es solo para negocios
+// con plan de pago (PR #144); en eventos no hay círculo.
 //
 // La vista previa (EventShareCardTemplate.jsx) y el PNG comparten UNA
 // sola geometría: EVENT_SHARE_CARD_LAYOUT + computeEventShareCardLayout,
@@ -41,6 +45,7 @@ import {
   loadShareCardLogoWhite,
   loadShareCardLogoDark,
   drawCoverImage,
+  normalizePhotoOffset,
   roundRectPath,
   spacedWidth,
   drawSpacedText,
@@ -177,7 +182,10 @@ export const EVENT_SHARE_CARD_LAYOUT = {
   // #183, con las mismas medidas de antes. La descripción NO va en Post
   // (para ahorrar espacio): computeEventShareCardLayout no produce
   // subtítulo en este formato, así que subSize/subGap no se usan aquí;
-  // la foto crece y se come ese espacio.
+  // la foto crece y se come ese espacio. La categoría TAMPOCO va en
+  // Post (11 nov 2026, Jonathan: para ahorrar espacio): el chip no se
+  // produce en este formato y la foto crece también ese hueco
+  // (catGap + catSize).
   post: {
     pad: 48,
     logoH: 44,
@@ -545,7 +553,18 @@ export function computeEventShareCardLayout(data, format) {
   const logoW = Math.round(L.logoH * (400 / 120));
   const logo = { x: Math.round((W - logoW) / 2), y: L.pad, w: logoW, h: L.logoH };
 
-  const category = (data?.category || '').trim().toUpperCase();
+  // En Post NO va la categoría (11 nov 2026, Jonathan: para ahorrar
+  // espacio): sin chip, el bloque de categoría no se reserva y la foto
+  // crece y se come ese espacio. En Historia se queda como está.
+  const category = f.id === 'post' ? '' : (data?.category || '').trim().toUpperCase();
+
+  // Desplazamiento de la foto dentro del marco (11 nov 2026, Jonathan:
+  // se arrastra en la hoja antes de guardar; solo vive en la sesión,
+  // no se guarda en la base). Viaja en `data.photoOffset` ({ x, y } en
+  // [-1, 1], 0 = centrada) y el layout lo normaliza: la vista previa y
+  // el canvas leen este mismo valor, así lo que se ve es lo que se
+  // descarga.
+  const photoOffset = normalizePhotoOffset(data?.photoOffset);
 
   // En festival el título va en mayúsculas y más grande: se pasa a
   // mayúsculas ANTES de medirlo, así la vista previa y el canvas
@@ -709,6 +728,7 @@ export function computeEventShareCardLayout(data, format) {
     height: H,
     logo,
     photo,
+    photoOffset,
     firstGap,
     chip,
     title,
@@ -744,13 +764,17 @@ export function drawEventShareCardCanvas(data, format, assets, layout) {
     ctx.drawImage(logoImg, geo.logo.x, geo.logo.y, geo.logo.w, geo.logo.h);
   }
 
-  // Foto (o bloque con la inicial si no hay foto).
+  // Foto (o bloque con la inicial si no hay foto). El desplazamiento
+  // que el usuario ajustó arrastrando en la hoja (geo.photoOffset)
+  // mueve la ventana de origen del cover: la vista previa aplica el
+  // mismo con object-position, así el PNG refleja exactamente lo que
+  // se ve.
   const p = geo.photo;
   ctx.save();
   roundRectPath(ctx, p.x, p.y, p.w, p.h, p.radius);
   ctx.clip();
   if (assets?.photo) {
-    drawCoverImage(ctx, assets.photo, p.x, p.y, p.w, p.h);
+    drawCoverImage(ctx, assets.photo, p.x, p.y, p.w, p.h, geo.photoOffset);
   } else {
     ctx.fillStyle = palette.photoBg;
     ctx.fillRect(p.x, p.y, p.w, p.h);
