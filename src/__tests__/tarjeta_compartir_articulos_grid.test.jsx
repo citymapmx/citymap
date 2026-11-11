@@ -82,7 +82,8 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
     expect(d.photoUrl).toBe(d.photoUrls[0]);
     expect(d.priceText).toBe('$1,941 MXN');
     expect(d.priced).toBe(true);
-    expect(d.cityLine).toBe('📍 Zapopan · Tour');
+    expect(d.showPrice).toBe(true);
+    expect(d.cityLine).toBe('📍 Zapopan');
     // Sin galería, [] (y sin foto principal de la galería).
     const d0 = dataFor({ ...FUTBOL, gallery: [] });
     expect(d0.photoUrls).toEqual([]);
@@ -115,7 +116,8 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
       expect(geo.brandLogo.y).toBe(geo.L.pad + geo.L.logoInset);
       expect(geo.brandLogo.h).toBe(geo.L.logoH);
       // Pastilla de ubicación GRIS (no glass, no azul), centrada.
-      expect(geo.pill.text).toBe('📍 Zapopan · Tour');
+      // Solo la ciudad, sin el tipo.
+      expect(geo.pill.text).toBe('📍 Zapopan');
       expect(geo.pill.x + geo.pill.w / 2).toBeCloseTo(geo.width / 2, 0);
       // Título centrado, completo (sin «…»).
       expect(geo.title.lines.join(' ')).toBe('Tour del fútbol por Guadalajara');
@@ -233,6 +235,50 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
     );
     expect(geo.price.priced).toBe(false);
     expect(geo.price.text).toBe('Gratis');
+  });
+
+  it('Blog en Grid: sin precio en texto, con pastilla solo de ciudad y pie', () => {
+    const blog = {
+      title: '¿Fantasía o realidad? La verdad detrás de los túneles ocultos bajo la Catedral de Tepic',
+      slug: 'tepic-fantasia-o-realidad-la-verdad-detras-de-los-tuneles-ocultos-bajo-la-catedral-de-tepic',
+      city_slug: 'tepic',
+      activity_type: 'Blog',
+      description:
+        '<p>Entre las historias más intrigantes del centro histórico de Tepic, ninguna despierta tanto misterio e imaginación como el relato de los túneles secretos bajo la Catedral de la Asunción.</p>',
+      duration: '',
+      languages: '',
+      people: null,
+      price: 0,
+      rating: 5,
+      review_count: 1,
+      gallery: [
+        'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1792722264647_sqtnzl.webp',
+        'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/tepic-tour-privado-por-tepic-galeria-2.webp',
+      ],
+    };
+    const d = buildExperienceShareCardData(blog, { cityName: 'Tepic' });
+    expect(d.showPrice).toBe(false);
+    for (const format of [
+      EXPERIENCE_SHARE_CARD_FORMATS.story,
+      EXPERIENCE_SHARE_CARD_FORMATS.post,
+      EXPERIENCE_SHARE_CARD_FORMATS.horizontal,
+    ]) {
+      const geo = computeExperienceShareCardLayoutStyled(d, format, 'grid');
+      expect(geo.price).toBeNull();
+      expect(geo.pill.text).toBe('📍 Tepic');
+      // El pie sigue ahí y el título no se solapa con él.
+      expect(geo.footer.y).toBeGreaterThan(geo.title.y);
+      expect(geo.footer.y + geo.footer.size / 2).toBeLessThanOrEqual(
+        geo.height - geo.L.pad,
+      );
+      const html = renderToStaticMarkup(
+        <ExperienceShareCardTemplate data={d} format={format} styleId="grid" />,
+      );
+      expect(html).not.toContain('Gratis');
+      expect(html).not.toContain('DESDE');
+      expect(html).toContain('Descúbrelo en');
+      expect(html).not.toContain('túneles secretos');
+    }
   });
 
   it('«Foto completa» no hereda nada del Grid', () => {

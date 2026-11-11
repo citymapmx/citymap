@@ -9,10 +9,13 @@
 // eventos, y el contenido va DEBAJO sobre fondo oscuro. Logotipo oficial
 // arriba a la izquierda (corrección de Jonathan 10 Nov ~11:39: en lugar
 // de la pastilla de texto «citymap.mx»), pastilla de calificación arriba
-// a la derecha (solo si es real), pastilla GLASS de ciudad · tipo
-// (corrección de Jonathan 10 Nov ~11:39: translúcida, no azul sólida), título, descripción,
+// a la derecha (solo si es real), pastilla GLASS de ciudad
+// (corrección de Jonathan 10 Nov ~11:39: translúcida, no azul sólida;
+// desde 10 Nov ~18:18 solo la ciudad, sin el tipo), título,
 // duración · idiomas, y el precio en una pastilla AZUL grande
-// («DESDE $1,881 MXN por persona»). Sin pie. Sin foto no hay imagen
+// («DESDE $1,881 MXN por persona»; Blog y Guía no llevan pastilla de
+// precio). Sin descripción (10 Nov ~18:18: salía recortada con «…»)
+// ni pie. Sin foto no hay imagen
 // rota: sale un degradado oscuro con la inicial del título.
 // La vista previa y el PNG exportado comparten la misma geometría:
 // EXPERIENCE_SHARE_CARD_LAYOUT + computeExperienceShareCardLayout en
@@ -34,7 +37,7 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
   // aparte para no tocar la llamada de «Foto completa» de abajo.
   const gridLayout = styleId === 'grid' ? computeExperienceShareCardLayoutStyled(data, format, styleId) : null;
   const width = f.width;
-  // Las líneas (título, ciudad, descripción, datos, pastillas) se
+  // Las líneas (título, ciudad, datos, pastillas) se
   // calculan con la misma función que usa el exportador de canvas:
   // el corte y los anchos son idénticos en ambos.
   const layout = computeExperienceShareCardLayout(data, format);
@@ -380,7 +383,7 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
           )
         : null}
 
-      {/* Pastilla GLASS de ciudad · tipo: translúcida + borde claro.
+      {/* Pastilla GLASS de ciudad: translúcida + borde claro.
           Pin y etiqueta por separado (PR #177): cada uno se centra por
           su caja visual en su propia línea; con un solo span, el emoji
           📍 arrastraba el texto hacia arriba. */}
@@ -420,7 +423,7 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
             position: 'absolute',
             left: layout.title.x,
             top: layout.title.y - layout.title.lineH / 2,
-            width: f.width - L.pad * 2 - (L.priceBeside ? layout.pricePill.w + L.colGap : 0),
+            width: f.width - L.pad * 2 - (L.priceBeside && layout.pricePill ? layout.pricePill.w + L.colGap : 0),
           }}
         >
           {layout.title.lines.map((line, i) => (
@@ -440,32 +443,6 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
         </div>
       ) : null}
 
-      {/* Descripción */}
-      {layout.desc ? (
-        <div
-          style={{
-            position: 'absolute',
-            left: layout.desc.x,
-            top: layout.desc.y - layout.desc.lineH / 2,
-            width: f.width - L.pad * 2 - (L.priceBeside ? layout.pricePill.w + L.colGap : 0),
-          }}
-        >
-          {layout.desc.lines.map((line, i) => (
-            <div
-              key={i}
-              style={{
-                fontSize: layout.desc.size,
-                fontWeight: 600,
-                lineHeight: L.descLineH,
-                color: 'rgba(255,255,255,0.75)',
-              }}
-            >
-              {line}
-            </div>
-          ))}
-        </div>
-      ) : null}
-
       {/* Duración · idiomas · personas */}
       {layout.dataRows ? (
         <div
@@ -473,7 +450,7 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
             position: 'absolute',
             left: layout.dataRows.x,
             top: layout.dataRows.y - layout.dataRows.lineH / 2,
-            width: f.width - L.pad * 2 - (L.priceBeside ? layout.pricePill.w + L.colGap : 0),
+            width: f.width - L.pad * 2 - (L.priceBeside && layout.pricePill ? layout.pricePill.w + L.colGap : 0),
           }}
         >
           {layout.dataRows.lines.map((line, i) => (
@@ -496,8 +473,9 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
           span con lineHeight 1 en la pastilla flex (mismo patrón que la
           glass en el PR #177): el texto se centra por su propia línea;
           en canvas se dibuja además con drawInkCenteredText para que
-          la tinta quede centrada por su caja visual. */}
-      {pill(
+          la tinta quede centrada por su caja visual. Blog y Guía no
+          llevan pastilla de precio: layout.pricePill es null. */}
+      {layout.pricePill ? pill(
         layout.pricePill,
         layout.pricePill.priced ? (
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', width: '100%' }}>
@@ -519,7 +497,7 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
           </span>
         ),
         { background: EXPERIENCE_SHARE_CARD_BLUE },
-      )}
+      ) : null}
     </div>
   );
 }
