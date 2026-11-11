@@ -1071,6 +1071,8 @@ export const EN_TRANSLATIONS = {
     "negocios_google_periodo": "last 28 days",
     "negocios_google_ejemplos": "Formentera's menu got ${formentera} visits from Google; Campomar, ${campomar}; and Akami Sushi, ${akami}.",
     "negocios_google_solo_google": "This is only the traffic that comes from Google.",
+    "negocios_ya_estan_titulo": "Already on CityMap",
+    "negocios_ya_estan_sub": "Real businesses already getting customers from CityMap.",
     "negocios_plan_free_desc": "The essentials to be present.",
     "negocios_plan_pro_desc": "Ideal for businesses looking to win customers and gain visibility.",
     "negocios_plan_elite_desc": "Every tool to own your online presence and sell more.",
