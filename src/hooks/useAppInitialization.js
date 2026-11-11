@@ -169,7 +169,16 @@ export function useAppInitialization() {
       }
     }
     
-    return { b, ev, vista, cat, manage, planId, joinToken, expSlug, citySlug: localStorage.getItem("cg_city_slug") || "guadalajara" };
+    // La ciudad por defecto ("guadalajara") solo existe en memoria: si no
+    // hay ciudad guardada ni ciudad en la URL, citySlugIsDefault es true y
+    // el arranque NO debe persistirla como elección del usuario (App.jsx
+    // usa setActiveCity con persist:false). Si se guardara, la entrada
+    // rápida y la "Segunda entrada" leerían cg_city_slug y sacarían de "/"
+    // a esa ciudad en la primera visita. La redirección a la ciudad
+    // guardada solo se conserva cuando la ciudad se eligió explícitamente
+    // (globo, URL o "Cerca de mí").
+    const resolvedCity = localStorage.getItem("cg_city_slug");
+    return { b, ev, vista, cat, manage, planId, joinToken, expSlug, citySlug: resolvedCity || "guadalajara", citySlugIsDefault: !resolvedCity };
   })());
 
   const initialBizParam = useRef(initialParams.current.b);
