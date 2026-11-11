@@ -19,8 +19,8 @@ import { useTranslation } from '../../hooks/useTranslation.js';
 // opción #5 elegida por Jonathan (PR #192): un cilindro con tarjetas de
 // SOLO IMAGEN — el póster completo, sin título, fecha ni precio encima —
 // casi pegadas entre sí, que gira solo de forma continua y fluida (una
-// vuelta en ~33 s). Debajo de la rueda van los puntos, las flechas, el
-// nombre del evento de enfrente y el estado del giro. El giro se pausa al
+// vuelta en ~33 s). Debajo de la rueda van los puntos, las flechas y el
+// nombre del evento de enfrente. El giro se pausa al
 // pasar el mouse, al tocar o al esconder la pestaña, y se reanuda solo
 // unos segundos después de un salto manual (flecha, punto o lanzamiento
 // con el dedo). Con prefers-reduced-motion no gira solo.
@@ -334,7 +334,6 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   }
 
   const frontItem = items[frontIdx];
-  const autoActive = !paused && !dragging && !tabHidden && !held && !reducedMotion;
 
   return (
     <section className="event-wheel" aria-label={headingText}>
@@ -385,11 +384,6 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
           <button type="button" className="event-wheel-front-name" style={{ color: T.text }} onClick={() => onSelect?.(frontItem)}>{frontItem?.title || ''}</button>
           <button type="button" className="event-wheel-arrow" style={{ color: T.text, borderColor: T.border }} aria-label={t('home_rueda_siguiente', 'Evento siguiente')} onClick={() => stepBy(1)}>›</button>
         </div>
-        {!reducedMotion && (
-          <p className="event-wheel-state" style={{ color: T.sub }}>
-            {autoActive ? t('home_rueda_girando', 'Girando sola') : t('home_rueda_pausa', 'En pausa')}
-          </p>
-        )}
       </footer>
     </section>
   );

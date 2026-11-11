@@ -60,7 +60,7 @@ describe('event wheel 3D', () => {
     expect(html).toContain('class="event-wheel-drum" style="transform:rotateY(0deg)"');
   });
 
-  it('shows dots, arrows, the front event name and the rotation state below the wheel', () => {
+  it('shows dots, arrows and the front event name below the wheel', () => {
     const html = renderWheel();
     // Un punto por cara, el primero activo; tocan para saltar de evento.
     expect(html.match(/event-wheel-dot[ "]/g)).toHaveLength(10);
@@ -74,8 +74,11 @@ describe('event wheel 3D', () => {
     // El nombre del evento de enfrente se lee debajo de la rueda.
     expect(html).toContain('event-wheel-front-name');
     expect(html).toContain('>Evento 1</button>');
-    // En reposo (sin tocar, sin arrastrar) el giro va solo.
-    expect(html).toContain('Girando sola');
+    // Sin aviso de estado del giro: no se pinta «Girando sola» ni
+    // «En pausa» (la pausa sigue existiendo, pero no se anuncia).
+    expect(html).not.toContain('event-wheel-state');
+    expect(html).not.toContain('Girando sola');
+    expect(html).not.toContain('En pausa');
   });
 
   it('shows the black fallback with the title for events without a poster', () => {
