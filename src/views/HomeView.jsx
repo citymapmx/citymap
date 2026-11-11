@@ -453,7 +453,7 @@ export default function HomeView({ isBackground }) {
             const EventosBlock = () => matchingEvents.length > 0 ? (
               <div style={{ marginBottom: 10, marginTop: isEventQuery ? 0 : 20 }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: T.text, margin: "0 0 10px 0" }}>{t("eventos", "Eventos")} ({matchingEvents.length})</h3>
-                <div style={{ display: "flex", overflowX: "auto", gap: 12, paddingBottom: 10, margin: "0 -20px", padding: "0 20px", scrollbarWidth: "none" }}>
+                <div className="scroll-fade-x" style={{ display: "flex", overflowX: "auto", gap: 12, paddingBottom: 10, margin: "0 -20px", padding: "0 20px", scrollbarWidth: "none" }}>
                   {matchingEvents.map(ev => {
                     const posterUrl = ev.img_url || ev.img || ev.poster_url;
                     return (
@@ -682,7 +682,10 @@ export default function HomeView({ isBackground }) {
                   WebkitOverflowScrolling: "touch",
                   justifyContent: availableSubcats.length <= 3 ? "center" : "flex-start",
                 }}
-                className="no-scrollbar"
+                // Desvanecido solo cuando la barra puede desbordar: con
+                // 3 o menos subcategorías va centrada y no hay nada que
+                // deslizar (el velo taparía la última píldora).
+                className={availableSubcats.length > 3 ? "no-scrollbar scroll-fade-x" : "no-scrollbar"}
               >
                 <button
                   className="press"
@@ -847,7 +850,7 @@ export default function HomeView({ isBackground }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <span style={{ fontWeight: 800, fontSize: 16, color: T.text, display: "flex", alignItems: "center", gap: 6 }}><Icon name="gift" size={18} color="#D94F3D" /> {t("sorteos_semana", "Sorteos de la semana")}</span>
             </div>
-            <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+            <div className="scroll-fade-x" style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
               {raffles.map(r => {
                 const b = biz.find(x => x.id === r.biz_id);
                 return <div key={r.id} onClick={() => { setSelected(b); navigate("detail"); }} style={{ minWidth: 260, flexShrink: 0, background: "linear-gradient(135deg, #FFF9E6, #FFF0B3)", borderRadius: 16, padding: "16px", border: "1.5px solid #FDE047", cursor: "pointer" }}>
@@ -869,7 +872,7 @@ export default function HomeView({ isBackground }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <span style={{ fontWeight: 800, fontSize: 16, color: T.text }}>{t("cupones_activos", "Cupones activos")}</span>
             </div>
-            <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+            <div className="scroll-fade-x" style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
               {coupons.map(c => {
                 const b = biz.find(x => x.id === c.biz_id); return <div key={c.id} style={{ minWidth: 280, flexShrink: 0 }}>
                   <CouponCard 

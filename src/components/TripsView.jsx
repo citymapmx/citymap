@@ -572,7 +572,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
             <h3 style={{ margin: "0 0 12px 0", fontFamily: "var(--heading)", fontWeight: 900, fontSize: 19, color: T.text, lineHeight: 1.1, letterSpacing: "-0.5px" }}>
               {t("planes_comunidad", "Planes de la Comunidad 🗺️")}
             </h3>
-            <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 16, scrollbarWidth: "none" }}>
+            <div className="scroll-fade-x" style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 16, scrollbarWidth: "none" }}>
               {publicPlans.map(plan => (
                 <div 
                   key={plan.id}

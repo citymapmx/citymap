@@ -457,7 +457,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
                 </div>
                 
                 {/* Day Strip */}
-                <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 16, margin: "0 -4px", padding: "0 4px 16px 4px", scrollbarWidth: "none" }}>
+                <div className="scroll-fade-x" style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 16, margin: "0 -4px", padding: "0 4px 16px 4px", scrollbarWidth: "none" }}>
                   <style>{`.no-scroll-bar::-webkit-scrollbar { display: none; }`}</style>
                   {daysStrip.map((d, i) => {
                     const localDate = toLocalYYYYMMDD(d);

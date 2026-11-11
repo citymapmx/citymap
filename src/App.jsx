@@ -1,6 +1,6 @@
 import CityArrivalSplash from './components/CityArrivalSplash.jsx';
 import { isAdminUser } from './lib/adminAccess.js';
-const AutoSliderEv = ({ children }) => <div style={{display:"flex", overflowX:"auto", gap:10}}>{children}</div>;
+const AutoSliderEv = ({ children }) => <div className="scroll-fade-x" style={{display:"flex", overflowX:"auto", gap:10}}>{children}</div>;
 import { useState, useRef, useEffect, useCallback, lazy as reactLazy, Suspense, useMemo } from "react";
 const lazy = reactLazy;
 import { m } from "framer-motion";
