@@ -1673,15 +1673,58 @@ export function drawSpacedText(ctx, text, x, y, spacing) {
   }
 }
 
+// Desplazamiento de la foto dentro del marco (tarjetas de eventos,
+// 11 nov 2026, Jonathan: arrastrar la foto en la hoja para ajustar su
+// posición antes de guardar). El offset es { x, y } con cada eje en
+// [-1, 1]: 0 = centrada (comportamiento actual), +1 = la ventana de
+// origen llega al borde derecho/inferior (se ve el extremo derecho/
+// inferior de la foto), -1 = al borde izquierdo/superior. La vista
+// previa (object-position, coverObjectPosition) y el canvas (ventana de
+// origen de drawCoverImage) usan la MISMA matemática, así lo que se ve
+// es lo que se descarga: object-position p% alinea el punto p% de la
+// foto con el punto p% del marco, y la ventana de origen sx =
+// ((iw - sw) / 2) * (1 + ox) es exactamente ese mismo desplazamiento.
+export function clampPhotoOffset(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(-1, Math.min(1, n));
+}
+
+export function normalizePhotoOffset(offset) {
+  return {
+    x: clampPhotoOffset(offset?.x),
+    y: clampPhotoOffset(offset?.y),
+  };
+}
+
+export function coverObjectPosition(offset) {
+  const o = normalizePhotoOffset(offset);
+  return `${50 + 50 * o.x}% ${50 + 50 * o.y}%`;
+}
+
 // Como object-fit: cover — recorta la foto para llenar el marco.
-export function drawCoverImage(ctx, img, dx, dy, dw, dh) {
+// `offset` opcional ({ x, y } en [-1, 1], ver arriba): sin él, la foto
+// queda centrada como siempre. La ventana de origen nunca se sale de
+// la imagen: si un eje no tiene sobrante (la foto ya cabe justa), el
+// desplazamiento de ese eje no hace nada.
+export function drawCoverImage(ctx, img, dx, dy, dw, dh, offset) {
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
   if (!iw || !ih) return;
   const scale = Math.max(dw / iw, dh / ih);
   const sw = dw / scale;
   const sh = dh / scale;
-  ctx.drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, dx, dy, dw, dh);
+  const ox = clampPhotoOffset(offset?.x);
+  const oy = clampPhotoOffset(offset?.y);
+  const sx = Math.min(
+    Math.max(((iw - sw) / 2) * (1 + ox), 0),
+    Math.max(iw - sw, 0),
+  );
+  const sy = Math.min(
+    Math.max(((ih - sh) / 2) * (1 + oy), 0),
+    Math.max(ih - sh, 0),
+  );
+  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
 // Como object-fit: contain — el logo entero dentro del marco, centrado
