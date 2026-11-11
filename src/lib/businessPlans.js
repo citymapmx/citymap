@@ -1,8 +1,6 @@
-// Planes de negocio de CityMap: una sola fuente de verdad para PlansPage
-// (/precios) y BusinessLanding (/negocios). Los precios dependen del país
-// de la ciudad activa; el contenido de cada plan es el mismo en ambas vistas.
-// Los resúmenes (cuenta_resumen_*) y el equivalente mensual se quedan en
-// PlansPage, que los usa solo ahí.
+// Planes de negocio de CityMap: una sola fuente de verdad para
+// BusinessLanding (/negocios, LA página de planes) y el modal de pago
+// (PlanPaymentModal). Los precios dependen del país de la ciudad activa.
 
 export function getBusinessPricing(countryCode) {
   if (countryCode === "es") {

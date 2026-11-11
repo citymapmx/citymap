@@ -30,7 +30,7 @@ import BrandSplash from './components/ui/BrandSplash.jsx';
 
 import { getEventStatus, CAT_EMOJI, isOpenNow, createSlug, parseMenuUrls, cleanCityPrefix, isNear } from './lib/utils.js';
 const ClaimModal = lazy(() => import('./components/ClaimModal.jsx'));
-const PlansPage = lazy(() => import('./components/PlansPage.jsx'));
+const PlanPaymentModal = lazy(() => import('./components/PlanPaymentModal.jsx'));
 const Uploader = lazy(() => import('./components/Uploader.jsx'));
 const AddBizModal = lazy(() => import('./components/AddBizModal.jsx'));
 const AccountView = lazy(() => import('./components/AccountView.jsx'));
@@ -300,7 +300,8 @@ export default function CityGuide() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Iniciar un plan de pago: con negocio, el modal se abre en PlansPage;
+  // Iniciar un plan de pago: con negocio, se abre el modal de pago
+  // (PlanPaymentModal);
   // sin negocio, se guarda el plan y se sigue al login o al registro.
   const startPaidPlan = (plan, billing) => {
     setPendingPlan({ key: plan.key, billing });
@@ -638,7 +639,7 @@ useEffect(() => {
         else if (v === "owner_dashboard") navigate("owner_dashboard");
         else if (v === "cuenta") navigate("account");
         else if (v === "favoritos") navigate("favs");
-        else if (v === "precios") navigate("precios");
+        else if (v === "precios") navigate("/negocios"); // /precios redirige a /negocios (la página de planes)
         else if (v === "mis-planes" || v === "experiencias" || v === "revista") navigate("mis-planes");
         else if (v === "itinerarios") navigate("itineraries");
         else if (v === "wallet" || v === "lealtad" || v === "scan") { /* DO NOTHING, let AppRouter handle it */ }
@@ -714,7 +715,7 @@ useEffect(() => {
     else if (v === "events" || v === "eventos" || v === "explorar") path = city ? `/eventos/${city}` : "/eventos";
     else if (v === "mis-planes" || v === "revista" || v === "experiencias") path = city ? `/revista/${city}` : "/revista";
     else if (v === "admin") path = "/admin";
-    else if (v === "precios") path = "/precios";
+    else if (v === "precios") path = "/negocios"; // /precios redirige a /negocios (la página de planes)
     else if (v === "wallet") path = "/wallet";
     else if (v === "account" || v === "cuenta") path = "/cuenta";
     else if (v === "favs" || v === "favoritos") path = "/favoritos";
@@ -1350,7 +1351,7 @@ useEffect(() => {
   // (Removed static splash screen that blocked city selection)
 
   const appContextValue = {
-    businessListReady, businessListError, requestWebNotifications, viewStyle, cityImg, locating, detectCity, setShowCountryPicker, city, isAdmin, setShowAdmin, search, setSearch, user, setShowAuth, toast$, setShowAddBiz, setShowPlans, dbReady, dark, cats, activeCat, setActiveCat, T, mapPins, activeCity, banners: filteredBanners, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, globalFavCounts, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, coupons, biz: filteredBiz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState,
+    businessListReady, businessListError, requestWebNotifications, viewStyle, cityImg, locating, detectCity, setShowCountryPicker, city, isAdmin, setShowAdmin, search, setSearch, user, setShowAuth, toast$, setShowAddBiz, dbReady, dark, cats, activeCat, setActiveCat, T, mapPins, activeCity, banners: filteredBanners, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, globalFavCounts, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, coupons, biz: filteredBiz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState,
     // From MapView
     mapPin, setMapPin, requestLocation, allNearby,
     // From FavsView
@@ -1533,7 +1534,7 @@ useEffect(() => {
 
         {/* Removed CityPicker */}        {showAdmin && <Suspense fallback={<LoaderFallback/>}><AdminPanel onClose={() => { setShowAdmin(false); loadData(); }} onToast={toast$} T={T} onOpenStoreAdmin={(biz) => setAdminStoreBiz(biz)} /></Suspense>}
         {adminStoreBiz && <Suspense fallback={<LoaderFallback/>}><StoreAdminPanel business={adminStoreBiz} onClose={() => setAdminStoreBiz(null)} T={T} /></Suspense>}
-        {showPlans && <Suspense fallback={<LoaderFallback/>}><PlansPage T={T} dark={dark} onClose={() => setShowPlans(false)} myBizList={myBizList} user={user} pendingPlan={pendingPlan} onConsumePendingPlan={() => setPendingPlan(null)} onStartPaidPlan={startPaidPlan} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowPlans(false); setShowAddBiz(true); }} /></Suspense>}
+        {showPlans && <Suspense fallback={<LoaderFallback/>}><PlanPaymentModal T={T} dark={dark} onClose={() => setShowPlans(false)} myBizList={myBizList} user={user} pendingPlan={pendingPlan} onConsumePendingPlan={() => setPendingPlan(null)} onStartPaidPlan={startPaidPlan} /></Suspense>}
         {payStatus && (
           <div role="dialog" aria-modal="true" aria-label="Confirmación de pago" style={{ position: 'fixed', inset: 0, zIndex: 100001, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 20 }}>
             <div style={{ background: T.bg, color: T.text, width: '100%', maxWidth: 340, borderRadius: 24, padding: 24, textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>

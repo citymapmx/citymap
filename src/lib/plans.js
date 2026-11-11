@@ -1,4 +1,5 @@
-// Reglas de los planes de negocio (compartidas por PlansPage y sus tests).
+// Reglas de los planes de negocio (compartidas por BusinessLanding,
+// PlanPaymentModal y sus tests).
 // El servidor aplica la misma regla en la sesión de Stripe
 // (trial_period_days en api/stripe-checkout.js).
 export const TRIAL_DAYS = 7;

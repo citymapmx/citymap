@@ -19,7 +19,7 @@ export default function AccountView({
   setShowAuth, setAuthMode, setEditBizId, setAddBizForm,
   setShowAddBiz, setOwnerView, setSelected, navigate,
   doSignOut, toast$, viewStyle, setUser, authChecked,
-  setShowAdmin, setShowPlans, setStoreAdminBiz
+  setShowAdmin, setStoreAdminBiz
 }) {
   const { t, lang } = useTranslation();
   const isOpen = isOpenNow;
@@ -142,7 +142,7 @@ export default function AccountView({
     } else if (act === "edit_profile") startEditProfile();
     else if (act === "favs") navigate("favs");
     else if (act === "itineraries") navigate("itineraries");
-    else if (act === "business_plans") setShowPlans(true);
+    else if (act === "business_plans") navigate("/negocios"); // «Ver planes» lleva a /negocios, la página de planes
     else if (act === "add_biz") { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); }
     else if (act === "about") navigate("about");
     else if (act === "user_notifs") navigate("user_notifs");
