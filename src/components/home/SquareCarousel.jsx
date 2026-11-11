@@ -8,7 +8,7 @@ export default memo(function SquareCarousel({ title, list, handleCardTap, getThu
   return (
     <div style={{ padding: "24px 0 0" }}>
       <div style={{ padding: "0 20px", marginBottom: 12 }}>
-        <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0 }}>{title}</h2>
+        <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0, textTransform: "uppercase" }}>{title}</h2>
       </div>
       <div className="scroll-fade-x" style={{ display: "flex", gap: 10, overflowX: isSingle ? "visible" : "auto", paddingLeft: 20, paddingRight: 20, paddingBottom: 6, scrollbarWidth: "none" }}>
         {list.map((b) => {

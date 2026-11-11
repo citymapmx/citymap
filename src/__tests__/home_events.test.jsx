@@ -32,7 +32,8 @@ describe('Vite home events (rueda 3D, como el inicio global)', () => {
     );
     // Un solo carrusel con el título de siempre, sin la sección aparte.
     expect(html.match(/Próximos eventos/g)).toHaveLength(1);
-    expect(html).toContain('Los eventos que vienen en tu ciudad');
+    // Sin subtítulo (PR #196): el encabezado es solo el título de sección.
+    expect(html).not.toContain('Los eventos que vienen en tu ciudad');
     expect(html).not.toContain('Eventos de larga duración');
     expect(html).not.toContain('Carrusel de eventos de larga duración');
     // La rueda no tiene ficha con fecha/lugar debajo ni aria-label del coverflow.

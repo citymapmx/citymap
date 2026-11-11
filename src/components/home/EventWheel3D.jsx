@@ -37,12 +37,13 @@ const MAX_FACES = 10;
 // de dispositivo: a 400 px el póster se veía blando. A 800 px se ve nítido.
 const WHEEL_IMG_W = 800;
 
-export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading, subheading, T = {} }) {
+export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading, T = {} }) {
   const { t } = useTranslation();
-  // Título por defecto en t(): el llamador puede pasar heading/subheading
-  // propios (la página de ciudad pasa los suyos); si no, se traducen aquí.
+  // Título por defecto en t(): el llamador puede pasar su propio heading
+  // (la página de ciudad pasa el suyo); si no, se traduce aquí. Sin
+  // subtítulo (PR #196): el encabezado es solo el título de sección, con
+  // el mismo tamaño y estilo que los demás títulos de la página.
   const headingText = heading ?? t('home_proximos_eventos', 'Próximos eventos');
-  const subheadingText = subheading ?? t('home_eventos_todas_ciudades', 'Los eventos que vienen en todas las ciudades');
   const items = (events || []).slice(0, MAX_FACES);
   const n = items.length;
   const [rotation, setRotation] = useState(0);
@@ -290,11 +291,11 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     goTo(target, v0);
   };
 
-  // Encabezado: mismo título en ambas páginas; el subtítulo cambia.
+  // Encabezado: solo el título de sección, mismo tamaño (22 px) y estilo
+  // que los demás títulos de la página (PR #196): mayúsculas y centrado.
   const header = (
     <header style={{ margin: '0 20px 16px', textAlign: 'center' }}>
-      <h2 style={{ margin: '0 0 5px', fontSize: 16, fontWeight: 800, color: T.text }}>{headingText}</h2>
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: T.sub }}>{subheadingText}</p>
+      <h2 style={{ margin: 0, fontFamily: 'var(--heading)', fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px', textTransform: 'uppercase', color: T.text }}>{headingText}</h2>
     </header>
   );
 

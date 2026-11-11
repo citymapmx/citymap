@@ -36,7 +36,7 @@ export default memo(function TopImperdibles({ experiences, T, city }) {
   return (
     <div style={{ padding: "24px 20px 10px" }}>
       <div style={{ marginBottom: 12 }}>
-        <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0 }}>{t("home_imperdibles_de", "Los 5 imperdibles de")} {cityName} 🥇</h2>
+        <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0, textTransform: "uppercase" }}>{t("home_imperdibles_de", "Los 5 imperdibles de")} {cityName}</h2>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {top5.map((exp, index) => {
