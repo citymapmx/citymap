@@ -56,7 +56,7 @@ describe('business landing', () => {
     expect(html).toContain('Destacado');
     expect(html).toContain('Premium');
     expect(html).toContain('$99');
-    expect(html).toContain('$249');
+    expect(html).toContain('$199');
     expect(html).toContain('Más popular');
     expect(html).toContain('Lo mejor');
     expect(html).toContain('Pruébalo 7 días gratis');
@@ -159,8 +159,8 @@ describe('business plans module', () => {
     expect(plans[1].priceAnnual).toBe('$990');
     expect(plans[1].oldPriceMonthly).toBe('$199');
     expect(plans[1].oldPriceAnnual).toBe('$1,990');
-    expect(plans[2].priceMonthly).toBe('$249');
-    expect(plans[2].priceAnnual).toBe('$2,490');
+    expect(plans[2].priceMonthly).toBe('$199');
+    expect(plans[2].priceAnnual).toBe('$1,990');
     expect(plans[2].oldPriceMonthly).toBe('$499');
     expect(plans[2].oldPriceAnnual).toBe('$4,990');
   });

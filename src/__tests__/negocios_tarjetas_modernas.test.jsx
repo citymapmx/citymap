@@ -103,7 +103,7 @@ describe('Tarjetas modernas de /negocios: planes sin hueco y botón al final', (
     expect(html).toContain('Premium');
     expect(html).toContain('$0');
     expect(html).toContain('$99');
-    expect(html).toContain('$249');
+    expect(html).toContain('$199');
     expect(html).toContain('Página pública del negocio en CityMap');
     expect(html).toContain('Posicionamiento SEO en Google');
     expect(html).toContain('Menú interactivo indexado en Google');

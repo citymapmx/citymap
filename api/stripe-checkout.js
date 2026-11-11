@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         unit_amount = interval === 'year' ? 99000 : 9900; // $990 MXN o $99 MXN
       } else if (plan_id === 'elite') {
         name = "Plan Premium";
-        unit_amount = interval === 'year' ? 249000 : 24900; // $2,490 MXN o $249 MXN
+        unit_amount = interval === 'year' ? 199000 : 19900; // $1,990 MXN o $199 MXN
       }
     }
 
