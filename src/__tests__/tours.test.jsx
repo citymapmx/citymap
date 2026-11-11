@@ -110,10 +110,12 @@ describe('ToursView', () => {
     expect(html).not.toContain('🗺️');
     expect(html).toContain('TOUR');
     expect(html).toContain('background:#f5f5f5');
-    // Tarjeta compacta (opción A): sin ubicación ni duración, título a 2 líneas.
-    expect(html).not.toContain('5–6 horas');
-    expect(html).not.toContain('10 horas 30 minutos');
-    expect(html).not.toContain('⏱');
+    // Tarjeta compacta (opción A): sin ubicación, título a 2 líneas.
+    // 11 nov 2026 (Jonathan, mejora 7): la tarjeta SÍ muestra la
+    // duración real del tour cuando existe en la base.
+    expect(html).toContain('⏱ 5–6 horas');
+    expect(html).toContain('⏱ 10 horas 30 minutos');
+    expect(html).toContain('⏱ 8 horas');
     expect(html).toContain('-webkit-line-clamp:2');
   });
 

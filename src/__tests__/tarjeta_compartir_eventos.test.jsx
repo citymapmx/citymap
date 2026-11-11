@@ -539,9 +539,12 @@ describe('tarjeta para compartir el evento: cableado', () => {
       "const EventShareCardSheet = lazy(() => import('../EventShareCardSheet.jsx'))",
     );
     expect(modal).toContain('const [showShareCard, setShowShareCard] = useState(false)');
-    // Los dos botones de compartir (héroe y evento pasado) abren la
-    // hoja en vez de compartir solo el enlace (eso queda dentro).
-    expect(modal.match(/setShowShareCard\(true\)/g)?.length).toBe(2);
+    // Los botones de compartir abren la hoja en vez de compartir solo
+    // el enlace (eso queda dentro): 2 en el modal (héroe y evento
+    // pasado) + 1 en la barra fija de boletos (mejora 3, 11 nov 2026:
+    // onShare junto a boletos, en EventTicketBar, una sola vez como
+    // hija directa del wrapper del modal).
+    expect(modal.match(/setShowShareCard\(true\)/g)?.length).toBe(3);
     expect(modal).toContain('<EventShareCardSheet event={evLocalized}');
     expect(modal).toContain('onShareLink={() => shareEvent()}');
     // shareEvent sigue existiendo para el «Compartir enlace».

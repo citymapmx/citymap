@@ -2,12 +2,16 @@ import React, { Suspense, useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
-import BrandSplash from '../components/ui/BrandSplash.jsx';
+import RouteLoader from '../components/ui/RouteLoader.jsx';
 import { IS_WORLD } from '../lib/domain.js';
 import { parseRevistaPath } from '../lib/revistaRoute.js';
 import { isDirectCategorySegments } from '../lib/categoryRouting.js';
 
-const LoaderFallback = () => <BrandSplash />;
+// La carga de las rutas NO es la pantalla negra de marca (BrandSplash):
+// al navegar se ven los tres puntos sobre el fondo de la página, sin
+// tapar la pantalla de negro. La pantalla negra queda solo para el
+// arranque de la app y el cambio de ciudad (CityArrivalSplash).
+const LoaderFallback = () => <RouteLoader />;
 
 const ItinerariesList = React.lazy(() => import('../views/ItinerariesList.jsx'));
 const ItineraryDetail = React.lazy(() => import('../views/ItineraryDetail.jsx'));

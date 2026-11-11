@@ -52,8 +52,11 @@ describe('detalle de evento: póster completo y título debajo', () => {
     expect(modalSrc).toContain('Floating Back Button');
     expect(modalSrc).toContain('Floating Share Button');
     expect(modalSrc).toContain('position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)"');
-    // Los dos botones de compartir (héroe y evento pasado) siguen.
-    expect(modalSrc.match(/setShowShareCard\(true\)/g)?.length).toBe(2);
+    // Los botones de compartir siguen: 2 en el modal (héroe y evento
+    // pasado) + 1 en la barra fija de boletos (mejora 3, 11 nov 2026:
+    // onShare junto a boletos, en EventTicketBar, una sola vez como
+    // hija directa del wrapper del modal).
+    expect(modalSrc.match(/setShowShareCard\(true\)/g)?.length).toBe(3);
   });
 
   it('se conservan el cambio de foto del anfitrión y el bloque sin foto', () => {

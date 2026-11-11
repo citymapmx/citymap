@@ -6,7 +6,7 @@ import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import { localizedTitle } from '../lib/i18nContent.js';
-import { groupToursByCity, tourCardUrl, tourPriceLabel } from '../lib/tours.js';
+import { groupToursByCity, tourCardUrl, tourPriceLabel, tourDurationLabel } from '../lib/tours.js';
 import OptimizedImage from './ui/OptimizedImage.jsx';
 import { SRCSET_CARD } from '../lib/utils.js';
 import Footer from './Footer.jsx';
@@ -28,6 +28,9 @@ function TourCard({ tour, T, onOpen }) {
   const { t, lang } = useTranslation();
   const img = tourImage(tour);
   const price = tourPriceLabel(tour, lang);
+  // Duración real del tour cuando existe en la base; si no hay, la
+  // tarjeta simplemente no la muestra (nunca se inventa).
+  const duration = tourDurationLabel(tour);
   const title = localizedTitle(tour, lang);
 
   return (
@@ -44,6 +47,7 @@ function TourCard({ tour, T, onOpen }) {
       <div style={{ padding: '12px 14px 16px', background: T.card }}>
         <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{title}</h3>
         <p style={{ fontSize: 14, fontWeight: 800, color: T.text, margin: '0 0 8px' }}>{price || t("revista_precio_no_publicado", "Precio no publicado")}</p>
+        {duration && <p style={{ fontSize: 13, color: T.sub, margin: '0 0 8px' }}>⏱ {duration}</p>}
         <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>{t("revista_ver_mas_detalles", "Ver más detalles →")}</span>
       </div>
     </article>

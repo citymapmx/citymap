@@ -3,9 +3,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
 import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, buildItunesSearchUrl } from '../lib/eventDetails.js';
 import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
-import EventInformation from '../components/detail/EventInformation.jsx';
+import EventInformation, { EventTicketBar } from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
 const render=(event,hideTickets)=>renderToStaticMarkup(<EventInformation event={event} T={T} hideTickets={hideTickets}/>);
+const renderBar=(event,hideTickets)=>renderToStaticMarkup(<EventTicketBar event={event} T={T} hideTickets={hideTickets}/>);
 
 describe('Event entry information',()=>{
   it.each([undefined,null,'','   ','Desde',false])('omits an absent amount %s instead of leaving Desde alone',price=>{
@@ -25,21 +26,23 @@ describe('Event entry information',()=>{
     expect(getEventPrice({price_type:'paid',price:''})).toBeNull();
   });
   it('offers consultation when a ticket link exists without a price',()=>{
-    const html=render({price_type:'paid',booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'https://tickets.example.com/event'}]}});
+    // El botón de boletos vive en la barra fija (EventTicketBar, 11 nov
+    // 2026), no en la tarjeta de información.
+    const html=renderBar({price_type:'paid',booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'https://tickets.example.com/event'}]}});
     expect(html).toContain('Consultar entradas');
     expect(html).not.toContain('Comprar boletos');
     expect(html).not.toContain('Desde');
   });
   it('offers ticket purchase when an amount and a valid seller are available',()=>{
-    expect(render({price:150,booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'tickets.example.com/event'}]}})).toContain('Comprar boletos');
+    expect(renderBar({price:150,booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'tickets.example.com/event'}]}})).toContain('Comprar boletos');
   });
   it('hides price and ticket links for past events',()=>{
     const event={price:150,price_type:'paid',booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'https://tickets.example.com/event'}]}};
-    const past=render(event,true);
+    const past=renderBar(event,true);
     expect(past).not.toContain('Entradas');
     expect(past).not.toContain('Comprar boletos');
     expect(past).not.toContain('Consultar entradas');
-    expect(render(event)).toContain('Comprar boletos');
+    expect(renderBar(event)).toContain('Comprar boletos');
   });
 });
 describe('Event links and schedule',()=>{
@@ -119,7 +122,7 @@ describe('Event links and schedule',()=>{
     expect(html).not.toContain('#EFF6F1');
   });
   it('shows the ticket button bigger, in uppercase and with a proper arrow icon',()=>{
-    const html=render({price:150,booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'https://tickets.example.com/event'}]}});
+    const html=renderBar({price:150,booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'https://tickets.example.com/event'}]}});
     expect(html).toContain('Comprar boletos');
     expect(html).toContain('text-transform:uppercase');
     expect(html).toContain('font-size:16px');
@@ -129,12 +132,16 @@ describe('Event links and schedule',()=>{
   it('does not repeat the year in a same-year date range',()=>{
     const html=render({date:'2026-11-20',end_date:'2026-11-21',time:'20:00',venue_name:'Auditorio Telmex'});
     expect(html).toContain(' al ');
-    expect((html.match(/2026/g) || []).length).toBe(1);
+    // El año se cuenta solo en el texto visible: el enlace de
+    // «Añadir a mi calendario» (11 nov 2026) lleva las fechas
+    // completas en su URL y no es texto visible.
+    const visible=html.replace(/<[^>]*>/g,'');
+    expect((visible.match(/2026/g) || []).length).toBe(1);
     expect(html).not.toContain('21 de noviembre de 2026');
   });
   it('softens the ticket button in dark mode instead of a solid white pill',()=>{
     const darkT={...T,dark:true,greenD:'#E4E4E7'};
-    const html=renderToStaticMarkup(<EventInformation event={{price:150,booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'https://tickets.example.com/event'}]}}} T={darkT} />);
+    const html=renderToStaticMarkup(<EventTicketBar event={{price:150,booking_config:{enabled:true,type:'external',externalLinks:[{platform:'comprar_entradas',url:'https://tickets.example.com/event'}]}}} T={darkT} />);
     expect(html).toContain('background:#E4E4E7');
   });
 });

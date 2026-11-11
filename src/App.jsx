@@ -1546,9 +1546,9 @@ useEffect(() => {
           </div>
         )}
 
-        {/* Removed CityPicker */}        {showAdmin && <Suspense fallback={<LoaderFallback/>}><AdminPanel onClose={() => { setShowAdmin(false); loadData(); }} onToast={toast$} T={T} onOpenStoreAdmin={(biz) => setAdminStoreBiz(biz)} /></Suspense>}
-        {adminStoreBiz && <Suspense fallback={<LoaderFallback/>}><StoreAdminPanel business={adminStoreBiz} onClose={() => setAdminStoreBiz(null)} T={T} /></Suspense>}
-        {showPlans && <Suspense fallback={<LoaderFallback/>}><PlanPaymentModal T={T} dark={dark} onClose={() => setShowPlans(false)} myBizList={myBizList} user={user} pendingPlan={pendingPlan} onConsumePendingPlan={() => setPendingPlan(null)} onStartPaidPlan={startPaidPlan} /></Suspense>}
+        {/* Removed CityPicker */}        {showAdmin && <Suspense fallback={null}><AdminPanel onClose={() => { setShowAdmin(false); loadData(); }} onToast={toast$} T={T} onOpenStoreAdmin={(biz) => setAdminStoreBiz(biz)} /></Suspense>}
+        {adminStoreBiz && <Suspense fallback={null}><StoreAdminPanel business={adminStoreBiz} onClose={() => setAdminStoreBiz(null)} T={T} /></Suspense>}
+        {showPlans && <Suspense fallback={null}><PlanPaymentModal T={T} dark={dark} onClose={() => setShowPlans(false)} myBizList={myBizList} user={user} pendingPlan={pendingPlan} onConsumePendingPlan={() => setPendingPlan(null)} onStartPaidPlan={startPaidPlan} /></Suspense>}
         {payStatus && (
           <div role="dialog" aria-modal="true" aria-label="Confirmación de pago" style={{ position: 'fixed', inset: 0, zIndex: 100001, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 20 }}>
             <div style={{ background: T.bg, color: T.text, width: '100%', maxWidth: 340, borderRadius: 24, padding: 24, textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
@@ -1571,7 +1571,7 @@ useEffect(() => {
             </div>
           </div>
         )}
-        {claimBiz && <Suspense fallback={<LoaderFallback/>}><ClaimModal biz={claimBiz} user={user} onClaim={doClaim} onClose={() => setClaimBiz(null)} /></Suspense>}
+        {claimBiz && <Suspense fallback={null}><ClaimModal biz={claimBiz} user={user} onClaim={doClaim} onClose={() => setClaimBiz(null)} /></Suspense>}
 
         {/* SIDE MENU */}
         <Suspense fallback={null}>
@@ -1651,7 +1651,7 @@ useEffect(() => {
             startPaidPlan={startPaidPlan}
           />
 
-        {storeAdminBiz && <Suspense fallback={<LoaderFallback/>}><StoreAdminPanel business={storeAdminBiz} onClose={() => setStoreAdminBiz(null)} T={T} /></Suspense>}
+        {storeAdminBiz && <Suspense fallback={null}><StoreAdminPanel business={storeAdminBiz} onClose={() => setStoreAdminBiz(null)} T={T} /></Suspense>}
 
         {/* ════ CREAR EVENTO MODAL ════ */}
         {showCreateEvent && <Suspense fallback={null}>
@@ -1668,13 +1668,13 @@ useEffect(() => {
           {selectedEvent && <EventDetailModal savedEventIds={savedEventIds} setSavedEventIds={setSavedEventIds} />}
         </Suspense>
 
-        {showLocPicker && <Suspense fallback={<LoaderFallback/>}><MapPicker
+        {showLocPicker && <Suspense fallback={null}><MapPicker
           initLat={addBizForm.lat} initLng={addBizForm.lng}
           onPick={(lat, lng) => setAddBizForm(f => ({ ...f, lat, lng }))}
           onClose={() => setShowLocPicker(false)}
         /></Suspense>}
 
-        {showAddBiz && <Suspense fallback={<LoaderFallback/>}><AddBizModal
+        {showAddBiz && <Suspense fallback={null}><AddBizModal
           showAddBiz={showAddBiz}
           setShowAddBiz={setShowAddBiz}
           editBizId={editBizId}
