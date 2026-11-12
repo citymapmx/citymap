@@ -1077,7 +1077,7 @@ export const EN_TRANSLATIONS = {
     // Negocios (landing para dueños)
     "negocios_eyebrow": "CityMap for Business",
     "negocios_h1": "Get more people to find your business.",
-    "negocios_sub": "List your business free on citymap. Customers find you on the map, in search and on Google, and message you directly on WhatsApp, with no commissions.",
+    "negocios_sub": "CityMap helps more people discover businesses, places and services when they search online. Our platform's pages already generate visits from Google, bringing new customers to the listed businesses.",
     "negocios_stat_negocios": "businesses listed",
     "negocios_stat_ciudades": "cities",
     "negocios_stat_eventos": "live events",

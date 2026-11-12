@@ -1072,7 +1072,7 @@ export const TRANSLATIONS = {
     // Negocios (landing para dueños)
     "negocios_eyebrow": "CityMap para negocios",
     "negocios_h1": "Haz que más personas encuentren tu negocio.",
-    "negocios_sub": "Publica tu negocio gratis en citymap. Te encuentran en el mapa, en el buscador y en Google, y te escriben directo por WhatsApp, sin comisiones.",
+    "negocios_sub": "CityMap ayuda a que más personas descubran negocios, lugares y servicios cuando buscan en internet. Las páginas de nuestra plataforma ya generan visitas desde Google, acercando a nuevos clientes a los negocios publicados.",
     "negocios_stat_negocios": "negocios publicados",
     "negocios_stat_ciudades": "ciudades",
     "negocios_stat_eventos": "eventos vigentes",

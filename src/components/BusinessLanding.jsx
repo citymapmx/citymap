@@ -155,7 +155,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     <div className="business-landing" style={{ minHeight: '100vh', background: pageBg, color: ink, fontFamily: 'inherit', letterSpacing: 0, '--plans-accent': accent, '--plans-line': line, '--plans-surface': surface, '--plans-shadow': dark ? '0 10px 28px rgba(0,0,0,0.40)' : '0 10px 28px rgba(15,26,20,0.08)', '--plans-shadow-pro': dark ? '0 16px 40px rgba(112,173,255,0.25)' : '0 16px 40px rgba(0,102,204,0.18)' }}>
       <Helmet>
         <title>{`${t("negocios_h1", "Haz que más personas encuentren tu negocio.")} | CityMap`}</title>
-        <meta name="description" content={t("negocios_sub", "Publica tu negocio gratis en citymap. Te encuentran en el mapa, en el buscador y en Google, y te escriben directo por WhatsApp, sin comisiones.")} />
+        <meta name="description" content={t("negocios_sub", "CityMap ayuda a que más personas descubran negocios, lugares y servicios cuando buscan en internet. Las páginas de nuestra plataforma ya generan visitas desde Google, acercando a nuevos clientes a los negocios publicados.")} />
         <link rel="canonical" href="https://citymap.mx/negocios" />
       </Helmet>
       <style>{`
@@ -194,7 +194,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         <section style={{ textAlign: 'center', padding: '48px 0 24px', maxWidth: 680, margin: 'auto' }}>
           <Reveal><p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '.06em', color: muted, margin: '0 0 12px', textTransform: 'uppercase' }}>{t("negocios_eyebrow", "CityMap para negocios")}</p></Reveal>
           <Reveal delay={90}><h1 style={{ fontFamily: 'var(--heading)', fontSize: 'clamp(30px,5vw,44px)', fontWeight: 700, lineHeight: 1.08, letterSpacing: '-.045em', margin: '0 auto 16px', maxWidth: 620 }}>{t("negocios_h1", "Haz que más personas encuentren tu negocio.")}</h1></Reveal>
-          <Reveal delay={180}><p style={{ fontSize: 16, lineHeight: 1.55, color: muted, margin: '0 auto 24px', maxWidth: 560 }}>{t("negocios_sub", "Publica tu negocio gratis en citymap. Te encuentran en el mapa, en el buscador y en Google, y te escriben directo por WhatsApp, sin comisiones.")}</p></Reveal>
+          <Reveal delay={180}><p style={{ fontSize: 16, lineHeight: 1.55, color: muted, margin: '0 auto 24px', maxWidth: 560 }}>{t("negocios_sub", "CityMap ayuda a que más personas descubran negocios, lugares y servicios cuando buscan en internet. Las páginas de nuestra plataforma ya generan visitas desde Google, acercando a nuevos clientes a los negocios publicados.")}</p></Reveal>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12 }}>
             <button onClick={() => onAddBiz?.()} style={{ minHeight: 48, padding: '12px 24px', border: 0, borderRadius: 999, background: accent, color: dark ? '#101827' : '#FFFFFF', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t("cuenta_crear_perfil_gratis", "Crear perfil gratis")}</button>
             <button onClick={scrollToPlans} style={{ minHeight: 48, padding: '12px 24px', border: `1px solid ${line}`, borderRadius: 999, background: 'transparent', color: ink, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t("ver_planes", "Ver planes")}</button>
