@@ -24,9 +24,10 @@ const render = (props = {}) => renderToStaticMarkup(<EventInformation event={eve
 // PR #228 (Jonathan, 11 nov 2026, capturas del detalle de Calamaro):
 // la tarjeta de información y el reproductor «Música del artista»
 // van en UNA sola tarjeta: información con degradado vertical
-// #34383B → #050505, reproductor con su rojo original, esquinas
-// superiores cuadradas y solo las dos inferiores redondeadas.
-// Sin reproductor, la tarjeta de información lleva el radio completo.
+// #34383B → #050505, reproductor con su rojo original, las 4
+// esquinas redondeadas (PR #231: la información lleva `20px 20px
+// 0 0` con reproductor y el radio completo sin él). La descripción
+// («Acerca del evento») va DENTRO de la tarjeta negra, arriba.
 describe('tarjeta unificada del detalle del evento', () => {
   it('la tarjeta de información lleva el degradado #34383B → #050505', () => {
     expect(infoSrc).toContain("linear-gradient(180deg, #34383B 0%, #050505 100%)");
@@ -34,15 +35,15 @@ describe('tarjeta unificada del detalle del evento', () => {
   });
 
   it('el radio de la tarjeta es condicional según exista el reproductor', () => {
-    expect(infoSrc).toContain('borderRadius: unified ? 0 : 20');
+    expect(infoSrc).toContain("borderRadius: unified ? '20px 20px 0 0' : 20");
     // Sin reproductor: las 4 esquinas redondeadas, como antes.
     expect(render()).toContain('border-radius:20px');
     expect(render()).not.toContain('border-radius:0');
-    // Con reproductor: esquinas superiores cuadradas (las
-    // inferiores redondeadas las pone el reproductor).
+    // Con reproductor: también las superiores redondeadas (PR #231);
+    // las inferiores redondeadas las pone el reproductor.
     const unified = render({ unified: true });
-    expect(unified).toContain('border-radius:0');
-    expect(unified).not.toContain('border-radius:20px');
+    expect(unified).toContain('border-radius:20px 20px 0 0');
+    expect(unified).not.toContain('border-radius:0');
   });
 
   it('sin reproductor la tarjeta conserva su sombra y su margen inferior', () => {
@@ -70,8 +71,28 @@ describe('tarjeta unificada del detalle del evento', () => {
     expect(html).toContain('Añadir a mi calendario');
     expect(html).toContain('Cómo llegar');
     expect(html).toContain('Entrada: $500');
-    // La descripción sigue fuera de la tarjeta, arriba de ella.
-    expect(html.indexOf('Acerca del evento')).toBeLessThan(html.indexOf('linear-gradient(180deg, #34383B'));
+    // La descripción va DENTRO de la tarjeta negra, arriba del
+    // todo (PR #231): después del degradado y antes de la fecha,
+    // con el título en blanco.
+    expect(html.indexOf('Acerca del evento')).toBeGreaterThan(html.indexOf('linear-gradient(180deg, #34383B'));
+    expect(html.indexOf('Acerca del evento')).toBeLessThan(html.indexOf('11 de noviembre de 2026'));
+    expect(html).toContain('color:#FFFFFF;font-size:17px;font-weight:800">Acerca del evento</h2>');
+    expect(html).toContain('Concierto de Andrés Calamaro.');
+  });
+
+  it('sin descripción no hay bloque vacío dentro de la tarjeta', () => {
+    const html = renderToStaticMarkup(<EventInformation event={{ ...event, description: '' }} T={T} />);
+    expect(html).not.toContain('Acerca del evento');
+    expect(html).toContain('11 de noviembre de 2026');
+    expect(html).toContain('Teatro Diana');
+  });
+
+  it('con solo descripción (sin fecha ni recinto) la tarjeta se pinta igual', () => {
+    const html = renderToStaticMarkup(<EventInformation event={{ description: 'Solo la descripción.' }} T={T} />);
+    expect(html).toContain('linear-gradient(180deg, #34383B 0%, #050505 100%)');
+    expect(html).toContain('Acerca del evento');
+    expect(html).toContain('Solo la descripción.');
+    expect(html).toContain('border-radius:20px');
   });
 
   it('el modal pasa unified solo cuando el reproductor existe', () => {
