@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { loyaltyBgFirstColor } from '../src/lib/loyaltyColorStyles.js';
 
 // CORS helper
 function cors(res) {
@@ -29,6 +30,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Faltan biz_id o member_id' });
   }
 
+  // Google Wallet solo acepta un hex sólido: de un fondo con degradado
+  // se usa su primera parada (el fondo plano viejo llega tal cual).
+  const walletBgColor = bg_color ? loyaltyBgFirstColor(bg_color) : '#000000';
+
   try {
     const CLASS_ID  = `${ISSUER_ID}.loyalty_${biz_id.replace(/-/g, '')}`;
     const OBJECT_ID = `${ISSUER_ID}.member_${member_id.replace(/-/g, '')}`;
@@ -43,7 +48,7 @@ export default async function handler(req, res) {
         sourceUri: { uri: logo_url || 'https://citymap.mx/logo.png' },
         contentDescription: { defaultValue: { language: 'es', value: biz_name || 'Logo' } }
       },
-      hexBackgroundColor: bg_color || '#000000',
+      hexBackgroundColor: walletBgColor,
       rewardsTier: reward_text || 'Tarjeta de Lealtad',
       rewardsTierLabel: 'Premio',
       accountNameLabel: 'Cliente',
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
           string: `${stamps || 0} / ${stamps_required || 5}`,
         },
       },
-      hexBackgroundColor: bg_color || '#000000',
+      hexBackgroundColor: walletBgColor,
       barcode: {
         type: 'QR_CODE',
         value: `https://citymap.mx/scan/${member_id}`,
