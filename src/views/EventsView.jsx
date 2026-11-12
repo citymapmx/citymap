@@ -359,10 +359,6 @@ export default function EventsView() {
         .exp-subtitle-anim {
           animation: expFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        @keyframes sheetUp {
-          from { opacity: 0; transform: translateY(24px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
       `}</style>
       <div style={{
         position: "sticky",
@@ -583,11 +579,16 @@ export default function EventsView() {
       <Footer />
 
       {/* ── TARJETA DE FILTROS (abre desde el botón del buscador) ── */}
+      {/* PR #217: ya no es una hoja anclada abajo: es una tarjeta flotante
+          centrada con las 4 esquinas redondeadas (mismo patrón que la
+          tarjeta para compartir, PR #147). Sin tirador: es un affordance
+          de bottom sheet. El panel entero anima con scale-in-center. */}
       {sheetOpen && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 200 }}>
-          <div onClick={() => setSheetOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)" }} />
-          <div role="dialog" aria-modal="true" aria-label={t("eventos_filtros", "Filtros de eventos")} style={{ position: "absolute", left: 0, right: 0, bottom: 0, maxWidth: 460, margin: "0 auto", background: T.bg, borderRadius: "24px 24px 0 0", padding: "12px 20px calc(env(safe-area-inset-bottom, 0px) + 20px)", maxHeight: "85dvh", overflowY: "auto", boxShadow: "0 -8px 40px rgba(0,0,0,0.25)", animation: "sheetUp 0.25s ease-out" }}>
-            <div style={{ width: 40, height: 4, borderRadius: 9999, background: T.border, margin: "0 auto 12px" }} />
+        <div
+          onClick={() => setSheetOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", boxSizing: "border-box" }}
+        >
+          <div role="dialog" aria-modal="true" aria-label={t("eventos_filtros", "Filtros de eventos")} className="scale-in-center" onClick={(e) => e.stopPropagation()} style={{ background: T.bg, width: "calc(100vw - 32px)", maxWidth: 460, borderRadius: 24, padding: "20px 20px calc(16px + env(safe-area-inset-bottom, 0px))", boxShadow: "0 24px 48px rgba(0,0,0,0.2)", maxHeight: "92dvh", overflowY: "auto", boxSizing: "border-box" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.3px" }}>{t("eventos_filtros", "Filtros de eventos")}</h2>
               <button onClick={() => setSheetOpen(false)} aria-label={t("eventos_cerrar_filtros", "Cerrar filtros")} style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", color: T.text, fontSize: 20, lineHeight: 1, cursor: "pointer" }}>×</button>
