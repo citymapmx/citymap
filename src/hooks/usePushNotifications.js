@@ -2,13 +2,18 @@ import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { sb } from '../lib/supabase.js';
+import { ensurePushAlertChannel } from '../lib/pushAlertChannel.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { useUIStore } from '../store/useUIStore.js';
 
 export function usePushNotifications() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    
+
+    // Canal propio con el sonido de CityMap (Android 8+ manda el canal, no
+    // el mensaje). Se crea en cada arranque: si ya existe no hace nada.
+    ensurePushAlertChannel();
+
     PushNotifications.checkPermissions().then(result => {
       if (result.receive === 'granted') {
         PushNotifications.register();

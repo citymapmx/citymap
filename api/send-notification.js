@@ -2,6 +2,7 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 import { buildReminderPlan, countReminderPairs, todayInMexicoCity } from '../src/lib/recordatoriosEventos.js';
+import { PUSH_ALERT_CHANNEL_ID, PUSH_ALERT_SOUND_NAME } from '../src/lib/pushAlertChannel.js';
 
 // 1. Iniciar Firebase Admin si no está iniciado
 if (!getApps().length) {
@@ -274,7 +275,11 @@ export default async function handler(req, res) {
           notification: { title, body, ...(image ? { imageUrl: image } : {}) },
           data: link ? { deepLink: link } : {},
           webpush: { fcmOptions: { link: link || "https://citymap.mx" }, notification: { icon: "/icon-192.png", ...(image ? { image } : {}) } },
-          android: { notification: { sound: 'default' } }
+          // Sonido y canal propios de la app Android (canal citymap_alerts con
+          // res/raw/citymap_alert.mp3). En la app vieja (sin el recurso)
+          // Android cae al sonido por defecto. En el navegador el sonido
+          // sigue siendo el del sistema: webpush no se toca.
+          android: { notification: { channelId: PUSH_ALERT_CHANNEL_ID, sound: PUSH_ALERT_SOUND_NAME } }
         })
       );
     }

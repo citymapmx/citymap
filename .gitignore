@@ -26,3 +26,6 @@ dist-ssr
 .env*
 
 citymap-mx-firebase-adminsdk-*.json
+
+# Sonido propio de notificación: el .mp3 se genera en el build desde el .b64
+android/app/src/main/res/raw/citymap_alert.mp3
