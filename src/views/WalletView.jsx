@@ -4,6 +4,7 @@ import { sb } from '../lib/supabase.js';
 import Icon from '../components/ui/Icon.jsx';
 import CouponCard from '../components/ui/CouponCard.jsx';
 import LoyaltyCardModal from './LoyaltyCardModal.jsx';
+import { loyaltyBgFirstColor } from '../lib/loyaltyColorStyles.js';
 import { useUIStore } from '../store/useUIStore.js';
 
 const STAMPS = Array.from({ length: 10 });
@@ -58,7 +59,7 @@ function LoyaltyCard({ member, card, biz, dark, T, onCardClick }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 opacity: filled ? 1 : 0.35
               }}>
-                {filled && <Icon name={stampIcon} size={14} color={card.bg_color || '#000'} />}
+                {filled && <Icon name={stampIcon} size={14} color={loyaltyBgFirstColor(card.bg_color || '#000')} />}
               </div>
             );
           })}
