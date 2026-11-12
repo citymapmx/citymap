@@ -146,7 +146,7 @@ export default function MapView() {
                 {[{id: "todas", label: t("todos_category", "Todos"), icon: "📍"}, ...cats].map(c => {
                    const isSel = activeCat === c.id || (c.id === "todas" && activeCat === "explorar");
                    return (
-                     <button key={c.id} className="press" aria-pressed={isSel} onClick={() => setActiveCat(c.id === "todas" ? "explorar" : c.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", background: isSel ? (dark ? "rgba(255,255,255,0.16)" : "#0F172A") : "transparent", color: isSel ? "#FFFFFF" : (dark ? "#D4D4D8" : T.sub), border: "none", borderRadius: 9999, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", flexShrink: 0 }}>
+                     <button key={c.id} className="press" aria-pressed={isSel} onClick={() => setActiveCat(c.id === "todas" ? "explorar" : c.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", background: isSel ? (dark ? "#FFFFFF" : "#0F172A") : "transparent", color: isSel ? (dark ? "#18181B" : "#FFFFFF") : (dark ? "#D4D4D8" : T.sub), border: "none", borderRadius: 9999, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", flexShrink: 0 }}>
                        {(() => {
                          let iconVal = iconFile(c.icon) || "📍";
                          let cleanIcon = typeof iconVal === 'string' ? iconVal.trim() : iconVal;

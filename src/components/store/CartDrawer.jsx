@@ -107,7 +107,7 @@ export default function CartDrawer({ business, T }) {
           {/* Item Count Badge */}
           <div style={{ padding: '4px 20px 16px', display: 'flex', alignItems: 'center' }}>
             <div style={{ background: dark ? '#3F3F46' : '#F4F4F5', borderRadius: 20, padding: '8px 16px', fontSize: 14, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <img src="/pedido.png" alt="Artículos" style={{ width: 18, height: 18, objectFit: 'contain' }} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', borderRadius: 6, padding: 2 }}><img src="/pedido.png" alt="Artículos" style={{ width: 18, height: 18, objectFit: 'contain' }} /></span>
               {itemCount} {itemCount === 1 ? 'artículo' : 'artículos'}
             </div>
           </div>
@@ -184,7 +184,7 @@ export default function CartDrawer({ business, T }) {
                     </button>
                     {/* Inline Quantity Controls */}
                     <div style={{ display: 'flex', alignItems: 'center', background: 'transparent', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, borderRadius: 24, padding: 2 }}>
-                      <button onClick={() => { if (item.quantity > 1) updateQuantity(item.id, item.quantity - 1); }} style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="minus" size={16} color={dark ? '#A1A1AA' : '#71717A'} /></button>
+                      <button onClick={() => { if (item.quantity > 1) updateQuantity(item.id, item.quantity - 1); }} style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="minus" size={16} color={dark ? '#FAFAFA' : '#18181B'} /></button>
                       <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', minWidth: 28, textAlign: 'center' }}>{item.quantity}</div>
                       <button onClick={() => updateQuantity(item.id, item.quantity + 1)} style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="plus" size={16} color={dark ? '#FAFAFA' : '#18181B'} /></button>
                     </div>
@@ -230,12 +230,12 @@ export default function CartDrawer({ business, T }) {
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E4E4E7' : '#232326', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Método de entrega *</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <button onClick={() => setOrderType('pickup')} style={{ background: orderType === 'pickup' ? (dark ? '#232326' : '#FFFFFF') : 'transparent', border: `2px solid ${orderType === 'pickup' ? (dark ? '#A1A1AA' : '#18181B') : (dark ? '#3F3F46' : '#E4E4E7')}`, padding: '16px 8px', borderRadius: 16, color: orderType === 'pickup' ? (dark ? '#FAFAFA' : '#18181B') : (dark ? '#A1A1AA' : '#71717A'), fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontSize: 15, boxShadow: orderType === 'pickup' ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
-                  <img src="/pedido.png" alt="Recoger" style={{ width: 44, height: 44, objectFit: 'contain', filter: orderType === 'pickup' ? 'none' : 'grayscale(100%) opacity(40%)', transition: 'all 0.2s' }} />
+                <button onClick={() => setOrderType('pickup')} style={{ background: orderType === 'pickup' ? (dark ? '#232326' : '#FFFFFF') : 'transparent', border: `2px solid ${orderType === 'pickup' ? (dark ? '#A1A1AA' : '#18181B') : (dark ? '#3F3F46' : '#E4E4E7')}`, padding: '16px 8px', borderRadius: 16, color: orderType === 'pickup' ? (dark ? '#FAFAFA' : '#18181B') : (dark ? '#D4D4D8' : '#71717A'), fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontSize: 15, boxShadow: orderType === 'pickup' ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', borderRadius: 12, padding: 4 }}><img src="/pedido.png" alt="Recoger" style={{ width: 44, height: 44, objectFit: 'contain', filter: orderType === 'pickup' ? 'none' : 'grayscale(100%)', transition: 'all 0.2s' }} /></span>
                   Recoger
                 </button>
-                <button onClick={() => setOrderType('delivery')} style={{ background: orderType === 'delivery' ? (dark ? '#232326' : '#FFFFFF') : 'transparent', border: `2px solid ${orderType === 'delivery' ? (dark ? '#A1A1AA' : '#18181B') : (dark ? '#3F3F46' : '#E4E4E7')}`, padding: '16px 8px', borderRadius: 16, color: orderType === 'delivery' ? (dark ? '#FAFAFA' : '#18181B') : (dark ? '#A1A1AA' : '#71717A'), fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontSize: 15, boxShadow: orderType === 'delivery' ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
-                  <img src="/scooter-reparto.png" alt="Domicilio" style={{ width: 44, height: 44, objectFit: 'contain', filter: orderType === 'delivery' ? 'none' : 'grayscale(100%) opacity(40%)', transition: 'all 0.2s' }} />
+                <button onClick={() => setOrderType('delivery')} style={{ background: orderType === 'delivery' ? (dark ? '#232326' : '#FFFFFF') : 'transparent', border: `2px solid ${orderType === 'delivery' ? (dark ? '#A1A1AA' : '#18181B') : (dark ? '#3F3F46' : '#E4E4E7')}`, padding: '16px 8px', borderRadius: 16, color: orderType === 'delivery' ? (dark ? '#FAFAFA' : '#18181B') : (dark ? '#D4D4D8' : '#71717A'), fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontSize: 15, boxShadow: orderType === 'delivery' ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', borderRadius: 12, padding: 4 }}><img src="/scooter-reparto.png" alt="Domicilio" style={{ width: 44, height: 44, objectFit: 'contain', filter: orderType === 'delivery' ? 'none' : 'grayscale(100%)', transition: 'all 0.2s' }} /></span>
                   Domicilio
                 </button>
               </div>
