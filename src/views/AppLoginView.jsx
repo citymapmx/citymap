@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
-import { ensureGoogleIdentityServices } from '../lib/googleIdentity.js';
+import { ensureGoogleIdentityServices, promptGoogleOneTap } from '../lib/googleIdentity.js';
 import { useTranslation } from '../hooks/useTranslation.js';
 
 // Mismo cliente de Google que el botón de la web (AuthModal.jsx).
@@ -16,6 +16,7 @@ const APP_DEEP_LINK = 'mx.citymap.app://login';
 
 export default function AppLoginView({ T, dark, navigate }) {
   const googleBtnRef = useRef(null);
+  const oneTapPromptedRef = useRef(false); // One Tap se lanza una sola vez por carga
   const [gisReady, setGisReady] = useState(false);
   const [gisTimedOut, setGisTimedOut] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | signing | done | error
@@ -78,6 +79,16 @@ export default function AppLoginView({ T, dark, navigate }) {
           logo_alignment: 'left',
         });
         setGisReady(true);
+        // Desde la app nativa (Custom Tab con ?from=app): lanzar SOLO el
+        // selector de cuentas de Google en cuanto GIS está listo, sin
+        // esperar a que el usuario toque el botón. One Tap usa el mismo
+        // client_id de citymap.mx, así el selector dice "Ir a citymap.mx".
+        // Si Google no lo muestra, el botón manual sigue ahí como respaldo.
+        // En web normal (sin from=app) no se auto-lanza nada.
+        if (fromApp && !oneTapPromptedRef.current) {
+          oneTapPromptedRef.current = true;
+          promptGoogleOneTap();
+        }
         return true;
       } catch (e) {
         console.warn('GIS render error:', e);

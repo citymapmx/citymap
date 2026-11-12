@@ -21,3 +21,26 @@ export function ensureGoogleIdentityServices() {
   });
   return gisPromise;
 }
+
+// One Tap: lanza el selector de cuentas de Google sin esperar un toque.
+// Solo se usa desde la app nativa (Custom Tab con ?from=app), donde el
+// botón GIS obligaba a un segundo toque. Usa el mismo client_id de
+// citymap.mx que el botón, así el selector sigue diciendo "Ir a
+// citymap.mx" y nunca va a Supabase. Si Google no lo muestra (cooldown
+// tras cerrarlo, sin sesión, cookies bloqueadas...), devuelve false y el
+// botón manual sigue visible como respaldo.
+export function promptGoogleOneTap() {
+  try {
+    const id = typeof window === 'undefined' ? null : window.google?.accounts?.id;
+    if (!id || typeof id.prompt !== 'function') return false;
+    id.prompt((notification) => {
+      if (notification?.isNotDisplayed?.()) {
+        console.warn('One Tap no se mostró:', notification.getNotDisplayedReason?.());
+      }
+    });
+    return true;
+  } catch (e) {
+    console.warn('One Tap prompt error:', e);
+    return false;
+  }
+}
