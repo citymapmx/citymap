@@ -70,9 +70,11 @@ export default function StoreAdminPanel({ business, onClose, T, dataClient = sb 
     try {
       let data = null;
       try {
-        data = await dataClient.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,image_url,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
+        data = await dataClient.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,image_url,available_from,available_to,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
       } catch {
         // Fallback in case image_url column isn't ready or has permission issues
+        // Tampoco trae available_from/available_to: sin la migración, el panel
+        // muestra las categorías como siempre visibles.
         data = await dataClient.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
       }
       
