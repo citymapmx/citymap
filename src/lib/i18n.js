@@ -260,7 +260,7 @@ export const TRANSLATIONS = {
     "home_publicidad": "Publicidad",
     "home_puntos_interes": "Puntos de interés",
     "home_que_buscas_en": "¿Qué buscas en",
-    "home_recomendacion_dia": "✨ Recomendación del día",
+    "home_recomendaciones_dia": "✨ Recomendaciones del día",
     "home_reintentar": "Reintentar",
     "home_reserva_viaje": "Reserva tu viaje",
     "home_restaurantes_conocer": "Restaurantes que debes conocer",
