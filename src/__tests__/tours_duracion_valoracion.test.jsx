@@ -90,10 +90,13 @@ describe('tours: duración real y sin valoración inventada', () => {
     expect(trips).toContain('const duration = tourDurationLabel(exp);');
   });
 
-  it('los imperdibles usan la misma regla de duración', () => {
+  it('los imperdibles (Experiencias destacadas) ya NO muestran duración en la tarjeta', () => {
+    // 12 nov 2026 (Jonathan, PR #237): la duración no va en estas
+    // tarjetas (tampoco el número ni el ⏱); el detalle de la experiencia
+    // sigue teniendo su duración, eso no se toca.
     const top = read('../components/home/TopImperdibles.jsx');
-    expect(top).toContain('tourDurationLabel');
-    expect(top).toContain('const duration = tourDurationLabel(exp);');
+    expect(top).not.toContain('tourDurationLabel');
+    expect(top).not.toContain('⏱');
   });
 
   it('el detalle del tour ya no pinta «0 de 5 estrellas» sin reseñas', () => {
