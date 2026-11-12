@@ -126,14 +126,20 @@ describe('¿Olvidaste tu contraseña?', () => {
   });
 });
 
-describe('/login en carga se ve como el splash', () => {
-  it('muestra la marca del splash, no la tarjeta vacía, y conserva Cancelar', () => {
+describe('/login sin splash: la tarjeta sale de inmediato', () => {
+  it('muestra la tarjeta con el logo oficial sobre fondo negro, sin splash ni parpadeo, y conserva Cancelar', () => {
     const html = renderToStaticMarkup(
       <AppLoginView T={T} dark={false} navigate={vi.fn()} />
     );
+    // La tarjeta es el encabezado: logo oficial (no el emoji 📍) + subtítulo.
     expect(html).toContain('/logo-brand.png');
+    expect(html).not.toContain('📍');
     expect(html).toContain('Inicia sesión para continuar');
     expect(html).toContain('Cancelar');
+    // Sin splash de carga: nada de la marca del splash.
+    expect(html).not.toContain('Cargando CityMap');
+    // Fondo negro detrás de la tarjeta.
+    expect(html).toContain('background:#000');
     expect(html).not.toContain('Cargando el botón de Google');
     expect(html).not.toContain('Continuar con Google');
   });
@@ -147,7 +153,8 @@ describe('/login con enlace de recuperación', () => {
     );
     expect(html).toContain('Crea tu contraseña nueva');
     expect(html).toContain('Actualizar contraseña');
-    expect(html).not.toContain('/logo-brand.png');
+    // El logo es el encabezado de la tarjeta y se ve también en recuperación.
+    expect(html).toContain('/logo-brand.png');
     expect(html).not.toContain('Continuar con Google');
   });
 

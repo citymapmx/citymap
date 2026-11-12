@@ -3,7 +3,6 @@ import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
 import { ensureGoogleIdentityServices, promptGoogleOneTap } from '../lib/googleIdentity.js';
 import { checkPassword } from '../lib/passwordRules.js';
-import BrandSplash from '../components/ui/BrandSplash.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 
 // Mismo cliente de Google que el botón de la web (AuthModal.jsx).
@@ -171,32 +170,20 @@ export default function AppLoginView({ T, dark, navigate }) {
     }
   };
 
-  // Mientras el botón oficial de Google (GIS) carga, la vista es el splash
-  // de marca (fondo negro, logo, tres puntos) en vez de la tarjeta blanca
-  // vacía: es lo que se ve en el Custom Tab desde la app nativa. El
-  // contenedor del botón GIS sigue montado debajo (oculto) para que
-  // initGsi pueda dibujarlo; al estar listo, el splash se quita y aparece
-  // la tarjeta con el botón. «Cancelar» sigue funcionando igual (flota
-  // sobre el splash mientras carga).
-  const showLoginSplash = !isRecovery && status === 'idle' && !gisReady && !gisTimedOut;
-
+  // Sin splash de carga (12 nov 2026, Jonathan: si dura tan poquito,
+  // mejor quitarlo): la tarjeta se ve de inmediato sobre fondo negro
+  // (como el splash, pero sin parpadeo). El contenedor del botón GIS
+  // sigue montado (oculto hasta que gisReady) para que initGsi pueda
+  // dibujarlo; «Cancelar» siempre está visible dentro de la tarjeta.
   return (
-    <div style={{ minHeight: '100dvh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      {showLoginSplash && (
-        <BrandSplash message={t("modal_inicia_para_continuar", "Inicia sesión para continuar")} />
-      )}
-      {showLoginSplash && (
-        <button
-          onClick={handleCancel}
-          style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 10000, background: 'none', border: 'none', color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '12px 20px', fontFamily: 'inherit' }}
-        >
-          {t("modal_cancelar", "Cancelar")}
-        </button>
-      )}
+    <div style={{ minHeight: '100dvh', background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div style={{ width: '100%', maxWidth: 400, background: dark ? '#1e1e1e' : '#fff', border: `1px solid ${T.border}`, borderRadius: 20, padding: '28px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', textAlign: 'center' }}>
-        <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.5px', color: T.text, marginBottom: 6 }}>
-          📍CityMap
-        </div>
+        <img
+          src="/logo-brand.png"
+          alt="CityMap"
+          width={160}
+          style={{ width: 160, maxWidth: '60%', height: 'auto', objectFit: 'contain', display: 'block', margin: '0 auto 14px', filter: dark ? undefined : 'brightness(0)' }}
+        />
         <p style={{ color: T.sub, margin: '0 0 24px', fontWeight: 500, fontSize: 14 }}>
           {isRecovery ? t("modal_nueva_contrasena", "Crea tu contraseña nueva") : t("modal_inicia_para_continuar", "Inicia sesión para continuar")}
         </p>
@@ -281,14 +268,12 @@ export default function AppLoginView({ T, dark, navigate }) {
           <p style={{ color: '#dc2626', fontSize: 14, fontWeight: 600, margin: '0 0 16px' }}>{error}</p>
         )}
 
-        {!showLoginSplash && (
-          <button
-            onClick={handleCancel}
-            style={{ background: 'none', border: 'none', color: T.sub, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}
-          >
-            {t("modal_cancelar", "Cancelar")}
-          </button>
-        )}
+        <button
+          onClick={handleCancel}
+          style={{ background: 'none', border: 'none', color: T.sub, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}
+        >
+          {t("modal_cancelar", "Cancelar")}
+        </button>
       </div>
     </div>
   );
