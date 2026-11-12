@@ -16,6 +16,7 @@ import { useAppContext } from '../context/AppContext';
 import Footer from './Footer.jsx';
 import LoyaltyDesigner from './loyalty/LoyaltyDesigner.jsx';
 import BizShareHub from './BizShareHub.jsx';
+import ProfileLoyaltyCarousel from './loyalty/ProfileLoyaltyCarousel.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { privateEventUrl } from '../lib/privateEvents.js';
 export default function AccountView({
@@ -320,6 +321,13 @@ export default function AccountView({
             </div>
           </div>
         </div>
+        {/* ── MIS TARJETAS DE LEALTAD ── */}
+        {/* Carrusel arriba del perfil (PR #242): las tarjetas activas del
+            cliente aparecen aquí para tenerlas a la mano, sin ir al menú
+            hamburguesa → «Recompensas». Si no tiene ninguna, el
+            componente no renderiza nada y la página queda como antes. */}
+        <ProfileLoyaltyCarousel user={user} T={T} dark={dark} />
+
         {/* ── WALLET ── */}
         {wallet.length > 0 && (
           <div style={{ padding: "16px 16px 0", marginBottom: 8 }}>

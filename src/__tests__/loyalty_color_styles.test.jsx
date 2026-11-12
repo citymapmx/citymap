@@ -207,8 +207,15 @@ describe('Tarjetas viejas con fondo plano siguen funcionando', () => {
     const modal = read('../views/LoyaltyCardModal.jsx');
     expect(modal).toContain("color={loyaltyBgFirstColor(card.bg_color)}");
 
+    // La tarjeta (ahora componente compartido, usado por «Recompensas» y
+    // por el carrusel del perfil) usa la primera parada para el icono
+    // del sello, no el degradado entero.
+    const loyaltyCard = read('../components/loyalty/LoyaltyCard.jsx');
+    expect(loyaltyCard).toContain("color={loyaltyBgFirstColor(card.bg_color");
+    // Y «Recompensas» sigue renderizando esa tarjeta compartida.
     const walletView = read('../views/WalletView.jsx');
-    expect(walletView).toContain("color={loyaltyBgFirstColor(card.bg_color");
+    expect(walletView).toContain("import LoyaltyCard from '../components/loyalty/LoyaltyCard.jsx'");
+    expect(walletView).toContain('<LoyaltyCard member={member} card={card} biz={biz}');
 
     // El pase de Google Wallet recibe un hex (primera parada), nunca el degradado.
     const walletApi = read('../../api/loyalty-wallet.js');
