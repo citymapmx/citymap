@@ -132,7 +132,10 @@ export default function EventDetailModal() {
       sb.count('event_messages', `?event_id=eq.${selectedEvent.id}`)
         .then(n => { if (typeof n === 'number') setChatCount(n); })
         .catch(() => {});
-      sb.get('event_rsvps', `?event_id=eq.${selectedEvent.id}`)
+      // Conteo de invitados con lectura pública (clave anon, sin JWT de
+      // sesión): con sb.get, una sesión vencida devuelve 401 y la píldora
+      // queda en 0 aunque haya confirmaciones (Posada 2026).
+      sb.getPublic('event_rsvps', `?event_id=eq.${selectedEvent.id}`)
         .then(rows => { if (Array.isArray(rows)) setGuestCount(summarizeRsvps(rows).guests); })
         .catch(() => {});
     }

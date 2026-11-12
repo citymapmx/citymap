@@ -37,7 +37,11 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
 
   const load = useCallback(() => {
     if (!event?.id) return;
-    sb.get('event_rsvps', `?event_id=eq.${event.id}&order=created_at.asc`)
+    // Lectura pública (clave anon, sin JWT de sesión): las confirmaciones
+    // las ve cualquiera con el enlace, tenga o no cuenta. Con sb.get, una
+    // sesión vencida devuelve 401 y la lista queda vacía en silencio
+    // (Posada 2026: filas reales en base pero "Van 0 personas").
+    sb.getPublic('event_rsvps', `?event_id=eq.${event.id}&order=created_at.asc`)
       .then(res => { if (Array.isArray(res)) setRows(res); })
       .catch(() => {});
   }, [event]);
