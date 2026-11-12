@@ -1,7 +1,7 @@
 import { useUIStore } from '../../store/useUIStore.js';
 import Icon from './Icon.jsx';
 
-export default function ThemeToggle({ showLabel = false, padding = '12px 20px' }) {
+export default function ThemeToggle({ showLabel = false, padding = '12px 20px', size = 44, round = false }) {
   const dark = useUIStore(state => state.dark);
   const setDark = useUIStore(state => state.setDark);
   const mode = useUIStore(state => state.themeMode);
@@ -28,8 +28,11 @@ export default function ThemeToggle({ showLabel = false, padding = '12px 20px' }
     </button>}
   </div>;
 
+  // Variante botón redondo grande (encabezado de /cuenta, propuesta C):
+  // mismo toggle (setDark) y mismas etiquetas, solo cambia el tamaño
+  // y la forma. Sin props, queda el botón de 44 px de siempre.
   return <button type="button" aria-label={label} title={label} aria-pressed={dark} onClick={() => setDark(!dark)}
-    style={{ width: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: 12, color: textColor, cursor: 'pointer', fontFamily: 'inherit' }}>
-    <Icon name={dark ? 'sun' : 'moon'} size={22} color="currentColor" />
+    style={{ width: size, minHeight: size, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'transparent', border: 0, borderRadius: round ? '50%' : 12, color: textColor, cursor: 'pointer', fontFamily: 'inherit' }}>
+    <Icon name={dark ? 'sun' : 'moon'} size={size >= 56 ? 26 : 22} color="currentColor" />
   </button>;
 }
