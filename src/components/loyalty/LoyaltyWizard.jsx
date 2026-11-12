@@ -1,5 +1,11 @@
 import React from 'react';
 import Icon from '../ui/Icon.jsx';
+import {
+  LOYALTY_COLOR_CATEGORIES,
+  loyaltyStyleBackground,
+  loyaltyBgFirstColor,
+  findLoyaltyCategoryByBackground,
+} from '../../lib/loyaltyColorStyles.js';
 
 export default function LoyaltyWizard({ 
   wizardStep, 
@@ -12,15 +18,13 @@ export default function LoyaltyWizard({
   saving
 }) {
   const STAMPS = Array.from({ length: 10 });
-  
-  const COLOR_PRESETS = [
-    { bg: "#1B1107", text: "#F5E6D3", primary: "#C4841D", label: "Café" },
-    { bg: "#1A1A2E", text: "#EAEAEA", primary: "#E94560", label: "Neón" },
-    { bg: "#FDF2F8", text: "#831843", primary: "#EC4899", label: "Rosado" },
-    { bg: "#0F172A", text: "#F8FAFC", primary: "#3B82F6", label: "Azul" },
-    { bg: "#FFFFFF", text: "#1E293B", primary: "#10B981", label: "Eco" },
-    { bg: "#18181B", text: "#FAFAFA", primary: "#F59E0B", label: "Gold" },
-  ];
+
+  // Categoría expandida: la del estilo que ya trae la tarjeta (si es uno
+  // de los 30) o Premium por defecto.
+  const [activeCategory, setActiveCategory] = React.useState(
+    () => findLoyaltyCategoryByBackground(config.bg_color) || "premium"
+  );
+  const activeStyles = (LOYALTY_COLOR_CATEGORIES.find((cat) => cat.id === activeCategory) || LOYALTY_COLOR_CATEGORIES[0]).styles;
 
   const ICONS = [
     { id: "star", name: "Estrella" },
@@ -62,7 +66,7 @@ export default function LoyaltyWizard({
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
           {STAMPS.slice(0, config.stamps_required).map((_, i) => (
             <div key={i} style={{ width: 32, height: 32, borderRadius: "50%", background: i < 2 ? config.primary_color : "transparent", border: `2px solid ${config.primary_color}`, display: "flex", alignItems: "center", justifyContent: "center", opacity: i < 2 ? 1 : 0.4 }}>
-              {i < 2 && <Icon name={config.type?.includes('|') ? config.type.split('|')[1] : "star"} size={16} color={config.bg_color} />}
+              {i < 2 && <Icon name={config.type?.includes('|') ? config.type.split('|')[1] : "star"} size={16} color={loyaltyBgFirstColor(config.bg_color)} />}
             </div>
           ))}
         </div>
@@ -98,30 +102,67 @@ export default function LoyaltyWizard({
                 {renderCardPreview()}
               </div>
 
-              {/* Compact Presets */}
+              {/* Selector de estilo por categoría */}
               <div style={{ width: "100%", maxWidth: 320 }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" }}>Estilos Rápidos</label>
-                <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                  {COLOR_PRESETS.map((preset, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setConfig(prev => ({ ...prev, bg_color: preset.bg, text_color: preset.text, primary_color: preset.primary }))}
-                      style={{
-                        width: 44, height: 44, borderRadius: "50%",
-                        background: preset.bg,
-                        border: config.bg_color === preset.bg ? `3px solid ${preset.primary}` : "2px solid #E2E8F0",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                        transition: "all 0.2s"
-                      }}
-                      title={preset.label}
-                    >
-                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: preset.primary }} />
-                    </button>
-                  ))}
+                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" }}>Selecciona tu estilo</label>
+                {/* Píldoras de categoría: fila deslizable con el dedo */}
+                <div className="no-scrollbar scroll-fade-x" style={{ display: "flex", gap: 8, overflowX: "auto", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", paddingBottom: 4 }}>
+                  {LOYALTY_COLOR_CATEGORIES.map((cat) => {
+                    const isActive = activeCategory === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setActiveCategory(cat.id)}
+                        style={{
+                          scrollSnapAlign: "start",
+                          flexShrink: 0,
+                          padding: "8px 14px",
+                          borderRadius: 100,
+                          background: isActive ? "#0F172A" : "#fff",
+                          color: isActive ? "#fff" : "#0F172A",
+                          border: `2px solid ${isActive ? "#0F172A" : "#E2E8F0"}`,
+                          fontWeight: 800,
+                          fontSize: 13,
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          transition: "all 0.2s"
+                        }}
+                      >
+                        {cat.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Panel de la categoría activa: todos sus estilos */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+                  {activeStyles.map((style) => {
+                    const bg = loyaltyStyleBackground(style);
+                    const isSelected = config.bg_color === bg;
+                    return (
+                      <button
+                        key={style.id}
+                        onClick={() => setConfig(prev => ({ ...prev, bg_color: bg, text_color: style.text, primary_color: style.primary }))}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "10px 12px",
+                          borderRadius: 14,
+                          background: "#fff",
+                          border: isSelected ? `2px solid ${style.primary}` : "2px solid #E2E8F0",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          width: "100%",
+                          boxSizing: "border-box",
+                          transition: "all 0.2s"
+                        }}
+                      >
+                        <span style={{ width: 28, height: 28, borderRadius: "50%", background: bg, border: "1px solid rgba(0,0,0,0.08)", flexShrink: 0 }} />
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{style.label}</span>
+                        {isSelected && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 800, color: style.primary }}>✓</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -132,7 +173,7 @@ export default function LoyaltyWizard({
                   
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                     <div style={{ position: "relative", width: 44, height: 44, borderRadius: "50%", background: config.bg_color, border: `2px solid #CBD5E1`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-                      <input type="color" value={config.bg_color} onChange={e => setConfig({...config, bg_color: e.target.value})} style={{ opacity: 0, position: "absolute", inset: 0, width: "100%", height: "100%", cursor: "pointer" }} />
+                      <input type="color" value={loyaltyBgFirstColor(config.bg_color)} onChange={e => setConfig({...config, bg_color: e.target.value})} style={{ opacity: 0, position: "absolute", inset: 0, width: "100%", height: "100%", cursor: "pointer" }} />
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>Fondo</div>
                   </div>

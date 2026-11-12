@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Icon from '../ui/Icon.jsx';
 import { sb } from '../../lib/supabase.js';
+import { loyaltyBgFirstColor } from '../../lib/loyaltyColorStyles.js';
 import LoyaltyWizard from './LoyaltyWizard.jsx';
 
 function useIsMobile() {
@@ -404,7 +405,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
                   {STAMPS.slice(0, config.stamps_required).map((_, i) => (
                     <div key={i} style={{ width: 38, height: 38, borderRadius: "50%", background: i < 2 ? config.primary_color : "transparent", border: `2px solid ${config.primary_color}`, display: "flex", alignItems: "center", justifyContent: "center", opacity: i < 2 ? 1 : 0.4 }}>
-                      {i < 2 && <Icon name={config.type?.includes('|') ? config.type.split('|')[1] : "star"} size={18} color={config.bg_color} />}
+                      {i < 2 && <Icon name={config.type?.includes('|') ? config.type.split('|')[1] : "star"} size={18} color={loyaltyBgFirstColor(config.bg_color)} />}
                     </div>
                   ))}
                 </div>
@@ -479,7 +480,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
                     
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                       <div style={{ position: "relative", width: 48, height: 48, borderRadius: "50%", background: config.bg_color, border: `2px solid ${T.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-  <input type="color" value={config.bg_color} onChange={e => setConfig({...config, bg_color: e.target.value})} style={{ opacity: 0, position: "absolute", inset: 0, width: "100%", height: "100%", cursor: "pointer" }} />
+  <input type="color" value={loyaltyBgFirstColor(config.bg_color)} onChange={e => setConfig({...config, bg_color: e.target.value})} style={{ opacity: 0, position: "absolute", inset: 0, width: "100%", height: "100%", cursor: "pointer" }} />
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 600, color: T.text }}>Fondo</div>
                     </div>

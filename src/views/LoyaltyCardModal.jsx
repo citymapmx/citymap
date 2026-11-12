@@ -3,6 +3,7 @@ import { m, AnimatePresence } from 'framer-motion';
 import Icon from '../components/ui/Icon.jsx';
 import QRCode from 'react-qr-code';
 import { getThumbUrl } from '../lib/utils.js';
+import { loyaltyBgFirstColor } from '../lib/loyaltyColorStyles.js';
 
 export default function LoyaltyCardModal({ open, onClose, member, card, biz }) {
   if (!member || !card || !biz) return null;
@@ -119,7 +120,7 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz }) {
                       opacity: isFilled ? 1 : 0.3,
                       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                     }}>
-                      {isFilled && <Icon name={stampIcon} size={20} color={card.bg_color} />}
+                      {isFilled && <Icon name={stampIcon} size={20} color={loyaltyBgFirstColor(card.bg_color)} />}
                     </div>
                   );
                 })}
