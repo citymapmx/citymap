@@ -64,12 +64,27 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
     const companionsToSave = status === 'voy' ? companions : 0;
     setSaving(true);
     try {
-      await sb.post('event_rsvps', {
+      // PR #230: si confirmó con sesión, guardar su user_id para que los
+      // avisos del chat también le lleguen aunque nunca escriba. Si la
+      // columna aún no existe (migración pendiente), reintentar sin ella
+      // para no romper la confirmación.
+      const row = {
         event_id: event.id,
         guest_name: name.trim(),
         status,
         companions: companionsToSave,
-      });
+        ...(user?.id ? { user_id: user.id } : {}),
+      };
+      try {
+        await sb.post('event_rsvps', row);
+      } catch (e) {
+        if (user?.id && /user_id|PGRST204|column/i.test(e.message || '')) {
+          const { user_id: _omit, ...fallback } = row;
+          await sb.post('event_rsvps', fallback);
+        } else {
+          throw e;
+        }
+      }
       try { window.localStorage.setItem(storageKey(event.id), JSON.stringify({ name: name.trim(), status, companions: companionsToSave })); } catch { /* sin almacenamiento */ }
       toast$(t("eventos_confirmacion_guardada", "Confirmación guardada"));
       setCollapsed(true);
