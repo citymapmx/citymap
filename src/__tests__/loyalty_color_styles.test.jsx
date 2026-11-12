@@ -42,19 +42,18 @@ function renderWizard(configOverrides = {}) {
 }
 
 describe('Estilos de color de lealtad: datos (PR #239)', () => {
-  it('hay 5 categorías, en orden: Premium, Sobrios, Cafetería, Coloridos, Clásicos', () => {
+  it('hay 4 categorías, en orden: Premium, Sobrios, Cafetería, Coloridos', () => {
     expect(LOYALTY_COLOR_CATEGORIES.map((c) => c.label)).toEqual([
       "Premium",
       "Sobrios",
       "Cafetería",
       "Coloridos",
-      "Clásicos",
     ]);
   });
 
-  it('cada categoría trae sus estilos: 7 Premium, 7 Sobrios, 6 Cafetería, 10 Coloridos, 6 Clásicos', () => {
-    expect(LOYALTY_COLOR_CATEGORIES.map((c) => c.styles.length)).toEqual([7, 7, 6, 10, 6]);
-    expect(LOYALTY_COLOR_STYLES.length).toBe(36);
+  it('cada categoría trae sus estilos: 7 Premium, 7 Sobrios, 6 Cafetería, 10 Coloridos', () => {
+    expect(LOYALTY_COLOR_CATEGORIES.map((c) => c.styles.length)).toEqual([7, 7, 6, 10]);
+    expect(LOYALTY_COLOR_STYLES.length).toBe(30);
   });
 
   it('todos los estilos tienen id y nombre únicos, 1-3 paradas hex y texto/botón hex', () => {
@@ -90,16 +89,16 @@ describe('Estilos de color de lealtad: datos (PR #239)', () => {
     expect(byId["ambar"].bg).toEqual(["#FBBF24", "#F59E0B"]);
   });
 
-  it('los 6 Clásicos son los planos de antes, sin cambio', () => {
-    const clasicos = LOYALTY_COLOR_CATEGORIES.find((c) => c.id === "clasicos").styles;
-    expect(clasicos.map((s) => [s.label, s.bg, s.text, s.primary])).toEqual([
-      ["Café", ["#1B1107"], "#F5E6D3", "#C4841D"],
-      ["Neón", ["#1A1A2E"], "#EAEAEA", "#E94560"],
-      ["Rosado", ["#FDF2F8"], "#831843", "#EC4899"],
-      ["Azul", ["#0F172A"], "#F8FAFC", "#3B82F6"],
-      ["Eco", ["#FFFFFF"], "#1E293B", "#10B981"],
-      ["Gold", ["#18181B"], "#FAFAFA", "#F59E0B"],
-    ]);
+  it('no hay categoría Clásicos ni estilos viejos (Café, Neón, Rosado, Azul, Eco, Gold)', () => {
+    expect(LOYALTY_COLOR_CATEGORIES.find((c) => c.id === "clasicos")).toBeUndefined();
+    const ids = LOYALTY_COLOR_STYLES.map((s) => s.id);
+    for (const oldId of ["cafe", "neon", "rosado", "azul", "eco", "gold"]) {
+      expect(ids).not.toContain(oldId);
+    }
+    // Y los 30 estilos que quedan son todos degradados (2-3 paradas).
+    for (const s of LOYALTY_COLOR_STYLES) {
+      expect(s.bg.length).toBeGreaterThanOrEqual(2);
+    }
   });
 });
 
@@ -129,30 +128,38 @@ describe('Estilos de color de lealtad: fondo y primera parada', () => {
   it('un bg_color guardado encuentra su estilo y su categoría', () => {
     expect(findLoyaltyStyleByBackground("linear-gradient(135deg, #262626, #000000)")?.id).toBe("oro-negro");
     expect(findLoyaltyCategoryByBackground("linear-gradient(135deg, #262626, #000000)")).toBe("premium");
-    expect(findLoyaltyStyleByBackground("#1B1107")?.id).toBe("cafe");
-    expect(findLoyaltyCategoryByBackground("#1B1107")).toBe("clasicos");
+    // Un color plano viejo (Clásicos, ya quitados) no coincide con ningún
+    // estilo: el wizard cae a Premium, sin romper nada.
+    expect(findLoyaltyStyleByBackground("#1B1107")).toBe(null);
+    expect(findLoyaltyCategoryByBackground("#1B1107")).toBe(null);
     expect(findLoyaltyStyleByBackground("#123456")).toBe(null);
     expect(findLoyaltyCategoryByBackground("#123456")).toBe(null);
   });
 });
 
 describe('LoyaltyWizard Paso 1: píldoras por categoría (PR #239)', () => {
-  it('dice «Selecciona tu estilo» y muestra las 5 píldoras de categoría, sin «Estilos Rápidos»', () => {
+  it('dice «Selecciona tu estilo» y muestra las 4 píldoras de categoría, sin «Estilos Rápidos» ni «Clásicos»', () => {
     const html = renderWizard();
     expect(html).toContain("Selecciona tu estilo");
-    for (const label of ["Premium", "Sobrios", "Cafetería", "Coloridos", "Clásicos"]) {
+    for (const label of ["Premium", "Sobrios", "Cafetería", "Coloridos"]) {
       expect(html).toContain(label);
     }
+    expect(html).not.toContain("Clásicos");
     expect(html).not.toContain("Estilos Rápidos");
   });
 
-  it('con una tarjeta Clásica (Café) se despliegan los 6 Clásicos con su nombre', () => {
+  it('con una tarjeta vieja de color clásico plano (#1B1107) se cae a Premium y la vista previa sigue con su color', () => {
     const html = renderWizard({ bg_color: "#1B1107" });
-    for (const label of ["Café", "Neón", "Rosado", "Azul", "Eco", "Gold"]) {
+    // Premium expandido: se ven sus 7 estilos.
+    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia"]) {
       expect(html).toContain(label);
     }
-    // Y la categoría activa es Clásicos: los Premium no se despliegan.
-    expect(html).not.toContain("Oro negro");
+    // Ningún estilo viejo aparece.
+    for (const label of ["Neón", "Rosado", "Gold"]) {
+      expect(html).not.toContain(label);
+    }
+    // La vista previa y el selector manual conservan el color guardado.
+    expect(html).toContain("#1B1107");
   });
 
   it('con un degradado Premium (Oro negro) se despliegan los 7 Premium', () => {
