@@ -254,7 +254,6 @@ export const TRANSLATIONS = {
     "home_oferta_especial": "Oferta Especial",
     "home_para_cerrar_dia": "Para cerrar el día",
     "home_para_iniciar_dia": "Para iniciar el día",
-    "home_planea_noche": "Planea tu noche",
     "home_playa": "Playa",
     "home_poster_evento": "Póster del evento",
     "home_precio_no_publicado": "Precio no publicado",
