@@ -147,14 +147,16 @@ describe('sonido propio: cableado (fuente)', () => {
     const gitignore = fs.readFileSync(new URL('../../.gitignore', import.meta.url), 'utf8');
     expect(gitignore).toContain('android/app/src/main/res/raw/citymap_alert.mp3');
   });
-  it('el .b64 versionado decodifica a un MP3 válido (cabecera ID3 y trama MPEG)', () => {
+  it('el .b64 versionado decodifica al pop ganador E (0.23 s, 1500→2200 Hz) en MP3 válido', () => {
     const b64 = fs.readFileSync(
       new URL('../../android/app/src/main/res/raw/citymap_alert.mp3.b64', import.meta.url),
       'utf8',
     );
     expect(b64.trim()).toMatch(/^[A-Za-z0-9+/=\s]+$/);
     const bytes = Buffer.from(b64, 'base64');
-    expect(bytes.length).toBeGreaterThan(10000);
+    // El ganador E es un pop cortito (0.23 s): ~2.3 KB, muy lejos del tono largo anterior.
+    expect(bytes.length).toBeGreaterThan(2000);
+    expect(bytes.length).toBeLessThan(4000);
     expect(bytes.subarray(0, 3).toString('latin1')).toBe('ID3');
     // Sincronía de trama MPEG (0xFF 0xFB) en los primeros 512 bytes tras la cabecera.
     let hasFrameSync = false;
