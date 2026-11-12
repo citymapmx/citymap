@@ -550,6 +550,8 @@ export const EN_TRANSLATIONS = {
     "eventos_recordar_aria": "Saved event reminder",
     "eventos_recordar_desc": "Want to remember this event? Add it to your calendar, check the time and set an alert.",
     "eventos_restantes": "remaining",
+    "eventos_rsvp_asistira": "Will attend",
+    "eventos_rsvp_asistire": "I'll attend",
     "eventos_rsvp_confirmado": "Confirmed",
     "eventos_rsvp_no": "Not going",
     "eventos_rsvp_no_van": "not going",
