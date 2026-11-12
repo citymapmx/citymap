@@ -66,7 +66,15 @@
 // conserva el comportamiento anterior (compartir la liga del negocio).
 // En web NO se puede publicar directo a Instagram: la hoja comparte la
 // imagen con el menú del sistema o la descarga, nunca promete publicarla.
+// Este PR: la hoja se monta con createPortal en document.body (ver el
+// return): sin portal, al abrirla desde «Compartir mi negocio» el
+// overlay fixed quedaba dentro del modal del hub, cuya animación
+// scaleFadeIn deja un transform persistente y se vuelve el bloque
+// contenedor del fixed — la hoja se recortaba abajo y no se podía
+// alcanzar ni con scroll. En SSR/pruebas (sin document) se pinta en
+// línea, como siempre.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useDataStore } from '../store/useDataStore.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { displayRating } from '../lib/googleRatings.js';
@@ -433,7 +441,21 @@ export default function ShareCardSheet({
     availableStyles[0],
   ];
 
-  return (
+  // La hoja es un overlay fixed que debe cubrir TODA la ventana: se
+  // monta con createPortal en document.body para que ningún ancestro
+  // con transform la recorte. Causa raíz del recorte (Jonathan, 12 nov
+  // 2026, moto g54): desde «Compartir mi negocio» la hoja vivía dentro
+  // del modal del hub (AccountView), cuyo div interior lleva
+  // `animation: scaleFadeIn ... both` — el keyframe final es
+  // `transform: scale(1)` y con fill `both` ese transform PERSISTE,
+  // así que ese div se vuelve el bloque contenedor de los fixed y el
+  // overlay solo cubría la caja del hub (~380 px) en vez de la ventana;
+  // el panel (~600 px) desbordaba esa caja y el `overflowY: auto` del
+  // hub lo cortaba por abajo, sin que el scroll propio de la hoja
+  // (maxHeight 92dvh) llegara a activarse. Con el portal el overlay
+  // cuelga del body y el maxHeight 92dvh + overflowY auto del panel
+  // hacen su trabajo en cualquier teléfono.
+  const sheet = (
     <div
       onClick={(e) => {
         e.stopPropagation();
@@ -807,4 +829,8 @@ export default function ShareCardSheet({
       </div>
     </div>
   );
+
+  // Sin document (SSR/pruebas) no hay portal: se pinta en línea.
+  if (typeof document === 'undefined' || !document.body) return sheet;
+  return createPortal(sheet, document.body);
 }
