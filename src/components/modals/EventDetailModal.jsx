@@ -251,11 +251,11 @@ export default function EventDetailModal() {
               {/* --- HERO IMAGE SECTION (solo eventos vigentes; los pasados van sin foto grande) --- */}
               {isPast ? (
                 <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "calc(env(safe-area-inset-top, 0px) + 12px) 16px 4px" }}>
-                  <button aria-label={t("eventos_volver", "Volver")} onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
-                    <Icon name="arrow_left" size={22} color={T.text} />
+                  <button aria-label={t("eventos_volver", "Volver")} onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ width: 44, height: 44, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                    <Icon name="arrow_left" size={24} color={T.text} />
                   </button>
-                  <button aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={(e) => { e.stopPropagation(); setShowShareCard(true); }} style={{ width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
-                    <Icon name="share" size={20} color={T.text} />
+                  <button aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={(e) => { e.stopPropagation(); setShowShareCard(true); }} style={{ width: 44, height: 44, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                    <Icon name="share" size={24} color={T.text} />
                   </button>
                 </div>
               ) : (
@@ -270,14 +270,18 @@ export default function EventDetailModal() {
                   </div>
                 )}
 
-                {/* Floating Back Button */}
-                <button aria-label={t("eventos_volver", "Volver")} onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
-                  <Icon name="arrow_left" size={22} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
+                {/* Floating Back Button (sin círculo, nov 2026 #221:
+                    icono suelto sobre la foto, mismo tamaño 44 px e
+                    icono 24 que corazón y compartir, con sombra para
+                    que se vea sobre cualquier foto). */}
+                <button aria-label={t("eventos_volver", "Volver")} onClick={(e) => { e.stopPropagation(); closeEvent(); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", left: 16, width: 44, height: 44, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
+                  <Icon name="arrow_left" size={24} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
                 </button>
                 
-                {/* Floating Share Button */}
-                <button aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={(e) => { e.stopPropagation(); setShowShareCard(true); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
-                  <Icon name="share" size={20} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
+                {/* Floating Share Button (sin círculo, nov 2026 #221:
+                    mismo tamaño 44 px e icono 24 que atrás y corazón). */}
+                <button aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={(e) => { e.stopPropagation(); setShowShareCard(true); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 44, height: 44, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
+                  <Icon name="share" size={24} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
                 </button>
 
                 {/* Corazón para guardar (nov 2026, Jonathan): arriba,
@@ -288,17 +292,23 @@ export default function EventDetailModal() {
                     (solo el corazón directo sobre la foto), y la misma
                     animación de partículas al guardar (HeartBurst).
                     Antes estaba en la barra inferior (PR #216);
-                    Jonathan lo pidió arriba (PR #219). */}
+                    Jonathan lo pidió arriba (PR #219). Tamaño
+                    unificado con atrás/compartir (botón 44 px, icono
+                    24) y sin `filter: "none"` para que la sombra suave
+                    del overlay se vea sobre fotos claras (PR #221:
+                    «Quedó muy pequeño el corazon, hazlo más grande
+                    que los 3 de la parte superior tengan el mismo
+                    tamaño sin el circulo negro»). */}
                 {toggleSaveEvent && (
                   <SaveHeartButton
                     isFav={isSaved}
                     onToggle={(e) => toggleSaveEvent(evLocalized.id, e)}
-                    size={22}
+                    size={24}
                     overlay
                     T={T}
                     title={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")}
                     ariaLabel={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")}
-                    buttonStyle={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 64, width: 40, height: 40, zIndex: 10, filter: "none" }}
+                    buttonStyle={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 68, zIndex: 10 }}
                   />
                 )}
 
