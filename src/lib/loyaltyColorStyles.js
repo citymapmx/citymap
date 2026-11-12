@@ -2,8 +2,10 @@
 // del LoyaltyWizard, PR #239).
 //
 // Cada estilo guarda su fondo como lista de paradas hex:
-// - 1 parada  = color plano (los Clásicos, como antes).
 // - 2-3 paradas = degradado linear-gradient(135deg, ...).
+// - 1 parada  = color plano: ya no hay estilos planos en la lista (los
+//   6 Clásicos se quitaron), pero el helper sigue aceptándolo para los
+//   fondos planos guardados a mano o de tarjetas viejas (p. ej. #1B1107).
 //
 // bg_color en la base sigue siendo UN solo texto: el hex plano o el
 // linear-gradient completo. Las tarjetas viejas con un hex plano se
@@ -65,19 +67,6 @@ export const LOYALTY_COLOR_CATEGORIES = [
       { id: "rosa-dorado", label: "Rosa dorado", bg: ["#F9A8D4", "#EC4899"], text: "#FFFFFF", primary: "#FDE68A" },
       { id: "menta", label: "Menta", bg: ["#A7F3D0", "#6EE7B7"], text: "#064E3B", primary: "#059669" },
       { id: "ambar", label: "Ámbar", bg: ["#FBBF24", "#F59E0B"], text: "#451A03", primary: "#92400E" },
-    ],
-  },
-  {
-    id: "clasicos",
-    label: "Clásicos",
-    styles: [
-      // Los 6 que existían antes (COLOR_PRESETS del wizard): planos, sin cambio.
-      { id: "cafe", label: "Café", bg: ["#1B1107"], text: "#F5E6D3", primary: "#C4841D" },
-      { id: "neon", label: "Neón", bg: ["#1A1A2E"], text: "#EAEAEA", primary: "#E94560" },
-      { id: "rosado", label: "Rosado", bg: ["#FDF2F8"], text: "#831843", primary: "#EC4899" },
-      { id: "azul", label: "Azul", bg: ["#0F172A"], text: "#F8FAFC", primary: "#3B82F6" },
-      { id: "eco", label: "Eco", bg: ["#FFFFFF"], text: "#1E293B", primary: "#10B981" },
-      { id: "gold", label: "Gold", bg: ["#18181B"], text: "#FAFAFA", primary: "#F59E0B" },
     ],
   },
 ];
