@@ -279,7 +279,7 @@ export const EN_TRANSLATIONS = {
     "home_publicidad": "Ad",
     "home_puntos_interes": "Points of interest",
     "home_que_buscas_en": "What are you looking for in",
-    "home_recomendacion_dia": "✨ Recommendation of the day",
+    "home_recomendaciones_dia": "✨ Recommendations of the day",
     "home_reintentar": "Retry",
     "home_reserva_viaje": "Book your trip",
     "home_restaurantes_conocer": "Restaurants you should know",
