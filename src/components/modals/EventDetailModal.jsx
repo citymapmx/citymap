@@ -436,7 +436,7 @@ export default function EventDetailModal() {
                       })}
                     </div>
 
-                    {privateTab === 'chat' && <PrivateEventChat event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setChatCount} />}
+                    {privateTab === 'chat' && <PrivateEventChat event={ev} T={T} dark={dark} toast$={toast$} onCountChange={setChatCount} />}
                     {privateTab === 'detalles' && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={false} hidePriceRow={Boolean(topPriceLabel)} />}
                     {privateTab === 'invitados' && <PrivateEventRsvp event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setGuestCount} />}
 

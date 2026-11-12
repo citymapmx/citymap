@@ -14,7 +14,7 @@ const event = { id: 'ev1', user_id: 'host1' };
 
 function renderChat(props = {}) {
   return renderToStaticMarkup(
-    <PrivateEventChat event={event} T={T} dark={false} luma={true} toast$={() => {}} onCountChange={() => {}} {...props} />,
+    <PrivateEventChat event={event} T={T} dark={false} toast$={() => {}} onCountChange={() => {}} {...props} />,
   );
 }
 
@@ -26,21 +26,23 @@ function cardStyle(html) {
 }
 
 // 11 nov 2026 (Jonathan): todo el chat del evento privado (mensajes +
-// barra para escribir) va dentro de UNA tarjeta blanca flotante. Las
+// barra para escribir) va dentro de UNA tarjeta flotante. Las
 // pestañas, el botón de enlace secreto y la nota de evento privado quedan
-// fuera. En modo oscuro la tarjeta usa el tono oscuro del tema.
-describe('chat del evento privado: tarjeta flotante blanca', () => {
-  it('en modo claro la tarjeta es blanca, con borde y sombra suave', () => {
+// fuera. Rediseño estilo WhatsApp (nov 2026): dentro de la tarjeta el
+// fondo es el de la paleta (#F7F7F5 en claro, #0B141A en oscuro), no el
+// blanco de la tarjeta original.
+describe('chat del evento privado: tarjeta flotante', () => {
+  it('en modo claro la tarjeta lleva el fondo del chat #F7F7F5, con borde y sombra suave', () => {
     const style = cardStyle(renderChat());
-    expect(style).toContain('background:#FFFFFF');
-    expect(style).toContain('border:1px solid #E7EBE8');
+    expect(style).toContain('background:#F7F7F5');
+    expect(style).toContain('border:1px solid #E5E7EB');
     expect(style).toContain('border-radius:24px');
     expect(style).toContain('box-shadow:0 10px 32px rgba(15,23,42,0.10)');
   });
 
   it('la tarjeta contiene la lista de mensajes y la barra para escribir', () => {
     const html = renderChat();
-    const cardAt = html.indexOf('border:1px solid #E7EBE8;border-radius:24px');
+    const cardAt = html.indexOf('border:1px solid #E5E7EB;border-radius:24px');
     expect(cardAt).toBeGreaterThan(-1);
     // La lista de mensajes va dentro de la tarjeta, y la barra de escribir
     // después de la lista, también dentro.
@@ -50,12 +52,12 @@ describe('chat del evento privado: tarjeta flotante blanca', () => {
     expect(html).toContain('aria-label="Mensaje"');
   });
 
-  it('en modo oscuro la tarjeta usa el tono oscuro del tema, nunca blanco', () => {
+  it('en modo oscuro la tarjeta lleva el fondo del chat #0B141A, nunca blanco', () => {
     const html = renderToStaticMarkup(
-      <PrivateEventChat event={event} T={T} dark={true} luma={false} toast$={() => {}} onCountChange={() => {}} />,
+      <PrivateEventChat event={event} T={T} dark={true} toast$={() => {}} onCountChange={() => {}} />,
     );
     const style = cardStyle(html);
-    expect(style).toContain('background:rgba(255,255,255,0.05)');
+    expect(style).toContain('background:#0B141A');
     expect(style).not.toContain('background:#FFFFFF');
   });
 
