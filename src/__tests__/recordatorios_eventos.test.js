@@ -80,6 +80,34 @@ describe('recordatorios: título y sustantivo del mensaje', () => {
   });
 });
 
+describe('recordatorios: imagen del evento en el aviso', () => {
+  const POSTER = 'https://cdn.example.com/poster.jpg';
+  it('el mensaje lleva imageUrl cuando el evento tiene img_url', () => {
+    expect(buildReminderMessage({ ...CALAMARO, img_url: POSTER }).imageUrl).toBe(POSTER);
+  });
+  it('usa img como respaldo cuando no hay img_url, e img_url manda sobre img', () => {
+    expect(buildReminderMessage({ ...CALAMARO, img: POSTER }).imageUrl).toBe(POSTER);
+    expect(buildReminderMessage({ ...CALAMARO, img_url: POSTER, img: 'https://cdn.example.com/otra.jpg' }).imageUrl).toBe(POSTER);
+  });
+  it('sin imagen no lleva la clave imageUrl (el aviso se manda igual)', () => {
+    expect(buildReminderMessage(CALAMARO)).not.toHaveProperty('imageUrl');
+  });
+  it('una imagen no HTTPS no se pasa (el aviso se manda sin imagen)', () => {
+    expect(buildReminderMessage({ ...CALAMARO, img_url: 'http://cdn.example.com/x.jpg' })).not.toHaveProperty('imageUrl');
+    expect(buildReminderMessage({ ...CALAMARO, img_url: '/img/poster.jpg' })).not.toHaveProperty('imageUrl');
+  });
+  it('el plan trae la imagen del evento', () => {
+    const plan = buildReminderPlan({
+      events: [{ ...CALAMARO, img_url: POSTER }],
+      favorites: [{ user_id: USER_A, event_id: CALAMARO.id }],
+      existingNotifs: [],
+      todayISO: TODAY,
+    });
+    expect(plan).toHaveLength(1);
+    expect(plan[0].imageUrl).toBe(POSTER);
+  });
+});
+
 describe('recordatorios: selección de eventos y plan', () => {
   it('solo entran los de hoy y aprobados; los multi-fecha no se repiten', () => {
     const multi = { ...CALAMARO, id: 'multi', date: '2026-11-10', end_date: TODAY };
@@ -228,6 +256,28 @@ describe('recordatorios: modo recordatorios en api/send-notification.js', () => 
       deepLink: '/evento/guadalajara/andres-calamaro',
       secret: 'test-admin-secret',
     });
+  });
+  it('ejecución real: el POST interno incluye imageUrl con el póster del evento', async () => {
+    mockEvents = [{ ...CALAMARO, img_url: 'https://cdn.example.com/poster.jpg' }];
+    const res = makeRes();
+    await handler(req({ method: 'POST', auth: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(sendCalls).toHaveLength(1);
+    expect(sendCalls[0].body.imageUrl).toBe('https://cdn.example.com/poster.jpg');
+  });
+  it('ejecución real: sin imagen del evento el POST no lleva imageUrl', async () => {
+    const res = makeRes();
+    await handler(req({ method: 'POST', auth: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(sendCalls).toHaveLength(1);
+    expect(sendCalls[0].body).not.toHaveProperty('imageUrl');
+  });
+  it('dry run: el plan muestra la imagen del evento', async () => {
+    mockEvents = [{ ...CALAMARO, img_url: 'https://cdn.example.com/poster.jpg' }];
+    const res = makeRes();
+    await handler(req({ auth: true, dry: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.plan[0].imageUrl).toBe('https://cdn.example.com/poster.jpg');
   });
   it('con el aviso de hoy ya enviado, no vuelve a mandar', async () => {
     mockNotifs = [{

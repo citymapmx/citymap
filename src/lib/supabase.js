@@ -124,7 +124,7 @@ const sb = {
     });
     return r.ok;
   },
-  async notify(user_id, title, body, type = 'system', deepLink = null) {
+  async notify(user_id, title, body, type = 'system', deepLink = null, imageUrl = null) {
     if (!user_id) return;
     try {
       // Usa el JWT de sesión del admin como autenticación — no expone secretos en el frontend
@@ -139,6 +139,7 @@ const sb = {
           type,
           user_id,
           deepLink,
+          ...(imageUrl ? { imageUrl } : {}),
         })
       });
     } catch (err) {

@@ -14,6 +14,7 @@ import { useUIStore } from "../store/useUIStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { getT } from "../lib/constants.js";
 import { sb } from "../lib/supabase.js";
+import { businessNotificationImage } from "../lib/notifications.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 
 export default function BookingModal({ biz, onClose }) {
@@ -285,7 +286,7 @@ export default function BookingModal({ biz, onClose }) {
       }
       const targetUserId = biz.owner_id || biz.user_id;
       if (targetUserId) {
-        await sb.notify(targetUserId, t("revista_nueva_reservacion", "Nueva reservación pendiente"), t("revista_solicitud_reserva", `${name} ha solicitado una reserva para el ${date}.`, {name, date}), "booking", `/manage/${biz.slug || biz.id}`);
+        await sb.notify(targetUserId, t("revista_nueva_reservacion", "Nueva reservación pendiente"), t("revista_solicitud_reserva", `${name} ha solicitado una reserva para el ${date}.`, {name, date}), "booking", `/manage/${biz.slug || biz.id}`, businessNotificationImage(biz));
       }
       setSuccess(true);
     } catch (err) {

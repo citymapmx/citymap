@@ -3,6 +3,7 @@
 // y sus tests; la app solo sincroniza los guardados.
 
 import { eventUrl } from './eventUrls.js';
+import { eventNotificationImage } from './notifications.js';
 
 // Hoy en Ciudad de México (America/Mexico_City), "YYYY-MM-DD".
 export function todayInMexicoCity(date = new Date()) {
@@ -62,7 +63,9 @@ export function reminderNoun(eventCategory) {
 
 // Mensaje del recordatorio: { title, body, deepLink } o null si al evento le
 // falta lo mínimo (título o fecha). La hora es opcional: sin hora, el mensaje
-// no lleva "a las …".
+// no lleva "a las …". Si el evento tiene imagen (img_url o img, solo HTTPS)
+// lleva imageUrl para que el aviso muestre el póster; sin imagen no lleva
+// la clave y el aviso se manda igual que hoy.
 export function buildReminderMessage(event) {
   const title = toTitleCaseIfUpper(event?.title);
   if (!title || !event?.date) return null;
@@ -71,7 +74,8 @@ export function buildReminderMessage(event) {
   const body = time12
     ? `Hoy es ${noun} ${title} a las ${time12}, no te lo pierdas`
     : `Hoy es ${noun} ${title}, no te lo pierdas`;
-  return { title, body, deepLink: eventUrl(event) };
+  const imageUrl = eventNotificationImage(event);
+  return { title, body, deepLink: eventUrl(event), ...(imageUrl ? { imageUrl } : {}) };
 }
 
 // Eventos de hoy (solo `date`, la primera fecha: los multi-fecha no se

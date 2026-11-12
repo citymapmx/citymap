@@ -1,4 +1,5 @@
 import Icon from '../ui/Icon';
+import { businessNotificationImage } from '../../lib/notifications.js';
 
 export default function AdminReservationsTab({
   data,
@@ -34,13 +35,13 @@ export default function AdminReservationsTab({
             {r.status === "pending" && <div style={{ display: "flex", gap: 8 }}>
               <button onClick={async () => { 
                 await sb.patch("reservations", r.id, { status: "confirmed" }); 
-                if (r.user_id) { const biz = data.biz.find(b => b.id === r.biz_id); await sb.notify(r.user_id, "Reserva Confirmada", `Tu reserva en ${biz ? biz.name : 'el negocio'} ha sido confirmada.`, "approval"); }
+                if (r.user_id) { const biz = data.biz.find(b => b.id === r.biz_id); await sb.notify(r.user_id, "Reserva Confirmada", `Tu reserva en ${biz ? biz.name : 'el negocio'} ha sido confirmada.`, "approval", null, businessNotificationImage(biz)); }
                 onToast("Reserva confirmada"); 
                 await load(); 
               }} style={{ flex: 1, padding: "8px 0", background: "#DCFCE7", border: "none", borderRadius: 9, fontSize: 12, fontWeight: 700, color: "#16A34A", cursor: "pointer", fontFamily: "inherit" }}>Confirmar</button>
               <button onClick={async () => { 
                 await sb.patch("reservations", r.id, { status: "cancelled" }); 
-                if (r.user_id) { const biz = data.biz.find(b => b.id === r.biz_id); await sb.notify(r.user_id, "Reserva Cancelada", `Tu reserva en ${biz ? biz.name : 'el negocio'} ha sido cancelada.`, "alert"); }
+                if (r.user_id) { const biz = data.biz.find(b => b.id === r.biz_id); await sb.notify(r.user_id, "Reserva Cancelada", `Tu reserva en ${biz ? biz.name : 'el negocio'} ha sido cancelada.`, "alert", null, businessNotificationImage(biz)); }
                 onToast("Reserva cancelada"); 
                 await load(); 
               }} style={{ flex: 1, padding: "8px 0", background: "#FEE2E2", border: "none", borderRadius: 9, fontSize: 12, fontWeight: 700, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
