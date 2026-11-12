@@ -451,12 +451,19 @@ export default function EventDetailModal() {
                   </>
                 ) : (
                   /* --- Datos del evento: en los pasados ya no se muestran (fecha, lugar y precio vencidos) --- */
-                  !isPast && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={isPast} hidePriceRow={Boolean(topPriceLabel)} />
+                  !isPast && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={isPast} hidePriceRow={Boolean(topPriceLabel)} unified={Boolean(musicQuery && musicTracks && musicTracks.length > 0)} />
                 )}
 
-                {/* --- MÚSICA DEL ARTISTA (adelantos de iTunes; si no hay canciones no se muestra nada) --- */}
+                {/* --- MÚSICA DEL ARTISTA (adelantos de iTunes; si no hay canciones no se muestra nada) ---
+                    Mitad inferior de la tarjeta unificada (PR #228): va
+                    pegada bajo la información, sin espacio entre ambas;
+                    esquinas superiores cuadradas y solo las dos
+                    inferiores redondeadas (20, como la tarjeta de
+                    información). Sin borde: uno claro dibujaría una
+                    línea en la junta con la parte oscura. El rojo
+                    (#FA2D48) y todo el contenido no cambian. */}
                 {musicQuery && musicTracks && musicTracks.length > 0 && (
-                  <div style={{ margin: '0 0 24px 0', background: APPLE_MUSIC_RED, border: '1px solid rgba(255,255,255,0.25)', borderRadius: 16, padding: 16, boxShadow: T.shadow }}>
+                  <div style={{ margin: '0 0 24px 0', background: APPLE_MUSIC_RED, borderRadius: '0 0 20px 20px', padding: 16, boxShadow: T.shadow }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
                       <div style={{ fontSize: 18, fontWeight: 800, color: '#FFFFFF' }}>{t("eventos_musica_artista", "Música del artista")}</div>
                       {/* Distintivo oficial de Apple Music: logo blanco sobre negro. */}
