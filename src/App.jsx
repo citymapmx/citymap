@@ -31,6 +31,7 @@ import Icon from './components/ui/Icon.jsx';
 import BrandSplash from './components/ui/BrandSplash.jsx';
 
 import { getEventStatus, CAT_EMOJI, isOpenNow, createSlug, parseMenuUrls, cleanCityPrefix, isNear } from './lib/utils.js';
+import { bizToForm } from './lib/bizForm.js';
 const ClaimModal = lazy(() => import('./components/ClaimModal.jsx'));
 const PlanPaymentModal = lazy(() => import('./components/PlanPaymentModal.jsx'));
 const Uploader = lazy(() => import('./components/Uploader.jsx'));
@@ -334,6 +335,19 @@ export default function CityGuide() {
     if (!pendingPlan || !myBizList?.length) return;
     setShowPlans(true);
   }, [pendingPlan, myBizList, setShowPlans]);
+
+  // Solo 1 negocio por cuenta: si se abre el registro y el usuario ya
+  // tiene un negocio, se abre la edición de su negocio en vez de un
+  // registro nuevo. Cubre los puntos que llaman setShowAddBiz directo
+  // del store (pie, mapa, muro, estado vacío); /negocios y /cuenta ya lo
+  // hacen directo en su propio handler.
+  useEffect(() => {
+    if (!showAddBiz || editBizId || !user) return;
+    const first = myBizList?.[0];
+    if (!first) return;
+    setEditBizId(first.id);
+    setAddBizForm(bizToForm(first));
+  }, [showAddBiz, editBizId, user, myBizList, setEditBizId, setAddBizForm]);
 
   // Regreso de Stripe: leer ?success=true / ?canceled=true una sola vez y
   // limpiar la URL para no repetir el aviso al recargar.

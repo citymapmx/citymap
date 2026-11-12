@@ -2,17 +2,23 @@ import { useState, useEffect } from 'react';
 import Icon from './ui/Icon.jsx';
 import { sb } from '../lib/supabase.js';
 import { useUIStore } from '../store/useUIStore.js';
-import { markAllReadLocal } from '../lib/notifications.js';
+import { useDataStore } from '../store/useDataStore.js';
+import { markAllReadLocal, resolveNotifAction } from '../lib/notifications.js';
 
 export default function UserNotifs({ T, onBack, user }) {
   const [loading, setLoading] = useState(true);
   const [notifs, setNotifs] = useState([]);
   const [error, setError] = useState(false);
+  // Mis negocios: para resolver el destino de las notificaciones viejas
+  // sin enlace (por el nombre del negocio en el cuerpo).
+  const myBizList = useDataStore(s => s.myBizList);
+  const loadMyBiz = useDataStore(s => s.loadMyBiz);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     if (user) {
       loadNotifs();
+      if (!myBizList?.length) loadMyBiz(user.id)?.catch?.(() => {});
     } else {
        
       setLoading(false);
@@ -88,14 +94,29 @@ export default function UserNotifs({ T, onBack, user }) {
     return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
   };
 
-  const getIconForType = (type) => {
-    switch (type) {
-      case 'booking': return { name: 'calendar', bg: '#EFF6FF', color: '#3B82F6' };
-      case 'approval': return { name: 'check', bg: '#F0FDF4', color: '#22C55E' };
-      case 'alert': return { name: 'info', bg: '#FEF2F2', color: '#EF4444' };
-      case 'system': return { name: 'bell', bg: '#F5F3FF', color: '#8B5CF6' };
-      default: return { name: 'bell', bg: T.greenL, color: T.green };
+  // Tocar una notificación SIEMPRE abre algo: el destino se resuelve en
+  // resolveNotifAction (enlace si lo hay; si no, el negocio que menciona
+  // el cuerpo; si no, /cuenta). La notificación queda marcada como leída.
+  const handleTap = (n) => {
+    markAsRead(n.id, n.read);
+    const action = resolveNotifAction(n, myBizList);
+    const url = action.url || '/cuenta';
+    if (url.startsWith('http')) {
+      try {
+        const parsed = new URL(url);
+        if (parsed.hostname === 'citymap.mx' || parsed.hostname === window.location.hostname) {
+          if (onBack) onBack();
+          window.location.href = parsed.pathname + parsed.search;
+        } else {
+          window.open(url, '_blank');
+        }
+      } catch {
+        window.location.href = url;
+      }
+      return;
     }
+    if (onBack) onBack();
+    window.location.href = url;
   };
 
   const unreadCount = notifs.filter(n => !n.read).length;
@@ -133,69 +154,35 @@ export default function UserNotifs({ T, onBack, user }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {notifs.map(n => {
-              const iconObj = getIconForType(n.type);
               return (
-                <div 
-                  key={n.id} 
-                  onClick={() => {
-                    markAsRead(n.id, n.read);
-                    const link = n.deep_link || n.action_url;
-                    if (link) {
-                      if (link.startsWith('http')) {
-                        try {
-                          const url = new URL(link);
-                          if (url.hostname === 'citymap.mx' || url.hostname === window.location.hostname) {
-                            if (onBack) onBack(); // Close modal if needed
-                            window.location.href = url.pathname + url.search;
-                          } else {
-                            window.open(link, '_blank');
-                          }
-                        } catch (e) {
-                          window.location.href = link;
-                        }
-                      } else if (link.startsWith('/')) {
-                        if (onBack) onBack();
-                        window.location.href = link;
-                      } else {
-                        window.location.href = link;
-                      }
-                    }
-                  }}
-                  style={{ 
-                    background: T.white, 
-                    borderRadius: 16, 
-                    padding: 16, 
-                    display: "flex", 
-                    gap: 14, 
+                <div
+                  key={n.id}
+                  onClick={() => handleTap(n)}
+                  style={{
+                    background: T.white,
+                    borderRadius: 16,
+                    padding: 16,
                     border: `1px solid ${T.border}`,
                     boxShadow: n.read ? "none" : T.shadow,
-                    position: "relative",
-                    overflow: "hidden",
                     cursor: "pointer",
                     opacity: n.read ? 0.7 : 1,
                     transition: "all 0.2s"
                   }}
                 >
-                  {!n.read && <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: 4, background: iconObj.color }} />}
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: iconObj.bg, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Icon name={iconObj.name} size={20} color={iconObj.color} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                      <div style={{ fontWeight: 800, fontSize: 15, color: T.text, paddingRight: 10 }}>{n.title}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ fontSize: 11, color: T.sub, whiteSpace: "nowrap" }}>{getRelativeTime(n.created_at)}</div>
-                        <button 
-                          className="press" 
-                          onClick={(e) => deleteNotif(e, n.id)} 
-                          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", justifyContent: "center", color: T.sub }}
-                        >
-                          <Icon name="trash" size={14} />
-                        </button>
-                      </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                    <div style={{ fontWeight: 800, fontSize: 15, color: T.text, paddingRight: 10, textAlign: "left" }}>{n.title}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                      <div style={{ fontSize: 11, color: T.sub, whiteSpace: "nowrap" }}>{getRelativeTime(n.created_at)}</div>
+                      <button
+                        className="press"
+                        onClick={(e) => deleteNotif(e, n.id)}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", justifyContent: "center", color: T.sub }}
+                      >
+                        <Icon name="trash" size={14} />
+                      </button>
                     </div>
-                    <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.5 }}>{n.body}</div>
                   </div>
+                  <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.5, textAlign: "left" }}>{n.body}</div>
                 </div>
               );
             })}

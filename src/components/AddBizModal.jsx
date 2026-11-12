@@ -1,7 +1,5 @@
-import { useState } from 'react';
-import Icon from './ui/Icon.jsx';
+import { useState, useEffect } from 'react';
 import Uploader from './Uploader.jsx';
-import MenuManager from './MenuManager.jsx';
 import { sb, cloudDelete } from '../lib/supabase.js';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { useUIStore } from '../store/useUIStore.js';
@@ -11,6 +9,7 @@ import { getCountryCode } from '../lib/domain.js';
 import {
   WIZARD_DAYS, WIZARD_DEFAULT_OPEN, WIZARD_DEFAULT_CLOSE,
   to12h, parseDayRange, isDayOpen, openDaysOf, buildSchedule,
+  firstDayRange, isAdvancedSchedule,
   effectivePlanFeatures, comparePlanFeatures, planPrice,
   isPaidPlanKey, hasTrial, parsePriceNumber,
 } from '../lib/crearNegocio.js';
@@ -57,15 +56,44 @@ export default function AddBizModal({
   })();
   const [openTime, setOpenTime] = useState(initialRange?.open || WIZARD_DEFAULT_OPEN);
   const [closeTime, setCloseTime] = useState(initialRange?.close || WIZARD_DEFAULT_CLOSE);
+  // Al abrir la edición: empezar en el paso 1 y prellenar Abre/Cierra con
+  // el primer día abierto del horario guardado (los estados solo se
+  // inicializan al montar el componente, no al abrir el modal).
+  // Va ANTES del return de showAddBiz: los hooks no pueden ir después de
+  // un return condicional.
+  useEffect(() => {
+    if (!showAddBiz || !editBizId) return;
+    const r = firstDayRange(addBizForm.schedule);
+    if (r) { setOpenTime(r.open); setCloseTime(r.close); }
+    setStep(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAddBiz, editBizId]);
   if (!showAddBiz) return null;
 
-  const isOwnerEdit = editBizId && addBizForm.owner_id === user?.id;
+  // EDICIÓN = el mismo asistente, prellenado, en 2 pasos (sin plan ni
+  // pago: el plan no se cambia aquí, sigue por «Ver planes»).
+  const isEdit = Boolean(editBizId);
+  // Dueño = owner_id o user_id coinciden. El formulario viejo solo miraba
+  // owner_id: un negocio creado con el asistente (user_id, owner_id null)
+  // lo trataba como si no fuera del dueño (checkbox, «¿Por qué lo
+  // recomiendas?», ciudad en minúscula...).
+  const isBizOwner = isEdit && (addBizForm.owner_id === user?.id || addBizForm.user_id === user?.id);
   const isPremium = addBizForm.plan === "destacado" || addBizForm.plan === "premium" || addBizForm.plan === "pro";
-  const isFreeOwner = isOwnerEdit && !isPremium;
-  const isCreate = !editBizId;
+  const isFreeOwner = isEdit && isBizOwner && !isPremium;
+  // Edición limitada (dueño gratuito o no dueño): nombre, fotos y
+  // logotipo estáticos; sin WhatsApp ni horario; solo teléfono y
+  // dirección editables. El dueño con plan de pago edita los pasos 1–2
+  // completos. La descripción y la dirección se editan en ambos casos.
+  const isLimitedEdit = isEdit && (!isBizOwner || !isPremium);
+  const totalSteps = isEdit ? 2 : 3;
+  // Horario avanzado (tipo distinto de regular o varios turnos por día):
+  // el asistente de píldoras no lo representa; en edición no se toca y
+  // se gestiona en el administrador. El horario guardado se reenvía tal
+  // cual (submitForm lo manda de vuelta sin cambios).
+  const advancedSchedule = isEdit && isAdvancedSchedule(addBizForm.schedule);
   const citySlug = addBizForm.city || activeCity;
   const cityName = cities.find(c => c.slug === citySlug)?.name || (citySlug ? citySlug.charAt(0).toUpperCase() + citySlug.slice(1) : '');
-  const close = () => { setShowAddBiz(false); setEditBizId(null); };
+  const close = () => { setShowAddBiz(false); setEditBizId(null); setStep(1); };
 
   // Estilo Apple del asistente: claro #F5F5F7, oscuro premium.
   const blue = dark ? '#2997FF' : '#0071E3';
@@ -121,7 +149,10 @@ export default function AddBizModal({
   };
   const goStep2 = () => {
     if (!addBizForm.name || !addBizForm.category || !citySlug) { toast$('Nombre, categoría y ciudad son obligatorios'); return; }
-    if (openDaysOf(schedule).length === 0) {
+    // Solo en creación se abren todos los días por defecto. En edición el
+    // horario guardado se respeta tal cual (si no tiene días, el dueño los
+    // elige en el paso 2).
+    if (!isEdit && openDaysOf(schedule).length === 0) {
       setSchedule(buildSchedule(WIZARD_DAYS.map(([k]) => k), openTime, closeTime));
     }
     setStep(2);
@@ -205,10 +236,18 @@ export default function AddBizModal({
     } catch(e) { toast$("Error: " + e.message); } finally { setAddBizLoading(false); }
   };
 
-  // ── CREACIÓN: asistente de 3 pasos estilo Apple ──────────────────────
-  if (isCreate) {
+  // ── Asistente estilo Apple: 3 pasos en creación, 2 en edición ───────
+  // (en edición no hay paso 3: ni selección de plan ni pago).
+  {
     const stepTitle = step === 1 ? t('crear_negocio_paso1', 'Tu negocio') : step === 2 ? t('crear_negocio_paso2', 'Contacto y horario') : t('crear_negocio_paso3', 'Elige tu plan');
-    const stepSub = step === 1 ? t('crear_negocio_paso1_sub', 'Lo básico para que tu negocio aparezca en CityMap.') : step === 2 ? t('crear_negocio_paso2_sub', 'Cómo te contactan tus clientes.') : t('crear_negocio_paso3_sub', 'Puedes empezar gratis y cambiar cuando quieras.');
+    const stepSub = step === 1
+      ? (isEdit ? t('crear_negocio_editar_sub', 'Corrige la información y reenvía para revisión') : t('crear_negocio_paso1_sub', 'Lo básico para que tu negocio aparezca en CityMap.'))
+      : step === 2 ? t('crear_negocio_paso2_sub', 'Cómo te contactan tus clientes.') : t('crear_negocio_paso3_sub', 'Puedes empezar gratis y cambiar cuando quieras.');
+    // Botón final de la edición: reenviar si estaba en cambios o en
+    // revisión; guardar si ya estaba aprobado (se queda aprobado).
+    const editSubmitLabel = addBizForm.status === 'approved'
+      ? t('crear_negocio_guardar', 'Guardar cambios')
+      : t('crear_negocio_actualizar', 'Actualizar y reenviar');
     return (
       <div className="ov" onClick={close}>
         <div className="sh crear-negocio" style={{ maxHeight: '94vh', overflowY: 'auto', background: pageBg, '--cn-input-bg': inputBg, '--cn-text': T.text, '--cn-hairline': dark ? '#3F3F46' : '#E5E7EB', '--cn-blue': blue }} onClick={e => e.stopPropagation()}>
@@ -225,15 +264,15 @@ export default function AddBizModal({
             }
           `}</style>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 17, fontWeight: 800, color: T.text }}>{t('crear_negocio_titulo', 'Crea tu negocio')}</span>
+            <span style={{ fontSize: 17, fontWeight: 800, color: T.text }}>{isEdit ? t('crear_negocio_editar_titulo', 'Actualizar negocio') : t('crear_negocio_titulo', 'Crea tu negocio')}</span>
             <button onClick={close} style={{ background: backBg, border: 'none', borderRadius: '50%', width: 28, height: 28, color: T.text, fontSize: 14, cursor: 'pointer' }}>✕</button>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: blue }}>{t('crear_negocio_paso_de', 'Paso ${n} de 3', { n: step })}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: blue }}>{isEdit ? t('crear_negocio_paso_de_2', 'Paso ${n} de 2', { n: step }) : t('crear_negocio_paso_de', 'Paso ${n} de 3', { n: step })}</span>
             <span style={{ fontSize: 13, fontWeight: 600, color: T.sub }}>{stepTitle}</span>
           </div>
           <div style={{ display: 'flex', gap: 6, margin: '10px 0 20px' }}>
-            {[1, 2, 3].map(i => <div key={i} style={{ flex: 1, height: 4, borderRadius: 999, background: i <= step ? blue : hairline }} />)}
+            {Array.from({ length: totalSteps }, (_, i) => i + 1).map(i => <div key={i} style={{ flex: 1, height: 4, borderRadius: 999, background: i <= step ? blue : hairline }} />)}
           </div>
           <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', color: T.text, margin: '0 0 6px' }}>{stepTitle}</h2>
           <p style={{ fontSize: 14, color: T.sub, margin: '0 0 20px' }}>{stepSub}</p>
@@ -243,7 +282,13 @@ export default function AddBizModal({
               <div style={{ marginBottom: 18 }}>
                 <span style={labelStyle}>{t('crear_negocio_logotipo', 'Logotipo')}</span>
                 <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                  {addBizForm.logo_url ? (
+                  {isLimitedEdit ? (
+                    addBizForm.logo_url ? (
+                      <img src={addBizForm.logo_url} alt={t('crear_negocio_logotipo', 'Logotipo')} style={{ width: 68, height: 68, objectFit: 'cover', borderRadius: '50%', display: 'block', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 68, height: 68, borderRadius: '50%', background: inputBg, flexShrink: 0 }} />
+                    )
+                  ) : addBizForm.logo_url ? (
                     <div style={{ position: 'relative', width: 68, height: 68, flexShrink: 0 }}>
                       <img src={addBizForm.logo_url} alt={t('crear_negocio_logotipo', 'Logotipo')} style={{ width: 68, height: 68, objectFit: 'cover', borderRadius: '50%', display: 'block' }} />
                       <button type="button" aria-label="Quitar logotipo" onClick={() => { const u = addBizForm.logo_url; setAddBizForm(f => ({ ...f, logo_url: '' })); if (u) cloudDelete(u).catch(() => {}); }} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#FF3B30', color: '#fff', border: 'none', fontSize: 12, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
@@ -263,27 +308,37 @@ export default function AddBizModal({
                   {(addBizForm.photos || []).map((url, i) => (
                     <div key={url} style={{ position: 'relative', width: 68, height: 68 }}>
                       <img src={url} alt="" style={{ width: 68, height: 68, objectFit: 'cover', borderRadius: 16, display: 'block' }} />
-                      <button type="button" aria-label="Quitar foto" onClick={() => { setAddBizForm(f => ({ ...f, photos: f.photos.filter((_, j) => j !== i) })); cloudDelete(url).catch(() => {}); }} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#FF3B30', color: '#fff', border: 'none', fontSize: 12, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                      {!isLimitedEdit && (
+                        <button type="button" aria-label="Quitar foto" onClick={() => { setAddBizForm(f => ({ ...f, photos: f.photos.filter((_, j) => j !== i) })); cloudDelete(url).catch(() => {}); }} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#FF3B30', color: '#fff', border: 'none', fontSize: 12, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                      )}
                     </div>
                   ))}
-                  {(addBizForm.photos || []).length < 3 && (
+                  {!isLimitedEdit && (addBizForm.photos || []).length < 3 && (
                     <Uploader multiple compact label="Agregar foto" onDone={(url) => setAddBizForm(f => ({ ...f, photos: [...(f.photos || []), url] }))} />
                   )}
                 </div>
-                <div style={captionStyle}>{t('crear_negocio_fotos_hasta', 'Hasta 3 fotos.')}</div>
+                {!isLimitedEdit && <div style={captionStyle}>{t('crear_negocio_fotos_hasta', 'Hasta 3 fotos.')}</div>}
               </div>
 
               <div style={{ marginBottom: 18 }}>
                 <label style={labelStyle}>{t('crear_negocio_nombre', 'Nombre del negocio')}</label>
-                <input className="cn-input" style={inputStyle} value={addBizForm.name} onChange={e => setAddBizForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej. Nokai Sushi" autoComplete="off" />
+                {isLimitedEdit ? (
+                  <div className="cn-input" style={{ ...inputStyle, color: T.sub }}>{addBizForm.name}</div>
+                ) : (
+                  <input className="cn-input" style={inputStyle} value={addBizForm.name} onChange={e => setAddBizForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej. Nokai Sushi" autoComplete="off" />
+                )}
               </div>
 
               <div style={{ marginBottom: 18 }}>
                 <label style={labelStyle}>{t('crear_negocio_categoria', 'Categoría')}</label>
-                <select className="cn-input" style={{ ...inputStyle, appearance: 'auto' }} value={addBizForm.category} onChange={e => setAddBizForm(f => ({ ...f, category: e.target.value }))}>
-                  <option value="">Seleccionar...</option>
-                  {(cats || []).map(c => <option key={c.id} value={c.label}>{c.label}</option>)}
-                </select>
+                {isEdit ? (
+                  <div className="cn-input" style={{ ...inputStyle, color: T.sub }}>{addBizForm.category}</div>
+                ) : (
+                  <select className="cn-input" style={{ ...inputStyle, appearance: 'auto' }} value={addBizForm.category} onChange={e => setAddBizForm(f => ({ ...f, category: e.target.value }))}>
+                    <option value="">Seleccionar...</option>
+                    {(cats || []).map(c => <option key={c.id} value={c.label}>{c.label}</option>)}
+                  </select>
+                )}
               </div>
 
               <div style={{ marginBottom: 18 }}>
@@ -307,50 +362,82 @@ export default function AddBizModal({
 
           {step === 2 && (
             <div>
-              <div style={{ marginBottom: 12 }}>
-                <label style={labelStyle}>{t('crear_negocio_whatsapp', 'WhatsApp')}</label>
-                <input className="cn-input" style={inputStyle} type="tel" value={addBizForm.whatsapp} onChange={e => setAddBizForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="311 000 0000" autoComplete="off" />
-              </div>
+              {isFreeOwner ? (
+                <>
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={labelStyle}>{t('crear_negocio_telefono', 'Teléfono')}</label>
+                    <input className="cn-input" style={inputStyle} type="tel" value={addBizForm.phone} onChange={e => setAddBizForm(f => ({ ...f, phone: e.target.value }))} placeholder="311 000 0000" autoComplete="off" />
+                  </div>
+                  <div style={{ marginTop: 6, marginBottom: 22, padding: 16, background: 'linear-gradient(135deg, #C9A84C22, #F59E0B11)', border: '1.5px solid #C9A84C55', borderRadius: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>★ {t('crear_negocio_gratis_titulo', 'Plan gratuito activo')}</div>
+                    <p style={{ fontSize: 12, color: '#92400E', opacity: 0.85, lineHeight: 1.5, margin: 0 }}>{t('crear_negocio_gratis_texto', 'Con el plan gratuito solo puedes actualizar tu teléfono y dirección. Sube de nivel para editar fotos, horarios, WhatsApp, redes sociales y más.')}</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {!isLimitedEdit && (
+                    <div style={{ marginBottom: 12 }}>
+                      <label style={labelStyle}>{t('crear_negocio_whatsapp', 'WhatsApp')}</label>
+                      <input className="cn-input" style={inputStyle} type="tel" value={addBizForm.whatsapp} onChange={e => setAddBizForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="311 000 0000" autoComplete="off" />
+                    </div>
+                  )}
 
-              <div style={{ marginBottom: 18 }}>
-                <label style={labelStyle}>{t('crear_negocio_telefono', 'Teléfono')}</label>
-                <input className="cn-input" style={inputStyle} type="tel" value={addBizForm.phone} onChange={e => setAddBizForm(f => ({ ...f, phone: e.target.value }))} placeholder="311 000 0000" autoComplete="off" />
-              </div>
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={labelStyle}>{t('crear_negocio_telefono', 'Teléfono')}</label>
+                    <input className="cn-input" style={inputStyle} type="tel" value={addBizForm.phone} onChange={e => setAddBizForm(f => ({ ...f, phone: e.target.value }))} placeholder="311 000 0000" autoComplete="off" />
+                  </div>
 
-              <div style={{ marginBottom: 22 }}>
-                <span style={labelStyle}>{t('crear_negocio_horario', 'Horario')}</span>
-                <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>{t('crear_negocio_que_dias', '¿Qué días abres?')}</div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {WIZARD_DAYS.map(([key, label]) => {
-                    const open = isDayOpen(schedule, key);
-                    return (
-                      <button key={key} type="button" aria-pressed={open} onClick={() => toggleDay(key)} style={{ flex: '1 1 0', minWidth: 0, padding: '9px 0', border: 'none', borderRadius: 999, background: open ? blue : backBg, color: open ? '#FFFFFF' : T.sub, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginTop: 12 }}>
-                  <label style={{ flex: 1, minWidth: 0 }}>
-                    <span style={labelStyle}>{t('crear_negocio_abre', 'Abre')}</span>
-                    <input type="time" value={openTime} onChange={e => changeTime('open', e.target.value)} className="cn-input" style={inputStyle} />
-                  </label>
-                  <label style={{ flex: 1, minWidth: 0 }}>
-                    <span style={labelStyle}>{t('crear_negocio_cierra', 'Cierra')}</span>
-                    <input type="time" value={closeTime} onChange={e => changeTime('close', e.target.value)} className="cn-input" style={inputStyle} />
-                  </label>
-                </div>
-                <div style={captionStyle}>{t('crear_negocio_horario_nota', 'Puedes configurar tu horario completo en tu administrador')}</div>
-              </div>
+                  {!isLimitedEdit && (
+                    advancedSchedule ? (
+                      <div style={{ marginBottom: 22 }}>
+                        <span style={labelStyle}>{t('crear_negocio_horario', 'Horario')}</span>
+                        <div style={captionStyle}>{t('crear_negocio_horario_avanzado', 'Tu horario avanzado se gestiona en tu administrador.')}</div>
+                      </div>
+                    ) : (
+                      <div style={{ marginBottom: 22 }}>
+                        <span style={labelStyle}>{t('crear_negocio_horario', 'Horario')}</span>
+                        <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>{t('crear_negocio_que_dias', '¿Qué días abres?')}</div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {WIZARD_DAYS.map(([key, label]) => {
+                            const open = isDayOpen(schedule, key);
+                            return (
+                              <button key={key} type="button" aria-pressed={open} onClick={() => toggleDay(key)} style={{ flex: '1 1 0', minWidth: 0, padding: '9px 0', border: 'none', borderRadius: 999, background: open ? blue : backBg, color: open ? '#FFFFFF' : T.sub, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginTop: 12 }}>
+                          <label style={{ flex: 1, minWidth: 0 }}>
+                            <span style={labelStyle}>{t('crear_negocio_abre', 'Abre')}</span>
+                            <input type="time" value={openTime} onChange={e => changeTime('open', e.target.value)} className="cn-input" style={inputStyle} />
+                          </label>
+                          <label style={{ flex: 1, minWidth: 0 }}>
+                            <span style={labelStyle}>{t('crear_negocio_cierra', 'Cierra')}</span>
+                            <input type="time" value={closeTime} onChange={e => changeTime('close', e.target.value)} className="cn-input" style={inputStyle} />
+                          </label>
+                        </div>
+                        <div style={captionStyle}>{t('crear_negocio_horario_nota', 'Puedes configurar tu horario completo en tu administrador')}</div>
+                      </div>
+                    )
+                  )}
+                </>
+              )}
 
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => setStep(1)} style={backBtn}>{t('crear_negocio_atras', 'Atrás')}</button>
-                <button type="button" onClick={() => setStep(3)} style={primaryBtn}>{t('crear_negocio_siguiente', 'Siguiente')}</button>
+                {isEdit ? (
+                  <button type="button" onClick={submitForm} disabled={addBizLoading} style={{ ...primaryBtn, opacity: addBizLoading ? 0.6 : 1 }}>
+                    {addBizLoading ? 'Guardando...' : editSubmitLabel}
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => setStep(3)} style={primaryBtn}>{t('crear_negocio_siguiente', 'Siguiente')}</button>
+                )}
               </div>
             </div>
           )}
 
-          {step === 3 && (
+          {!isEdit && step === 3 && (
             <div>
               <div role="radiogroup" aria-label={t('crear_negocio_paso3', 'Elige tu plan')}>
                 {plans.map(p => {
@@ -438,266 +525,4 @@ export default function AddBizModal({
     );
   }
 
-  // ── EDICIÓN de un negocio existente: se conserva como estaba ──────────
-  // (solo se quitó el campo de vídeo promocional del bloque premium;
-  // los datos guardados en video_url no se borran).
-  return (
-    <div className="ov" onClick={close}>
-      <div className="sh" style={{ maxHeight: "94vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-          <h2 style={{ fontFamily: "var(--heading)", fontSize: 22, color: T.text }}>{editBizId ? "Actualizar negocio" : "Sugerir un lugar o negocio"}</h2>
-          <button onClick={close} style={{ background: T.bg, border: "none", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, marginLeft: 12 }}><Icon name="x" size={16} color={T.sub} /></button>
-        </div>
-        <p style={{ fontSize: 13, color: T.sub, marginBottom: 18 }}>{editBizId ? "Corrige la información y reenvía para revisión" : "Se publicará tras la revisión del equipo CityMap"}</p>
-
-        {!isOwnerEdit && (
-          <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", background: "rgba(201, 168, 76, 0.1)", border: "1px solid rgba(201, 168, 76, 0.3)", borderRadius: 12, cursor: "pointer", marginBottom: 16 }}>
-            <input type="checkbox" checked={addBizForm.is_owner || false} onChange={e => setAddBizForm(f => ({ ...f, is_owner: e.target.checked }))} style={{ width: 18, height: 18, accentColor: "#C9A84C" }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Soy el dueño o administrador de este lugar</span>
-          </label>
-        )}
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Imágenes ({(addBizForm.photos || []).length}/3)</div>
-            {!isFreeOwner && (addBizForm.photos || []).length < 3 && (
-              <Uploader multiple={true} onDone={url => setAddBizForm(f => ({ ...f, photos: [...(f.photos || []), url] }))} label="Agregar foto" />
-            )}
-            {(addBizForm.photos || []).length > 0 && (
-              <div style={{ display: "flex", gap: 8, marginTop: 8, overflowX: "auto", paddingBottom: 4 }}>
-                {(addBizForm.photos || []).map((url, i) => (
-                  <div key={i} style={{ position: "relative", width: 100, height: 100, flexShrink: 0 }}>
-                    <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10 }} loading="lazy" />
-                    {!isFreeOwner && (
-                      <button
-                        onClick={async () => {
-                          await cloudDelete(url).catch(err => console.warn("Could not delete photo:", err));
-                          setAddBizForm(f => ({ ...f, photos: f.photos.filter((_, idx) => idx !== i) }));
-                        }}
-                        style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-                      >
-                        <Icon name="x" size={14} color="#fff" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Nombre del negocio <span style={{ color: T.red }}>*</span></div>
-              {isFreeOwner ? (
-                <div style={{ padding: "12px 14px", background: T.bg, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.sub, fontFamily: "inherit", minHeight: 44 }}>{addBizForm.name}</div>
-              ) : (
-                <input className="inp" placeholder="Ej: Restaurante Los Pinos" value={addBizForm.name} onChange={e => setAddBizForm(f => ({ ...f, name: e.target.value }))} />
-              )}
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            {editBizId ? (
-              <div style={{ flex: 1 }}><div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Categoría</div>
-                <div style={{ padding: "12px 14px", background: T.bg, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.sub, fontFamily: "inherit" }}>{addBizForm.category}</div>
-              </div>
-            ) : (
-              <div style={{ flex: 1 }}><div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Categoría <span style={{ color: T.red }}>*</span></div>
-                <select value={addBizForm.category} onChange={e => setAddBizForm(f => ({ ...f, category: e.target.value }))} style={{ width: "100%", padding: "12px 14px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.text, fontFamily: "inherit" }}>
-                  <option value="">Seleccionar...</option>
-                  {(cats || []).map(c => <option key={c.id} value={c.label}>{c.label}</option>)}
-                </select>
-              </div>
-            )}
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Ciudad <span style={{ color: T.red }}>*</span></div>
-              <div style={{ padding: "12px 14px", background: T.bg, border: `1.5px solid ${T.border}`, borderRadius: 12, fontSize: 14, color: T.sub, fontFamily: "inherit", minHeight: 44 }}>
-                {addBizForm.city || activeCity}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Etiquetas o Subcategorías (Separadas por comas)</div>
-            <input className="inp" placeholder="Desayunos, tacos, terraza, pet-friendly..." value={Array.isArray(addBizForm.tags) ? addBizForm.tags.join(", ") : (addBizForm.tags || "")} onChange={e => setAddBizForm(f => ({ ...f, tags: e.target.value }))} />
-          </div>
-
-          {!(addBizForm.is_owner || isOwnerEdit) && (
-            <div><div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>¿Por qué lo recomiendas?</div><textarea className="inp" placeholder="Tienen los mejores tacos de la ciudad..." rows={3} value={addBizForm.description} onChange={e => setAddBizForm(f => ({ ...f, description: e.target.value }))} style={{ resize: "none", height: 80 }} /></div>
-          )}
-          {isOwnerEdit && (
-            <div><div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Descripción del negocio</div><textarea className="inp" placeholder="Breve descripción del negocio..." rows={3} value={addBizForm.description} onChange={e => setAddBizForm(f => ({ ...f, description: e.target.value }))} style={{ resize: "none", height: 80 }} /></div>
-          )}
-
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Dirección aproximada</div>
-            <input className="inp" placeholder="Av. México 123, Col. Centro, Tepic" value={addBizForm.address} onChange={e => setAddBizForm(f => ({ ...f, address: e.target.value }))} />
-          </div>
-
-          {(addBizForm.is_owner || isOwnerEdit) && (
-            <>
-              <div style={{ height: 1, background: T.border, margin: "10px 0" }} />
-
-              {/* PHONE - always available */}
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Teléfono para llamadas</div>
-                <input className="inp" placeholder="311 000 0000" type="tel" value={addBizForm.phone} onChange={e => setAddBizForm(f => ({ ...f, phone: e.target.value }))} />
-              </div>
-
-              {!isPremium ? (
-                /* ── FREE PLAN: only phone + address + upgrade CTA ── */
-                <>
-                  <div style={{ marginTop: 6, padding: "16px", background: "linear-gradient(135deg, #C9A84C22, #F59E0B11)", border: "1.5px solid #C9A84C55", borderRadius: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E", display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                      <Icon name="star" size={14} color="#C9A84C" />
-                      Plan gratuito activo
-                    </div>
-                    <p style={{ fontSize: 12, color: "#92400E", opacity: 0.85, lineHeight: 1.5 }}>
-                      Con el plan gratuito solo puedes actualizar tu teléfono y dirección. Sube de nivel para editar fotos, horarios, WhatsApp, redes sociales y más.
-                    </p>
-                  </div>
-
-                </>
-              ) : (
-                /* ── PREMIUM PLAN: all owner fields ── */
-                <>
-                  <div>
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 8 }}>Tipo de Horario</div>
-                      <select value={(addBizForm.schedule || {}).type || "regular"} onChange={e => setAddBizForm(f => ({ ...f, schedule: { ...(f.schedule || {}), type: e.target.value } }))} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1.5px solid ${T.border}`, background: T.bg, color: T.text, fontSize: 14, outline: "none", fontWeight: 600 }}>
-                        <option value="regular">Regular (Un turno por día)</option>
-                        <option value="advanced">Avanzado (Múltiples turnos o clases)</option>
-                        <option value="always_open">Siempre Abierto (24/7)</option>
-                        <option value="appointment">Previa Cita / Servicio (Sin horario fijo)</option>
-                        <option value="delivery">Solo a Domicilio / Para Llevar (Dark Kitchen)</option>
-                        <option value="none">Sin Horario (Perfil Digital / Creador)</option>
-                      </select>
-                    </div>
-
-                    {(!addBizForm.schedule?.type || addBizForm.schedule?.type === "regular" || addBizForm.schedule?.type === "advanced" || addBizForm.schedule?.type === "delivery") && <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6 }}>Horario por día</div>
-                        <button type="button" onClick={() => {
-                          const lun = (addBizForm.schedule || {}).lun || "";
-                          if (!lun) return;
-                          setAddBizForm(f => ({ ...f, schedule: { ...f.schedule, mar: lun, mie: lun, jue: lun, vie: lun, sab: lun, dom: lun } }));
-                        }} style={{ fontSize: 10, fontWeight: 700, color: T.green, background: T.greenL, border: "none", padding: "4px 8px", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><Icon name="nav" size={10} /> Copiar Lunes a todos</button>
-                      </div>
-                      {[["lun","Lunes"],["mar","Martes"],["mie","Miércoles"],["jue","Jueves"],["vie","Viernes"],["sab","Sábado"],["dom","Domingo"]].map(([key, label]) => {
-                        const raw = (addBizForm.schedule || {})[key] || "";
-                        const closed = !raw || /cerrado/i.test(raw);
-                        const isAdv = (addBizForm.schedule || {}).type === "advanced";
-                        const toT24 = s => { const m = (s || "").trim().match(/(\d{1,2})(?:\s*:\s*(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i); if (!m) return ""; let h = parseInt(m[1]); const mn = parseInt(m[2] || 0); const p = (m[3] || "").replace(/\./g, "").toLowerCase(); if (p === "pm" && h !== 12) h += 12; if (p === "am" && h === 12) h = 0; return `${String(h).padStart(2,"0")}:${String(mn).padStart(2,"0")}`; };
-                        const to12h = s => { if(!s) return ""; let [h, m] = s.split(":"); h = parseInt(h); const p = h >= 12 ? "p.m." : "a.m."; h = h % 12 || 12; return `${String(h).padStart(2, "0")}:${m} ${p}`; };
-                        const lines = closed ? [] : raw.split('\n').map(x => x.trim()).filter(Boolean);
-                        const updateDay = (val) => { setAddBizForm(f => ({ ...f, schedule: { ...(f.schedule || {}), [key]: val } })); };
-                        const updateRegular = (o, c) => updateDay(`${to12h(o)} - ${to12h(c)}`);
-                        return <div key={key} style={{ display: "flex", alignItems: isAdv && !closed ? "flex-start" : "center", gap: 6, marginBottom: isAdv && !closed ? 8 : 6 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: T.text, width: 76, flexShrink: 0, marginTop: isAdv && !closed ? 8 : 0 }}>{label}</span>
-                          <button type="button" onClick={() => closed ? updateDay(isAdv ? "09:00 a.m. - 02:00 p.m.\n04:00 p.m. - 08:00 p.m." : "09:00 a.m. - 10:00 p.m.") : updateDay("Cerrado")} style={{ padding: "5px 8px", border: `1.5px solid ${closed ? T.border : T.green}`, borderRadius: 8, fontSize: 10, fontWeight: 700, background: closed ? T.bg : T.greenL, color: closed ? T.sub : T.green, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, marginTop: isAdv && !closed ? 3 : 0 }}>{closed ? "Cerrado" : "Abierto"}</button>
-                          {!closed && !isAdv && (() => {
-                            const segs = (lines[0] || "09:00 a.m. - 10:00 p.m.").split(/\s*[–-]\s*|\s+a\s+/i);
-                            return (
-                              <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1 }}>
-                                <input type="time" value={toT24(segs[0]) || "09:00"} onChange={e => updateRegular(e.target.value, toT24(segs[1]) || "22:00")} style={{ flex: 1, padding: "5px 4px", border: `1.5px solid ${T.border}`, borderRadius: 8, fontSize: 12, color: T.text, background: T.white, fontFamily: "inherit" }} />
-                                <span style={{ fontSize: 10, color: T.sub }}>a</span>
-                                <input type="time" value={toT24(segs[1]) || "22:00"} onChange={e => updateRegular(toT24(segs[0]) || "09:00", e.target.value)} style={{ flex: 1, padding: "5px 4px", border: `1.5px solid ${T.border}`, borderRadius: 8, fontSize: 12, color: T.text, background: T.white, fontFamily: "inherit" }} />
-                              </div>
-                            )
-                          })()}
-                          {!closed && isAdv && <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-                            {lines.map((line, idx) => {
-                              const segs = line.split(/\s*[–-]\s*|\s+a\s+/i);
-                              const o = toT24(segs[0]) || "09:00";
-                              const c = toT24(segs[1]) || "14:00";
-                              return (
-                                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                  <input type="time" value={o} onChange={e => { const nl = [...lines]; nl[idx] = `${to12h(e.target.value)} - ${to12h(c)}`; updateDay(nl.join('\n')); }} style={{ flex: 1, padding: "5px 4px", border: `1.5px solid ${T.border}`, borderRadius: 8, fontSize: 12, color: T.text, background: T.white, fontFamily: "inherit" }} />
-                                  <span style={{ fontSize: 10, color: T.sub }}>a</span>
-                                  <input type="time" value={c} onChange={e => { const nl = [...lines]; nl[idx] = `${to12h(o)} - ${to12h(e.target.value)}`; updateDay(nl.join('\n')); }} style={{ flex: 1, padding: "5px 4px", border: `1.5px solid ${T.border}`, borderRadius: 8, fontSize: 12, color: T.text, background: T.white, fontFamily: "inherit" }} />
-                                  <button type="button" onClick={() => { const nl = lines.filter((_, i) => i !== idx); if (!nl.length) updateDay("Cerrado"); else updateDay(nl.join('\n')); }} style={{ padding: "4px", background: "none", border: "none", color: T.red, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="x" size={14} /></button>
-                                </div>
-                              );
-                            })}
-                            {lines.length < 3 && (
-                              <button type="button" onClick={() => { updateDay([...lines, "04:00 p.m. - 08:00 p.m."].join('\n')); }} style={{ background: "none", border: "none", color: T.green, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: "4px 0", textAlign: "left", width: "max-content" }}>+ Añadir turno</button>
-                            )}
-                          </div>}
-                        </div>;
-                      })}
-                    </div>}
-                  </div>
-
-                  <div style={{ height: 1, background: T.border, margin: "14px 0" }} />
-                  <h4 style={{ color: "#C9A84C", fontSize: 14, fontWeight: 800, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><Icon name="star" size={16} color="#C9A84C" />Funciones Premium</h4>
-
-                  <div style={{ position: "relative" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>WhatsApp Directo</div>
-                    <input className="inp" placeholder="3110000000" value={addBizForm.whatsapp} onChange={e => setAddBizForm(f => ({ ...f, whatsapp: e.target.value }))} style={{ marginBottom: 12 }} />
-                  </div>
-
-                  <div style={{ position: "relative" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Sitio web / Menú</div>
-                    <input className="inp" placeholder="https://..." value={addBizForm.website} onChange={e => setAddBizForm(f => ({ ...f, website: e.target.value }))} style={{ marginBottom: 12 }} />
-                  </div>
-
-                  <div style={{ position: "relative" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6 }}>Enlace de Mercado Libre</div>
-                    <input className="inp" placeholder="https://listado.mercadolibre..." value={addBizForm.mercado_libre_nickname || ""} onChange={e => setAddBizForm(f => ({ ...f, mercado_libre_nickname: e.target.value.trim() }))} style={{ marginBottom: 12, border: "1px solid #FCD34D", background: T.white }} />
-                  </div>
-
-                  <div style={{ marginTop: 8, padding: 16, background: "#FEF3C7", borderRadius: 16, border: "1px solid #FDE68A" }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "#92400E", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                      <Icon name="star" size={16} color="#92400E" /> Funciones Premium
-                    </div>
-                    <div style={{ fontSize: 13, color: "#92400E", opacity: 0.8, marginBottom: 16 }}>Tu plan actual ({addBizForm.plan || "free"}) incluye funciones adicionales.</div>
-
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 8 }}>Logotipo en el Mapa (Sustituye al emoji)</div>
-                      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                        <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "2px solid #FCD34D", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          {addBizForm.logo_url ? <img src={addBizForm.logo_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Icon name="image" size={20} color="#FCD34D" />}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <Uploader aspect={1} label="Subir Logotipo" onDone={url => setAddBizForm(f => ({ ...f, logo_url: url }))} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 8 }}>Redes Sociales</div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.5)", padding: "8px 12px", borderRadius: 10 }}>
-                          <Icon name="facebook" size={18} color="#1877F2" />
-                          <input type="text" placeholder="Usuario o enlace de Facebook" value={addBizForm.facebook || ""} onChange={e => setAddBizForm(f => ({ ...f, facebook: e.target.value }))} style={{ flex: 1, border: "none", background: "transparent", outline: "none", fontSize: 13, color: "#92400E", fontFamily: "inherit" }} />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.5)", padding: "8px 12px", borderRadius: 10 }}>
-                          <Icon name="instagram" size={18} color="#E1306C" />
-                          <input type="text" placeholder="Usuario de Instagram" value={addBizForm.instagram || ""} onChange={e => setAddBizForm(f => ({ ...f, instagram: e.target.value }))} style={{ flex: 1, border: "none", background: "transparent", outline: "none", fontSize: 13, color: "#92400E", fontFamily: "inherit" }} />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.5)", padding: "8px 12px", borderRadius: 10 }}>
-                          <Icon name="tiktok" size={18} color="#000" />
-                          <input type="text" placeholder="Usuario de TikTok" value={addBizForm.tiktok || ""} onChange={e => setAddBizForm(f => ({ ...f, tiktok: e.target.value }))} style={{ flex: 1, border: "none", background: "transparent", outline: "none", fontSize: 13, color: "#92400E", fontFamily: "inherit" }} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 8 }}>Menú Digital (Imágenes o PDF)</div>
-                      <MenuManager
-                        menuPdfUrl={addBizForm.menu_pdf_url}
-                        onChange={(val) => setAddBizForm(f => ({ ...f, menu_pdf_url: val }))}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
-          )}
-
-          <button onClick={submitForm} style={{ padding: 15, background: addBizLoading ? T.sub : T.green, border: "none", borderRadius: 14, fontSize: 15, fontWeight: 800, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>
-            {addBizLoading ? "Guardando..." : editBizId ? (biz.find(b => b.id === editBizId)?.owner_id === user?.id ? "Guardar cambios" : "Actualizar y reenviar") : "Enviar para revisión"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }
