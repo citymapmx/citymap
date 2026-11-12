@@ -5,7 +5,7 @@ import Icon from "./ui/Icon.jsx";
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from "../lib/cropImage.js";
 
-export default function Uploader({ onDone, label = "Subir foto", accept = "image/*", aspect = null, multiple = false, avatarMode = false, optimize = null }) {
+export default function Uploader({ onDone, label = "Subir foto", accept = "image/*", aspect = null, multiple = false, avatarMode = false, optimize = null, compact = false, circle = false }) {
   const [pct, setPct] = useState(-1); 
   const [err, setErr] = useState(""); 
   const ref = useRef();
@@ -126,6 +126,18 @@ export default function Uploader({ onDone, label = "Subir foto", accept = "image
           <div style={{ height: 4, background: "#E4E8E4", borderRadius: 2, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${pct}%`, background: "#1A7A5E", transition: "width .3s", borderRadius: 2 }} />
           </div>
+        </div>
+      ) : compact ? (
+        // Modo compacto (asistente de crear negocio): cuadrito de 68 px
+        // con "+" en vez de la caja grande punteada. Misma subida y
+        // recorte que el modo normal; circle lo hace redondo (logotipo).
+        <div
+          role="button"
+          aria-label={label}
+          onClick={() => ref.current.click()}
+          style={{ width: 68, height: 68, flexShrink: 0, border: "1.5px dashed #C7C7CC", borderRadius: circle ? "50%" : 16, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "transparent" }}
+        >
+          <Icon name="plus" size={24} color="#8E8E93" />
         </div>
       ) : (
         <div 

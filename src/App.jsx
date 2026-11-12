@@ -1685,6 +1685,8 @@ useEffect(() => {
           loadMapPins={loadMapPins}
           loadMyBiz={loadMyBiz}
           setShowPlans={setShowPlans}
+          pendingPlan={pendingPlan}
+          setPendingPlan={setPendingPlan}
           toast$={toast$}
           T={T}
         /></Suspense>}
