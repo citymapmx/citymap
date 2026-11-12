@@ -21,7 +21,8 @@ function timeLabel(value, lang = 'es') {
 
 // Información del evento: fecha, lugar y entradas en una sola tarjeta,
 // sin etiquetas ("Cuándo", "Dónde") — el icono ya dice qué es cada dato.
-// La descripción ("Acerca del evento") va primero, antes de la tarjeta.
+// La descripción ("Acerca del evento") va dentro de la tarjeta, como
+// primer bloque (PR #231, Jonathan 11 nov 2026), con texto blanco.
 // La barra fija de boletos vive en EventTicketBar (exportada aquí abajo):
 // el modal la pinta como hija directa del wrapper del detalle, NO dentro
 // de esta tarjeta — dentro de aquí su bloque contenedor terminaba a mitad
@@ -75,12 +76,12 @@ export function EventTicketBar({ event, T, hideTickets = false, onShare = null }
 // detalle de Calamaro): la tarjeta de información lleva degradado
 // vertical #34383B → #050505 con texto blanco, fijo en los dos modos.
 // `unified` = el reproductor de Apple Music va pegado debajo: la
-// tarjeta pierde su radio, su sombra y su margen inferior para
-// fundirse con él en una sola tarjeta (esquinas superiores cuadradas
-// y las dos inferiores redondeadas, en el reproductor). Sin
+// tarjeta pierde su sombra y su margen inferior para fundirse con él
+// en una sola tarjeta (PR #231: las 4 esquinas redondeadas — la
+// información `20px 20px 0 0`, el reproductor `0 0 20px 20px`). Sin
 // reproductor, la tarjeta lleva el radio completo (20, como antes)
-// y su sombra. La descripción («Acerca del evento») queda fuera de
-// la tarjeta, arriba, como siempre.
+// y su sombra. La descripción («Acerca del evento») va dentro de la
+// tarjeta, como primer bloque, antes de la fecha.
 export default function EventInformation({ event, associatedBiz, T, hideTickets = false, hidePriceRow = false, unified = false }) {
   const { t, lang } = useTranslation();
   const locale = lang === 'en' ? 'en-US' : 'es-MX';
@@ -112,26 +113,27 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
   // «Añadir a mi calendario»: enlace a Google Calendar con fecha, hora,
   // título y recinto reales del evento; null si la fecha no es válida.
   const calendarUrl = getEventCalendarUrl(event);
-  const hasInfo = Boolean((start || times) || (venue || address || coordinates) || showPriceRow);
   const { lead, paragraphs } = splitDescription(event.description);
+  const hasDescription = Boolean(lead || paragraphs.length > 0);
+  const hasInfo = Boolean((start || times) || (venue || address || coordinates) || showPriceRow);
   const [expanded, setExpanded] = useState(false);
   const shownParagraphs = expanded ? paragraphs : paragraphs.slice(0, 2);
   const needsMore = paragraphs.length > 2;
   const rowStyle = { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', textAlign: 'left' };
   const iconStyle = { flexShrink: 0, marginTop: 2 };
   return <>
-    {(lead || paragraphs.length > 0) && <section style={{ textAlign: 'left', margin: '16px 0 24px' }}><h2 style={{ margin: '0 0 8px', color: T.text, fontSize: 17, fontWeight: 800 }}>{t("eventos_acerca", "Acerca del evento")}</h2>
-      {lead && <p style={{ margin: '0 0 10px', color: T.text, fontSize: 16, lineHeight: 1.5, fontWeight: 700 }}>{lead}</p>}
-      {shownParagraphs.map((p, i) => (
-        <p key={i} style={{ margin: i === 0 ? 0 : '10px 0 0', color: T.text, fontSize: 15, lineHeight: 1.5 }}>{p}</p>
-      ))}
-      {needsMore && (
-        <button onClick={() => setExpanded(v => !v)} style={{ marginTop: 10, padding: 0, background: 'none', border: 'none', color: T.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-          {expanded ? t("eventos_leer_menos", "Leer menos") : t("eventos_leer_mas", "Leer más")}
-        </button>
-      )}
-    </section>}
-    {hasInfo && <div style={{ background: 'linear-gradient(180deg, #34383B 0%, #050505 100%)', borderRadius: unified ? 0 : 20, padding: '2px 16px', boxShadow: unified ? 'none' : T.shadow, marginBottom: unified ? 0 : (event.description || showLinks ? 22 : 0) }}>
+    {(hasInfo || hasDescription) && <div style={{ background: 'linear-gradient(180deg, #34383B 0%, #050505 100%)', borderRadius: unified ? '20px 20px 0 0' : 20, padding: '2px 16px', boxShadow: unified ? 'none' : T.shadow, marginBottom: unified ? 0 : (event.description || showLinks ? 22 : 0) }}>
+      {hasDescription && <section style={{ textAlign: 'left', padding: '14px 0 12px' }}><h2 style={{ margin: '0 0 8px', color: '#FFFFFF', fontSize: 17, fontWeight: 800 }}>{t("eventos_acerca", "Acerca del evento")}</h2>
+        {lead && <p style={{ margin: '0 0 10px', color: '#FFFFFF', fontSize: 16, lineHeight: 1.5, fontWeight: 700 }}>{lead}</p>}
+        {shownParagraphs.map((p, i) => (
+          <p key={i} style={{ margin: i === 0 ? 0 : '10px 0 0', color: 'rgba(255,255,255,0.75)', fontSize: 15, lineHeight: 1.5 }}>{p}</p>
+        ))}
+        {needsMore && (
+          <button onClick={() => setExpanded(v => !v)} style={{ marginTop: 10, padding: 0, background: 'none', border: 'none', color: '#FFFFFF', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            {expanded ? t("eventos_leer_menos", "Leer menos") : t("eventos_leer_mas", "Leer más")}
+          </button>
+        )}
+      </section>}
       {(start || times) && <div style={rowStyle}>
         <Icon name="calendar" size={26} color="#FFFFFF" style={iconStyle} />
         <div style={{ minWidth: 0 }}>
