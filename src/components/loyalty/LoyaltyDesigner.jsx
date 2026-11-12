@@ -3,6 +3,7 @@ import Icon from '../ui/Icon.jsx';
 import { sb } from '../../lib/supabase.js';
 import { loyaltyBgFirstColor } from '../../lib/loyaltyColorStyles.js';
 import LoyaltyWizard from './LoyaltyWizard.jsx';
+import LoyaltyWhatsAppButton from './LoyaltyWhatsAppButton.jsx';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 700);
@@ -314,9 +315,12 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
                         </div>
                       </div>
                       
-                      <button onClick={() => deleteMember(m.id)} disabled={isStamping} style={{ background: "none", border: "none", color: "#EF4444", padding: 8, cursor: "pointer", opacity: isStamping ? 0.3 : 1 }}>
-                        <Icon name="trash" size={16} />
-                      </button>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                        <LoyaltyWhatsAppButton member={m} stampsRequired={config.stamps_required} bizName={business?.name} disabled={isStamping} />
+                        <button onClick={() => deleteMember(m.id)} disabled={isStamping} style={{ background: "none", border: "none", color: "#EF4444", padding: 8, cursor: "pointer", opacity: isStamping ? 0.3 : 1 }}>
+                          <Icon name="trash" size={16} />
+                        </button>
+                      </div>
                     </div>
 
                     <div style={{ display: "flex", gap: 8 }}>
@@ -624,12 +628,15 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
                         {m.last_stamp_at ? ` · ${new Date(m.last_stamp_at).toLocaleDateString("es-MX", {day:"numeric",month:"short"})}` : ""}
                       </div>
                     </div>
-                    <button
-                      onClick={() => giveStamp(m.id, m.stamps, config.stamps_required)}
-                      disabled={stampingId === m.id}
-                      style={{ padding: "8px 14px", background: "#000", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: stampingId === m.id ? 0.5 : 1, whiteSpace: "nowrap" }}>
-                      {stampingId === m.id ? "..." : "+ Sello"}
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      <LoyaltyWhatsAppButton member={m} stampsRequired={config.stamps_required} bizName={business?.name} disabled={stampingId === m.id} />
+                      <button
+                        onClick={() => giveStamp(m.id, m.stamps, config.stamps_required)}
+                        disabled={stampingId === m.id}
+                        style={{ padding: "8px 14px", background: "#000", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: stampingId === m.id ? 0.5 : 1, whiteSpace: "nowrap" }}>
+                        {stampingId === m.id ? "..." : "+ Sello"}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
