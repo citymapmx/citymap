@@ -2,6 +2,7 @@ import { eventCalendarDay, isListedEvent, formatEventCardDate, matchesDateFilter
 import { matchesPriceFilter, priceSortValue } from '../lib/eventDetails.js';
 import { CITY_TZ } from '../lib/constants.js';
 import React, { useState, useMemo, useEffect } from "react";
+import { createPortal } from 'react-dom';
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
@@ -332,6 +333,94 @@ export default function EventsView() {
     if (user) haptic();
   };
 
+  // La tarjeta de filtros es un overlay fixed que debe cubrir TODA la
+  // ventana y centrarse en la pantalla visible: se monta con
+  // createPortal en document.body para que ningún ancestro con transform
+  // la descentre. Causa raíz (Jonathan, 12 nov 2026): la tarjeta vivía
+  // al final de EventsView, cuya raíz lleva `...viewStyle` (App.jsx) —
+  // `transform: translateY(0)` persistente tras el fade — y ese transform
+  // vuelve la raíz el bloque contenedor de los fixed: el overlay cubría
+  // toda la página de eventos (larga) y la tarjeta quedaba centrada en
+  // el medio de la página, fuera de la pantalla visible. Con el portal
+  // el overlay cuelga del body y el flex lo centra en la ventana
+  // visible. Sin document (SSR/pruebas) se pinta en línea, como siempre.
+  const filterOverlay = (
+    <div
+      onClick={() => setSheetOpen(false)}
+      style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", boxSizing: "border-box" }}
+    >
+      <div role="dialog" aria-modal="true" aria-label={t("eventos_filtros", "Filtros de eventos")} className="scale-in-center" onClick={(e) => e.stopPropagation()} style={{ background: T.bg, width: "calc(100vw - 32px)", maxWidth: 460, borderRadius: 24, padding: "20px 20px calc(16px + env(safe-area-inset-bottom, 0px))", boxShadow: "0 24px 48px rgba(0,0,0,0.2)", maxHeight: "92dvh", overflowY: "auto", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.3px" }}>{t("eventos_filtros", "Filtros de eventos")}</h2>
+          <button onClick={() => setSheetOpen(false)} aria-label={t("eventos_cerrar_filtros", "Cerrar filtros")} style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", color: T.text, fontSize: 20, lineHeight: 1, cursor: "pointer" }}>×</button>
+        </div>
+
+        {/* Fecha */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <Icon name="calendar" size={20} color={T.text} />
+            <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{t("eventos_fecha", "Fecha")}</span>
+          </div>
+          <div style={chipRowStyle}>
+            {DATE_FILTERS.map(f => (
+              <button
+                key={f.key}
+                onClick={() => { haptic(); setDraftDate(f.key); setDraftCustomDate(""); }}
+                style={chipStyle(draftDate === f.key)}
+              >
+                {t(f.labelKey, f.label)}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, border: `1px solid ${draftDate === "custom" ? T.green : T.border}`, borderRadius: 12, padding: "4px 6px 4px 14px", background: dark ? "rgba(255,255,255,0.04)" : "#F8FAFC" }}>
+            <Icon name="calendar" size={18} color={T.sub} />
+            <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: T.text }}>{t("eventos_fecha_personalizada", "Fecha personalizada")}</span>
+            <input type="date" value={draftCustomDate} onChange={e => { setDraftCustomDate(e.target.value); if (e.target.value) setDraftDate("custom"); }} aria-label={t("eventos_fecha_personalizada", "Fecha personalizada")} style={{ border: "none", outline: "none", background: "transparent", color: T.text, fontSize: 14, fontFamily: "inherit", maxWidth: 150 }} />
+          </div>
+        </div>
+
+        {/* Precio */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <Icon name="tag" size={20} color={T.text} />
+            <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{t("eventos_precio", "Precio")}</span>
+          </div>
+          <div style={chipRowStyle}>
+            {PRICE_FILTERS.map(f => (
+              <button
+                key={f.key}
+                onClick={() => { haptic(); setDraftPrice(f.key); }}
+                style={chipStyle(draftPrice === f.key)}
+              >
+                {t(f.labelKey, f.label)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Ordenar por */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 18, fontWeight: 800, color: T.text, lineHeight: 1 }}>↑↓</span>
+            <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{t("eventos_ordenar_por", "Ordenar por")}</span>
+          </div>
+          <div style={{ position: "relative" }}>
+            <select value={draftSort} onChange={e => setDraftSort(e.target.value)} aria-label={t("eventos_ordenar_por", "Ordenar por")} style={selectStyle}>
+              <option value="fecha">{t("eventos_orden_fecha", "Próximos eventos")}</option>
+              <option value="precio">{t("eventos_orden_precio", "Precio: menor a mayor")}</option>
+            </select>
+            <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%) rotate(90deg)", pointerEvents: "none", display: "flex" }}>
+              <Icon name="chevron" size={18} color={T.sub} />
+            </span>
+          </div>
+        </div>
+
+        <button onClick={applySheet} className="press" style={{ width: "100%", minHeight: 52, background: T.green, color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 9999, fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{t("eventos_mostrar_eventos", "Mostrar eventos")}</button>
+        <button onClick={() => { clearFilters(); setSheetOpen(false); }} style={{ display: "block", margin: "14px auto 0", border: "none", background: "transparent", color: T.sub, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t("eventos_limpiar_filtros", "Limpiar filtros")}</button>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ paddingBottom: 88, ...viewStyle, minHeight: "100vh", display: "flex", flexDirection: "column", overflowAnchor: "none" }}>
       {/* ── STICKY TOP HEADER ── */}
@@ -569,82 +658,9 @@ export default function EventsView() {
           centrada con las 4 esquinas redondeadas (mismo patrón que la
           tarjeta para compartir, PR #147). Sin tirador: es un affordance
           de bottom sheet. El panel entero anima con scale-in-center. */}
-      {sheetOpen && (
-        <div
-          onClick={() => setSheetOpen(false)}
-          style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", boxSizing: "border-box" }}
-        >
-          <div role="dialog" aria-modal="true" aria-label={t("eventos_filtros", "Filtros de eventos")} className="scale-in-center" onClick={(e) => e.stopPropagation()} style={{ background: T.bg, width: "calc(100vw - 32px)", maxWidth: 460, borderRadius: 24, padding: "20px 20px calc(16px + env(safe-area-inset-bottom, 0px))", boxShadow: "0 24px 48px rgba(0,0,0,0.2)", maxHeight: "92dvh", overflowY: "auto", boxSizing: "border-box" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.3px" }}>{t("eventos_filtros", "Filtros de eventos")}</h2>
-              <button onClick={() => setSheetOpen(false)} aria-label={t("eventos_cerrar_filtros", "Cerrar filtros")} style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", color: T.text, fontSize: 20, lineHeight: 1, cursor: "pointer" }}>×</button>
-            </div>
-
-            {/* Fecha */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <Icon name="calendar" size={20} color={T.text} />
-                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{t("eventos_fecha", "Fecha")}</span>
-              </div>
-              <div style={chipRowStyle}>
-                {DATE_FILTERS.map(f => (
-                  <button
-                    key={f.key}
-                    onClick={() => { haptic(); setDraftDate(f.key); setDraftCustomDate(""); }}
-                    style={chipStyle(draftDate === f.key)}
-                  >
-                    {t(f.labelKey, f.label)}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, border: `1px solid ${draftDate === "custom" ? T.green : T.border}`, borderRadius: 12, padding: "4px 6px 4px 14px", background: dark ? "rgba(255,255,255,0.04)" : "#F8FAFC" }}>
-                <Icon name="calendar" size={18} color={T.sub} />
-                <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: T.text }}>{t("eventos_fecha_personalizada", "Fecha personalizada")}</span>
-                <input type="date" value={draftCustomDate} onChange={e => { setDraftCustomDate(e.target.value); if (e.target.value) setDraftDate("custom"); }} aria-label={t("eventos_fecha_personalizada", "Fecha personalizada")} style={{ border: "none", outline: "none", background: "transparent", color: T.text, fontSize: 14, fontFamily: "inherit", maxWidth: 150 }} />
-              </div>
-            </div>
-
-            {/* Precio */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <Icon name="tag" size={20} color={T.text} />
-                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{t("eventos_precio", "Precio")}</span>
-              </div>
-              <div style={chipRowStyle}>
-                {PRICE_FILTERS.map(f => (
-                  <button
-                    key={f.key}
-                    onClick={() => { haptic(); setDraftPrice(f.key); }}
-                    style={chipStyle(draftPrice === f.key)}
-                  >
-                    {t(f.labelKey, f.label)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Ordenar por */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <span style={{ fontSize: 18, fontWeight: 800, color: T.text, lineHeight: 1 }}>↑↓</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{t("eventos_ordenar_por", "Ordenar por")}</span>
-              </div>
-              <div style={{ position: "relative" }}>
-                <select value={draftSort} onChange={e => setDraftSort(e.target.value)} aria-label={t("eventos_ordenar_por", "Ordenar por")} style={selectStyle}>
-                  <option value="fecha">{t("eventos_orden_fecha", "Próximos eventos")}</option>
-                  <option value="precio">{t("eventos_orden_precio", "Precio: menor a mayor")}</option>
-                </select>
-                <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%) rotate(90deg)", pointerEvents: "none", display: "flex" }}>
-                  <Icon name="chevron" size={18} color={T.sub} />
-                </span>
-              </div>
-            </div>
-
-            <button onClick={applySheet} className="press" style={{ width: "100%", minHeight: 52, background: T.green, color: dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 9999, fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{t("eventos_mostrar_eventos", "Mostrar eventos")}</button>
-            <button onClick={() => { clearFilters(); setSheetOpen(false); }} style={{ display: "block", margin: "14px auto 0", border: "none", background: "transparent", color: T.sub, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t("eventos_limpiar_filtros", "Limpiar filtros")}</button>
-          </div>
-        </div>
-      )}
+      {sheetOpen && (typeof document === 'undefined' || !document.body
+        ? filterOverlay
+        : createPortal(filterOverlay, document.body))}
     </div>
   );
 }
