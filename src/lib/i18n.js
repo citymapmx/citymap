@@ -1047,7 +1047,7 @@ export const TRANSLATIONS = {
     "prueba_otros_filtros": "Prueba con otros filtros o limpia la selección.",
     "que_hacer": "¿Qué hacer hoy?...",
     "reclamo_revision": "Reclamo en revisión",
-    "requiere_cambios": "Requiere cambios",
+    "requiere_cambios": "Se requieren cambios",
     "reservaciones": "Reservaciones",
     "resultado": "resultado",
     "revista": "Revista",

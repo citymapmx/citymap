@@ -12,7 +12,7 @@ import {
   WIZARD_DAYS, WIZARD_DEFAULT_OPEN, WIZARD_DEFAULT_CLOSE,
   to12h, parseDayRange, isDayOpen, openDaysOf, buildSchedule,
   effectivePlanFeatures, comparePlanFeatures, planPrice,
-  isPaidPlanKey, parsePriceNumber,
+  isPaidPlanKey, hasTrial, parsePriceNumber,
 } from '../lib/crearNegocio.js';
 
 export default function AddBizModal({
@@ -69,7 +69,6 @@ export default function AddBizModal({
 
   // Estilo Apple del asistente: claro #F5F5F7, oscuro premium.
   const blue = dark ? '#2997FF' : '#0071E3';
-  const blueSoft = dark ? 'rgba(41,151,255,0.16)' : '#EAF3FE';
   const pageBg = dark ? '#000000' : '#F5F5F7';
   const cardBg = dark ? '#1C1C1E' : '#FFFFFF';
   const inputBg = dark ? '#2C2C2E' : '#F2F2F7';
@@ -77,7 +76,7 @@ export default function AddBizModal({
   const primaryBg = dark ? '#FFFFFF' : blue;
   const primaryColor = dark ? '#000000' : '#FFFFFF';
   const backBg = dark ? '#2C2C2E' : '#E9E9EE';
-  const inputStyle = { width: '100%', padding: '11px 12px', border: 'none', borderRadius: 12, background: inputBg, color: T.text, fontSize: 15, outline: 'none', boxSizing: 'border-box' };
+  const inputStyle = { width: '100%', padding: '11px 12px', borderRadius: 12, background: inputBg, color: T.text, fontSize: 15, outline: 'none', boxSizing: 'border-box' };
   const labelStyle = { display: 'block', fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 6 };
   const captionStyle = { fontSize: 12, color: T.sub, marginTop: 6, lineHeight: 1.45 };
   const primaryBtn = { flex: 1, padding: '13px 16px', border: 'none', borderRadius: 999, background: primaryBg, color: primaryColor, fontSize: 15, fontWeight: 700, cursor: 'pointer' };
@@ -212,7 +211,19 @@ export default function AddBizModal({
     const stepSub = step === 1 ? t('crear_negocio_paso1_sub', 'Lo básico para que tu negocio aparezca en CityMap.') : step === 2 ? t('crear_negocio_paso2_sub', 'Cómo te contactan tus clientes.') : t('crear_negocio_paso3_sub', 'Puedes empezar gratis y cambiar cuando quieras.');
     return (
       <div className="ov" onClick={close}>
-        <div className="sh" style={{ maxHeight: '94vh', overflowY: 'auto', background: pageBg }} onClick={e => e.stopPropagation()}>
+        <div className="sh crear-negocio" style={{ maxHeight: '94vh', overflowY: 'auto', background: pageBg, '--cn-input-bg': inputBg, '--cn-text': T.text, '--cn-hairline': dark ? '#3F3F46' : '#E5E7EB', '--cn-blue': blue }} onClick={e => e.stopPropagation()}>
+          <style>{`
+            .crear-negocio .cn-input { border: 1px solid var(--cn-hairline); }
+            .crear-negocio .cn-input:focus { border-color: var(--cn-blue); outline: none; }
+            .crear-negocio .cn-input:-webkit-autofill,
+            .crear-negocio .cn-input:-webkit-autofill:hover,
+            .crear-negocio .cn-input:-webkit-autofill:focus {
+              -webkit-box-shadow: 0 0 0 1000px var(--cn-input-bg) inset;
+              -webkit-text-fill-color: var(--cn-text);
+              caret-color: var(--cn-text);
+              transition: background-color 9999s ease-in-out 0s;
+            }
+          `}</style>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 17, fontWeight: 800, color: T.text }}>{t('crear_negocio_titulo', 'Crea tu negocio')}</span>
             <button onClick={close} style={{ background: backBg, border: 'none', borderRadius: '50%', width: 28, height: 28, color: T.text, fontSize: 14, cursor: 'pointer' }}>✕</button>
@@ -241,7 +252,6 @@ export default function AddBizModal({
                     <Uploader aspect={1} compact circle label={t('crear_negocio_logotipo', 'Logotipo')} onDone={(url) => setAddBizForm(f => ({ ...f, logo_url: url }))} />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{t('crear_negocio_logotipo', 'Logotipo')}</div>
                     <div style={captionStyle}>{t('crear_negocio_logotipo_texto', 'Se muestra en tu ficha. En el mapa, el logotipo es función del plan Premium.')}</div>
                   </div>
                 </div>
@@ -265,12 +275,12 @@ export default function AddBizModal({
 
               <div style={{ marginBottom: 18 }}>
                 <label style={labelStyle}>{t('crear_negocio_nombre', 'Nombre del negocio')}</label>
-                <input style={inputStyle} value={addBizForm.name} onChange={e => setAddBizForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej. Nokai Sushi" autoComplete="off" />
+                <input className="cn-input" style={inputStyle} value={addBizForm.name} onChange={e => setAddBizForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej. Nokai Sushi" autoComplete="off" />
               </div>
 
               <div style={{ marginBottom: 18 }}>
                 <label style={labelStyle}>{t('crear_negocio_categoria', 'Categoría')}</label>
-                <select style={{ ...inputStyle, appearance: 'auto' }} value={addBizForm.category} onChange={e => setAddBizForm(f => ({ ...f, category: e.target.value }))}>
+                <select className="cn-input" style={{ ...inputStyle, appearance: 'auto' }} value={addBizForm.category} onChange={e => setAddBizForm(f => ({ ...f, category: e.target.value }))}>
                   <option value="">Seleccionar...</option>
                   {(cats || []).map(c => <option key={c.id} value={c.label}>{c.label}</option>)}
                 </select>
@@ -278,17 +288,17 @@ export default function AddBizModal({
 
               <div style={{ marginBottom: 18 }}>
                 <label style={labelStyle}>{t('crear_negocio_descripcion', 'Descripción corta')}</label>
-                <textarea style={{ ...inputStyle, minHeight: 80, resize: 'none' }} value={addBizForm.description} onChange={e => setAddBizForm(f => ({ ...f, description: e.target.value }))} placeholder={t('crear_negocio_descripcion_ph', 'Cuéntanos de tu negocio...')} rows={3} />
+                <textarea className="cn-input" style={{ ...inputStyle, minHeight: 80, resize: 'none' }} value={addBizForm.description} onChange={e => setAddBizForm(f => ({ ...f, description: e.target.value }))} placeholder={t('crear_negocio_descripcion_ph', 'Cuéntanos de tu negocio...')} rows={3} />
               </div>
 
               <div style={{ marginBottom: 18 }}>
                 <label style={labelStyle}>{t('crear_negocio_ciudad', 'Ciudad')}</label>
-                <div style={{ ...inputStyle, color: T.text }}>{cityName}</div>
+                <div className="cn-input" style={{ ...inputStyle, color: T.text }}>{cityName}</div>
               </div>
 
               <div style={{ marginBottom: 22 }}>
                 <label style={labelStyle}>{t('crear_negocio_direccion', 'Dirección')}</label>
-                <input style={inputStyle} value={addBizForm.address} onChange={e => setAddBizForm(f => ({ ...f, address: e.target.value }))} placeholder={`Av. México 123, Col. Centro, ${cityName}`} autoComplete="off" />
+                <input className="cn-input" style={inputStyle} value={addBizForm.address} onChange={e => setAddBizForm(f => ({ ...f, address: e.target.value }))} placeholder={`Av. México 123, Col. Centro, ${cityName}`} autoComplete="off" />
               </div>
 
               <button type="button" onClick={goStep2} style={{ ...primaryBtn, flex: 'none', width: '100%' }}>{t('crear_negocio_siguiente', 'Siguiente')}</button>
@@ -297,15 +307,14 @@ export default function AddBizModal({
 
           {step === 2 && (
             <div>
-              <div style={{ marginBottom: 18 }}>
+              <div style={{ marginBottom: 12 }}>
                 <label style={labelStyle}>{t('crear_negocio_whatsapp', 'WhatsApp')}</label>
-                <input style={inputStyle} type="tel" value={addBizForm.whatsapp} onChange={e => setAddBizForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="311 000 0000" autoComplete="off" />
-                <div style={captionStyle}>{t('crear_negocio_whatsapp_nota', 'Tu WhatsApp se muestra con los planes Destacado y Premium')}</div>
+                <input className="cn-input" style={inputStyle} type="tel" value={addBizForm.whatsapp} onChange={e => setAddBizForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="311 000 0000" autoComplete="off" />
               </div>
 
               <div style={{ marginBottom: 18 }}>
                 <label style={labelStyle}>{t('crear_negocio_telefono', 'Teléfono')}</label>
-                <input style={inputStyle} type="tel" value={addBizForm.phone} onChange={e => setAddBizForm(f => ({ ...f, phone: e.target.value }))} placeholder="311 000 0000" autoComplete="off" />
+                <input className="cn-input" style={inputStyle} type="tel" value={addBizForm.phone} onChange={e => setAddBizForm(f => ({ ...f, phone: e.target.value }))} placeholder="311 000 0000" autoComplete="off" />
               </div>
 
               <div style={{ marginBottom: 22 }}>
@@ -324,11 +333,11 @@ export default function AddBizModal({
                 <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginTop: 12 }}>
                   <label style={{ flex: 1, minWidth: 0 }}>
                     <span style={labelStyle}>{t('crear_negocio_abre', 'Abre')}</span>
-                    <input type="time" value={openTime} onChange={e => changeTime('open', e.target.value)} style={inputStyle} />
+                    <input type="time" value={openTime} onChange={e => changeTime('open', e.target.value)} className="cn-input" style={inputStyle} />
                   </label>
                   <label style={{ flex: 1, minWidth: 0 }}>
                     <span style={labelStyle}>{t('crear_negocio_cierra', 'Cierra')}</span>
-                    <input type="time" value={closeTime} onChange={e => changeTime('close', e.target.value)} style={inputStyle} />
+                    <input type="time" value={closeTime} onChange={e => changeTime('close', e.target.value)} className="cn-input" style={inputStyle} />
                   </label>
                 </div>
                 <div style={captionStyle}>{t('crear_negocio_horario_nota', 'Puedes configurar tu horario completo en tu administrador')}</div>
@@ -346,7 +355,6 @@ export default function AddBizModal({
               <div role="radiogroup" aria-label={t('crear_negocio_paso3', 'Elige tu plan')}>
                 {plans.map(p => {
                   const selected = planKey === p.key;
-                  const paid = isPaidPlanKey(p.key);
                   return (
                     <div key={p.key} role="radio" aria-checked={selected} tabIndex={0}
                       onClick={() => setPlanKey(p.key)}
@@ -357,10 +365,10 @@ export default function AddBizModal({
                           {selected && <span style={{ width: 10, height: 10, borderRadius: '50%', background: blue }} />}
                         </span>
                         <span style={{ fontSize: 17, fontWeight: 800, color: T.text }}>{p.name}</span>
-                        {paid && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: blue, background: blueSoft, padding: '3px 8px', borderRadius: 999 }}>{t('crear_negocio_prueba', '7 días gratis')}</span>
-                        )}
-                        <span style={{ marginLeft: 'auto', fontSize: 16, fontWeight: 800, color: T.text, whiteSpace: 'nowrap' }}>{planPriceText(p)}</span>
+                        <span style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
+                          {hasTrial(p.key, billing) && <span style={{ fontSize: 11, fontWeight: 700, color: blue }}>{t('crear_negocio_prueba', '7 días gratis')}</span>}
+                          <span style={{ fontSize: 16, fontWeight: 800, color: T.text, whiteSpace: 'nowrap' }}>{planPriceText(p)}</span>
+                        </span>
                       </div>
                       <p style={{ fontSize: 13, color: T.sub, margin: '8px 0 0', lineHeight: 1.45 }}>{p.desc}</p>
                       <button type="button" onClick={e => { e.stopPropagation(); setExpandedPlan(expandedPlan === p.key ? null : p.key); }} style={{ background: 'none', border: 'none', color: blue, fontSize: 13, fontWeight: 700, padding: '8px 0 0', cursor: 'pointer' }}>

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import Icon from './ui/Icon.jsx';
 import { sb } from '../lib/supabase.js';
+import { useUIStore } from '../store/useUIStore.js';
+import { markAllReadLocal } from '../lib/notifications.js';
 
 export default function UserNotifs({ T, onBack, user }) {
   const [loading, setLoading] = useState(true);
@@ -24,6 +26,14 @@ export default function UserNotifs({ T, onBack, user }) {
       setError(false);
       const data = await sb.get("notifications", `?user_id=eq.${user.id}&order=created_at.desc`);
       setNotifs(data || []);
+      // Al abrir la lista se marca todo como leído y el aviso (globito y
+      // punto rojo) desaparece. El botón «Marcar leídas» sigue existiendo.
+      const unread = (data || []).filter(n => !n.read);
+      if (unread.length > 0) {
+        useUIStore.getState().setUnreadNotifCount(0);
+        Promise.all(unread.map(n => sb.patch("notifications", n.id, { read: true }).catch(() => {})))
+          .then(() => setNotifs(prev => markAllReadLocal(prev)));
+      }
     } catch (err) {
       setError(true);
       console.error(err);
@@ -37,6 +47,7 @@ export default function UserNotifs({ T, onBack, user }) {
     try {
       await sb.patch("notifications", id, { read: true });
       setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      useUIStore.getState().decUnreadNotifCount();
     } catch (err) {
       console.error(err);
     }
@@ -46,6 +57,7 @@ export default function UserNotifs({ T, onBack, user }) {
     try {
       await Promise.all(notifs.filter(n => !n.read).map(n => sb.patch("notifications", n.id, { read: true })));
       setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+      useUIStore.getState().setUnreadNotifCount(0);
     } catch (err) {
       console.error(err);
     }

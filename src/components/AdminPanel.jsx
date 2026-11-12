@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { sb, cloudDeleteBatch, cloudListAllFiles } from "../lib/supabase.js";
+import { buildEditBizDeepLink, changeRequestTitle, changeRequestBody, isDuplicateChangeRequest } from "../lib/notifications.js";
 import { PLAN_META } from "../lib/constants.js";
 import { getThumbUrl } from "../lib/utils.js";
 import Icon from "./ui/Icon.jsx";
@@ -126,6 +127,33 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
   };
   const rejectBiz = async (id) => { if (!window.confirm("¿Estás seguro de que deseas rechazar y eliminar este negocio por completo?")) return; const b = data.biz.find(x => x.id === id); if (b) { const paths = [b.logo_url, b.menu_pdf_url, ...(b.photos || []).map(p => p.url)].filter(Boolean); await cloudDeleteBatch(paths); } await sb.del("businesses", id); onToast("Negocio eliminado"); await load(); };
 
+  // Pedir cambios al dueño: el botón se bloquea mientras se envía (sin
+  // eso un doble clic creaba dos notificaciones idénticas) y no se vuelve
+  // a avisar si ya hay una igual sin leer. La notificación lleva el
+  // enlace profundo a la edición del negocio en /cuenta.
+  const [requestingChangesId, setRequestingChangesId] = useState(null);
+  const requestBizChanges = async (b) => {
+    if (requestingChangesId) return;
+    setRequestingChangesId(b.id);
+    try {
+      const note = document.getElementById(`note-${b.id}`)?.value || "";
+      await sb.patch("businesses", b.id, { status: "needs_changes", admin_notes: note });
+      const targetUserId = b.owner_id || b.user_id;
+      if (targetUserId) {
+        let dup = false;
+        try {
+          const existing = await sb.get("notifications", `?user_id=eq.${targetUserId}&read=eq.false&select=title,body`);
+          dup = isDuplicateChangeRequest(existing, b.name);
+        } catch { dup = false; /* si no se puede leer, se avisa igual */ }
+        if (!dup) await sb.notify(targetUserId, changeRequestTitle(), changeRequestBody(b.name), "alert", buildEditBizDeepLink(b.id));
+      }
+      onToast("Enviado");
+      await load();
+    } finally {
+      setRequestingChangesId(null);
+    }
+  };
+
   // Photo management for a business
   const [mediaTarget, setMediaTarget] = useState(null);
   const addPhoto = async (url) => { const b = data.biz.find(x => x.id === mediaTarget); const photos = [...(b.photos || []), { url, label: "Foto" }]; await sb.patch("businesses", mediaTarget, { photos }); onToast("Foto añadida ✓"); await load(); };
@@ -240,7 +268,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <input className="text-xs" placeholder="Comentario para el propietario..." style={{ flex: 1, padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: 10, color: T.text, background: "transparent", fontFamily: "inherit" }} id={`note-${b.id}`} defaultValue={b.admin_notes || ""} />
-              <button onClick={async () => { const note = document.getElementById(`note-${b.id}`)?.value || ""; await sb.patch("businesses", b.id, { status: "needs_changes", admin_notes: note }); const targetUserId = b.owner_id || b.user_id; if (targetUserId) await sb.notify(targetUserId, "Se requieren cambios", `Revisa las notas para ${b.name}.`, "alert"); onToast("Enviado"); await load(); }} style={{ padding: "9px 12px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 12, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Pedir cambios</button>
+              <button onClick={() => requestBizChanges(b)} disabled={requestingChangesId === b.id} style={{ padding: "9px 12px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 12, fontWeight: 800, color: T.text, cursor: requestingChangesId === b.id ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap", opacity: requestingChangesId === b.id ? 0.5 : 1 }}>{requestingChangesId === b.id ? "Enviando..." : "Pedir cambios"}</button>
             </div>
           </div>)}
 

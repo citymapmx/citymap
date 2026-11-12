@@ -174,8 +174,10 @@ describe('crear negocio: asistente de 3 pasos (render)', () => {
 describe('crear negocio: fuente del asistente', () => {
   const src = fs.readFileSync(new URL('../components/AddBizModal.jsx', import.meta.url), 'utf8');
 
-  it('el paso 2 tiene WhatsApp con su leyenda, teléfono y las 7 píldoras de días', () => {
-    expect(src).toContain('crear_negocio_whatsapp_nota');
+  it('el paso 2 tiene WhatsApp sin leyenda, teléfono y las 7 píldoras de días', () => {
+    // La leyenda «Tu WhatsApp se muestra con los planes Destacado y
+    // Premium» se quitó (PR #211): la info vive en el paso 3.
+    expect(src).not.toContain('crear_negocio_whatsapp_nota');
     expect(src).toContain('crear_negocio_horario_nota');
     expect(src).toContain('WIZARD_DAYS');
     expect(src).toContain('¿Qué días abres?');
