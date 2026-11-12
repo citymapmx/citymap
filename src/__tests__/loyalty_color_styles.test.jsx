@@ -174,12 +174,30 @@ describe('LoyaltyWizard Paso 1: píldoras por categoría (PR #239)', () => {
     expect(html).not.toContain("Espresso");
   });
 
-  it('la fila de píldoras es deslizable (scroll-snap) y el estilo se aplica al tocarlo', () => {
+  it('la vista previa del Paso 1 lleva la leyenda «Ejemplo» (el premio que se ve es solo un ejemplo; el real se define en el Paso 2)', () => {
+    const html = renderWizard();
+    expect(html).toContain("Ejemplo");
+    // El texto del premio y el Paso 2 no se tocan: el premio configurado sigue igual.
+    expect(html).toContain("2 Tostadas gratis");
     const src = read('../components/loyalty/LoyaltyWizard.jsx');
-    expect(src).toContain('scrollSnapType: "x mandatory"');
-    expect(src).toContain('overflowX: "auto"');
+    expect(src).toContain("el premio real se define en el Paso 2");
+  });
+
+  it('las píldoras van en 2 columnas (todas visibles, sin scroll horizontal) y el estilo se aplica al tocarlo', () => {
+    const src = read('../components/loyalty/LoyaltyWizard.jsx');
+    expect(src).toContain('gridTemplateColumns: "1fr 1fr"');
+    expect(src).not.toContain('scrollSnapType: "x mandatory"');
+    expect(src).not.toContain('overflowX: "auto"');
     expect(src).toContain("setConfig(prev => ({ ...prev, bg_color: bg, text_color: style.text, primary_color: style.primary }))");
     expect(src).toContain("onClick={() => setActiveCategory(cat.id)}");
+    // Las 4 píldoras se renderizan y la categoría activa despliega sus estilos.
+    const html = renderWizard();
+    for (const label of ["Premium", "Sobrios", "Cafetería", "Coloridos"]) {
+      expect(html).toContain(label);
+    }
+    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia"]) {
+      expect(html).toContain(label);
+    }
   });
 
   it('la vista previa y el selector manual usan la primera parada, no el degradado entero', () => {
