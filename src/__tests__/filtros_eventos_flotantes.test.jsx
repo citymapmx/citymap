@@ -11,8 +11,29 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // de bottom sheet. El contenido y el comportamiento no cambian.
 describe('filtros de eventos flotantes', () => {
   const view = read('../views/EventsView.jsx');
-  const sheetStart = view.indexOf('{sheetOpen && (');
-  const sheet = view.slice(sheetStart);
+  // El overlay vive en `const filterOverlay` (antes del return) y el
+  // return solo decide si se monta con portal o en línea. El recorte
+  // llega solo hasta el `return` del componente: más abajo hay un
+  // `position: "sticky"` de la lista de eventos que no es la tarjeta.
+  const sheetStart = view.indexOf('const filterOverlay = (');
+  const sheetEnd = view.indexOf('\n  return (', sheetStart);
+  const sheet = view.slice(sheetStart, sheetEnd);
+
+  it('la tarjeta se monta con portal en document.body (centrada en la ventana)', () => {
+    // Misma causa raíz que el detalle de la tarjeta de lealtad (12 nov
+    // 2026): la raíz de EventsView lleva `...viewStyle` con
+    // `transform: translateY(0)` persistente, así que el overlay fixed
+    // se centraba en toda la página larga en vez de en la ventana.
+    expect(view).toContain("import { createPortal } from 'react-dom'");
+    expect(view).toContain('createPortal(filterOverlay, document.body)');
+    // Sin document (SSR/pruebas) se pinta en línea, nunca se rompe.
+    expect(view).toContain("typeof document === 'undefined'");
+    // El overlay sigue siendo el fixed centrado de siempre; el portal
+    // es lo que lo ancla a la ventana.
+    expect(sheet).toContain('position: "fixed"');
+    expect(sheet).toContain('alignItems: "center"');
+    expect(sheet).toContain('justifyContent: "center"');
+  });
 
   it('la tarjeta es un modal flotante centrado, no una hoja inferior', () => {
     // El overlay centra la tarjeta (antes la anclaba abajo con

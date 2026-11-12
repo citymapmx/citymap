@@ -1,10 +1,25 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import Icon from '../components/ui/Icon.jsx';
 import QRCode from 'react-qr-code';
 import { getThumbUrl } from '../lib/utils.js';
 import { loyaltyBgFirstColor } from '../lib/loyaltyColorStyles.js';
 
+// El detalle de la tarjeta es un overlay fixed que debe cubrir TODA
+// la ventana y centrarse en la pantalla visible: se monta con
+// createPortal en document.body para que ningún ancestro con transform
+// lo descentre. Causa raíz (Jonathan, 12 nov 2026, moto g54): desde
+// el perfil, el modal vivía dentro de AccountView, cuya raíz lleva
+// `...viewStyle` (App.jsx) — `transform: translateY(0)` persistente
+// tras el fade — y ese transform vuelve la raíz el bloque contenedor
+// de los fixed: el overlay cubría toda la página del perfil (larga)
+// y el modal quedaba centrado en el medio de la página, debajo de la
+// pantalla visible. Con el portal el overlay cuelga del body y el
+// flex lo centra en la ventana visible. En Recompensas (WalletView)
+// la raíz no lleva transform y el modal ya se veía bien, pero el
+// portal lo deja a salvo en los dos sitios que lo usan. En SSR/pruebas
+// (sin document) se pinta en línea, como siempre.
 export default function LoyaltyCardModal({ open, onClose, member, card, biz }) {
   if (!member || !card || !biz) return null;
   const currentStamps = member.stamps || 0;
@@ -13,7 +28,7 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz }) {
 
   const coverImage = biz.banner_url || (biz.photos && biz.photos[0]?.url) || null;
 
-  return (
+  const modal = (
     <AnimatePresence>
       {open && (
         <>
@@ -156,4 +171,8 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz }) {
       )}
     </AnimatePresence>
   );
+
+  // Sin document (SSR/pruebas) no hay portal: se pinta en línea.
+  if (typeof document === 'undefined' || !document.body) return modal;
+  return createPortal(modal, document.body);
 }
