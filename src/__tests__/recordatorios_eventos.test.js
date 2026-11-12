@@ -1,5 +1,9 @@
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+// send-notification.js importa firebase-admin: se simula como en push_delivery.
+const mocks = vi.hoisted(() => ({ send: vi.fn() }));
+vi.mock('firebase-admin/app', () => ({ getApps: () => [{}], initializeApp: vi.fn(), cert: vi.fn() }));
+vi.mock('firebase-admin/messaging', () => ({ getMessaging: () => ({ sendEachForMulticast: mocks.send }) }));
 import {
   buildReminderMessage,
   buildReminderPlan,
@@ -132,7 +136,7 @@ describe('recordatorios: selección de eventos y plan', () => {
   });
 });
 
-// ── Función api/recordatorios-eventos.js (con fetch simulado) ───────────────
+// ── Modo recordatorios en api/send-notification.js (con fetch simulado) ───
 
 const makeRes = () => {
   const res = {
@@ -155,11 +159,11 @@ let mockFavs;
 let mockNotifs;
 let authUser;
 
-const req = ({ method = 'GET', auth = false, jwt = false, dry = false, body = {} } = {}) => ({
+const req = ({ method = 'GET', auth = false, jwt = false, dry = false, reminders = false, remindersQuery = false, body = {} } = {}) => ({
   method,
-  query: dry ? { dry: '1' } : {},
+  query: { ...(dry ? { dry: '1' } : {}), ...(remindersQuery ? { recordatorios: '1' } : {}) },
   headers: auth ? { authorization: 'Bearer test-cron-secret' } : jwt ? { authorization: 'Bearer test-jwt' } : {},
-  body,
+  body: { ...body, ...(reminders ? { recordatorios: true } : {}) },
 });
 
 beforeEach(async () => {
@@ -186,12 +190,13 @@ beforeEach(async () => {
     if (u.includes('/rest/v1/events')) return { ok: true, json: async () => mockEvents };
     if (u.includes('/rest/v1/event_favorites')) return { ok: true, json: async () => mockFavs };
     if (u.includes('/rest/v1/notifications')) return { ok: true, json: async () => mockNotifs };
+    if (u.includes('/rest/v1/push_tokens')) return { ok: true, json: async () => [] };
     throw new Error(`unexpected fetch ${url}`);
   }));
-  handler = (await import('../../api/recordatorios-eventos.js')).default;
+  handler = (await import('../../api/send-notification.js')).default;
 });
 
-describe('recordatorios: función del cron (api/recordatorios-eventos.js)', () => {
+describe('recordatorios: modo recordatorios en api/send-notification.js', () => {
   it('sin secreto del cron ni JWT de admin devuelve 401', async () => {
     const res = makeRes();
     await handler(req(), res);
@@ -248,11 +253,55 @@ describe('recordatorios: función del cron (api/recordatorios-eventos.js)', () =
     expect(res.body.reminders).toBe(0);
     expect(sendCalls).toHaveLength(0);
   });
-  it('un JWT de administrador también autoriza el disparo manual', async () => {
+  it('un JWT de administrador también autoriza el disparo manual (con bandera)', async () => {
     const res = makeRes();
-    await handler(req({ method: 'POST', jwt: true, dry: true }), res);
+    await handler(req({ method: 'POST', jwt: true, dry: true, reminders: true }), res);
     expect(res.statusCode).toBe(200);
     expect(res.body.reminders).toBe(1);
+  });
+  it('el cron real llama con GET y solo el secreto: entra en modo recordatorios', async () => {
+    const res = makeRes();
+    await handler(req({ method: 'GET', auth: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.sent).toHaveLength(1);
+    expect(sendCalls).toHaveLength(1);
+  });
+  it('disparo manual con ADMIN_SECRET + bandera (sin secreto del cron)', async () => {
+    const res = makeRes();
+    await handler(req({ method: 'POST', dry: true, body: { secret: 'test-admin-secret', recordatorios: true } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.dry).toBe(true);
+    expect(res.body.reminders).toBe(1);
+  });
+  it('disparo manual con JWT de admin + bandera en query', async () => {
+    const res = makeRes();
+    await handler(req({ method: 'POST', jwt: true, dry: true, remindersQuery: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.reminders).toBe(1);
+  });
+  it('sin bandera, el JWT de admin NO entra en modo recordatorios', async () => {
+    const res = makeRes();
+    await handler(req({ method: 'POST', jwt: true }), res);
+    expect(res.statusCode).toBe(400);
+    expect(sendCalls).toHaveLength(0);
+  });
+  it('GET sin autenticación devuelve 401 (la autenticación va antes que el método)', async () => {
+    const res = makeRes();
+    await handler(req(), res);
+    expect(res.statusCode).toBe(401);
+  });
+  it('GET con JWT de admin pero sin bandera devuelve 405 (el envío normal es POST)', async () => {
+    const res = makeRes();
+    await handler(req({ method: 'GET', jwt: true }), res);
+    expect(res.statusCode).toBe(405);
+  });
+  it('el envío normal sigue igual sin la bandera', async () => {
+    const res = makeRes();
+    await handler(req({ method: 'POST', body: { secret: 'test-admin-secret', title: 'Hola', body: 'Mundo' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.successCount).toBe(0);
+    expect(res.body.message).toContain('No hay tokens registrados');
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 });
 
@@ -267,10 +316,18 @@ describe('recordatorios: cableado (fuente)', () => {
     expect(src).toContain('await loadSavedEvents(u.id);');
     expect(src).toContain('await loadSavedEvents(uid);');
   });
-  it('vercel.json tiene el cron diario de recordatorios a las 15:00 UTC', () => {
+  it('vercel.json tiene el cron diario de recordatorios en send-notification a las 15:00 UTC', () => {
     const raw = fs.readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8');
     const json = JSON.parse(raw);
-    expect(json.crons).toContainEqual({ path: '/api/recordatorios-eventos', schedule: '0 15 * * *' });
+    expect(json.crons).toContainEqual({ path: '/api/send-notification', schedule: '0 15 * * *' });
+  });
+  it('el despliegue queda en 12 funciones serverless (Hobby): sin api/recordatorios-eventos.js', () => {
+    const apiDir = new URL('../../api', import.meta.url);
+    const files = fs.readdirSync(apiDir).filter((f) => f.endsWith('.js'));
+    expect(fs.existsSync(new URL('../../api/recordatorios-eventos.js', import.meta.url))).toBe(false);
+    const edge = files.filter((f) => /runtime:\s*['"]edge['"]/.test(fs.readFileSync(new URL(`../../api/${f}`, import.meta.url), 'utf8')));
+    expect(edge).toHaveLength(3);
+    expect(files.length - edge.length).toBe(12);
   });
   it('la migración crea event_favorites con RLS propia y cierra push_tokens', () => {
     const sql = fs.readFileSync(new URL('../../supabase/migrations/20261112012000_add_event_favorites.sql', import.meta.url), 'utf8');

@@ -1,6 +1,6 @@
 // Recordatorios de eventos guardados (PR #213): lógica pura, sin React.
-// Se prueba como unitaria. La usa la función api/recordatorios-eventos.js
-// (cron diario) y sus tests; la app solo sincroniza los guardados.
+// Se prueba como unitaria. La usa api/send-notification.js (modo recordatorios)
+// y sus tests; la app solo sincroniza los guardados.
 
 import { eventUrl } from './eventUrls.js';
 
