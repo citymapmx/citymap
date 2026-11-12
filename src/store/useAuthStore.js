@@ -1,14 +1,30 @@
 import { create } from 'zustand';
 import { sb } from '../lib/supabase.js';
+import { markDeviceHasAccount, deviceHasAccount } from '../lib/hasAccountFlag.js';
 
 export const useAuthStore = create((set, get) => ({
   user: null, setUser: (val) => set(s => {
     const user = typeof val === 'function' ? val(s.user) : val;
+    // Choke point de todas las entradas (email, token de Google,
+    // restauración de sesión tras OAuth o deep link): en cuanto la app
+    // conoce un usuario, este dispositivo ya no es de primera vez.
+    if (user?.id) markDeviceHasAccount();
     return { user, profile: user?.id && user.id === s.user?.id ? s.profile : null };
   }),
   authChecked: false, setAuthChecked: (val) => set(s => ({ authChecked: typeof val === 'function' ? val(s.authChecked) : val })),
   profile: null, setProfile: (val) => set(s => ({ profile: typeof val === 'function' ? val(s.profile) : val })),
-  showAuth: false, setShowAuth: (val) => set(s => ({ showAuth: typeof val === 'function' ? val(s.showAuth) : val })),
+  showAuth: false, setShowAuth: (val) => set(s => {
+    const showAuth = typeof val === 'function' ? val(s.showAuth) : val;
+    // Al ABRIR el modal, el modo inicial depende de si en este dispositivo
+    // ya se inició sesión alguna vez: primera vez abre en registro (con
+    // «¡Bienvenido a CityMap!»); si ya hubo sesión, abre en login (con
+    // «¡Hola de nuevo!»). Solo al abrir (no si ya estaba abierto): no pisa
+    // el cambio manual de modo del usuario dentro del modal.
+    if (showAuth && !s.showAuth) {
+      return { showAuth, authMode: deviceHasAccount() ? "login" : "register" };
+    }
+    return { showAuth };
+  }),
   authMode: "login", setAuthMode: (val) => set(s => ({ authMode: typeof val === 'function' ? val(s.authMode) : val })),
   authForm: { name: "", email: "", password: "", city: "" }, 
   setAuthForm: (updater) => set(state => ({ authForm: typeof updater === 'function' ? updater(state.authForm) : updater })),
@@ -45,6 +61,7 @@ export const useAuthStore = create((set, get) => ({
       const u = s.user || s?.session?.user || await sb.getUser();
       if (!u?.id) throw new Error("No se pudo obtener el usuario");
       get().setUser(u);
+      markDeviceHasAccount();
       
       if (authMode === "register") {
         await sb.patch("profiles", u.id, { city: authForm.city, name: authForm.name }).catch(() => {});
@@ -68,6 +85,7 @@ export const useAuthStore = create((set, get) => ({
       const u = s.user || s?.session?.user || await sb.getUser();
       if (!u?.id) throw new Error("No se pudo obtener el usuario");
       get().setUser(u);
+      markDeviceHasAccount();
 
       await get().loadProfile(u.id);
 

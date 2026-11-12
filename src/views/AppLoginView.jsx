@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { sb } from '../lib/supabase.js';
 import { ensureGoogleIdentityServices, promptGoogleOneTap } from '../lib/googleIdentity.js';
+import { checkPassword } from '../lib/passwordRules.js';
+import BrandSplash from '../components/ui/BrandSplash.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 
 // Mismo cliente de Google que el botón de la web (AuthModal.jsx).
@@ -26,6 +28,43 @@ export default function AppLoginView({ T, dark, navigate }) {
   const { t } = useTranslation();
 
   const fromApp = new URLSearchParams(window.location.search).get('from') === 'app';
+
+  // Enlace de recuperación: /login?recovery=1 viene del correo de Supabase.
+  // El arranque ya guardó el token de la sesión de recuperación con
+  // parseOAuthHash, así que aquí solo falta la contraseña nueva (el query
+  // queda intacto aunque el hash ya se haya limpiado).
+  const isRecovery = new URLSearchParams(window.location.search).get('recovery') === '1';
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [recoveryDone, setRecoveryDone] = useState(false);
+  const [recoveryError, setRecoveryError] = useState('');
+  const recoveryCheck = useMemo(() => checkPassword(newPw), [newPw]);
+
+  const handleRecoverySubmit = async () => {
+    setRecoveryError('');
+    if (!recoveryCheck.allValid) {
+      setRecoveryError(t("modal_pw_requisitos", "Tu contraseña debe cumplir todos los requisitos"));
+      return;
+    }
+    if (newPw !== confirmPw) {
+      setRecoveryError(t("modal_contrasenas_no_coinciden", "Las contraseñas no coinciden"));
+      return;
+    }
+    if (!sb._token) {
+      setRecoveryError(t("modal_enlace_expirado", "El enlace expiró o ya se usó. Pide otro correo desde el inicio de sesión."));
+      return;
+    }
+    setRecoveryBusy(true);
+    try {
+      await sb.updateUser({ password: newPw });
+      setRecoveryDone(true);
+    } catch (e) {
+      setRecoveryError(e.message || t("modal_error_actualizar_contrasena", "No se pudo actualizar la contraseña. Inténtalo de nuevo."));
+    } finally {
+      setRecoveryBusy(false);
+    }
+  };
 
   useEffect(() => {
     // El cliente de Google (GIS) ya no vive en index.html: se carga aquí,
@@ -116,19 +155,11 @@ export default function AppLoginView({ T, dark, navigate }) {
     };
   }, [dark, handleGoogleIdToken, navigate, fromApp]);
 
-  const handleFallbackGoogle = async () => {
-    // Si el botón oficial no cargó: en la app, recargar la página para
-    // reintentarlo; en web, usar el inicio por Supabase como antes.
-    if (fromApp) {
-      window.location.reload();
-      return;
-    }
-    setError('');
-    try {
-      await sb.signInWithOAuth('google');
-    } catch (err) {
-      setError(t("modal_error_google", "Error con Google: ") + err.message);
-    }
+  const handleFallbackGoogle = () => {
+    // Solo en la app nativa (Custom Tab con ?from=app): recargar la página
+    // para reintentar el botón oficial de Google. En web ya no hay respaldo
+    // por Supabase (opción A): si GIS no carga, no hay entrada de Google.
+    window.location.reload();
   };
 
   const handleCancel = () => {
@@ -140,14 +171,34 @@ export default function AppLoginView({ T, dark, navigate }) {
     }
   };
 
+  // Mientras el botón oficial de Google (GIS) carga, la vista es el splash
+  // de marca (fondo negro, logo, tres puntos) en vez de la tarjeta blanca
+  // vacía: es lo que se ve en el Custom Tab desde la app nativa. El
+  // contenedor del botón GIS sigue montado debajo (oculto) para que
+  // initGsi pueda dibujarlo; al estar listo, el splash se quita y aparece
+  // la tarjeta con el botón. «Cancelar» sigue funcionando igual (flota
+  // sobre el splash mientras carga).
+  const showLoginSplash = !isRecovery && status === 'idle' && !gisReady && !gisTimedOut;
+
   return (
     <div style={{ minHeight: '100dvh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      {showLoginSplash && (
+        <BrandSplash message={t("modal_inicia_para_continuar", "Inicia sesión para continuar")} />
+      )}
+      {showLoginSplash && (
+        <button
+          onClick={handleCancel}
+          style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 10000, background: 'none', border: 'none', color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '12px 20px', fontFamily: 'inherit' }}
+        >
+          {t("modal_cancelar", "Cancelar")}
+        </button>
+      )}
       <div style={{ width: '100%', maxWidth: 400, background: dark ? '#1e1e1e' : '#fff', border: `1px solid ${T.border}`, borderRadius: 20, padding: '28px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', textAlign: 'center' }}>
         <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.5px', color: T.text, marginBottom: 6 }}>
           📍CityMap
         </div>
         <p style={{ color: T.sub, margin: '0 0 24px', fontWeight: 500, fontSize: 14 }}>
-          {t("modal_inicia_para_continuar", "Inicia sesión para continuar")}
+          {isRecovery ? t("modal_nueva_contrasena", "Crea tu contraseña nueva") : t("modal_inicia_para_continuar", "Inicia sesión para continuar")}
         </p>
 
         {status === 'signing' && (
@@ -169,15 +220,46 @@ export default function AppLoginView({ T, dark, navigate }) {
           <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: '0 0 16px' }}>{t("modal_sesion_redirigiendo", "Sesión iniciada. Redirigiendo…")}</p>
         )}
 
-        {status !== 'done' && (
+        {isRecovery ? (
+          recoveryDone ? (
+            <div role="status" style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 12, color: '#166534', fontWeight: 600, fontSize: 14, lineHeight: 1.5, textAlign: 'left' }}>
+              <div style={{ fontWeight: 800, marginBottom: 4 }}>{t("modal_contrasena_actualizada", "Contraseña actualizada")}</div>
+              {t("modal_contrasena_actualizada_texto", "Ya puedes entrar con tu contraseña nueva.")}
+              <button onClick={() => navigate('/')} style={{ display: 'block', width: '100%', marginTop: 16, padding: '13px 16px', borderRadius: 999, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                {t("modal_entrar_citymap", "Entrar a CityMap")}
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left' }}>
+                <input className="inp" aria-label={t("modal_nueva_contrasena", "Crea tu contraseña nueva")} autoComplete="new-password" placeholder={t("modal_nueva_contrasena", "Crea tu contraseña nueva")} type="password" value={newPw} onChange={e => setNewPw(e.target.value)} style={{ padding: '14px 16px', borderRadius: 12, border: `1.5px solid ${T.border}`, fontSize: 16, background: dark ? '#1e1e1e' : '#fff', color: T.text, outline: 'none', width: '100%' }} />
+                <input className="inp" aria-label={t("modal_repite_contrasena", "Repite la contraseña")} autoComplete="new-password" placeholder={t("modal_repite_contrasena", "Repite la contraseña")} type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} style={{ padding: '14px 16px', borderRadius: 12, border: `1.5px solid ${T.border}`, fontSize: 16, background: dark ? '#1e1e1e' : '#fff', color: T.text, outline: 'none', width: '100%' }} />
+              </div>
+              {newPw.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', marginTop: 12, padding: '0 4px', textAlign: 'left' }}>
+                  {recoveryCheck.results.map(r => (
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: r.ok ? '#22c55e' : T.sub }}>
+                      <span style={{ fontSize: 11 }}>{r.ok ? '✓' : '○'}</span>
+                      {t(r.key, r.fallback)}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {recoveryError && (
+                <p style={{ color: '#dc2626', fontSize: 14, fontWeight: 600, margin: '16px 0 0', textAlign: 'left' }}>{recoveryError}</p>
+              )}
+              <button onClick={handleRecoverySubmit} disabled={recoveryBusy} style={{ width: '100%', marginTop: 16, padding: '13px 16px', borderRadius: 14, background: dark ? '#f1f5f9' : '#0f172a', color: dark ? '#0f172a' : '#fff', fontWeight: 800, fontSize: 15, border: 'none', cursor: 'pointer', opacity: recoveryBusy ? 0.7 : 1, fontFamily: 'inherit' }}>
+                {recoveryBusy ? t("modal_actualizando", "Actualizando…") : t("modal_actualizar_contrasena", "Actualizar contraseña")}
+              </button>
+            </>
+          )
+        ) : (
+          status !== 'done' && (
           <>
             <div style={{ width: '100%', display: gisReady ? 'flex' : 'none', justifyContent: 'center', minHeight: 44, marginBottom: 8 }}>
               <div ref={googleBtnRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} />
             </div>
-            {!gisReady && !gisTimedOut && status !== 'signing' && (
-              <p style={{ color: T.sub, fontSize: 14, margin: '0 0 16px' }}>{t("modal_cargando_boton_google", "Cargando el botón de Google…")}</p>
-            )}
-            {gisTimedOut && !gisReady && (
+            {gisTimedOut && !gisReady && fromApp && (
               <button
                 onClick={handleFallbackGoogle}
                 style={{ width: '100%', padding: '13px 16px', marginBottom: 8, background: dark ? 'rgba(255,255,255,0.06)' : '#fff', border: `1.5px solid ${dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)'}`, borderRadius: 999, fontWeight: 700, fontSize: 15, color: T.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -192,18 +274,21 @@ export default function AppLoginView({ T, dark, navigate }) {
               </button>
             )}
           </>
+          )
         )}
 
         {status === 'error' && error && (
           <p style={{ color: '#dc2626', fontSize: 14, fontWeight: 600, margin: '0 0 16px' }}>{error}</p>
         )}
 
-        <button
-          onClick={handleCancel}
-          style={{ background: 'none', border: 'none', color: T.sub, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}
-        >
-          {t("modal_cancelar", "Cancelar")}
-        </button>
+        {!showLoginSplash && (
+          <button
+            onClick={handleCancel}
+            style={{ background: 'none', border: 'none', color: T.sub, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}
+          >
+            {t("modal_cancelar", "Cancelar")}
+          </button>
+        )}
       </div>
     </div>
   );

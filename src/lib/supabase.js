@@ -191,6 +191,22 @@ const sb = {
     localStorage.removeItem("cg_t");
     localStorage.removeItem("cg_r");
   },
+  // ── Recuperación de contraseña ──
+  // Envía el correo de restablecimiento a `email` con el enlace de vuelta
+  // a /login?recovery=1. GoTrue no revela si el email existe: devuelve 200
+  // aunque no haya cuenta (por eso el éxito no confirma el registro).
+  // NOTA: el enlace de vuelta debe estar permitido en Supabase (Auth →
+  // URL Configuration → Redirect URLs): si el correo llega pero el enlace
+  // da error, ahí falta agregar https://citymap.mx/login?recovery=1.
+  async resetPasswordForEmail(email, redirectTo) {
+    const r = await fetch(`${_AUTH}/recover`, {
+      method: "POST", headers: sb.authHeaders(),
+      body: JSON.stringify({ email, redirect_to: redirectTo }),
+    });
+    const d = await sb._json(r);
+    if (!r.ok || d?.error) throw new Error(d?.error?.message || d?.error_description || d?.message || "No se pudo enviar el correo de recuperación");
+    return d;
+  },
   async signInWithIdToken({ provider = 'google', token, nonce }) {
     const body = { provider, id_token: token };
     if (nonce) body.nonce = nonce;
