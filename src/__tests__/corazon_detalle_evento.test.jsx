@@ -63,15 +63,21 @@ describe('detalle de evento: corazón de guardar arriba, sobre la foto', () => {
     // En el héroe, después del botón flotante de compartir.
     expect(src.indexOf('<SaveHeartButton')).toBeGreaterThan(src.indexOf('Floating Share Button'));
     expect(src.indexOf('<SaveHeartButton')).toBeLessThan(src.indexOf('El anfitrión del evento privado'));
-    // Compartir a right:16 y el corazón a right:64 (16 + 40 + 8 de
-    // separación): misma fila superior, corazón a la izquierda.
-    expect(src).toContain('right: 16, width: 40, height: 40');
-    expect(src).toContain('right: 64, width: 40, height: 40');
-    // Compartir y atrás SÍ conservan su círculo oscuro con blur.
-    expect(src).toContain('background: "rgba(0,0,0,0.35)"');
-    expect(src).toContain('backdropFilter: "blur(6px)"');
+    // Compartir a right:16 (44 px) y el corazón a right:68
+    // (16 + 44 + 8 de separación): misma fila superior, corazón a la
+    // izquierda. El corazón ya no fija ancho/alto en buttonStyle: usa
+    // el 44x44 por defecto de SaveHeartButton.
+    expect(src).toContain('right: 16, width: 44, height: 44');
+    expect(src).toContain('right: 68, zIndex: 10');
+    expect(src).not.toContain('right: 64');
+    // Nov 2026 (Jonathan, PR #221): «Quedó muy pequeño el corazon,
+    // hazlo más grande que los 3 de la parte superior tengan el mismo
+    // tamaño sin el circulo negro» — NINGUNO de los 3 lleva círculo
+    // oscuro detrás (antes atrás y compartir sí lo llevaban).
+    expect(src).not.toContain('background: "rgba(0,0,0,0.35)"');
+    expect(src).not.toContain('backdropFilter: "blur(6px)"');
     // Misma altura superior que el compartir.
-    expect(src).toContain('top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 64');
+    expect(src).toContain('top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 68');
     // Pero el CORAZÓN no lleva círculo detrás (nov 2026, Jonathan):
     // solo el corazón directo sobre la foto.
     const heartBlock = src.slice(src.indexOf('<SaveHeartButton'), src.indexOf('/>', src.indexOf('<SaveHeartButton')));
@@ -79,6 +85,26 @@ describe('detalle de evento: corazón de guardar arriba, sobre la foto', () => {
     expect(heartBlock).not.toContain('rgba(0,0,0');
     expect(heartBlock).not.toContain('backdropFilter');
     expect(heartBlock).not.toContain('borderRadius');
+    expect(heartBlock).not.toContain('filter: "none"');
+  });
+
+  it('los 3 de arriba tienen el mismo tamaño: botón 44 px e icono 24', () => {
+    const src = modalSrc();
+    // Botones: atrás y compartir 44x44 explícitos; el corazón hereda
+    // el 44x44 por defecto de SaveHeartButton.
+    expect(src).toContain('left: 16, width: 44, height: 44');
+    expect(src).toContain('right: 16, width: 44, height: 44');
+    expect(heartSrc()).toContain('width: 44');
+    expect(heartSrc()).toContain('height: 44');
+    // Iconos: los 3 a 24.
+    expect(src).toContain('<Icon name="arrow_left" size={24}');
+    expect(src).toContain('<Icon name="share" size={24}');
+    expect(src).toContain('size={24}');
+    // Sin círculo ya, los iconos llevan sombra suave para verse sobre
+    // cualquier foto (clara u oscura): atrás/compartir con drop-shadow
+    // en el icono y el corazón con el del overlay de SaveHeartButton.
+    expect(src).toContain('filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))"');
+    expect(heartSrc()).toContain('filter: overlay ? "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" : "none"');
   });
 
   it('las tarjetas de la lista tampoco llevan círculo detrás del corazón', () => {
