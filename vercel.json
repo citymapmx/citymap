@@ -8,6 +8,10 @@
     {
       "path": "/api/actualizar-calificaciones-google",
       "schedule": "0 10 1 * *"
+    },
+    {
+      "path": "/api/recordatorios-eventos",
+      "schedule": "0 15 * * *"
     }
   ],
   "redirects": [
