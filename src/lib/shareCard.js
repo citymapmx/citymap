@@ -1499,7 +1499,7 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
       area: qrArea,
       box: { x: bx, y: by, size: side, radius: L.qrRadius },
       img: { x: bx + L.qrPad, y: by + L.qrPad, size: inner },
-      cta: { text: 'Escanea para ver el menú', x: W / 2, y: 0, size: L.ctaSize },
+      cta: { text: data?.qrCta || 'Escanea para ver el menú', x: W / 2, y: 0, size: L.ctaSize },
     };
     y += qrArea.h;
     y += L.ctaGap;

@@ -6,7 +6,7 @@ import {useUIStore} from '../../store/useUIStore.js';
 import {useDataStore} from '../../store/useDataStore.js';
 import { sb } from '../../lib/supabase.js';
 import Icon from '../ui/Icon.jsx';
-import { cleanCityPrefix, createSlug } from '../../lib/utils.js';
+import BizShareHub from '../BizShareHub.jsx';
 import { lazy } from "react";
 import { useAuthStore } from "../../store/useAuthStore.js";
 
@@ -155,71 +155,13 @@ export default function StoreAdminPanel({ business, onClose, T, dataClient = sb 
             />
             
             <div style={{ padding: "0 16px" }}>
-              {/* QR CODES SECTION */}
+              {/* COMPARTIR MI NEGOCIO (PR #240): el mismo centro que el
+                  modal de Mi Perfil (Redes / Para imprimir / QR suelto).
+                  Antes esta sección solo descargaba los 2 QR pelados. */}
             <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px solid ${T.border}` }}>
               <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
-                <div style={{ padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.bg, display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, color: T.text, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <Icon name="maximize" size={16} /> Códigos QR del Negocio
-                </div>
-                
                 <div style={{ padding: 20 }}>
-                  <p style={{ fontSize: 13, color: T.sub, margin: "0 0 16px 0", lineHeight: 1.5 }}>Descarga los códigos QR listos para imprimir y colocar en las mesas o publicidad. ¡Nunca caducan!</p>
-                  
-                  <div style={{ display: "flex", gap: 12 }}>
-                    <button 
-                      onClick={async () => {
-                        const city = business.city_slug || 'merida';
-                        const slug = cleanCityPrefix(business.slug || createSlug(business.name || ''), city);
-                        const url = `https://citymap.mx/${city}/${slug}`;
-                        try {
-                          const res = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=1024x1024&data=${encodeURIComponent(url)}`);
-                          const blob = await res.blob();
-                          const a = document.createElement("a");
-                          a.href = URL.createObjectURL(blob);
-                          a.download = `QR_Perfil_${business.name.replace(/\s+/g, '_')}.png`;
-                          a.click();
-                        } catch(e) { alert("Error al generar QR"); }
-                      }} 
-                      style={{ flex: 1, padding: "20px 14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, color: T.text, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, transition: "all 0.2s" }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = T.green}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
-                    >
-                      <div style={{ background: T.white, padding: 12, borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-                        <Icon name="user" size={28} color={T.text} />
-                      </div>
-                      <div style={{ textAlign: "center" }}>
-                        <div style={{ fontWeight: 800, fontSize: 14 }}>Descargar QR de Perfil</div>
-                        <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>Lleva al perfil completo</div>
-                      </div>
-                    </button>
-                    
-                    <button 
-                      onClick={async () => {
-                        const city = business.city_slug || 'merida';
-                        const slug = cleanCityPrefix(business.slug || createSlug(business.name || ''), city);
-                        const url = `https://citymap.mx/${city}/${slug}/menu`;
-                        try {
-                          const res = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=1024x1024&data=${encodeURIComponent(url)}`);
-                          const blob = await res.blob();
-                          const a = document.createElement("a");
-                          a.href = URL.createObjectURL(blob);
-                          a.download = `QR_${isCatalog?'Catalogo':'Menu'}_${business.name.replace(/\s+/g, '_')}.png`;
-                          a.click();
-                        } catch(e) { alert("Error al generar QR"); }
-                      }} 
-                      style={{ flex: 1, padding: "20px 14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, color: T.text, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, transition: "all 0.2s" }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = T.green}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
-                    >
-                      <div style={{ background: T.white, padding: 12, borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-                        <Icon name="list" size={28} color={T.text} />
-                      </div>
-                      <div style={{ textAlign: "center" }}>
-                        <div style={{ fontWeight: 800, fontSize: 14 }}>{isCatalog?'Descargar QR del catálogo':'Descargar QR del menú'}</div>
-                        <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>{isCatalog?'Abre directo el catálogo':'Abre directo el menú'}</div>
-                      </div>
-                    </button>
-                  </div>
+                  <BizShareHub biz={business} T={T} isCatalog={isCatalog} />
                 </div>
               </div>
             </div>

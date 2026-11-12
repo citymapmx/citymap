@@ -425,7 +425,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
             {data?.qrDataUrl ? (
               <img
                 src={data.qrDataUrl}
-                alt="QR del menú"
+                alt="Código QR"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -739,7 +739,9 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
         </div>
       ) : null}
 
-      {/* Línea bajo el QR (PR #159). */}
+      {/* Línea bajo el QR (PR #159). La tarjeta QR del perfil (PR
+          #240) dice «Escanea para ver el perfil»: el texto viene en
+          data.qrCta y el del menú sigue siendo el de siempre. */}
       {isQr && layout.qr ? (
         <div
           style={{
@@ -752,7 +754,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
             flexShrink: 0,
           }}
         >
-          Escanea para ver el menú
+          {data?.qrCta || 'Escanea para ver el menú'}
         </div>
       ) : null}
 
