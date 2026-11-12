@@ -10,7 +10,7 @@
       "schedule": "0 10 1 * *"
     },
     {
-      "path": "/api/recordatorios-eventos",
+      "path": "/api/send-notification",
       "schedule": "0 15 * * *"
     }
   ],
