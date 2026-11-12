@@ -71,7 +71,17 @@ export function EventTicketBar({ event, T, hideTickets = false, onShare = null }
   );
 }
 
-export default function EventInformation({ event, associatedBiz, T, hideTickets = false, hidePriceRow = false }) {
+// Tarjeta unificada (PR #228, Jonathan 11 nov 2026, capturas del
+// detalle de Calamaro): la tarjeta de información lleva degradado
+// vertical #34383B → #050505 con texto blanco, fijo en los dos modos.
+// `unified` = el reproductor de Apple Music va pegado debajo: la
+// tarjeta pierde su radio, su sombra y su margen inferior para
+// fundirse con él en una sola tarjeta (esquinas superiores cuadradas
+// y las dos inferiores redondeadas, en el reproductor). Sin
+// reproductor, la tarjeta lleva el radio completo (20, como antes)
+// y su sombra. La descripción («Acerca del evento») queda fuera de
+// la tarjeta, arriba, como siempre.
+export default function EventInformation({ event, associatedBiz, T, hideTickets = false, hidePriceRow = false, unified = false }) {
   const { t, lang } = useTranslation();
   const locale = lang === 'en' ? 'en-US' : 'es-MX';
   const price = getEventPrice(event);
@@ -121,26 +131,26 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
         </button>
       )}
     </section>}
-    {hasInfo && <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 20, padding: '2px 16px', boxShadow: T.shadow, marginBottom: event.description || showLinks ? 22 : 0 }}>
+    {hasInfo && <div style={{ background: 'linear-gradient(180deg, #34383B 0%, #050505 100%)', borderRadius: unified ? 0 : 20, padding: '2px 16px', boxShadow: unified ? 'none' : T.shadow, marginBottom: unified ? 0 : (event.description || showLinks ? 22 : 0) }}>
       {(start || times) && <div style={rowStyle}>
-        <Icon name="calendar" size={26} color={T.text} style={iconStyle} />
+        <Icon name="calendar" size={26} color="#FFFFFF" style={iconStyle} />
         <div style={{ minWidth: 0 }}>
-          {start && <p style={{ margin: 0, color: T.text, fontSize: 15, lineHeight: 1.5, fontWeight: 650, textWrap: 'balance' }}>{start}{end ? (lang === 'en' ? ` to ${end}` : ` al ${end}`) : ''}</p>}
-          {times && <p style={{ margin: start ? '3px 0 0' : 0, color: T.sub, fontSize: 14, lineHeight: 1.5 }}>{times}</p>}
-          {calendarUrl && <a href={calendarUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 36, marginTop: 2, color: T.text, fontSize: 13, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}><Icon name="calendar" size={14} color={T.text} />{t("eventos_anadir_calendario", "Añadir a mi calendario")}</a>}
+          {start && <p style={{ margin: 0, color: '#FFFFFF', fontSize: 15, lineHeight: 1.5, fontWeight: 650, textWrap: 'balance' }}>{start}{end ? (lang === 'en' ? ` to ${end}` : ` al ${end}`) : ''}</p>}
+          {times && <p style={{ margin: start ? '3px 0 0' : 0, color: 'rgba(255,255,255,0.75)', fontSize: 14, lineHeight: 1.5 }}>{times}</p>}
+          {calendarUrl && <a href={calendarUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 36, marginTop: 2, color: '#FFFFFF', fontSize: 13, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}><Icon name="calendar" size={14} color="#FFFFFF" />{t("eventos_anadir_calendario", "Añadir a mi calendario")}</a>}
         </div>
       </div>}
       {(venue || address || coordinates) && <div style={rowStyle}>
-        <Icon name="map-pin" size={26} color={T.text} style={iconStyle} />
+        <Icon name="map-pin" size={26} color="#FFFFFF" style={iconStyle} />
         <div style={{ minWidth: 0 }}>
-          {showVenueLine && <p style={{ margin: 0, color: T.text, fontWeight: 650, fontSize: 15, lineHeight: 1.5 }}>{venue}</p>}
-          {address && <p style={{ margin: showVenueLine ? '3px 0 0' : 0, color: T.sub, fontSize: 14, lineHeight: 1.5 }}>{address}</p>}
-          <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 36, marginTop: 2, color: T.text, fontSize: 13, fontWeight: 600, textUnderlineOffset: 3 }}>{t("como_llegar", "Cómo llegar")} ↗</a>
+          {showVenueLine && <p style={{ margin: 0, color: '#FFFFFF', fontWeight: 650, fontSize: 15, lineHeight: 1.5 }}>{venue}</p>}
+          {address && <p style={{ margin: showVenueLine ? '3px 0 0' : 0, color: 'rgba(255,255,255,0.75)', fontSize: 14, lineHeight: 1.5 }}>{address}</p>}
+          <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 36, marginTop: 2, color: '#FFFFFF', fontSize: 13, fontWeight: 600, textUnderlineOffset: 3 }}>{t("como_llegar", "Cómo llegar")} ↗</a>
         </div>
       </div>}
       {showPriceRow && <div style={rowStyle}>
-        <Icon name="ticket" size={26} color={T.text} style={iconStyle} />
-        <div><p style={{ margin: 0, color: T.text, fontSize: 15, lineHeight: 1.5, fontWeight: 650 }}>{price.text}</p></div>
+        <Icon name="ticket" size={26} color="#FFFFFF" style={iconStyle} />
+        <div><p style={{ margin: 0, color: '#FFFFFF', fontSize: 15, lineHeight: 1.5, fontWeight: 650 }}>{price.text}</p></div>
       </div>}
     </div>}
   </>;
