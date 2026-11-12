@@ -378,7 +378,8 @@ export default function EventDetailModal() {
                 )}
 
                 {/* --- EVENTO PASADO: próximos eventos antes que los datos viejos --- */}
-                {isPast && upcoming.length > 0 && (
+                {/* En privados no se muestran más eventos abajo (Jonathan, nov 2026). */}
+                {isPast && !isPrivateEvent(ev) && upcoming.length > 0 && (
                   <div style={{ margin: '0 0 24px 0' }}>
                     <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>{t("eventos_proximos", "Próximos eventos")}{cityName ? <> {t("eventos_en", "en")} {cityName}</> : ''}</div>
                     {upcoming.map(u => {
@@ -522,7 +523,8 @@ export default function EventDetailModal() {
 
 
                 {/* --- MÁS EVENTOS (abajo de todo, como "Nearby events") --- */}
-                {!isPast && upcoming.length > 0 && (
+                {/* En privados no se muestran más eventos abajo (Jonathan, nov 2026). */}
+                {!isPast && !isPrivateEvent(ev) && upcoming.length > 0 && (
                   <div style={{ margin: '0 -16px 8px' }}>
                     <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12, padding: '0 16px' }}>{t("eventos_mas_eventos", "Más eventos")}{cityName ? <> {t("eventos_en", "en")} {cityName}</> : ''}</div>
                     <div className="scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 16px 8px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
