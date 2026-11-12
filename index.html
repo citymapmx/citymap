@@ -101,6 +101,13 @@
       </div>
     </div>
     <script>
+      // Desde la app nativa el login se abre en un Custom Tab: quitar el
+      // splash de arranque para que no se vea como si la app se reiniciara.
+      // El fondo queda negro mientras carga el bundle (igual que el splash).
+      if (new URLSearchParams(window.location.search).get('from') === 'app') {
+        var s = document.getElementById("boot-splash"); if (s) s.remove();
+        document.body.style.background = '#000';
+      }
       setTimeout(function () { var s = document.getElementById("boot-splash"); if (s) s.remove(); }, 15000);
     </script>
     <main id="root"></main>
