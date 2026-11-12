@@ -29,8 +29,23 @@ function dayKey(value) {
   return Number.isNaN(d.getTime()) ? '' : d.toDateString();
 }
 
-export default function PrivateEventChat({ event, T, dark, luma, toast$, onCountChange }) {
+export default function PrivateEventChat({ event, T, dark, toast$, onCountChange }) {
   const { t } = useTranslation();
+  // Paleta única estilo WhatsApp (Jonathan, nov 2026): un solo diseño
+  // para todos los eventos; el modo lo decide el tema del dispositivo
+  // (flag `dark` que ya usa la app). Sin opciones de personalización.
+  const C = dark ? {
+    chatBg: '#0B141A', ownBubble: '#005C4B', otherBubble: '#202C33',
+    text: '#F5F5F5', sub: '#AEBAC1', border: '#303D45', dateSep: '#37434A',
+  } : {
+    chatBg: '#F7F7F5', ownBubble: '#DCF8C6', otherBubble: '#FFFFFF',
+    text: '#111111', sub: '#667085', border: '#E5E7EB', dateSep: '#E9EDEF',
+  };
+  // Campo para escribir y botón de envío: negros con icono blanco, en
+  // ambos modos; placeholder del campo en gris.
+  const FIELD_BG = '#111111';
+  const FIELD_TEXT = '#FFFFFF';
+  const FIELD_PH = '#AEBAC1';
   const { user } = useAuthStore();
   const [messages, setMessages] = useState([]);
   const [likes, setLikes] = useState([]);
@@ -238,35 +253,36 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
   let lastDay = '';
   return (
     <div style={{ margin: '0 0 16px 0', textAlign: 'left' }}>
-      {/* ── Mensaje fijado ── */}
+      {/* ── Mensaje fijado (fuera de la tarjeta, encima, como siempre) ── */}
       {pinned && (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: luma ? '#FFFFFF' : T.greenL, border: luma ? '1px solid #E7EBE8' : 'none', boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', borderRadius: 12, padding: '8px 10px', marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: C.otherBubble, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(15,23,42,0.08)', borderRadius: 12, padding: '8px 10px', marginBottom: 8 }}>
           <span style={{ fontSize: 14 }}>📌</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: T.green, marginBottom: 2 }}>{t("eventos_mensaje_fijado", "Mensaje fijado")} · {pinned.guest_name}</div>
-            <div style={{ fontSize: 13, color: T.text, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{pinned.body}</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.text, marginBottom: 2 }}>{t("eventos_mensaje_fijado", "Mensaje fijado")} · {pinned.guest_name}</div>
+            <div style={{ fontSize: 13, color: C.sub, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{pinned.body}</div>
           </div>
           {isHost && (
-            <button aria-label={t("eventos_quitar_mensaje_fijado", "Quitar mensaje fijado")} onClick={() => togglePin(pinned)} style={{ width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'transparent', color: T.sub, fontSize: 14, cursor: 'pointer', lineHeight: 1, flexShrink: 0 }}>×</button>
+            <button aria-label={t("eventos_quitar_mensaje_fijado", "Quitar mensaje fijado")} onClick={() => togglePin(pinned)} style={{ width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'transparent', color: C.sub, fontSize: 14, cursor: 'pointer', lineHeight: 1, flexShrink: 0 }}>×</button>
           )}
         </div>
       )}
 
       {/* ── Tarjeta flotante del chat: UNA sola tarjeta con la lista de
           mensajes y el campo para escribir dentro (Jonathan, nov 2026).
-          Blanca y flotante en claro; en oscuro, el tono de tarjeta del
-          tema. Las pestañas y el enlace secreto quedan fuera. ── */}
+          Dentro, el fondo es el de la paleta WhatsApp (#F7F7F5 claro /
+          #0B141A oscuro) con una textura de puntos muy tenue. Las
+          pestañas y el enlace secreto quedan fuera. ── */}
       <div
         style={{
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          background: luma ? '#FFFFFF' : (dark ? 'rgba(255,255,255,0.05)' : '#FFFFFF'),
-          backgroundImage: luma ? 'none' : (dark
+          background: C.chatBg,
+          backgroundImage: dark
             ? 'radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)'
-            : 'radial-gradient(rgba(15,23,42,0.045) 1px, transparent 1px)'),
-          backgroundSize: '18px 18px',
-          border: luma ? '1px solid #E7EBE8' : `1px solid ${T.border}`,
+            : 'radial-gradient(rgba(17,17,17,0.04) 1px, transparent 1px)',
+          backgroundSize: '20px 20px',
+          border: `1px solid ${C.border}`,
           borderRadius: 24,
           boxShadow: '0 10px 32px rgba(15,23,42,0.10)',
           overflow: 'hidden',
@@ -281,7 +297,7 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
         style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 10px 12px 12px' }}
       >
         {messages.length === 0 ? (
-          <div style={{ fontSize: 13, color: T.sub }}>{t("eventos_sin_mensajes", "Aún no hay mensajes. ¡Sé la primera persona en escribir!")}</div>
+          <div style={{ fontSize: 13, color: C.sub }}>{t("eventos_sin_mensajes", "Aún no hay mensajes. ¡Sé la primera persona en escribir!")}</div>
         ) : (
           messages.map((m, i) => {
             const key = dayKey(m.created_at);
@@ -292,42 +308,39 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
             // Mismo autor que el mensaje anterior (mismo día y mismo lado):
             // se agrupa, sin repetir avatar ni nombre.
             const sameAuthor = Boolean(prev) && prev.guest_name === m.guest_name && dayKey(prev.created_at) === key && isOwnMessage(prev) === own;
-            // Línea divisora solo cuando cambia la persona que escribe.
-            const showDivider = i > 0 && !showDay && !sameAuthor;
             const isHostMessage = m.user_id && event?.user_id && m.user_id === event.user_id;
             const count = likesFor(m.id).length;
             const liked = Boolean(myLike(m.id));
-            // Estilo referencia en claro: burbujas planas y redondeadas —
-            // las propias en oscuro (#0F172A, texto blanco), las demás en
-            // gris claro, sin borde ni sombra. En oscuro se queda el estilo
-            // anterior (tono píldora + trazo).
-            const bubbleBg = luma ? (own ? '#0F172A' : '#F1F5F9') : (dark ? (own ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.06)') : '#F1F5F9');
-            const bubbleBorder = luma ? 'none' : (dark ? '1.5px solid rgba(255,255,255,0.28)' : '1.5px solid #111111');
-            const bubbleShadow = 'none';
-            const bubbleColor = luma && own ? '#FFFFFF' : T.text;
+            // Burbujas estilo WhatsApp: propias a la derecha en verde
+            // claro (oscuro: verde oscuro), las demás a la izquierda en
+            // blanco (oscuro: gris oscuro). Sombra muy sutil y borde fino
+            // en las recibidas para que se lean sobre el fondo del chat.
+            const bubbleBg = own ? C.ownBubble : C.otherBubble;
+            const bubbleBorder = own ? 'none' : `1px solid ${C.border}`;
+            const bubbleShadow = '0 1px 2px rgba(15,23,42,0.08)';
+            const bubbleColor = C.text;
             return (
               <div key={m.id}>
                 {showDay && (
                   <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 2px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 9999, background: luma ? '#FFFFFF' : (dark ? 'rgba(255,255,255,0.08)' : '#F1F5F9'), border: luma ? '1px solid #E7EBE8' : 'none', color: T.sub }}>{formatChatDay(m.created_at)}</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 9999, background: C.dateSep, border: 'none', color: C.sub }}>{formatChatDay(m.created_at)}</span>
                   </div>
                 )}
-                {showDivider && !luma && <div style={{ height: 1, background: dark ? '#52525B' : '#D4D4D8', margin: '4px 0' }} />}
                 {own ? (
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <div style={{ maxWidth: '85%', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                       <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: bubbleShadow, borderRadius: 20, borderBottomRightRadius: 6, padding: '8px 12px', fontSize: 14, color: bubbleColor, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' }}>{m.body}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                        <span style={{ fontSize: 11, color: T.sub }}>{formatMessageTime(m.created_at)}</span>
+                        <span style={{ fontSize: 11, color: C.sub }}>{formatMessageTime(m.created_at)}</span>
                         {m.pinned && <span title={t("eventos_mensaje_fijado_titulo", "Mensaje fijado")} style={{ fontSize: 12 }}>📌</span>}
-                        <button aria-label={liked ? t("eventos_quitar_me_gusta", "Quitar me gusta") : t("eventos_me_gusta", "Me gusta")} onClick={() => toggleLike(m)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 0 2px 6px', fontSize: 13, fontWeight: 700, color: T.sub, fontFamily: 'inherit' }}>
+                        <button aria-label={liked ? t("eventos_quitar_me_gusta", "Quitar me gusta") : t("eventos_me_gusta", "Me gusta")} onClick={() => toggleLike(m)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 0 2px 6px', fontSize: 13, fontWeight: 700, color: C.sub, fontFamily: 'inherit' }}>
                           <Icon name={liked ? 'heart_overlay_f' : 'heart_overlay'} size={16} />
                           {count > 0 && <span>{count}</span>}
                         </button>
                         {isHost && (
                           <>
-                            <button aria-label={m.pinned ? t("eventos_quitar_fijado", "Quitar fijado") : t("eventos_fijar_mensaje", "Fijar mensaje")} onClick={() => togglePin(m)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px', fontSize: 13, color: m.pinned ? T.green : T.sub, fontFamily: 'inherit' }}>📌</button>
-                            <button aria-label={t("eventos_borrar_mensaje", "Borrar mensaje")} onClick={() => removeMessage(m.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px', fontSize: 14, color: T.sub, fontFamily: 'inherit', lineHeight: 1 }}>×</button>
+                            <button aria-label={m.pinned ? t("eventos_quitar_fijado", "Quitar fijado") : t("eventos_fijar_mensaje", "Fijar mensaje")} onClick={() => togglePin(m)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px', fontSize: 13, color: m.pinned ? T.green : C.sub, fontFamily: 'inherit' }}>📌</button>
+                            <button aria-label={t("eventos_borrar_mensaje", "Borrar mensaje")} onClick={() => removeMessage(m.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px', fontSize: 14, color: C.sub, fontFamily: 'inherit', lineHeight: 1 }}>×</button>
                           </>
                         )}
                       </div>
@@ -345,7 +358,7 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {!sameAuthor && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
-                          <span style={{ fontSize: 12, fontWeight: 800, color: T.text }}>{m.guest_name}</span>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: C.text }}>{m.guest_name}</span>
                           {m.user_id && <span title={t("eventos_usuario_verificado", "Usuario verificado")} style={{ fontSize: 12, color: T.green, fontWeight: 800 }}>✓</span>}
                           {isHostMessage && (
                             <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 9999, background: T.greenL, color: T.green }}>{t("eventos_anfitrion", "Anfitrión")}</span>
@@ -355,16 +368,16 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
                       )}
                       <div style={{ display: 'inline-block', maxWidth: '100%', background: bubbleBg, border: bubbleBorder, boxShadow: bubbleShadow, borderRadius: 20, borderBottomLeftRadius: 6, padding: '8px 12px', fontSize: 14, color: bubbleColor, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                        <button aria-label={liked ? t("eventos_quitar_me_gusta", "Quitar me gusta") : t("eventos_me_gusta", "Me gusta")} onClick={() => toggleLike(m)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px 2px 0', fontSize: 13, fontWeight: 700, color: T.sub, fontFamily: 'inherit' }}>
+                        <button aria-label={liked ? t("eventos_quitar_me_gusta", "Quitar me gusta") : t("eventos_me_gusta", "Me gusta")} onClick={() => toggleLike(m)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px 2px 0', fontSize: 13, fontWeight: 700, color: C.sub, fontFamily: 'inherit' }}>
                           <Icon name={liked ? 'heart_overlay_f' : 'heart_overlay'} size={16} />
                           {count > 0 && <span>{count}</span>}
                         </button>
-                        <span style={{ fontSize: 11, color: T.sub }}>{formatMessageTime(m.created_at)}</span>
+                        <span style={{ fontSize: 11, color: C.sub }}>{formatMessageTime(m.created_at)}</span>
                         {m.pinned && <span title={t("eventos_mensaje_fijado_titulo", "Mensaje fijado")} style={{ fontSize: 12 }}>📌</span>}
                         {isHost && (
                           <>
-                            <button aria-label={m.pinned ? t("eventos_quitar_fijado", "Quitar fijado") : t("eventos_fijar_mensaje", "Fijar mensaje")} onClick={() => togglePin(m)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px', fontSize: 13, color: m.pinned ? T.green : T.sub, fontFamily: 'inherit' }}>📌</button>
-                            <button aria-label={t("eventos_borrar_mensaje", "Borrar mensaje")} onClick={() => removeMessage(m.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px', fontSize: 14, color: T.sub, fontFamily: 'inherit', lineHeight: 1 }}>×</button>
+                            <button aria-label={m.pinned ? t("eventos_quitar_fijado", "Quitar fijado") : t("eventos_fijar_mensaje", "Fijar mensaje")} onClick={() => togglePin(m)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px', fontSize: 13, color: m.pinned ? T.green : C.sub, fontFamily: 'inherit' }}>📌</button>
+                            <button aria-label={t("eventos_borrar_mensaje", "Borrar mensaje")} onClick={() => removeMessage(m.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 6px', fontSize: 14, color: C.sub, fontFamily: 'inherit', lineHeight: 1 }}>×</button>
                           </>
                         )}
                       </div>
@@ -390,9 +403,10 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
       </div>
 
       {/* ── Campo para escribir, dentro del contenedor ── */}
-      {/* Estilo referencia en claro: píldora blanca con el botón de enviar
-          en círculo oscuro con avioncito, sin línea divisoria encima. */}
-      <div style={{ borderTop: luma ? 'none' : `1px solid ${T.border}` }}>
+      {/* Estilo WhatsApp (Jonathan, nov 2026): campo negro con texto
+          blanco y placeholder gris, botón circular negro con icono
+          blanco, igual en claro y oscuro. */}
+      <div style={{ borderTop: `1px solid ${C.border}` }}>
         <form onSubmit={send} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px 12px' }}>
           {!user && (
             <input
@@ -400,34 +414,36 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
               placeholder={t("eventos_tu_nombre", "Tu nombre")}
               value={name}
               onChange={e => setName(e.target.value)}
-              style={{ padding: '10px 14px' }}
+              style={{ padding: '10px 16px', background: FIELD_BG, color: FIELD_TEXT, border: `1px solid ${C.border}`, borderRadius: 9999 }}
             />
           )}
-          <div style={luma ? { display: 'flex', gap: 8, alignItems: 'center', background: '#FFFFFF', border: '1px solid #E7EBE8', borderRadius: 9999, padding: '4px 4px 4px 16px' } : { display: 'flex', gap: 8 }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-              <input
-                className="inp"
-                aria-label={t("eventos_mensaje_placeholder", "Mensaje")}
-                placeholder=""
-                value={body}
-                maxLength={MAX_BODY}
-                onChange={e => setBody(e.target.value)}
-                style={luma ? { width: '100%', padding: '10px 0', border: 'none', background: 'transparent', boxShadow: 'none', caretColor: body ? 'auto' : 'transparent' } : { width: '100%', padding: '10px 14px', caretColor: body ? 'auto' : 'transparent' }}
-              />
-              {body === '' && (
-                <div style={{ position: 'absolute', left: luma ? 0 : 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 3, fontSize: 15 }}>
-                  <span className="chat-caret" style={{ color: '#38BDF8', fontSize: 20, lineHeight: 1 }}>|</span>
-                  <span style={{ color: T.sub }}>{t("eventos_mensaje_placeholder", "Mensaje")}</span>
-                </div>
-              )}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, background: FIELD_BG, border: `1px solid ${C.border}`, borderRadius: 9999, padding: '4px 4px 4px 16px' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+                <input
+                  className="inp"
+                  aria-label={t("eventos_mensaje_placeholder", "Mensaje")}
+                  placeholder=""
+                  value={body}
+                  maxLength={MAX_BODY}
+                  onChange={e => setBody(e.target.value)}
+                  style={{ width: '100%', padding: '10px 0', border: 'none', background: 'transparent', boxShadow: 'none', color: FIELD_TEXT, caretColor: body ? 'auto' : 'transparent' }}
+                />
+                {body === '' && (
+                  <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 3, fontSize: 15 }}>
+                    <span className="chat-caret" style={{ color: FIELD_TEXT, fontSize: 20, lineHeight: 1 }}>|</span>
+                    <span style={{ color: FIELD_PH }}>{t("eventos_mensaje_placeholder", "Mensaje")}</span>
+                  </div>
+                )}
+              </div>
             </div>
             <button
               type="submit"
               disabled={sending || !body.trim()}
               aria-label={t("eventos_enviar_mensaje", "Enviar mensaje")}
-              style={luma ? { width: 36, height: 36, borderRadius: '50%', border: 'none', background: '#0F172A', color: '#FFFFFF', cursor: 'pointer', flexShrink: 0, opacity: sending || !body.trim() ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' } : { width: 44, height: 44, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.35)', background: dark ? 'rgba(244,244,245,0.72)' : 'rgba(0,0,0,0.68)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: dark ? '#18181B' : '#FFFFFF', fontSize: 19, cursor: 'pointer', flexShrink: 0, opacity: sending || !body.trim() ? 0.5 : 1, boxShadow: '0 6px 18px rgba(15,23,42,0.22), inset 0 1px 0 rgba(255,255,255,0.25)' }}
+              style={{ width: 44, height: 44, borderRadius: '50%', border: `1px solid ${C.border}`, background: '#111111', color: '#FFFFFF', cursor: 'pointer', flexShrink: 0, opacity: sending || !body.trim() ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
             >
-              {luma ? <Icon name="send" size={18} /> : '➤'}
+              <Icon name="send" size={18} />
             </button>
           </div>
         </form>
