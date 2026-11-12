@@ -20,7 +20,7 @@ export default function LoyaltyWizard({
   const STAMPS = Array.from({ length: 10 });
 
   // Categoría expandida: la del estilo que ya trae la tarjeta (si es uno
-  // de los 30+6) o Premium por defecto.
+  // de los 30) o Premium por defecto.
   const [activeCategory, setActiveCategory] = React.useState(
     () => findLoyaltyCategoryByBackground(config.bg_color) || "premium"
   );
