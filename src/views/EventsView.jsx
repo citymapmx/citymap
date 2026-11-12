@@ -40,13 +40,13 @@ export default function EventsView() {
   const { t, lang } = useTranslation();
   const ctx = useAppContext();
   const { dark, activeCity } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity })));
-  const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
+  const { user } = useAuthStore(useShallow(s => ({ user: s.user })));
   const { cities, dbReady, nearbyEvents, loadNearbyEvents } = useDataStore(useShallow(s => ({ cities: s.cities, dbReady: s.dbReady, nearbyEvents: s.nearbyEvents, loadNearbyEvents: s.loadNearbyEvents })));
   const now = useTimeStore(s => s.now);
 
   const {
     viewStyle, T, handleEventTap, setShowCreateEvent,
-    savedEventIds, setSavedEventIds, events
+    savedEventIds, toggleSaveEvent, events
   } = ctx;
 
   // Secondary sub-filters
@@ -320,18 +320,16 @@ export default function EventsView() {
   // deslizan a su nuevo lugar y las nuevas entran con un fundido.
   const registerFlip = useFlipList(renderedEvents.map((ev) => ev.id).join(','));
 
-  // Handle saving/unsaving events
+  // Guardar/quitar evento: delega en toggleSaveEvent (App.jsx), el mismo
+  // que usan el muro global y el detalle del evento. Además de actualizar
+  // el estado y localStorage, sincroniza con el servidor (tabla
+  // event_favorites, PR #213) para que el recordatorio del día del evento
+  // pueda avisar. Antes esta lista solo escribía en local (PR #218): el
+  // guardado nunca llegaba al servidor aunque se tocara el corazón.
+  // Sin sesión, el propio toggleSaveEvent pide iniciar sesión.
   const handleToggleSaveEvent = (ev, e) => {
-    if (e) e.stopPropagation();
-    // Sin sesión el corazón pide iniciar sesión para que se guarde de verdad (como toggleFav).
-    if (!user) { setShowAuth(true); return; }
-    const isSaved = savedEventIds.includes(ev.id);
-    const nw = isSaved ? savedEventIds.filter(x => x !== ev.id) : [...savedEventIds, ev.id];
-    setSavedEventIds(nw);
-    try {
-      localStorage.setItem("cg_saved_ev", JSON.stringify(nw));
-    } catch { /* empty */ }
-    haptic();
+    toggleSaveEvent?.(ev.id, e);
+    if (user) haptic();
   };
 
   return (
