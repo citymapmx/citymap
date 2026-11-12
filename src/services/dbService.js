@@ -17,6 +17,16 @@ export const getUnreadNotifications = async (userId, afterIsoString) => {
   );
 };
 
+// Total de notificaciones sin leer (globito de /cuenta y punto de Mi Perfil).
+export const getUnreadNotificationCount = async (userId) => {
+  if (!userId) return 0;
+  const rows = await sb.get(
+    "notifications",
+    `?user_id=eq.${userId}&read=eq.false&select=id`
+  );
+  return Array.isArray(rows) ? rows.length : 0;
+};
+
 // ── Reviews ───────────────────────────────────────────────────────────────
 export const getBusinessReviews = async (bizId) => {
   return await sb.get("reviews", `?biz_id=eq.${bizId}&order=created_at.desc`);

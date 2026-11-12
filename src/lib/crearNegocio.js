@@ -125,6 +125,12 @@ export function isPaidPlanKey(key) {
   return key === 'pro' || key === 'elite';
 }
 
+// Prueba de 7 días: solo en planes de pago y solo en mensual. En anual no
+// hay mención de prueba, como en el checkout real de Stripe.
+export function hasTrial(planKey, billing) {
+  return isPaidPlanKey(planKey) && billing === 'monthly';
+}
+
 // Precio a mostrar de un plan según el periodo elegido.
 export function planPrice(plan, billing) {
   return billing === 'annual' ? plan.priceAnnual : plan.priceMonthly;

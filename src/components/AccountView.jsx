@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import Icon from './ui/Icon.jsx';
 import ThemeToggle from './ui/ThemeToggle.jsx';
 import Uploader from './Uploader.jsx';
+import BizRequestCard from './BizRequestCard.jsx';
+import { parseEditBizDeepLink, badgeText } from '../lib/notifications.js';
 import { sb } from '../lib/supabase.js';
 import { isOpenNow, createSlug, cleanCityPrefix } from '../lib/utils.js';
 import { useUIStore } from '../store/useUIStore.js';
@@ -23,11 +26,45 @@ export default function AccountView({
 }) {
   const { t, lang } = useTranslation();
   const isOpen = isOpenNow;
-  const { installPromptEvent, setInstallPromptEvent } = useUIStore();
-  const { events } = useDataStore();
+  const { installPromptEvent, setInstallPromptEvent, unreadNotifCount } = useUIStore();
+  const { events, loadMyBiz } = useDataStore();
   const ctx = useAppContext();
   const { savedEventIds, setSelectedEvent } = ctx;
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const location = useLocation();
+  const deepLinkHandled = useRef(false);
+
+  // Abre el formulario de edición de un negocio (AddBizModal en modo
+  // edición del dueño). Lo usan el menú, la tarjeta de Mis solicitudes y
+  // el enlace profundo de la notificación «Se requieren cambios».
+  const openBizEdit = (b) => {
+    if (!b) return;
+    setEditBizId(b.id);
+    setAddBizForm({ name: b.name || "", category: b.category || b.type || "", emoji: b.emoji || "", description: b.description || "", address: b.address || "", city: b.city_slug || "", phone: b.phone || "", whatsapp: b.whatsapp || "", website: b.website || "", lat: b.lat || "", lng: b.lng || "", photos: b.photos?.map(p => p.url) || [], facebook: b.facebook || "", instagram: b.instagram || "", tiktok: b.tiktok || "", schedule: b.schedule || {}, owner_id: b.owner_id, user_id: b.user_id, plan: b.plan, status: b.status, video_url: b.video_url || "", logo_url: b.logo_url || "", menu_pdf_url: b.menu_pdf_url || "", booking_config: b.booking_config || null });
+    setShowAddBiz(true);
+  };
+
+  // Al entrar a /cuenta se recargan mis negocios: si el admin pidió
+  // cambios mientras la app estaba abierta, la tarjeta ya no muestra
+  // un «En revisión» viejo.
+  useEffect(() => {
+    if (!user) return;
+    loadMyBiz(user.id)?.catch?.(() => {});
+  }, [user, loadMyBiz]);
+
+  // Enlace profundo ?editarNegocio=<id> (notificación «Se requieren
+  // cambios»): abre la edición de ese negocio y limpia la URL.
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    const bizId = parseEditBizDeepLink(`${location.pathname}${location.search}`);
+    if (!bizId) return;
+    const b = myBizList.find(x => x.id === bizId);
+    if (!b) return;
+    deepLinkHandled.current = true;
+    openBizEdit(b);
+    window.history.replaceState(null, '', '/cuenta');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myBizList, location]);
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState("");
@@ -158,11 +195,7 @@ export default function AccountView({
     }
     else if (act.startsWith("owner_edit_")) {
       const b = myBizList.find(x => x.id === act.replace("owner_edit_", ""));
-      if (b) {
-        setEditBizId(b.id);
-        setAddBizForm({ name: b.name || "", category: b.category || b.type || "", emoji: b.emoji || "", description: b.description || "", address: b.address || "", city: b.city_slug || "", phone: b.phone || "", whatsapp: b.whatsapp || "", website: b.website || "", lat: b.lat || "", lng: b.lng || "", photos: b.photos?.map(p => p.url) || [], facebook: b.facebook || "", instagram: b.instagram || "", tiktok: b.tiktok || "", schedule: b.schedule || {}, owner_id: b.owner_id, user_id: b.user_id, plan: b.plan, status: b.status, video_url: b.video_url || "", logo_url: b.logo_url || "", menu_pdf_url: b.menu_pdf_url || "", booking_config: b.booking_config || null });
-        setShowAddBiz(true);
-      }
+      if (b) openBizEdit(b);
     }
     else if (act.startsWith("owner_res_")) {
       const b = myBizList.find(x => x.id === act.replace("owner_res_", ""));
@@ -383,6 +416,9 @@ export default function AccountView({
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       <Icon name={icon} size={20} color={T.sub} sw={1.5} />
                       <span style={{ fontSize: 15, fontWeight: 500, color: T.text, flex: 1 }}>{label}</span>
+                      {act === "user_notifs" && unreadNotifCount > 0 && (
+                        <span style={{ minWidth: 20, height: 20, padding: "0 6px", borderRadius: 999, background: "#FF3B30", color: "#fff", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{badgeText(unreadNotifCount)}</span>
+                      )}
                       <Icon name="chevron" size={16} color={T.border} sw={2} />
                     </div>
                   );
@@ -396,23 +432,9 @@ export default function AccountView({
         {(myBizList.filter(b => b.status === "pending" || b.status === "needs_changes").length > 0 || myClaims.filter(c => c.status === "pending").length > 0) && (
           <div style={{ padding: "16px 16px 0" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("mis_solicitudes", "Mis solicitudes")}</div>
-            {myBizList.filter(b => b.status === "pending" || b.status === "needs_changes").map(b => {
-              const stMap = { pending: { lbl: t("en_revision", "En revisión") }, needs_changes: { lbl: t("requiere_cambios", "Requiere cambios") } };
-              const st = stMap[b.status] || stMap.pending;
-              return (
-                <div key={b.id} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", marginBottom: 8, border: `1px solid ${T.border}` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{b.name}</div>
-                      <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{b.type || b.category}</div>
-                    </div>
-                    <span style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{st.lbl}</span>
-                  </div>
-                  {b.admin_notes && <div style={{ background: T.bg, borderRadius: 8, padding: "8px 10px", fontSize: 12, color: T.sub, borderLeft: `3px solid ${T.border}`, marginBottom: 8 }}>{b.admin_notes}</div>}
-                  {b.status === "needs_changes" && <button onClick={() => { setEditBizId(b.id); setAddBizForm({ name: b.name || "", category: b.category || b.type || "", emoji: b.emoji || "", description: b.description || "", address: b.address || "", city: b.city_slug || "", phone: b.phone || "", whatsapp: b.whatsapp || "", website: b.website || "", lat: b.lat || "", lng: b.lng || "", photos: b.photos?.map(p => p.url) || [], facebook: b.facebook || "", instagram: b.instagram || "", tiktok: b.tiktok || "", schedule: b.schedule || {}, owner_id: b.owner_id, user_id: b.user_id, plan: b.plan, status: b.status, video_url: b.video_url || "", logo_url: b.logo_url || "", menu_pdf_url: b.menu_pdf_url || "", booking_config: b.booking_config || null }); setShowAddBiz(true); }} style={{ width: "100%", padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>{t("editar_reenviar", "Editar y reenviar")}</button>}
-                </div>
-              );
-            })}
+            {myBizList.filter(b => b.status === "pending" || b.status === "needs_changes").map(b => (
+              <BizRequestCard key={b.id} b={b} T={T} dark={dark} t={t} onEdit={openBizEdit} />
+            ))}
             
             {myClaims.filter(c => c.status === "pending").map(claim => {
               const b = biz?.find(x => x.id === claim.business_id);

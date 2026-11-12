@@ -6,10 +6,24 @@ import { useUIStore } from '../store/useUIStore.js';
 export function useInAppNotifications() {
   const user = useAuthStore(state => state.user);
   const lastNotifCheckRef = useRef(new Date().toISOString());
-  
+
   useEffect(() => {
-    if (!user) return;
-    
+    if (!user) {
+      useUIStore.getState().setUnreadNotifCount(0);
+      return;
+    }
+
+    // Conteo de sin leer al arrancar (para el globito y el punto rojo),
+    // no solo cuando se abre la lista.
+    let cancelled = false;
+    const refreshCount = async () => {
+      try {
+        const n = await dbService.getUnreadNotificationCount(user.id);
+        if (!cancelled) useUIStore.getState().setUnreadNotifCount(n);
+      } catch { /* sin red no hay aviso; el próximo sondeo lo reintenta */ }
+    };
+    refreshCount();
+
     const interval = setInterval(async () => {
       if (document.hidden) return; // Battery Optimization: Stop polling in background
       try {
@@ -43,11 +57,13 @@ export function useInAppNotifications() {
           const latest = notifs[0];
           useUIStore.getState().toast$(latest.title + ': ' + latest.body);
         }
+        // El total de sin leer puede cambiar también desde otro lado.
+        await refreshCount();
       } catch (err) {
         // ignore network errors on background poll
       }
     }, 15000); // Check every 15 seconds
 
-    return () => clearInterval(interval);
+    return () => { cancelled = true; clearInterval(interval); };
   }, [user]);
 }

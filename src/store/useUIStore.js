@@ -12,6 +12,11 @@ const INVALID_CITY_SLUGS = new Set([
 export const useUIStore = create((set) => ({
   eventReminder: null,
   setEventReminder: (eventReminder) => set({ eventReminder }),
+  // Notificaciones sin leer (globito de /cuenta y punto de Mi Perfil).
+  // Se carga al arrancar la app y se limpia al abrir la lista.
+  unreadNotifCount: 0,
+  setUnreadNotifCount: (n) => set({ unreadNotifCount: Math.max(0, n | 0) }),
+  decUnreadNotifCount: () => set((s) => ({ unreadNotifCount: Math.max(0, (s.unreadNotifCount || 0) - 1) })),
   dark: false,
   themeMode: 'auto',
   setThemeMode: (themeMode) => set(state => {
