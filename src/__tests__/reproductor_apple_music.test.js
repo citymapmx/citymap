@@ -62,7 +62,19 @@ describe('reproductor «Música del artista» con marca Apple Music', () => {
     expect(modalSrc).toContain('musicAudioRef.current?.pause();');
     expect(modalSrc).toContain('const audio = new Audio(track.preview);');
     expect(modalSrc).toContain('audio.onended = () => setPlayingTrackId(null);');
-    expect(modalSrc).toContain('fetch(buildItunesSearchUrl(musicQuery, 5))');
+    // PR #233: la carga pasa por loadMusicTracks (reintento ante fallos de
+    // iTunes + consulta de respaldo si la del artista no devuelve nada),
+    // no por un fetch directo sin reintento.
+    expect(modalSrc).toContain('loadMusicTracks([musicQuery, musicFallbackQuery]');
+    expect(modalSrc).not.toContain('fetch(buildItunesSearchUrl(musicQuery, 5))');
+  });
+
+  it('la búsqueda de música se vuelve a hacer al cambiar de evento en el modal', () => {
+    // PR #233: abrir otro evento desde «Más eventos» rebusca la música del
+    // nuevo artista aunque la consulta coincida — un fallo anterior no se
+    // arrastra al siguiente evento.
+    expect(modalSrc).toMatch(/useEffect\(\(\) => \{\s*if \(!musicQuery\)[\s\S]{0,1200}\}, \[musicQuery, musicFallbackQuery, selectedEvent\?\.id\]\)/);
+    expect(modalSrc).toContain('const musicFallbackQuery = selectedEvent');
   });
 });
 
