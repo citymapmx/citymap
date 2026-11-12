@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import { loyaltyBgFirstColor } from '../lib/loyaltyColorStyles.js';
 import { normalizeWhatsApp } from '../lib/loyaltyWhatsapp.js';
+import { clearPrefetchedLoyaltyEntries } from '../lib/loyaltyMemberships.js';
 import Icon from '../components/ui/Icon.jsx';
 
 export default function LoyaltyCardView({ T, user, setShowAuth }) {
@@ -102,6 +103,12 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
       }
       if (res && res[0]) {
         setMember(res[0]);
+        // La precarga del perfil es una foto anterior al join: si no se
+        // invalida, la tarjeta nueva no aparece en el perfil hasta
+        // recargar la página (12 Nov 2026). Al descartarla, la próxima
+        // lectura (o el refresco del carrusel al entrar) ya trae la
+        // membresía recién creada.
+        clearPrefetchedLoyaltyEntries();
       }
     } catch(e) {
       alert("Error al inscribirte: " + e.message);
@@ -189,26 +196,26 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
 
       <div style={{ width: "100%", maxWidth: 320, background: card.bg_color, borderRadius: 24, boxShadow: "0 20px 40px rgba(0,0,0,0.15)", overflow: "hidden", position: "relative", flexShrink: 0 }}>
         
-        {/* Cabecera */}
-        <div style={{ padding: "20px 16px 16px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+        {/* Cabecera (compacta: la tarjeta era demasiado alta en la página pública) */}
+        <div style={{ padding: "12px 16px 8px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
           {card.logo_url ? (
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fff", padding: 3, marginBottom: 12, boxShadow: "0 8px 16px rgba(0,0,0,0.1)" }}>
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#fff", padding: 3, marginBottom: 8, boxShadow: "0 8px 16px rgba(0,0,0,0.1)" }}>
               <img src={card.logo_url} alt="Logo" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
             </div>
           ) : (
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(0,0,0,0.1)", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Icon name="award" size={26} color={card.text_color} />
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(0,0,0,0.1)", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="award" size={20} color={card.text_color} />
             </div>
           )}
           
-          <h2 style={{ margin: "0 0 4px", color: card.text_color, fontSize: 18, fontWeight: 900, lineHeight: 1.2 }}>{biz.name}</h2>
+          <h2 style={{ margin: "0 0 4px", color: card.text_color, fontSize: 16, fontWeight: 900, lineHeight: 1.2 }}>{biz.name}</h2>
           <div style={{ fontSize: 11, color: card.text_color, opacity: 0.8, fontWeight: 600 }}>Programa de Lealtad</div>
         </div>
 
         {/* Sellos */}
-        <div style={{ padding: "0 16px 20px" }}>
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-            <div style={{ width: "100%", textAlign: "center", marginBottom: 6, fontSize: 11, fontWeight: 800, color: card.text_color, letterSpacing: 1 }}>
+        <div style={{ padding: "0 16px 12px" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+            <div style={{ width: "100%", textAlign: "center", marginBottom: 4, fontSize: 11, fontWeight: 800, color: card.text_color, letterSpacing: 1 }}>
               {currentStamps} DE {card.stamps_required || 5} SELLOS
             </div>
             
@@ -216,39 +223,39 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
               const stampIcon = card.type?.includes('|') ? card.type.split('|')[1] : "star";
               return (
                 <div key={i} style={{ 
-                  width: 40, height: 40, borderRadius: "50%", 
+                  width: 32, height: 32, borderRadius: "50%", 
                   background: i < currentStamps ? card.primary_color : "transparent", 
                   border: `2px solid ${card.primary_color}`, 
                   display: "flex", alignItems: "center", justifyContent: "center", 
                   opacity: i < currentStamps ? 1 : 0.4 
                 }}>
-                  {i < currentStamps && <Icon name={stampIcon} size={20} color={loyaltyBgFirstColor(card.bg_color)} />}
+                  {i < currentStamps && <Icon name={stampIcon} size={16} color={loyaltyBgFirstColor(card.bg_color)} />}
                 </div>
               );
             })}
           </div>
           
           {currentStamps >= (card.stamps_required || 5) ? (
-            <div style={{ textAlign: "center", marginTop: 16 }}>
+            <div style={{ textAlign: "center", marginTop: 8 }}>
               <div style={{ fontSize: 13, fontWeight: 900, color: "#F59E0B", textTransform: "uppercase", letterSpacing: 1, textShadow: "0 2px 10px rgba(245, 158, 11, 0.4)", animation: "pulse 2s infinite" }}>✨ ¡Premio Desbloqueado! ✨</div>
-              <div style={{ fontSize: 16, fontWeight: 900, color: card.text_color, marginTop: 4 }}>{card.reward_text}</div>
+              <div style={{ fontSize: 14, fontWeight: 900, color: card.text_color, marginTop: 4 }}>{card.reward_text}</div>
             </div>
           ) : (
-            <div style={{ textAlign: "center", marginTop: 16 }}>
+            <div style={{ textAlign: "center", marginTop: 8 }}>
               <div style={{ fontSize: 10, color: card.text_color, opacity: 0.7, textTransform: "uppercase", fontWeight: 800, letterSpacing: 1 }}>Premio al completar</div>
-              <div style={{ fontSize: 15, fontWeight: 900, color: card.text_color, marginTop: 4 }}>{card.reward_text}</div>
+              <div style={{ fontSize: 14, fontWeight: 900, color: card.text_color, marginTop: 4 }}>{card.reward_text}</div>
             </div>
           )}
         </div>
 
         {/* Footer QR inside card */}
         {member && (
-          <div style={{ padding: "0 20px 24px", display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-            <div style={{ background: "#fff", padding: 8, borderRadius: 12, display: "inline-block", marginBottom: 8 }}>
+          <div style={{ padding: "0 20px 16px", display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+            <div style={{ background: "#fff", padding: 6, borderRadius: 12, display: "inline-block", marginBottom: 6 }}>
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`https://citymap.mx/scan/${member.id}`)}&bgcolor=ffffff&color=000000&qzone=1`}
                 alt="Mi QR de lealtad"
-                style={{ width: 120, height: 120, display: "block" }}
+                style={{ width: 96, height: 96, display: "block" }}
               />
             </div>
             <div style={{ fontSize: 11, color: card.text_color, opacity: 0.9, fontWeight: 700, textAlign: "center" }}>
@@ -278,11 +285,21 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
             <h3 style={{ margin: "0 0 8px", color: card.text_color, fontSize: 20, fontWeight: 900 }}>Únete al programa</h3>
             <p style={{ margin: "0 0 20px", color: card.text_color, opacity: 0.8, fontSize: 14 }}>Guarda sellos en cada visita y canjéalos por recompensas exclusivas.</p>
             <label style={{ display: "block", textAlign: "left", fontSize: 11, fontWeight: 800, color: card.text_color, opacity: 0.8, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>WhatsApp</label>
+            {/* El placeholder va en el color del texto de la tarjeta (blanco
+              en esta tarjeta azul) y a opacidad completa; el autofill de
+              Safari/iOS pinta el input de amarillo pálido
+              (:-webkit-autofill), así que se anula con una sombra interior
+              del color del input y el color de texto de la tarjeta. */}
+            <style>{`
+              .loyalty-whatsapp-input::placeholder { color: ${card.text_color}; opacity: 1; }
+              .loyalty-whatsapp-input:-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px rgba(255,255,255,0.15) inset; -webkit-text-fill-color: ${card.text_color}; caret-color: ${card.text_color}; transition: background-color 9999s ease-in-out 0s; }
+            `}</style>
             <input
               type="tel"
               inputMode="tel"
               autoComplete="tel"
-              placeholder="311 000 0000"
+              className="loyalty-whatsapp-input"
+              placeholder="Agrega tu número"
               value={whatsapp}
               onChange={(e) => { setWhatsapp(e.target.value); if (whatsappError) setWhatsappError(""); }}
               style={{ width: "100%", boxSizing: "border-box", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${card.text_color}55`, background: "rgba(255,255,255,0.15)", color: card.text_color, fontSize: 16, fontFamily: "inherit", outline: "none", marginBottom: whatsappError ? 6 : 16 }}

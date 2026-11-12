@@ -42,6 +42,15 @@ export async function loadLoyaltyEntries(user) {
 //   siempre (sin regresión ni crash).
 // - Al cerrar sesión, App.jsx llama clearPrefetchedLoyaltyEntries() para no
 //   enseñar las tarjetas del usuario anterior.
+// - REFRESCO (12 Nov 2026, la tarjeta recién unida no aparecía sin
+//   recargar): la promesa precargada es una foto del momento en que se
+//   precargó; si el usuario se une a un programa DESPUÉS, la foto sigue
+//   siendo la vieja (vacía). Por eso el carrusel, al entrar, muestra la
+//   precarga al instante Y refresca en segundo plano con
+//   refreshLoyaltyEntries(user), y el join invalida la caché con
+//   clearPrefetchedLoyaltyEntries() al crear la membresía. Si el refresco
+//   falla, la caché se descarta pero la llamada rechaza, para que quien la
+//   esperaba no borre lo que ya mostraba.
 let prefetchedUserId = null;
 let prefetchedPromise = null;
 
@@ -61,6 +70,27 @@ export function prefetchLoyaltyEntries(user) {
 export function getPrefetchedLoyaltyEntries(user) {
   if (!user?.id || prefetchedUserId !== user.id || !prefetchedPromise) return null;
   return prefetchedPromise;
+}
+
+// Refresca las entradas en segundo plano y deja la lista fresca como la
+// nueva precarga (stale-while-revalidate): el carrusel muestra la precarga
+// al instante y actualiza cuando llega la lista fresca, así una tarjeta
+// unida después de la precarga aparece sin recargar. Si el refresco falla,
+// la caché se descarta (la próxima lectura vuelve a cargar) pero la promesa
+// devuelta RECHAZA, para que quien la esperaba conserve lo que ya mostraba
+// en vez de borrarlo. Sin usuario resuelve [] como loadLoyaltyEntries.
+export function refreshLoyaltyEntries(user) {
+  if (!user?.id) return Promise.resolve([]);
+  const fresh = loadLoyaltyEntries(user);
+  prefetchedUserId = user.id;
+  prefetchedPromise = fresh;
+  fresh.catch(() => {
+    if (prefetchedPromise === fresh) {
+      prefetchedUserId = null;
+      prefetchedPromise = null;
+    }
+  });
+  return fresh;
 }
 
 export function clearPrefetchedLoyaltyEntries() {
