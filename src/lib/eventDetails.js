@@ -53,15 +53,83 @@ export function matchesPriceFilter(event, filter) {
 }
 
 // Reproductor de música del evento: solo conciertos (la categoría dice si
-// hay artista). El título del evento suele ser el artista; se quita un
-// " en <lugar>" final ("Alfredo Olivas en Tepic" → "Alfredo Olivas")
-// porque eso deja sin resultados la búsqueda.
+// hay artista). El título del evento suele ser el artista, pero muchas
+// veces es el nombre de la gira ("Ricardo Arjona — ¿Qué haría si pudiera?
+// Tour", "ZZ Top – The Elevation Tour"): iTunes no encuentra nada con el
+// título completo, así que la búsqueda usa solo el artista — lo que va
+// antes del primer guion o de los dos puntos ("Artista — Gira",
+// "Artista: Temporada"). También se quita un " en <lugar>" final
+// ("Alfredo Olivas en Tepic" → "Alfredo Olivas") porque eso deja sin
+// resultados la búsqueda.
 export function getEventMusicQuery(event) {
   if (!event || !event.title || !String(event.title).trim()) return null;
   const category = String(event.event_category || event.category || '').trim().toLowerCase();
   if (!category.startsWith('concierto')) return null;
-  const title = String(event.title).trim();
-  return title.replace(/\s+en\s+[^,;|]+$/i, '').trim() || title;
+  let title = String(event.title).trim();
+  const dash = title.split(/\s+[—–-]\s+/);
+  if (dash.length > 1) title = dash[0].trim();
+  const colon = title.split(/\s*:\s*/);
+  if (colon.length > 1) title = colon[0].trim();
+  title = title.replace(/\s+en\s+[^,;|]+$/i, '').trim();
+  return title || String(event.title).trim();
+}
+
+// Segunda consulta para el reproductor: el título completo (sin el
+// " en <lugar>" final) por si la del artista no devuelve nada — p. ej.
+// un título donde el artista va después del guion. Null cuando coincide
+// con la consulta principal.
+export function getEventMusicFallbackQuery(event) {
+  if (!event || !event.title || !String(event.title).trim()) return null;
+  const category = String(event.event_category || event.category || '').trim().toLowerCase();
+  if (!category.startsWith('concierto')) return null;
+  const full = String(event.title).trim().replace(/\s+en\s+[^,;|]+$/i, '').trim();
+  const primary = getEventMusicQuery(event);
+  return full && full !== primary ? full : null;
+}
+
+// Una consulta a iTunes con tiempo límite: sin él, una conexión colgada
+// dejaba el reproductor sin aparecer para siempre en esa visita.
+export async function fetchItunesTracks(query, { fetchFn = fetch, timeoutMs = 8000, signal } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const onAbort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  else if (signal) signal.addEventListener('abort', onAbort, { once: true });
+  try {
+    const r = await fetchFn(buildItunesSearchUrl(query, 5), { signal: controller.signal });
+    if (!r.ok) throw new Error(`iTunes respondió ${r.status}`);
+    const d = await r.json();
+    return (d.results || []).filter((t) => t.previewUrl).map((t) => ({
+      id: t.trackId,
+      name: t.trackName,
+      artist: t.artistName,
+      artwork: t.artworkUrl100,
+      preview: t.previewUrl,
+      url: t.trackViewUrl,
+    }));
+  } finally {
+    clearTimeout(timer);
+    if (signal) signal.removeEventListener('abort', onAbort);
+  }
+}
+
+// Carga las pistas del reproductor: prueba cada consulta en orden; ante un
+// fallo de red o de la API reintenta una vez tras 1 s, y si una consulta no
+// devuelve nada pasa a la siguiente. Sin caché: un fallo no queda guardado
+// como "sin música", la próxima apertura vuelve a intentarlo.
+export async function loadMusicTracks(queries, { fetchFn = fetch, timeoutMs = 8000, retryDelayMs = 1000, sleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), signal } = {}) {
+  for (const query of (queries || []).filter(Boolean)) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const tracks = await fetchItunesTracks(query, { fetchFn, timeoutMs, signal });
+        if (tracks.length > 0) return tracks;
+        break; // sin resultados: no reintentar la misma consulta
+      } catch {
+        if (attempt === 0) await sleepFn(retryDelayMs);
+      }
+    }
+  }
+  return [];
 }
 
 // Búsqueda de canciones en iTunes (gratis, sin clave): adelantos de 30 s.

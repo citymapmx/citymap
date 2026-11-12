@@ -15,7 +15,7 @@ import EventInformation, { EventTicketBar } from '../detail/EventInformation.jsx
 import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
 import PrivateEventChat from '../detail/PrivateEventChat.jsx';
 import { isPrivateEvent, privateEventUrl, summarizeRsvps, heroDateParts } from '../../lib/privateEvents';
-import { getEventPrice, getEventPriceAmount, getEventMusicQuery, buildItunesSearchUrl } from '../../lib/eventDetails.js';
+import { getEventPrice, getEventPriceAmount, getEventMusicQuery, getEventMusicFallbackQuery, loadMusicTracks } from '../../lib/eventDetails.js';
 import { SPRING_UI } from '../../lib/spring.js';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTranslation } from '../../hooks/useTranslation.js';
@@ -96,6 +96,7 @@ export default function EventDetailModal() {
   const isPast = selectedEvent ? isPastEvent(selectedEvent, todayLocal) : false;
   // Reproductor de música: solo conciertos vigentes y públicos.
   const musicQuery = selectedEvent && !isPast && !isPrivateEvent(selectedEvent) ? getEventMusicQuery(selectedEvent) : null;
+  const musicFallbackQuery = selectedEvent && !isPast && !isPrivateEvent(selectedEvent) ? getEventMusicFallbackQuery(selectedEvent) : null;
   const cityName = cities.find(c => c.slug === evCitySlug)?.name || (evCitySlug ? evCitySlug.charAt(0).toUpperCase() + evCitySlug.slice(1) : '');
   const T = getT(dark);
   const reduceMotion = useReducedMotion();
@@ -160,33 +161,30 @@ export default function EventDetailModal() {
   }, [selectedEvent, todayLocal]);
 
   // Música del artista: adelantos de 30 s desde iTunes (gratis, sin clave ni endpoint).
+  // loadMusicTracks reintenta ante fallos de red/API y prueba la consulta de
+  // respaldo si la del artista no devuelve nada; sin reintento, un fallo
+  // pasajero dejaba el reproductor sin aparecer "en ratos".
   const [musicTracks, setMusicTracks] = useState(null);
   const [playingTrackId, setPlayingTrackId] = useState(null);
   const musicAudioRef = useRef(null);
   useEffect(() => {
     if (!musicQuery) { setMusicTracks(null); return; }
     let cancelled = false;
+    const controller = new AbortController();
     setMusicTracks(null);
-    fetch(buildItunesSearchUrl(musicQuery, 5))
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => {
-        if (cancelled || !d) return;
-        setMusicTracks((d.results || []).filter(t => t.previewUrl).map(t => ({
-          id: t.trackId,
-          name: t.trackName,
-          artist: t.artistName,
-          artwork: t.artworkUrl100,
-          preview: t.previewUrl,
-          url: t.trackViewUrl,
-        })));
-      })
-      .catch(() => { if (!cancelled) setMusicTracks([]); });
+    loadMusicTracks([musicQuery, musicFallbackQuery], { signal: controller.signal })
+      .then((tracks) => { if (!cancelled) setMusicTracks(tracks); });
     return () => {
       cancelled = true;
+      controller.abort();
       if (musicAudioRef.current) { musicAudioRef.current.pause(); musicAudioRef.current = null; }
       setPlayingTrackId(null);
     };
-  }, [musicQuery]);
+  // selectedEvent.id está a propósito: al cambiar de evento dentro del mismo
+  // modal (p. ej. desde «Más eventos») la búsqueda se vuelve a hacer aunque
+  // la consulta del artista coincida — así un fallo anterior no se arrastra
+  // al siguiente evento.
+  }, [musicQuery, musicFallbackQuery, selectedEvent?.id]);
   const toggleMusicTrack = (track) => {
     if (playingTrackId === track.id) {
       musicAudioRef.current?.pause();

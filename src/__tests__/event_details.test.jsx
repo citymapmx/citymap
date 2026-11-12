@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
-import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, buildItunesSearchUrl } from '../lib/eventDetails.js';
+import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, getEventMusicFallbackQuery, buildItunesSearchUrl, fetchItunesTracks, loadMusicTracks } from '../lib/eventDetails.js';
 import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation, { EventTicketBar } from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
@@ -182,8 +182,69 @@ describe('reproductor de música del evento', () => {
     expect(getEventMusicQuery({ title: 'Omar Camacho' })).toBeNull();
     expect(getEventMusicQuery({ event_category: 'Concierto' })).toBeNull();
   });
+  it('usa solo el artista cuando el título es el nombre de la gira', () => {
+    // Verificado contra iTunes: con el título completo estas búsquedas
+    // devuelven 0 resultados y el reproductor no aparecía; con el artista
+    // devuelven 5.
+    expect(getEventMusicQuery({ title: 'Ricardo Arjona — ¿Qué haría si pudiera? Tour', event_category: 'Concierto' })).toBe('Ricardo Arjona');
+    expect(getEventMusicQuery({ title: 'Ricardo Arjona – Lo que el seco no dijo', event_category: 'Concierto' })).toBe('Ricardo Arjona');
+    expect(getEventMusicQuery({ title: 'ZZ Top – The Elevation Tour', event_category: 'Concierto' })).toBe('ZZ Top');
+    expect(getEventMusicQuery({ title: 'Maroon 5 - VidantaWorld Concert Series', event_category: 'Concierto' })).toBe('Maroon 5');
+    expect(getEventMusicQuery({ title: 'Los Auténticos Decadentes y Los Caligaris – La Fórmula Perfecta', event_category: 'Concierto' })).toBe('Los Auténticos Decadentes y Los Caligaris');
+    expect(getEventMusicQuery({ title: 'Orquesta Filarmónica de Jalisco: Tercera Temporada – Programa 6', event_category: 'Concierto' })).toBe('Orquesta Filarmónica de Jalisco');
+    expect(getEventMusicQuery({ title: 'Morat en Guadalajara', event_category: 'Concierto' })).toBe('Morat');
+    expect(getEventMusicQuery({ title: 'Ed Sheeran – Loop Tour', event_category: 'Concierto' })).toBe('Ed Sheeran');
+  });
+  it('la consulta de respaldo es el título completo solo cuando difiere de la del artista', () => {
+    expect(getEventMusicFallbackQuery({ title: 'Ricardo Arjona — ¿Qué haría si pudiera? Tour', event_category: 'Concierto' })).toBe('Ricardo Arjona — ¿Qué haría si pudiera? Tour');
+    expect(getEventMusicFallbackQuery({ title: 'Morat en Guadalajara', event_category: 'Concierto' })).toBeNull();
+    expect(getEventMusicFallbackQuery({ title: 'Tributo a Queen', event_category: 'Concierto' })).toBeNull();
+    expect(getEventMusicFallbackQuery({ title: 'Festival Pixelatl 2026', event_category: 'Festival' })).toBeNull();
+  });
   it('arma la búsqueda de iTunes con el artista y límite de canciones', () => {
     expect(buildItunesSearchUrl('Omar Camacho')).toBe('https://itunes.apple.com/search?term=Omar%20Camacho&media=music&entity=song&limit=5');
     expect(buildItunesSearchUrl('Alfredo Olivas', 3)).toContain('limit=3');
+  });
+});
+
+describe('carga de pistas de iTunes con reintento', () => {
+  const track = (id) => ({ trackId: id, trackName: `Canción ${id}`, artistName: 'Artista', artworkUrl100: 'https://x/100.jpg', previewUrl: `https://x/${id}.m4a`, trackViewUrl: `https://x/${id}` });
+  const ok = (results) => ({ ok: true, status: 200, json: async () => ({ resultCount: results.length, results }) });
+  const fail = () => ({ ok: false, status: 500, json: async () => ({}) });
+
+  it('devuelve las pistas con adelanto y descarta las que no lo tienen', async () => {
+    const fetchFn = async () => ok([track(1), { ...track(2), previewUrl: undefined }, track(3)]);
+    const tracks = await loadMusicTracks(['Artista'], { fetchFn, sleepFn: async () => {} });
+    expect(tracks.map((t) => t.id)).toEqual([1, 3]);
+    expect(tracks[0]).toEqual({ id: 1, name: 'Canción 1', artist: 'Artista', artwork: 'https://x/100.jpg', preview: 'https://x/1.m4a', url: 'https://x/1' });
+  });
+  it('ante un fallo de la API reintenta una vez y no se queda con el fallo', async () => {
+    let calls = 0;
+    const fetchFn = async () => { calls += 1; return calls === 1 ? fail() : ok([track(7)]); };
+    const tracks = await loadMusicTracks(['Artista'], { fetchFn, sleepFn: async () => {} });
+    expect(calls).toBe(2);
+    expect(tracks.map((t) => t.id)).toEqual([7]);
+  });
+  it('si la consulta del artista no devuelve nada, prueba la de respaldo', async () => {
+    const seen = [];
+    const fetchFn = async (url) => { seen.push(url); return ok(seen.length === 1 ? [] : [track(9)]); };
+    const tracks = await loadMusicTracks(['Artista', 'Artista — Gira'], { fetchFn, sleepFn: async () => {} });
+    expect(tracks.map((t) => t.id)).toEqual([9]);
+    expect(seen[1]).toContain(encodeURIComponent('Artista — Gira'));
+  });
+  it('si todo falla devuelve vacío (sin guardar el fallo como caché)', async () => {
+    let calls = 0;
+    const fetchFn = async () => { calls += 1; throw new Error('red caída'); };
+    expect(await loadMusicTracks(['Artista'], { fetchFn, sleepFn: async () => {} })).toEqual([]);
+    // La próxima llamada vuelve a intentarlo: nada quedó cacheado.
+    expect(await loadMusicTracks(['Artista'], { fetchFn, sleepFn: async () => {} })).toEqual([]);
+    expect(calls).toBe(4);
+  });
+  it('aborta la consulta si pasa el tiempo límite', async () => {
+    const fetchFn = async (_url, { signal } = {}) => {
+      await new Promise((resolve, reject) => { signal?.addEventListener('abort', () => reject(new Error('AbortError')), { once: true }); });
+    };
+    const tracks = await fetchItunesTracks('Artista', { fetchFn, timeoutMs: 5, sleepFn: async () => {} }).catch(() => null);
+    expect(tracks).toBeNull();
   });
 });
