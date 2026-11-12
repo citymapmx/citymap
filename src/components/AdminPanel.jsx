@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { sb, cloudDeleteBatch, cloudListAllFiles } from "../lib/supabase.js";
-import { buildEditBizDeepLink, changeRequestTitle, changeRequestBody, isDuplicateChangeRequest } from "../lib/notifications.js";
+import { buildEditBizDeepLink, businessNotificationImage, changeRequestTitle, changeRequestBody, eventNotificationImage, isDuplicateChangeRequest } from "../lib/notifications.js";
 import { PLAN_META } from "../lib/constants.js";
 import { getThumbUrl } from "../lib/utils.js";
 import Icon from "./ui/Icon.jsx";
@@ -121,7 +121,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
     await sb.patch("businesses", id, { status: "approved" }); 
     const b = data.biz.find(x => x.id === id);
     const targetUserId = b?.owner_id || b?.user_id;
-    if (targetUserId) await sb.notify(targetUserId, "¡Negocio aprobado!", `Tu negocio ${b.name} ya es público.`, "approval");
+    if (targetUserId) await sb.notify(targetUserId, "¡Negocio aprobado!", `Tu negocio ${b.name} ya es público.`, "approval", null, businessNotificationImage(b));
     onToast("Negocio aprobado ✓"); 
     await load(); 
   };
@@ -145,7 +145,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
           const existing = await sb.get("notifications", `?user_id=eq.${targetUserId}&read=eq.false&select=title,body`);
           dup = isDuplicateChangeRequest(existing, b.name);
         } catch { dup = false; /* si no se puede leer, se avisa igual */ }
-        if (!dup) await sb.notify(targetUserId, changeRequestTitle(), changeRequestBody(b.name), "alert", buildEditBizDeepLink(b.id));
+        if (!dup) await sb.notify(targetUserId, changeRequestTitle(), changeRequestBody(b.name), "alert", buildEditBizDeepLink(b.id), businessNotificationImage(b));
       }
       onToast("Enviado");
       await load();
@@ -235,7 +235,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                       await sb.patch("businesses", claim.business_id, { owner_id: claim.user_id }); 
                       await sb.patch("business_claims", claim.id, { status: "approved" }); 
                       const b = data.biz.find(x => x.id === claim.business_id);
-                      await sb.notify(claim.user_id, "Reclamo aprobado", `Eres el administrador oficial de ${b ? b.name : 'tu negocio'}.`, "approval");
+                      await sb.notify(claim.user_id, "Reclamo aprobado", `Eres el administrador oficial de ${b ? b.name : 'tu negocio'}.`, "approval", null, businessNotificationImage(b));
                       onToast("Reclamo aprobado ✓"); 
                       await load(); 
                     }} style={{ flex: 1, padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>Aprobar Reclamo</button>
@@ -290,7 +290,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
               <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                 <button onClick={async () => { 
                   await sb.patch("events", ev.id, { status: "approved", active: true }); 
-                  if (ev.user_id) await sb.notify(ev.user_id, "Evento Aprobado", `Tu evento "${ev.title}" ya es público.`, "system");
+                  if (ev.user_id) await sb.notify(ev.user_id, "Evento Aprobado", `Tu evento "${ev.title}" ya es público.`, "system", null, eventNotificationImage(ev));
                   onToast("Evento aprobado"); 
                   await load(); 
                 }} style={{ flex: 1, padding: "9px 0", background: "#DCFCE7", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, color: "#16A34A", cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>
@@ -588,11 +588,11 @@ function PushTab({ T, onToast }) {
   // Load biz and events for search
   useEffect(() => {
     if (deepLinkType === "biz") {
-      sb.get("businesses", "?select=id,name,slug,city_slug&status=eq.approved&limit=500")
+      sb.get("businesses", "?select=id,name,slug,city_slug,logo_url,banner_url,photos&status=eq.approved&limit=500")
          
         .then(data => setAllBiz(data || []));
     } else if (deepLinkType === "event") {
-      sb.get("events", "?select=id,title&limit=200")
+      sb.get("events", "?select=id,title,img_url,img&limit=200")
          
         .then(data => setAllEvents(data || []));
     }
@@ -626,6 +626,14 @@ function PushTab({ T, onToast }) {
       } else if (deepLinkType === "event" && selectedItem) {
         deepLink = `https://citymap.mx/evento/${selectedItem.id}`;
       }
+      // Imagen del destino (negocio: logo/banner/foto; evento: póster) cuando
+      // el admin no subió una manual: el aviso lleva la imagen del negocio
+      // o del evento en vez del icono genérico.
+      const destImage = deepLinkType === "biz"
+        ? businessNotificationImage(selectedItem)
+        : deepLinkType === "event"
+          ? eventNotificationImage(selectedItem)
+          : null;
 
       const res = await fetch("https://citymap.mx/api/send-notification", {
         method: "POST",
@@ -635,7 +643,7 @@ function PushTab({ T, onToast }) {
           body: testSelf ? body || "Si recibiste este aviso, tu dispositivo está recibiendo notificaciones." : body,
           test_self: testSelf,
           deepLink,
-          imageUrl: imgUrl,
+          imageUrl: imgUrl || destImage,
           target_city: targetCity || null 
         })
       });

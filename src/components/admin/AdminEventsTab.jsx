@@ -10,6 +10,7 @@ import { filterAdminEvents, countEventsWithoutImage, eventHasImage } from '../..
 import AdminEventFilters from './AdminEventFilters';
 import { EVENT_CATEGORIES } from '../../lib/constants.js';
 import { cloudDelete } from '../../lib/supabase.js';
+import { eventNotificationImage } from '../../lib/notifications.js';
 
 
 const BizSelector = ({ bizList, value, onChange }) => {
@@ -197,7 +198,7 @@ export default function AdminEventsTab({
             <div style={{ padding: "0 14px 10px", display: "flex", gap: 6 }}>
                 {isPending && <button onClick={async () => { 
                   await sb.patch("events", ev.id, { status: "approved", active: true }); 
-                  if (ev.user_id) await sb.notify(ev.user_id, "Evento Aprobado", `Tu evento "${ev.title}" ya es público.`, "system");
+                  if (ev.user_id) await sb.notify(ev.user_id, "Evento Aprobado", `Tu evento "${ev.title}" ya es público.`, "system", null, eventNotificationImage(ev));
                   onToast("Evento aprobado"); 
                   await load(); 
                 }} style={{ flex: 1, padding: "7px 0", background: "#DCFCE7", border: "none", borderRadius: 8, fontSize: 11, fontWeight: 700, color: "#16A34A", cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>}

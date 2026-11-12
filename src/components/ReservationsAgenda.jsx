@@ -9,6 +9,7 @@ const FULL_MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "jul
 import { useUIStore } from "../store/useUIStore.js";
 import { getT } from "../lib/constants.js";
 import { sb } from "../lib/supabase.js";
+import { businessNotificationImage } from "../lib/notifications.js";
 
 export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes }) {
   const dark = useUIStore(s => s.dark);
@@ -54,7 +55,7 @@ export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes })
       const resData = ownerRes.find(r => r.id === id);
       if (resData && resData.user_id) {
         if (status === 'confirmed' || status === 'cancelled') {
-          await sb.notify(resData.user_id, `Reserva ${status === 'confirmed' ? 'Confirmada' : 'Cancelada'}`, `Tu reserva en ${ownerView.name} ha sido ${status === 'confirmed' ? 'confirmada' : 'cancelada'}.`, status === 'confirmed' ? 'approval' : 'alert');
+          await sb.notify(resData.user_id, `Reserva ${status === 'confirmed' ? 'Confirmada' : 'Cancelada'}`, `Tu reserva en ${ownerView.name} ha sido ${status === 'confirmed' ? 'confirmada' : 'cancelada'}.`, status === 'confirmed' ? 'approval' : 'alert', null, businessNotificationImage(ownerView));
         }
       }
     } catch (err) {

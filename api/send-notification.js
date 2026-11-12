@@ -46,7 +46,7 @@ async function runReminders(req, res) {
     // 1. Eventos de hoy aprobados.
     const events = [];
     for (let offset = 0; ; offset += 1000) {
-      const r = await fetch(`${supabaseUrl}/rest/v1/events?select=id,title,slug,city_slug,date,time,status,event_category&status=eq.approved&date=eq.${today}&order=time.asc&limit=1000&offset=${offset}`, { headers });
+      const r = await fetch(`${supabaseUrl}/rest/v1/events?select=id,title,slug,city_slug,date,time,status,event_category,img_url,img&status=eq.approved&date=eq.${today}&order=time.asc&limit=1000&offset=${offset}`, { headers });
       if (!r.ok) throw new Error(`PostgREST events: HTTP ${r.status}`);
       const batch = await r.json();
       events.push(...batch);
@@ -95,7 +95,7 @@ async function runReminders(req, res) {
         const r = await fetch(SEND_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: item.title, body: item.body, type: 'reminder', user_id: item.userId, deepLink: item.deepLink, secret: adminSecret }),
+          body: JSON.stringify({ title: item.title, body: item.body, type: 'reminder', user_id: item.userId, deepLink: item.deepLink, ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}), secret: adminSecret }),
         });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);

@@ -146,3 +146,29 @@ export function bizRequestState(b) {
     showEdit: needsChanges,
   };
 }
+
+// ── Imagen del aviso push ───────────────────────────────────────────────────
+// FCM solo acepta imagen por HTTPS; cualquier otro valor se descarta y el
+// aviso se manda sin imagen (igual que hoy), nunca se rompe el envío.
+export function httpsImageUrl(value) {
+  const url = String(value || '').trim();
+  return url.startsWith('https://') ? url : null;
+}
+
+// Imagen de un negocio para un aviso: logo, banner o primera foto, en ese
+// orden. Sin imagen usable devuelve null.
+export function businessNotificationImage(biz) {
+  if (!biz) return null;
+  const photo = Array.isArray(biz.photos)
+    ? biz.photos.find((p) => p?.url)?.url
+    : null;
+  return httpsImageUrl(biz.logo_url)
+    || httpsImageUrl(biz.banner_url)
+    || httpsImageUrl(photo);
+}
+
+// Imagen de un evento para un aviso: img_url o img.
+export function eventNotificationImage(ev) {
+  if (!ev) return null;
+  return httpsImageUrl(ev.img_url) || httpsImageUrl(ev.img);
+}
