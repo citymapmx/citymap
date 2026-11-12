@@ -70,7 +70,7 @@ describe('business landing', () => {
     // En mensual, el CTA de pago ("Elegir Destacado") no aparece: solo
     // sale en el pago anual, donde no hay prueba gratis.
     expect(html).not.toContain('Elegir Destacado');
-    expect(html).toContain('Lo esencial para estar presente.');
+    expect(html).toContain('Tu negocio en el mapa y en el buscador, con foto, dirección, teléfono, horarios y reseñas de Google.');
   });
 
   it('en anual, el botón de Destacado no ofrece la prueba de 7 días (solo existe en mensual)', () => {
@@ -173,6 +173,7 @@ describe('business plans module', () => {
       'Teléfono y Dirección',
       'Horarios',
       'Banner estándar',
+      'Reseñas de Google',
     ]);
     expect(plans[1].features).toEqual([
       'Todo lo del plan gratuito, más:',
@@ -180,18 +181,16 @@ describe('business plans module', () => {
       'Banner destacado',
       'Galería de fotos',
       'Enlace a WhatsApp y redes sociales',
-      'Menú QR (Para Local)',
+      'Menú digital',
       'Panel de administrador',
     ]);
     expect(plans[2].features).toEqual([
       'Todo lo del plan Destacado, más:',
       'Menú interactivo indexado en Google',
       'Banner premium y Logotipo en mapa',
-      'Vídeos',
       'Carrito enlazado a WhatsApp',
       'Amplia galería de fotos',
       'Gestión de Eventos y Reservas',
-      'Reseñas de Google Maps',
       'Estadísticas y Soporte prioritario',
       'Tarjetas de lealtad',
       'Integración de cupones',
