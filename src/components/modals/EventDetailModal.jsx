@@ -43,7 +43,7 @@ export default function EventDetailModal() {
   const { t, lang } = useTranslation();
   const { selectedEvent, setSelectedEvent, activeCity, dark, toast$ } = useUIStore();
   const { user } = useAuthStore();
-  const { handleCardTap } = useAppContext();
+  const { handleCardTap, savedEventIds, toggleSaveEvent } = useAppContext();
   const mapPins = useDataStore(s => s.mapPins);
   const cities = useDataStore(s => s.cities);
   const [upcoming, setUpcoming] = useState([]);
@@ -520,7 +520,7 @@ export default function EventDetailModal() {
                   públicos, nunca en los pasados. Sin enlaces, la barra
                   no se pinta (lo decide EventTicketBar). */}
               {(!isPrivateEvent(ev) || privateTab === 'detalles') && (
-                <EventTicketBar event={evLocalized} T={T} hideTickets={isPast} onShare={() => setShowShareCard(true)} />
+                <EventTicketBar event={evLocalized} T={T} hideTickets={isPast} onShare={() => setShowShareCard(true)} isSaved={(savedEventIds || []).includes(evLocalized.id)} onToggleSave={toggleSaveEvent ? (e) => toggleSaveEvent(evLocalized.id, e) : null} />
               )}
             </div>
 

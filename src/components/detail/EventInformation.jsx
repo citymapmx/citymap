@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Icon from '../ui/Icon.jsx';
+import SaveHeartButton from '../ui/SaveHeartButton.jsx';
 import { getEventPrice, getEventLinks, splitDescription } from '../../lib/eventDetails.js';
 import { getEventCalendarUrl } from '../../lib/eventCalendar.js';
 import { isPrivateEvent } from '../../lib/privateEvents.js';
@@ -36,7 +37,12 @@ function timeLabel(value, lang = 'es') {
 // En la barra fija NO va el precio (nov 2026, Jonathan): solo el botón
 // de boletos y el compartir; el precio queda en la fila de precio de
 // esta tarjeta (y en la fila superior del modal).
-export function EventTicketBar({ event, T, hideTickets = false, onShare = null }) {
+// Corazón para guardar (nov 2026, Jonathan): el mismo de las tarjetas
+// de la lista (SaveHeartButton: contorno sin guardar, rojo lleno al
+// guardar, con su pop al guardar), en el mismo marco de 48 px con borde
+// que el botón de compartir, inmediatamente a su derecha. Sin sesión,
+// onToggleSave es el toggleSaveEvent de App.jsx, que pide iniciar sesión.
+export function EventTicketBar({ event, T, hideTickets = false, onShare = null, isSaved = false, onToggleSave = null }) {
   const { t } = useTranslation();
   const price = getEventPrice(event);
   const links = getEventLinks(event);
@@ -62,6 +68,7 @@ export function EventTicketBar({ event, T, hideTickets = false, onShare = null }
         <div style={{ display: 'flex', gap: 8 }}>
           {ticketButton(links[0], true)}
           {onShare && <button type="button" aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={onShare} style={{ flexShrink: 0, width: 48, minHeight: 48, borderRadius: 12, border: `1px solid ${T.border}`, background: 'transparent', color: T.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}><Icon name="share" size={20} color={T.text} /></button>}
+          {onToggleSave && <SaveHeartButton isFav={isSaved} onToggle={onToggleSave} size={22} overlay={false} T={T} title={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")} ariaLabel={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")} buttonStyle={{ flexShrink: 0, width: 48, height: 48, minHeight: 48, borderRadius: 12, border: `1px solid ${T.border}`, background: 'transparent' }} />}
         </div>
         {links.slice(1).map((link) => ticketButton(link, false))}
       </div>
