@@ -29,7 +29,7 @@ export default function AccountView({
 }) {
   const { t, lang } = useTranslation();
   const isOpen = isOpenNow;
-  const { installPromptEvent, setInstallPromptEvent, unreadNotifCount } = useUIStore();
+  const { installPromptEvent, setInstallPromptEvent, unreadNotifCount, themeMode, setThemeMode } = useUIStore();
   const { events, loadMyBiz } = useDataStore();
   const ctx = useAppContext();
   const { savedEventIds, setSelectedEvent } = ctx;
@@ -133,12 +133,19 @@ export default function AccountView({
     }
   };
 
-  // Orden (12 Nov 2026, pedido de Jonathan): «Mi Negocio» va PRIMERO
-  // y «Cuenta» después — lo del negocio es lo que el dueño abre a diario
-  // y los ajustes de Cuenta casi no se tocan. El encabezado con
-  // avatar/nombre/email queda arriba de todo y cada grupo conserva sus
-  // elementos, etiquetas, iconos y acciones tal cual.
+  // Orden (12 Nov 2026, propuesta C elegida por Jonathan): «Cuenta»
+  // vuelve arriba, pero recortada a solo Notificaciones y Mis Favoritos
+  // (el modo oscuro y la edición de perfil se mudaron al encabezado,
+  // con botones grandes). «Mi Negocio» queda después, tal cual.
   const menuGroups = [
+    {
+      title: t("cuenta", "Cuenta"),
+      items: [
+        { label: t("mis_favoritos", "Mis Favoritos"), icon: "heart", act: "favs" },
+        { label: t("notificaciones", "Notificaciones"), icon: "bell", act: "user_notifs" },
+        ...(isAdmin ? [{ label: t("cuenta_notif_admin", "Notificaciones de Admin"), icon: "shield", act: "admin_notifs" }] : [])
+      ]
+    },
     {
       title: myBizList.filter(b => b.status === "approved").length === 1 
         ? `${t("mi_negocio", "Mi Negocio")} (${myBizList.filter(b => b.status === "approved")[0].name})` 
@@ -166,16 +173,6 @@ export default function AccountView({
         // Solo 1 negocio por cuenta: si ya tiene uno (en cualquier estado),
         // no se muestra «Agregar mi negocio».
         ...((myBizList?.length || 0) > 0 ? [] : [{ label: t("agregar_negocio", "Agregar mi negocio"), icon: "plus", act: "add_biz" }]),
-      ]
-    },
-    {
-      title: t("cuenta", "Cuenta"),
-      items: [
-        { label: t(dark ? "cuenta_modo_oscuro_on" : "cuenta_modo_oscuro", dark ? "Modo oscuro activado" : "Modo oscuro"), icon: dark ? "moon" : "sun", act: "toggle_dark" },
-        { label: t("mis_favoritos", "Mis Favoritos"), icon: "heart", act: "favs" },
-        { label: t("editar_perfil", "Editar perfil"), icon: "user", act: "edit_profile" },
-        { label: t("notificaciones", "Notificaciones"), icon: "bell", act: "user_notifs" },
-        ...(isAdmin ? [{ label: t("cuenta_notif_admin", "Notificaciones de Admin"), icon: "shield", act: "admin_notifs" }] : [])
       ]
     }
   ];
@@ -295,30 +292,55 @@ export default function AccountView({
         , document.body)}
 
         {/* ── HEADER USER INFO ── */}
+        {/* Propuesta C (12 Nov 2026, elegida por Jonathan): avatar centrado
+            con nombre y correo centrados y alineados a él; en la misma
+            fila del avatar, dos botones redondos grandes (56 px): editar
+            a la izquierda (abre el mismo modal de edición de siempre) y
+            tema a la derecha (el mismo ThemeToggle: setDark). La opción
+            de horario automático no se pierde: queda como texto/botón
+            pequeño bajo el botón de tema (igual que en ThemeToggle). */}
         <div style={{ padding: "24px 20px 24px", background: T.white, borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            {(() => {
-              const avatarUrl = user?.user_metadata?.avatar_url || profile?.avatar_url;
-              const initials = (user?.user_metadata?.name || profile?.name || user.email || "U").slice(0, 2).toUpperCase();
-              return avatarUrl ? (
-                <div style={{ position: "relative", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {/* Editar perfil — botón redondo grande */}
+            <button type="button" aria-label={t("editar_perfil", "Editar perfil")} title={t("editar_perfil", "Editar perfil")} onClick={startEditProfile}
+              style={{ width: 56, height: 56, minWidth: 56, borderRadius: "50%", background: T.bg, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}>
+              <Icon name="edit" size={24} color={T.text} />
+            </button>
+            {/* Avatar centrado */}
+            <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+              {(() => {
+                const avatarUrl = user?.user_metadata?.avatar_url || profile?.avatar_url;
+                const initials = (user?.user_metadata?.name || profile?.name || user.email || "U").slice(0, 2).toUpperCase();
+                return avatarUrl ? (
                   <img src={avatarUrl} alt={t("cuenta_alt_foto_usuario", "Foto de perfil del usuario")} style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: `2px solid ${T.border}` }} />
-                </div>
-              ) : (
-                <div style={{ position: "relative", flexShrink: 0 }}>
+                ) : (
                   <div style={{ width: 72, height: 72, borderRadius: "50%", background: T.greenL, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 800, color: T.green, border: `2px solid ${T.border}` }}>{initials}</div>
-                </div>
-              );
-            })()}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 900, fontSize: 20, color: T.text, marginBottom: 2 }}>{user?.user_metadata?.name || profile?.name || user.email?.split("@")[0]}</div>
-              <div style={{ fontSize: 13, color: T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 12 }}>{user.email}</div>
-              {isAdmin && (
-                <button onClick={() => setShowAdmin(true)} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 10px", fontSize: 11, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  <Icon name="db" size={12} color={T.text} /> Admin
+                );
+              })()}
+            </div>
+            {/* Tema — botón redondo grande (mismo ThemeToggle) + horario automático */}
+            <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: T.bg, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                <ThemeToggle size={56} round />
+              </div>
+              {(!themeMode || themeMode === 'auto') ? (
+                <span style={{ fontSize: 11, color: T.sub, textAlign: "center", whiteSpace: "nowrap" }}>{lang === 'en' ? 'Automatic' : 'Automático'}</span>
+              ) : (
+                <button type="button" onClick={() => setThemeMode('auto')} aria-label={lang === 'en' ? 'Use automatic schedule' : 'Usar horario automático'}
+                  style={{ padding: 0, border: 0, background: "transparent", color: T.sub, fontFamily: "inherit", fontSize: 11, textDecoration: "underline", textUnderlineOffset: 2, cursor: "pointer", whiteSpace: "nowrap" }}>
+                  {lang === 'en' ? 'Automatic' : 'Automático'}
                 </button>
               )}
             </div>
+          </div>
+          <div style={{ textAlign: "center", marginTop: 12 }}>
+            <div style={{ fontWeight: 900, fontSize: 20, color: T.text, marginBottom: 2, textAlign: "center" }}>{user?.user_metadata?.name || profile?.name || user.email?.split("@")[0]}</div>
+            <div style={{ fontSize: 13, color: T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "center" }}>{user.email}</div>
+            {isAdmin && (
+              <button onClick={() => setShowAdmin(true)} style={{ marginTop: 12, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 10px", fontSize: 11, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <Icon name="db" size={12} color={T.text} /> Admin
+              </button>
+            )}
           </div>
         </div>
         {/* ── MIS TARJETAS DE LEALTAD ── */}
@@ -368,7 +390,6 @@ export default function AccountView({
               <div style={{ fontSize: 20, fontWeight: 800, color: T.text, marginBottom: 16, marginLeft: 8, letterSpacing: "-0.5px", textAlign: "left" }}>{group.title}</div>
               <div style={{ background: "transparent", borderRadius: 16, overflow: "hidden" }}>
                 {group.items.map(({ label, icon, act }, i, arr) => {
-                  if (act === "toggle_dark") return <div key={act} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"}` : "none" }}><ThemeToggle showLabel padding="16px" /></div>;
                   return (
                     <div key={label} onClick={() => handleMenuAction(act)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"}` : "none", cursor: "pointer", background: "transparent", transition: "background .15s" }}
                       onMouseEnter={e => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"}
