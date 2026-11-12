@@ -86,6 +86,22 @@ describe('aviso chat: destinatarios', () => {
     expect(chatRecipients({ hostId: null, messageUserIds: [SENDER_ID], senderId: SENDER_ID })).toEqual([]);
     expect(chatRecipients({ hostId: null, messageUserIds: [], senderId: SENDER_ID })).toEqual([]);
   });
+  // PR #230: los invitados que confirmaron (RSVP con cuenta) también
+  // reciben el aviso aunque nunca hayan escrito en el chat.
+  it('un invitado RSVP con cuenta recibe el aviso aunque nunca escribió', () => {
+    const RSVP_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    expect(chatRecipients({ hostId: HOST_ID, messageUserIds: [SENDER_ID], rsvpUserIds: [RSVP_ID], senderId: SENDER_ID }).sort())
+      .toEqual([HOST_ID, RSVP_ID].sort());
+  });
+  it('el remitente no se avisa ni como RSVP, y no hay repetidos entre listas', () => {
+    const RSVP_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    expect(chatRecipients({ hostId: HOST_ID, messageUserIds: [OTHER_ID, RSVP_ID], rsvpUserIds: [RSVP_ID, SENDER_ID, null], senderId: SENDER_ID }).sort())
+      .toEqual([HOST_ID, OTHER_ID, RSVP_ID].sort());
+  });
+  it('sin rsvpUserIds funciona como antes (retro-compatible)', () => {
+    expect(chatRecipients({ hostId: HOST_ID, messageUserIds: [SENDER_ID, OTHER_ID], senderId: SENDER_ID }).sort())
+      .toEqual([HOST_ID, OTHER_ID].sort());
+  });
 });
 
 describe('aviso chat: anti-duplicados', () => {
@@ -132,8 +148,28 @@ describe('aviso chat: disparo desde el cliente', () => {
     vi.unstubAllGlobals();
   });
   it('si el fetch falla devuelve false sin lanzar', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('red caída'); }));
     await expect(notifyChatMessage({ eventId: POSADA.id, messageId: MESSAGE_ID, token: 'jwt' })).resolves.toBe(false);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+    vi.unstubAllGlobals();
+  });
+  // PR #230: el fallo ya no es silencioso — queda en consola con el estado.
+  it('si el servidor responde con error devuelve false y lo registra en consola', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 401 })));
+    await expect(notifyChatMessage({ eventId: POSADA.id, messageId: MESSAGE_ID, token: 'jwt' })).resolves.toBe(false);
+    expect(warn).toHaveBeenCalledWith('[chat] aviso de mensaje no enviado', 401, POSADA.id, MESSAGE_ID);
+    warn.mockRestore();
+    vi.unstubAllGlobals();
+  });
+  it('si el aviso sale no registra nada en consola', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true })));
+    await expect(notifyChatMessage({ eventId: POSADA.id, messageId: MESSAGE_ID, token: 'jwt' })).resolves.toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
     vi.unstubAllGlobals();
   });
 });
@@ -159,6 +195,8 @@ let sendCalls;
 let mockEvents;
 let mockMessage;
 let mockChatRows;
+let mockRsvpRows;
+let mockRsvpFail;
 let mockDupNotifs;
 let authUser;
 
@@ -179,6 +217,8 @@ beforeEach(async () => {
   mockEvents = [POSADA];
   mockMessage = [MESSAGE];
   mockChatRows = [{ user_id: SENDER_ID }, { user_id: OTHER_ID }, { user_id: null }];
+  mockRsvpRows = [];
+  mockRsvpFail = false;
   mockDupNotifs = [];
   authUser = SENDER_USER;
   sendCalls = [];
@@ -192,6 +232,10 @@ beforeEach(async () => {
       return { ok: true, json: async () => ({ successCount: 1 }) };
     }
     if (u.includes('/rest/v1/events')) return { ok: true, json: async () => mockEvents };
+    if (u.includes('/rest/v1/event_rsvps')) {
+      if (mockRsvpFail) return { ok: false, status: 400, json: async () => ({}) };
+      return { ok: true, json: async () => mockRsvpRows };
+    }
     // OJO: 'event_id=eq.' contiene 'id=eq.' como subcadena; la consulta de
     // autores del chat se distingue por select=user_id.
     if (u.includes('/rest/v1/event_messages') && u.includes('select=user_id')) return { ok: true, json: async () => mockChatRows };
@@ -239,6 +283,43 @@ describe('aviso chat: modo aviso de chat en api/send-notification.js', () => {
     expect(res.body.sent.map((s) => s.userId)).toEqual([OTHER_ID]);
     expect(sendCalls).toHaveLength(1);
     expect(sendCalls[0].body.title).toBe('Jonathan Arana en Posada 2026');
+  });
+  // PR #230: un invitado que confirmó (RSVP con cuenta) pero nunca escribió
+  // también recibe el aviso.
+  it('un invitado RSVP con cuenta recibe el aviso aunque nunca escribió', async () => {
+    const RSVP_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    mockRsvpRows = [{ user_id: RSVP_ID }, { user_id: null }];
+    const res = makeRes();
+    await handler(req({ jwt: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.sent.map((s) => s.userId).sort()).toEqual([HOST_ID, OTHER_ID, RSVP_ID].sort());
+    expect(sendCalls).toHaveLength(3);
+  });
+  // PR #230, caso exacto de Posada 2026: el anfitrión escribe y el
+  // invitado RSVP (que nunca escribió) recibe el aviso, igual que los
+  // demás autores. Antes el RSVP no estaba en los destinatarios.
+  it('el anfitrión escribe y el invitado RSVP recibe el aviso', async () => {
+    const RSVP_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    mockEvents = [{ ...POSADA, user_id: SENDER_ID }];
+    mockMessage = [{ ...MESSAGE, guest_name: 'citymap.mx' }];
+    mockChatRows = [{ user_id: SENDER_ID }, { user_id: OTHER_ID }];
+    mockRsvpRows = [{ user_id: RSVP_ID }];
+    const res = makeRes();
+    await handler(req({ jwt: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.sent.map((s) => s.userId).sort()).toEqual([OTHER_ID, RSVP_ID].sort());
+    expect(sendCalls).toHaveLength(2);
+    expect(sendCalls[0].body.title).toBe('citymap.mx en Posada 2026');
+  });
+  // PR #230: si la columna user_id de RSVP aún no existe (migración
+  // pendiente), el aviso sigue llegando al anfitrión y a los autores.
+  it('si la lectura de RSVP falla, el aviso sigue llegando a anfitrión y autores', async () => {
+    mockRsvpFail = true;
+    const res = makeRes();
+    await handler(req({ jwt: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.sent.map((s) => s.userId).sort()).toEqual([HOST_ID, OTHER_ID].sort());
+    expect(sendCalls).toHaveLength(2);
   });
   it('sin otros participantes no manda nada', async () => {
     mockEvents = [{ ...POSADA, user_id: SENDER_ID }];
@@ -320,5 +401,21 @@ describe('aviso chat: cableado (fuente)', () => {
     const files = fs.readdirSync(apiDir).filter((f) => f.endsWith('.js'));
     const edge = files.filter((f) => /runtime:\s*['"]edge['"]/.test(fs.readFileSync(new URL(`../../api/${f}`, import.meta.url), 'utf8')));
     expect(files.length - edge.length).toBe(11);
+  });
+  // PR #230: los RSVP con sesión quedan ligados al aviso.
+  it('runChatMessage lee los RSVP y los pasa como destinatarios', () => {
+    const src = fs.readFileSync(new URL('../../api/send-notification.js', import.meta.url), 'utf8');
+    expect(src).toContain('event_rsvps?select=user_id&event_id=eq.');
+    expect(src).toContain('rsvpUserIds');
+  });
+  it('PrivateEventRsvp guarda el user_id al confirmar con sesión (con reintento si falta la columna)', () => {
+    const src = fs.readFileSync(new URL('../components/detail/PrivateEventRsvp.jsx', import.meta.url), 'utf8');
+    expect(src).toContain('user_id: user.id');
+    expect(src).toContain('PGRST204');
+  });
+  it('notifyChatMessage registra en consola cuando el aviso no sale', () => {
+    const src = fs.readFileSync(new URL('../lib/chatNotifications.js', import.meta.url), 'utf8');
+    expect(src).toContain("console.warn('[chat] aviso de mensaje no enviado'");
+    expect(src).toContain("console.warn('[chat] aviso de mensaje falló'");
   });
 });
