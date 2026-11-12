@@ -105,7 +105,7 @@ describe('detalle de evento: barra fija, calendario y compartir', () => {
   it('el modal pinta la barra como última hija del wrapper, con onShare', () => {
     const src = readFileSync(new URL('../components/modals/EventDetailModal.jsx', import.meta.url), 'utf8');
     expect(src).toContain('import EventInformation, { EventTicketBar }');
-    expect(src).toContain('<EventTicketBar event={evLocalized} T={T} hideTickets={isPast} onShare={() => setShowShareCard(true)} isSaved={(savedEventIds || []).includes(evLocalized.id)} onToggleSave={toggleSaveEvent ? (e) => toggleSaveEvent(evLocalized.id, e) : null} />');
+    expect(src).toContain('<EventTicketBar event={evLocalized} T={T} hideTickets={isPast} onShare={() => setShowShareCard(true)} />');
     // Después de «Ver todos los eventos» (última sección del contenido):
     // hija directa del wrapper, no dentro de EventInformation.
     expect(src.indexOf('<EventTicketBar')).toBeGreaterThan(src.indexOf('eventos_ver_todos'));
