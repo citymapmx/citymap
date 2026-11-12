@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { MemoryRouter } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import { TRANSLATIONS, ensureEnglishTranslations } from '../lib/i18n.js';
-import { loadLoyaltyEntries } from '../lib/loyaltyMemberships.js';
+import { loadLoyaltyEntries, prefetchLoyaltyEntries, getPrefetchedLoyaltyEntries, clearPrefetchedLoyaltyEntries } from '../lib/loyaltyMemberships.js';
 import ProfileLoyaltyCarousel from '../components/loyalty/ProfileLoyaltyCarousel.jsx';
 import AccountView from '../components/AccountView.jsx';
 import { AppContext } from '../context/AppContext.jsx';
@@ -219,6 +219,17 @@ describe('Perfil: carrusel de tarjetas de lealtad (propuesta B)', () => {
     expect(renderCarousel({ user: null })).toBe('');
   });
 
+  it('el título va al mismo tamaño que «Mi actividad» y «Mi Negocio» (20 px)', () => {
+    const html = renderCarousel({ entries: [makeEntry('carrito', 'Carrito La Paz Tostadas de Atún', 0)] });
+    const titlePos = html.indexOf('Mis tarjetas de lealtad');
+    expect(titlePos).toBeGreaterThan(0);
+    const titleSpan = html.lastIndexOf('<span', titlePos);
+    const titleStyle = html.slice(titleSpan, titlePos);
+    expect(titleStyle).toContain('font-size:20px');
+    expect(titleStyle).toContain('font-weight:800');
+    expect(titleStyle).toContain('letter-spacing:-0.5px');
+  });
+
   it('al tocar una tarjeta se abre el mismo detalle con QR que en «Recompensas»', () => {
     const carouselSrc = read('../components/loyalty/ProfileLoyaltyCarousel.jsx');
     expect(carouselSrc).toContain('LoyaltyCardModal');
@@ -234,6 +245,85 @@ describe('Perfil: carrusel de tarjetas de lealtad (propuesta B)', () => {
     expect(TRANSLATIONS.en['cuenta_mis_tarjetas_lealtad']).toBe('My loyalty cards');
     expect(TRANSLATIONS.es['cuenta_ver_tarjeta']).toBe('Ver tarjeta');
     expect(TRANSLATIONS.en['cuenta_ver_tarjeta']).toBe('View card');
+    // El grupo «Cuenta» pasó a llamarse «Mi actividad».
+    expect(TRANSLATIONS.es['cuenta_mi_actividad']).toBe('Mi actividad');
+    expect(TRANSLATIONS.en['cuenta_mi_actividad']).toBe('My activity');
+  });
+});
+
+describe('Precarga al abrir la app: las tarjetas ya están al entrar en el perfil', () => {
+  const MEMBERS = [
+    { id: 'm1', user_id: 'user-jonathan', biz_id: 'biz-carrito', card_id: 'card-carrito', stamps: 2 },
+  ];
+
+  function mockSb() {
+    sb.get.mockImplementation(async (table, params = '') => {
+      if (table === 'loyalty_members') return MEMBERS;
+      const id = (params.match(/id=eq\.([^&]+)/) || [])[1];
+      if (table === 'loyalty_cards') return id === 'card-carrito' ? [CARRITO_CARD] : [];
+      if (table === 'businesses') return id === 'biz-carrito' ? [CARRITO_BIZ] : [];
+      return [];
+    });
+  }
+
+  it('prefetchLoyaltyEntries carga una sola vez por usuario y reusa la promesa', async () => {
+    mockSb();
+    clearPrefetchedLoyaltyEntries();
+    prefetchLoyaltyEntries(USER);
+    prefetchLoyaltyEntries(USER);
+    const entries = await getPrefetchedLoyaltyEntries(USER);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].biz.name).toBe('Carrito La Paz Tostadas de Atún');
+    // Aunque se precargue dos veces, la base solo se consulta una vez.
+    expect(sb.get.mock.calls.filter(([t]) => t === 'loyalty_members')).toHaveLength(1);
+  });
+
+  it('sin usuario no precarga nada', () => {
+    clearPrefetchedLoyaltyEntries();
+    prefetchLoyaltyEntries(null);
+    expect(getPrefetchedLoyaltyEntries(null)).toBeNull();
+    expect(sb.get).not.toHaveBeenCalled();
+  });
+
+  it('para otro usuario no devuelve la precarga', async () => {
+    mockSb();
+    clearPrefetchedLoyaltyEntries();
+    prefetchLoyaltyEntries(USER);
+    expect(getPrefetchedLoyaltyEntries({ id: 'otro-usuario' })).toBeNull();
+  });
+
+  it('si la precarga falla, se descarta y el carrusel puede cargar al entrar', async () => {
+    clearPrefetchedLoyaltyEntries();
+    sb.get.mockRejectedValue(new Error('sin red'));
+    prefetchLoyaltyEntries(USER);
+    await expect(getPrefetchedLoyaltyEntries(USER)).resolves.toEqual([]);
+    // Tras el fallo la caché se limpia: la siguiente lectura es null y el
+    // carrusel vuelve a cargar con loadLoyaltyEntries.
+    expect(getPrefetchedLoyaltyEntries(USER)).toBeNull();
+  });
+
+  it('clearPrefetchedLoyaltyEntries descarta la precarga (cierre de sesión)', async () => {
+    mockSb();
+    clearPrefetchedLoyaltyEntries();
+    prefetchLoyaltyEntries(USER);
+    await getPrefetchedLoyaltyEntries(USER);
+    clearPrefetchedLoyaltyEntries();
+    expect(getPrefetchedLoyaltyEntries(USER)).toBeNull();
+  });
+
+  it('el carrusel consume la precarga antes de cargar por su cuenta', () => {
+    const src = read('../components/loyalty/ProfileLoyaltyCarousel.jsx');
+    expect(src).toContain('getPrefetchedLoyaltyEntries(user)');
+    expect(src).toContain('getPrefetchedLoyaltyEntries(user) ?? loadLoyaltyEntries(user)');
+  });
+
+  it('App.jsx dispara la precarga al conocer la sesión y la limpia al cerrar sesión', () => {
+    const src = read('../App.jsx');
+    expect(src).toContain("import { prefetchLoyaltyEntries, clearPrefetchedLoyaltyEntries } from './lib/loyaltyMemberships.js'");
+    expect(src).toContain('prefetchLoyaltyEntries(user)');
+    expect(src).toContain('clearPrefetchedLoyaltyEntries()');
+    // Sin await: la precarga no frena el arranque ni la primera pintura.
+    expect(src).not.toContain('await prefetchLoyaltyEntries');
   });
 });
 
@@ -255,7 +345,7 @@ describe('Perfil: la sección queda debajo del encabezado y encima de «Mi Bille
     expect(html).not.toContain('Mis tarjetas de lealtad');
     expect(html).toContain('Jonathan Arana');
     expect(html).toContain('Mi Negocio (Carrito La Paz Tostadas de Atún)');
-    expect(html).toContain('>Cuenta<');
+    expect(html).toContain('>Mi actividad<');
   });
 });
 

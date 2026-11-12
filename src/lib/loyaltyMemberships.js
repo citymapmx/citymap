@@ -29,3 +29,41 @@ export async function loadLoyaltyEntries(user) {
 
   return results.filter(e => e.card && e.biz);
 }
+
+// Precarga al abrir la app (12 Nov 2026, Jonathan eligió «Cargarla al abrir
+// la app»): la tarjeta tardaba en aparecer porque se cargaba al entrar en
+// el perfil, con 2 consultas seguidas a la base y sin caché ni placeholder.
+// App.jsx dispara prefetchLoyaltyEntries(user) en cuanto conoce la sesión
+// (y al iniciar sesión después); el carrusel del perfil consume la promesa
+// ya en curso o resuelta, así la tarjeta ya está ahí al abrir el perfil.
+// - Solo se precarga una vez por usuario: la segunda llamada reusa la misma
+//   promesa y NO vuelve a consultar la base.
+// - Si la precarga falla, se descarta: el carrusel carga al entrar como
+//   siempre (sin regresión ni crash).
+// - Al cerrar sesión, App.jsx llama clearPrefetchedLoyaltyEntries() para no
+//   enseñar las tarjetas del usuario anterior.
+let prefetchedUserId = null;
+let prefetchedPromise = null;
+
+export function prefetchLoyaltyEntries(user) {
+  if (!user?.id) return;
+  if (prefetchedUserId === user.id && prefetchedPromise) return;
+  prefetchedUserId = user.id;
+  prefetchedPromise = loadLoyaltyEntries(user).catch(() => {
+    if (prefetchedUserId === user.id) {
+      prefetchedUserId = null;
+      prefetchedPromise = null;
+    }
+    return [];
+  });
+}
+
+export function getPrefetchedLoyaltyEntries(user) {
+  if (!user?.id || prefetchedUserId !== user.id || !prefetchedPromise) return null;
+  return prefetchedPromise;
+}
+
+export function clearPrefetchedLoyaltyEntries() {
+  prefetchedUserId = null;
+  prefetchedPromise = null;
+}

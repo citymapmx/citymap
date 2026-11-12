@@ -22,6 +22,7 @@ import { useFavorites } from './hooks/useFavorites.js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CITY_TZ, FONT_BIZ, EVENT_CATS, getT } from './lib/constants.js';
 import { searchMatches } from './lib/utils.js';
+import { prefetchLoyaltyEntries, clearPrefetchedLoyaltyEntries } from './lib/loyaltyMemberships.js';
 import { SPRING_UI } from './lib/spring.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
 import { sectionPathForCity, isSectionCityPath } from './lib/sectionRouting.js';
@@ -187,6 +188,19 @@ export default function CityGuide() {
 
   // Auth
   const { user, setUser, authChecked, setAuthChecked, profile, setProfile, showAuth, setShowAuth, authMode, setAuthMode, authForm, setAuthForm, authLoading, authErr, setAuthErr, handleAuth, handleSignOut } = useAuthStore(useShallow(s => ({ user: s.user, setUser: s.setUser, authChecked: s.authChecked, setAuthChecked: s.setAuthChecked, profile: s.profile, setProfile: s.setProfile, showAuth: s.showAuth, setShowAuth: s.setShowAuth, authMode: s.authMode, setAuthMode: s.setAuthMode, authForm: s.authForm, setAuthForm: s.setAuthForm, authLoading: s.authLoading, authErr: s.authErr, setAuthErr: s.setAuthErr, handleAuth: s.handleAuth, handleSignOut: s.handleSignOut })));
+
+  // Precarga de tarjetas de lealtad al abrir la app (12 Nov 2026, Jonathan
+  // eligió «Cargarla al abrir la app»): en cuanto se conoce la sesión, las
+  // entradas se cargan en segundo plano (sin await: no frena el arranque ni
+  // la primera pintura) para que ya estén ahí al abrir el perfil. También
+  // cubre el inicio de sesión durante la sesión. Al cerrar sesión se
+  // descarta la precarga. Si falla, el carrusel carga al entrar como
+  // siempre.
+  useEffect(() => {
+    if (user) prefetchLoyaltyEntries(user);
+    else clearPrefetchedLoyaltyEntries();
+  }, [user]);
+
   // UI & Initialization
   const {
     initialView,
