@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { sb } from '../../lib/supabase.js';
+import { categoryScheduleLabel } from '../../lib/menuCategoryHours.js';
 import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 import AiMenuImporter from '../AiMenuImporter.jsx';
@@ -21,6 +22,58 @@ export default function StoreCategoriesTab({
   const [catName, setCatName] = useState('');
   const [editingCatId, setEditingCatId] = useState(null);
   const [editingCatName, setEditingCatName] = useState('');
+  const [scheduleCatId, setScheduleCatId] = useState(null);
+  const [schedFrom, setSchedFrom] = useState('');
+  const [schedTo, setSchedTo] = useState('');
+  const [schedError, setSchedError] = useState('');
+  const [schedSaving, setSchedSaving] = useState(false);
+
+  const openScheduleEditor = (c) => {
+    // Postgres devuelve time como "08:30:00"; el input type="time" usa "HH:MM".
+    setScheduleCatId(c.id);
+    setSchedFrom((c.available_from || '').slice(0, 5));
+    setSchedTo((c.available_to || '').slice(0, 5));
+    setSchedError('');
+  };
+
+  const saveCategorySchedule = async (id) => {
+    const from = schedFrom.trim();
+    const to = schedTo.trim();
+    if ((from && !to) || (!from && to)) {
+      setSchedError('Elige hora de inicio y fin, o deja ambas vacías para siempre visible.');
+      return;
+    }
+    const valid = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+    if ((from && !valid.test(from)) || (to && !valid.test(to))) {
+      setSchedError('Revisa las horas (formato 24 h, p. ej. 08:30).');
+      return;
+    }
+    setSchedSaving(true);
+    try {
+      await sb.patch('store_categories', id, { available_from: from || null, available_to: to || null });
+      setScheduleCatId(null);
+      setSchedError('');
+      await loadData();
+    } catch (err) {
+      setSchedError(err?.message || 'No se pudo guardar el horario. Intenta de nuevo.');
+    } finally {
+      setSchedSaving(false);
+    }
+  };
+
+  const clearCategorySchedule = async (id) => {
+    setSchedSaving(true);
+    try {
+      await sb.patch('store_categories', id, { available_from: null, available_to: null });
+      setScheduleCatId(null);
+      setSchedError('');
+      await loadData();
+    } catch (err) {
+      setSchedError(err?.message || 'No se pudo guardar el horario. Intenta de nuevo.');
+    } finally {
+      setSchedSaving(false);
+    }
+  };
 
   const saveCategory = async () => {
     if (!catName.trim()) return;
@@ -137,7 +190,8 @@ export default function StoreCategoriesTab({
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {categories.map((c, idx) => (
-              <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, background: T.white, padding: "12px 14px", borderRadius: 14, border: `1.5px solid ${T.border}`, transition: 'all 0.2s' }}>
+              <div key={c.id}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.white, padding: "12px 14px", borderRadius: 14, border: `1.5px solid ${T.border}`, transition: 'all 0.2s' }}>
                 
                 {/* Reorder arrows */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
@@ -181,7 +235,7 @@ export default function StoreCategoriesTab({
                       style={{ cursor: 'pointer' }}
                     >
                       <div style={{ fontWeight: 800, color: T.text, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                      <div style={{ fontSize: 12, color: T.sub, fontWeight: 500, marginTop: 2 }}>{c.store_products?.length || 0} productos</div>
+                      <div style={{ fontSize: 12, color: T.sub, fontWeight: 500, marginTop: 2 }}>{c.store_products?.length || 0} productos · {categoryScheduleLabel(c)}</div>
                     </div>
                   )}
                 </div>
@@ -189,11 +243,28 @@ export default function StoreCategoriesTab({
                 {/* Action buttons */}
                 {editingCatId !== c.id && (
                   <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    <button aria-label={`Horario de ${c.name}`} title="Horario en que se muestra esta categoría" onClick={() => { if (scheduleCatId === c.id) setScheduleCatId(null); else openScheduleEditor(c); }} style={{ background: scheduleCatId === c.id ? '#0F172A' : T.bg, border: `1px solid ${T.border}`, width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="clock" size={14} color={scheduleCatId === c.id ? '#fff' : T.text} /></button>
                     <button onClick={() => { setEditingCatId(c.id); setEditingCatName(c.name); }} style={{ background: T.bg, border: `1px solid ${T.border}`, width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="edit" size={14} color={T.text} /></button>
                     <button onClick={() => { setActiveCat(c); setView('prods'); }} style={{ background: '#0F172A', border: 'none', width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="chevron" size={14} color="#fff" /></button>
                     <button onClick={() => deleteCategory(c.id)} style={{ background: '#FEF2F2', border: 'none', width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="trash" size={14} color={T.red} /></button>
                   </div>
                 )}
+              </div>
+
+              {/* Editor de horario: la categoría solo se muestra dentro de su ventana */}
+              {scheduleCatId === c.id && (
+                <div style={{ marginTop: 6, background: T.bg, padding: "12px 14px", borderRadius: 14, border: `1.5px solid ${T.border}` }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 8 }}>Horario en que se muestra</div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: T.sub }}>Desde <input type="time" value={schedFrom} onChange={e => setSchedFrom(e.target.value)} style={{ ...inpH, width: 'auto', padding: '8px 10px' }} /></label>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: T.sub }}>Hasta <input type="time" value={schedTo} onChange={e => setSchedTo(e.target.value)} style={{ ...inpH, width: 'auto', padding: '8px 10px' }} /></label>
+                    <button disabled={schedSaving} onClick={() => saveCategorySchedule(c.id)} style={{ background: '#0F172A', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 14px', fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>Guardar</button>
+                    <button disabled={schedSaving} onClick={() => clearCategorySchedule(c.id)} style={{ background: 'transparent', color: T.text, border: `1.5px solid ${T.border}`, borderRadius: 10, padding: '9px 14px', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Siempre visible</button>
+                  </div>
+                  <p style={{ fontSize: 12, color: T.sub, margin: '8px 0 0' }}>Fuera de ese horario la sección no aparece en el menú. Si cierra después de medianoche (p. ej. 18:00–02:00), escribe la hora de cierre menor que la de apertura.</p>
+                  {schedError && <p role="alert" style={{ fontSize: 12, color: T.red, fontWeight: 700, margin: '8px 0 0' }}>{schedError}</p>}
+                </div>
+              )}
               </div>
             ))}
           </div>

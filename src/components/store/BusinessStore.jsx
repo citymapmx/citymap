@@ -19,6 +19,7 @@ import { AppContext } from '../../context/AppContext.jsx';
 import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic, SRCSET_THUMB } from '../../lib/utils.js';
 import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
+import { isCategoryVisibleNow } from '../../lib/menuCategoryHours.js';
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
   const navigate = useNavigate();
@@ -95,9 +96,11 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
         let data = null;
         try {
           // Try with image_url first (for category image fallback feature)
-          data = await sb.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,image_url,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
+          data = await sb.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,image_url,available_from,available_to,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
         } catch {
           // Fallback: query without image_url (in case column doesn't have permissions yet)
+          // Tampoco trae available_from/available_to: sin la migración, las
+          // categorías se tratan como siempre visibles.
           data = await sb.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
         }
         
@@ -123,12 +126,27 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
     loadStore();
   }, [business?.id]);
 
-  // Filter out empty categories
-  const activeCategories = categories.filter(c => c.store_products && c.store_products.length > 0);
+  // Hora actual en la zona horaria del negocio: las secciones con horario se
+  // re-evalúan cada minuto para que el menú cambie solo al llegar la hora,
+  // sin recargar la página.
+  const timeZone = CITY_TZ[business.city_slug] || 'America/Mazatlan';
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Filter out empty categories and sections outside their schedule window
+  // (a section without a schedule is always visible).
+  const activeCategories = categories.filter(c => c.store_products && c.store_products.length > 0 && isCategoryVisibleNow(c, { now, timeZone }));
+  const hasAnyProducts = categories.some(c => c.store_products && c.store_products.length > 0);
 
   useEffect(() => {
     if (!activeTabId && activeCategories.length > 0) {
        
+      setActiveTabId('all');
+    } else if (activeTabId && activeTabId !== 'all' && !activeCategories.some(c => c.id === activeTabId)) {
+      // La sección que se estaba viendo salió de horario: volver a "Todos".
       setActiveTabId('all');
     }
   }, [activeCategories, activeTabId]);
@@ -182,6 +200,17 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   }
 
   if (activeCategories.length === 0) {
+    // El negocio SÍ tiene menú, pero ninguna sección está en horario ahora:
+    // estado vacío amable en vez de un menú vacío (o de la landing de "sin menú").
+    if (hasAnyProducts) {
+      return (
+        <div style={{ minHeight: inline ? '60dvh' : 'auto', background: dark ? '#18181B' : '#FFFFFF', color: dark ? '#A1A1AA' : '#71717A', padding: '48px 20px', boxSizing: 'border-box', textAlign: 'center' }}>
+          <Icon name="clock" size={32} color={T.border} />
+          <p style={{ marginTop: 12, fontSize: 15, color: T.text, fontWeight: 700 }}>En este momento no hay secciones disponibles</p>
+          <p style={{ marginTop: 4, fontSize: 13, fontWeight: 500 }}>Vuelve más tarde: el menú cambia según el horario de cada sección.</p>
+        </div>
+      );
+    }
     if (inline) {
       return <NoMenuLanding business={business} T={T} dark={dark} onBack={onBack} />;
     }
@@ -488,7 +517,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             </div>
             
             <div style={{ paddingBottom: cartCount > 0 ? 100 : 80 }}>
-      <StorePromotions products={categories.flatMap(cat=>(cat.store_products||[]).map(product=>({...product,cat_name:cat.name})))} intent={menuIntent} timeZone={CITY_TZ[business.city_slug] || 'America/Mazatlan'} T={T} onSelect={setSelectedProduct}/>
+      <StorePromotions products={activeCategories.flatMap(cat=>(cat.store_products||[]).map(product=>({...product,cat_name:cat.name})))} intent={menuIntent} timeZone={timeZone} T={T} onSelect={setSelectedProduct}/>
       {/* Sticky Header: Search + Tabs */}
       <div style={{ position: 'sticky', top: 0, zIndex: 100, background: dark ? '#18181B' : '#FFFFFF', paddingBottom: 12, paddingTop: 4, borderBottom: `1px solid ${dark ? '#232326' : '#F4F4F5'}` }}>
         {/* Search & Toggle */}
