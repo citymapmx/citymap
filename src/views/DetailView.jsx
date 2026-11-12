@@ -346,7 +346,7 @@ export default function DetailView() {
                         } else {
                           return (
                             <div style={{ display: "flex", gap: 2 }}>
-                              {[1,2,3,4,5].map(i => <Icon key={i} name="star" size={12} color={isElite ? "rgba(255,255,255,0.2)" : T.border} />)}
+                              {[1,2,3,4,5].map(i => <Icon key={i} name="star" size={12} color={isElite ? "rgba(255,255,255,0.2)" : (dark ? "#71717A" : T.border)} />)}
                             </div>
                           );
                         }
@@ -962,11 +962,11 @@ export default function DetailView() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               style={{ background: dark ? '#232326' : '#FFFFFF', width: '100%', maxWidth: 320, borderRadius: 24, padding: '32px 24px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}
             >
-              <div style={{ width: 80, height: 80, borderRadius: '50%', background: dark ? '#18181B' : '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}` }}>
+              <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}`, padding: 8, boxSizing: 'border-box' }}>
                 {(selected.logo_url || selected.logo) ? (
                   <img 
                     src={selected.logo_url || selected.logo} 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
                     alt={selected.name} 
                   />
                 ) : (

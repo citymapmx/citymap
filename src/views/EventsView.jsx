@@ -375,7 +375,7 @@ export default function EventsView() {
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, border: `1px solid ${draftDate === "custom" ? T.green : T.border}`, borderRadius: 12, padding: "4px 6px 4px 14px", background: dark ? "rgba(255,255,255,0.04)" : "#F8FAFC" }}>
             <Icon name="calendar" size={18} color={T.sub} />
             <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: T.text }}>{t("eventos_fecha_personalizada", "Fecha personalizada")}</span>
-            <input type="date" value={draftCustomDate} onChange={e => { setDraftCustomDate(e.target.value); if (e.target.value) setDraftDate("custom"); }} aria-label={t("eventos_fecha_personalizada", "Fecha personalizada")} style={{ border: "none", outline: "none", background: "transparent", color: T.text, fontSize: 14, fontFamily: "inherit", maxWidth: 150 }} />
+            <input type="date" value={draftCustomDate} onChange={e => { setDraftCustomDate(e.target.value); if (e.target.value) setDraftDate("custom"); }} aria-label={t("eventos_fecha_personalizada", "Fecha personalizada")} style={{ border: "none", outline: "none", background: "transparent", color: T.text, fontSize: 14, fontFamily: "inherit", maxWidth: 150, colorScheme: dark ? "dark" : "light" }} />
           </div>
         </div>
 

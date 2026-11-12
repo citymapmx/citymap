@@ -234,7 +234,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
           <div style={{ padding: "0 16px 12px 16px" }}>
             <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
               <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", display: "flex", alignItems: "center" }}>
-                <Icon name="search" size={15} color="#64748b" />
+                <Icon name="search" size={15} color={dark ? "#A1A1AA" : "#64748b"} />
               </span>
               <input
                 type="text"

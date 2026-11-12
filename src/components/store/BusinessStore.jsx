@@ -241,11 +241,11 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             animate={{ opacity: 1, scale: 1, y: 0 }}
             style={{ background: dark ? '#232326' : '#FFFFFF', width: '100%', maxWidth: 320, borderRadius: 24, padding: '32px 24px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}
           >
-            <div style={{ width: 80, height: 80, borderRadius: '50%', background: dark ? '#18181B' : '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}` }}>
+            <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}`, padding: 8, boxSizing: 'border-box' }}>
               {(business.logo_url || business.logo) ? (
                 <OptimizedImage 
                   src={getThumbUrl(business.logo_url || business.logo, 200, 200)} 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
                   alt={business.name} 
                 />
               ) : (
@@ -730,7 +730,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                                   }
                                 }}
                                 style={{ width: 28, height: 28, borderRadius: '50%', background: dark ? '#3F3F46' : '#F4F4F5', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', outline: 'none' }}
-                              ><Icon name="minus" size={16} color="#3F3F46" /></m.button>
+                              ><Icon name="minus" size={16} color={dark ? "#FAFAFA" : "#3F3F46"} /></m.button>
                               
                               <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', minWidth: 24, textAlign: 'center' }}>{totalInCart}</div>
                               
@@ -745,7 +745,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                                   }
                                 }}
                                 style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', outline: 'none' }}
-                              ><Icon name="plus" size={16} color="#3F3F46" /></m.button>
+                              ><Icon name="plus" size={16} color={dark ? "#FAFAFA" : "#3F3F46"} /></m.button>
                             </div>
                           )}
                         </div>
@@ -800,11 +800,11 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
       })}
         {filteredCategories.length > 0 && (
           <div style={{ padding: '24px 20px 24px', textAlign: 'center' }}>
-            <p style={{ fontSize: 11, color: dark ? '#71717A' : '#A1A1AA', lineHeight: 1.5, opacity: 0.8, margin: 0, fontWeight: 500 }}>
+            <p style={{ fontSize: 11, color: dark ? '#A1A1AA' : '#71717A', lineHeight: 1.5, margin: 0, fontWeight: 500 }}>
               Aviso legal: Los precios, imágenes y descripciones son administrados por cada negocio y pueden cambiar. CityMap no se responsabiliza por diferencias al momento de la compra.
             </p>
             <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', opacity: 1 }}>
-              <img src="/citymap.mx.png" alt="CityMap" width={200} height={60} style={{ height: 60, width: 200, filter: "brightness(0)" }} />
+              <img src="/citymap.mx.png" alt="CityMap" width={200} height={60} style={{ height: 60, width: 200, filter: dark ? "brightness(0) invert(1)" : "brightness(0)" }} />
             </div>
           </div>
         )}

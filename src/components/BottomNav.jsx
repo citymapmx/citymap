@@ -33,12 +33,12 @@ export default function BottomNav({ dark, navigate }) {
         
         return <m.button whileTap={{ scale: 0.96 }} key={n.id} aria-label={n.label} aria-current={isActive ? 'page' : undefined} onClick={() => { if (n.id === "account" && !user) { setShowAuth(true); return; } navigate(n.id); }} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "4px 10px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", minWidth: 48, minHeight: 48 }}>
           <div style={{ position: "relative", zIndex: 1, transform: isActive ? "scale(1.2)" : "scale(1)", transition: "transform .2s ease-out", display: 'flex', alignItems: 'center', justifyContent: 'center', height: 24 }}>
-            <Icon name={n.icon} size={20} color={isActive ? (dark ? T.text : "#000000") : (dark ? T.sub : "rgba(17,24,39,0.5)")} sw={isActive ? 2.2 : 1.8} />
+            <Icon name={n.icon} size={20} color={isActive ? (dark ? T.text : "#000000") : (dark ? "#D4D4D8" : "rgba(17,24,39,0.5)")} sw={isActive ? 2.2 : 1.8} />
             {n.id === "account" && user && unreadNotifCount > 0 && (
               <span aria-label={`${unreadNotifCount} notificaciones sin leer`} style={{ position: "absolute", top: -2, right: -6, width: 8, height: 8, borderRadius: "50%", background: "#FF3B30", border: `1.5px solid ${T.white}`, zIndex: 2 }} />
             )}
           </div>
-          <span className="text-micro" style={{ position: "relative", zIndex: 1, fontWeight: isActive ? 800 : 600, color: isActive ? (dark ? T.text : "#000000") : (dark ? T.sub : "rgba(17,24,39,0.5)"), whiteSpace: "nowrap", transition: "color .2s" }}>{n.label}</span>
+          <span className="text-micro" style={{ position: "relative", zIndex: 1, fontWeight: isActive ? 800 : 600, color: isActive ? (dark ? T.text : "#000000") : (dark ? "#D4D4D8" : "rgba(17,24,39,0.5)"), whiteSpace: "nowrap", transition: "color .2s" }}>{n.label}</span>
           {isActive && <m.span layoutId="bottomnav-dot" transition={SPRING_UI} style={{ width: 4, height: 4, borderRadius: "50%", background: dark ? T.text : "#000000", marginTop: 1 }} />}
         </m.button>;
       })}
