@@ -8,13 +8,14 @@ import BizRequestCard from './BizRequestCard.jsx';
 import { parseEditBizDeepLink, badgeText } from '../lib/notifications.js';
 import { bizToForm } from '../lib/bizForm.js';
 import { sb } from '../lib/supabase.js';
-import { isOpenNow, createSlug, cleanCityPrefix } from '../lib/utils.js';
+import { isOpenNow } from '../lib/utils.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { useDataStore } from '../store/useDataStore.js';
 import { useAppContext } from '../context/AppContext';
 import Footer from './Footer.jsx';
 import LoyaltyDesigner from './loyalty/LoyaltyDesigner.jsx';
+import BizShareHub from './BizShareHub.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { privateEventUrl } from '../lib/privateEvents.js';
 export default function AccountView({
@@ -72,7 +73,7 @@ export default function AccountView({
   const [editPhoto, setEditPhoto] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [showUserQR, setShowUserQR] = useState(false);
-  const [qrModalBiz, setQrModalBiz] = useState(null);
+  const [shareHubBiz, setShareHubBiz] = useState(null);
   const [loyaltyDesignerBiz, setLoyaltyDesignerBiz] = useState(null);
 
   const [myClaims, setMyClaims] = useState([]);
@@ -154,7 +155,7 @@ export default function AccountView({
               { label: t("reservaciones", "Reservaciones"), icon: "calendar", act: `owner_res_${b.id}` },
               { label: t("cuenta_estadisticas", "Estadísticas"), icon: "trending", act: `owner_stats_${b.id}` },
               { label: t("cuenta_tarjetas_lealtad", "Tarjetas de Lealtad (Wallet)"), icon: "award", act: `owner_loyalty_${b.id}` },
-              { label: t("descargar_qr", "Descargar Códigos QR"), icon: "grid", act: `owner_qr_${b.id}` }
+              { label: t("compartir_mi_negocio", "Compartir mi negocio"), icon: "share", act: `owner_share_${b.id}` }
             );
           }
           if (b.plan === "premium" || b.plan === "elite" || b.plan === "pro") {
@@ -214,9 +215,9 @@ export default function AccountView({
         navigate("/stats/" + (b.slug || b.id));
       }
     }
-    else if (act.startsWith("owner_qr_")) {
-      const b = myBizList.find(x => x.id === act.replace("owner_qr_", ""));
-      if (b) setQrModalBiz(b);
+    else if (act.startsWith("owner_share_")) {
+      const b = myBizList.find(x => x.id === act.replace("owner_share_", ""));
+      if (b) setShareHubBiz(b);
     }
   };
 
@@ -275,72 +276,14 @@ export default function AccountView({
             </div>
           </div>
         , document.body)}
-        {/* ── QR CODES MODAL ── */}
-        {qrModalBiz && createPortal(
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => setQrModalBiz(null)}>
-            <div style={{ width: "100%", maxWidth: 420, background: T.white, borderRadius: 24, padding: "32px 24px", animation: "scaleFadeIn .25s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
-              
-              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: 20, position: "relative" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 20, color: T.text }}>
-                  <Icon name="grid" size={22} /> {t("codigos_qr", "Códigos QR")}
-                </div>
-                <button onClick={() => setQrModalBiz(null)} style={{ position: "absolute", right: 0, background: T.bg, color: T.text, border: "none", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="x" size={14} /></button>
-              </div>
-              
-              <p style={{ fontSize: 14, color: T.sub, margin: "0 0 28px 0", lineHeight: 1.5, textAlign: "center" }}>
-                {t("descarga_qr_desc", "Descarga los códigos QR de")} <strong>{qrModalBiz.name}</strong>{t("descarga_qr_desc_2", ". Nunca caducan y están listos para imprimir.")}
-              </p>
-              
-              <div style={{ display: "flex", gap: 12 }}>
-                <button 
-                  onClick={async () => {
-                    const city = qrModalBiz.city_slug || 'merida';
-                    const slug = cleanCityPrefix(qrModalBiz.slug || createSlug(qrModalBiz.name || ''), city);
-                    const url = `https://citymap.mx/${city}/${slug}`;
-                    try {
-                      const res = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=1024x1024&data=${encodeURIComponent(url)}`);
-                      const blob = await res.blob();
-                      const a = document.createElement("a");
-                      a.href = URL.createObjectURL(blob);
-                      a.download = `QR_Perfil_${qrModalBiz.name.replace(/\s+/g, '_')}.png`;
-                      a.click();
-                    } catch(e) { toast$(t("error_qr", "Error al generar QR")); }
-                  }} 
-                  style={{ flex: 1, padding: "20px 14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, color: T.text, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
-                >
-                  <div style={{ background: T.white, padding: 12, borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-                    <Icon name="user" size={28} color={T.text} />
-                  </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontWeight: 800, fontSize: 14 }}>{t("perfil", "Perfil")}</div>
-                    <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>{t("pagina_principal", "Página principal")}</div>
-                  </div>
-                </button>
-                <button 
-                  onClick={async () => {
-                    const city = qrModalBiz.city_slug || 'merida';
-                    const slug = cleanCityPrefix(qrModalBiz.slug || createSlug(qrModalBiz.name || ''), city);
-                    const url = `https://citymap.mx/${city}/${slug}/menu`;
-                    try {
-                      const res = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=1024x1024&data=${encodeURIComponent(url)}`);
-                      const blob = await res.blob();
-                      const a = document.createElement("a");
-                      a.href = URL.createObjectURL(blob);
-                      a.download = `QR_Menu_${qrModalBiz.name.replace(/\s+/g, '_')}.png`;
-                      a.click();
-                    } catch(e) { toast$(t("error_qr", "Error al generar QR")); }
-                  }} 
-                  style={{ flex: 1, padding: "20px 14px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 16, color: T.text, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
-                >
-                  <div style={{ background: T.white, padding: 12, borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-                    <Icon name="list" size={28} color={T.text} />
-                  </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontWeight: 800, fontSize: 14 }}>{t("menu", "Menú")}</div>
-                    <div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>{t("abre_tu_menu", "Abre tu menú")}</div>
-                  </div>
-                </button>
-              </div>
+        {/* ── COMPARTIR MI NEGOCIO ── */}
+        {/* Antes (PR #240): el modal solo descargaba los 2 QR pelados.
+            Ahora es el centro BizShareHub (Redes / Para imprimir /
+            QR suelto), el mismo que usa el panel del negocio. */}
+        {shareHubBiz && createPortal(
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => setShareHubBiz(null)}>
+            <div style={{ width: "100%", maxWidth: 420, maxHeight: "92dvh", overflowY: "auto", background: T.white, borderRadius: 24, padding: "32px 24px", animation: "scaleFadeIn .25s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+              <BizShareHub biz={shareHubBiz} T={T} toast$={toast$} onClose={() => setShareHubBiz(null)} />
             </div>
           </div>
         , document.body)}
