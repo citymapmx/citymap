@@ -143,6 +143,7 @@ const isEventsRoute = (pathname) => {
 };
 import { categoryFromUrl } from './lib/categoryRouting.js';
 import { rankTopRated } from './lib/googleRatings.js';
+import { shouldHoldSplashForSavedCity } from './lib/savedCityBoot.js';
 const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
 
 function isHomePath(pathname) {
@@ -1427,6 +1428,14 @@ useEffect(() => {
   // Bypass onboarding if user arrived via a shared plan/join link
   const hasDeepLink = !!(initialPlanParam.current || initialJoinParam.current);
   // (Removed static splash screen that blocked city selection)
+  // Arranque en "/" con ciudad guardada: sostener el splash hasta que la
+  // ciudad esté lista y la ruta inicial ya esté decidida (ver
+  // src/lib/savedCityBoot.js). Sin ciudad guardada el flujo no cambia.
+  const bootingToSavedCity = shouldHoldSplashForSavedCity({
+    pathname: location.pathname,
+    citySlugIsDefault: initialParams.current.citySlugIsDefault,
+    authChecked,
+  });
 
   const appContextValue = {
     businessListReady, businessListError, requestWebNotifications, viewStyle, cityImg, locating, detectCity, setShowCountryPicker, city, isAdmin, setShowAdmin, search, setSearch, user, setShowAuth, toast$, setShowAddBiz, dbReady, dark, cats, activeCat, setActiveCat, T, mapPins, activeCity, banners: filteredBanners, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, globalFavCounts, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, coupons, biz: filteredBiz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState,
@@ -1491,7 +1500,7 @@ useEffect(() => {
   return (
     <AppContext.Provider value={appContextValue}>
       <OfflineScreen />
-      <CityArrivalSplash enabled={!requireCitySelection && (isHomePath(location.pathname) || isSectionCityPath(location.pathname)) && location.pathname !== '/'} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && homeCoreCity===activeCity} error={dbError || businessListError || homeCoreError || homeSecondaryError} />
+      <CityArrivalSplash enabled={!requireCitySelection && (((isHomePath(location.pathname) || isSectionCityPath(location.pathname)) && location.pathname !== '/') || bootingToSavedCity)} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && homeCoreCity===activeCity && !bootingToSavedCity} error={dbError || businessListError || homeCoreError || homeSecondaryError} />
 
       <div style={{ fontFamily: "'DM Sans',system-ui,sans-serif", background: dark ? "transparent" : T.bg, minHeight: "100vh", width: "100%", position: "relative", transition: "background .3s" }}>
         {dark && <CosmicBackground />}
