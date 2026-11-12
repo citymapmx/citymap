@@ -5,10 +5,23 @@
 // Modelo: solo un participante con sesión puede disparar el aviso, con su
 // JWT. El servidor verifica el JWT, lee el mensaje exacto de la base (el
 // cuerpo del aviso nunca sale del cliente) y avisa a los demás
-// participantes: el anfitrión y quienes ya escribieron en ese chat, menos
-// el remitente. Los invitados sin cuenta no tienen identidad verificable:
-// sus mensajes no disparan avisos. Un mensaje = un aviso por participante:
-// el servidor omite a quien ya recibió ese mismo aviso en los últimos 5 min.
+// participantes: el anfitrión, los invitados que confirmaron asistencia
+// (RSVP con cuenta) y quienes ya escribieron en ese chat, menos el
+// remitente. Los invitados sin cuenta no tienen identidad verificable:
+// sus mensajes no disparan avisos y no se les puede avisar. Un mensaje =
+// un aviso por participante: el servidor omite a quien ya recibió ese
+// mismo aviso en los últimos 5 min.
+//
+// PR #230: antes los destinatarios eran solo anfitrión + autores pasados,
+// así que un invitado que confirmó pero nunca escribió jamás recibía
+// avisos; y si el anfitrión escribía antes de que nadie más lo hiciera,
+// no había a quién avisar. Los RSVP con sesión guardan su user_id
+// (PrivateEventRsvp) y el servidor los incluye. Además el disparo ya no
+// falla en silencio: un fallo del fetch queda en consola (antes nadie
+// podía saber si el aviso salió o ni se disparó, como le pasó al anfitrión
+// de Posada 2026 con una pestaña abierta desde antes del despliegue del
+// #227: el bundle viejo no tenía este código y sus mensajes nunca
+// dispararon el aviso).
 
 import { eventUrl } from './eventUrls.js';
 import { eventNotificationImage } from './notifications.js';
@@ -48,12 +61,16 @@ export function buildChatMessage({ authorName, eventTitle, messageBody, event })
   };
 }
 
-// Destinatarios del aviso: anfitrión + autores pasados del chat, sin
-// repetidos y sin el remitente. Las filas sin user_id (invitados sin
-// cuenta) no se pueden avisar y se descartan.
-export function chatRecipients({ hostId, messageUserIds, senderId }) {
+// Destinatarios del aviso: anfitrión + invitados que confirmaron (RSVP
+// con cuenta) + autores pasados del chat, sin repetidos y sin el
+// remitente. Las filas sin user_id (invitados sin cuenta) no se pueden
+// avisar y se descartan.
+export function chatRecipients({ hostId, messageUserIds, rsvpUserIds, senderId }) {
   const ids = new Set();
   if (hostId && hostId !== senderId) ids.add(hostId);
+  for (const id of rsvpUserIds || []) {
+    if (id && id !== senderId) ids.add(id);
+  }
   for (const id of messageUserIds || []) {
     if (id && id !== senderId) ids.add(id);
   }
@@ -77,8 +94,10 @@ export function isDuplicateChatNotification(existingNotifs, userId, deepLinkAbso
 }
 
 // Disparo del aviso desde el cliente, tras enviar el mensaje. No bloquea
-// ni lanza nunca: el mensaje ya se envió; si el aviso falla, solo no llega.
-// Sin token (invitado sin sesión) no se dispara nada.
+// ni lanza nunca: el mensaje ya se envió. Sin token (invitado sin sesión)
+// no se dispara nada. Un fallo SÍ queda registrado en consola con el
+// estado HTTP (PR #230: antes fallaba en silencio y no había forma de
+// saber si el aviso salió o ni se disparó).
 export async function notifyChatMessage({ eventId, messageId, token }) {
   if (!eventId || !messageId || !token) return false;
   try {
@@ -87,8 +106,10 @@ export async function notifyChatMessage({ eventId, messageId, token }) {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ chatMensaje: true, eventId, messageId }),
     });
+    if (!r.ok) console.warn('[chat] aviso de mensaje no enviado', r.status, eventId, messageId);
     return r.ok;
-  } catch {
+  } catch (err) {
+    console.warn('[chat] aviso de mensaje falló', eventId, messageId, String(err?.message || err));
     return false;
   }
 }

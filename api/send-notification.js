@@ -116,12 +116,14 @@ async function runReminders(req, res) {
 // Aviso de mensaje nuevo en el chat de un evento privado (PR #227). El
 // cliente lo dispara tras enviar su mensaje, con su propio JWT; el servidor
 // verifica ese JWT y la pertenencia al evento antes de avisar a los demás
-// participantes (anfitrión + quienes ya escribieron en ese chat, menos el
-// remitente). El cuerpo del aviso sale del mensaje guardado en la base,
-// nunca del cliente: un usuario solo puede avisar del mensaje que él mismo
-// escribió, a los participantes del evento en el que lo escribió. Los
-// invitados sin cuenta no disparan avisos (sin JWT no hay identidad
-// verificable). Sin función nueva: vive en este mismo endpoint.
+// participantes (anfitrión + invitados que confirmaron con cuenta + quienes
+// ya escribieron en ese chat, menos el remitente; PR #230: antes faltaban
+// los invitados confirmados que nunca escribieron). El cuerpo del aviso
+// sale del mensaje guardado en la base, nunca del cliente: un usuario solo
+// puede avisar del mensaje que él mismo escribió, a los participantes del
+// evento en el que lo escribió. Los invitados sin cuenta no disparan avisos
+// (sin JWT no hay identidad verificable). Sin función nueva: vive en este
+// mismo endpoint.
 async function runChatMessage(req, res, senderId) {
   const reqBody = req.body || {};
   const { eventId, messageId } = reqBody;
@@ -153,13 +155,25 @@ async function runChatMessage(req, res, senderId) {
     const message = (await msgRes.json())?.[0];
     if (!message) return res.status(403).json({ error: 'Mensaje no encontrado o no es tuyo' });
 
-    // 3. Destinatarios: anfitrión + autores del chat, menos el remitente.
+    // 3. Destinatarios: anfitrión + invitados que confirmaron con cuenta
+    // (RSVP) + autores del chat, menos el remitente. La lectura de RSVP
+    // tolera que la columna user_id aún no exista (migración pendiente):
+    // en ese caso solo avisa a anfitrión y autores, como antes.
     const chatRes = await fetch(`${supabaseUrl}/rest/v1/event_messages?select=user_id&event_id=eq.${eventId}&limit=1000`, { headers });
     if (!chatRes.ok) throw new Error(`PostgREST event_messages: HTTP ${chatRes.status}`);
     const chatRows = await chatRes.json();
+    let rsvpUserIds = [];
+    try {
+      const rsvpRes = await fetch(`${supabaseUrl}/rest/v1/event_rsvps?select=user_id&event_id=eq.${eventId}&limit=1000`, { headers });
+      if (rsvpRes.ok) rsvpUserIds = ((await rsvpRes.json()) || []).map((r) => r.user_id);
+      else console.warn('aviso chat: no se pudieron leer los RSVP', rsvpRes.status);
+    } catch (err) {
+      console.warn('aviso chat: no se pudieron leer los RSVP', String(err?.message || err));
+    }
     const recipientIds = chatRecipients({
       hostId: event.user_id,
       messageUserIds: (chatRows || []).map((r) => r.user_id),
+      rsvpUserIds,
       senderId,
     });
     const built = buildChatMessage({
