@@ -372,7 +372,31 @@ export default function CityGuide() {
   
   const { city, setCity, locating, setLocating, userCoords, setUserCoords, detectedTown, setDetectedTown, detectedState, setDetectedState, getKm, detectCity, handleCitySelect } = useGeolocation({ activeCity, cities, mapPins, toast$, setActiveCity: (s) => { const oldPath = buildCityPath(activeCity, cities); const newPath = buildCityPath(s, cities); const isOnHomePath = location.pathname === "/" || location.pathname === `/${activeCity}` || location.pathname === `/${s}` || location.pathname === oldPath || location.pathname === newPath || location.pathname.includes("/c/"); const sectionPath = sectionPathForCity(location.pathname, s); /* La navegación va ANTES de cambiar la ciudad en el store: así el splash «Preparando {ciudad}» se dispara al cambiar citySlug con la sección ya puesta (si fuera al revés, el efecto del splash vería el cambio de ciudad con la ruta vieja y no entraría). */ if (isOnHomePath || requireCitySelection) { routerNavigate(newPath, { replace: true, viewTransition: true }); } else if (sectionPath) { routerNavigate(sectionPath, { replace: true, viewTransition: true }); } setActiveCity(s); loadData(s); } });
   const { favIds, setFavIds, collections, setCollections, movingBiz, setMovingBiz, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, loadFavs, toggleFav, createCollection, updateCollection, deleteCollection } = useFavorites({ sb, user, setShowAuth });
-  
+
+  // Favoritos de eventos en el servidor (tabla event_favorites, PR #213):
+  // al entrar, sube los guardados locales (cg_saved_ev) que aún no estén y
+  // deja el estado con la unión de ambos. Sin la tabla (aún sin migrar) o
+  // sin red, falla en silencio: el guardado local sigue mandando.
+  const loadSavedEvents = useCallback(async (uid) => {
+    if (!uid) return;
+    let localIds = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem('cg_saved_ev') || '[]');
+      if (Array.isArray(parsed)) localIds = parsed.filter(Boolean);
+    } catch { /* localStorage no disponible o corrupto: no hay locales */ }
+    try {
+      const rows = await sb.get('event_favorites', `?user_id=eq.${uid}&select=event_id`);
+      const serverIds = (rows || []).map((r) => r.event_id).filter(Boolean);
+      const missing = localIds.filter((id) => !serverIds.includes(id));
+      if (missing.length > 0) {
+        await sb.upsert('event_favorites', missing.map((event_id) => ({ user_id: uid, event_id })), 'user_id,event_id');
+      }
+      const union = [...new Set([...serverIds, ...localIds])];
+      setSavedEventIds(union);
+      try { localStorage.setItem('cg_saved_ev', JSON.stringify(union)); } catch { /* localStorage no disponible, se ignora */ }
+    } catch { /* tabla aún sin crear o sin red: manda el guardado local */ }
+  }, []);
+
   useEffect(() => {
     if (dbError) {
       toast$("Problema de conexión o base de datos. Mostrando info guardada.");
@@ -508,6 +532,7 @@ useEffect(() => {
          
         setProfile(myProf);
         await loadFavs(u.id);
+        await loadSavedEvents(u.id);
         const myBizLoaded = await loadMyBiz(u.id);
         
         const myItin = await dbService.getUserItineraries(u.id);
@@ -921,6 +946,7 @@ useEffect(() => {
     const uid = await handleAuth();
     if (uid) {
       await loadFavs(uid);
+      await loadSavedEvents(uid);
       setShowAuth(false);
       toast$("Bienvenido a CityMap");
     }
@@ -1328,6 +1354,10 @@ useEffect(() => {
 
   
   // Guardar/quitar evento de guardados: sin sesión pide iniciar sesión (como toggleFav).
+  // Además de localStorage, sincroniza con el servidor (tabla event_favorites,
+  // PR #213): el recordatorio del día del evento solo puede avisar si el
+  // servidor sabe qué se guardó. Falla en silencio: el guardado local sigue
+  // funcionando aunque la tabla aún no exista.
   const toggleSaveEvent = (id, e) => {
     if (e) e.stopPropagation();
     if (!user) { setShowAuth(true); return; }
@@ -1335,6 +1365,11 @@ useEffect(() => {
     const nw = isSaved ? savedEventIds.filter((x) => x !== id) : [...(savedEventIds || []), id];
     setSavedEventIds(nw);
     try { localStorage.setItem('cg_saved_ev', JSON.stringify(nw)); } catch { /* localStorage no disponible, se ignora */ }
+    if (isSaved) {
+      sb.delWhere2('event_favorites', 'user_id', user.id, 'event_id', id).catch(() => {});
+    } else {
+      sb.upsert('event_favorites', { user_id: user.id, event_id: id }, 'user_id,event_id').catch(() => {});
+    }
     if (toast$) toast$(isSaved ? 'Evento eliminado de guardados' : 'Evento guardado');
   };
 
