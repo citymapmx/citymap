@@ -34,6 +34,17 @@ export function summarizeRsvps(rows) {
   return { list, counts, guests, total: list.length };
 }
 
+// ¿Es esta confirmación la del dispositivo o la sesión actual? Los
+// invitados no tienen cuenta: su identidad es el nombre que guardaron en
+// este dispositivo (localStorage); con sesión, también vale el user_id.
+export function isOwnRsvp(row, own) {
+  if (!row || !own) return false;
+  if (own.userId && row.user_id && String(row.user_id) === String(own.userId)) return true;
+  const name = String(own.name || '').trim().toLowerCase();
+  if (name && String(row.guest_name || '').trim().toLowerCase() === name) return true;
+  return false;
+}
+
 // Hora corta de un mensaje del chat ("10:38 p. m."), en 12 horas.
 export function formatMessageTime(value) {
   if (!value) return '';

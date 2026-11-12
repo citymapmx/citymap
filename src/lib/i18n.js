@@ -531,6 +531,8 @@ export const TRANSLATIONS = {
     "eventos_recordar_aria": "Recordar evento guardado",
     "eventos_recordar_desc": "¿Quieres recordar este evento? Añádelo a tu calendario, revisa la hora y configura una alerta.",
     "eventos_restantes": "restantes",
+    "eventos_rsvp_asistira": "Asistirá",
+    "eventos_rsvp_asistire": "Asistiré",
     "eventos_rsvp_confirmado": "Confirmado",
     "eventos_rsvp_no": "No voy",
     "eventos_rsvp_no_van": "no van",

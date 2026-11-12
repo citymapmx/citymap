@@ -6,7 +6,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { sb } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
-import { summarizeRsvps } from '../../lib/privateEvents';
+import { summarizeRsvps, isOwnRsvp } from '../../lib/privateEvents';
 import { useTranslation } from '../../hooks/useTranslation.js';
 
 const STATUS_OPTIONS = [
@@ -59,6 +59,22 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
 
   const summary = summarizeRsvps(rows);
   const statusLabel = { voy: t('eventos_rsvp_vas', 'Vas'), quizas: t('eventos_rsvp_quizas', 'Quizás'), no: t('eventos_rsvp_no', 'No voy') }[status] || t('eventos_rsvp_confirmado', 'Confirmado');
+
+  // Total de personas que van: se muestra arriba (encabezado) y abajo (pie
+  // de la lista), con el mismo texto en ambos sitios.
+  const guestsLine = `${t("eventos_rsvp_van", "Van")} ${summary.guests} ${summary.guests === 1 ? t("eventos_rsvp_persona", "persona") : t("eventos_rsvp_personas", "personas")}`;
+
+  // Píldora de estado de cada fila: la propia dice "Asistiré" y las de los
+  // demás "Asistirá" cuando van; quizás / no van no cambian.
+  const pillLabel = (row) => {
+    if (row.status === 'voy') {
+      return isOwnRsvp(row, { userId: user?.id, name })
+        ? t("eventos_rsvp_asistire", "Asistiré")
+        : t("eventos_rsvp_asistira", "Asistirá");
+    }
+    if (row.status === 'quizas') return t("eventos_rsvp_quizas", "Quizás");
+    return t("eventos_rsvp_no", "No voy");
+  };
 
   // Contador de personas que van, para la píldora de la pestaña.
   useEffect(() => { onCountChange?.(summary.guests); }, [summary.guests, onCountChange]);
@@ -160,14 +176,15 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
 
       {/* ── Quién va ── */}
       <div style={{ fontSize: luma ? 20 : 14, fontWeight: luma ? 900 : 800, color: T.text, marginBottom: 8 }}>
-        {t("eventos_rsvp_van", "Van")} {summary.guests} {summary.guests === 1 ? t("eventos_rsvp_persona", "persona") : t("eventos_rsvp_personas", "personas")}
+        {guestsLine}
         {summary.counts.quizas > 0 && <> · {summary.counts.quizas} {t("eventos_rsvp_quizas_min", "quizás")}</>}
         {summary.counts.no > 0 && <> · {summary.counts.no} {t("eventos_rsvp_no_van", "no van")}</>}
       </div>
       {summary.list.length === 0 ? (
         <div style={{ fontSize: 13, color: T.sub }}>{t("eventos_rsvp_sin_confirmar", "Aún nadie confirma. Sé la primera persona en confirmar.")}</div>
       ) : (
-        summary.list.map(row => (
+        <>
+          {summary.list.map(row => (
           <div key={row.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', borderTop: `1px solid ${T.border}` }}>
             {luma && (
               <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: row.status === 'voy' ? '#16A34A' : row.status === 'quizas' ? '#D97706' : '#9CA3AF' }} />
@@ -181,10 +198,14 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
               background: row.status === 'voy' ? T.greenL : row.status === 'quizas' ? '#FEF3C7' : '#F1F5F9',
               color: row.status === 'voy' ? T.green : row.status === 'quizas' ? '#92400E' : T.sub,
             }}>
-              {row.status === 'voy' ? t("eventos_rsvp_voy", "Voy") : row.status === 'quizas' ? t("eventos_rsvp_quizas", "Quizás") : t("eventos_rsvp_no", "No voy")}
+              {pillLabel(row)}
             </span>
           </div>
-        ))
+          ))}
+          {/* Pie de la lista: el mismo total que el encabezado, para que se
+              vea también al bajar hasta el final. */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, textAlign: 'center', paddingTop: 12 }}>{guestsLine}</div>
+        </>
       )}
     </div>
   );
