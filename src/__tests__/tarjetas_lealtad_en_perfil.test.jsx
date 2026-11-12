@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { MemoryRouter } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import { TRANSLATIONS, ensureEnglishTranslations } from '../lib/i18n.js';
-import { loadLoyaltyEntries, prefetchLoyaltyEntries, getPrefetchedLoyaltyEntries, clearPrefetchedLoyaltyEntries } from '../lib/loyaltyMemberships.js';
+import { loadLoyaltyEntries, prefetchLoyaltyEntries, getPrefetchedLoyaltyEntries, refreshLoyaltyEntries, clearPrefetchedLoyaltyEntries } from '../lib/loyaltyMemberships.js';
 import ProfileLoyaltyCarousel from '../components/loyalty/ProfileLoyaltyCarousel.jsx';
 import AccountView from '../components/AccountView.jsx';
 import { AppContext } from '../context/AppContext.jsx';
@@ -311,10 +311,13 @@ describe('Precarga al abrir la app: las tarjetas ya están al entrar en el perfi
     expect(getPrefetchedLoyaltyEntries(USER)).toBeNull();
   });
 
-  it('el carrusel consume la precarga antes de cargar por su cuenta', () => {
+  it('el carrusel pinta la precarga al instante y refresca en segundo plano (sin recargar)', () => {
     const src = read('../components/loyalty/ProfileLoyaltyCarousel.jsx');
     expect(src).toContain('getPrefetchedLoyaltyEntries(user)');
-    expect(src).toContain('getPrefetchedLoyaltyEntries(user) ?? loadLoyaltyEntries(user)');
+    expect(src).toContain('refreshLoyaltyEntries(user)');
+    // Ya no es «precarga o carga»: siempre refresca al entrar, para que la
+    // tarjeta recién unida aparezca sin recargar la página.
+    expect(src).not.toContain('getPrefetchedLoyaltyEntries(user) ?? loadLoyaltyEntries(user)');
   });
 
   it('App.jsx dispara la precarga al conocer la sesión y la limpia al cerrar sesión', () => {
@@ -324,6 +327,79 @@ describe('Precarga al abrir la app: las tarjetas ya están al entrar en el perfi
     expect(src).toContain('clearPrefetchedLoyaltyEntries()');
     // Sin await: la precarga no frena el arranque ni la primera pintura.
     expect(src).not.toContain('await prefetchLoyaltyEntries');
+  });
+});
+
+describe('Tarjeta recién unida aparece sin recargar (stale-while-revalidate)', () => {
+  let members;
+  const CAFE_CARD = { ...CARRITO_CARD, id: 'card-cafe', biz_id: 'biz-cafe', reward_text: 'Un café gratis' };
+  const CAFE_BIZ = { id: 'biz-cafe', name: 'Café de Prueba' };
+
+  function mockSb() {
+    sb.get.mockImplementation(async (table, params = '') => {
+      if (table === 'loyalty_members') return members;
+      const id = (params.match(/id=eq\.([^&]+)/) || [])[1];
+      if (table === 'loyalty_cards') return id === 'card-carrito' ? [CARRITO_CARD] : id === 'card-cafe' ? [CAFE_CARD] : [];
+      if (table === 'businesses') return id === 'biz-carrito' ? [CARRITO_BIZ] : id === 'biz-cafe' ? [CAFE_BIZ] : [];
+      return [];
+    });
+  }
+
+  const M1 = { id: 'm1', user_id: 'user-jonathan', biz_id: 'biz-carrito', card_id: 'card-carrito', stamps: 0 };
+  const M2 = { id: 'm2', user_id: 'user-jonathan', biz_id: 'biz-cafe', card_id: 'card-cafe', stamps: 0 };
+
+  it('refreshLoyaltyEntries trae la lista fresca y la deja como la nueva precarga', async () => {
+    mockSb();
+    clearPrefetchedLoyaltyEntries();
+    members = [M1];
+    prefetchLoyaltyEntries(USER);
+    expect(await getPrefetchedLoyaltyEntries(USER)).toHaveLength(1);
+    // El usuario se une a otro programa DESPUÉS de la precarga.
+    members = [M1, M2];
+    const fresh = await refreshLoyaltyEntries(USER);
+    expect(fresh).toHaveLength(2);
+    expect(fresh[1].biz.name).toBe('Café de Prueba');
+    // La caché ya es la lista fresca: la próxima lectura no usa la vieja.
+    expect(await getPrefetchedLoyaltyEntries(USER)).toHaveLength(2);
+  });
+
+  it('si el refresco falla, rechaza y descarta la caché (no borra lo mostrado)', async () => {
+    mockSb();
+    clearPrefetchedLoyaltyEntries();
+    members = [M1];
+    prefetchLoyaltyEntries(USER);
+    await getPrefetchedLoyaltyEntries(USER);
+    sb.get.mockRejectedValue(new Error('sin red'));
+    await expect(refreshLoyaltyEntries(USER)).rejects.toThrow('sin red');
+    expect(getPrefetchedLoyaltyEntries(USER)).toBeNull();
+  });
+
+  it('sin usuario el refresco resuelve [] sin consultar la base', async () => {
+    mockSb();
+    expect(await refreshLoyaltyEntries(null)).toEqual([]);
+    expect(sb.get).not.toHaveBeenCalled();
+  });
+
+  it('el join invalida la precarga al crear la membresía', () => {
+    const src = read('../views/LoyaltyCardView.jsx');
+    expect(src).toContain("import { clearPrefetchedLoyaltyEntries } from '../lib/loyaltyMemberships.js'");
+    // Se invalida DESPUÉS de crear la membresía, no antes de inscribir.
+    const setMemberPos = src.indexOf('setMember(res[0])');
+    const clearPos = src.indexOf('clearPrefetchedLoyaltyEntries()', setMemberPos);
+    expect(setMemberPos).toBeGreaterThan(0);
+    expect(clearPos).toBeGreaterThan(setMemberPos);
+  });
+
+  it('el carrusel pinta la precarga primero y el refresco no la borra si falla', () => {
+    const src = read('../components/loyalty/ProfileLoyaltyCarousel.jsx');
+    // La precarga se muestra al instante…
+    expect(src).toContain('if (prefetched) {');
+    expect(src).toContain('if (alive && !freshArrived) setEntries(list)');
+    // …y el refresco actualiza después; si falla, no se limpia la lista.
+    expect(src).toContain('freshArrived = true');
+    expect(src).toContain('if (alive && !prefetched) setEntries([])');
+    // La precarga vieja no puede sobreescribir al refresco si resuelve después.
+    expect(src).toContain('let freshArrived = false');
   });
 });
 

@@ -43,21 +43,21 @@ describe('WhatsApp de lealtad: normalización (PR #249)', () => {
 });
 
 describe('WhatsApp de lealtad: mensajes personalizados (PR #249)', () => {
-  it('a 1 sello del premio: «solo te falta un sello»', () => {
+  it('a 1 sello del premio: «solo te falta un sello» con ⭐️', () => {
     expect(loyaltyWhatsAppMessage({ stamps: 4, stampsRequired: 5, bizName: 'Carrito La Paz' }))
-      .toBe('Hola, solo te falta un sello en tu tarjeta de lealtad para recibir un premio.');
+      .toBe('⭐️ Hola, solo te falta un sello en tu tarjeta de lealtad para recibir un premio.');
   });
 
-  it('tarjeta completada: «Felicidades, ya completaste»', () => {
+  it('tarjeta completada: «Felicidades, ya completaste» con 🎉 y 🥳', () => {
     expect(loyaltyWhatsAppMessage({ stamps: 5, stampsRequired: 5, bizName: 'Carrito La Paz' }))
-      .toBe('🎉 ¡Felicidades, ya completaste tu tarjeta de lealtad, puedes reclamar tu premio!');
+      .toBe('🎉 ¡Felicidades, ya completaste tu tarjeta de lealtad, puedes reclamar tu premio! 🥳');
     expect(loyaltyWhatsAppMessage({ stamps: 6, stampsRequired: 5, bizName: 'Carrito La Paz' }))
-      .toBe('🎉 ¡Felicidades, ya completaste tu tarjeta de lealtad, puedes reclamar tu premio!');
+      .toBe('🎉 ¡Felicidades, ya completaste tu tarjeta de lealtad, puedes reclamar tu premio! 🥳');
   });
 
-  it('en los demás casos: recordatorio con el nombre del negocio y el progreso', () => {
+  it('en los demás casos: recordatorio con 😄, el nombre del negocio y el progreso', () => {
     const msg = loyaltyWhatsAppMessage({ stamps: 1, stampsRequired: 5, bizName: 'Carrito La Paz Tostadas de Atún' });
-    expect(msg).toContain('Carrito La Paz Tostadas de Atún');
+    expect(msg).toContain('Hola 😄, te esperamos en Carrito La Paz Tostadas de Atún');
     expect(msg).toContain('1 de 5 sellos');
     expect(loyaltyWhatsAppMessage({ stamps: 0, stampsRequired: 5, bizName: 'Carrito La Paz' }))
       .toContain('0 de 5 sellos');
@@ -69,13 +69,13 @@ describe('WhatsApp de lealtad: enlace wa.me (PR #249)', () => {
     const link = loyaltyWhatsAppLink({ whatsapp: '311 200 8507', stamps: 4, stampsRequired: 5, bizName: 'Carrito La Paz' });
     expect(link.startsWith('https://wa.me/523112008507?text=')).toBe(true);
     expect(decodeURIComponent(link.split('text=')[1]))
-      .toBe('Hola, solo te falta un sello en tu tarjeta de lealtad para recibir un premio.');
+      .toBe('⭐️ Hola, solo te falta un sello en tu tarjeta de lealtad para recibir un premio.');
   });
 
   it('el enlace de tarjeta completada lleva el mensaje de felicidades', () => {
     const link = loyaltyWhatsAppLink({ whatsapp: '+52 311 200 8507', stamps: 5, stampsRequired: 5, bizName: 'Carrito La Paz' });
     expect(decodeURIComponent(link.split('text=')[1]))
-      .toBe('🎉 ¡Felicidades, ya completaste tu tarjeta de lealtad, puedes reclamar tu premio!');
+      .toBe('🎉 ¡Felicidades, ya completaste tu tarjeta de lealtad, puedes reclamar tu premio! 🥳');
   });
 
   it('sin número no hay enlace', () => {
@@ -127,8 +127,34 @@ describe('WhatsApp de lealtad: el join pide el número (PR #249)', () => {
   it('el formulario de unirse incluye el campo de WhatsApp', () => {
     const src = read('../views/LoyaltyCardView.jsx');
     expect(src).toContain('type="tel"');
-    expect(src).toContain('placeholder="311 000 0000"');
+    expect(src).toContain('placeholder="Agrega tu número"');
+    expect(src).not.toContain('placeholder="311 000 0000"');
     expect(src).toContain('WhatsApp');
+  });
+
+  it('el placeholder va en el color del texto de la tarjeta y el autofill no se pone amarillo', () => {
+    const src = read('../views/LoyaltyCardView.jsx');
+    // Placeholder blanco en esta tarjeta azul (color del texto de la tarjeta,
+    // a opacidad completa) y texto escrito del mismo color.
+    expect(src).toContain('.loyalty-whatsapp-input::placeholder');
+    expect(src).toContain('className="loyalty-whatsapp-input"');
+    // Safari/iOS pinta el input de amarillo al autocompletar: se anula con
+    // sombra interior del color del input y color de texto de la tarjeta.
+    expect(src).toContain('.loyalty-whatsapp-input:-webkit-autofill');
+    expect(src).toContain('-webkit-box-shadow: 0 0 0 1000px rgba(255,255,255,0.15) inset');
+    expect(src).toContain('-webkit-text-fill-color: ${card.text_color}');
+  });
+
+  it('la tarjeta de la página pública es compacta (logo y sellos más chicos)', () => {
+    const src = read('../views/LoyaltyCardView.jsx');
+    // Logo de 64 a 48 y círculos de sellos de 40 a 32: la tarjeta ocupa
+    // claramente menos alto. Los tamaños viejos ya no están en la página.
+    expect(src).toContain('width: 48, height: 48');
+    expect(src).not.toContain('width: 64, height: 64');
+    expect(src).toContain('width: 32, height: 32');
+    expect(src).not.toContain('width: 40, height: 40');
+    expect(src).toContain('width: 96, height: 96');
+    expect(src).not.toContain('width: 120, height: 120');
   });
 
   it('el alta guarda el número normalizado y valida antes de inscribir', () => {

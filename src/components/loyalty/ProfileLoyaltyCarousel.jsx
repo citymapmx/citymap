@@ -15,7 +15,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import LoyaltyCard from "./LoyaltyCard.jsx";
 import LoyaltyCardModal from "../../views/LoyaltyCardModal.jsx";
 import Icon from "../ui/Icon.jsx";
-import { loadLoyaltyEntries, getPrefetchedLoyaltyEntries } from "../../lib/loyaltyMemberships.js";
+import { getPrefetchedLoyaltyEntries, refreshLoyaltyEntries } from "../../lib/loyaltyMemberships.js";
 import { useTranslation } from "../../hooks/useTranslation.js";
 
 export default function ProfileLoyaltyCarousel({ user, T, dark, entries: entriesProp }) {
@@ -32,14 +32,33 @@ export default function ProfileLoyaltyCarousel({ user, T, dark, entries: entries
   useEffect(() => {
     if (entriesProp) return undefined;
     let alive = true;
-    // La app ya precargó las entradas al abrir (o al iniciar sesión): se
-    // reusa esa promesa — si ya resolvió, la tarjeta aparece al instante
-    // sin otra consulta. Sin precarga (o si falló), se carga al entrar
-    // como siempre.
-    const load = getPrefetchedLoyaltyEntries(user) ?? loadLoyaltyEntries(user);
-    Promise.resolve(load)
-      .then((list) => { if (alive) setEntries(list); })
-      .catch(() => { if (alive) setEntries([]); });
+    // Stale-while-revalidate (12 Nov 2026, la tarjeta recién unida no
+    // aparecía sin recargar): la precarga es una foto del momento en que se
+    // precargó; si el usuario se unió a un programa después, esa foto sigue
+    // siendo la vieja. Por eso se pinta la precarga al instante Y se
+    // refresca en segundo plano al entrar: la tarjeta nueva aparece sin
+    // recargar. Mientras el refresco no llega, se siguen viendo las
+    // tarjetas precargadas (no se limpia la lista); si el refresco falla,
+    // se quedan como estaban. freshArrived evita que la precarga (más
+    // vieja) sobreescriba al refresco si resuelve después que él.
+    let freshArrived = false;
+    const prefetched = getPrefetchedLoyaltyEntries(user);
+    if (prefetched) {
+      Promise.resolve(prefetched)
+        .then((list) => { if (alive && !freshArrived) setEntries(list); })
+        .catch(() => {});
+    }
+    refreshLoyaltyEntries(user)
+      .then((list) => {
+        if (!alive) return;
+        freshArrived = true;
+        setEntries(list);
+      })
+      .catch(() => {
+        // Sin precarga la sección queda vacía como antes; con precarga se
+        // conservan las tarjetas que ya se mostraban.
+        if (alive && !prefetched) setEntries([]);
+      });
     return () => { alive = false; };
   }, [user, entriesProp]);
 
