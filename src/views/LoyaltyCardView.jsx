@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import { loyaltyBgFirstColor } from '../lib/loyaltyColorStyles.js';
+import { normalizeWhatsApp } from '../lib/loyaltyWhatsapp.js';
 import Icon from '../components/ui/Icon.jsx';
 
 export default function LoyaltyCardView({ T, user, setShowAuth }) {
@@ -54,6 +55,8 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
   }, [bizId, user]);
 
   const [enrollLoading, setEnrollLoading] = useState(false);
+  const [whatsapp, setWhatsapp] = useState("");
+  const [whatsappError, setWhatsappError] = useState("");
 
   const handleEnroll = async () => {
     if (!user) {
@@ -61,6 +64,15 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
       return;
     }
     if (!card || enrollLoading) return;
+
+    // WhatsApp obligatorio: se guarda normalizado (+52) para que el negocio
+    // tenga el número registrado en su lista de clientes.
+    const normalizedWhatsapp = normalizeWhatsApp(whatsapp);
+    if (!normalizedWhatsapp) {
+      setWhatsappError("Escribe tu número de WhatsApp (10 dígitos) para unirte al programa.");
+      return;
+    }
+    setWhatsappError("");
     
     setEnrollLoading(true);
     // Inscribir al usuario
@@ -71,9 +83,23 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
         user_id: user.id,
         name: user.user_metadata?.full_name || user.email,
         email: user.email,
+        whatsapp: normalizedWhatsapp,
         stamps: 0
       };
-      const res = await sb.post("loyalty_members", payload);
+      let res;
+      try {
+        res = await sb.post("loyalty_members", payload);
+      } catch (e) {
+        // Si la columna whatsapp aún no existe en la base (la migración del
+        // PR no se ha aplicado en el editor SQL), el join no debe romperse:
+        // reintentamos sin el número y la membresía se crea igual.
+        if (String(e?.message || "").includes("whatsapp")) {
+          const { whatsapp: _ignored, ...payloadWithoutWhatsapp } = payload;
+          res = await sb.post("loyalty_members", payloadWithoutWhatsapp);
+        } else {
+          throw e;
+        }
+      }
       if (res && res[0]) {
         setMember(res[0]);
       }
@@ -251,6 +277,17 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
           <div style={{ padding: 24, background: card.bg_color, borderRadius: 24, textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", width: "100%" }}>
             <h3 style={{ margin: "0 0 8px", color: card.text_color, fontSize: 20, fontWeight: 900 }}>Únete al programa</h3>
             <p style={{ margin: "0 0 20px", color: card.text_color, opacity: 0.8, fontSize: 14 }}>Guarda sellos en cada visita y canjéalos por recompensas exclusivas.</p>
+            <label style={{ display: "block", textAlign: "left", fontSize: 11, fontWeight: 800, color: card.text_color, opacity: 0.8, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>WhatsApp</label>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="311 000 0000"
+              value={whatsapp}
+              onChange={(e) => { setWhatsapp(e.target.value); if (whatsappError) setWhatsappError(""); }}
+              style={{ width: "100%", boxSizing: "border-box", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${card.text_color}55`, background: "rgba(255,255,255,0.15)", color: card.text_color, fontSize: 16, fontFamily: "inherit", outline: "none", marginBottom: whatsappError ? 6 : 16 }}
+            />
+            {whatsappError && <div style={{ color: card.text_color, fontSize: 12, fontWeight: 800, marginBottom: 12, textAlign: "left" }}>⚠️ {whatsappError}</div>}
             <button onClick={handleEnroll} disabled={enrollLoading} style={{ width: "100%", padding: 16, borderRadius: 16, border: "none", background: card.text_color, color: loyaltyBgFirstColor(card.bg_color), fontWeight: 800, fontSize: 16, cursor: "pointer", opacity: enrollLoading ? 0.7 : 1 }}>
               {enrollLoading ? "Generando tarjeta..." : "Obtener mi tarjeta"}
             </button>
