@@ -391,48 +391,6 @@ export default function EventsView() {
       <div style={{ flex: 1, padding: "16px 20px 24px" }}>
         {(
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Header: "Eventos próximos" + Ver todos / Crear evento */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: 18,
-                fontWeight: 800,
-                color: T.text,
-                fontFamily: "var(--heading)",
-                letterSpacing: "-0.3px"
-              }}>
-                {cityName ? <>{t("eventos_proximos", "Próximos eventos")} {t("eventos_en", "en")} {cityName}</> : t("eventos_proximos", "Próximos eventos")}
-              </h2>
-              {user ? (
-                <button
-                  onClick={() => setShowCreateEvent(true)}
-                  style={{
-                    background: T.green,
-                    border: "none",
-                    color: dark ? "#18181B" : "#FFFFFF",
-                    fontSize: 13,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "10px 16px",
-                    borderRadius: 9999,
-                    fontFamily: "inherit",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                    flexShrink: 0
-                  }}
-                >
-                  <Icon name="plus" size={14} color={dark ? "#18181B" : "#FFFFFF"} />
-                  {t("crear_evento", "Crear evento")}
-                </button>
-              ) : (
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.sub }}>
-                  {filteredEvents.length} {t("eventos_total", "eventos")}
-                </span>
-              )}
-            </div>
-
             {/* Buscador por nombre o lugar (sin importar mayúsculas ni acentos) */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, background: dark ? "rgba(255,255,255,0.06)" : "#F1F5F9", border: `1px solid ${T.border}`, borderRadius: 9999, padding: "6px 6px 6px 14px" }}>
               <Icon name="search" size={18} color={T.sub} />
@@ -504,11 +462,41 @@ export default function EventsView() {
               )
             ) : (
               <div ref={eventListRef} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                {monthGroups.map(group => (
+                {monthGroups.map((group, monthIndex) => (
                   <div key={group.key} id={`mes-${group.key}`} style={{ scrollMarginTop: 120 }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
-                      <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.3px" }}>{group.label}</h3>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: T.sub }}>{monthTotal.get(group.key) ?? group.events.length} {(monthTotal.get(group.key) ?? group.events.length) === 1 ? t("eventos_evento", "evento") : t("eventos_eventos", "eventos")}</span>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
+                        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: T.text, fontFamily: "var(--heading)", letterSpacing: "-0.3px" }}>{group.label}</h3>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: T.sub }}>{monthTotal.get(group.key) ?? group.events.length} {(monthTotal.get(group.key) ?? group.events.length) === 1 ? t("eventos_evento", "evento") : t("eventos_eventos", "eventos")}</span>
+                      </div>
+                      {/* Botón «Crear evento» solo en el primer mes (PR #224):
+                          antes vivía en la fila del encabezado «Próximos
+                          eventos en {ciudad}», que se quitó. Sin sesión
+                          no aparece, igual que antes. */}
+                      {user && monthIndex === 0 && (
+                        <button
+                          onClick={() => setShowCreateEvent(true)}
+                          style={{
+                            background: T.green,
+                            border: "none",
+                            color: dark ? "#18181B" : "#FFFFFF",
+                            fontSize: 13,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "10px 16px",
+                            borderRadius: 9999,
+                            fontFamily: "inherit",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                            flexShrink: 0
+                          }}
+                        >
+                          <Icon name="plus" size={14} color={dark ? "#18181B" : "#FFFFFF"} />
+                          {t("crear_evento", "Crear evento")}
+                        </button>
+                      )}
                     </div>
                     <div className="event-list-grid" style={{
                       display: "grid",
