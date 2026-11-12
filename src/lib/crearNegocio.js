@@ -81,6 +81,31 @@ export function buildSchedule(openKeys, openTime24, closeTime24) {
   return out;
 }
 
+// Primer día abierto del horario guardado, como { open, close } en 24 h
+// (para prellenar los campos Abre/Cierra al abrir la edición). null si
+// no hay ningún día con horario legible.
+export function firstDayRange(schedule) {
+  const s = schedule || {};
+  for (const [key] of WIZARD_DAYS) {
+    const r = parseDayRange(s[key]);
+    if (r) return r;
+  }
+  return null;
+}
+
+// ¿Horario avanzado? type distinto de "regular" o algún día con varios
+// turnos (varias líneas). El asistente simple de píldoras no sabe
+// representarlo: en edición no se toca y se gestiona en el administrador.
+export function isAdvancedSchedule(schedule) {
+  const s = schedule || {};
+  if (s.type && s.type !== 'regular') return true;
+  for (const [key] of WIZARD_DAYS) {
+    const raw = s[key];
+    if (typeof raw === 'string' && raw.includes('\n')) return true;
+  }
+  return false;
+}
+
 // Funciones efectivas de un plan: las suyas + las heredadas de los
 // planes inferiores. La primera línea de Destacado y Premium es el
 // resumen "Todo lo del plan X, más:" (no es una función) y no se hereda

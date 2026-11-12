@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import RouteLoader from '../components/ui/RouteLoader.jsx';
 import { IS_WORLD } from '../lib/domain.js';
+import { bizToForm } from '../lib/bizForm.js';
 import { parseRevistaPath } from '../lib/revistaRoute.js';
 import { isDirectCategorySegments } from '../lib/categoryRouting.js';
 
@@ -180,7 +181,7 @@ export default function AppRouter(props) {
                 página de planes (10 nov 2026). Se mantiene la ruta para no
                 romper enlaces ni marcadores viejos. */}
             <Route path="/precios" element={<Navigate to="/negocios" replace />} />
-            <Route path="/negocios" element={<BusinessLanding T={T} dark={dark} navigate={navigate} user={user} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); }} onStartPaidPlan={startPaidPlan} setShowAuth={setShowAuth} />} />
+            <Route path="/negocios" element={<BusinessLanding T={T} dark={dark} navigate={navigate} user={user} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } const first = myBizList?.[0]; if (first) { setEditBizId(first.id); setAddBizForm(bizToForm(first)); setShowAddBiz(true); return; } setShowAddBiz(true); }} onStartPaidPlan={startPaidPlan} setShowAuth={setShowAuth} />} />
             
             <Route path="/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />
             <Route path="/:country/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />

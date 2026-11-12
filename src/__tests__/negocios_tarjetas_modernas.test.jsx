@@ -141,9 +141,12 @@ describe('Modal de registro: abrirlo ya no navega al inicio', () => {
 
   it('AppRouter.jsx: solo /negocios abre el modal (setShowAddBiz); /precios redirige a /negocios', () => {
     const src = read('../router/AppRouter.jsx');
-    const handlers = src.match(/onAddBiz=\{\(\) => \{ if \(!user\) \{ setShowAuth\(true\); return; \} setShowAddBiz\(true\); \}\}/g);
+    const handlers = src.match(/onAddBiz=\{/g);
     expect(handlers).not.toBeNull();
     expect(handlers).toHaveLength(1);
+    expect(src).toContain('setShowAddBiz(true)');
+    // Con negocio existente abre su edición en vez de un registro nuevo.
+    expect(src).toContain('setEditBizId(first.id)');
     expect(src).toContain('<Route path="/precios" element={<Navigate to="/negocios" replace />} />');
     expect(src).not.toContain('PlansPage');
   });

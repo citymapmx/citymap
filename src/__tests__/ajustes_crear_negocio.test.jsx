@@ -78,12 +78,12 @@ describe('notificaciones: lógica pura', () => {
     expect(parseEditBizDeepLink(null)).toBeNull();
   });
 
-  it('el tap de notificación resuelve a edición, URL o nada', () => {
-    expect(resolveNotifAction({ deep_link: '/cuenta?editarNegocio=abc' })).toEqual({ kind: 'edit-biz', bizId: 'abc' });
-    expect(resolveNotifAction({ action_url: '/cuenta?editarNegocio=x' })).toEqual({ kind: 'edit-biz', bizId: 'x' });
+  it('el tap de notificación resuelve a edición, URL o /cuenta (nunca nada)', () => {
+    expect(resolveNotifAction({ deep_link: '/cuenta?editarNegocio=abc' })).toEqual({ kind: 'edit-biz', bizId: 'abc', url: '/cuenta?editarNegocio=abc' });
+    expect(resolveNotifAction({ action_url: '/cuenta?editarNegocio=x' })).toEqual({ kind: 'edit-biz', bizId: 'x', url: '/cuenta?editarNegocio=x' });
     expect(resolveNotifAction({ deep_link: '/negocios' })).toEqual({ kind: 'url', url: '/negocios' });
-    expect(resolveNotifAction({ title: 'Hola' })).toEqual({ kind: 'none' });
-    expect(resolveNotifAction(null)).toEqual({ kind: 'none' });
+    expect(resolveNotifAction({ title: 'Hola' })).toEqual({ kind: 'cuenta', url: '/cuenta' });
+    expect(resolveNotifAction(null)).toEqual({ kind: 'cuenta', url: '/cuenta' });
   });
 
   it('«Se requieren cambios» tiene título y cuerpo fijos', () => {
@@ -164,7 +164,10 @@ describe('asistente: ajustes del PR #211 (render y fuente)', () => {
     // dirección); el paso 2 aporta WhatsApp, teléfono y las dos horas.
     expect((html.match(/class="cn-input"/g) || []).length).toBe(5);
     const src = readSrc('../components/AddBizModal.jsx');
-    expect((src.match(/className="cn-input"/g) || []).length).toBe(9);
+    // 12 en fuente: paso 1 (nombre input + nombre estático, categoría
+    // select + categoría estática, descripción, ciudad, dirección) y paso 2
+    // (WhatsApp, teléfono del gratuito, teléfono, abre, cierra).
+    expect((src.match(/className="cn-input"/g) || []).length).toBe(12);
     expect(html).toContain('1px solid var(--cn-hairline)');
     expect(html).toContain('--cn-hairline:#E5E7EB');
     expect(html).toContain('-webkit-autofill');

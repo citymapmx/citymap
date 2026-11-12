@@ -6,6 +6,7 @@ import ThemeToggle from './ui/ThemeToggle.jsx';
 import Uploader from './Uploader.jsx';
 import BizRequestCard from './BizRequestCard.jsx';
 import { parseEditBizDeepLink, badgeText } from '../lib/notifications.js';
+import { bizToForm } from '../lib/bizForm.js';
 import { sb } from '../lib/supabase.js';
 import { isOpenNow, createSlug, cleanCityPrefix } from '../lib/utils.js';
 import { useUIStore } from '../store/useUIStore.js';
@@ -40,7 +41,7 @@ export default function AccountView({
   const openBizEdit = (b) => {
     if (!b) return;
     setEditBizId(b.id);
-    setAddBizForm({ name: b.name || "", category: b.category || b.type || "", emoji: b.emoji || "", description: b.description || "", address: b.address || "", city: b.city_slug || "", phone: b.phone || "", whatsapp: b.whatsapp || "", website: b.website || "", lat: b.lat || "", lng: b.lng || "", photos: b.photos?.map(p => p.url) || [], facebook: b.facebook || "", instagram: b.instagram || "", tiktok: b.tiktok || "", schedule: b.schedule || {}, owner_id: b.owner_id, user_id: b.user_id, plan: b.plan, status: b.status, video_url: b.video_url || "", logo_url: b.logo_url || "", menu_pdf_url: b.menu_pdf_url || "", booking_config: b.booking_config || null });
+    setAddBizForm(bizToForm(b));
     setShowAddBiz(true);
   };
 
@@ -165,7 +166,9 @@ export default function AccountView({
           return items;
         }),
         { label: t("ver_planes", "Ver planes"), icon: "award", act: "business_plans" },
-        { label: t("agregar_negocio", "Agregar mi negocio"), icon: "plus", act: "add_biz" },
+        // Solo 1 negocio por cuenta: si ya tiene uno (en cualquier estado),
+        // no se muestra «Agregar mi negocio».
+        ...((myBizList?.length || 0) > 0 ? [] : [{ label: t("agregar_negocio", "Agregar mi negocio"), icon: "plus", act: "add_biz" }]),
       ]
     }
   ];
@@ -180,7 +183,7 @@ export default function AccountView({
     else if (act === "favs") navigate("favs");
     else if (act === "itineraries") navigate("itineraries");
     else if (act === "business_plans") navigate("/negocios"); // «Ver planes» lleva a /negocios, la página de planes
-    else if (act === "add_biz") { if (!user) { setShowAuth(true); return; } setShowAddBiz(true); }
+    else if (act === "add_biz") { if (!user) { setShowAuth(true); return; } const first = myBizList?.[0]; if (first) { openBizEdit(first); return; } setShowAddBiz(true); }
     else if (act === "about") navigate("about");
     else if (act === "user_notifs") navigate("user_notifs");
     else if (act === "admin_notifs") navigate("admin_notifs");

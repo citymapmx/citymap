@@ -155,7 +155,7 @@ describe('crear negocio: asistente de 3 pasos (render)', () => {
 
   it('el paso 1 ordena Logotipo, Fotos, Nombre, Categoría, Descripción, Ciudad y Dirección', () => {
     const src = fs.readFileSync(new URL('../components/AddBizModal.jsx', import.meta.url), 'utf8');
-    const wizard = src.slice(src.indexOf('if (isCreate)'), src.indexOf('{step === 2 &&'));
+    const wizard = src.slice(src.indexOf('{step === 1 &&'), src.indexOf('{step === 2 &&'));
     const order = [
       'crear_negocio_logotipo',
       'crear_negocio_fotos',
@@ -202,16 +202,22 @@ describe('crear negocio: fuente del asistente', () => {
     expect(src).toContain('setPendingPlan?.(null)');
   });
 
-  it('la rama de edición conserva el formulario anterior sin el campo de vídeo', () => {
-    const edit = src.slice(src.indexOf('EDICIÓN de un negocio existente'));
-    expect(edit).toContain('Actualizar negocio');
-    expect(edit).toContain('Sugerir un lugar o negocio');
-    expect(edit).toContain('¿Por qué lo recomiendas?');
-    expect(edit).toContain('Soy el dueño o administrador de este lugar');
-    expect(edit).toContain('Plan gratuito activo');
-    expect(edit).toContain('Logotipo en el Mapa');
-    expect(edit).not.toContain('Video Promocional');
-    expect(edit).not.toContain('youtube.com/watch');
+  it('la edición usa el asistente nuevo en 2 pasos, sin el formulario viejo', () => {
+    // PR #212: el formulario viejo («Actualizar negocio» con checkbox de
+    // dueño, «¿Por qué lo recomiendas?», ciudad en minúscula) ya no se
+    // usa; la edición abre el mismo asistente prellenado, sin plan ni pago.
+    expect(src).not.toContain('EDICIÓN de un negocio existente');
+    expect(src).not.toContain('Soy el dueño o administrador de este lugar');
+    expect(src).not.toContain('¿Por qué lo recomiendas?');
+    expect(src).not.toContain('Sugerir un lugar o negocio');
+    expect(src).not.toContain('MenuManager');
+    expect(src).not.toContain('isOwnerEdit');
+    expect(src).toContain('Actualizar negocio');
+    expect(src).toContain('crear_negocio_paso_de_2');
+    expect(src).toContain('!isEdit && step === 3');
+    expect(src).toContain('Plan gratuito activo');
+    expect(src).not.toContain('Video Promocional');
+    expect(src).not.toContain('youtube.com/watch');
   });
 
   it('App pasa pendingPlan y setPendingPlan al modal', () => {
