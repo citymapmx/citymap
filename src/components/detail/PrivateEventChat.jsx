@@ -252,21 +252,23 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
         </div>
       )}
 
-      {/* ── Contenedor del chat estilo referencia: plano, sin borde ni sombra ── */}
-      {/* El campo para escribir vive dentro del contenedor, fijo abajo. */}
+      {/* ── Tarjeta flotante del chat: UNA sola tarjeta con la lista de
+          mensajes y el campo para escribir dentro (Jonathan, nov 2026).
+          Blanca y flotante en claro; en oscuro, el tono de tarjeta del
+          tema. Las pestañas y el enlace secreto quedan fuera. ── */}
       <div
         style={{
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          background: luma ? 'transparent' : (dark ? 'rgba(255,255,255,0.05)' : '#FFFFFF'),
+          background: luma ? '#FFFFFF' : (dark ? 'rgba(255,255,255,0.05)' : '#FFFFFF'),
           backgroundImage: luma ? 'none' : (dark
             ? 'radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)'
             : 'radial-gradient(rgba(15,23,42,0.045) 1px, transparent 1px)'),
           backgroundSize: '18px 18px',
-          border: luma ? 'none' : `1px solid ${T.border}`,
+          border: luma ? '1px solid #E7EBE8' : `1px solid ${T.border}`,
           borderRadius: 24,
-          boxShadow: luma ? 'none' : '0 10px 32px rgba(15,23,42,0.10)',
+          boxShadow: '0 10px 32px rgba(15,23,42,0.10)',
           overflow: 'hidden',
           marginBottom: 8,
         }}
