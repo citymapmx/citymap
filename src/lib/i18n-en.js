@@ -273,7 +273,6 @@ export const EN_TRANSLATIONS = {
     "home_oferta_especial": "Special Offer",
     "home_para_cerrar_dia": "To end the day",
     "home_para_iniciar_dia": "To start the day",
-    "home_planea_noche": "Plan your night",
     "home_playa": "Beach",
     "home_poster_evento": "Event poster",
     "home_precio_no_publicado": "Price not published",

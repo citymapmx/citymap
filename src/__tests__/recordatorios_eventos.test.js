@@ -321,13 +321,14 @@ describe('recordatorios: cableado (fuente)', () => {
     const json = JSON.parse(raw);
     expect(json.crons).toContainEqual({ path: '/api/send-notification', schedule: '0 15 * * *' });
   });
-  it('el despliegue queda en 12 funciones serverless (Hobby): sin api/recordatorios-eventos.js', () => {
+  it('el despliegue queda en 11 funciones serverless (Hobby): sin api/recordatorios-eventos.js ni api/ai-night.js', () => {
     const apiDir = new URL('../../api', import.meta.url);
     const files = fs.readdirSync(apiDir).filter((f) => f.endsWith('.js'));
     expect(fs.existsSync(new URL('../../api/recordatorios-eventos.js', import.meta.url))).toBe(false);
+    expect(fs.existsSync(new URL('../../api/ai-night.js', import.meta.url))).toBe(false);
     const edge = files.filter((f) => /runtime:\s*['"]edge['"]/.test(fs.readFileSync(new URL(`../../api/${f}`, import.meta.url), 'utf8')));
     expect(edge).toHaveLength(3);
-    expect(files.length - edge.length).toBe(12);
+    expect(files.length - edge.length).toBe(11);
   });
   it('la migración crea event_favorites con RLS propia y cierra push_tokens', () => {
     const sql = fs.readFileSync(new URL('../../supabase/migrations/20261112012000_add_event_favorites.sql', import.meta.url), 'utf8');

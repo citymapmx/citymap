@@ -71,7 +71,6 @@ import DebouncedSearchBar from "../components/home/DebouncedSearchBar.jsx";
 
 import TopImperdibles from "../components/home/TopImperdibles.jsx";
 import SquareCarousel from "../components/home/SquareCarousel.jsx";
-import AiNightPlanner from "../components/AiNightPlanner.jsx";
 import BannerSlider from "../components/home/BannerSlider.jsx";
 import { getDailyScore, getKm, createSlug, cleanCityPrefix, CAT_EMOJI } from '../lib/utils.js';
 import { FONT_BIZ } from '../lib/constants.js';
@@ -169,7 +168,6 @@ export default function HomeView({ isBackground }) {
   }, [lang]);
 
   const articleNavigate = useNavigate();
-  const [showAiPlanner, setShowAiPlanner] = React.useState(false);
   const [showSurprise, setShowSurprise] = React.useState(false);
   const [phIdx, setPhIdx] = React.useState(0);
 
@@ -902,44 +900,6 @@ export default function HomeView({ isBackground }) {
           {/* Bottom Spacing */}
           <div style={{ height: 20 }} />
 
-          {/* AI Night Planner FAB (Shows after 5 PM and before 4 AM) - OCULTO TEMPORALMENTE */}
-          {/* eslint-disable-next-line no-constant-binary-expression */}
-          {false && !search && (new Date().getHours() >= 17 || new Date().getHours() < 4) && (
-            <div style={{ position: "fixed", bottom: 84, left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 90 }}>
-              <button
-                onClick={() => setShowAiPlanner(true)}
-                className="press"
-                style={{
-                  pointerEvents: "auto",
-                  padding: "14px 24px",
-                  background: "linear-gradient(135deg, #7C3AED, #EC4899)",
-                  border: "none",
-                  borderRadius: 30,
-                  color: "#fff",
-                  fontSize: 15,
-                  fontWeight: 800,
-                  boxShadow: "0 8px 24px rgba(124,58,237,0.35)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  cursor: "pointer"
-                }}
-              >
-                <span style={{ fontSize: 18 }}>✨</span> {t("home_planea_noche", "Planea tu noche")}
-              </button>
-            </div>
-          )}
-
-          <AiNightPlanner 
-            open={showAiPlanner} 
-            onClose={() => setShowAiPlanner(false)} 
-            businesses={mapPins} 
-            city={city} 
-            isOpen={isOpen} 
-            dark={dark} 
-            T={T} 
-            handleCardTap={handleCardTap} 
-          />
           <SurpriseModal
             open={showSurprise}
             onClose={() => setShowSurprise(false)}
