@@ -132,17 +132,12 @@ export default function AccountView({
     }
   };
 
+  // Orden (12 Nov 2026, pedido de Jonathan): «Mi Negocio» va PRIMERO
+  // y «Cuenta» después — lo del negocio es lo que el dueño abre a diario
+  // y los ajustes de Cuenta casi no se tocan. El encabezado con
+  // avatar/nombre/email queda arriba de todo y cada grupo conserva sus
+  // elementos, etiquetas, iconos y acciones tal cual.
   const menuGroups = [
-    {
-      title: t("cuenta", "Cuenta"),
-      items: [
-        { label: t(dark ? "cuenta_modo_oscuro_on" : "cuenta_modo_oscuro", dark ? "Modo oscuro activado" : "Modo oscuro"), icon: dark ? "moon" : "sun", act: "toggle_dark" },
-        { label: t("mis_favoritos", "Mis Favoritos"), icon: "heart", act: "favs" },
-        { label: t("editar_perfil", "Editar perfil"), icon: "user", act: "edit_profile" },
-        { label: t("notificaciones", "Notificaciones"), icon: "bell", act: "user_notifs" },
-        ...(isAdmin ? [{ label: t("cuenta_notif_admin", "Notificaciones de Admin"), icon: "shield", act: "admin_notifs" }] : [])
-      ]
-    },
     {
       title: myBizList.filter(b => b.status === "approved").length === 1 
         ? `${t("mi_negocio", "Mi Negocio")} (${myBizList.filter(b => b.status === "approved")[0].name})` 
@@ -170,6 +165,16 @@ export default function AccountView({
         // Solo 1 negocio por cuenta: si ya tiene uno (en cualquier estado),
         // no se muestra «Agregar mi negocio».
         ...((myBizList?.length || 0) > 0 ? [] : [{ label: t("agregar_negocio", "Agregar mi negocio"), icon: "plus", act: "add_biz" }]),
+      ]
+    },
+    {
+      title: t("cuenta", "Cuenta"),
+      items: [
+        { label: t(dark ? "cuenta_modo_oscuro_on" : "cuenta_modo_oscuro", dark ? "Modo oscuro activado" : "Modo oscuro"), icon: dark ? "moon" : "sun", act: "toggle_dark" },
+        { label: t("mis_favoritos", "Mis Favoritos"), icon: "heart", act: "favs" },
+        { label: t("editar_perfil", "Editar perfil"), icon: "user", act: "edit_profile" },
+        { label: t("notificaciones", "Notificaciones"), icon: "bell", act: "user_notifs" },
+        ...(isAdmin ? [{ label: t("cuenta_notif_admin", "Notificaciones de Admin"), icon: "shield", act: "admin_notifs" }] : [])
       ]
     }
   ];
