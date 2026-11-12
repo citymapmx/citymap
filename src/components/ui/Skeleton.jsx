@@ -146,16 +146,21 @@ export function CoverflowSk({ dark }) {
   );
 }
 
-// Esqueleto de "Los 5 imperdibles": título + 5 tarjetas de 150 px.
+// Esqueleto de "Experiencias destacadas": título + tarjeta del carrusel
+// (ancha, con el hueco de la siguiente asomando) + puntos.
 export function ImperdiblesSk({ dark }) {
   return (
     <div style={{ padding: "24px 20px 10px" }}>
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
         <Sk w="70%" h={22} r={6} dark={dark} />
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", gap: 12, overflow: "hidden", margin: "0 -20px", padding: "0 20px 4px" }}>
+        <Sk w="85%" h={150} r={16} dark={dark} style={{ flexShrink: 0 }} />
+        <Sk w="85%" h={150} r={16} dark={dark} style={{ flexShrink: 0 }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 8 }}>
         {[1, 2, 3, 4, 5].map(i => (
-          <Sk key={i} w="100%" h={150} r={16} dark={dark} />
+          <Sk key={i} w={i === 1 ? 18 : 6} h={6} r={999} dark={dark} />
         ))}
       </div>
     </div>

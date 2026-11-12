@@ -43,8 +43,11 @@ describe('home section titles (PR #196)', () => {
         />
       </MemoryRouter>,
     );
-    expect(html).toContain('Los 5 imperdibles de');
-    expect(html).toContain('Zapopan');
+    // Título nuevo (PR #237): «Experiencias destacadas», sin el nombre de
+    // la ciudad y sin el «Los 5 imperdibles de» anterior.
+    expect(html).toContain('Experiencias destacadas');
+    expect(html).not.toContain('Los 5 imperdibles de');
+    expect(html).not.toContain('Zapopan');
     // Sin la medalla 🥇 del título (las insignias de ranking de las
     // tarjetas, si las hay, no son el título y no se tocan).
     expect(html).not.toContain('🥇');
