@@ -551,7 +551,7 @@ export default function EventsView() {
                         size={25}
                         overlay
                         ariaLabel={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")}
-                        buttonStyle={{ position: 'absolute', top: 6, right: 6, width: 44, height: 44, background: 'rgba(0,0,0,0.24)', border: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', zIndex: 2, filter: 'none' }}
+                        buttonStyle={{ position: 'absolute', top: 6, right: 6, width: 44, height: 44, display: 'grid', placeItems: 'center', cursor: 'pointer', zIndex: 2, filter: 'none' }}
                       />
                       </div>
                     </article>

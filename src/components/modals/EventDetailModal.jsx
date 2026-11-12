@@ -9,6 +9,7 @@ import { eventCalendarDay, isPastEvent, upcomingEvents, formatEventCardDate } fr
 import { sb, cloudUpload } from '../../lib/supabase';
 import { EVENT_IMAGE_OPTIMIZE, resolveOptimizeOptions, shouldOptimizeImage } from '../../lib/imageOptimize.js';
 import Icon from '../ui/Icon';
+import SaveHeartButton from '../ui/SaveHeartButton.jsx';
 import EventPoster from '../detail/EventPoster.jsx';
 import EventInformation, { EventTicketBar } from '../detail/EventInformation.jsx';
 import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
@@ -215,6 +216,9 @@ export default function EventDetailModal() {
         const associatedBiz = ev.biz_id ? mapPins.find(b => b.id === ev.biz_id) : null;
         const imgSrc = ev.img_url || ev.img;
         const isHost = Boolean(user?.id && ev.user_id && user.id === ev.user_id);
+        // Guardado del evento (corazón arriba, sobre la foto): mismo
+        // estado que la lista y el muro.
+        const isSaved = (savedEventIds || []).includes(evLocalized.id);
         // Rediseño Luma en claro: solo privados vigentes en modo claro.
         const luma = isPrivateEvent(ev) && !isPast && !dark;
         // La foto del héroe va completa, sin recorte: el título y el
@@ -275,6 +279,28 @@ export default function EventDetailModal() {
                 <button aria-label={t("eventos_compartir_evento", "Compartir evento")} onClick={(e) => { e.stopPropagation(); setShowShareCard(true); }} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: 0 }}>
                   <Icon name="share" size={20} color="#fff" style={{ filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.8))" }} />
                 </button>
+
+                {/* Corazón para guardar (nov 2026, Jonathan): arriba,
+                    sobre la foto, inmediatamente a la IZQUIERDA del
+                    compartir — el mismo diseño de las tarjetas
+                    (SaveHeartButton con overlay: trazo blanco sin
+                    guardar, rojo lleno al guardar), SIN círculo detrás
+                    (solo el corazón directo sobre la foto), y la misma
+                    animación de partículas al guardar (HeartBurst).
+                    Antes estaba en la barra inferior (PR #216);
+                    Jonathan lo pidió arriba (PR #219). */}
+                {toggleSaveEvent && (
+                  <SaveHeartButton
+                    isFav={isSaved}
+                    onToggle={(e) => toggleSaveEvent(evLocalized.id, e)}
+                    size={22}
+                    overlay
+                    T={T}
+                    title={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")}
+                    ariaLabel={isSaved ? t("eventos_quitar_guardados", "Quitar evento de guardados") : t("eventos_guardar_evento", "Guardar evento")}
+                    buttonStyle={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 64, width: 40, height: 40, zIndex: 10, filter: "none" }}
+                  />
+                )}
 
                 {/* El anfitrión del evento privado puede cambiar/agregar la foto */}
                 {isPrivateEvent(ev) && isHost && (
@@ -520,7 +546,7 @@ export default function EventDetailModal() {
                   públicos, nunca en los pasados. Sin enlaces, la barra
                   no se pinta (lo decide EventTicketBar). */}
               {(!isPrivateEvent(ev) || privateTab === 'detalles') && (
-                <EventTicketBar event={evLocalized} T={T} hideTickets={isPast} onShare={() => setShowShareCard(true)} isSaved={(savedEventIds || []).includes(evLocalized.id)} onToggleSave={toggleSaveEvent ? (e) => toggleSaveEvent(evLocalized.id, e) : null} />
+                <EventTicketBar event={evLocalized} T={T} hideTickets={isPast} onShare={() => setShowShareCard(true)} />
               )}
             </div>
 
