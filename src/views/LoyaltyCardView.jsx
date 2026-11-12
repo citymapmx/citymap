@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
+import { loyaltyBgFirstColor } from '../lib/loyaltyColorStyles.js';
 import Icon from '../components/ui/Icon.jsx';
 
 export default function LoyaltyCardView({ T, user, setShowAuth }) {
@@ -195,7 +196,7 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
                   display: "flex", alignItems: "center", justifyContent: "center", 
                   opacity: i < currentStamps ? 1 : 0.4 
                 }}>
-                  {i < currentStamps && <Icon name={stampIcon} size={20} color={card.bg_color} />}
+                  {i < currentStamps && <Icon name={stampIcon} size={20} color={loyaltyBgFirstColor(card.bg_color)} />}
                 </div>
               );
             })}
@@ -250,7 +251,7 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
           <div style={{ padding: 24, background: card.bg_color, borderRadius: 24, textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", width: "100%" }}>
             <h3 style={{ margin: "0 0 8px", color: card.text_color, fontSize: 20, fontWeight: 900 }}>Únete al programa</h3>
             <p style={{ margin: "0 0 20px", color: card.text_color, opacity: 0.8, fontSize: 14 }}>Guarda sellos en cada visita y canjéalos por recompensas exclusivas.</p>
-            <button onClick={handleEnroll} disabled={enrollLoading} style={{ width: "100%", padding: 16, borderRadius: 16, border: "none", background: card.text_color, color: card.bg_color, fontWeight: 800, fontSize: 16, cursor: "pointer", opacity: enrollLoading ? 0.7 : 1 }}>
+            <button onClick={handleEnroll} disabled={enrollLoading} style={{ width: "100%", padding: 16, borderRadius: 16, border: "none", background: card.text_color, color: loyaltyBgFirstColor(card.bg_color), fontWeight: 800, fontSize: 16, cursor: "pointer", opacity: enrollLoading ? 0.7 : 1 }}>
               {enrollLoading ? "Generando tarjeta..." : "Obtener mi tarjeta"}
             </button>
           </div>
