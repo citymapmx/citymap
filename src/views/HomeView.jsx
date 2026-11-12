@@ -686,8 +686,14 @@ export default function HomeView({ isBackground }) {
                   scrollbarWidth: "none",
                   msOverflowStyle: "none",
                   WebkitOverflowScrolling: "touch",
-                  justifyContent: availableSubcats.length <= 3 ? "center" : "flex-start",
+                  justifyContent: availableSubcats.length <= 3 ? "safe center" : "flex-start",
                 }}
+                // "safe center": centrada solo si cabe; si las píldoras
+                // desbordan (p. ej. 3 subtipos largos como en Restaurantes
+                // de Tlaquepaque), cae a flex-start. Con "center" a secas
+                // el desborde izquierdo queda fuera del origen de scroll
+                // y la primera píldora ("Todos") salía cortada sin poder
+                // deslizarse hasta ella.
                 // Desvanecido solo cuando la barra puede desbordar: con
                 // 3 o menos subcategorías va centrada y no hay nada que
                 // deslizar (el velo taparía la última píldora).
