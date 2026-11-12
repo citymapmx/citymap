@@ -97,16 +97,19 @@ export default function LoyaltyWizard({
           
           {wizardStep === 0 && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }}>
-              {/* Preview card inside Step 1 */}
+              {/* Preview card inside Step 1: solo un ejemplo — el premio real se define en el Paso 2 */}
               <div style={{ width: "100%" }}>
+                <div style={{ textAlign: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "#64748B", background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 100, padding: "4px 10px" }}>Ejemplo</span>
+                </div>
                 {renderCardPreview()}
               </div>
 
               {/* Selector de estilo por categoría */}
               <div style={{ width: "100%", maxWidth: 320 }}>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" }}>Selecciona tu estilo</label>
-                {/* Píldoras de categoría: fila deslizable con el dedo */}
-                <div className="no-scrollbar scroll-fade-x" style={{ display: "flex", gap: 8, overflowX: "auto", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", paddingBottom: 4 }}>
+                {/* Píldoras de categoría: 2 por fila, todas visibles sin deslizar */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   {LOYALTY_COLOR_CATEGORIES.map((cat) => {
                     const isActive = activeCategory === cat.id;
                     return (
@@ -114,17 +117,17 @@ export default function LoyaltyWizard({
                         key={cat.id}
                         onClick={() => setActiveCategory(cat.id)}
                         style={{
-                          scrollSnapAlign: "start",
-                          flexShrink: 0,
-                          padding: "8px 14px",
+                          minHeight: 40,
+                          padding: "7px 10px",
                           borderRadius: 100,
                           background: isActive ? "#0F172A" : "#fff",
                           color: isActive ? "#fff" : "#0F172A",
                           border: `2px solid ${isActive ? "#0F172A" : "#E2E8F0"}`,
                           fontWeight: 800,
-                          fontSize: 13,
+                          fontSize: 12,
                           cursor: "pointer",
                           whiteSpace: "nowrap",
+                          textAlign: "center",
                           transition: "all 0.2s"
                         }}
                       >
