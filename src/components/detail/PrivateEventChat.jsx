@@ -11,6 +11,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import Icon from '../ui/Icon.jsx';
 import { useTranslation } from '../../hooks/useTranslation.js';
 import { formatMessageTime, formatChatDay, avatarColor } from '../../lib/privateEvents';
+import { notifyChatMessage } from '../../lib/chatNotifications.js';
 
 const POLL_MS = 5000;
 const MAX_BODY = 500;
@@ -150,7 +151,7 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
     if (text.length > MAX_BODY) { toast$(t("eventos_mensaje_largo", "El mensaje es muy largo (máx. 500 caracteres)")); return; }
     setSending(true);
     try {
-      await sb.post('event_messages', {
+      const rows = await sb.post('event_messages', {
         event_id: event.id,
         guest_name: authorName,
         user_id: user?.id || null,
@@ -167,6 +168,13 @@ export default function PrivateEventChat({ event, T, dark, luma, toast$, onCount
       setBody('');
       forceScrollRef.current = true;
       load();
+      // Aviso a los demás participantes (solo con sesión: sin JWT no hay
+      // identidad verificable y los invitados sin cuenta no disparan avisos).
+      // No bloquea ni muestra error si falla: el mensaje ya se envió.
+      if (user?.id && sb._token) {
+        const row = Array.isArray(rows) ? rows[0] : null;
+        if (row?.id) notifyChatMessage({ eventId: event.id, messageId: row.id, token: sb._token });
+      }
     } catch (err) {
       toast$(`${t("eventos_error", "Error:")} ${err.message}`);
     } finally {

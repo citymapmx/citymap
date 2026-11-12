@@ -2,6 +2,7 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 import { buildReminderPlan, countReminderPairs, todayInMexicoCity } from '../src/lib/recordatoriosEventos.js';
+import { buildChatMessage, chatRecipients, CHAT_MESSAGE_DEDUP_MINUTES } from '../src/lib/chatNotifications.js';
 import { PUSH_ALERT_CHANNEL_ID, PUSH_ALERT_SOUND_NAME } from '../src/lib/pushAlertChannel.js';
 
 // 1. Iniciar Firebase Admin si no está iniciado
@@ -112,6 +113,108 @@ async function runReminders(req, res) {
   }
 }
 
+// Aviso de mensaje nuevo en el chat de un evento privado (PR #227). El
+// cliente lo dispara tras enviar su mensaje, con su propio JWT; el servidor
+// verifica ese JWT y la pertenencia al evento antes de avisar a los demás
+// participantes (anfitrión + quienes ya escribieron en ese chat, menos el
+// remitente). El cuerpo del aviso sale del mensaje guardado en la base,
+// nunca del cliente: un usuario solo puede avisar del mensaje que él mismo
+// escribió, a los participantes del evento en el que lo escribió. Los
+// invitados sin cuenta no disparan avisos (sin JWT no hay identidad
+// verificable). Sin función nueva: vive en este mismo endpoint.
+async function runChatMessage(req, res, senderId) {
+  const reqBody = req.body || {};
+  const { eventId, messageId } = reqBody;
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+  if (!senderId) return res.status(401).json({ error: 'Unauthorized' });
+  const isUuid = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''));
+  if (!isUuid(eventId) || !isUuid(messageId)) {
+    return res.status(400).json({ error: 'Faltan campos: eventId y messageId son requeridos' });
+  }
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || SUPABASE_URL_FALLBACK;
+  if (!serviceRoleKey) return res.status(500).json({ error: 'Supabase env vars missing' });
+  const headers = { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` };
+  const adminSecret = process.env.ADMIN_SECRET;
+
+  try {
+    // 1. Evento (título, enlace e imagen del aviso; anfitrión).
+    const evRes = await fetch(`${supabaseUrl}/rest/v1/events?select=id,title,slug,city_slug,user_id,img_url,img&id=eq.${eventId}`, { headers });
+    if (!evRes.ok) throw new Error(`PostgREST events: HTTP ${evRes.status}`);
+    const event = (await evRes.json())?.[0];
+    if (!event) return res.status(404).json({ error: 'Evento no encontrado' });
+
+    // 2. Mensaje exacto del remitente: el cuerpo real sale de la base.
+    // Si no existe o no es suyo, no hay aviso (y no hay pertenencia).
+    const msgRes = await fetch(`${supabaseUrl}/rest/v1/event_messages?select=id,guest_name,user_id,body,created_at&id=eq.${messageId}&event_id=eq.${eventId}&user_id=eq.${senderId}`, { headers });
+    if (!msgRes.ok) throw new Error(`PostgREST event_messages: HTTP ${msgRes.status}`);
+    const message = (await msgRes.json())?.[0];
+    if (!message) return res.status(403).json({ error: 'Mensaje no encontrado o no es tuyo' });
+
+    // 3. Destinatarios: anfitrión + autores del chat, menos el remitente.
+    const chatRes = await fetch(`${supabaseUrl}/rest/v1/event_messages?select=user_id&event_id=eq.${eventId}&limit=1000`, { headers });
+    if (!chatRes.ok) throw new Error(`PostgREST event_messages: HTTP ${chatRes.status}`);
+    const chatRows = await chatRes.json();
+    const recipientIds = chatRecipients({
+      hostId: event.user_id,
+      messageUserIds: (chatRows || []).map((r) => r.user_id),
+      senderId,
+    });
+    const built = buildChatMessage({
+      authorName: message.guest_name,
+      eventTitle: event.title,
+      messageBody: message.body,
+      event,
+    });
+    if (!built) return res.status(400).json({ error: 'No se pudo armar el aviso' });
+    if (recipientIds.length === 0) {
+      return res.status(200).json({ ok: true, sent: [], failed: [], skipped: 0 });
+    }
+    if (!adminSecret) return res.status(500).json({ error: 'ADMIN_SECRET no configurado' });
+
+    // 4. Anti-duplicados: el mismo aviso en los últimos 5 minutos no se
+    // vuelve a mandar a ese participante (reenvío o doble toque).
+    // La bandeja guarda el enlace absoluto, así que se compara con ese.
+    const since = new Date(Date.now() - CHAT_MESSAGE_DEDUP_MINUTES * 60000).toISOString();
+    const absoluteLink = `https://citymap.mx${built.deepLink}`;
+    const dupRes = await fetch(
+      `${supabaseUrl}/rest/v1/notifications?select=user_id&type=eq.chat&deep_link=eq.${encodeURIComponent(absoluteLink)}&body=eq.${encodeURIComponent(built.body)}&created_at=gte.${since}&limit=1000`,
+      { headers },
+    );
+    const already = new Set();
+    if (dupRes.ok) {
+      for (const n of (await dupRes.json()) || []) if (n?.user_id) already.add(n.user_id);
+    }
+
+    // 5. Mandar cada aviso por este mismo endpoint (que guarda la copia en
+    // la bandeja y envía el push). Un fallo no frena los demás.
+    const sent = [];
+    const failed = [];
+    let skipped = 0;
+    for (const userId of recipientIds) {
+      if (already.has(userId)) { skipped++; continue; }
+      try {
+        const r = await fetch(SEND_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: built.title, body: built.body, type: 'chat', user_id: userId, deepLink: built.deepLink, ...(built.imageUrl ? { imageUrl: built.imageUrl } : {}), secret: adminSecret }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
+        sent.push({ eventId, userId, successCount: data.successCount ?? null });
+      } catch (err) {
+        failed.push({ eventId, userId, error: String(err?.message || err) });
+      }
+    }
+    return res.status(200).json({ ok: true, sent, failed, skipped });
+  } catch (err) {
+    console.error('aviso chat error:', err);
+    return res.status(500).json({ ok: false, error: String(err?.message || err) });
+  }
+}
+
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -145,6 +248,9 @@ export default async function handler(req, res) {
     // Proteger el endpoint — acepta ADMIN_SECRET o JWT de usuario autenticado
     let isAuthorized = false;
     let authenticatedUserId = null;
+    // Cualquier JWT válido identifica al remitente (no solo admins): el modo
+    // de aviso de chat lo usa para verificar pertenencia al evento.
+    let verifiedUserId = null;
 
     if (bodySecret && bodySecret === process.env.ADMIN_SECRET) {
       // Autenticación clásica con secret (retro-compatible)
@@ -164,9 +270,12 @@ export default async function handler(req, res) {
         const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
         const isListedAdmin = Boolean(userData?.email_confirmed_at && userData?.email && adminEmails.includes(userData.email.toLowerCase()));
         const isManagedAdmin = userData?.app_metadata?.isAdmin === true;
-        if (userRes.ok && userData?.id && (isListedAdmin || isManagedAdmin)) {
-          isAuthorized = true;
-          authenticatedUserId = userData.id;
+        if (userRes.ok && userData?.id) {
+          verifiedUserId = userData.id;
+          if (isListedAdmin || isManagedAdmin) {
+            isAuthorized = true;
+            authenticatedUserId = userData.id;
+          }
         }
       } catch { /* JWT inválido */ }
     }
@@ -175,6 +284,14 @@ export default async function handler(req, res) {
     // manual, por ADMIN_SECRET o JWT de admin + bandera explícita.
     if (isCron || (isAuthorized && wantsReminders)) {
       return runReminders(req, res);
+    }
+
+    // Modo aviso de chat: cualquier usuario autenticado puede dispararlo,
+    // solo para un mensaje que él mismo escribió en ese evento. runChatMessage
+    // verifica el mensaje y la pertenencia antes de avisar a los demás.
+    const wantsChatMessage = reqBody.chatMensaje === true;
+    if (wantsChatMessage) {
+      return runChatMessage(req, res, verifiedUserId);
     }
 
     if (!isAuthorized) {
