@@ -11,10 +11,11 @@ import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { useShallow } from 'zustand/react/shallow';
-import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear, METRO_ZONES, SRCSET_CARD } from "../lib/utils";
+import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenNow, getMinutesToClose, isNear, METRO_ZONES } from "../lib/utils";
 import { shouldShowCityEmptyState, shouldShowCategoryEmptyState } from "../lib/cityEmptyState.js";
 import { getAvailableSubcats } from "../lib/businessSubcats.js";
 import { getTimeSlot, spotForSlot, isFoodSpot, seededRand, shuffleBySeed } from "../lib/timeBasedLists.js";
+import { filterRecomendacionesElegibles, pickRecomendacionesDelDia, localDayNumber } from "../lib/recomendacionesDia.js";
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
 import { PageLogo } from "../components/Brand.jsx";
@@ -22,7 +23,6 @@ import { Sk, CardSk, DuoSk, EventSk, ImperdiblesSk, TimeListSk } from "../compon
 import FeaturedCard from "../components/cards/FeaturedCard.jsx";
 import DestacadoCard from "../components/cards/DestacadoCard.jsx";
 import CompactCard from "../components/cards/CompactCard.jsx";
-import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import { Virtuoso } from "react-virtuoso";
 import { prefersReducedMotion } from "../lib/smoothScroll.js";
 import { cascadeDelayS, CASCADE_WINDOW_MS } from "../lib/cascade.js";
@@ -41,35 +41,13 @@ const CURRENT_SEED = (() => {
   return d.getFullYear() * 100000 + (d.getMonth() + 1) * 1000 + d.getDate() * 10 + period;
 })();
 
-// seededRand vive ahora en lib/timeBasedLists.js (lo usa también el
-// spotlight y el orden aleatorio de las listas por horario).
-
-// Caché de spotlight a nivel de módulo: persiste entre re-mounts y múltiples
-// actualizaciones de mapPins. Clave: "SPOTLIGHT_PERIOD:city_slug" → biz.id
-const SPOTLIGHT_CACHE = {};
-
-// Contador absoluto de bloques de 6 h (hora local). Cambia 4 veces al día y
-// nunca se repite, así sirve como índice de rotación (round-robin).
-const SPOTLIGHT_PERIOD = (() => {
-  const d = new Date();
-  const localDays = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
-  return localDays * 4 + Math.floor(d.getHours() / 6);
-})();
-
-// Hash numérico estable de un texto (FNV-1a), para ordenar distinto en cada ciudad
-function hashString(str) {
-  let h = 2166136261;
-  const s = String(str || "");
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
-// Misma fuente de imagen que usa la tarjeta de "Recomendación del día"
-const hasSpotlightPhoto = (biz) => !!((biz.photos && biz.photos[0]?.url) || biz.img1 || biz.img2 || biz.img3 || biz.img_url);
+// seededRand vive ahora en lib/timeBasedLists.js (lo usan también las
+// listas por horario y la selección de recomendaciones del día).
 
 import DebouncedSearchBar from "../components/home/DebouncedSearchBar.jsx";
 
 import TopImperdibles from "../components/home/TopImperdibles.jsx";
+import RecomendacionesDia from "../components/home/RecomendacionesDia.jsx";
 import SquareCarousel from "../components/home/SquareCarousel.jsx";
 import BannerSlider from "../components/home/BannerSlider.jsx";
 import { getDailyScore, getKm, createSlug, cleanCityPrefix, CAT_EMOJI } from '../lib/utils.js';
@@ -324,48 +302,15 @@ export default function HomeView({ isBackground }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapPins, timeBasedBiz, activeCity]);
 
-  const spotlightBiz = React.useMemo(() => {
-    if (!mapPins || mapPins.length === 0) return null;
+  // «Los 4 de hoy» (PR #238): 4 negocios distintos cada día, con turno
+  // justo — ver la regla exacta en src/lib/recomendacionesDia.js. Cualquier
+  // negocio aprobado de la ciudad puede salir, con foto o sin ella.
+  const recomendacionesDia = React.useMemo(() => {
+    if (!mapPins || mapPins.length === 0) return [];
 
-    const cacheKey = `${SPOTLIGHT_PERIOD}:${activeCity}`;
-
-    // Si ya elegimos uno para este periodo+ciudad y sigue disponible → mantenerlo estable
-    const cachedId = SPOTLIGHT_CACHE[cacheKey];
-    if (cachedId) {
-      const found = mapPins.find(b => b.id === cachedId);
-      if (found) return found;
-    }
-
-    // 1) Elegibles: cualquier plan (gratuito, destacado, premium), solo publicados
-    //    (status "approved" excluye pendientes, rechazados, suspendidos y eliminados),
-    //    sin los "Solo Menú" privados y únicamente de la ciudad consultada
-    //    (o su zona metropolitana). Se excluyen los negocios globales (city_slug "all").
     const allowedCities = METRO_ZONES[activeCity] || [activeCity];
-    const eligible = mapPins.filter(b =>
-      b && b.id &&
-      b.status === "approved" &&
-      b.plan !== "menu" &&
-      typeof b.city_slug === "string" &&
-      b.city_slug.split(",").some(c => allowedCities.includes(c.trim()))
-    );
-    if (eligible.length === 0) return null;
-
-    // 2) Preferimos negocios con foto para conservar el diseño de la tarjeta;
-    //    si en la ciudad ninguno tiene, se usan todos.
-    const withPhoto = eligible.filter(hasSpotlightPhoto);
-    const pool = withPhoto.length > 0 ? withPhoto : eligible;
-
-    // 3) Rotación justa (round-robin): orden aleatorio pero fijo por ciudad, y cada
-    //    periodo de 6 h avanza una posición. Todos los negocios salen una vez antes
-    //    de que alguno se repita, y nunca sale el mismo dos periodos seguidos.
-    const citySeed = hashString(activeCity);
-    const order = [...pool].sort((a, b) =>
-      (seededRand(a.id, citySeed) - seededRand(b.id, citySeed)) || String(a.id).localeCompare(String(b.id))
-    );
-    const pick = order[SPOTLIGHT_PERIOD % order.length];
-
-    if (pick) SPOTLIGHT_CACHE[cacheKey] = pick.id;
-    return pick || null;
+    const eligible = filterRecomendacionesElegibles(mapPins, allowedCities);
+    return pickRecomendacionesDelDia(eligible, activeCity, localDayNumber());
   }, [mapPins, activeCity]);
 
   const activeBannersMemo = React.useMemo(() => {
@@ -562,80 +507,21 @@ export default function HomeView({ isBackground }) {
           {/* ── EVENTOS ── */}
           {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} secondaryReady={homeSecondaryCity === activeCity} dark={dark} t={t} lang={lang} handleEventTap={handleEventTap} T={T} city={city} cities={cities} nearbyEvents={nearbyEvents} onRequestNearbyEvents={loadNearbyEvents} />}
 
-          {/* ── LUGAR DEL DÍA (Recomendación) ── */}
-          {/* Esqueleto del spotlight mientras cargan los negocios: misma altura (240 px)
-              para que nada de abajo se mueva cuando aparece la tarjeta. */}
-          {!search && activeCat === "explorar" && !spotlightBiz && (pinsLoading || !dbReady) && (
+          {/* ── RECOMENDACIONES DEL DÍA («Los 4 de hoy») ── */}
+          {/* Esqueleto de la cuadrícula mientras cargan los negocios: mismo
+              tamaño que las tarjetas (título + 4 huecos de 180 px) para que
+              nada de abajo se mueva cuando aparecen. */}
+          {!search && activeCat === "explorar" && recomendacionesDia.length === 0 && (pinsLoading || !dbReady) && (
             <div style={{ padding: "16px 20px 0 20px" }}>
-              <Sk w="100%" h={240} r={20} dark={dark} />
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><Sk w="70%" h={26} r={6} dark={dark} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {[1, 2, 3, 4].map(i => <Sk key={i} w="100%" h={180} r={20} dark={dark} />)}
+              </div>
             </div>
           )}
 
-          {!search && activeCat === "explorar" && spotlightBiz && (
-            <div style={{ padding: "16px 20px 0 20px" }}>
-              <div 
-                className="press"
-                onClick={() => handleCardTap(spotlightBiz)}
-                style={{ 
-                  position: "relative",
-                  width: "100%",
-                  height: 240,
-                  borderRadius: 20, 
-                  background: T.bg, 
-                  overflow: "hidden", 
-                  cursor: "pointer", 
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-                }}
-              >
-                {(() => {
-                  const src = (spotlightBiz.photos && spotlightBiz.photos[0]?.url) || spotlightBiz.img1 || spotlightBiz.img2 || spotlightBiz.img3 || spotlightBiz.img_url || cityImg;
-                  if (src) {
-                    return (
-                      <OptimizedImage 
-                        src={src} 
-                        alt={spotlightBiz.name}
-                        widthRequest={800} heightRequest={600}
-                        priority
-                        srcSetWidths={SRCSET_CARD}
-                        sizes="(max-width: 640px) 100vw, 800px"
-                        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                    );
-                  }
-                  return <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="image" size={48} color="#94A3B8" /></div>;
-                })()}
-
-                {/* Gradient Overlay for Text Readability */}
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%)" }} />
-
-                {/* Top Badge */}
-                <div style={{ position: "absolute", top: 12, left: 12, background: "rgba(255,255,255,0.25)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", padding: "4px 10px", borderRadius: 8, display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}>
-                   <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("home_recomendacion_dia", "✨ Recomendación del día")}</span>
-                </div>
-
-                {/* Bottom Text Content */}
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "30px 16px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
-                    <h3 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 2px 8px rgba(0,0,0,0.5)", letterSpacing: "-0.5px", textAlign: "left" }}>
-                      {spotlightBiz.name}
-                    </h3>
-                    
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginTop: 2 }}>
-                      {spotlightBiz.category ? (
-                        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", fontWeight: 600, textTransform: "capitalize", textShadow: "0 1px 4px rgba(0,0,0,0.4)", textAlign: "left" }}>
-                          {spotlightBiz.category}
-                        </span>
-                      ) : <span />}
-                      
-                      {spotlightBiz.rating > 0 && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>
-                          <span style={{ fontSize: 13, color: "#fff", fontWeight: 800 }}>{spotlightBiz.rating}</span>
-                          <span style={{ fontSize: 11 }}>⭐</span>
-                        </div>
-                      )}
-                    </div>
-                </div>
-              </div>
-            </div>
+          {!search && activeCat === "explorar" && recomendacionesDia.length > 0 && (
+            <RecomendacionesDia list={recomendacionesDia} T={T} cityImg={cityImg} handleCardTap={handleCardTap} />
           )}
 
           {/* ── EXPLORAR SECTION ── */}
