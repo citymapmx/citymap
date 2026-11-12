@@ -651,6 +651,7 @@ export const EN_TRANSLATIONS = {
     "cuenta_incluido_sin_costo": "Included at no cost",
     "cuenta_mensual": "Monthly",
     "cuenta_mes": "month",
+    "cuenta_mi_actividad": "My activity",
     "cuenta_mi_identificador": "My ID",
     "cuenta_mis_eventos_privados": "My private events",
     "cuenta_mis_tarjetas_lealtad": "My loyalty cards",

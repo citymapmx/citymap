@@ -161,32 +161,32 @@ describe('Cuenta: encabezado propuesta C (botones redondos grandes, nombre centr
     expect(src).toContain("setThemeMode('auto')");
   });
 
-  it('«Cuenta» vuelve arriba, recortada a solo Mis Favoritos y Notificaciones', () => {
+  it('«Mi actividad» vuelve arriba, recortada a solo Mis Favoritos y Notificaciones', () => {
     const html = renderAccount();
-    const cuentaPos = html.indexOf('>Cuenta<');
+    const cuentaPos = html.indexOf('>Mi actividad<');
     const negocioPos = html.indexOf('Mi Negocio (Carrito La Paz Tostadas de Atún)');
     expect(cuentaPos).toBeGreaterThan(0);
     expect(negocioPos).toBeGreaterThan(0);
     expect(cuentaPos).toBeLessThan(negocioPos);
-    // Solo esos dos elementos en el grupo Cuenta.
+    // Solo esos dos elementos en el grupo «Mi actividad».
     const cuentaHtml = html.slice(cuentaPos, negocioPos);
     expect(cuentaHtml).toContain('Mis Favoritos');
     expect(cuentaHtml).toContain('Notificaciones');
     expect(cuentaHtml).not.toContain('Modo oscuro');
     expect(cuentaHtml).not.toContain('Editar perfil');
     expect(cuentaHtml).not.toContain('toggle_dark');
-    // En el código, el grupo «Cuenta» se define antes que «Mi Negocio».
+    // En el código, el grupo «Mi actividad» se define antes que «Mi Negocio».
     const src = read('../components/AccountView.jsx');
-    const cuentaSrc = src.indexOf('title: t("cuenta", "Cuenta")');
+    const cuentaSrc = src.indexOf('title: t("cuenta_mi_actividad", "Mi actividad")');
     const negocioSrc = src.indexOf('t("mi_negocio", "Mi Negocio")');
     expect(cuentaSrc).toBeGreaterThan(0);
     expect(negocioSrc).toBeGreaterThan(0);
     expect(cuentaSrc).toBeLessThan(negocioSrc);
   });
 
-  it('con admin, «Notificaciones de Admin» sigue en «Cuenta»', () => {
+  it('con admin, «Notificaciones de Admin» sigue en «Mi actividad»', () => {
     const html = renderAccount({ isAdmin: true });
-    const cuentaPos = html.indexOf('>Cuenta<');
+    const cuentaPos = html.indexOf('>Mi actividad<');
     const negocioPos = html.indexOf('Mi Negocio (Carrito La Paz Tostadas de Atún)');
     const cuentaHtml = html.slice(cuentaPos, negocioPos);
     expect(cuentaHtml).toContain('Notificaciones de Admin');

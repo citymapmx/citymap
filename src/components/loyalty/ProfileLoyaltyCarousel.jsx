@@ -15,7 +15,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import LoyaltyCard from "./LoyaltyCard.jsx";
 import LoyaltyCardModal from "../../views/LoyaltyCardModal.jsx";
 import Icon from "../ui/Icon.jsx";
-import { loadLoyaltyEntries } from "../../lib/loyaltyMemberships.js";
+import { loadLoyaltyEntries, getPrefetchedLoyaltyEntries } from "../../lib/loyaltyMemberships.js";
 import { useTranslation } from "../../hooks/useTranslation.js";
 
 export default function ProfileLoyaltyCarousel({ user, T, dark, entries: entriesProp }) {
@@ -32,7 +32,12 @@ export default function ProfileLoyaltyCarousel({ user, T, dark, entries: entries
   useEffect(() => {
     if (entriesProp) return undefined;
     let alive = true;
-    loadLoyaltyEntries(user)
+    // La app ya precargó las entradas al abrir (o al iniciar sesión): se
+    // reusa esa promesa — si ya resolvió, la tarjeta aparece al instante
+    // sin otra consulta. Sin precarga (o si falló), se carga al entrar
+    // como siempre.
+    const load = getPrefetchedLoyaltyEntries(user) ?? loadLoyaltyEntries(user);
+    Promise.resolve(load)
       .then((list) => { if (alive) setEntries(list); })
       .catch(() => { if (alive) setEntries([]); });
     return () => { alive = false; };
@@ -90,9 +95,9 @@ export default function ProfileLoyaltyCarousel({ user, T, dark, entries: entries
   return (
     <div style={{ padding: "16px 16px 0" }}>
       <style>{`.profile-loyalty-track::-webkit-scrollbar { display: none; }`}</style>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, marginLeft: 4 }}>
-        <Icon name="award" size={18} color={T.text} />
-        <span style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{title}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, marginLeft: 8 }}>
+        <Icon name="award" size={20} color={T.text} />
+        <span style={{ fontSize: 20, fontWeight: 800, color: T.text, letterSpacing: "-0.5px" }}>{title}</span>
       </div>
       <div
         ref={trackRef}

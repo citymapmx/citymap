@@ -133,13 +133,13 @@ export default function AccountView({
     }
   };
 
-  // Orden (12 Nov 2026, propuesta C elegida por Jonathan): «Cuenta»
+  // Orden (12 Nov 2026, propuesta C elegida por Jonathan): «Mi actividad»
   // vuelve arriba, pero recortada a solo Notificaciones y Mis Favoritos
   // (el modo oscuro y la edición de perfil se mudaron al encabezado,
   // con botones grandes). «Mi Negocio» queda después, tal cual.
   const menuGroups = [
     {
-      title: t("cuenta", "Cuenta"),
+      title: t("cuenta_mi_actividad", "Mi actividad"),
       items: [
         { label: t("mis_favoritos", "Mis Favoritos"), icon: "heart", act: "favs" },
         { label: t("notificaciones", "Notificaciones"), icon: "bell", act: "user_notifs" },
