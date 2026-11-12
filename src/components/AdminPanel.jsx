@@ -523,6 +523,49 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
 }
 
 // ─── FEATURED CARD (Chili's style) ───────────────────────────────────────────
+// ─── RECORDATORIOS DE EVENTOS (probar + enviar desde el panel) ──────────────
+// El disparo manual vive en /api/send-notification (modo recordatorios): el
+// simulacro devuelve today/events/reminders/plan/skipped sin mandar nada y el
+// envío real devuelve sent/failed/skipped. Sin función nueva ni cambios al
+// endpoint (PR #220): el panel solo es la interfaz que faltaba, porque el
+// fetch en consola no se puede ejecutar desde los navegadores de aquí.
+
+// "Hoy es el concierto de X a las 9:00 p. m., no te lo pierdas" → "9:00 p. m."
+/* eslint-disable-next-line react-refresh/only-export-components */
+export function reminderTimeFromBody(body) {
+  const m = String(body || "").match(/a las ([^,]+),/);
+  return m ? m[1].trim() : null;
+}
+
+// Agrupa los avisos del plan por evento para mostrar título + hora + usuarios.
+/* eslint-disable-next-line react-refresh/only-export-components */
+export function groupReminderPlan(plan) {
+  const byEvent = new Map();
+  for (const item of plan || []) {
+    const key = item?.eventId || item?.deepLink || "sin-evento";
+    const group = byEvent.get(key) || { eventId: item?.eventId || "", title: item?.title || "", time: reminderTimeFromBody(item?.body), users: 0 };
+    group.users += 1;
+    if (!group.title && item?.title) group.title = item.title;
+    if (!group.time) group.time = reminderTimeFromBody(item?.body);
+    byEvent.set(key, group);
+  }
+  return [...byEvent.values()];
+}
+
+// Llama al endpoint en modo recordatorios con el JWT de sesión del admin
+// (mismo patrón que handleSend/sb.notify). dry=true solo calcula el plan.
+/* eslint-disable-next-line react-refresh/only-export-components */
+export async function callRecordatorios(dry) {
+  const res = await fetch("https://citymap.mx/api/send-notification", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sb._token || ""}` },
+    body: JSON.stringify(dry ? { recordatorios: true, dry: true } : { recordatorios: true }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+  return data;
+}
+
 function PushTab({ T, onToast }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -536,6 +579,11 @@ function PushTab({ T, onToast }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [targetCity, setTargetCity] = useState("");
   const [cities, setCities] = useState([]);
+  // Recordatorios de eventos: simulacro + envío real desde el panel.
+  const [remLoading, setRemLoading] = useState(false);
+  const [remPlan, setRemPlan] = useState(null);
+  const [remSent, setRemSent] = useState(null);
+  const [remError, setRemError] = useState("");
 
   // Load biz and events for search
   useEffect(() => {
@@ -601,6 +649,37 @@ function PushTab({ T, onToast }) {
       onToast(err.message || "Error al enviar la notificación");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTestReminders = async () => {
+    setRemLoading(true);
+    setRemError("");
+    setRemSent(null);
+    try {
+      setRemPlan(await callRecordatorios(true));
+    } catch (err) {
+      console.error(err);
+      setRemError(err?.message || "Error al calcular los recordatorios");
+    } finally {
+      setRemLoading(false);
+    }
+  };
+
+  const handleSendReminders = async () => {
+    if (!remPlan || !remPlan.reminders) return;
+    if (!window.confirm(`Enviar ${remPlan.reminders} recordatorio(s) de eventos de hoy?`)) return;
+    setRemLoading(true);
+    setRemError("");
+    try {
+      const data = await callRecordatorios(false);
+      setRemSent(data);
+      setRemPlan(null);
+    } catch (err) {
+      console.error(err);
+      setRemError(err?.message || "Error al enviar los recordatorios");
+    } finally {
+      setRemLoading(false);
     }
   };
 
@@ -680,6 +759,42 @@ function PushTab({ T, onToast }) {
       <button className="text-base" onClick={() => handleSend(false)} disabled={loading} style={{ background: T.green, color: T.dark ? "#18181B" : "#FFFFFF", padding: "14px 20px", borderRadius: 12, border: "none", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "all 0.2s", marginTop: 6 }}>
         {loading ? "Enviando..." : "Enviar Notificación Masiva"}
       </button>
+
+      {/* Recordatorios de eventos */}
+      <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+        <h3 className="text-lg" style={{ margin: 0, color: T.text }}>Recordatorios de eventos</h3>
+        <p className="text-sm" style={{ margin: 0, color: T.sub }}>Avisa a quienes guardaron un evento que es hoy. Primero corre el simulacro para ver cuántos avisos se enviarían, sin mandar nada. Solo si hay avisos aparece el botón para enviarlos.</p>
+        <button type="button" onClick={handleTestReminders} disabled={remLoading} style={{ padding: "12px 16px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.white, color: T.text, fontWeight: 700, cursor: remLoading ? "not-allowed" : "pointer", opacity: remLoading ? 0.7 : 1 }}>
+          {remLoading ? "Calculando..." : "Probar recordatorios"}
+        </button>
+        {remError && <div style={{ padding: "12px 14px", borderRadius: 10, background: "#FEE2E2", color: "#991B1B", fontSize: 14, fontWeight: 600 }}>⚠️ {remError}</div>}
+        {remPlan && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.white }}>
+            <div className="text-sm" style={{ color: T.text, fontWeight: 700 }}>Hoy {remPlan.today} · {remPlan.events} evento(s) · {remPlan.reminders} recordatorio(s)</div>
+            {remPlan.skipped > 0 && <div className="text-sm" style={{ color: T.sub }}>{remPlan.skipped} omitido(s) por ya enviado(s) hoy.</div>}
+            {remPlan.reminders === 0
+              ? <div className="text-sm" style={{ color: T.sub }}>No hay recordatorios para hoy: nadie guardó un evento de hoy o ya se avisó.</div>
+              : groupReminderPlan(remPlan.plan).map((g) => (
+                <div key={g.eventId || g.title} className="text-sm" style={{ color: T.text }}>
+                  <strong>{g.title || "Evento"}</strong>{g.time ? ` · ${g.time}` : ""} · {g.users} usuario(s)
+                </div>
+              ))}
+            {remPlan.reminders > 0 && !remSent && (
+              <button type="button" onClick={handleSendReminders} disabled={remLoading} style={{ background: T.green, color: T.dark ? "#18181B" : "#FFFFFF", padding: "12px 16px", borderRadius: 12, border: "none", fontWeight: 700, cursor: remLoading ? "not-allowed" : "pointer", opacity: remLoading ? 0.7 : 1 }}>
+                {remLoading ? "Enviando..." : `Enviar ahora (${remPlan.reminders})`}
+              </button>
+            )}
+          </div>
+        )}
+        {remSent && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.white }}>
+            <div className="text-sm" style={{ color: T.text, fontWeight: 700 }}>✅ Enviados: {remSent.sent?.length || 0} · Fallidos: {remSent.failed?.length || 0} · Omitidos: {remSent.skipped || 0}</div>
+            {(remSent.failed || []).map((f, i) => (
+              <div key={i} className="text-sm" style={{ color: "#991B1B" }}>Falló {f.eventId}: {f.error}</div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
