@@ -1,8 +1,6 @@
 import CivitatisWidget from './CivitatisWidget.jsx';
 import { getCivitatisWidgetSrc } from '../lib/civitatisWidget.js';
 import SectionCategoryBar from './ui/SectionCategoryBar.jsx';
-import LottieAnim from './LottieAnim.jsx';
-import { BOLETO_AVION_SRC } from '../lib/lottieAnimaciones.js';
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -535,13 +533,6 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
           <p className="exp-subtitle-anim section-category-subtitle" style={{ margin: 0, fontSize: 13, fontWeight: 600, color: T.sub, lineHeight: 1.4 }}>
             {t("revista_subtitulo", "Historias, recomendaciones y notas locales de ")}<span className="exp-city-anim">{shortCity}</span>
           </p>
-          {/* Boleto de avión al inicio de Revista (13 nov 2026, Jonathan):
-              se movió del detalle del tour, más grande para que se note
-              (320×133 frente a los 180×75 que tenía en el detalle).
-              Formato ancho, bucle lento. Si el archivo no carga, no pinta nada. */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
-            <LottieAnim src={BOLETO_AVION_SRC} loop speed={0.7} width={320} height={133} ariaLabel="Revista CityMap" />
-          </div>
         </div>
         <style>{`
           @keyframes pillGradientFlow {
