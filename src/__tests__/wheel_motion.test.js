@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   WHEEL_AUTO_DEG_PER_SEC,
   WHEEL_AUTO_SECONDS_PER_TURN,
+  WHEEL_DRUM_FACES,
   WHEEL_FACE_W,
   WHEEL_FACE_W_MOBILE,
   wheelAutoStep,
+  wheelDrumRadius,
   wheelFaceRadius,
   wheelProjectedFace,
   wheelShouldAutoRotate,
@@ -55,6 +57,16 @@ describe('wheelMotion: cilindro cerrado (tarjetas casi pegadas)', () => {
     // Con menos de 3 caras no hay tambor.
     expect(wheelFaceRadius(162, 2)).toBe(0);
     expect(wheelFaceRadius(162, 0)).toBe(0);
+  });
+
+  it('el radio del tambor es fijo (10 caras) y no depende de los eventos de la ciudad', () => {
+    // Tepic (~7 eventos) se veía chica y centrada porque el radio era la
+    // apotema de 7 caras (145 px en teléfono); el inicio global, siempre
+    // con 10, usa 215 px. El tambor ahora usa siempre el radio de 10
+    // caras, así la rueda de ciudad mide lo mismo que la del global.
+    expect(WHEEL_DRUM_FACES).toBe(10);
+    expect(wheelDrumRadius(162)).toBe(249);
+    expect(wheelDrumRadius(140)).toBe(215);
   });
 
   it('la cara del frente se ve a ~216x282 en escritorio y ~178x234 en teléfono', () => {

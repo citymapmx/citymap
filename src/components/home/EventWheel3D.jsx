@@ -16,7 +16,7 @@ import {
   WHEEL_FACE_W,
   WHEEL_FACE_W_MOBILE,
   wheelAutoStep,
-  wheelFaceRadius,
+  wheelDrumRadius,
   wheelShouldAutoRotate,
 } from '../../lib/wheelMotion.js';
 import EventPosterFallback from './EventPosterFallback.jsx';
@@ -110,9 +110,13 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   const reducedMotionRef = useRef(reducedMotion);
 
   const step = n >= 3 ? 360 / n : 0;
-  // Cilindro cerrado: la apotema del polígono deja las caras tocándose en
-  // los bordes (casi pegadas, sin hueco entre tarjetas).
-  const radius = wheelFaceRadius(faceW, n);
+  // Radio del tambor FIJO, el de 10 caras, igual que el inicio global
+  // (ver wheelDrumRadius): no depende de cuántos eventos tenga la ciudad,
+  // para que la rueda de ciudad se vea a lo ancho como la del global y
+  // no chica y centrada. Con menos de 10 eventos las tarjetas ya no se
+  // tocan (queda aire entre ellas), pero el tambor y la cara del frente
+  // miden lo mismo que en el global.
+  const radius = wheelDrumRadius(faceW);
 
   useEffect(() => {
     nRef.current = n;

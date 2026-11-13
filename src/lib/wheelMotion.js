@@ -44,6 +44,25 @@ export function wheelShouldAutoRotate({ paused, dragging, tabHidden, reducedMoti
   return now >= heldUntil;
 }
 
+// Caras de referencia para el radio del tambor: el radio NO depende del
+// número de eventos que tenga la ciudad. Antes era la apotema del polígono
+// de n caras, así que con menos eventos el tambor se achicaba (con 7
+// eventos, radio 145 px en teléfono frente a 215 px con 10: el tambor
+// medía ~290 px en una pantalla de 390 y se veía chico y centrado, con
+// hueco vacío a los lados, mientras el inicio global —siempre con 10—
+// llenaba la pantalla con las laterales cortadas por los bordes). Ahora
+// el tambor usa siempre el radio de 10 caras, igual que el global: la
+// cara del frente se ve siempre a ~178x234 en teléfono y el tambor a lo
+// ancho. A cambio, con menos de 10 eventos las tarjetas ya no se tocan:
+// queda aire entre ellas, pero el tambor conserva el tamaño del global.
+export const WHEEL_DRUM_FACES = 10;
+
+// Radio del tambor para que la rueda de ciudad se vea como la del inicio
+// global, independiente del número de eventos de la ciudad.
+export function wheelDrumRadius(faceW) {
+  return wheelFaceRadius(faceW, WHEEL_DRUM_FACES);
+}
+
 // Radio del cilindro para que las tarjetas queden casi pegadas: la apotema
 // del polígono regular de n caras de ancho faceW (las caras se tocan en
 // los bordes). Con menos de 3 caras no hay tambor.
