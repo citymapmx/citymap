@@ -3,7 +3,7 @@ import { Suspense, useEffect, useMemo, useState, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { FONT_BIZ } from "../lib/constants.js";
 
-import { getThumbUrl, getScheduleStatus, isNear, getKm, isOpenNow, CAT_EMOJI, iconFile } from "../lib/utils";
+import { getThumbUrl, getScheduleStatus, isNear, getKm, isOpenNow, CAT_EMOJI, iconFile, categoryVectorIcon } from "../lib/utils";
 import { getCityCenter } from "../lib/mapCentering.js";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
@@ -148,6 +148,11 @@ export default function MapView() {
                    return (
                      <button key={c.id} className="press" aria-pressed={isSel} onClick={() => setActiveCat(c.id === "todas" ? "explorar" : c.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", background: isSel ? (dark ? "#FFFFFF" : "#0F172A") : "transparent", color: isSel ? (dark ? "#18181B" : "#FFFFFF") : (dark ? "#D4D4D8" : T.sub), border: "none", borderRadius: 9999, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", flexShrink: 0 }}>
                        {(() => {
+                         // La categoría «Puntos de interés» (lugares) muestra
+                         // un monumento en vez del pin verde (decisión de
+                         // Jonathan, 13 nov 2026); el resto usa su archivo/emoji.
+                         const vectorIcon = categoryVectorIcon(c.id);
+                         if (vectorIcon) return <Icon name={vectorIcon} size={14} color="#43A047" />;
                          let iconVal = iconFile(c.icon) || "📍";
                          let cleanIcon = typeof iconVal === 'string' ? iconVal.trim() : iconVal;
                          let isImg = typeof cleanIcon === 'string' && (cleanIcon.toLowerCase().endsWith('.svg') || cleanIcon.toLowerCase().endsWith('.png'));

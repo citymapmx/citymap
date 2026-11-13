@@ -77,6 +77,17 @@ export function iconFile(icon) {
   return icon;
 }
 
+// Icono vectorial (componente Icon, estilo lucide) que sustituye al archivo
+// de icono de una categoría en las píldoras del mapa: la categoría
+// «Puntos de interés» (lugares) muestra un monumento en vez del pin verde
+// (lugar.svg). Solo la píldora: los pines del mapa y la tarjeta del pin
+// siguen usando el archivo de la categoría (iconFile).
+// Devuelve el nombre del icono o null si la categoría usa su archivo/emoji.
+export function categoryVectorIcon(catId) {
+  if (typeof catId === 'string' && catId.trim().toLowerCase() === 'lugares') return 'landmark';
+  return null;
+}
+
 export function isOpenNow(b, tz, now) {
   const sch = b.schedule;
   if (!sch || typeof sch !== "object" || Object.keys(sch).length === 0) return !!b.open;
