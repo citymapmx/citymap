@@ -17,6 +17,8 @@ import { galleryWithoutCover } from '../lib/experienceGallery.js';
 import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
 import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle, localizedDescription } from "../lib/i18nContent.js";
+import LottieAnim from './LottieAnim.jsx';
+import { PIN_UBICACION_SRC, RELOJ_DURACION_SRC } from '../lib/lottieAnimaciones.js';
 
 const Gallery = lazy(() => import('./Gallery').catch(() => {
   window.location.reload();
@@ -360,7 +362,12 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         <div style={{ position: "absolute", bottom: 16, left: 20, right: 20, display: "flex", flexWrap: "wrap", gap: 16, zIndex: 10 }}>
           {exp.duration && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#fff", fontSize: 14, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
-              <Icon name="clock" size={16} color="#fff" /> {exp.duration}
+              {/* Reloj animado (remoto): el arte es negro, así que va
+                  sobre un círculo blanco para que se vea en el héroe. */}
+              <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.95)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <LottieAnim src={RELOJ_DURACION_SRC} loop speed={0.7} width={20} height={20} ariaLabel="Duración" />
+              </div>
+              {exp.duration}
             </div>
           )}
           {exp.people && (
@@ -575,7 +582,9 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {exp.meeting_point && (
                   <div style={{ display: "flex", gap: 12 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: dark ? "rgba(255,255,255,0.08)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="map-pin" size={18} color={T.text} /></div>
+                    {/* Pin animado (remoto) en bucle lento, en la caja
+                        del icono: llama la atención sin estorbar. */}
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: dark ? "rgba(255,255,255,0.08)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><LottieAnim src={PIN_UBICACION_SRC} loop speed={0.7} width={30} height={30} ariaLabel="Punto de encuentro" /></div>
                     <div>
                       <div style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>{t("revista_punto_encuentro", "Punto de encuentro")}</div>
                       <div style={{ fontSize: 15, color: T.text, fontWeight: 700, lineHeight: 1.4, marginTop: 4 }}>{exp.meeting_point}</div>

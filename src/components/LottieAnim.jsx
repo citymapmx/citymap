@@ -21,8 +21,10 @@ function configurarWasm() {
 }
 configurarWasm();
 
-// Reproductor reutilizable de archivos .lottie locales (public/lottie/).
-// Si el archivo no carga (o falta), no pinta nada roto: se oculta.
+// Reproductor reutilizable de archivos .lottie: locales (public/lottie/)
+// o remotos por URL https (p. ej. las animaciones del detalle del tour,
+// que cargan de LottieFiles). Si el archivo no carga (o falta), no pinta
+// nada roto: se oculta.
 // Con `prefers-reduced-motion` no se reproduce solo.
 export default function LottieAnim({
   src,

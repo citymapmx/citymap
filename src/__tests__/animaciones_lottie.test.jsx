@@ -14,7 +14,12 @@
 // - Check de confirmación («Processing animation with a checkmark»,
 //   Aswathy): al confirmar asistencia (RSVP) y al guardar cambios
 //   (perfil y negocio).
-// Las cinco son gratuitas (Lottie Simple License) y viven en
+// - Pin de ubicación («03 - Location») y reloj («time»): REMOTOS por
+//   URL de LottieFiles en el detalle del tour (13 nov 2026, Jonathan
+//   eligió solo la 1 y la 2 de la vista previa): el pin en el punto
+//   de encuentro y el reloj junto a la duración, en bucle lento.
+//   No hay binario en el repo: si la URL falla, LottieAnim se oculta.
+// Las cinco primeras son gratuitas (Lottie Simple License) y viven en
 // public/lottie/ como .lottie. El motor WASM va empaquetado con la
 // app, sin CDN.
 import { describe, it, expect } from 'vitest';
@@ -27,7 +32,7 @@ import EstadoVacio from '../components/EstadoVacio.jsx';
 import ConfettiLogro from '../components/ConfettiLogro.jsx';
 import TrofeoLogro from '../components/TrofeoLogro.jsx';
 import CheckConfirmacion from '../components/CheckConfirmacion.jsx';
-import { CUBOS_VACIOS_SRC, CONFETTI_LOGRO_SRC, BOLETO_AVION_SRC, TROFEO_LOGRO_SRC, CHECK_CONFIRMACION_SRC } from '../lib/lottieAnimaciones.js';
+import { CUBOS_VACIOS_SRC, CONFETTI_LOGRO_SRC, BOLETO_AVION_SRC, TROFEO_LOGRO_SRC, CHECK_CONFIRMACION_SRC, PIN_UBICACION_SRC, RELOJ_DURACION_SRC } from '../lib/lottieAnimaciones.js';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const readBin = (p) => readFileSync(new URL(p, import.meta.url));
@@ -288,11 +293,61 @@ describe('Boleto de avión: solo /tours; Revista y detalle de tour ya no lo mont
     expect(iPildoras).toBeGreaterThan(iSubtitulo);
   });
 
-  it('ExperienceViewer ya NO lo pone en el detalle del tour', () => {
+  it('ExperienceViewer ya NO pone el boleto en el detalle del tour', () => {
     const src = read('../components/ExperienceViewer.jsx');
     expect(src).not.toContain('BOLETO_AVION_SRC');
-    expect(src).not.toContain('LottieAnim');
+    // El detalle SÍ usa LottieAnim desde el 13 nov 2026, pero solo
+    // para el pin (punto de encuentro) y el reloj (duración).
     expect(src).not.toContain('Reservar tour');
+  });
+});
+
+describe('Pin y reloj remotos en el detalle del tour (solo la 1 y la 2)', () => {
+  it('las rutas remotas son las URLs verificadas de la vista previa', () => {
+    expect(PIN_UBICACION_SRC).toBe('https://assets-v2.lottiefiles.com/a/33adfd0a-1152-11ee-bf4c-cf4f5408cb33/Qw1z0D2rdR.lottie');
+    expect(RELOJ_DURACION_SRC).toBe('https://assets-v2.lottiefiles.com/a/399811bc-1164-11ee-ab46-5f393e5d8bac/9mUqK6fQog.lottie');
+  });
+
+  it('el pin se monta solo con punto de encuentro, en su caja de icono', () => {
+    const src = read('../components/ExperienceViewer.jsx');
+    expect(src).toContain('PIN_UBICACION_SRC');
+    expect(src).toContain('LottieAnim');
+    // Dentro del bloque condicionado por exp.meeting_point (si el tour
+    // no tiene punto de encuentro, no se monta nada).
+    expect(src.indexOf('exp.meeting_point && (')).toBeGreaterThan(-1);
+    expect(src.indexOf('<LottieAnim src={PIN_UBICACION_SRC}')).toBeGreaterThan(src.indexOf('exp.meeting_point && ('));
+    // En la caja de 36 del icono, en bucle lento, tamaño chico.
+    expect(src).toContain('width={30}');
+    expect(src).toContain('height={30}');
+    expect(src).toContain('speed={0.7}');
+  });
+
+  it('el reloj se monta solo con duración, junto a ella en el héroe', () => {
+    const src = read('../components/ExperienceViewer.jsx');
+    expect(src).toContain('RELOJ_DURACION_SRC');
+    // Dentro del bloque condicionado por exp.duration (si el tour no
+    // tiene duración, no se monta nada).
+    expect(src.indexOf('exp.duration && (')).toBeGreaterThan(-1);
+    expect(src.indexOf('<LottieAnim src={RELOJ_DURACION_SRC}')).toBeGreaterThan(src.indexOf('exp.duration && ('));
+    // Tamaño chico, en bucle lento, sobre círculo blanco (el arte del
+    // reloj es negro y el héroe es oscuro).
+    expect(src).toContain('width={20}');
+    expect(src).toContain('height={20}');
+    expect(src).toContain('rgba(255,255,255,0.95)');
+  });
+
+  it('el reproductor acepta URL remota: renderiza el canvas', () => {
+    const htmlPin = renderToStaticMarkup(<LottieAnim src={PIN_UBICACION_SRC} width={30} height={30} ariaLabel="Punto de encuentro" />);
+    expect(htmlPin).toContain('<canvas');
+    const htmlReloj = renderToStaticMarkup(<LottieAnim src={RELOJ_DURACION_SRC} width={20} height={20} ariaLabel="Duración" />);
+    expect(htmlReloj).toContain('<canvas');
+  });
+
+  it('la 3 (corazón) y la 4 (check) NO se agregan al detalle', () => {
+    const src = read('../components/ExperienceViewer.jsx');
+    expect(src).not.toContain('CHECK_CONFIRMACION_SRC');
+    expect(src).not.toContain('CheckConfirmacion');
+    expect(src).not.toContain('TROFEO_LOGRO_SRC');
   });
 });
 
