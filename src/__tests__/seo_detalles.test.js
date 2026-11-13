@@ -5,7 +5,10 @@ import og from '../../api/og.js';
 import robots from '../../api/robots.txt.js';
 
 // Fase 4 del plan SEO (13 nov 2026): los detalles chicos.
-// 1. og-image.png comprimida (504 KB -> ~175 KB, misma imagen 860x480).
+// 1. og-image.png comprimida (504 KB -> ~94 KB, misma imagen, ahora
+//    720x402 con paleta de 96 colores: a tamaño de vista previa de
+//    enlace se ve igual; el límite de subida por CLI no admitía el
+//    archivo de 175 KB en 860x480).
 // 2. public/sitemap.xml y public/robots.txt obsoletos borrados (el
 //    generador scripts/generate-sitemap.js también se va: nada los
 //    referencia y el test de seo_routes ya exigía su ausencia).
@@ -76,19 +79,21 @@ function pngSize(buf) {
 }
 
 describe('og-image.png comprimida', () => {
-  it('sigue siendo la misma imagen 860x480 en PNG, con mucho menos peso', () => {
+  it('sigue siendo la misma imagen en PNG, con mucho menos peso', () => {
     const path = new URL('../../public/og-image.png', import.meta.url);
     expect(existsSync(path)).toBe(true);
     const buf = readFileSync(path);
-    expect(pngSize(buf)).toEqual({ width: 860, height: 480 });
-    // Era 504099 bytes; la versión comprimida ronda 175 KB.
-    expect(buf.length).toBeLessThan(300000);
+    // 720x402 (antes 860x480): a tamaño de vista previa de enlace la
+    // imagen se ve igual; el ancho sigue sobrado para WhatsApp/Facebook.
+    expect(pngSize(buf)).toEqual({ width: 720, height: 402 });
+    // Era 504099 bytes; la versión comprimida ronda 94 KB.
+    expect(buf.length).toBeLessThan(150000);
     expect(statSync(path).size).toBe(buf.length);
   });
-  it('index.html declara las dimensiones reales (860x480), no 1200x630', () => {
+  it('index.html declara las dimensiones reales (720x402), no 1200x630', () => {
     const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-    expect(html).toContain('<meta property="og:image:width" content="860" />');
-    expect(html).toContain('<meta property="og:image:height" content="480" />');
+    expect(html).toContain('<meta property="og:image:width" content="720" />');
+    expect(html).toContain('<meta property="og:image:height" content="402" />');
     expect(html).not.toContain('content="1200"');
     expect(html).not.toContain('content="630"');
   });
