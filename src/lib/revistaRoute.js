@@ -14,3 +14,14 @@ export function parseRevistaPath(pathname) {
 export function isRevistaPath(pathname) {
   return parseRevistaPath(pathname) !== null;
 }
+
+// Detalle de un artículo de Revista (/revista/:ciudad/:slug o
+// /experiencias/:ciudad/:slug, con ciudad Y artículo). El lector del
+// artículo (ExperienceViewer) ya trae su propia barra con Volver y
+// Compartir, así que la navbar global (hamburguesa + globo) se esconde
+// ahí para no taparla. La lista de Revista (/revista o /revista/:ciudad)
+// NO es detalle y conserva la navbar.
+export function isRevistaArticlePath(pathname) {
+  const route = parseRevistaPath(pathname);
+  return Boolean(route && route.city && route.slug);
+}

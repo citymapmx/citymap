@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseRevistaPath, isRevistaPath } from '../lib/revistaRoute.js';
+import { parseRevistaPath, isRevistaPath, isRevistaArticlePath } from '../lib/revistaRoute.js';
 
 describe('parseRevistaPath', () => {
   it('reconoce /revista sola, con ciudad y con artículo', () => {
@@ -25,5 +25,25 @@ describe('parseRevistaPath', () => {
     expect(parseRevistaPath('/revista/tepic/slug/extra')).toBeNull();
     expect(isRevistaPath('/revista/tepic')).toBe(true);
     expect(isRevistaPath('/tepic')).toBe(false);
+  });
+});
+
+describe('isRevistaArticlePath', () => {
+  it('es detalle solo con ciudad y artículo', () => {
+    expect(isRevistaArticlePath('/revista/tepic/tuneles-catedral')).toBe(true);
+    expect(isRevistaArticlePath('/experiencias/guadalajara/ruta-cafe')).toBe(true);
+  });
+
+  it('la lista de Revista no es detalle', () => {
+    expect(isRevistaArticlePath('/revista')).toBe(false);
+    expect(isRevistaArticlePath('/revista/tepic')).toBe(false);
+    expect(isRevistaArticlePath('/experiencias/guadalajara')).toBe(false);
+    expect(isRevistaArticlePath('/mis-planes')).toBe(false);
+  });
+
+  it('otras rutas no son detalle de artículo', () => {
+    expect(isRevistaArticlePath('/mapa/tepic')).toBe(false);
+    expect(isRevistaArticlePath('/tepic')).toBe(false);
+    expect(isRevistaArticlePath('/evento/tepic/algo')).toBe(false);
   });
 });
