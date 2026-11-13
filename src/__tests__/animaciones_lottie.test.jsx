@@ -136,7 +136,7 @@ describe('LottieAnim: reproductor reutilizable', () => {
   });
 });
 
-describe('EstadoVacio: cubos en los 3 estados vacíos', () => {
+describe('EstadoVacio: cubos en los 2 estados vacíos restantes', () => {
   it('renderiza título, descripción y botón con el copy que le pasan', () => {
     const html = renderToStaticMarkup(
       <EstadoVacio titulo="En Tepic todavía no hay eventos" descripcion="Pronto habrá novedades" accionLabel="Limpiar filtros" onAccion={() => {}} T={T} />,
@@ -161,11 +161,13 @@ describe('EstadoVacio: cubos en los 3 estados vacíos', () => {
     expect(src).toContain('speed={0.7}');
   });
 
-  it('ciudad sin eventos (HomeEvents) usa EstadoVacio con el mismo mensaje', () => {
+  // Decisión de Jonathan, 13 Nov 2026: el inicio de ciudad sin eventos
+  // ya no usa EstadoVacio (la sección «Próximos eventos» no se monta);
+  // los cubos quedan para EventsView sin resultados y FavsView vacía.
+  it('el inicio de ciudad (HomeEvents) ya NO usa EstadoVacio', () => {
     const src = read('../components/home/HomeEvents.jsx');
-    expect(src).toContain('EstadoVacio');
-    expect(src).toContain('eventos_ciudad_vacia');
-    expect(src).toContain('En ${ciudad} todavía no hay eventos');
+    expect(src).not.toContain('EstadoVacio');
+    expect(src).not.toContain('eventos_ciudad_vacia');
   });
 
   it('Eventos sin resultados (EventsView) usa EstadoVacio con el mismo copy y botón', () => {
