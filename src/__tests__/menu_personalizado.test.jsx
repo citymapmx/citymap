@@ -179,7 +179,7 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
   it('el estilo seleccionado se marca claro: anillo en su primary y palomita sobre el círculo', () => {
     const src = read('../components/store/MenuStyleDesigner.jsx');
     expect(src).toContain('aria-pressed={isSelected}');
-    expect(src).toContain('0 0 0 5px ${styleTheme ? styleTheme.primary : t.text}');
+    expect(src).toContain('0 0 0 4px ${styleTheme ? styleTheme.primary : t.text}');
     expect(src).toContain('styleTheme.onPrimary');
     // Con Perla guardada solo hay una palomita: la de Perla (Sin estilo no la lleva).
     const htmlPerla = renderDesigner({ ...CARRITO, menu_style: 'perla' });
@@ -358,18 +358,22 @@ describe('Menú personalizado: carrusel de 9 por categoría + scroll vertical', 
     // Pista horizontal con snap nativo (funciona en navegador y WebView).
     expect(src).toContain("scrollSnapType: 'x mandatory'");
     expect(src).toContain("overflowX: 'auto'");
-    expect(src).toContain("touchAction: 'pan-x'");
+    // Vertical sobre los círculos: el navegador maneja ambos ejes y elige
+    // según la dirección del gesto (con solo pan-x el vertical moría ahí).
+    expect(src).toContain("touchAction: 'pan-x pan-y'");
+    expect(src).not.toContain("touchAction: 'pan-x'");
     // Cada categoría es una página del ancho del carrusel.
     expect(src).toContain("flex: '0 0 100%'");
     expect(src).toContain("scrollSnapAlign: 'start'");
     // Puntos abajo: uno por categoría, con etiqueta para saltar.
     expect(src).toContain('aria-label={`Ir a ${cat.label}`}');
     expect(src).toContain('goToCategory(idx)');
-    expect(src).toContain("scrollTo({ left: idx * el.clientWidth, behavior: 'smooth' })");
+    expect(src).toContain("scrollTo({ left: (idx + 1) * el.clientWidth, behavior: 'smooth' })");
     // La página sigue la posición del carrusel al deslizar.
     expect(src).toContain('onScroll={handleCarouselScroll}');
     expect(src).toContain('Math.round(el.scrollLeft / el.clientWidth)');
-    // El nombre de la categoría sigue viéndose en su página.
+    // El nombre de la categoría sigue viéndose en su página, centrado.
+    expect(src).toContain("letterSpacing: 0.5, textAlign: 'center' }}>{cat.label}</div>");
     const html = renderDesigner(CARRITO);
     for (const label of ['Premium', 'Sobrios', 'Cafetería', 'Coloridos']) {
       expect(html).toContain(label);
@@ -383,7 +387,33 @@ describe('Menú personalizado: carrusel de 9 por categoría + scroll vertical', 
     const src = read('../components/store/MenuStyleDesigner.jsx');
     expect(src).toContain("selectedStyle?.category || 'premium'");
     expect(src).toContain('LOYALTY_COLOR_CATEGORIES.findIndex');
-    expect(src).toContain('el.scrollLeft = initialPageRef.current * el.clientWidth');
+    // +1 por el clon de la izquierda (Coloridos) antes de Premium.
+    expect(src).toContain('el.scrollLeft = (initialPageRef.current + 1) * el.clientWidth');
+  });
+
+  it('carrusel infinito: clones al inicio y al fin, y el índice envuelve de la última a la primera', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    // Páginas: clon de la última, las 4 reales, clon de la primera.
+    expect(src).toContain("key: 'clone-last'");
+    expect(src).toContain("key: 'clone-first'");
+    expect(src).toContain('LOYALTY_COLOR_CATEGORIES[PAGE_COUNT - 1]');
+    expect(src).toContain('LOYALTY_COLOR_CATEGORIES[0]');
+    // Posición -> categoría real: el clon envuelve (0 = última, 5 = primera).
+    expect(src).toContain('const real = (pos - 1 + PAGE_COUNT) % PAGE_COUNT;');
+    // Al asentarse en un clon, salto sin animación a la página real.
+    expect(src).toContain("el.scrollTo({ left: PAGE_COUNT * el.clientWidth, behavior: 'auto' })");
+    expect(src).toContain("el.scrollTo({ left: el.clientWidth, behavior: 'auto' })");
+    expect(src).toContain('setTimeout(() => repositionLoop(el), 100)');
+    // Los puntos siguen siendo 4 (uno por categoría real).
+    const html = renderDesigner(CARRITO);
+    expect(html.split('Ir a ').length - 1).toBe(4);
+    // Las páginas clonadas duplican el título de su categoría: Premium y
+    // Coloridos aparecen en 2 páginas; Sobrios y Cafetería en 1.
+    const countLabel = (label) => html.split(`>${label}<`).length - 1;
+    expect(countLabel('Premium')).toBe(2);
+    expect(countLabel('Coloridos')).toBe(2);
+    expect(countLabel('Sobrios')).toBe(1);
+    expect(countLabel('Cafetería')).toBe(1);
   });
 
   it('el diseñador se monta con portal en document.body (no atrapado por el transform de Mi Perfil)', () => {
@@ -407,5 +437,53 @@ describe('Menú personalizado: carrusel de 9 por categoría + scroll vertical', 
     // Ya no hay sticky dentro de un contenedor con overflow: el header y
     // el pie son hijos flex fijos (flexShrink 0) de la columna.
     expect(src).not.toContain("position: 'sticky'");
+  });
+});
+
+describe('Menú personalizado: ajustes del diseñador (título, Guardar, Sin estilo, círculos)', () => {
+  it('título de categoría centrado en su página', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    expect(src).toContain("letterSpacing: 0.5, textAlign: 'center' }}>{cat.label}</div>");
+    const html = renderDesigner(CARRITO);
+    expect(html).toContain('text-align:center">Premium</div>');
+    expect(html).toContain('text-align:center">Coloridos</div>');
+  });
+
+  it('sin texto bajo Guardar y botón más delgado', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    expect(src).not.toContain('Se aplica de inmediato a tu menú público');
+    expect(src).not.toContain('sin republicar nada');
+    expect(src).toContain("padding: '11px 16px', background: '#000'");
+    expect(src).not.toContain("padding: 16, background: '#000'");
+    const html = renderDesigner(CARRITO);
+    expect(html).toContain('Guardar estilo de menú');
+    expect(html).not.toContain('Se aplica de inmediato');
+  });
+
+  it('«Sin estilo» más compacto, sin quitar información', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    expect(src).toContain("padding: '8px 12px'");
+    expect(src).toContain('width: 26, height: 26');
+    const html = renderDesigner(CARRITO);
+    expect(html).toContain('Sin estilo');
+    expect(html).toContain('Tu menú se ve como hoy');
+  });
+
+  it('círculos de estilos más chicos y menos espaciado (siguen 3 por fila)', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    expect(src).toContain("gridTemplateColumns: 'repeat(3, 1fr)'");
+    expect(src).toContain('width: 44, height: 44');
+    expect(src).not.toContain('width: 52, height: 52');
+    // Menos gap: entre celdas 8 (antes 12), celda más compacta.
+    expect(src).toContain("gridTemplateColumns: 'repeat(3, 1fr)', gap: 8");
+    expect(src).toContain("padding: '6px 2px'");
+    // Anillo + palomita del seleccionado se mantienen.
+    expect(src).toContain('0 0 0 4px ${styleTheme ? styleTheme.primary : t.text}');
+    expect(src).toContain('width: 18, height: 18');
+    // El nombre abajo sigue legible y centrado.
+    const html = renderDesigner(CARRITO);
+    for (const label of ['Oro negro', 'Esmeralda', 'Perla', 'Espresso', 'Coral', 'Ámbar']) {
+      expect(html).toContain(label);
+    }
   });
 });
