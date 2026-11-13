@@ -184,10 +184,18 @@ export default function HomeView({ isBackground }) {
     setSelectedSubcat("todas");
   }, [activeCat]);
 
+  // Las píldoras salen de la MISMA lista que la vista ya filtra
+  // (displayList: ciudad + categoría + aprobados, paginada). Antes salían
+  // de `biz` (toda la lista) y una subcategoría podía aparecer aunque
+  // ningún negocio visible la tuviera: p. ej. "Mariscos" en Restaurantes
+  // de Guadalajara mostraba "0 lugares" y "Sin negocios en Mariscos".
+  // Con displayList, una píldora solo aparece si al menos un negocio
+  // visible la tiene; si un filtro posterior la deja en 0, desaparece.
+  // Al pulsar "Ver más" la lista crece y pueden aparecer más píldoras.
   const availableSubcats = React.useMemo(() => {
-    if (!activeCat || activeCat === "explorar" || !biz) return [];
-    return getAvailableSubcats(biz);
-  }, [biz, activeCat]);
+    if (!activeCat || activeCat === "explorar" || !displayList) return [];
+    return getAvailableSubcats(displayList);
+  }, [displayList, activeCat]);
 
   const finalDisplayList = React.useMemo(() => {
     if (!selectedSubcat || selectedSubcat === "todas") return displayList;
