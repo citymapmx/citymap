@@ -11,6 +11,8 @@
 // repetido aquí para que el módulo no dependa de nada del cliente y lo
 // puedan importar también las funciones de /api (sitemap, og).
 
+import { normalizeCitySlug } from './seoRoutes.js';
+
 export function eventShortSlug(event) {
   const slug = String(event?.slug || '');
   const city = String(event?.city_slug || '');
@@ -21,9 +23,16 @@ export function eventShortSlug(event) {
 export function eventUrl(event, base = '') {
   const slug = String(event?.slug || event?.id || '');
   if (!slug) return `${base}/eventos`;
-  const city = String(event?.city_slug || '');
-  if (city && slug.startsWith(city + '-')) {
-    return `${base}/evento/${city}/${slug.slice(city.length + 1)}`;
+  const rawCity = String(event?.city_slug || '');
+  const city = normalizeCitySlug(rawCity);
+  // El slug puede llevar el prefijo de la ciudad en su forma vieja
+  // (mayúsculas/tildes, antes del SQL de la Fase 3) o en la canónica:
+  // se aceptan ambas, pero la URL que se emite siempre lleva la ciudad
+  // normalizada.
+  const prefix = rawCity && slug.startsWith(rawCity + '-') ? rawCity
+    : (city && slug.startsWith(city + '-') ? city : null);
+  if (prefix) {
+    return `${base}/evento/${city}/${slug.slice(prefix.length + 1)}`;
   }
   return `${base}/evento/${slug}`;
 }
