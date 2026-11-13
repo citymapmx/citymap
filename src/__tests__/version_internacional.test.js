@@ -215,9 +215,11 @@ describe('cableado del filtro por dominio en el cliente', () => {
     expect(src).toContain('hostIncludesCityList');
     expect(src).toContain('city_slug=in.');
   });
-  it('el selector de ciudad filtra por dominio', () => {
+  it('el selector de ciudad muestra todas y salta de dominio (ya no filtra por host)', () => {
     const src = readFileSync(new URL('../components/CountryPickerDropdown.jsx', import.meta.url), 'utf8');
-    expect(src).toContain('hostIncludesCity');
+    expect(src).toContain('citySelectionTarget');
+    expect(src).toContain('window.location.href');
+    expect(src).not.toContain('hostIncludesCity');
   });
   it('la ciudad por defecto es París en .world', () => {
     const src = readFileSync(new URL('../hooks/useAppInitialization.js', import.meta.url), 'utf8');

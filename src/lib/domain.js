@@ -43,6 +43,29 @@ export function buildCityPath(citySlug, cities = []) {
   return "/" + getCountryCode(citySlug, cities) + "/" + citySlug;
 }
 
+// URL absoluta de la página de una ciudad EN SU dominio (no en el
+// actual): México → https://citymap.mx/<slug>; internacional →
+// https://www.citymap.world/<cc>/<slug>. Para el salto de dominio del
+// selector de ciudad: elegir París en .mx lleva a .world/fr/paris y
+// elegir Tepic en .world lleva a citymap.mx/tepic.
+export function buildCityUrl(citySlug, cities = []) {
+  const slug = String(citySlug || "").toLowerCase();
+  if (!slug) return "https://citymap.mx/";
+  if (!isWorldCity(slug, cities)) return `https://citymap.mx/${slug}`;
+  return `https://www.citymap.world/${getCountryCode(slug, cities)}/${slug}`;
+}
+
+// Adónde lleva elegir una ciudad en el selector: si es del dominio
+// actual, navegación interna (la app ya la hace con handleCitySelect);
+// si es del otro dominio, salto completo a su URL canónica en ese
+// dominio. La sesión se pierde al cambiar de dominio (igual que con
+// los 308 del middleware); no se intenta sincronizar aquí.
+export function citySelectionTarget(citySlug, cities = []) {
+  if (!citySlug) return { crossDomain: false, url: null };
+  if (hostIncludesCity(citySlug, cities)) return { crossDomain: false, url: null };
+  return { crossDomain: true, url: buildCityUrl(citySlug, cities) };
+}
+
 export function buildBizUrl(citySlug, bizSlug, cities = []) {
   const domain = IS_WORLD ? "citymap.world" : "citymap.mx";
   return "https://" + domain + buildCityPath(citySlug, cities) + "/" + bizSlug;
