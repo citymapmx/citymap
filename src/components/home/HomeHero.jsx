@@ -232,7 +232,7 @@ export default memo(function HomeHero({
                 }
                 
               `}</style>
-              <h1  style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(22px, 5.5vw, 28px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: (dark || hasBg) ? "#fff" : T.text }}>
+              <h1 className="text-focus-in" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(22px, 5.5vw, 28px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: (dark || hasBg) ? "#fff" : T.text }}>
                 {getGreeting()} <span className={hasBg ? undefined : "animated-city"}>{cityName}</span>
 
               </h1>
