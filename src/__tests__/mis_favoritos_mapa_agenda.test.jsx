@@ -1,14 +1,14 @@
-// Mis Favoritos, propuesta C (12 nov 2026, Jonathan): mapa esquemático con
-// pines, contador de visitados, agenda con cuenta atrás y campana de
-// recordatorio. Pruebas de la lógica pura y del render estático de los dos
-// componentes nuevos, más la fuente de FavsView.
+// Mis Favoritos, propuesta C (12 nov 2026, Jonathan): mapa real de Google
+// con pines numerados, contador de visitados, agenda con cuenta atrás y
+// campana de recordatorio. Pruebas de la lógica pura y del render estático
+// de los dos componentes nuevos, más la fuente de FavsView.
 
 import { describe, it, expect, afterEach } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
 import { countdownEvento, ordenarAgendaEventos } from '../lib/countdownEvento.js';
-import { projectToMap, colorParaLugar, MAPA_FALLBACK_SLOTS } from '../lib/mapaFavoritos.js';
+import { parseLatLng, colorParaLugar } from '../lib/mapaFavoritos.js';
 import { loadIdSet, saveIdSet, toggleIdInList, VISITADOS_KEY } from '../lib/favoritosLocales.js';
 import FavoritosMapa from '../components/favoritos/FavoritosMapa.jsx';
 import AgendaEventos from '../components/favoritos/AgendaEventos.jsx';
@@ -76,49 +76,15 @@ describe('ordenarAgendaEventos: próximos primero por fecha, luego pasados', () 
   });
 });
 
-describe('projectToMap: pines del mapa esquemático', () => {
-  const places = [
-    { id: 'la-chata', name: 'La Chata', lat: 20.6767, lng: -103.3475 },
-    { id: 'akami', name: 'Akami Sushi', lat: 20.6997, lng: -103.38 },
-    { id: 'cafe-bros', name: 'Café Bros Company', lat: 20.673, lng: -103.352 },
-    { id: 'dalila', name: 'Dalila', lat: null, lng: null },
-  ];
-
-  it('proyecta dentro del mapa (8–92) y respeta norte/sur y este/oeste', () => {
-    const out = projectToMap(places);
-    out.forEach((p) => {
-      expect(p.x).toBeGreaterThanOrEqual(8);
-      expect(p.x).toBeLessThanOrEqual(92);
-      expect(p.y).toBeGreaterThanOrEqual(8);
-      expect(p.y).toBeLessThanOrEqual(92);
-    });
-    const byId = Object.fromEntries(out.map((p) => [p.id, p]));
-    // Akami es el más al norte: menor y. La Chata es la más al este: mayor x.
-    expect(byId.akami.y).toBeLessThan(byId['la-chata'].y);
-    expect(byId['la-chata'].x).toBeGreaterThan(byId.akami.x);
-  });
-
-  it('un solo lugar queda centrado', () => {
-    const out = projectToMap([{ id: 'solo', lat: 20.67, lng: -103.35 }]);
-    expect(out[0].x).toBe(50);
-    expect(out[0].y).toBe(50);
-  });
-
-  it('sin coordenadas cae en un hueco fijo y no pisa a otro pin', () => {
-    const out = projectToMap(places);
-    const dalila = out.find((p) => p.id === 'dalila');
-    expect(MAPA_FALLBACK_SLOTS).toContainEqual({ x: dalila.x, y: dalila.y });
-    out.forEach((p) => {
-      if (p.id === 'dalila') return;
-      expect(Math.abs(p.x - dalila.x) >= 9 || Math.abs(p.y - dalila.y) >= 9).toBe(true);
-    });
-  });
-
-  it('coordenadas inválidas se tratan como sin coordenadas y es determinista', () => {
-    const bad = projectToMap([{ id: 'x', lat: 200, lng: 'no' }]);
-    expect(MAPA_FALLBACK_SLOTS).toContainEqual({ x: bad[0].x, y: bad[0].y });
-    expect(projectToMap(places)).toEqual(projectToMap(places));
-    expect(projectToMap([])).toEqual([]);
+describe('parseLatLng: coordenadas válidas o null (nunca inventadas)', () => {
+  it('números y cadenas numéricas pasan; el resto es null', () => {
+    expect(parseLatLng({ lat: 20.6767, lng: -103.3475 })).toEqual({ lat: 20.6767, lng: -103.3475 });
+    expect(parseLatLng({ lat: '20.67', lng: '-103.35' })).toEqual({ lat: 20.67, lng: -103.35 });
+    expect(parseLatLng({ lat: null, lng: null })).toBe(null);
+    expect(parseLatLng({ lat: 200, lng: 'no' })).toBe(null);
+    expect(parseLatLng({ lat: 20.67 })).toBe(null);
+    expect(parseLatLng({})).toBe(null);
+    expect(parseLatLng(null)).toBe(null);
   });
 });
 
@@ -166,13 +132,13 @@ describe('favoritosLocales: visitados y alertas en localStorage', () => {
 });
 
 // Lugares reales de Jonathan (propuesta C del artefacto), con coordenadas
-// de Guadalajara. Dalila va sin coordenadas para cubrir el hueco fijo.
-const PLACES = projectToMap([
+// de Guadalajara. Dalila va sin coordenadas: no lleva pin, solo leyenda.
+const PLACES = [
   { id: 'la-chata', name: 'La Chata', type: 'Restaurante', lat: 20.6767, lng: -103.3475, collectionName: 'Por visitar', photos: [] },
   { id: 'akami', name: 'Akami Sushi', type: 'Restaurante', lat: 20.6997, lng: -103.38, collectionName: 'Para cita', photos: [] },
   { id: 'dalila', name: 'Dalila', type: 'Café', lat: null, lng: null, collectionName: 'Para cita', photos: [] },
   { id: 'cafe-bros', name: 'Café Bros Company', type: 'Café', lat: 20.673, lng: -103.352, collectionName: 'Sin organizar', photos: [{ url: 'https://example.com/cafe.jpg' }] },
-]);
+];
 
 const EVENTS = [
   { id: 'orquesta', title: 'Orquesta Filarmónica de Jalisco', venue_name: 'Teatro Degollado', date: '2026-11-12', time: '20:00' },
@@ -186,22 +152,39 @@ function renderMapa(props = {}) {
       T={T} t={t} places={PLACES} selectedId="cafe-bros" onSelect={() => {}}
       filter="todos" onFilterChange={() => {}} visitedIds={['akami']}
       onToggleVisit={() => {}} onGoDir={() => {}} onOrganize={() => {}}
-      onToggleFav={() => {}} onOpen={() => {}} showZones cityName="Guadalajara"
+      onToggleFav={() => {}} onOpen={() => {}} cityCenter={{ lat: 20.6767, lng: -103.3475 }} cityName="Guadalajara"
       {...props}
     />,
   );
 }
 
-describe('FavoritosMapa: mapa con pines, contador y tarjeta del lugar', () => {
-  it('pinta un pin por lugar, con número, y el visitado con ✓', () => {
+describe('FavoritosMapa: mapa real de Google, contador y tarjeta del lugar', () => {
+  it('sin window.google pinta el "Cargando mapa…" y la leyenda con todos los lugares', () => {
     const html = renderMapa();
-    expect(html).toContain('data-pin-id="la-chata"');
-    expect(html).toContain('data-pin-id="akami"');
-    expect(html).toContain('data-pin-id="dalila"');
-    expect(html).toContain('data-pin-id="cafe-bros"');
-    expect(html).toContain('aria-label="Ver Café Bros Company"');
-    // Pin visitado (Akami) y su fila de leyenda llevan ✓.
-    expect((html.match(/✓/g) || []).length).toBeGreaterThanOrEqual(2);
+    // En node no hay window: el mapa real no se monta, sale el cargando.
+    expect(html).toContain('Cargando mapa…');
+    expect(html).toContain('Mapa de Google con los pines de tus favoritos en Guadalajara');
+    // La leyenda trae a todos, incluida Dalila (sin coordenadas, sin pin).
+    expect(html).toContain('La Chata');
+    expect(html).toContain('Akami Sushi');
+    expect(html).toContain('Dalila');
+    expect(html).toContain('Café Bros Company');
+    // Y el aviso de que hay lugares sin ubicación en el mapa.
+    expect(html).toContain('1 lugar(es) sin ubicación en el mapa');
+    // Nada del mapa esquemático: ni cuadrícula, ni avenidas, ni colonias.
+    expect(html).not.toContain('repeating-linear-gradient');
+    expect(html).not.toContain('Providencia');
+    expect(html).not.toContain('data-pin-id');
+  });
+
+  it('la leyenda conserva el orden de la lista (el número del pin es el índice + 1)', () => {
+    const html = renderMapa();
+    // La tarjeta del seleccionado va antes: el orden se comprueba dentro
+    // de la leyenda (aria-label "Lista de lugares del mapa").
+    const leyenda = html.slice(html.indexOf('Lista de lugares del mapa'));
+    expect(leyenda.indexOf('La Chata')).toBeLessThan(leyenda.indexOf('Akami Sushi'));
+    expect(leyenda.indexOf('Akami Sushi')).toBeLessThan(leyenda.indexOf('Dalila'));
+    expect(leyenda.indexOf('Dalila')).toBeLessThan(leyenda.indexOf('Café Bros Company'));
   });
 
   it('contador de visitados y tarjeta del seleccionado con sus acciones', () => {
@@ -223,14 +206,41 @@ describe('FavoritosMapa: mapa con pines, contador y tarjeta del lugar', () => {
     expect(html).toContain('Colección: Para cita');
   });
 
-  it('con filtro «visitados» los pendientes se atenúan', () => {
-    const html = renderMapa({ filter: 'visitados' });
-    expect(html).toMatch(/opacity:0?\.25/);
+  it('sin lugares sin coordenadas no sale el aviso', () => {
+    const html = renderMapa({ places: PLACES.filter((p) => p.id !== 'dalila') });
+    expect(html).not.toContain('sin ubicación en el mapa');
+  });
+});
+
+describe('FavoritosMapa (fuente): pines numerados sobre el mapa real de Google', () => {
+  const src = () => readFileSync(new URL('../components/favoritos/FavoritosMapa.jsx', import.meta.url), 'utf8');
+
+  it('reutiliza el hook de Google Maps del mapa principal y crea mapa + marcadores', () => {
+    expect(src()).toContain("import { useGMaps } from '../GMap.jsx'");
+    expect(src()).toContain('new window.google.maps.Map');
+    expect(src()).toContain('new google.Marker');
+    expect(src()).toContain('map.fitBounds(bounds, 48)');
   });
 
-  it('etiquetas de colonia solo con showZones', () => {
-    expect(renderMapa({ showZones: true })).toContain('Providencia');
-    expect(renderMapa({ showZones: false })).not.toContain('Providencia');
+  it('solo crea pin con coordenadas reales: sin coords, sin pin inventado', () => {
+    expect(src()).toContain('parseLatLng(p)');
+    expect(src()).toContain('if (!c) return;');
+    // Nada del esquemático: ni proyección a x/y, ni huecos fijos.
+    expect(src()).not.toContain('projectToMap');
+    expect(src()).not.toContain('MAPA_FALLBACK_SLOTS');
+    expect(src()).not.toContain('AVENUES');
+    expect(src()).not.toContain('PARKS');
+    expect(src()).not.toContain('ZONES_GDL');
+  });
+
+  it('el pin lleva el número de la lista (o ✓ si visitado) y al tocarlo abre su tarjeta', () => {
+    expect(src()).toContain("String(i + 1)");
+    expect(src()).toContain("'✓'");
+    expect(src()).toContain("m.addListener('click', () => onSelect(p.id))");
+  });
+
+  it('con filtro, los pines que no tocan se atenúan', () => {
+    expect(src()).toContain('setOpacity(dim ? 0.25 : 1)');
   });
 });
 
@@ -272,10 +282,12 @@ describe('FavsView: cableado de la propuesta C', () => {
   it('usa los componentes nuevos y la lógica pura', () => {
     expect(src()).toContain('FavoritosMapa');
     expect(src()).toContain('AgendaEventos');
-    expect(src()).toContain('projectToMap');
+    expect(src()).toContain('getCityCenter');
     expect(src()).toContain('ordenarAgendaEventos');
     expect(src()).toContain('loadVisitados');
     expect(src()).toContain('getEventCalendarUrl');
+    // Ya no hay proyección esquemática: los lugares van tal cual al mapa.
+    expect(src()).not.toContain('projectToMap');
   });
 
   it('la vista de colección, los modales y el vacío siguen intactos', () => {

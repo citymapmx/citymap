@@ -1,55 +1,181 @@
-// Mapa esquemático de Mis Favoritos (propuesta C del artefacto
-// «Propuestas Mis Favoritos»): pines numerados de los lugares guardados,
-// contador de visitados con barra, tarjeta del lugar seleccionado y
-// leyenda. Presentacional: no lee stores ni contexto, todo llega por props.
-// Los pines llevan x/y en porcentaje (los calcula projectToMap).
+// Mapa real de Google Maps de Mis Favoritos (propuesta C): pines numerados
+// de los lugares guardados, contador de visitados con barra, tarjeta del
+// lugar seleccionado y leyenda. Presentacional: no lee stores ni contexto,
+// todo llega por props.
+//
+// El mapa es el de Google de verdad: reutiliza el hook useGMaps de
+// src/components/GMap.jsx (el mismo script y la misma llave que el mapa
+// principal), con google.maps.Marker numerados. Los lugares SIN coordenadas
+// reales no llevan pin inventado: solo aparecen en la leyenda, con su
+// número, y un aviso debajo del mapa lo explica. El número del pin es el
+// índice del lugar en `places` + 1, igual que en la leyenda, así que un
+// lugar sin pin no desplaza la numeración de los demás.
+//
+// Sin window (tests en node, sin jsdom) se pinta el "Cargando mapa…" y la
+// leyenda: el hook de Google solo vive en el hijo FavoritosGoogleMap, que
+// solo se monta cuando hay window.
 
+import { useEffect, useRef, useState } from 'react';
+import { useGMaps } from '../GMap.jsx';
 import Icon from '../ui/Icon.jsx';
 import { getThumbUrl } from '../../lib/utils.js';
-import { colorParaLugar } from '../../lib/mapaFavoritos.js';
+import { parseLatLng, colorParaLugar } from '../../lib/mapaFavoritos.js';
 import { FONT_BIZ } from '../../lib/constants.js';
 
-const AVENUES = [
-  { left: '-4%', top: '44%', width: '108%', height: 9, transform: 'rotate(-7deg)' },
-  { left: '44%', top: '-4%', width: 9, height: '108%', transform: 'rotate(5deg)' },
-];
+// Pin con forma de gota (como el esquemático) en SVG, con el número o la
+// ✓ como etiqueta de Google Maps. El color es el del pin: rojo para
+// pendientes, verde del tema para visitados. El seleccionado lleva borde
+// oscuro y es más grande. `google` es window.google.maps (la API ya
+// cargada por useGMaps): los tamaños van como Size/Point reales.
+function pinIcon(color, selected, google) {
+  const w = selected ? 44 : 36;
+  const h = selected ? 58 : 48;
+  const stroke = selected ? '#0F172A' : '#ffffff';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 36 48">`
+    + `<path d="M18 2C10 2 3.5 8.5 3.5 16.5 3.5 28 18 46 18 46s14.5-18 14.5-29.5C32.5 8.5 26 2 18 2z" fill="${color}" stroke="${stroke}" stroke-width="2.5"/>`
+    + `</svg>`;
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new google.maps.Size(w, h),
+    anchor: new google.maps.Point(w / 2, h),
+    labelOrigin: new google.maps.Point(w / 2, 16.5),
+  };
+}
 
-const PARKS = [
-  { left: '8%', bottom: '9%', width: 88, height: 64 },
-  { right: '7%', top: '10%', width: 64, height: 52 },
-];
+function FavoritosGoogleMap({
+  T, places, selectedId, onSelect, filter, visitedIds, cityCenter, cityName,
+}) {
+  const ok = useGMaps();
+  const divRef = useRef(null);
+  const mapRef = useRef(null);
+  const markersRef = useRef(new Map());
+  const fittedKeyRef = useRef(null);
+  const centerRef = useRef(cityCenter);
+  centerRef.current = cityCenter;
+  const [mapReady, setMapReady] = useState(false);
+  const dark = !!T.dark;
+  const visitedColor = dark ? '#3ECFAD' : '#0E7C66';
 
-// Etiquetas del mapa esquemático de Guadalajara (propuesta C). Solo se
-// muestran cuando la ciudad activa es de la zona metropolitana de
-// Guadalajara; en otras ciudades el mapa va sin etiquetas de colonia.
-const ZONES_GDL = [
-  { label: 'Providencia', left: '16%', top: '12%' },
-  { label: 'Americana', left: '38%', top: '38%' },
-  { label: 'Centro', right: '12%', bottom: '16%' },
-  { label: 'Parque', left: '10%', bottom: '8%' },
-];
+  // Crear el mapa real (se recrea al cambiar claro/oscuro, como hace GMap
+  // con su key): mismo script y misma llave que el mapa principal.
+  useEffect(() => {
+    if (!ok || !divRef.current || typeof window === 'undefined') return;
+    const markers = markersRef.current;
+    const map = new window.google.maps.Map(divRef.current, {
+      center: centerRef.current || { lat: 20.6767, lng: -103.3475 },
+      zoom: 13,
+      colorScheme: dark ? 'DARK' : 'LIGHT',
+      backgroundColor: dark ? '#18181B' : '#f9fafb',
+      disableDefaultUI: true,
+      zoomControl: false,
+      clickableIcons: false,
+      gestureHandling: 'greedy',
+      minZoom: 10,
+      maxZoom: 18,
+    });
+    mapRef.current = map;
+    setMapReady(true);
+    return () => {
+      markers.forEach((m) => m.setMap(null));
+      markers.clear();
+      fittedKeyRef.current = null;
+      if (mapRef.current) window.google?.maps?.event?.clearInstanceListeners(mapRef.current);
+      mapRef.current = null;
+      setMapReady(false);
+    };
+  }, [ok, dark]);
+
+  // Pines numerados: solo los lugares con coordenadas reales. El pin lleva
+  // el número del lugar en la lista (i + 1) o ✓ si ya se visitó, igual que
+  // la leyenda. La vista solo se ajusta cuando cambia el conjunto de
+  // pines, no al tocar un pin ni al filtrar (eso solo atenúa).
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || typeof window === 'undefined') return;
+    const map = mapRef.current;
+    const google = window.google.maps;
+    const seen = new Set();
+    places.forEach((p, i) => {
+      const c = parseLatLng(p);
+      if (!c) return; // Sin coordenadas: sin pin inventado.
+      seen.add(p.id);
+      const visited = visitedIds.includes(p.id);
+      const sel = selectedId === p.id;
+      const dim = (filter === 'pendientes' && visited) || (filter === 'visitados' && !visited);
+      const labelText = visited ? '✓' : String(i + 1);
+      const color = visited ? visitedColor : T.red;
+      let m = markersRef.current.get(p.id);
+      if (!m) {
+        m = new google.Marker({
+          position: c,
+          map,
+          title: p.name,
+          icon: pinIcon(color, sel, google),
+          label: { text: labelText, color: '#fff', fontSize: '13px', fontWeight: '800' },
+          zIndex: sel ? 999 : 1,
+          opacity: dim ? 0.25 : 1,
+        });
+        m.addListener('click', () => onSelect(p.id));
+        markersRef.current.set(p.id, m);
+      } else {
+        m.setPosition(c);
+        m.setMap(map);
+        m.setIcon(pinIcon(color, sel, google));
+        m.setLabel({ text: labelText, color: '#fff', fontSize: '13px', fontWeight: '800' });
+        m.setZIndex(sel ? 999 : 1);
+        m.setOpacity(dim ? 0.25 : 1);
+        m.setTitle(p.name);
+      }
+    });
+    markersRef.current.forEach((m, id) => {
+      if (!seen.has(id)) {
+        m.setMap(null);
+        markersRef.current.delete(id);
+      }
+    });
+    const pinnedKey = places.filter((p) => parseLatLng(p)).map((p) => p.id).join(',');
+    if (fittedKeyRef.current !== pinnedKey) {
+      fittedKeyRef.current = pinnedKey;
+      const coords = places.map((p) => parseLatLng(p)).filter(Boolean);
+      if (coords.length === 1) {
+        map.setCenter(coords[0]);
+        map.setZoom(15);
+      } else if (coords.length > 1) {
+        const bounds = new google.LatLngBounds();
+        coords.forEach((c) => bounds.extend(c));
+        map.fitBounds(bounds, 48);
+      } else if (centerRef.current) {
+        map.setCenter(centerRef.current);
+        map.setZoom(13);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, places, filter, visitedIds, selectedId]);
+
+  if (!ok) {
+    return (
+      <div style={{ width: '100%', height: '100%', background: dark ? '#18181B' : '#F2F4F2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+        <div style={{ width: 28, height: 28, border: '2px solid #EAF4F0', borderTop: '2px solid #1A7A5E', borderRadius: '50%', animation: 'spin .9s linear infinite' }} />
+        <span style={{ fontSize: 13, color: dark ? '#A1A1AA' : '#5A6872' }}>Cargando mapa…</span>
+      </div>
+    );
+  }
+  return <div ref={divRef} aria-label={cityName || ''} style={{ width: '100%', height: '100%' }} />;
+}
 
 export default function FavoritosMapa({
   T, t, places, selectedId, onSelect,
   filter, onFilterChange, visitedIds,
   onToggleVisit, onGoDir, onOrganize, onToggleFav, onOpen,
-  showZones, cityName,
+  cityCenter, cityName,
 }) {
   const total = places.length;
   const visitedCount = places.filter((p) => visitedIds.includes(p.id)).length;
   const pct = total ? Math.round((visitedCount / total) * 100) : 0;
   const selected = places.find((p) => p.id === selectedId) || places[0];
   const dark = !!T.dark;
-  const mapBg = dark ? '#20261F' : '#E8EFE9';
-  const mapLine = dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,26,20,0.06)';
-  const road = dark ? '#313832' : '#FFFFFF';
-  const park = dark ? '#2A3B2C' : '#CDE6C5';
   const visitedColor = dark ? '#3ECFAD' : '#0E7C66';
   const visitedSoft = dark ? '#14332B' : '#E3F2EE';
-
-  const isDim = (p) =>
-    (filter === 'pendientes' && visitedIds.includes(p.id)) ||
-    (filter === 'visitados' && !visitedIds.includes(p.id));
+  const noCoordsCount = places.filter((p) => !parseLatLng(p)).length;
 
   const chipStyle = (active) => ({
     border: `1px solid ${active ? T.text : T.border}`,
@@ -87,58 +213,31 @@ export default function FavoritosMapa({
         </span>
       </div>
 
-      {/* Mapa esquemático */}
+      {/* Mapa real de Google */}
       <div
-        role="img"
-        aria-label={t('fav_mapa_aria', 'Mapa esquemático de ${city} con los pines de tus favoritos', { city: cityName || '' })}
-        style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', border: `1px solid ${T.border}`, background: mapBg, height: 330, marginBottom: 12 }}
+        role="application"
+        aria-label={t('fav_mapa_aria', 'Mapa de Google con los pines de tus favoritos en ${city}', { city: cityName || '' })}
+        style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#18181B' : '#f9fafb', height: 330, marginBottom: noCoordsCount > 0 ? 8 : 12 }}
       >
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: `repeating-linear-gradient(0deg, transparent 0 34px, ${mapLine} 34px 38px), repeating-linear-gradient(90deg, transparent 0 34px, ${mapLine} 34px 38px)`,
-        }} />
-        {AVENUES.map((a, i) => (
-          <div key={`av-${i}`} style={{ position: 'absolute', background: road, borderRadius: 99, opacity: 0.9, ...a }} />
-        ))}
-        {PARKS.map((p, i) => (
-          <div key={`pk-${i}`} style={{ position: 'absolute', background: park, borderRadius: '46% 54% 60% 40%/50% 45% 55% 50%', ...p }} />
-        ))}
-        {showZones && ZONES_GDL.map((z) => (
-          <span key={z.label} style={{ position: 'absolute', fontSize: 11, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: T.sub, left: z.left, top: z.top, right: z.right, bottom: z.bottom }}>{z.label}</span>
-        ))}
-        {places.map((p, i) => {
-          const visited = visitedIds.includes(p.id);
-          const sel = selected && p.id === selected.id;
-          return (
-            <button
-              key={p.id}
-              type="button"
-              data-pin-id={p.id}
-              onClick={() => onSelect(p.id)}
-              aria-label={t('fav_ver_lugar', 'Ver ${name}', { name: p.name })}
-              style={{
-                position: 'absolute', left: `${p.x}%`, top: `${p.y}%`,
-                transform: 'translate(-50%,-100%)', width: 40, height: 40,
-                border: 0, background: 'transparent', padding: 0,
-                cursor: 'pointer', zIndex: 3, opacity: isDim(p) ? 0.25 : 1,
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-              }}
-            >
-              <span style={{
-                width: 34, height: 34, borderRadius: '50% 50% 50% 4px',
-                transform: 'rotate(-45deg)',
-                background: visited ? visitedColor : T.red, color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: '2.5px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,.25)',
-                fontWeight: 800, fontSize: 14,
-                outline: sel ? `3px solid ${T.text}` : 'none', outlineOffset: 1,
-              }}>
-                <span style={{ transform: 'rotate(45deg)' }}>{visited ? '✓' : i + 1}</span>
-              </span>
-            </button>
-          );
-        })}
+        {typeof window === 'undefined' ? (
+          <div style={{ width: '100%', height: '100%', background: dark ? '#18181B' : '#F2F4F2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <div style={{ width: 28, height: 28, border: '2px solid #EAF4F0', borderTop: '2px solid #1A7A5E', borderRadius: '50%', animation: 'spin .9s linear infinite' }} />
+            <span style={{ fontSize: 13, color: dark ? '#A1A1AA' : '#5A6872' }}>Cargando mapa…</span>
+          </div>
+        ) : (
+          <FavoritosGoogleMap
+            T={T} places={places} selectedId={selectedId} onSelect={onSelect}
+            filter={filter} visitedIds={visitedIds} cityCenter={cityCenter} cityName={cityName}
+          />
+        )}
       </div>
+
+      {/* Lugares sin coordenadas: no llevan pin, solo salen en la lista. */}
+      {noCoordsCount > 0 && (
+        <div style={{ fontSize: 12, color: T.sub, fontWeight: 600, marginBottom: 12 }}>
+          {t('fav_sin_ubicacion', '${n} lugar(es) sin ubicación en el mapa: solo aparecen en la lista', { n: noCoordsCount })}
+        </div>
+      )}
 
       {/* Tarjeta del lugar seleccionado */}
       {selected && (

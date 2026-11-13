@@ -6,19 +6,19 @@ import Icon from "../components/ui/Icon.jsx";
 import FavoriteCollectionModal from "../components/FavoriteCollectionModal.jsx";
 import FavoritosMapa from "../components/favoritos/FavoritosMapa.jsx";
 import AgendaEventos from "../components/favoritos/AgendaEventos.jsx";
-import { projectToMap } from "../lib/mapaFavoritos.js";
+import { getCityCenter } from "../lib/mapCentering.js";
 import { ordenarAgendaEventos } from "../lib/countdownEvento.js";
 import { loadVisitados, saveVisitados, loadAlertasCalendario, saveAlertasCalendario, toggleIdInList } from "../lib/favoritosLocales.js";
 import { getEventCalendarUrl } from "../lib/eventCalendar.js";
 import { useShallow } from 'zustand/react/shallow';
-import { getThumbUrl, isNear, METRO_ZONES, getLocalIsoDate } from "../lib/utils.js";
+import { getThumbUrl, isNear, getLocalIsoDate } from "../lib/utils.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 
 export default function FavsView({ hideHeader }) {
   const { t, lang } = useTranslation();
   const ctx = useAppContext();
   const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
-  const { mapPins, events } = useDataStore(useShallow(s => ({ mapPins: s.mapPins, events: s.events })));
+  const { mapPins, events, cities } = useDataStore(useShallow(s => ({ mapPins: s.mapPins, events: s.events, cities: s.cities })));
   const { viewStyle, T, favIds, toggleFav, biz, navigate, setSelected, trackEvent, userCoords, getKm, collections, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, createCollection, updateCollection, deleteCollection, city, savedEventIds, setCollections, FONT_BIZ, goDir, setMovingBiz, setSelectedEvent, handleEventTap, movingBiz } = ctx;
   // Mis Favoritos, propuesta C: filtro del mapa, pin seleccionado, lugares
   // marcados como visitados y eventos con alerta de calendario (estos dos
@@ -52,12 +52,15 @@ export default function FavsView({ hideHeader }) {
               // eventos guardados. La fecha de hoy es la local del
               // dispositivo, como la cuenta atrás del artefacto.
               const todayStr = getLocalIsoDate();
-              const isGdlMetro = (METRO_ZONES[activeCity] || []).includes('guadalajara');
               const collectionNameFor = (id) => {
                 const col = collections.find(c => (c.items || []).includes(id));
                 return col ? col.name : t('sin_organizar', 'Sin organizar');
               };
-              const favPlaces = projectToMap(allSavedBiz.map(b => ({ ...b, collectionName: collectionNameFor(b.id) })));
+              // Mapa real de Google: los lugares van tal cual (con lat/lng
+              // de la tabla businesses); el mapa pone el pin solo si tiene
+              // coordenadas reales. Centro de reserva: la ciudad activa.
+              const favPlaces = allSavedBiz.map(b => ({ ...b, collectionName: collectionNameFor(b.id) }));
+              const favCityCenter = getCityCenter(cities.find(c => c.slug === activeCity), allSavedBiz);
               const favSelId = favSelectedId && favPlaces.some(p => p.id === favSelectedId) ? favSelectedId : favPlaces[0]?.id;
               const agendaEv = ordenarAgendaEventos(savedEv, todayStr);
               const handleToggleVisit = (biz) => {
@@ -175,7 +178,7 @@ export default function FavsView({ hideHeader }) {
                     onOrganize={(b) => setMovingBiz(b)}
                     onToggleFav={toggleFav}
                     onOpen={(b) => { setSelected(b); navigate("detail"); }}
-                    showZones={isGdlMetro}
+                    cityCenter={favCityCenter}
                     cityName={city?.name || activeCity}
                   />
                 )}
