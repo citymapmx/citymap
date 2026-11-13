@@ -8,6 +8,7 @@ import {
   findMenuStyleById,
   menuThemeForStyle,
   textOnMenuPrimary,
+  textOnMenuSurface,
   menuHexAlpha,
 } from '../lib/menuColorStyles.js';
 
@@ -79,7 +80,7 @@ describe('Menú personalizado: BusinessStore aplica el estilo (PR #291)', () => 
     const src = read('../components/store/BusinessStore.jsx');
     expect(src).toContain("findMenuStyleById(business?.menu_style)");
     expect(src).toContain('menuThemeForStyle(');
-    expect(src).toContain("import { findMenuStyleById, menuThemeForStyle, menuHexAlpha } from '../../lib/menuColorStyles.js'");
+    expect(src).toContain("import { findMenuStyleById, menuThemeForStyle, menuHexAlpha, textOnMenuSurface } from '../../lib/menuColorStyles.js'");
   });
 
   it('con estilo: fondo degradado, encabezado en primera parada, píldora y botón en primary', () => {
@@ -226,5 +227,105 @@ describe('Menú personalizado: entrada en la cuenta y migración (PR #291)', () 
     const sql = read('../../supabase/migrations/20261113120000_add_menu_style_to_businesses.sql');
     expect(sql).toContain('alter table public.businesses');
     expect(sql).toContain('add column if not exists menu_style text null');
+  });
+});
+
+describe('Menú personalizado: vista previa compacta del diseñador', () => {
+  it('la vista previa muestra 1 producto por sección (máx. 2 secciones): aprox. la mitad de alto', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    expect(src).toContain('.slice(0, 1)');
+    expect(src).not.toContain('.slice(0, 3)');
+    // Tamaños reducidos: nombre 15, precio 13, botón + 26, menos padding.
+    expect(src).toContain("fontSize: 15, fontWeight: 900");
+    expect(src).toContain("fontSize: 13, fontWeight: 800, color: theme ? theme.primary");
+    expect(src).toContain('width: 26, height: 26');
+    expect(src).toContain("padding: '12px 14px 2px'");
+    // Sigue siendo representativa: nombre, estilo, píldoras, títulos,
+    // descripciones, precios y botón + con los colores del tema.
+    expect(src).toContain('Vista previa de tu menú');
+    expect(src).toContain('Estilo: ${selectedStyle.label}');
+    expect(src).toContain('Todos');
+    expect(src).toContain('theme.primary');
+  });
+
+  it('con «Sin estilo» la vista previa es clara aunque el tema de la app sea oscuro', () => {
+    const darkT = { bg: '#18181B', border: '#3F3F46', text: '#F4F4F5', sub: '#A1A1AA', surface: '#232326' };
+    const html = renderToStaticMarkup(
+      <MenuStyleDesigner business={CARRITO} onClose={() => {}} onSaved={() => {}} T={darkT} />
+    );
+    // La tarjeta de la vista previa es clara (#FAFAFA) y el nombre oscuro,
+    // aunque el resto del diseñador vaya en oscuro.
+    expect(html).toContain('background:#FAFAFA');
+    expect(html).toContain('color:#111111');
+    expect(html).toContain('Sin estilo · como se ve hoy');
+  });
+});
+
+// Luminancia relativa y contraste WCAG (para verificar legibilidad).
+function relLum(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const f = (c) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * f((n >> 16) & 255) + 0.7152 * f((n >> 8) & 255) + 0.0722 * f(n & 255);
+}
+function contrastRatio(a, b) {
+  const l1 = relLum(a);
+  const l2 = relLum(b);
+  const [hi, lo] = l1 >= l2 ? [l1, l2] : [l2, l1];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+describe('Menú público: el tema se adapta a todo (encabezado, píldoras, textos)', () => {
+  it('sin estilo el menú nunca va en modo oscuro: fuerza la paleta clara', () => {
+    const src = read('../components/store/BusinessStore.jsx');
+    expect(src).toContain('const { dark: appDark } = useUIStore();');
+    expect(src).toContain('const dark = menuTheme ? appDark : false;');
+    // Paleta clara (ignora el T oscuro que llegue) para el menú, la promo,
+    // el modal de producto y el carrito.
+    expect(src).toContain("const menuT = menuTheme ? T : { ...(T || {}), bg: '#FFFFFF'");
+    expect(src).toContain('T={menuT}');
+  });
+
+  it('el encabezado del menú público toma el tema: nada de bloque blanco', () => {
+    const src = read('../components/store/BusinessStore.jsx');
+    expect(src).toContain("background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FFFFFF')");
+    expect(src).toContain("color: menuTheme ? menuTheme.text : (dark ? '#FFFFFF' : '#111111')");
+    // Dirección, separador y pin en el texto del tema atenuado.
+    expect(src).toContain("menuTheme ? menuHexAlpha(menuTheme.text, 'B3')");
+    // Borde del logo y portada sin foto en la primera parada del tema.
+    expect(src).toContain('menuTheme.firstColor');
+  });
+
+  it('la píldora activa usa el primary del tema y su texto onPrimary; las inactivas se leen sobre la primera parada', () => {
+    const src = read('../components/store/BusinessStore.jsx');
+    expect(src).toContain('indicatorColor={menuTheme?.primary}');
+    expect(src).toContain('color: isActive ? (menuTheme ? menuTheme.onPrimary');
+    expect(src).toContain('textOnMenuSurface(menuTheme.firstColor)');
+    // El indicador del track usa el primary cuando se le pasa.
+    const track = read('../components/ui/SlidingCategoryTrack.jsx');
+    expect(track).toContain('indicatorColor');
+    expect(track).toContain("background:indicatorColor || (dark ? '#FFFFFF' : '#0F172A')");
+  });
+
+  it('textOnMenuSurface: texto legible sobre la primera parada en los 30 estilos (contraste >= 3:1)', () => {
+    for (const style of LOYALTY_COLOR_STYLES) {
+      const theme = menuThemeForStyle(style);
+      // Píldora activa: onPrimary sobre primary.
+      expect(contrastRatio(theme.onPrimary, style.primary)).toBeGreaterThanOrEqual(3);
+      // Píldora inactiva: texto elegido sobre la primera parada.
+      expect(contrastRatio(textOnMenuSurface(theme.firstColor), theme.firstColor)).toBeGreaterThanOrEqual(3);
+    }
+    // El logo del pie se invierte según la última parada del degradado.
+    const esmeralda = menuThemeForStyle(findMenuStyleById('esmeralda'));
+    expect(esmeralda.lastColor).toBe('#022C22');
+    expect(textOnMenuSurface(esmeralda.lastColor)).toBe('#FFFFFF');
+    const perla = menuThemeForStyle(findMenuStyleById('perla'));
+    expect(perla.lastColor).toBe('#E2E8F0');
+    expect(textOnMenuSurface(perla.lastColor)).toBe('#18181B');
+    const coral = menuThemeForStyle(findMenuStyleById('coral'));
+    expect(coral.lastColor).toBe('#BE123C');
+    expect(textOnMenuSurface(coral.lastColor)).toBe('#FFFFFF');
   });
 });

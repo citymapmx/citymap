@@ -20,7 +20,7 @@ import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanSho
 import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
 import { isCategoryVisibleNow, categoryHasSchedule, categoryScheduleLabel12h, offHoursMessage } from '../../lib/menuCategoryHours.js';
-import { findMenuStyleById, menuThemeForStyle, menuHexAlpha } from '../../lib/menuColorStyles.js';
+import { findMenuStyleById, menuThemeForStyle, menuHexAlpha, textOnMenuSurface } from '../../lib/menuColorStyles.js';
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
   const navigate = useNavigate();
@@ -58,7 +58,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   const [menuIntent, setMenuIntent] = useState(() => {
     return isCatalog ? 'delivery' : initialIntent || localStorage.getItem(`intent_${business?.id}`) || null;
   });
-  const { dark } = useUIStore();
+  const { dark: appDark } = useUIStore();
   const { globalFavCounts } = useDataStore();
   const { user, setShowAuth } = useAuthStore();
   const appContext = useContext(AppContext);
@@ -70,6 +70,15 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   // se ve exacto como hoy; con estilo, fondo, píldora activa, títulos,
   // precios y botones + usan sus colores.
   const menuTheme = menuThemeForStyle(findMenuStyleById(business?.menu_style));
+
+  // El menú público NUNCA va en modo oscuro (nov 2026, Jonathan): sin
+  // estilo elegido, siempre claro aunque el teléfono/app esté en oscuro.
+  // Con estilo, mandan los colores del estilo.
+  const dark = menuTheme ? appDark : false;
+  // Paleta clara del menú cuando no hay estilo: se ignora el T oscuro que
+  // llegue de la app (fondos, textos y bordes claros para el menú, la
+  // promo, el modal de producto y el carrito).
+  const menuT = menuTheme ? T : { ...(T || {}), bg: '#FFFFFF', border: '#E4E4E7', text: '#18181B', sub: '#71717A', surface: '#F4F4F5', white: '#FFFFFF', green: '#16A34A', dark: false };
 
   const handleHeartClick = (e) => {
     if (e) e.stopPropagation();
@@ -327,7 +336,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 <div 
                   onClick={() => setIsOpen(true)} 
                   className="press"
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: T.green || '#16A34A' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: menuT.green || '#16A34A' }}
                 >
                   <Icon name="shopping-cart" size={18} color="currentColor" />
                   <span style={{ fontSize: 13, fontWeight: 700 }}>Tienes productos en tu carrito</span>
@@ -381,8 +390,8 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                }}
             >
             {/* Banner Area (Baryo Style) */}
-            <div style={{ position: 'relative', width: '100%', background: dark ? '#18181B' : '#FFFFFF' }}>
-              <div style={{ position: 'relative', width: '100%', height: coverHeight, background: '#232326' }}>
+            <div style={{ position: 'relative', width: '100%', background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FFFFFF') }}>
+              <div style={{ position: 'relative', width: '100%', height: coverHeight, background: menuTheme ? menuTheme.firstColor : '#232326' }}>
                 {(business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url) && (
                   // El mismo encuadre que la ficha (DetailView: getThumbUrl
                   // 1200×900 + cover): antes se pedía 800×340 y el servidor
@@ -448,7 +457,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                   height: 96, 
                   borderRadius: '50%', 
                   background: '#FFFFFF', 
-                  border: `4px solid ${dark ? '#18181B' : '#FFFFFF'}`,
+                  border: `4px solid ${menuTheme ? menuTheme.firstColor : (dark ? '#18181B' : '#FFFFFF')}`,
                   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                   overflow: 'hidden',
                   display: 'flex',
@@ -469,7 +478,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
 
               {/* Business Info under the image */}
               <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginTop: 10, padding: '0 20px 4px' }}>
-                <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: dark ? '#FFFFFF' : '#111111', fontFamily: FONT_BIZ, letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: menuTheme ? menuTheme.text : (dark ? '#FFFFFF' : '#111111'), fontFamily: FONT_BIZ, letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   {business.name}
                   {(business.plan === "destacado" || business.plan === "premium" || business.plan === "pro") && (
                     <img src="/verificado.png" alt="Verificado" width="22" height="22" style={{ flexShrink: 0, marginTop: 2 }} />
@@ -477,7 +486,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 </h1>
 
                 {menuIntent === 'local' ? (
-                  <div style={{ marginTop: 6, fontSize: 15, fontWeight: 700, color: dark ? '#FAFAFA' : '#232326', letterSpacing: -0.2 }}>
+                  <div style={{ marginTop: 6, fontSize: 15, fontWeight: 700, color: menuTheme ? menuTheme.text : (dark ? '#FAFAFA' : '#232326'), letterSpacing: -0.2 }}>
                     ¡Qué bueno tenerte aquí!
                   </div>
                 ) : (
@@ -491,7 +500,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
 
                     {!business.hide_location && business.address && (
                       <>
-                        <span style={{ fontSize: 12, color: dark ? '#71717A' : '#D4D4D8', userSelect: 'none' }}>•</span>
+                        <span style={{ fontSize: 12, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#71717A' : '#D4D4D8'), userSelect: 'none' }}>•</span>
                         <a
                           href={(business.lat && business.lng) ? `https://www.google.com/maps/search/?api=1&query=${business.lat},${business.lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address + ', ' + (business.city || ''))}`}
                           target="_blank"
@@ -502,7 +511,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                             gap: 4,
                             fontSize: 13,
                             fontWeight: 600,
-                            color: dark ? '#A1A1AA' : '#71717A',
+                            color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A'),
                             textDecoration: 'none',
                             maxWidth: '100%',
                             minWidth: 0,
@@ -510,7 +519,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                           }}
                           title={business.address}
                         >
-                          <Icon name="pin" size={13} color={dark ? '#A1A1AA' : '#71717A'} style={{ flexShrink: 0 }} />
+                          <Icon name="pin" size={13} color={menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A')} style={{ flexShrink: 0 }} />
                           {/* La dirección se ajusta a la pantalla: pasa a
                               varias líneas en vez de cortarse con puntos
                               suspensivos en el borde derecho (móvil). */}
@@ -526,7 +535,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             </div>
             
             <div style={{ paddingBottom: cartCount > 0 ? 100 : 80 }}>
-      <StorePromotions products={activeCategories.flatMap(cat=>(cat.store_products||[]).map(product=>({...product,cat_name:cat.name})))} intent={menuIntent} timeZone={timeZone} T={T} onSelect={(p) => {
+      <StorePromotions products={activeCategories.flatMap(cat=>(cat.store_products||[]).map(product=>({...product,cat_name:cat.name})))} intent={menuIntent} timeZone={timeZone} T={menuT} onSelect={(p) => {
         // Una promoción de una sección fuera de horario no abre el modal: avisa.
         const cat = categories.find((c) => c.id === p.category_id);
         if (cat && isCatOffHours(cat)) { showOffHoursNotice(cat); return; }
@@ -569,7 +578,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
         {/* Category Tabs */}
         {activeCategories.length > 1 && (
           <div ref={tabsRef} className="scroll-fade-x" style={{ padding: '0 16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <SlidingCategoryTrack dark={dark} selectedKey={activeTabId}  style={{ display: 'inline-flex', gap: 8 }}>
+            <SlidingCategoryTrack dark={dark} selectedKey={activeTabId} indicatorColor={menuTheme?.primary} style={{ display: 'inline-flex', gap: 8 }}>
               {[{id: 'all', name: 'Todos'}, ...activeCategories].map(cat => {
                 const isActive = activeTabId === cat.id;
                 // La pestaña de una sección fuera de horario se atenúa, pero
@@ -595,8 +604,8 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                       setTimeout(() => { isClickScrolling.current = false; }, 800);
                     }}
                     style={{
-                      background: isActive ? (menuTheme ? menuTheme.primary : (dark ? '#FFFFFF' : '#111111')) : (dark ? '#232326' : '#F3F4F6'),
-                      color: isActive ? (menuTheme ? menuTheme.onPrimary : (dark ? '#111111' : '#FFFFFF')) : (dark ? '#E4E4E7' : '#111111'),
+                      background: isActive ? (menuTheme ? menuTheme.primary : (dark ? '#FFFFFF' : '#111111')) : (menuTheme ? 'transparent' : (dark ? '#232326' : '#F3F4F6')),
+                      color: isActive ? (menuTheme ? menuTheme.onPrimary : (dark ? '#111111' : '#FFFFFF')) : (menuTheme ? textOnMenuSurface(menuTheme.firstColor) : (dark ? '#E4E4E7' : '#111111')),
                       border: 'none',
                       padding: '6px 14px',
                       borderRadius: 16,
@@ -621,8 +630,8 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
 
       {filteredCategories.length === 0 && searchLower && (
         <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-          <Icon name="search" size={32} color={T.border} />
-          <p style={{ marginTop: 12, fontSize: 15, color: T.sub, fontWeight: 600 }}>No se encontraron productos para "{menuSearch}"</p>
+          <Icon name="search" size={32} color={menuT.border} />
+          <p style={{ marginTop: 12, fontSize: 15, color: menuT.sub, fontWeight: 600 }}>No se encontraron productos para "{menuSearch}"</p>
         </div>
       )}
 
@@ -643,7 +652,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             <div style={{ margin: '0 16px 12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
               <h3 style={{ fontSize: 19, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#F87171' : '#EF4444'), margin: 0, letterSpacing: '-0.5px', textTransform: 'uppercase' }}>{cat.name}</h3>
               {offHours && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: dark ? '#A1A1AA' : '#71717A', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A'), whiteSpace: 'nowrap' }}>
                   Fuera de servicio · {categoryScheduleLabel12h(cat)}
                 </span>
               )}
@@ -829,7 +838,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                           )}
                           {priceInfo.isFrom ? (
                             <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: dark ? '#A1A1AA' : '#6B7280' }}>Desde</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#6B7280') }}>Desde</span>
                               <span style={{ fontSize: viewMode === 'grid' ? 13 : 16, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#FAFAFA' : '#111827') }}>
                                 ${Number(priceInfo.amount).toFixed(0)}
                               </span>
@@ -869,11 +878,11 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
       })}
         {filteredCategories.length > 0 && (
           <div style={{ padding: '24px 20px 24px', textAlign: 'center' }}>
-            <p style={{ fontSize: 11, color: dark ? '#A1A1AA' : '#71717A', lineHeight: 1.5, margin: 0, fontWeight: 500 }}>
+            <p style={{ fontSize: 11, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A'), lineHeight: 1.5, margin: 0, fontWeight: 500 }}>
               Aviso legal: Los precios, imágenes y descripciones son administrados por cada negocio y pueden cambiar. CityMap no se responsabiliza por diferencias al momento de la compra.
             </p>
             <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', opacity: 1 }}>
-              <img src="/citymap.mx.png" alt="CityMap" width={200} height={60} style={{ height: 60, width: 200, filter: dark ? "brightness(0) invert(1)" : "brightness(0)" }} />
+              <img src="/citymap.mx.png" alt="CityMap" width={200} height={60} style={{ height: 60, width: 200, filter: menuTheme ? (textOnMenuSurface(menuTheme.lastColor) === '#FFFFFF' ? 'brightness(0) invert(1)' : 'brightness(0)') : (dark ? "brightness(0) invert(1)" : "brightness(0)") }} />
             </div>
           </div>
         )}
@@ -968,12 +977,12 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
           product={selectedProduct} 
           businessId={business.id}
           onClose={() => setSelectedProduct(null)} 
-          T={T} 
+          T={menuT} 
           menuIntent={menuIntent}
         />
       )}
 
-      <CartDrawer business={business} T={T} />
+      <CartDrawer business={business} T={menuT} />
 
       <style>{`
         @keyframes toastIn {
