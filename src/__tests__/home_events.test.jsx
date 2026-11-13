@@ -26,12 +26,15 @@ const events = [
 ];
 
 describe('Vite home events (rueda 3D, como el inicio global)', () => {
-  it('merges long-duration events into the wheel and drops their section', () => {
+  it('merges long-duration events into the row and drops their section', () => {
     const html = renderToStaticMarkup(
       <HomeEvents events={events} activeCity="guadalajara" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} />,
     );
     // Un solo carrusel con el título de siempre, sin la sección aparte.
+    // Con 2 eventos es fila deslizable (opción B, 13 Nov 2026), no rueda.
     expect(html.match(/Próximos eventos/g)).toHaveLength(1);
+    expect(html).not.toContain('event-wheel-drum');
+    expect(html).toContain('event-wheel-row');
     // Sin subtítulo (PR #196): el encabezado es solo el título de sección.
     expect(html).not.toContain('Los eventos que vienen en tu ciudad');
     expect(html).not.toContain('Eventos de larga duración');
