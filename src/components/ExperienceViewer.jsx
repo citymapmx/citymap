@@ -17,8 +17,6 @@ import { galleryWithoutCover } from '../lib/experienceGallery.js';
 import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
 import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle, localizedDescription } from "../lib/i18nContent.js";
-import LottieAnim from './LottieAnim.jsx';
-import { BOLETO_AVION_SRC } from '../lib/lottieAnimaciones.js';
 
 const Gallery = lazy(() => import('./Gallery').catch(() => {
   window.location.reload();
@@ -444,14 +442,6 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {/* Price & Book CTA — buttons only if external links exist */}
         {(externalLinks.length > 0 || exp.route_url) && (
           <div style={{ marginBottom: 24 }}>
-            {/* Boleto animado junto a los botones de reserva del tour
-                (formato ancho, bucle lento). Solo cuando hay enlaces
-                de reserva; si el archivo no carga, no pinta nada. */}
-            {externalLinks.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-                <LottieAnim src={BOLETO_AVION_SRC} loop speed={0.7} width={180} height={75} ariaLabel="Reservar tour" />
-              </div>
-            )}
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", flexDirection: "column" }}>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 {externalLinks.map((l, i) => {
