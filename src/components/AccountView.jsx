@@ -230,6 +230,13 @@ export default function AccountView({
     else if (act === "user_notifs") navigate("user_notifs");
     else if (act === "admin_notifs") navigate("admin_notifs");
     else if (act === "clear_cache") { if ('serviceWorker' in navigator) { caches.keys().then(n => Promise.all(n.map(c => caches.delete(c)))); } window.location.reload(true); }
+    // OJO: el prefijo largo «owner_menu_style_» va ANTES que «owner_menu_»:
+    // «owner_menu_style_<id>» también empieza por «owner_menu_», así que si
+    // la rama corta va primero se traga el tap y el diseñador nunca abre.
+    else if (act.startsWith("owner_menu_style_")) {
+      const b = myBizList.find(x => x.id === act.replace("owner_menu_style_", ""));
+      if (b) { setMenuDesignerBiz(b); }
+    }
     else if (act.startsWith("owner_menu_")) {
       const b = myBizList.find(x => x.id === act.replace("owner_menu_", ""));
       if (b) { setStoreAdminBiz(b); }
@@ -237,10 +244,6 @@ export default function AccountView({
     else if (act.startsWith("owner_loyalty_")) {
       const b = myBizList.find(x => x.id === act.replace("owner_loyalty_", ""));
       if (b) { setLoyaltyDesignerBiz(b); }
-    }
-    else if (act.startsWith("owner_menu_style_")) {
-      const b = myBizList.find(x => x.id === act.replace("owner_menu_style_", ""));
-      if (b) { setMenuDesignerBiz(b); }
     }
     else if (act.startsWith("owner_edit_")) {
       const b = myBizList.find(x => x.id === act.replace("owner_edit_", ""));

@@ -206,6 +206,22 @@ describe('Menú personalizado: entrada en la cuenta y migración (PR #291)', () 
     expect(idxMenu).toBeLessThan(idxEdit);
   });
 
+  it('«Diseño de mi menú» ABRE el diseñador: la rama owner_menu_style_ va ANTES que owner_menu_ (bug #295)', () => {
+    const src = read('../components/AccountView.jsx');
+    // «owner_menu_style_<id>» también empieza por «owner_menu_»: si la rama
+    // corta va primero, el tap cae ahí, busca un negocio con id «style_<id>»,
+    // no lo encuentra y no abre nada (la rama del diseñador era código muerto).
+    const idxStyle = src.indexOf('else if (act.startsWith("owner_menu_style_"))');
+    const idxMenu = src.indexOf('else if (act.startsWith("owner_menu_"))');
+    expect(idxStyle).toBeGreaterThan(-1);
+    expect(idxMenu).toBeGreaterThan(-1);
+    expect(idxStyle).toBeLessThan(idxMenu);
+    // Cada rama abre lo suyo: el diseñador abre MenuStyleDesigner y el menú
+    // abre el editor del catálogo.
+    expect(src.slice(idxStyle, idxStyle + 300)).toContain('setMenuDesignerBiz(b)');
+    expect(src.slice(idxMenu, idxMenu + 300)).toContain('setStoreAdminBiz(b)');
+  });
+
   it('la migración agrega menu_style nullable a businesses', () => {
     const sql = read('../../supabase/migrations/20261113120000_add_menu_style_to_businesses.sql');
     expect(sql).toContain('alter table public.businesses');
