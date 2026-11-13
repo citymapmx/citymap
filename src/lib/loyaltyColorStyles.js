@@ -26,6 +26,8 @@ export const LOYALTY_COLOR_CATEGORIES = [
       { id: "atardecer", label: "Atardecer", bg: ["#F97316", "#DB2777", "#7C3AED"], text: "#FFFFFF", primary: "#FFFFFF" },
       { id: "oceano", label: "Océano", bg: ["#1E3A8A", "#0891B2"], text: "#FFFFFF", primary: "#FDE68A" },
       { id: "galaxia", label: "Galaxia", bg: ["#0F172A", "#6D28D9"], text: "#EDE9FE", primary: "#FBBF24" },
+      { id: "zafiro", label: "Zafiro", bg: ["#1D4ED8", "#172554"], text: "#EFF6FF", primary: "#FBBF24" },
+      { id: "amatista", label: "Amatista", bg: ["#7E22CE", "#3B0764"], text: "#FAF5FF", primary: "#E9D5FF" },
     ],
   },
   {
@@ -39,6 +41,8 @@ export const LOYALTY_COLOR_CATEGORIES = [
       { id: "terracota", label: "Terracota", bg: ["#9A3412", "#7C2D12"], text: "#FFF7ED", primary: "#FDBA74" },
       { id: "malva", label: "Malva", bg: ["#4C1D95", "#2E1065"], text: "#EDE9FE", primary: "#C4B5FD" },
       { id: "bosque", label: "Bosque", bg: ["#166534", "#14532D"], text: "#F0FDF4", primary: "#FDE68A" },
+      { id: "caqui", label: "Caqui", bg: ["#78716C", "#44403C"], text: "#FAFAF9", primary: "#D6D3D1" },
+      { id: "salvia", label: "Salvia", bg: ["#7C8A6A", "#3F4A37"], text: "#F4F7F0", primary: "#D9E2D0" },
     ],
   },
   {
@@ -51,6 +55,9 @@ export const LOYALTY_COLOR_CATEGORIES = [
       { id: "mocha", label: "Mocha", bg: ["#44403C", "#1C1917"], text: "#FAFAF9", primary: "#C9A227" },
       { id: "caramelo", label: "Caramelo", bg: ["#F59E0B", "#D97706"], text: "#451A03", primary: "#78350F" },
       { id: "crema", label: "Crema", bg: ["#FFFBEB", "#FDE9C8"], text: "#78350F", primary: "#B45309" },
+      { id: "chocolate", label: "Chocolate", bg: ["#5D3A1A", "#2A1608"], text: "#FDF6EC", primary: "#D97706" },
+      { id: "canela", label: "Canela", bg: ["#A16207", "#713F12"], text: "#FFFBEB", primary: "#FDE68A" },
+      { id: "cafe-helado", label: "Café helado", bg: ["#E7C9A9", "#D6A97C"], text: "#451A03", primary: "#78350F" },
     ],
   },
   {
@@ -62,7 +69,6 @@ export const LOYALTY_COLOR_CATEGORIES = [
       { id: "lima", label: "Lima", bg: ["#84CC16", "#15803D"], text: "#FFFFFF", primary: "#FFFFFF" },
       { id: "cobre", label: "Cobre", bg: ["#B45309", "#7C2D12"], text: "#FFF7ED", primary: "#FDE68A" },
       { id: "coral", label: "Coral", bg: ["#FB7185", "#BE123C"], text: "#FFFFFF", primary: "#FFFFFF" },
-      { id: "arena", label: "Arena", bg: ["#FFFBEB", "#FDE68A"], text: "#451A03", primary: "#B45309" },
       { id: "tropical", label: "Tropical", bg: ["#14B8A6", "#0F766E"], text: "#FFFFFF", primary: "#FDE68A" },
       { id: "rosa-dorado", label: "Rosa dorado", bg: ["#F9A8D4", "#EC4899"], text: "#FFFFFF", primary: "#FDE68A" },
       { id: "menta", label: "Menta", bg: ["#A7F3D0", "#6EE7B7"], text: "#064E3B", primary: "#059669" },

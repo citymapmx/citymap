@@ -539,13 +539,19 @@ export default function AccountView({
       )}
 
       {/* ── MENU STYLE DESIGNER MODAL ── */}
-      {menuDesignerBiz && (
+      {/* Con createPortal a document.body: la raíz de esta vista lleva
+          transform (viewStyle) y eso atrapa los position: fixed de sus
+          hijos (el diseñador quedaba dentro de la página de Mi Perfil,
+          la barra inferior pintaba por encima y no se podía bajar hasta
+          Guardar). En el body, el fixed es el viewport de verdad. */}
+      {menuDesignerBiz && createPortal(
         <MenuStyleDesigner
           business={menuDesignerBiz}
           onClose={() => setMenuDesignerBiz(null)}
           onSaved={() => loadMyBiz(user?.id)?.catch?.(() => {})}
           T={T}
-        />
+        />,
+        document.body
       )}
     </div>
   );

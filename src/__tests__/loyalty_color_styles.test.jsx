@@ -51,9 +51,9 @@ describe('Estilos de color de lealtad: datos (PR #239)', () => {
     ]);
   });
 
-  it('cada categoría trae sus estilos: 7 Premium, 7 Sobrios, 6 Cafetería, 10 Coloridos', () => {
-    expect(LOYALTY_COLOR_CATEGORIES.map((c) => c.styles.length)).toEqual([7, 7, 6, 10]);
-    expect(LOYALTY_COLOR_STYLES.length).toBe(30);
+  it('cada categoría trae sus estilos: 9 Premium, 9 Sobrios, 9 Cafetería, 9 Coloridos', () => {
+    expect(LOYALTY_COLOR_CATEGORIES.map((c) => c.styles.length)).toEqual([9, 9, 9, 9]);
+    expect(LOYALTY_COLOR_STYLES.length).toBe(36);
   });
 
   it('todos los estilos tienen id y nombre únicos, 1-3 paradas hex y texto/botón hex', () => {
@@ -71,22 +71,31 @@ describe('Estilos de color de lealtad: datos (PR #239)', () => {
     }
   });
 
-  it('los 30 estilos numerados tienen sus 3 colores exactos (muestra por categoría)', () => {
+  it('los 36 estilos numerados tienen sus 3 colores exactos (muestra por categoría)', () => {
     const byId = Object.fromEntries(LOYALTY_COLOR_STYLES.map((s) => [s.id, s]));
     // Premium
     expect(byId["oro-negro"]).toEqual({ id: "oro-negro", label: "Oro negro", bg: ["#262626", "#000000"], text: "#FAFAFA", primary: "#F5B301", category: "premium" });
     expect(byId["atardecer"].bg).toEqual(["#F97316", "#DB2777", "#7C3AED"]);
     expect(byId["galaxia"]).toEqual({ id: "galaxia", label: "Galaxia", bg: ["#0F172A", "#6D28D9"], text: "#EDE9FE", primary: "#FBBF24", category: "premium" });
+    expect(byId["zafiro"]).toEqual({ id: "zafiro", label: "Zafiro", bg: ["#1D4ED8", "#172554"], text: "#EFF6FF", primary: "#FBBF24", category: "premium" });
+    expect(byId["amatista"]).toEqual({ id: "amatista", label: "Amatista", bg: ["#7E22CE", "#3B0764"], text: "#FAF5FF", primary: "#E9D5FF", category: "premium" });
     // Sobrios
     expect(byId["perla"]).toEqual({ id: "perla", label: "Perla", bg: ["#F8FAFC", "#E2E8F0"], text: "#334155", primary: "#64748B", category: "sobrios" });
     expect(byId["bosque"].bg).toEqual(["#166534", "#14532D"]);
+    expect(byId["caqui"]).toEqual({ id: "caqui", label: "Caqui", bg: ["#78716C", "#44403C"], text: "#FAFAF9", primary: "#D6D3D1", category: "sobrios" });
+    expect(byId["salvia"]).toEqual({ id: "salvia", label: "Salvia", bg: ["#7C8A6A", "#3F4A37"], text: "#F4F7F0", primary: "#D9E2D0", category: "sobrios" });
     // Cafetería
     expect(byId["espresso"]).toEqual({ id: "espresso", label: "Espresso", bg: ["#292524", "#0C0A09"], text: "#FAFAF9", primary: "#D97706", category: "cafeteria" });
     expect(byId["crema"].bg).toEqual(["#FFFBEB", "#FDE9C8"]);
+    expect(byId["chocolate"]).toEqual({ id: "chocolate", label: "Chocolate", bg: ["#5D3A1A", "#2A1608"], text: "#FDF6EC", primary: "#D97706", category: "cafeteria" });
+    expect(byId["canela"]).toEqual({ id: "canela", label: "Canela", bg: ["#A16207", "#713F12"], text: "#FFFBEB", primary: "#FDE68A", category: "cafeteria" });
+    expect(byId["cafe-helado"]).toEqual({ id: "cafe-helado", label: "Café helado", bg: ["#E7C9A9", "#D6A97C"], text: "#451A03", primary: "#78350F", category: "cafeteria" });
     // Coloridos
     expect(byId["coral"]).toEqual({ id: "coral", label: "Coral", bg: ["#FB7185", "#BE123C"], text: "#FFFFFF", primary: "#FFFFFF", category: "coloridos" });
     expect(byId["menta"]).toEqual({ id: "menta", label: "Menta", bg: ["#A7F3D0", "#6EE7B7"], text: "#064E3B", primary: "#059669", category: "coloridos" });
     expect(byId["ambar"].bg).toEqual(["#FBBF24", "#F59E0B"]);
+    // Arena se quitó (casi duplicado de Crema).
+    expect(byId["arena"]).toBeUndefined();
   });
 
   it('no hay categoría Clásicos ni estilos viejos (Café, Neón, Rosado, Azul, Eco, Gold)', () => {
@@ -95,7 +104,7 @@ describe('Estilos de color de lealtad: datos (PR #239)', () => {
     for (const oldId of ["cafe", "neon", "rosado", "azul", "eco", "gold"]) {
       expect(ids).not.toContain(oldId);
     }
-    // Y los 30 estilos que quedan son todos degradados (2-3 paradas).
+    // Y los 36 estilos que quedan son todos degradados (2-3 paradas).
     for (const s of LOYALTY_COLOR_STYLES) {
       expect(s.bg.length).toBeGreaterThanOrEqual(2);
     }
@@ -162,13 +171,13 @@ describe('LoyaltyWizard Paso 1: píldoras por categoría (PR #239)', () => {
     expect(html).toContain("#1B1107");
   });
 
-  it('con un degradado Premium (Oro negro) se despliegan los 7 Premium', () => {
+  it('con un degradado Premium (Oro negro) se despliegan los 9 Premium', () => {
     const html = renderWizard({
       bg_color: "linear-gradient(135deg, #262626, #000000)",
       text_color: "#FAFAFA",
       primary_color: "#F5B301",
     });
-    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia"]) {
+    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia", "Zafiro", "Amatista"]) {
       expect(html).toContain(label);
     }
     expect(html).not.toContain("Espresso");
@@ -195,7 +204,7 @@ describe('LoyaltyWizard Paso 1: píldoras por categoría (PR #239)', () => {
     for (const label of ["Premium", "Sobrios", "Cafetería", "Coloridos"]) {
       expect(html).toContain(label);
     }
-    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia"]) {
+    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia", "Zafiro", "Amatista"]) {
       expect(html).toContain(label);
     }
   });
@@ -221,9 +230,9 @@ describe('LoyaltyWizard Paso 1: estilos en cuadrícula compacta de 3 por fila (P
     // ni el círculo chico de 28 px.
     expect(src).not.toContain('display: "flex", flexDirection: "column", gap: 8, marginTop: 12');
     expect(src).not.toContain('width: 28, height: 28');
-    // Los 7 Premium siguen visibles en la cuadrícula.
+    // Los 9 Premium siguen visibles en la cuadrícula.
     const html = renderWizard({ bg_color: "#1B1107" });
-    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia"]) {
+    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia", "Zafiro", "Amatista"]) {
       expect(html).toContain(label);
     }
     expect(html).toContain("width:52px");

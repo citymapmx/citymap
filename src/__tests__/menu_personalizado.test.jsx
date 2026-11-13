@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
 import MenuStyleDesigner from '../components/store/MenuStyleDesigner.jsx';
 import {
+  LOYALTY_COLOR_CATEGORIES,
   LOYALTY_COLOR_STYLES,
   findMenuStyleById,
   menuThemeForStyle,
@@ -25,8 +26,8 @@ function renderDesigner(business) {
 const CARRITO = { id: '82c9af20-ef42-4a43-87c4-1831a020aace', name: 'Carrito La Paz Tostadas de Atún', menu_style: null };
 
 describe('Menú personalizado: resolvedor de estilos (PR #291)', () => {
-  it('los 30 estilos de lealtad se resuelven por id, con su categoría', () => {
-    expect(LOYALTY_COLOR_STYLES.length).toBe(30);
+  it('los 36 estilos de lealtad se resuelven por id, con su categoría', () => {
+    expect(LOYALTY_COLOR_STYLES.length).toBe(36);
     expect(findMenuStyleById('perla')).toEqual({ id: 'perla', label: 'Perla', bg: ['#F8FAFC', '#E2E8F0'], text: '#334155', primary: '#64748B', category: 'sobrios' });
     expect(findMenuStyleById('esmeralda')?.category).toBe('premium');
     expect(findMenuStyleById('espresso')?.category).toBe('cafeteria');
@@ -57,7 +58,7 @@ describe('Menú personalizado: resolvedor de estilos (PR #291)', () => {
   });
 
   it('texto sobre primary: claro en primaries claros, blanco en primaries oscuros', () => {
-    for (const light of ['#F5B301', '#FBBF24', '#FDE68A', '#FFFFFF', '#CBD5E1', '#A8A29E', '#FDBA74', '#C9A227', '#A5F3FC', '#E5E7EB']) {
+    for (const light of ['#F5B301', '#FBBF24', '#FDE68A', '#FFFFFF', '#CBD5E1', '#A8A29E', '#FDBA74', '#C9A227', '#A5F3FC', '#E5E7EB', '#E9D5FF', '#D6D3D1', '#D9E2D0']) {
       expect(textOnMenuPrimary(light)).toBe('#18181B');
     }
     for (const dark of ['#92400E', '#059669', '#DB2777', '#78350F', '#B45309', '#D97706', '#164E63', '#450A0A']) {
@@ -123,14 +124,16 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
     expect(html).toContain('Carrito La Paz Tostadas de Atún');
   });
 
-  it('muestra los 30 estilos agrupados en las 4 categorías', () => {
+  it('muestra los 36 estilos agrupados en las 4 categorías', () => {
     const html = renderDesigner(CARRITO);
     for (const label of ['Premium', 'Sobrios', 'Cafetería', 'Coloridos']) {
       expect(html).toContain(label);
     }
-    for (const label of ['Oro negro', 'Esmeralda', 'Medianoche', 'Vino', 'Atardecer', 'Océano', 'Galaxia', 'Pizarra', 'Perla', 'Oliva', 'Petróleo', 'Terracota', 'Malva', 'Bosque', 'Espresso', 'Latte', 'Capuccino', 'Mocha', 'Caramelo', 'Crema', 'Grafito plata', 'Rosa claro', 'Lima', 'Cobre', 'Coral', 'Arena', 'Tropical', 'Rosa dorado', 'Menta', 'Ámbar']) {
+    for (const label of ['Oro negro', 'Esmeralda', 'Medianoche', 'Vino', 'Atardecer', 'Océano', 'Galaxia', 'Zafiro', 'Amatista', 'Pizarra', 'Perla', 'Oliva', 'Petróleo', 'Terracota', 'Malva', 'Bosque', 'Caqui', 'Salvia', 'Espresso', 'Latte', 'Capuccino', 'Mocha', 'Caramelo', 'Crema', 'Chocolate', 'Canela', 'Café helado', 'Grafito plata', 'Rosa claro', 'Lima', 'Cobre', 'Coral', 'Tropical', 'Rosa dorado', 'Menta', 'Ámbar']) {
       expect(html).toContain(label);
     }
+    // Arena se quitó (casi duplicado de Crema): ya no aparece.
+    expect(html).not.toContain('Arena');
   });
 
   it('con estilo guardado la vista previa dice el estilo; sin estilo dice «como se ve hoy»', () => {
@@ -166,7 +169,7 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
     // La celda es columna: el círculo va arriba y el nombre abajo, centrado.
     expect(src).toContain("flexDirection: 'column'");
     expect(src).toContain("textAlign: 'center'");
-    // Los 30 nombres siguen visibles en la cuadrícula.
+    // Los 36 nombres siguen visibles en la cuadrícula.
     const html = renderDesigner(CARRITO);
     for (const label of ['Oro negro', 'Esmeralda', 'Perla', 'Espresso', 'Rosa claro', 'Coral', 'Ámbar']) {
       expect(html).toContain(label);
@@ -309,7 +312,7 @@ describe('Menú público: el tema se adapta a todo (encabezado, píldoras, texto
     expect(track).toContain("background:indicatorColor || (dark ? '#FFFFFF' : '#0F172A')");
   });
 
-  it('textOnMenuSurface: texto legible sobre la primera parada en los 30 estilos (contraste >= 3:1)', () => {
+  it('textOnMenuSurface: texto legible sobre la primera parada en los 36 estilos (contraste >= 3:1)', () => {
     for (const style of LOYALTY_COLOR_STYLES) {
       const theme = menuThemeForStyle(style);
       // Píldora activa: onPrimary sobre primary.
@@ -327,5 +330,82 @@ describe('Menú público: el tema se adapta a todo (encabezado, píldoras, texto
     const coral = menuThemeForStyle(findMenuStyleById('coral'));
     expect(coral.lastColor).toBe('#BE123C');
     expect(textOnMenuSurface(coral.lastColor)).toBe('#FFFFFF');
+  });
+});
+
+describe('Menú personalizado: carrusel de 9 por categoría + scroll vertical', () => {
+  it('9 estilos exactos por categoría (36 en total): 7 nuevos, Arena fuera', () => {
+    expect(LOYALTY_COLOR_CATEGORIES.length).toBe(4);
+    for (const cat of LOYALTY_COLOR_CATEGORIES) {
+      expect(cat.styles.length).toBe(9);
+    }
+    expect(LOYALTY_COLOR_STYLES.length).toBe(36);
+    // Nuevos: Premium 2, Sobrios 2, Cafetería 3.
+    for (const id of ['zafiro', 'amatista', 'caqui', 'salvia', 'chocolate', 'canela', 'cafe-helado']) {
+      expect(findMenuStyleById(id)).not.toBe(null);
+    }
+    expect(findMenuStyleById('zafiro')?.category).toBe('premium');
+    expect(findMenuStyleById('caqui')?.category).toBe('sobrios');
+    expect(findMenuStyleById('chocolate')?.category).toBe('cafeteria');
+    // Arena se quitó: casi duplicado de Crema (misma primera parada
+    // #FFFBEB y segunda parada #FDE68A frente a #FDE9C8).
+    expect(findMenuStyleById('arena')).toBe(null);
+    expect(findMenuStyleById('crema')).not.toBe(null);
+  });
+
+  it('el selector es un carrusel: una página por categoría, scroll-snap horizontal y puntos tocables', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    // Pista horizontal con snap nativo (funciona en navegador y WebView).
+    expect(src).toContain("scrollSnapType: 'x mandatory'");
+    expect(src).toContain("overflowX: 'auto'");
+    expect(src).toContain("touchAction: 'pan-x'");
+    // Cada categoría es una página del ancho del carrusel.
+    expect(src).toContain("flex: '0 0 100%'");
+    expect(src).toContain("scrollSnapAlign: 'start'");
+    // Puntos abajo: uno por categoría, con etiqueta para saltar.
+    expect(src).toContain('aria-label={`Ir a ${cat.label}`}');
+    expect(src).toContain('goToCategory(idx)');
+    expect(src).toContain("scrollTo({ left: idx * el.clientWidth, behavior: 'smooth' })");
+    // La página sigue la posición del carrusel al deslizar.
+    expect(src).toContain('onScroll={handleCarouselScroll}');
+    expect(src).toContain('Math.round(el.scrollLeft / el.clientWidth)');
+    // El nombre de la categoría sigue viéndose en su página.
+    const html = renderDesigner(CARRITO);
+    for (const label of ['Premium', 'Sobrios', 'Cafetería', 'Coloridos']) {
+      expect(html).toContain(label);
+    }
+    for (const label of ['Ir a Premium', 'Ir a Sobrios', 'Ir a Cafetería', 'Ir a Coloridos']) {
+      expect(html).toContain(label);
+    }
+  });
+
+  it('al abrir, el carrusel muestra la categoría del estilo guardado', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    expect(src).toContain("selectedStyle?.category || 'premium'");
+    expect(src).toContain('LOYALTY_COLOR_CATEGORIES.findIndex');
+    expect(src).toContain('el.scrollLeft = initialPageRef.current * el.clientWidth');
+  });
+
+  it('el diseñador se monta con portal en document.body (no atrapado por el transform de Mi Perfil)', () => {
+    const src = read('../components/AccountView.jsx');
+    expect(src).toContain('createPortal(');
+    // El portal del diseñador va a document.body.
+    const idx = src.indexOf('MENU STYLE DESIGNER MODAL');
+    expect(idx).toBeGreaterThan(-1);
+    expect(src.slice(idx, idx + 800)).toContain('createPortal(');
+    expect(src.slice(idx, idx + 800)).toContain('document.body');
+    expect(src.slice(idx, idx + 800)).toContain('MenuStyleDesigner');
+  });
+
+  it('el scroll vertical vive en el contenedor central: header y Guardar siempre visibles', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    // Contenedor central: ocupa el espacio libre y baja con el dedo.
+    expect(src).toContain("flex: 1, minHeight: 0, overflowY: 'auto'");
+    expect(src).toContain("WebkitOverflowScrolling: 'touch'");
+    expect(src).toContain("overscrollBehavior: 'contain'");
+    expect(src).toContain("touchAction: 'pan-y'");
+    // Ya no hay sticky dentro de un contenedor con overflow: el header y
+    // el pie son hijos flex fijos (flexShrink 0) de la columna.
+    expect(src).not.toContain("position: 'sticky'");
   });
 });
