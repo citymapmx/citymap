@@ -15,6 +15,7 @@ import { useDataStore } from '../store/useDataStore.js';
 import { useAppContext } from '../context/AppContext';
 import Footer from './Footer.jsx';
 import LoyaltyDesigner from './loyalty/LoyaltyDesigner.jsx';
+import MenuStyleDesigner from './store/MenuStyleDesigner.jsx';
 import BizShareHub from './BizShareHub.jsx';
 import ProfileLoyaltyCarousel from './loyalty/ProfileLoyaltyCarousel.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
@@ -80,6 +81,7 @@ export default function AccountView({
   const [showUserQR, setShowUserQR] = useState(false);
   const [shareHubBiz, setShareHubBiz] = useState(null);
   const [loyaltyDesignerBiz, setLoyaltyDesignerBiz] = useState(null);
+  const [menuDesignerBiz, setMenuDesignerBiz] = useState(null);
 
   const [myClaims, setMyClaims] = useState([]);
   useEffect(() => {
@@ -200,6 +202,7 @@ export default function AccountView({
             items.push({ label: t("editar_menu_cat", "Editar menú o catálogo"), icon: "list", act: `owner_menu_${b.id}` });
           }
           items.push(
+            { label: t("diseno_menu", "Diseño de mi menú"), icon: "sliders", act: `owner_menu_style_${b.id}` },
             { label: t("editar_negocio", "Editar negocio"), icon: "edit", act: `owner_edit_${b.id}` }
           );
           return items;
@@ -234,6 +237,10 @@ export default function AccountView({
     else if (act.startsWith("owner_loyalty_")) {
       const b = myBizList.find(x => x.id === act.replace("owner_loyalty_", ""));
       if (b) { setLoyaltyDesignerBiz(b); }
+    }
+    else if (act.startsWith("owner_menu_style_")) {
+      const b = myBizList.find(x => x.id === act.replace("owner_menu_style_", ""));
+      if (b) { setMenuDesignerBiz(b); }
     }
     else if (act.startsWith("owner_edit_")) {
       const b = myBizList.find(x => x.id === act.replace("owner_edit_", ""));
@@ -525,6 +532,16 @@ export default function AccountView({
           business={loyaltyDesignerBiz} 
           onClose={() => setLoyaltyDesignerBiz(null)} 
           T={T} 
+        />
+      )}
+
+      {/* ── MENU STYLE DESIGNER MODAL ── */}
+      {menuDesignerBiz && (
+        <MenuStyleDesigner
+          business={menuDesignerBiz}
+          onClose={() => setMenuDesignerBiz(null)}
+          onSaved={() => loadMyBiz(user?.id)?.catch?.(() => {})}
+          T={T}
         />
       )}
     </div>
