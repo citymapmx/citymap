@@ -218,7 +218,11 @@ describe('FavoritosMapa (fuente): pines numerados sobre el mapa real de Google',
   it('reutiliza el hook de Google Maps del mapa principal y crea mapa + marcadores', () => {
     expect(src()).toContain("import { useGMaps } from '../GMap.jsx'");
     expect(src()).toContain('new window.google.maps.Map');
-    expect(src()).toContain('new google.Marker');
+    // Los pines son OverlayView (createOverlayMarker), NO google.maps.Marker:
+    // Google eliminó Marker del canal weekly (v3.66) y `new google.Marker`
+    // lanzaba TypeError al montar y tumbaba TODA la vista (12 nov 2026).
+    expect(src()).toContain('createOverlayMarker');
+    expect(src()).not.toMatch(/new\s+(window\.google\.maps\.|google\.)Marker\s*\(/);
     expect(src()).toContain('map.fitBounds(bounds, 48)');
   });
 
@@ -236,7 +240,9 @@ describe('FavoritosMapa (fuente): pines numerados sobre el mapa real de Google',
   it('el pin lleva el número de la lista (o ✓ si visitado) y al tocarlo abre su tarjeta', () => {
     expect(src()).toContain("String(i + 1)");
     expect(src()).toContain("'✓'");
-    expect(src()).toContain("m.addListener('click', () => onSelect(p.id))");
+    // El clic va en el onClick del OverlayView, no en addListener de Marker.
+    expect(src()).toContain('onClick: () => onSelect(p.id)');
+    expect(src()).toContain('pinSvg(color, sel, labelText)');
   });
 
   it('con filtro, los pines que no tocan se atenúan', () => {

@@ -5,6 +5,7 @@ import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { GMAPS_KEY } from "../lib/supabase.js";
 import { CAT_EMOJI, getThumbUrl, iconFile } from "../lib/utils.js";
 import { hasCloseNeighbor, selectionZoom } from "../lib/mapCentering.js";
+import { createOverlayMarker } from "../lib/googleOverlayMarker.js";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useGMaps() {
@@ -125,6 +126,12 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
 
     if (!utilityFilter) return;
 
+    // PlacesService se eliminó de la API weekly (v3.66): sin este guarda,
+    // `new PlacesService` lanzaba TypeError y tumbaba el mapa entero al
+    // activar un filtro de utilidades. Sin él, simplemente no hay pines
+    // de utilidades (la migración al Place nuevo queda para después).
+    if (typeof window.google.maps.places?.PlacesService !== 'function') return;
+
     const service = new window.google.maps.places.PlacesService(map.current);
     const request = {
       location: map.current.getCenter(),
@@ -137,12 +144,17 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         results.forEach(place => {
           if (!place.geometry || !place.geometry.location) return;
           const iconStr = utilityFilter === 'gas_station' ? '⛽' : utilityFilter === 'atm' ? '🏧' : '💊';
-          const marker = new window.google.maps.Marker({
+          const content = document.createElement('div');
+          content.textContent = iconStr;
+          content.style.fontSize = '20px';
+          content.style.lineHeight = '1';
+          content.style.textShadow = '0 1px 3px rgba(0,0,0,.5)';
+          // OverlayView, no google.maps.Marker (eliminado en v3.66).
+          const marker = createOverlayMarker(window.google, {
             map: map.current,
             position: place.geometry.location,
             title: place.name,
-            label: { text: iconStr, fontSize: "20px" },
-            icon: { path: window.google.maps.SymbolPath.CIRCLE, scale: 0 }
+            content,
           });
           utilityPins.current.push(marker);
         });
@@ -162,15 +174,20 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         <circle cx="22" cy="22" r="6" fill="#3B82F6"/>
         <circle cx="22" cy="22" r="9" fill="none" stroke="#3B82F6" stroke-width="1.5" opacity="0.6"/>
       </svg>`;
-      userPin.current = new window.google.maps.Marker({
-        position: { lat: userLocation.lat, lng: userLocation.lng },
+      // Pin de usuario con OverlayView: google.maps.Marker se eliminó
+      // en la API weekly (v3.66) y `new Marker` con el GPS activo tumbaba
+      // el mapa entero igual que en Favoritos. El dibujo es el mismo SVG
+      // de antes, centrado sobre el punto (anchor 'center').
+      const userContent = document.createElement('div');
+      userContent.innerHTML = svgUser;
+      userContent.style.width = '44px';
+      userContent.style.height = '44px';
+      userPin.current = createOverlayMarker(window.google, {
         map: map.current,
+        position: { lat: userLocation.lat, lng: userLocation.lng },
         title: "Tu ubicación",
-        icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgUser)}`,
-          scaledSize: new window.google.maps.Size(44, 44),
-          anchor: new window.google.maps.Point(22, 22),
-        },
+        content: userContent,
+        anchor: 'center',
         zIndex: 1000,
       });
     } else {
@@ -590,7 +607,14 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
     if (selected?.lat && selected?.lng) {
       const dest = { lat: parseFloat(selected.lat), lng: parseFloat(selected.lng) };
 
-      if (showRoute && userLocation?.lat && userLocation?.lng && window.google?.maps) {
+      // DirectionsService/DirectionsRenderer se eliminaron de la API
+      // weekly (v3.66): sin este guarda, `new DirectionsService` lanzaba
+      // TypeError y tumbaba el mapa al pedir ruta con GPS. Sin ellos no
+      // se dibuja la línea de ruta, pero el mapa sigue y solo acerca al
+      // pin (rama else, modo mini mapa).
+      if (showRoute && userLocation?.lat && userLocation?.lng && window.google?.maps
+        && typeof window.google.maps.DirectionsService === 'function'
+        && typeof window.google.maps.DirectionsRenderer === 'function') {
         // Draw a driving route in fullscreen mode
         const directionsService = new window.google.maps.DirectionsService();
         const directionsRenderer = new window.google.maps.DirectionsRenderer({

@@ -15,7 +15,14 @@ export class ErrorBoundary extends React.Component {
     console.error('ErrorBoundary caught an error',error,info);
   }
   render() {
-    return this.state.hasError ? <LoadFailureView error={this.state.error} recovering={this.state.autoReloading}/> : this.props.children;
+    if (this.state.hasError) {
+      // Mientras se auto-recupera de un chunk viejo, se sigue mostrando
+      // la vista de carga; si el padre pasó un `fallback` propio (p. ej.
+      // el aviso chico del mapa de Favoritos), ese es el que se muestra.
+      if (this.state.autoReloading) return <LoadFailureView error={this.state.error} recovering={this.state.autoReloading}/>;
+      return this.props.fallback || <LoadFailureView error={this.state.error} recovering={this.state.autoReloading}/>;
+    }
+    return this.props.children;
   }
 }
 export default ErrorBoundary;
