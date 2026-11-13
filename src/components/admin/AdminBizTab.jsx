@@ -9,6 +9,7 @@ import { PLAN_META } from '../../lib/constants';
 import { sb, cloudDeleteBatch } from '../../lib/supabase';
 import { createSlug } from "../../lib/utils";
 import { useGMaps } from "../GMap.jsx";
+import CheckConfirmacion from '../CheckConfirmacion.jsx';
 
 export default function AdminBizTab({
   data,
@@ -24,6 +25,9 @@ export default function AdminBizTab({
   const [bizTypeFilter, setBizTypeFilter] = useState("all");
   const [bizCityFilter, setBizCityFilter] = useState("all");
   const [saving, setSaving] = useState(false);
+  // Check de confirmación: al guardar el negocio se reproduce una sola
+  // vez en el formulario y al terminar se cierra (onDone).
+  const [showCheck, setShowCheck] = useState(false);
   const gok = useGMaps();
 
   // Completar Place IDs de Google (botón del panel): llama a la acción
@@ -173,9 +177,9 @@ export default function AdminBizTab({
       }
 
       if (onToast) onToast(bizForm._new ? "Negocio creado ✓" : "Negocio actualizado ✓");
-      setBizForm(null);
-      
-      fetchBiz(0, false);
+      // El formulario no se cierra de inmediato: primero se reproduce
+      // el check de confirmación y al terminar se cierra (onDone).
+      setShowCheck(true);
     } catch (e) {
       if (onToast) onToast("Error: " + e.message);
     } finally {
@@ -646,8 +650,14 @@ export default function AdminBizTab({
       )}
       
       <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={() => setBizForm(null)} style={{ flex: 1, padding: 14, background: "#fff", border: "1.5px solid #E4E8E4", borderRadius: 12, fontWeight: 700, fontSize: 15, color: "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
-        <button className="text-base" onClick={saveBiz} disabled={saving} style={{ flex: 2, padding: 14, background: saving ? "#5A6872" : "#1A7A5E", border: "none", borderRadius: 12, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>{saving ? "Guardando…" : bizForm._new ? "Crear negocio" : "Guardar cambios"}</button>
+        {showCheck ? (
+          <div style={{ flex: 1 }}>
+            <CheckConfirmacion show size={72} onDone={() => { setShowCheck(false); setBizForm(null); fetchBiz(0, false); }} />
+          </div>
+        ) : (<>
+          <button onClick={() => setBizForm(null)} style={{ flex: 1, padding: 14, background: "#fff", border: "1.5px solid #E4E8E4", borderRadius: 12, fontWeight: 700, fontSize: 15, color: "#5A6872", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+          <button className="text-base" onClick={saveBiz} disabled={saving} style={{ flex: 2, padding: 14, background: saving ? "#5A6872" : "#1A7A5E", border: "none", borderRadius: 12, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>{saving ? "Guardando…" : bizForm._new ? "Crear negocio" : "Guardar cambios"}</button>
+        </>)}
       </div>
     </div>}
     </>

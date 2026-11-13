@@ -5,6 +5,7 @@
 // (y se recuerda en este dispositivo, para que no tenga que repetirla).
 import { useEffect, useState, useCallback } from 'react';
 import { sb } from '../../lib/supabase';
+import CheckConfirmacion from '../CheckConfirmacion.jsx';
 import { useAuthStore } from '../../store/useAuthStore';
 import { summarizeRsvps, isOwnRsvp } from '../../lib/privateEvents';
 import { useTranslation } from '../../hooks/useTranslation.js';
@@ -34,6 +35,9 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
   const [companions, setCompanions] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Check de confirmación: se reproduce una sola vez al guardar la
+  // confirmación, encima de la línea minimizada.
+  const [showCheck, setShowCheck] = useState(false);
 
   const load = useCallback(() => {
     if (!event?.id) return;
@@ -107,6 +111,7 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
       }
       try { window.localStorage.setItem(storageKey(event.id), JSON.stringify({ name: name.trim(), status, companions: companionsToSave })); } catch { /* sin almacenamiento */ }
       toast$(t("eventos_confirmacion_guardada", "Confirmación guardada"));
+      setShowCheck(true);
       setCollapsed(true);
       load();
     } catch (e) {
@@ -120,13 +125,16 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
     <div style={{ margin: '0 0 24px 0', textAlign: 'left' }}>
       {/* ── Confirmar asistencia: tras confirmar se minimiza a una línea ── */}
       {collapsed ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: luma ? '#FFFFFF' : T.greenL, border: luma ? '1px solid #E7EBE8' : 'none', boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', borderRadius: luma ? 16 : 12, padding: '12px 14px', marginBottom: 16 }}>
+        <>
+          <CheckConfirmacion show={showCheck} onDone={() => setShowCheck(false)} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: luma ? '#FFFFFF' : T.greenL, border: luma ? '1px solid #E7EBE8' : 'none', boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', borderRadius: luma ? 16 : 12, padding: '12px 14px', marginBottom: 16 }}>
           <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: T.text, textAlign: 'left' }}>
             ✓ {statusLabel} · {name}
             {status === 'voy' && companions > 0 ? ` +${companions}` : ''}
           </div>
           <button onClick={() => setCollapsed(false)} style={{ padding: '8px 14px', background: 'transparent', border: `1.5px solid ${T.border}`, borderRadius: 9999, fontSize: 13, fontWeight: 700, color: T.text, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>{t("eventos_cambiar", "Cambiar")}</button>
         </div>
+        </>
       ) : (
         <div style={{ background: luma ? '#FFFFFF' : T.greenL, border: luma ? '1px solid #E7EBE8' : 'none', boxShadow: luma ? '0 12px 32px rgba(15,23,42,0.08)' : 'none', borderRadius: luma ? 24 : 16, padding: luma ? 18 : 16, marginBottom: 16 }}>
           <div style={{ fontSize: luma ? 16 : 14, fontWeight: 800, color: T.text, marginBottom: 10 }}>{t("eventos_vas_al_evento", "¿Vas al evento?")}</div>

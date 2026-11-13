@@ -6,6 +6,7 @@ import Icon from "../components/ui/Icon.jsx";
 import FavoriteCollectionModal from "../components/FavoriteCollectionModal.jsx";
 import FavoritosMapa from "../components/favoritos/FavoritosMapa.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
+import TrofeoLogro from "../components/TrofeoLogro.jsx";
 import AgendaEventos from "../components/favoritos/AgendaEventos.jsx";
 import { ordenarAgendaEventos } from "../lib/countdownEvento.js";
 import { loadVisitados, saveVisitados, loadAlertasCalendario, saveAlertasCalendario, toggleIdInList } from "../lib/favoritosLocales.js";
@@ -27,9 +28,13 @@ export default function FavsView({ hideHeader }) {
   const [favSelectedId, setFavSelectedId] = useState(null);
   const [visitados, setVisitados] = useState(() => loadVisitados());
   const [alertasCal, setAlertasCal] = useState(() => loadAlertasCalendario());
+  // Trofeo de logro: se dispara una vez cuando al marcar un lugar como
+  // visitado se completa una colección (todos sus lugares visitados).
+  const [showTrofeo, setShowTrofeo] = useState(false);
 
   return (
     <div style={hideHeader ? { paddingBottom: 20 } : { paddingBottom: 84, ...viewStyle, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <TrofeoLogro show={showTrofeo} mensaje={t("fav_coleccion_completada", "¡Colección completada!")} onDone={() => setShowTrofeo(false)} />
       {!hideHeader && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.white }}>
           <div style={{ display: "flex", alignItems: "center" }}>
@@ -66,9 +71,21 @@ export default function FavsView({ hideHeader }) {
                 const nowVisited = next.includes(biz.id);
                 setVisitados(next);
                 saveVisitados(next);
-                toast$(nowVisited
-                  ? t('fav_marcado_toast', 'Marcado como visitado: ${name}', { name: biz.name })
-                  : t('fav_pendiente_toast', 'Volvió a pendientes: ${name}', { name: biz.name }));
+                // Trofeo de logro: si con este cambio se completa una
+                // colección (todos sus lugares guardados visitados) que
+                // antes no estaba completa, se celebra una sola vez.
+                const col = collections.find(c => (c.items || []).includes(biz.id));
+                const valid = col ? (col.items || []).filter(id => favIds.includes(id)) : [];
+                const antesCompleta = valid.length > 0 && valid.every(id => visitados.includes(id));
+                const ahoraCompleta = valid.length > 0 && valid.every(id => next.includes(id));
+                if (!antesCompleta && ahoraCompleta) {
+                  setShowTrofeo(true);
+                  toast$(t('fav_coleccion_completada', '¡Colección completada!'));
+                } else {
+                  toast$(nowVisited
+                    ? t('fav_marcado_toast', 'Marcado como visitado: ${name}', { name: biz.name })
+                    : t('fav_pendiente_toast', 'Volvió a pendientes: ${name}', { name: biz.name }));
+                }
               };
               // La campana es el recordatorio por evento que ya existe en
               // la app: abre el enlace de Google Calendar con la alerta
