@@ -1,14 +1,17 @@
-// Mis Favoritos, propuesta C (12 nov 2026, Jonathan): mapa real de Google
-// con pines numerados, contador de visitados, agenda con cuenta atrás y
-// campana de recordatorio. Pruebas de la lógica pura y del render estático
-// de los dos componentes nuevos, más la fuente de FavsView.
+// Mis Favoritos, propuesta C (12 nov 2026, Jonathan): lista de lugares
+// guardados con contador de visitados, tarjeta del lugar, filtro que
+// recorta la lista, agenda con cuenta atrás y campana de recordatorio.
+// El mapa de Google se quitó de esta sección el 13 nov 2026 («quita el
+// mapa de favoritos no me gustó»): ya no hay pines ni aviso de mapa.
+// Pruebas de la lógica pura y del render estático de los dos
+// componentes nuevos, más la fuente de FavsView.
 
 import { describe, it, expect, afterEach } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
 import { countdownEvento, ordenarAgendaEventos } from '../lib/countdownEvento.js';
-import { parseLatLng, colorParaLugar } from '../lib/mapaFavoritos.js';
+import { colorParaLugar } from '../lib/mapaFavoritos.js';
 import { loadIdSet, saveIdSet, toggleIdInList, VISITADOS_KEY } from '../lib/favoritosLocales.js';
 import FavoritosMapa from '../components/favoritos/FavoritosMapa.jsx';
 import AgendaEventos from '../components/favoritos/AgendaEventos.jsx';
@@ -76,18 +79,6 @@ describe('ordenarAgendaEventos: próximos primero por fecha, luego pasados', () 
   });
 });
 
-describe('parseLatLng: coordenadas válidas o null (nunca inventadas)', () => {
-  it('números y cadenas numéricas pasan; el resto es null', () => {
-    expect(parseLatLng({ lat: 20.6767, lng: -103.3475 })).toEqual({ lat: 20.6767, lng: -103.3475 });
-    expect(parseLatLng({ lat: '20.67', lng: '-103.35' })).toEqual({ lat: 20.67, lng: -103.35 });
-    expect(parseLatLng({ lat: null, lng: null })).toBe(null);
-    expect(parseLatLng({ lat: 200, lng: 'no' })).toBe(null);
-    expect(parseLatLng({ lat: 20.67 })).toBe(null);
-    expect(parseLatLng({})).toBe(null);
-    expect(parseLatLng(null)).toBe(null);
-  });
-});
-
 describe('colorParaLugar: color determinista por id', () => {
   it('mismo id, mismo color; color dentro de la paleta', () => {
     expect(colorParaLugar('cafe-bros')).toBe(colorParaLugar('cafe-bros'));
@@ -131,8 +122,9 @@ describe('favoritosLocales: visitados y alertas en localStorage', () => {
   });
 });
 
-// Lugares reales de Jonathan (propuesta C del artefacto), con coordenadas
-// de Guadalajara. Dalila va sin coordenadas: no lleva pin, solo leyenda.
+// Lugares reales de Jonathan (propuesta C del artefacto). Dalila va sin
+// coordenadas: en la lista sale igual que los demás (sin mapa ya no hay
+// pines ni aviso de ubicación).
 const PLACES = [
   { id: 'la-chata', name: 'La Chata', type: 'Restaurante', lat: 20.6767, lng: -103.3475, collectionName: 'Por visitar', photos: [] },
   { id: 'akami', name: 'Akami Sushi', type: 'Restaurante', lat: 20.6997, lng: -103.38, collectionName: 'Para cita', photos: [] },
@@ -146,49 +138,47 @@ const EVENTS = [
   { id: 'viejo', title: 'Evento viejo', venue_name: 'Foro Viejo', date: '2026-11-10', time: '19:00' },
 ];
 
-function renderMapa(props = {}) {
+function renderLista(props = {}) {
   return renderToStaticMarkup(
     <FavoritosMapa
       T={T} t={t} places={PLACES} selectedId="cafe-bros" onSelect={() => {}}
       filter="todos" onFilterChange={() => {}} visitedIds={['akami']}
       onToggleVisit={() => {}} onGoDir={() => {}} onOrganize={() => {}}
-      onToggleFav={() => {}} onOpen={() => {}} cityCenter={{ lat: 20.6767, lng: -103.3475 }} cityName="Guadalajara"
+      onToggleFav={() => {}} onOpen={() => {}}
       {...props}
     />,
   );
 }
 
-describe('FavoritosMapa: mapa real de Google, contador y tarjeta del lugar', () => {
-  it('sin window.google pinta el "Cargando mapa…" y la leyenda con todos los lugares', () => {
-    const html = renderMapa();
-    // En node no hay window: el mapa real no se monta, sale el cargando.
-    expect(html).toContain('Cargando mapa…');
-    expect(html).toContain('Mapa de Google con los pines de tus favoritos en Guadalajara');
-    // La leyenda trae a todos, incluida Dalila (sin coordenadas, sin pin).
+// La lista es lo que se pinta después de la tarjeta del seleccionado:
+// se recorta por ahí para no confundirla con la tarjeta.
+const soloLista = (html) => html.slice(html.indexOf('Lista de lugares guardados'));
+
+describe('FavoritosMapa: lista sin mapa, contador y tarjeta del lugar', () => {
+  it('sin mapa: no hay contenedor de mapa, ni título de mapa, ni aviso de ubicación', () => {
+    const html = renderLista();
+    expect(html).not.toContain('Mapa de tus favoritos');
+    expect(html).not.toContain('Cargando mapa…');
+    expect(html).not.toContain('Mapa de Google');
+    expect(html).not.toContain('sin ubicación en el mapa');
+    expect(html).not.toContain('role="application"');
+    expect(html).not.toContain('El mapa no se pudo cargar');
+    // La lista trae a todos, incluida Dalila (sin coordenadas).
     expect(html).toContain('La Chata');
     expect(html).toContain('Akami Sushi');
     expect(html).toContain('Dalila');
     expect(html).toContain('Café Bros Company');
-    // Y el aviso de que hay lugares sin ubicación en el mapa.
-    expect(html).toContain('1 lugar(es) sin ubicación en el mapa');
-    // Nada del mapa esquemático: ni cuadrícula, ni avenidas, ni colonias.
-    expect(html).not.toContain('repeating-linear-gradient');
-    expect(html).not.toContain('Providencia');
-    expect(html).not.toContain('data-pin-id');
   });
 
-  it('la leyenda conserva el orden de la lista (el número del pin es el índice + 1)', () => {
-    const html = renderMapa();
-    // La tarjeta del seleccionado va antes: el orden se comprueba dentro
-    // de la leyenda (aria-label "Lista de lugares del mapa").
-    const leyenda = html.slice(html.indexOf('Lista de lugares del mapa'));
-    expect(leyenda.indexOf('La Chata')).toBeLessThan(leyenda.indexOf('Akami Sushi'));
-    expect(leyenda.indexOf('Akami Sushi')).toBeLessThan(leyenda.indexOf('Dalila'));
-    expect(leyenda.indexOf('Dalila')).toBeLessThan(leyenda.indexOf('Café Bros Company'));
+  it('la lista conserva el orden y numera 1..N', () => {
+    const lista = soloLista(renderLista());
+    expect(lista.indexOf('La Chata')).toBeLessThan(lista.indexOf('Akami Sushi'));
+    expect(lista.indexOf('Akami Sushi')).toBeLessThan(lista.indexOf('Dalila'));
+    expect(lista.indexOf('Dalila')).toBeLessThan(lista.indexOf('Café Bros Company'));
   });
 
   it('contador de visitados y tarjeta del seleccionado con sus acciones', () => {
-    const html = renderMapa();
+    const html = renderLista();
     expect(html).toContain('1 de 4 visitados');
     expect(html).toContain('Café Bros Company');
     expect(html).toContain('Cómo llegar');
@@ -201,52 +191,57 @@ describe('FavoritosMapa: mapa real de Google, contador y tarjeta del lugar', () 
   });
 
   it('el lugar visitado seleccionado muestra «Ya lo visitaste»', () => {
-    const html = renderMapa({ selectedId: 'akami' });
+    const html = renderLista({ selectedId: 'akami' });
     expect(html).toContain('Ya lo visitaste');
     expect(html).toContain('Colección: Para cita');
   });
 
-  it('sin lugares sin coordenadas no sale el aviso', () => {
-    const html = renderMapa({ places: PLACES.filter((p) => p.id !== 'dalila') });
-    expect(html).not.toContain('sin ubicación en el mapa');
+  it('el filtro Visitados recorta la lista a solo los visitados', () => {
+    const lista = soloLista(renderLista({ filter: 'visitados' }));
+    expect(lista).toContain('Akami Sushi');
+    expect(lista).not.toContain('La Chata');
+    expect(lista).not.toContain('Dalila');
+    expect(lista).not.toContain('Café Bros Company');
+  });
+
+  it('el filtro Sin visitar recorta la lista a solo los pendientes', () => {
+    const lista = soloLista(renderLista({ filter: 'pendientes' }));
+    expect(lista).toContain('La Chata');
+    expect(lista).toContain('Dalila');
+    expect(lista).toContain('Café Bros Company');
+    expect(lista).not.toContain('Akami Sushi');
+  });
+
+  it('el filtro Todos muestra la lista completa', () => {
+    const lista = soloLista(renderLista({ filter: 'todos' }));
+    expect(lista).toContain('La Chata');
+    expect(lista).toContain('Akami Sushi');
+    expect(lista).toContain('Dalila');
+    expect(lista).toContain('Café Bros Company');
   });
 });
 
-describe('FavoritosMapa (fuente): pines numerados sobre el mapa real de Google', () => {
+describe('FavoritosMapa (fuente): sin mapa de Google, el filtro recorta la lista', () => {
   const src = () => readFileSync(new URL('../components/favoritos/FavoritosMapa.jsx', import.meta.url), 'utf8');
 
-  it('reutiliza el hook de Google Maps del mapa principal y crea mapa + marcadores', () => {
-    expect(src()).toContain("import { useGMaps } from '../GMap.jsx'");
-    expect(src()).toContain('new window.google.maps.Map');
-    // Los pines son OverlayView (createOverlayMarker), NO google.maps.Marker:
-    // Google eliminó Marker del canal weekly (v3.66) y `new google.Marker`
-    // lanzaba TypeError al montar y tumbaba TODA la vista (12 nov 2026).
-    expect(src()).toContain('createOverlayMarker');
-    expect(src()).not.toMatch(/new\s+(window\.google\.maps\.|google\.)Marker\s*\(/);
-    expect(src()).toContain('map.fitBounds(bounds, 48)');
+  it('nada de Google Maps: ni hook, ni mapa, ni OverlayView, ni boundary del mapa', () => {
+    const s = src();
+    expect(s).not.toContain('useGMaps');
+    expect(s).not.toContain('new window.google.maps.Map');
+    expect(s).not.toContain('createOverlayMarker');
+    expect(s).not.toContain('MapaNoDisponible');
+    expect(s).not.toContain('ErrorBoundary');
+    expect(s).not.toContain('parseLatLng');
+    expect(s).not.toContain('Mapa de tus favoritos');
+    expect(s).not.toContain('Cargando mapa');
+    expect(s).not.toContain('fitBounds');
   });
 
-  it('solo crea pin con coordenadas reales: sin coords, sin pin inventado', () => {
-    expect(src()).toContain('parseLatLng(p)');
-    expect(src()).toContain('if (!c) return;');
-    // Nada del esquemático: ni proyección a x/y, ni huecos fijos.
-    expect(src()).not.toContain('projectToMap');
-    expect(src()).not.toContain('MAPA_FALLBACK_SLOTS');
-    expect(src()).not.toContain('AVENUES');
-    expect(src()).not.toContain('PARKS');
-    expect(src()).not.toContain('ZONES_GDL');
-  });
-
-  it('el pin lleva el número de la lista (o ✓ si visitado) y al tocarlo abre su tarjeta', () => {
-    expect(src()).toContain("String(i + 1)");
-    expect(src()).toContain("'✓'");
-    // El clic va en el onClick del OverlayView, no en addListener de Marker.
-    expect(src()).toContain('onClick: () => onSelect(p.id)');
-    expect(src()).toContain('pinSvg(color, sel, labelText)');
-  });
-
-  it('con filtro, los pines que no tocan se atenúan', () => {
-    expect(src()).toContain('setOpacity(dim ? 0.25 : 1)');
+  it('el filtro recorta la lista visible por visitados', () => {
+    const s = src();
+    expect(s).toContain('visiblePlaces');
+    expect(s).toContain("filter === 'visitados'");
+    expect(s).toContain("filter === 'pendientes'");
   });
 });
 
@@ -288,11 +283,12 @@ describe('FavsView: cableado de la propuesta C', () => {
   it('usa los componentes nuevos y la lógica pura', () => {
     expect(src()).toContain('FavoritosMapa');
     expect(src()).toContain('AgendaEventos');
-    expect(src()).toContain('getCityCenter');
     expect(src()).toContain('ordenarAgendaEventos');
     expect(src()).toContain('loadVisitados');
     expect(src()).toContain('getEventCalendarUrl');
-    // Ya no hay proyección esquemática: los lugares van tal cual al mapa.
+    // Sin mapa: ya no hay centro de ciudad ni proyección esquemática.
+    expect(src()).not.toContain('getCityCenter');
+    expect(src()).not.toContain('favCityCenter');
     expect(src()).not.toContain('projectToMap');
   });
 
