@@ -36,11 +36,15 @@ describe('Fase 2: la sección de eventos no parpadea al estado vacío', () => {
     expect(html).not.toContain('todavía no hay eventos');
   });
 
-  it('con la secundaria resuelta y sin eventos, aparece el estado vacío honesto', () => {
+  // Decisión de Jonathan, 13 Nov 2026: con la secundaria resuelta y sin
+  // eventos, la sección «Próximos eventos» no se monta (ni título, ni
+  // mensaje, ni cubos); el esqueleto solo sale mientras carga.
+  it('con la secundaria resuelta y sin eventos, la sección no se monta', () => {
     const html = renderToStaticMarkup(
       <HomeEvents {...baseProps} dbReady secondaryReady />,
     );
-    expect(html).toContain('todavía no hay eventos');
+    expect(html).toBe('');
+    expect(html).not.toContain('todavía no hay eventos');
     expect(html).not.toContain('skel-block');
   });
 
