@@ -91,3 +91,42 @@ describe('Diseñador de lealtad: optimización (sin sección LOGO, borrar arriba
     expect(html).not.toContain('Previsualización en vivo');
   });
 });
+
+describe('Diseñador de lealtad: segunda vuelta (espacio tarjeta-pestañas y 2 columnas)', () => {
+  it('el contenedor de la vista previa ya no tiene minHeight fijo', () => {
+    expect(SRC).not.toContain('minHeight: isMobile ? 380');
+    expect(SRC).not.toContain('minHeight: 380');
+  });
+
+  it('la tarjeta compensa el escalado con margen negativo en móvil', () => {
+    // El scale(0.85) no reduce el alto de layout: sin compensación sobra
+    // ~15% del alto de la tarjeta (~66 px) entre la tarjeta y las pestañas.
+    expect(SRC).toContain('transform: isMobile ? "scale(0.85)" : "scale(0.9)"');
+    expect(SRC).toMatch(/marginBottom: isMobile \? -\d+ : 0/);
+  });
+
+  it('COLORES e ICONO DEL SELLO van lado a lado en 2 columnas', () => {
+    const designStart = SRC.indexOf('{activeTab === "design"');
+    const rulesStart = SRC.indexOf('{activeTab === "rules"');
+    expect(designStart).toBeGreaterThan(-1);
+    expect(rulesStart).toBeGreaterThan(designStart);
+    const block = SRC.slice(designStart, rulesStart);
+    // Una fila flex con dos columnas (wrap para pantallas muy angostas).
+    expect(block).toContain('display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap"');
+    expect(block).toContain('flex: "1 0 140px"');
+    // Ambas etiquetas dentro de la misma fila, Colores primero.
+    expect(block.indexOf('>Colores</label>')).toBeGreaterThan(-1);
+    expect(block.indexOf('>Icono del sello</label>')).toBeGreaterThan(block.indexOf('>Colores</label>'));
+  });
+
+  it('los iconos del sello van en rejilla compacta de 44 px', () => {
+    expect(SRC).toContain('gridTemplateColumns: "repeat(auto-fill, 44px)"');
+    expect(SRC).toContain('width: 44, height: 44');
+  });
+
+  it('los círculos de color caben de 3 en 3 en la columna (40 px)', () => {
+    const matches = SRC.match(/width: 40, height: 40/g) || [];
+    expect(matches).toHaveLength(3);
+    expect(SRC).not.toContain('width: 48, height: 48');
+  });
+});
