@@ -1,9 +1,12 @@
-// Visibilidad de categorías de menú por horario (PR menú-visibilidad-por-horario).
-// Una categoría con available_from/available_to solo se muestra dentro de su
-// ventana, en la zona horaria de la ciudad del negocio. Sin horario (NULL en
-// ambas, o solo en una) siempre visible. Ventana nocturna (from > to, p. ej.
-// 18:00–02:00) también funciona. Bordes: inicio inclusivo, fin exclusivo
-// (08:30 sí, 13:00 no), igual que las promociones en menuPromotions.js.
+// Visibilidad de categorías de menú por horario (PR menú-visibilidad-por-horario,
+// cambio nov 2026, Jonathan): una categoría con available_from/available_to
+// ya NO se oculta fuera de su ventana — se muestra atenuada y al tocarla
+// avisa que está fuera de servicio. `isCategoryVisibleNow` sigue diciendo si
+// la categoría está en horario ahora (para calcular el estado atenuado).
+// Sin horario (NULL en ambas, o solo en una) siempre visible. Ventana nocturna
+// (from > to, p. ej. 18:00–02:00) también funciona. Bordes: inicio inclusivo,
+// fin exclusivo (08:30 sí, 13:00 no), igual que las promociones en
+// menuPromotions.js.
 
 export function timeToMinutes(value) {
   if (typeof value !== 'string') return null;
@@ -30,6 +33,34 @@ export function categoryScheduleLabel(category) {
   const to = timeToMinutes(category?.available_to);
   if (from == null || to == null) return 'Siempre visible';
   return `${minutesToTimeLabel(from)}–${minutesToTimeLabel(to)}`;
+}
+
+// Minutos desde medianoche → "8:00 a.m.", "12:30 p.m." (hora sin cero
+// inicial, como en el resto del sitio).
+export function formatMinutes12h(minutes) {
+  if (minutes == null || !Number.isFinite(minutes)) return '';
+  const h24 = Math.floor(minutes / 60) % 24;
+  const m = minutes % 60;
+  const period = h24 >= 12 ? 'p.m.' : 'a.m.';
+  const h = h24 % 12 || 12;
+  return `${h}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+// "8:00 a.m. – 12:30 p.m." o null si la categoría no tiene horario.
+export function categoryScheduleLabel12h(category) {
+  const from = timeToMinutes(category?.available_from);
+  const to = timeToMinutes(category?.available_to);
+  if (from == null || to == null) return null;
+  return `${formatMinutes12h(from)} – ${formatMinutes12h(to)}`;
+}
+
+// Aviso para una categoría fuera de horario. La ventana se repite cada día,
+// así que la próxima apertura es siempre available_from:
+// "Fuera de servicio, vuelve a las 8:00 a.m." o null si no tiene horario.
+export function offHoursMessage(category) {
+  const from = timeToMinutes(category?.available_from);
+  if (from == null || timeToMinutes(category?.available_to) == null) return null;
+  return `Fuera de servicio, vuelve a las ${formatMinutes12h(from)}`;
 }
 
 export function isCategoryVisibleNow(category, { now = new Date(), timeZone = 'America/Mazatlan' } = {}) {

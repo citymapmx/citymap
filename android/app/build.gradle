@@ -7,8 +7,8 @@ android {
         applicationId "mx.citymap.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 38
-        versionName "1.38"
+        versionCode 40
+        versionName "1.40"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -78,12 +78,12 @@ tasks.matching { it.name.startsWith('merge') && it.name.endsWith('Resources') }.
 
 // Sonido propio de los avisos push (PR #223). El .mp3 es binario y no viaja
 // por las herramientas de subida del repo, así que vive como base64 en
-// src/main/res/raw/citymap_alert.mp3.b64 y se decodifica aquí, en cada build,
+// src/main/assets/citymap_alert.mp3.b64 y se decodifica aquí, en cada build,
 // antes de empaquetar los recursos. Si el .mp3 ya existe y está al día, no
 // se toca. Sin el recurso, Android cae al sonido por defecto.
 tasks.register('decodeCitymapAlertSound') {
     doLast {
-        def b64File = file('src/main/res/raw/citymap_alert.mp3.b64')
+        def b64File = file('src/main/assets/citymap_alert.mp3.b64')
         def mp3File = file('src/main/res/raw/citymap_alert.mp3')
         if (!b64File.exists()) {
             logger.warn("citymap_alert.mp3.b64 no encontrado; el sonido propio no se empaquetará")

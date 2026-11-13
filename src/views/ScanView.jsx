@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import Icon from '../components/ui/Icon.jsx';
+import ConfettiLogro from '../components/ConfettiLogro.jsx';
+import TrofeoLogro from '../components/TrofeoLogro.jsx';
 
 export default function ScanView({ user, T, dark, setShowAuth }) {
   const { memberId } = useParams();
@@ -13,6 +15,12 @@ export default function ScanView({ user, T, dark, setShowAuth }) {
   const [biz, setBiz] = useState(null);
   const [error, setError] = useState(null);
   const [stamping, setStamping] = useState(false);
+  // Confeti de logro: se dispara una vez al completar la tarjeta o
+  // al canjear el premio (después del aviso, porque el alert nativo
+  // tapa la pantalla mientras está abierto). El trofeo va junto al
+  // confeti, en los mismos dos momentos.
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showTrofeo, setShowTrofeo] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -98,8 +106,12 @@ export default function ScanView({ user, T, dark, setShowAuth }) {
       
       if (isRedeeming) {
         alert("🎉 ¡Premio entregado! La tarjeta se reinició a 0 sellos.");
+        setShowConfetti(true);
+        setShowTrofeo(true);
       } else if (newStamps >= stampsRequired) {
         alert("🎉 ¡Felicidades! El cliente ha completado todos los sellos y ya puede canjear su premio.");
+        setShowConfetti(true);
+        setShowTrofeo(true);
       } else {
         alert("✅ Sello agregado exitosamente.");
       }
@@ -200,6 +212,8 @@ export default function ScanView({ user, T, dark, setShowAuth }) {
         Volver al Inicio
       </button>
 
+      <ConfettiLogro show={showConfetti} onDone={() => setShowConfetti(false)} />
+      <TrofeoLogro show={showTrofeo} onDone={() => setShowTrofeo(false)} />
     </div>
   );
 }

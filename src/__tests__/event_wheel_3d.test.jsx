@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
-import EventWheel3D from '../components/home/EventWheel3D.jsx';
+import EventWheel3D, { WHEEL_ROW_MAX_EVENTS } from '../components/home/EventWheel3D.jsx';
 
 function makeEvent(i) {
   return {
@@ -175,23 +175,66 @@ describe('event wheel 3D', () => {
     expect(base.every((t) => !t.includes('width=800'))).toBe(true);
   });
 
-  it('renders a plain row without a drum when there are fewer than 3 events', () => {
-    const html = renderWheel({ events: events.slice(0, 2) });
+  it('renders a scrollable row without a drum when there are 3 or fewer events', () => {
+    const html = renderWheel({ events: events.slice(0, 3) });
+    // Opción B (13 Nov 2026): con 3 o menos no hay tambor: fila
+    // horizontal deslizable con las tarjetas a tamaño completo.
     expect(html).not.toContain('event-wheel-drum');
+    expect(html).not.toContain('event-wheel-dot');
+    expect(html).not.toContain('event-wheel-front-name');
+    expect(html).toContain('event-wheel-row');
+    // El scroll con snap es el indicador (sin puntos de la rueda).
+    expect(html).toContain('scroll-snap-type:x mandatory');
+    expect(html).toContain('Próximos eventos');
     expect(html).toContain('Evento 1');
     expect(html).toContain('Evento 2');
-    expect(html).toContain('Próximos eventos');
-    // La hilera simple no es el tambor: ahí sí va la píldora con la
-    // ciudad, como antes (es la única que muestra ese dato).
+    expect(html).toContain('Evento 3');
+    // La hilera sí lleva la píldora con la ciudad, como antes (es la
+    // única que muestra ese dato).
+    expect(html.match(/event-wheel-city/g)).toHaveLength(3);
+    // Tarjetas a tamaño completo: min(78%, 300px), no 170 px.
+    expect(html).toMatch(/min\(78%, ?300px\)/);
+    expect(html).not.toContain('0 0 170px');
+  });
+
+  it('with 1 event renders the row, not the drum', () => {
+    const html = renderWheel({ events: events.slice(0, 1) });
+    expect(html).not.toContain('event-wheel-drum');
+    expect(html).toContain('event-wheel-row');
+    expect(html).toContain('Evento 1');
+    expect(html).not.toContain('Evento 2');
+  });
+
+  it('with 2 events renders the row, not the drum', () => {
+    const html = renderWheel({ events: events.slice(0, 2) });
+    expect(html).not.toContain('event-wheel-drum');
+    expect(html).toContain('event-wheel-row');
+    expect(html).toContain('Evento 1');
+    expect(html).toContain('Evento 2');
     expect(html.match(/event-wheel-city/g)).toHaveLength(2);
   });
 
-  it('the plain row serves 400 px posters (170 px cards, not 800 px)', () => {
+  it('with 4 events renders the drum, not the row', () => {
+    const html = renderWheel({ events: events.slice(0, 4) });
+    expect(html).toContain('event-wheel-drum');
+    expect(html).not.toContain('event-wheel-row');
+    expect(html.match(/event-wheel-dot[ "]/g)).toHaveLength(4);
+    expect(html).toContain('>Evento 1</button>');
+  });
+
+  it('the row serves sharp 800 px posters (300 px cards, not 400 px)', () => {
     const sbImg = 'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/poster.jpg';
     const html = renderWheel({ events: [{ ...makeEvent(0), img: sbImg }, { ...makeEvent(1), img: sbImg }] });
     expect(html.match(/<img/g)).toHaveLength(2);
-    expect(html).toContain('width=400');
-    expect(html).not.toContain('width=800');
+    // A 300 px CSS y 3x en teléfono son ~900 px de dispositivo: el
+    // póster va a 800 px (SRCSET_CARD); a 400 se veía blando, igual que
+    // la cara del frente de la rueda (PR #264).
+    expect(html).toContain('width=800');
+    expect(html).toContain('800w');
+  });
+
+  it('the row threshold is a named constant (3) so it can be adjusted', () => {
+    expect(WHEEL_ROW_MAX_EVENTS).toBe(3);
   });
 
   it('renders nothing without events', () => {

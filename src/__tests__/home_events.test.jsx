@@ -26,12 +26,15 @@ const events = [
 ];
 
 describe('Vite home events (rueda 3D, como el inicio global)', () => {
-  it('merges long-duration events into the wheel and drops their section', () => {
+  it('merges long-duration events into the row and drops their section', () => {
     const html = renderToStaticMarkup(
       <HomeEvents events={events} activeCity="guadalajara" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} />,
     );
     // Un solo carrusel con el título de siempre, sin la sección aparte.
+    // Con 2 eventos es fila deslizable (opción B, 13 Nov 2026), no rueda.
     expect(html.match(/Próximos eventos/g)).toHaveLength(1);
+    expect(html).not.toContain('event-wheel-drum');
+    expect(html).toContain('event-wheel-row');
     // Sin subtítulo (PR #196): el encabezado es solo el título de sección.
     expect(html).not.toContain('Los eventos que vienen en tu ciudad');
     expect(html).not.toContain('Eventos de larga duración');
@@ -94,7 +97,7 @@ describe('Next home events (coverflow)', () => {
   });
 });
 
-describe('Vite home events: ciudad sin eventos (estado vacío honesto)', () => {
+describe('Vite home events: ciudad sin eventos (sección oculta)', () => {
   // t() que interpola ${ciudad} como el de useTranslation.
   const t = (k, f, vars) => {
     const v = f !== undefined ? f : k;
@@ -110,22 +113,24 @@ describe('Vite home events: ciudad sin eventos (estado vacío honesto)', () => {
     { id: 'n2', title: 'Festival Vecino', date: dayKey(9), city_slug: 'zapopan', status: 'approved', venue_name: 'Auditorio Telmex', img_url: 'https://example.supabase.co/n2.jpg' },
   ];
 
-  it('muestra solo el mensaje, sin línea de cerca ni lista de cercanos', () => {
+  // Decisión de Jonathan, 13 Nov 2026: sin eventos, la sección
+  // «Próximos eventos» no se monta (ni título, ni mensaje, ni cubos).
+  it('no monta nada: ni título, ni mensaje, ni cubos', () => {
     const html = renderToStaticMarkup(
       <HomeEvents events={[]} activeCity="tlaquepaque" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} t={t} cities={cities} />,
     );
-    expect(html).toContain('Próximos eventos');
-    expect(html).toContain('En Tlaquepaque todavía no hay eventos');
-    expect(html).not.toContain('Pero hay eventos cerca que te pueden gustar.');
-    expect(html).not.toContain('Eventos cerca de');
+    expect(html).toBe('');
+    expect(html).not.toContain('Próximos eventos');
+    expect(html).not.toContain('todavía no hay eventos');
     expect(html).not.toContain('Concierto Cercano');
   });
 
-  it('aunque lleguen eventos cercanos por props viejos, no se muestran ni se piden', () => {
+  it('aunque lleguen eventos cercanos por props viejos, no se monta nada', () => {
     const html = renderToStaticMarkup(
       <HomeEvents events={[]} activeCity="tlaquepaque" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} t={t} cities={cities} nearbyEvents={nearby} onRequestNearbyEvents={() => {}} />,
     );
-    expect(html).toContain('En Tlaquepaque todavía no hay eventos');
+    expect(html).toBe('');
+    expect(html).not.toContain('todavía no hay eventos');
     expect(html).not.toContain('Concierto Cercano');
     expect(html).not.toContain('Festival Vecino');
     expect(html).not.toContain('Eventos cerca de');

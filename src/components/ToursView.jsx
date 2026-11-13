@@ -8,6 +8,8 @@ import { sb } from '../lib/supabase.js';
 import { localizedTitle } from '../lib/i18nContent.js';
 import { groupToursByCity, tourCardUrl, tourPriceLabel, tourDurationLabel } from '../lib/tours.js';
 import OptimizedImage from './ui/OptimizedImage.jsx';
+import LottieAnim from './LottieAnim.jsx';
+import { BOLETO_AVION_SRC } from '../lib/lottieAnimaciones.js';
 import { SRCSET_CARD } from '../lib/utils.js';
 import Footer from './Footer.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
@@ -117,6 +119,11 @@ export default function ToursView({ T, dark, cities, initialTours }) {
         </div>
       </div>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px 40px' }}>
+        {/* Boleto animado: encabezado de /tours (formato ancho, bucle
+            lento y discreto). Si el archivo no carga, no pinta nada. */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '0 0 4px' }}>
+          <LottieAnim src={BOLETO_AVION_SRC} loop speed={0.7} width={220} height={91} ariaLabel="Tours y viajes" />
+        </div>
         {/* Subtítulo como el de Revista: bajo el logo, sin título grande ni "← Inicio" */}
         <p style={{ fontSize: 13, fontWeight: 600, color: T.sub, margin: '0 0 20px', textAlign: 'center', lineHeight: 1.4 }}>
           {loading ? t("revista_cargando_tours", "Cargando tours…") : selectedGroup
