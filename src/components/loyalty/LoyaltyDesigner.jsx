@@ -377,8 +377,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
           flexDirection: "column", 
           alignItems: "center",
           order: isMobile ? 1 : 2,
-          overflowY: isMobile ? "visible" : "auto",
-          minHeight: isMobile ? 380 : "auto"
+          overflowY: isMobile ? "visible" : "auto"
         }}>
           {/* Tarjeta de Lealtad Preview */}
           <div style={{ 
@@ -390,7 +389,10 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
             overflow: "hidden",
             transition: "all 0.3s ease",
             transform: isMobile ? "scale(0.85)" : "scale(0.9)",
-            transformOrigin: "top center"
+            transformOrigin: "top center",
+            // El escalado no reduce el alto de layout: compensa el hueco (~15%)
+            // para que las pestañas queden pegadas a la tarjeta.
+            marginBottom: isMobile ? -66 : 0
           }}>
             {/* Header - Logo y nombre */}
             <div style={{ padding: "30px 16px 16px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
@@ -479,27 +481,27 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
           <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 32 }}>
             
             {activeTab === "design" && (
-              <>
-                <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.sub, marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" }}>Colores</label>
-                  <div style={{ display: "flex", gap: 16, justifyContent: "space-between" }}>
+              <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+                <div style={{ flex: "1 0 140px", minWidth: 0 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.sub, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" }}>Colores</label>
+                  <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
                     
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                      <div style={{ position: "relative", width: 48, height: 48, borderRadius: "50%", background: config.bg_color, border: `2px solid ${T.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+                      <div style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: config.bg_color, border: `2px solid ${T.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
   <input type="color" value={loyaltyBgFirstColor(config.bg_color)} onChange={e => setConfig({...config, bg_color: e.target.value})} style={{ opacity: 0, position: "absolute", inset: 0, width: "100%", height: "100%", cursor: "pointer" }} />
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 600, color: T.text }}>Fondo</div>
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                      <div style={{ position: "relative", width: 48, height: 48, borderRadius: "50%", background: config.text_color, border: `2px solid ${T.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+                      <div style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: config.text_color, border: `2px solid ${T.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
                         <input type="color" value={config.text_color} onChange={e => setConfig({...config, text_color: e.target.value})} style={{ opacity: 0, position: "absolute", inset: 0, width: "100%", height: "100%", cursor: "pointer" }} />
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 600, color: T.text }}>Texto</div>
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                      <div style={{ position: "relative", width: 48, height: 48, borderRadius: "50%", background: config.primary_color, border: `2px solid ${T.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+                      <div style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: config.primary_color, border: `2px solid ${T.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
                         <input type="color" value={config.primary_color} onChange={e => setConfig({...config, primary_color: e.target.value})} style={{ opacity: 0, position: "absolute", inset: 0, width: "100%", height: "100%", cursor: "pointer" }} />
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 600, color: T.text }}>Botón / Sello</div>
@@ -508,9 +510,9 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
                   </div>
                 </div>
 
-                <div>
+                <div style={{ flex: "1 0 140px", minWidth: 0 }}>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.sub, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" }}>Icono del sello</label>
-                  <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 44px)", gap: 8, justifyContent: "center" }}>
                     {[
                       { id: "star", name: "Estrella" },
                       { id: "coffee", name: "Café" },
@@ -534,7 +536,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
                     })}
                   </div>
                 </div>
-              </>
+              </div>
             )}
 
             {activeTab === "rules" && (
