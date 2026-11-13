@@ -13,10 +13,12 @@ import {
 } from '../../lib/wheelPreload.js';
 import {
   WHEEL_AUTO_RESUME_MS,
+  WHEEL_FACE_H,
+  WHEEL_FACE_H_MOBILE,
   WHEEL_FACE_W,
   WHEEL_FACE_W_MOBILE,
   wheelAutoStep,
-  wheelDrumRadius,
+  wheelDrumGeometry,
   wheelShouldAutoRotate,
 } from '../../lib/wheelMotion.js';
 import EventPosterFallback from './EventPosterFallback.jsx';
@@ -91,6 +93,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     return () => mq.removeEventListener?.('change', onChange);
   }, []);
   const faceW = isMobile ? WHEEL_FACE_W_MOBILE : WHEEL_FACE_W;
+  const faceH = isMobile ? WHEEL_FACE_H_MOBILE : WHEEL_FACE_H;
   const indexRef = useRef(0);
   const rotationRef = useRef(0);
   const velocityRef = useRef(0);
@@ -110,13 +113,16 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   const reducedMotionRef = useRef(reducedMotion);
 
   const step = n >= 3 ? 360 / n : 0;
-  // Radio del tambor FIJO, el de 10 caras, igual que el inicio global
-  // (ver wheelDrumRadius): no depende de cuántos eventos tenga la ciudad,
-  // para que la rueda de ciudad se vea a lo ancho como la del global y
-  // no chica y centrada. Con menos de 10 eventos las tarjetas ya no se
-  // tocan (queda aire entre ellas), pero el tambor y la cara del frente
-  // miden lo mismo que en el global.
-  const radius = wheelDrumRadius(faceW);
+  // Geometría del tambor (ver wheelDrumGeometry): con 10 eventos es la
+  // de siempre (cara 162x212 nominal, radio 249 px en escritorio; 140x184
+  // y 215 px en teléfono). Con menos eventos la cara se ensancha y el
+  // radio se achica para que las vecinas queden PEGADAS al frente — con
+  // el radio fijo de la #290 quedaba ~60 px de aire entre tarjetas en
+  // Tepic (7 eventos) — y la cara del frente se sigue viendo igual de
+  // grande que en el inicio global. El tamaño va en línea en cada cara
+  // (el CSS trae el nominal de 10 caras como base).
+  const drum = wheelDrumGeometry(faceW, faceH, n);
+  const radius = drum.radius;
 
   useEffect(() => {
     nRef.current = n;
@@ -422,7 +428,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
             // lo mismo que brightness(brillo).
             const shadeOpacity = Math.round((1 - faceBrightness(angle, T.dark)) * 100) / 100;
             return (
-              <div key={item.key} data-face={i} className="event-wheel-face" style={{ transform: `rotateY(${i * step}deg) translateZ(${radius}px)` }}>
+              <div key={item.key} data-face={i} className="event-wheel-face" style={{ transform: `rotateY(${i * step}deg) translateZ(${radius}px)`, width: drum.faceW, height: drum.faceH, marginLeft: -drum.faceW / 2, marginTop: -drum.faceH / 2 }}>
                 {item.img
                   ? (<>
                     <WheelFacePlaceholder title={item.title} dark={T.dark} />
