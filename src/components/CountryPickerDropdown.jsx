@@ -1,9 +1,9 @@
 import {useDataStore} from '../store/useDataStore.js';
 import {getT} from '../lib/constants.js';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import Icon from './ui/Icon.jsx';
-import { COUNTRY_NAMES, COUNTRY_FLAGS, hostIncludesCity } from '../lib/domain.js';
+import { COUNTRY_NAMES, COUNTRY_FLAGS, citySelectionTarget } from '../lib/domain.js';
 
 const FLAG_MAP = Object.fromEntries(
   Object.entries(COUNTRY_NAMES).map(([code, name]) => [name, COUNTRY_FLAGS[code] || '🌍'])
@@ -59,20 +59,25 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
   }, []);
 
   const handleSelectCity = (city) => {
+    // Salto de dominio (nov 2026, Jonathan): el selector muestra las
+    // 33 ciudades en los dos dominios; elegir una del otro dominio
+    // salta a su URL canónica en ese dominio. La sesión se pierde al
+    // cambiar de dominio (igual que con los 308); no se sincroniza aquí.
+    const target = citySelectionTarget(city?.slug, cities);
+    if (target.crossDomain) {
+      onClose();
+      window.location.href = target.url;
+      return;
+    }
     onSelectCity(city);
     onClose();
   };
 
-  // El selector es por dominio: en citymap.world solo las ciudades fuera
-  // de México (hoy 11); en citymap.mx solo México. La lista que llega
-  // por props es la completa de la tienda.
-  const hostCities = useMemo(
-    () => (cities || []).filter((c) => hostIncludesCity(c.slug, cities)),
-    [cities]
-  );
-
+  // El selector muestra TODAS las ciudades en los dos dominios (nov
+  // 2026, Jonathan): las 33, agrupadas por país, sin filtro por host
+  // (la lista que llega por props es la completa de la tienda).
   // Sort all cities by business count
-  const sortedCities = [...hostCities]
+  const sortedCities = [...(cities || [])]
     .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
     .map(city => ({
       ...city,
