@@ -353,12 +353,7 @@ export function useAppSEO({ city }) {
                 "@type": "WebSite",
                 "name": "CityMap",
                 "url": `${BASE_URL}/`,
-                "description": desc,
-                "potentialAction": {
-                  "@type": "SearchAction",
-                  "target": `${BASE_URL}/?buscar={search_term_string}`,
-                  "query-input": "required name=search_term_string"
-                }
+                "description": desc
               },
               {
                 "@type": "Organization",
@@ -378,12 +373,7 @@ export function useAppSEO({ city }) {
                 "@type": "WebSite",
                 "name": "CityMap",
                 "url": `${BASE_URL}/`,
-                "description": desc,
-                "potentialAction": {
-                  "@type": "SearchAction",
-                  "target": `${BASE_URL}/?buscar={search_term_string}`,
-                  "query-input": "required name=search_term_string"
-                }
+                "description": desc
               },
               {
                 "@type": "BreadcrumbList",
