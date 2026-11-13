@@ -2,10 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { displayRating, formatReviewCount, rankTopRated } from '../lib/googleRatings.js';
 
 describe('displayRating: conteo de Google en tarjetas y ficha', () => {
-  it('usa el dato de Google cuando hay caché vigente para el negocio', () => {
-    const biz = { id: 'biz-1', rating: 5.0, review_count: 1 };
+  it('usa el dato de Google cuando hay caché vigente para el negocio de pago', () => {
+    const biz = { id: 'biz-1', plan: 'premium', rating: 5.0, review_count: 1 };
     const map = { 'biz-1': { rating: 4.8, count: 8824 } };
     expect(displayRating(biz, map)).toEqual({ rating: 4.8, count: 8824, source: 'google' });
+  });
+
+  it('usa el dato de Google también en Destacado', () => {
+    const biz = { id: 'biz-1b', plan: 'destacado', rating: 5.0, review_count: 1 };
+    const map = { 'biz-1b': { rating: 4.5, count: 120 } };
+    expect(displayRating(biz, map)).toEqual({ rating: 4.5, count: 120, source: 'google' });
   });
 
   it('usa el conteo de CityMap cuando no hay dato de Google', () => {
@@ -27,6 +33,28 @@ describe('displayRating: conteo de Google en tarjetas y ficha', () => {
   });
 });
 
+describe('displayRating: solo Destacado y Premium muestran Google (regla 12 nov 2026)', () => {
+  it('ignora el dato de Google cuando el plan es gratuito, aunque haya caché vigente', () => {
+    const biz = { id: 'biz-free', plan: 'free', rating: 4.9, review_count: 300 };
+    const map = { 'biz-free': { rating: 4.2, count: 5000 } };
+    expect(displayRating(biz, map)).toEqual({ rating: 4.9, count: 300, source: 'citymap' });
+  });
+
+  it('un plan null o distinto se trata como gratuito', () => {
+    const map = { x: { rating: 4.8, count: 8824 } };
+    expect(displayRating({ id: 'x', rating: 4.9, review_count: 10 }, map)).toEqual({ rating: 4.9, count: 10, source: 'citymap' });
+    expect(displayRating({ id: 'x', plan: null, rating: 4.9, review_count: 10 }, map)).toEqual({ rating: 4.9, count: 10, source: 'citymap' });
+    expect(displayRating({ id: 'x', plan: 'enterprise', rating: 4.9, review_count: 10 }, map)).toEqual({ rating: 4.9, count: 10, source: 'citymap' });
+  });
+
+  it('Dalila (ejemplo gratuito) no muestra su dato de Google del caché', () => {
+    const DALILA_ID = '6b146d7a-2bd9-41c6-9947-799cc68e1267';
+    const disp = displayRating({ id: DALILA_ID, plan: 'free' }, { [DALILA_ID]: { rating: 4.9, count: 762 } });
+    expect(disp.source).toBe('citymap');
+    expect(disp.rating).toBeNull();
+  });
+});
+
 describe('formatReviewCount', () => {
   it('pone separador de miles', () => {
     expect(formatReviewCount(8824)).toBe('8,824');
@@ -36,7 +64,7 @@ describe('formatReviewCount', () => {
 });
 
 describe('rankTopRated: "Los más valorados" por Google con mínimo de reseñas', () => {
-  const biz = (id, rating, review_count) => ({ id, rating, review_count });
+  const biz = (id, rating, review_count, plan = 'premium') => ({ id, rating, review_count, plan });
 
   it('un 2.5 de Google con 82 reseñas no queda en #1 aunque tenga 5.0 interno (caso Café Drama)', () => {
     const list = [biz('drama', 5.0, 2), biz('andares', 4.7, 259), biz('paulette', 4.5, 2224)];
@@ -67,7 +95,19 @@ describe('rankTopRated: "Los más valorados" por Google con mínimo de reseñas'
   });
 
   it('descarta negocios sin calificación', () => {
-    const list = [biz('a', 4.9, 120), { id: 'b', rating: null, review_count: 500 }];
+    const list = [biz('a', 4.9, 120), { id: 'b', plan: 'premium', rating: null, review_count: 500 }];
     expect(rankTopRated(list, {}).map((b) => b.id)).toEqual(['a']);
+  });
+
+  it('un gratuito con 5.0 en Google no supera a un Premium: ordena por su conteo propio', () => {
+    const list = [
+      { id: 'gratis', plan: 'free', rating: 4.0, review_count: 100 },
+      biz('pago', 4.6, 200),
+    ];
+    const map = {
+      gratis: { rating: 5.0, count: 9000 },
+      pago: { rating: 4.6, count: 200 },
+    };
+    expect(rankTopRated(list, map).map((b) => b.id)).toEqual(['pago', 'gratis']);
   });
 });

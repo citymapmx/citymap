@@ -126,8 +126,9 @@ export function effectivePlanFeatures(plans, planKey) {
 
 // Filas de la tabla "Comparar todos los planes": unión de las funciones
 // efectivas, en orden (gratuito, destacado, premium), sin repetir. La
-// fila de "Reseñas de Google" queda con ✓ en los tres porque es función
-// del gratuito y se hereda (decisión 11 nov 2026).
+// fila de "Reseñas de Google" queda con ✓ solo en Destacado y Premium:
+// desde el 12 nov 2026 es función del Destacado (se hereda a Premium) y
+// ya no del gratuito.
 export function comparePlanFeatures(plans) {
   const seen = new Set();
   const rows = [];

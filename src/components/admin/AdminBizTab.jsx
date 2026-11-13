@@ -35,7 +35,7 @@ export default function AdminBizTab({
 
   const completarPlaceIds = async () => {
     if (placeIdsRunning) return;
-    if (!window.confirm("Se consultará a Google (Places API) para llenar el Place ID de los negocios que no lo tienen, de 20 en 20. Costo aprox. $0.03 por negocio. ¿Continuar?")) return;
+    if (!window.confirm("Se consultará a Google (Places API) para llenar el Place ID solo de los negocios Destacado y Premium que no lo tienen, de 20 en 20. Costo aprox. $0.03 por negocio. ¿Continuar?")) return;
     setPlaceIdsRunning(true);
     setPlaceIdsSummary(null);
     const totals = { updated: [], ambiguous: [], failed: [] };
@@ -79,7 +79,7 @@ export default function AdminBizTab({
 
   const actualizarResenasGoogle = async () => {
     if (refreshRunning) return;
-    if (!window.confirm("Se consultará a Google (Places API) para actualizar la calificación y el número de reseñas de los negocios con Place ID, de 50 en 50. Place Details con solo rating+conteo: ~$20 por cada 1,000 llamadas, con 1,000 gratis al mes, así que unas 306 llamadas salen en $0. ¿Continuar?")) return;
+    if (!window.confirm("Se consultará a Google (Places API) para actualizar la calificación y el número de reseñas solo de los negocios Destacado y Premium con Place ID, de 50 en 50. Place Details con solo rating+conteo: ~$20 por cada 1,000 llamadas, con 1,000 gratis al mes, así que unas 111 llamadas salen en $0. ¿Continuar?")) return;
     setRefreshRunning(true);
     setRefreshSummary(null);
     const totals = { updated: [], sinCalificacion: [], failed: [] };
@@ -253,8 +253,8 @@ export default function AdminBizTab({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <span className="text-sm" style={{ fontWeight: 600, color: "#5A6872" }}>Listado de negocios</span>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={completarPlaceIds} disabled={placeIdsRunning} title="Llena el Place ID de Google de los negocios que no lo tienen (de 20 en 20)" style={{ background: "#fff", color: "#1A7A5E", border: "1.5px solid #1A7A5E", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: placeIdsRunning ? "wait" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, opacity: placeIdsRunning ? 0.6 : 1 }}><Icon name="map-pin" size={14} color="#1A7A5E" /> {placeIdsRunning ? "Consultando a Google…" : "Completar Place IDs"}</button>
-            <button onClick={actualizarResenasGoogle} disabled={refreshRunning} title="Actualiza la calificación y el número de reseñas de Google de los negocios con Place ID (de 50 en 50)" style={{ background: "#fff", color: "#1A7A5E", border: "1.5px solid #1A7A5E", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: refreshRunning ? "wait" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, opacity: refreshRunning ? 0.6 : 1 }}><Icon name="star" size={14} color="#1A7A5E" /> {refreshRunning ? "Actualizando…" : "Actualizar reseñas de Google"}</button>
+            <button onClick={completarPlaceIds} disabled={placeIdsRunning} title="Llena el Place ID de Google solo de los negocios Destacado y Premium que no lo tienen (de 20 en 20)" style={{ background: "#fff", color: "#1A7A5E", border: "1.5px solid #1A7A5E", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: placeIdsRunning ? "wait" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, opacity: placeIdsRunning ? 0.6 : 1 }}><Icon name="map-pin" size={14} color="#1A7A5E" /> {placeIdsRunning ? "Consultando a Google…" : "Completar Place IDs"}</button>
+            <button onClick={actualizarResenasGoogle} disabled={refreshRunning} title="Actualiza la calificación y el número de reseñas de Google solo de los negocios Destacado y Premium con Place ID (de 50 en 50)" style={{ background: "#fff", color: "#1A7A5E", border: "1.5px solid #1A7A5E", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: refreshRunning ? "wait" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, opacity: refreshRunning ? 0.6 : 1 }}><Icon name="star" size={14} color="#1A7A5E" /> {refreshRunning ? "Actualizando…" : "Actualizar reseñas de Google"}</button>
             <button onClick={() => setBizForm({ _new: true, category: data.categories.length > 0 ? data.categories[0].slug : "restaurantes", open: true, photos: [], tags: "", lat: "", lng: "", plan: "free", status: "pending", city_slug: (data.cities && data.cities.length > 0 ? data.cities[0].slug : ""), social_links: {} })} style={{ background: "#1A7A5E", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}><Icon name="plus" size={14} color="#fff" /> Nuevo</button>
           </div>
         </div>

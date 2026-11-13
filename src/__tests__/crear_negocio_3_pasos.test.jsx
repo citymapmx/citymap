@@ -75,7 +75,9 @@ describe('crear negocio: lógica pura del asistente', () => {
 
   it('las funciones efectivas heredan las de los planes inferiores', () => {
     const plans = buildBusinessPlans((k, f) => f, getBusinessPricing('mx'));
-    expect(effectivePlanFeatures(plans, 'free')).toContain('Reseñas de Google');
+    // Regla 12 nov 2026: las reseñas de Google son beneficio desde
+    // Destacado; el gratuito ya no las lleva.
+    expect(effectivePlanFeatures(plans, 'free')).not.toContain('Reseñas de Google');
     expect(effectivePlanFeatures(plans, 'pro')).toContain('Reseñas de Google');
     expect(effectivePlanFeatures(plans, 'pro')).toContain('Menú digital');
     expect(effectivePlanFeatures(plans, 'elite')).toContain('Reseñas de Google');
@@ -92,7 +94,9 @@ describe('crear negocio: lógica pura del asistente', () => {
     expect(rows).not.toContain('Vídeos');
     expect(rows).not.toContain('Reseñas de Google Maps');
     expect(rows).toContain('Menú digital');
-    // Las funciones del gratuito van primero.
+    // Las funciones del gratuito van primero; «Reseñas de Google» ahora
+    // viene del Destacado, así que va después de ellas pero antes de
+    // «Menú digital» (también de Destacado, más abajo en su lista).
     expect(rows.indexOf('Reseñas de Google')).toBeLessThan(rows.indexOf('Menú digital'));
   });
 
@@ -111,18 +115,20 @@ describe('crear negocio: lógica pura del asistente', () => {
 });
 
 describe('crear negocio: cambios de funciones de planes', () => {
-  it('el gratuito menciona las reseñas de Google en su descripción y funciones', () => {
+  it('el gratuito ya no menciona las reseñas de Google; son beneficio desde Destacado (regla 12 nov 2026)', () => {
     const plans = buildBusinessPlans((k, f) => f, getBusinessPricing('mx'));
-    expect(plans[0].desc).toContain('reseñas de Google');
-    expect(plans[0].features).toContain('Reseñas de Google');
+    expect(plans[0].desc).not.toContain('reseñas de Google');
+    expect(plans[0].features).not.toContain('Reseñas de Google');
+    expect(plans[1].features).toContain('Reseñas de Google');
+    expect(plans[2].features).toContain('Reseñas de Google');
   });
 
-  it('el Destacado dice "Menú digital" y el Premium ya no tiene vídeos ni reseñas', () => {
+  it('el Destacado dice "Menú digital" y el Premium ya no tiene vídeos (pero sí reseñas de Google)', () => {
     const plans = buildBusinessPlans((k, f) => f, getBusinessPricing('mx'));
     expect(plans[1].features).toContain('Menú digital');
     expect(plans[1].features.join(' ')).not.toContain('Menú QR');
     expect(plans[2].features.join(' ')).not.toContain('Vídeos');
-    expect(plans[2].features.join(' ')).not.toContain('Reseñas de Google');
+    expect(plans[2].features.join(' ')).toContain('Reseñas de Google');
     expect(plans[2].desc).not.toContain('Reseñas de Google');
   });
 });

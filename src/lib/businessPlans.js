@@ -53,10 +53,10 @@ export function buildBusinessPlans(t, pricing, dark = false) {
       name: "Gratuito",
       priceMonthly: `${pricing.symbol}0`,
       priceAnnual: `${pricing.symbol}0`,
-      desc: t("negocios_plan_free_desc", "Tu negocio en el mapa y en el buscador, con foto, dirección, teléfono, horarios y reseñas de Google."),
+      desc: t("negocios_plan_free_desc", "Tu negocio en el mapa y en el buscador, con foto, dirección, teléfono y horarios."),
       color: dark ? "#9CA3AF" : "#6B7280",
       icon: "user",
-      features: [t("cuenta_feat_pagina_publica", "Página pública del negocio en CityMap"), t("cuenta_feat_portada_info", "Portada e Información del negocio"), t("cuenta_feat_telefono_direccion", "Teléfono y Dirección"), t("cuenta_feat_horarios", "Horarios"), t("cuenta_feat_banner_estandar", "Banner estándar"), t("cuenta_feat_resenas_google", "Reseñas de Google")],
+      features: [t("cuenta_feat_pagina_publica", "Página pública del negocio en CityMap"), t("cuenta_feat_portada_info", "Portada e Información del negocio"), t("cuenta_feat_telefono_direccion", "Teléfono y Dirección"), t("cuenta_feat_horarios", "Horarios"), t("cuenta_feat_banner_estandar", "Banner estándar")],
     },
     {
       key: "pro",
@@ -69,7 +69,7 @@ export function buildBusinessPlans(t, pricing, dark = false) {
       color: dark ? "#E2E8F0" : "#0F172A",
       icon: "star",
       badge: t("negocios_badge_popular", "Más popular"),
-      features: [t("cuenta_feat_todo_gratuito", "Todo lo del plan gratuito, más:"), t("cuenta_feat_seo", "Posicionamiento SEO en Google"), t("cuenta_feat_banner_destacado", "Banner destacado"), t("cuenta_feat_galeria", "Galería de fotos"), t("cuenta_feat_whatsapp_redes", "Enlace a WhatsApp y redes sociales"), t("cuenta_feat_menu_qr", "Menú digital"), t("cuenta_feat_panel_admin", "Panel de administrador")],
+      features: [t("cuenta_feat_todo_gratuito", "Todo lo del plan gratuito, más:"), t("cuenta_feat_resenas_google", "Reseñas de Google"), t("cuenta_feat_seo", "Posicionamiento SEO en Google"), t("cuenta_feat_banner_destacado", "Banner destacado"), t("cuenta_feat_galeria", "Galería de fotos"), t("cuenta_feat_whatsapp_redes", "Enlace a WhatsApp y redes sociales"), t("cuenta_feat_menu_qr", "Menú digital"), t("cuenta_feat_panel_admin", "Panel de administrador")],
     },
     {
       key: "elite",
@@ -84,6 +84,7 @@ export function buildBusinessPlans(t, pricing, dark = false) {
       badge: t("negocios_badge_mejor", "Lo mejor"),
       features: [
         t("cuenta_feat_todo_destacado", "Todo lo del plan Destacado, más:"),
+        t("cuenta_feat_resenas_google", "Reseñas de Google"),
         t("cuenta_feat_menu_interactivo_google", "Menú interactivo indexado en Google"),
         t("cuenta_feat_banner_premium", "Banner premium y Logotipo en mapa"),
         t("cuenta_feat_carrito_whatsapp", "Carrito enlazado a WhatsApp"),

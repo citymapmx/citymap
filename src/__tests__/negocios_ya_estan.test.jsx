@@ -41,18 +41,29 @@ function yaEstanSection(html) {
 const shortSlug = (b) => b.slug.startsWith(`${b.city_slug}-`) ? b.slug.slice(b.city_slug.length + 1) : b.slug;
 
 describe('Sección «Ya están en CityMap» en /negocios', () => {
-  it('la lista tiene 8 negocios reales, con foto, ciudad y calificación de Google', () => {
+  it('la lista tiene 8 negocios reales, con foto y ciudad; solo los de pago llevan calificación de Google', () => {
     expect(YA_ESTAN_EN_CITYMAP).toHaveLength(8);
     for (const b of YA_ESTAN_EN_CITYMAP) {
       expect(b.id).toMatch(/^[0-9a-f-]{36}$/);
       expect(b.photos).toHaveLength(1);
       expect(b.photos[0].url).toMatch(/^https:\/\/dpkjxhjkzdlkvyotoeai\.supabase\.co\/storage\/v1\/object\/public\/media\/cityguide\//);
-      expect(b.rating).toBeGreaterThanOrEqual(4.6);
-      expect(b.review_count).toBeGreaterThanOrEqual(900);
       expect(b.cityName).toBeTruthy();
-      expect(b.googleRating).toBe(true);
+      expect(['free', 'premium', 'destacado']).toContain(b.plan);
       expect(b.slug.startsWith(`${b.city_slug}-`)).toBe(true);
+      if (b.plan === 'free') {
+        // Regla 12 nov 2026: los gratuitos no llevan valores de Google.
+        expect(b.rating).toBeUndefined();
+        expect(b.review_count).toBeUndefined();
+        expect(b.googleRating).toBeUndefined();
+      } else {
+        expect(b.rating).toBeGreaterThanOrEqual(4.6);
+        expect(b.review_count).toBeGreaterThanOrEqual(900);
+        expect(b.googleRating).toBe(true);
+      }
     }
+    // 5 de pago con calificación de Google, 3 gratuitos sin ella.
+    expect(YA_ESTAN_EN_CITYMAP.filter((b) => b.plan !== 'free')).toHaveLength(5);
+    expect(YA_ESTAN_EN_CITYMAP.filter((b) => b.plan === 'free')).toHaveLength(3);
     // Ciudades variadas, no todos de la misma.
     const cities = new Set(YA_ESTAN_EN_CITYMAP.map((b) => b.city_slug));
     expect(cities.size).toBeGreaterThanOrEqual(5);
@@ -64,20 +75,27 @@ describe('Sección «Ya están en CityMap» en /negocios', () => {
     expect(html).toContain('Negocios reales que ya reciben clientes desde CityMap.');
   });
 
-  it('cada tarjeta muestra nombre, ciudad y calificación, y enlaza a su ficha', () => {
+  it('cada tarjeta muestra nombre, ciudad y enlaza a su ficha; solo las de pago muestran calificación de Google', () => {
     const html = renderLanding(false);
     const section = yaEstanSection(html);
     for (const b of YA_ESTAN_EN_CITYMAP) {
       expect(section).toContain(b.name);
       expect(section).toContain(b.cityName);
       expect(section).toContain(`href="/${b.city_slug}/${shortSlug(b)}"`);
-      // Calificación de Google (reserva verificada: displayRating usa el
-      // caché en vivo cuando lo hay; sin caché, el valor guardado).
+    }
+    // Calificación de Google (reserva verificada: displayRating usa el
+    // caché en vivo cuando lo hay; sin caché, el valor guardado). Solo
+    // en los de pago: los gratuitos no muestran calificación.
+    for (const b of YA_ESTAN_EN_CITYMAP.filter((x) => x.plan !== 'free')) {
       expect(section).toContain(b.rating.toFixed(1));
       expect(section).toContain(`(${new Intl.NumberFormat("es-MX").format(b.review_count)})`);
     }
-    // El logo de Google acompaña cada calificación.
-    expect(section.split('/googlelogo.svg').length - 1).toBe(8);
+    // Los conteos de Google que tenían los gratuitos ya no aparecen.
+    for (const count of ['(7,126)', '(963)', '(5,503)']) {
+      expect(section).not.toContain(count);
+    }
+    // El logo de Google acompaña cada calificación de pago: 5, no 8.
+    expect(section.split('/googlelogo.svg').length - 1).toBe(5);
   });
 
   it('la sección va después de los planes y antes de las preguntas frecuentes', () => {

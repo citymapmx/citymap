@@ -100,10 +100,11 @@ const ADMIN_USER = { id: 'admin-id', email: 'admin@cityguide.com', email_confirm
 const PLAIN_USER = { id: 'user-id', email: 'alguien@example.com', email_confirmed_at: '2025-01-01T00:00:00Z', app_metadata: {} };
 
 const BIZ_LIST = [
-  { id: 'b1', name: 'Taco Fish La Paz', address: 'Av. Vallarta 123, Guadalajara', lat: 20.65, lng: -103.35, city_slug: 'guadalajara', social_links: { instagram: '@tacofish' } },
-  { id: 'b2', name: 'Café San Pedro', address: 'Calle Real 10, Tlaquepaque', lat: 20.7, lng: -103.4, city_slug: 'tlaquepaque', social_links: {} },
-  { id: 'b3', name: 'Ya Tiene ID', address: 'Calle 1', lat: 21.5, lng: -104.9, city_slug: 'tepic', social_links: { google_place_id: 'ChIJ-ya' } },
-  { id: 'b4', name: 'Sin Coords Café', address: 'Calle Falsa 123, Tepic', lat: null, lng: null, city_slug: 'tepic', social_links: {} },
+  { id: 'b1', name: 'Taco Fish La Paz', address: 'Av. Vallarta 123, Guadalajara', lat: 20.65, lng: -103.35, city_slug: 'guadalajara', plan: 'premium', social_links: { instagram: '@tacofish' } },
+  { id: 'b2', name: 'Café San Pedro', address: 'Calle Real 10, Tlaquepaque', lat: 20.7, lng: -103.4, city_slug: 'tlaquepaque', plan: 'destacado', social_links: {} },
+  { id: 'b3', name: 'Ya Tiene ID', address: 'Calle 1', lat: 21.5, lng: -104.9, city_slug: 'tepic', plan: 'premium', social_links: { google_place_id: 'ChIJ-ya' } },
+  { id: 'b4', name: 'Sin Coords Café', address: 'Calle Falsa 123, Tepic', lat: null, lng: null, city_slug: 'tepic', plan: 'premium', social_links: {} },
+  { id: 'b5', name: 'Free Sin ID', address: 'Calle Libre 5, Tepic', lat: 21.5, lng: -104.9, city_slug: 'tepic', plan: 'free', social_links: {} },
 ];
 const CITIES = [
   { slug: 'guadalajara', name: 'Guadalajara', country_code: 'mx' },
@@ -244,5 +245,25 @@ describe('completar-place-ids: corrida', () => {
     await handler(req(), res);
     expect(res.statusCode).toBe(500);
     expect(fetch.mock.calls.some(([u]) => String(u).includes('places.googleapis.com'))).toBe(false);
+  });
+
+  it('excluye a los gratuitos sin Place ID de remaining y targets', async () => {
+    const res = makeRes();
+    await handler(req({ dry: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.skippedFree).toBe(1);
+    expect(res.body.remaining).toBe(3);
+    expect(res.body.wouldProcess.map((w) => w.business_id)).toEqual(['b1', 'b2', 'b4']);
+  });
+
+  it('no consulta a Google por el gratuito sin Place ID', async () => {
+    const res = makeRes();
+    await handler(req(), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.processed).toBe(3);
+    expect(res.body.skippedFree).toBe(1);
+    expect(res.body.remaining).toBe(1);
+    const searchCalls = fetch.mock.calls.filter(([u]) => String(u).includes('places:searchText'));
+    expect(searchCalls.some(([, o]) => JSON.parse(o.body).textQuery.includes('Free Sin ID'))).toBe(false);
   });
 });

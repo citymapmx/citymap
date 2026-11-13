@@ -15,9 +15,9 @@ const makeRes = () => {
 const ADMIN_USER = { id: 'admin-id', email: 'admin@cityguide.com', email_confirmed_at: '2025-01-01T00:00:00Z', app_metadata: { isAdmin: true } };
 const PLAIN_USER = { id: 'user-id', email: 'alguien@example.com', email_confirmed_at: '2025-01-01T00:00:00Z', app_metadata: {} };
 const DEFAULT_BIZ = [
-  { id: 'b1', name: 'Taco Fish', social_links: { google_place_id: 'ChIJ111' } },
-  { id: 'b2', name: 'Sin Place ID', social_links: {} },
-  { id: 'b3', name: 'Café San Pedro', social_links: { google_place_id: 'ChIJ222' } },
+  { id: 'b1', name: 'Taco Fish', plan: 'premium', social_links: { google_place_id: 'ChIJ111' } },
+  { id: 'b2', name: 'Sin Place ID', plan: 'free', social_links: {} },
+  { id: 'b3', name: 'Café San Pedro', plan: 'destacado', social_links: { google_place_id: 'ChIJ222' } },
 ];
 let mockBiz = DEFAULT_BIZ;
 let authUser = ADMIN_USER;
@@ -127,10 +127,10 @@ describe('refresco con JWT de admin', () => {
 
   it('salta los place_id basura sin llamar a Google y recorta los espacios', async () => {
     mockBiz = [
-      { id: 'g1', name: 'Cerro Falso', social_links: { google_place_id: 'Ei5DZXJybyBkZSBTYW4gSnVhbiwgNjM3ODI=' } },
-      { id: 'g2', name: 'En Blanco', social_links: { google_place_id: '   ' } },
-      { id: 'g3', name: 'Plaza Con Espacio', social_links: { google_place_id: ' ChIJ333 ' } },
-      { id: 'g4', name: 'Válido', social_links: { google_place_id: 'ChIJ444' } },
+      { id: 'g1', name: 'Cerro Falso', plan: 'premium', social_links: { google_place_id: 'Ei5DZXJybyBkZSBTYW4gSnVhbiwgNjM3ODI=' } },
+      { id: 'g2', name: 'En Blanco', plan: 'premium', social_links: { google_place_id: '   ' } },
+      { id: 'g3', name: 'Plaza Con Espacio', plan: 'premium', social_links: { google_place_id: ' ChIJ333 ' } },
+      { id: 'g4', name: 'Válido', plan: 'destacado', social_links: { google_place_id: 'ChIJ444' } },
     ];
     const res = makeRes();
     await handler(req({ auth: true }), res);
@@ -163,5 +163,55 @@ describe('refresco con JWT de admin', () => {
     const rows = JSON.parse(upsert[1].body);
     expect(rows).toHaveLength(1);
     expect(rows[0].business_id).toBe('b3');
+  });
+
+  it('salta los negocios gratuitos con Place ID sin llamar a Google', async () => {
+    mockBiz = [
+      { id: 'f1', name: 'Gratis', plan: 'free', social_links: { google_place_id: 'ChIJ999' } },
+      { id: 'p1', name: 'De Pago', plan: 'premium', social_links: { google_place_id: 'ChIJ111' } },
+    ];
+    const res = makeRes();
+    await handler(req({ auth: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.checked).toBe(2);
+    expect(res.body.withPlaceId).toBe(1);
+    expect(res.body.skippedFree).toBe(1);
+    expect(res.body.remaining).toBe(0);
+    expect(res.body.processed).toBe(1);
+    expect(res.body.updated).toBe(1);
+    const placesCalls = fetch.mock.calls.filter(([u]) => String(u).includes('places.googleapis.com'));
+    expect(placesCalls).toHaveLength(1);
+    expect(String(placesCalls[0][0])).toContain('ChIJ111');
+    expect(placesCalls.some(([u]) => String(u).includes('ChIJ999'))).toBe(false);
+  });
+
+  it('plan null se trata como gratuito y se salta', async () => {
+    mockBiz = [
+      { id: 'n1', name: 'Sin Plan', plan: null, social_links: { google_place_id: 'ChIJ999' } },
+      { id: 'p1', name: 'De Pago', plan: 'destacado', social_links: { google_place_id: 'ChIJ111' } },
+    ];
+    const res = makeRes();
+    await handler(req({ auth: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.withPlaceId).toBe(1);
+    expect(res.body.skippedFree).toBe(1);
+    expect(res.body.updated).toBe(1);
+    const placesCalls = fetch.mock.calls.filter(([u]) => String(u).includes('places.googleapis.com'));
+    expect(placesCalls).toHaveLength(1);
+  });
+
+  it('dry=1 lista solo ids de pago en wouldRefresh y reporta skippedFree', async () => {
+    mockBiz = [
+      { id: 'f1', name: 'Gratis', plan: 'free', social_links: { google_place_id: 'ChIJ999' } },
+      { id: 'p1', name: 'De Pago', plan: 'premium', social_links: { google_place_id: 'ChIJ111' } },
+    ];
+    const res = makeRes();
+    await handler(req({ auth: true, dry: true }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.wouldRefresh).toEqual(['p1']);
+    expect(res.body.skippedFree).toBe(1);
+    expect(res.body.withPlaceId).toBe(1);
+    expect(res.body.remaining).toBe(0);
+    expect(fetch.mock.calls.some(([u]) => String(u).includes('places.googleapis.com'))).toBe(false);
   });
 });
