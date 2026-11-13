@@ -18,6 +18,14 @@
       "insetsHandling": "disable",
       "style": "LIGHT",
       "hidden": false
+    },
+    "SocialLogin": {
+      "providers": {
+        "google": true,
+        "facebook": false,
+        "apple": false,
+        "twitter": false
+      }
     }
   }
 }
