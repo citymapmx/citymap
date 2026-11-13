@@ -1,4 +1,4 @@
-import { seoSite } from '../src/lib/seoRoutes.js';
+import { seoSite, normalizeCitySlug, legacyCitySlug } from '../src/lib/seoRoutes.js';
 import { tourSchemaNodes } from '../src/lib/tourSchema.js';
 import { eventUrl, resolveEventSlug } from '../src/lib/eventUrls.js';
 import { CITY_TZ } from '../src/lib/constants.js';
@@ -117,8 +117,13 @@ async function getReviews(bizId) {
 async function getCityData(citySlug) {
   if (!citySlug) return { country_code: "mx", bg_image: null };
   try {
+    // Se busca por la forma canónica y por la vieja: antes del SQL de la
+    // Fase 3 la base aún tiene el slug con mayúsculas/tildes, y después
+    // solo el normalizado. Así la URL nueva funciona en ambos casos.
+    const normalized = normalizeCitySlug(citySlug);
+    const variants = [...new Set([citySlug, normalized, legacyCitySlug(normalized)].filter(Boolean))];
     const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/cities?slug=eq.${citySlug}&select=country_code,bg_image`,
+      `${SUPABASE_URL}/rest/v1/cities?slug=in.(${variants.join(',')})&select=country_code,bg_image`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
     );
     if (!r.ok) return { country_code: "mx", bg_image: null };
@@ -140,7 +145,11 @@ function photoList(value) {
 
 async function getListing(city, category, origin, cityPath) {
   try {
-    const query = new URLSearchParams({ city_slug: `eq.${city}`, status: 'eq.approved',
+    // La ciudad se busca por la forma canónica y por la vieja (igual que
+    // getCityData): antes del SQL de la Fase 3 los negocios aún guardan
+    // el slug viejo en city_slug.
+    const cityVariants = [...new Set([city, legacyCitySlug(city)].filter(Boolean))];
+    const query = new URLSearchParams({ city_slug: `in.(${cityVariants.join(',')})`, status: 'eq.approved',
       select: 'id,slug,name,description,logo_url,photos', order: 'name.asc', limit: '24' });
     if (category) {
       // La base guarda la categoría con espacios y a veces con mayúscula
@@ -406,7 +415,11 @@ export default async function handler(req) {
   const evId = searchParams.get("ev");
   const expId = searchParams.get("exp");
   const vista = searchParams.get("vista");
-  const city = searchParams.get("city");
+  // La ciudad siempre en forma canónica (minúsculas sin tildes): así el
+  // canonical, el og:url y las consultas usan el slug nuevo aunque la
+  // URL que llegó traiga la forma vieja.
+  const cityParam = searchParams.get("city");
+  const city = cityParam ? normalizeCitySlug(cityParam) : cityParam;
   const ua = req.headers.get("user-agent") || "";
 
   const { isWorld, origin: BASE_URL } = seoSite(new URL(req.url).hostname);

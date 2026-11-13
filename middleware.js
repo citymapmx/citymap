@@ -1,6 +1,6 @@
 import sitemap from './api/sitemap.xml.js';
 import robots from './api/robots.txt.js';
-import { seoSite, seoSegments, CATEGORY_SLUGS } from './src/lib/seoRoutes.js';
+import { seoSite, seoSegments, CATEGORY_SLUGS, SYSTEM_FIRST_SEGMENTS, normalizeCitySlug } from './src/lib/seoRoutes.js';
 
 // Bots sociales que necesitan OG tags pre-renderizados
 const SOCIAL_BOTS = [
@@ -44,6 +44,40 @@ export default async function middleware(request) {
     const destination = new URL(request.url);
     destination.pathname = pathname.replace('/c/', '/');
     return Response.redirect(destination, 308);
+  }
+
+  // Slugs de ciudad viejos (mayúsculas/tildes, p. ej.
+  // /San-Pedro-Garza-García) → canónicos en minúsculas sin tildes (308).
+  // Cubre la ciudad en cualquier posición: /:ciudad, /:ciudad/...,
+  // /eventos/:ciudad, /revista/:ciudad/..., /evento/:ciudad/:slug,
+  // /mapa/:ciudad y /explorar/:ciudad. En citymap.world el prefijo de
+  // país no se toca. Es para todos los visitantes (no solo bots): sin
+  // él, la URL vieja dejaría de resolver en cuanto el SQL de la Fase 3
+  // corrija cities.slug. El pathname llega codificado (la í de García
+  // es %C3%AD), así que se decodifica antes de comparar.
+  const decodePart = part => { try { return decodeURIComponent(part); } catch { return part; } };
+  const decodedParts = routeParts.map(decodePart);
+  const citySegIndex = (() => {
+    if (!decodedParts.length) return -1;
+    const first = decodedParts[0].toLowerCase();
+    if (!SYSTEM_FIRST_SEGMENTS.has(first)) return 0;
+    if (['eventos', 'explorar', 'mapa', 'revista', 'experiencias', 'mis-planes'].includes(first)) {
+      return decodedParts.length >= 2 ? 1 : -1;
+    }
+    if (first === 'evento') return decodedParts.length === 3 ? 1 : -1;
+    return -1;
+  })();
+  if (citySegIndex >= 0) {
+    const rawCity = decodedParts[citySegIndex];
+    const normalizedCity = normalizeCitySlug(rawCity);
+    if (normalizedCity !== rawCity) {
+      const rawParts = decodePart(pathname).split('/').filter(Boolean);
+      const offset = rawParts.length - decodedParts.length;
+      rawParts[citySegIndex + offset] = normalizedCity;
+      const destination = new URL(request.url);
+      destination.pathname = '/' + rawParts.join('/') + (pathname.endsWith('/') ? '/' : '');
+      return Response.redirect(destination, 308);
+    }
   }
 
   // ── 0. KILL SWITCH PARA SERVICE WORKER VIEJO ──────────────────────────────

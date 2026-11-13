@@ -1,3 +1,33 @@
+// Slugs de ciudad viejos que quedaron en la base (cities.slug) con
+// mayúsculas y tildes: se corrigen a minúsculas sin tildes con 308 y con
+// el SQL del PR de la Fase 3 (punto 6). La forma canónica es la
+// normalizada; el sitemap y og.js solo emiten esa.
+export const LEGACY_CITY_SLUGS = {
+  'Barcelona': 'barcelona',
+  'San-Pedro-Garza-García': 'san-pedro-garza-garcia',
+  'San-Miguel-de-allende': 'san-miguel-de-allende',
+};
+
+// Forma canónica de un slug de ciudad: minúsculas sin tildes. Es
+// idempotente y deja intactos los slugs ya normalizados; cualquier
+// segmento de ciudad con mayúsculas o tildes es una forma vieja.
+export function normalizeCitySlug(slug) {
+  const s = String(slug || '');
+  return LEGACY_CITY_SLUGS[s] || s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+// Forma vieja de un slug ya normalizado, para buscar en base mientras
+// no se aplica el SQL que corrige cities.slug (og.js busca por ambas
+// formas y así la URL nueva funciona antes y después del SQL). null si
+// no hay forma vieja conocida.
+export function legacyCitySlug(slug) {
+  const s = String(slug || '');
+  for (const [oldSlug, normalized] of Object.entries(LEGACY_CITY_SLUGS)) {
+    if (normalized === s) return oldSlug;
+  }
+  return null;
+}
+
 export function seoSite(host = '') {
   const hostname = host.toLowerCase().split(':')[0];
   const isWorld = hostname === 'citymap.world' || hostname === 'www.citymap.world';
@@ -43,5 +73,5 @@ export function citySlugFromPath(pathname, isWorld = false) {
   if (parts.length === 0) return '';
   const first = String(parts[0] || '').toLowerCase();
   if (SYSTEM_FIRST_SEGMENTS.has(first)) return '';
-  return first;
+  return normalizeCitySlug(first);
 }
