@@ -210,6 +210,51 @@ describe('LoyaltyWizard Paso 1: píldoras por categoría (PR #239)', () => {
   });
 });
 
+describe('LoyaltyWizard Paso 1: estilos en cuadrícula compacta de 3 por fila (PR #295)', () => {
+  it('la lista de estilos es una cuadrícula de 3 columnas: círculo de 52 px arriba, nombre abajo (ya no filas completas)', () => {
+    const src = read('../components/loyalty/LoyaltyWizard.jsx');
+    expect(src).toContain('gridTemplateColumns: "repeat(3, 1fr)"');
+    // La celda es columna: el círculo va arriba y el nombre abajo, centrado.
+    expect(src).toContain('width: 52, height: 52');
+    expect(src).toContain("textAlign: \"center\"");
+    // La fila completa vieja ya no existe: ni el contenedor columna con gap 8
+    // ni el círculo chico de 28 px.
+    expect(src).not.toContain('display: "flex", flexDirection: "column", gap: 8, marginTop: 12');
+    expect(src).not.toContain('width: 28, height: 28');
+    // Los 7 Premium siguen visibles en la cuadrícula.
+    const html = renderWizard({ bg_color: "#1B1107" });
+    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia"]) {
+      expect(html).toContain(label);
+    }
+    expect(html).toContain("width:52px");
+  });
+
+  it('el estilo seleccionado se marca claro: anillo en su primary y palomita sobre el círculo, una sola', () => {
+    const src = read('../components/loyalty/LoyaltyWizard.jsx');
+    expect(src).toContain('aria-pressed={isSelected}');
+    expect(src).toContain('0 0 0 5px ${styleTheme ? styleTheme.primary : "#0F172A"}');
+    expect(src).toContain('styleTheme.onPrimary');
+    // Con Oro negro guardado solo hay una palomita: la de Oro negro.
+    const html = renderWizard({
+      bg_color: "linear-gradient(135deg, #262626, #000000)",
+      text_color: "#FAFAFA",
+      primary_color: "#F5B301",
+    });
+    expect(html.split('✓').length - 1).toBe(1);
+    expect(html.split('aria-pressed="true"').length - 1).toBe(1);
+  });
+
+  it('las píldoras, «O personalizar colores exactos» y la vista previa siguen igual', () => {
+    const html = renderWizard();
+    for (const label of ["Premium", "Sobrios", "Cafetería", "Coloridos"]) {
+      expect(html).toContain(label);
+    }
+    expect(html).toContain("O personalizar colores exactos");
+    expect(html).toContain("Ejemplo");
+    expect(html).toContain("2 Tostadas gratis");
+  });
+});
+
 describe('Tarjetas viejas con fondo plano siguen funcionando', () => {
   it('el diseñador, la vista de la tarjeta, el modal y el wallet usan la primera parada donde hace falta un color sólido', () => {
     const designer = read('../components/loyalty/LoyaltyDesigner.jsx');

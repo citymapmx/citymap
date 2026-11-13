@@ -6,6 +6,7 @@ import {
   loyaltyBgFirstColor,
   findLoyaltyCategoryByBackground,
 } from '../../lib/loyaltyColorStyles.js';
+import { menuThemeForStyle } from '../../lib/menuColorStyles.js';
 
 export default function LoyaltyWizard({ 
   wizardStep, 
@@ -136,33 +137,37 @@ export default function LoyaltyWizard({
                     );
                   })}
                 </div>
-                {/* Panel de la categoría activa: todos sus estilos */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+                {/* Panel de la categoría activa: todos sus estilos en cuadrícula
+                    compacta de 3 por fila (círculo arriba, nombre abajo), igual
+                    que el diseñador del menú (PR #294). */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 12 }}>
                   {activeStyles.map((style) => {
                     const bg = loyaltyStyleBackground(style);
                     const isSelected = config.bg_color === bg;
+                    const styleTheme = menuThemeForStyle(style);
                     return (
                       <button
                         key={style.id}
                         onClick={() => setConfig(prev => ({ ...prev, bg_color: bg, text_color: style.text, primary_color: style.primary }))}
+                        aria-pressed={isSelected}
                         style={{
                           display: "flex",
+                          flexDirection: "column",
                           alignItems: "center",
-                          gap: 12,
-                          padding: "10px 12px",
-                          borderRadius: 14,
-                          background: "#fff",
-                          border: isSelected ? `2px solid ${style.primary}` : "2px solid #E2E8F0",
-                          cursor: "pointer",
-                          textAlign: "left",
-                          width: "100%",
-                          boxSizing: "border-box",
-                          transition: "all 0.2s"
+                          gap: 6,
+                          padding: "10px 4px",
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer"
                         }}
                       >
-                        <span style={{ width: 28, height: 28, borderRadius: "50%", background: bg, border: "1px solid rgba(0,0,0,0.08)", flexShrink: 0 }} />
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{style.label}</span>
-                        {isSelected && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 800, color: style.primary }}>✓</span>}
+                        <span style={{ position: "relative", width: 52, height: 52, flexShrink: 0 }}>
+                          <span style={{ width: 52, height: 52, borderRadius: "50%", background: bg, border: "1px solid rgba(0,0,0,0.08)", display: "block", boxShadow: isSelected ? `0 0 0 2px #fff, 0 0 0 5px ${styleTheme ? styleTheme.primary : "#0F172A"}` : "none" }} />
+                          {isSelected && (
+                            <span style={{ position: "absolute", right: -2, top: -2, width: 20, height: 20, borderRadius: "50%", background: styleTheme ? styleTheme.primary : "#0F172A", color: styleTheme ? styleTheme.onPrimary : "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, border: "2px solid #fff" }}>✓</span>
+                          )}
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: isSelected ? 800 : 600, color: isSelected ? (styleTheme ? styleTheme.primary : "#0F172A") : "#0F172A", textAlign: "center", lineHeight: 1.3 }}>{style.label}</span>
                       </button>
                     );
                   })}
