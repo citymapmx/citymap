@@ -42,6 +42,13 @@ import { useTranslation } from '../../hooks/useTranslation.js';
 // `filter`, que parpadeaba en el teléfono (PR #194).
 const MAX_FACES = 10;
 
+// Con pocos eventos no hay tambor: de 1 a 3 van en una fila horizontal
+// deslizable con las tarjetas a tamaño completo (opción B elegida por
+// Jonathan, 13 Nov 2026: con 3 o menos, la rueda se veía chica con mucho
+// hueco vacío); con 4 o más queda la rueda 3D. Umbral con nombre para
+// ajustarlo fácil después.
+export const WHEEL_ROW_MAX_EVENTS = 3;
+
 // Placeholder de una cara mientras su póster carga (nunca una tarjeta
 // negra vacía): fondo claro u oscuro según el tema + el shimmer del repo
 // (.skel-shimmer) + el título del evento. Va DEBAJO del <img> (que lo
@@ -158,6 +165,12 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     const tick = (now) => {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
+      // Sin tambor no hay nada que girar (fila de pocos eventos): el
+      // bucle se para en vez de re-renderizar a 60 fps sin hacer nada.
+      if (nRef.current <= WHEEL_ROW_MAX_EVENTS) {
+        rafRef.current = null;
+        return;
+      }
       const target = targetRef.current;
       if (target) {
         const s = springStep(rotationRef.current, velocityRef.current, target.rotation, dt);
@@ -216,9 +229,10 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   }, []);
 
   // Arranca (o reanuda) el giro al montar y cada vez que cambia algo que
-  // lo pausa; al desmontar se cancela el bucle y el temporizador.
+  // lo pausa; al desmontar se cancela el bucle y el temporizador. Sin
+  // tambor (fila de pocos eventos) no se arranca: no hay nada que girar.
   useEffect(() => {
-    ensureLoop();
+    if (n > WHEEL_ROW_MAX_EVENTS) ensureLoop();
   }, [paused, dragging, tabHidden, reducedMotion, n, ensureLoop]);
   useEffect(() => () => {
     stopLoop();
@@ -229,7 +243,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   // tambor (puede ir a mitad de giro). v0 es la velocidad inicial en
   // grados por segundo: 0 en un paso normal, la del lanzamiento al soltar.
   const goTo = useCallback((target, v0 = 0) => {
-    if (n < 3) return;
+    if (n <= WHEEL_ROW_MAX_EVENTS) return;
     const nextIndex = ((target % n) + n) % n;
     const currentTarget = targetRef.current;
     if (currentTarget && currentTarget.index === nextIndex && rafRef.current) return;
@@ -269,7 +283,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   }, []);
 
   const onPointerDown = (e) => {
-    if (n < 3) return;
+    if (n <= WHEEL_ROW_MAX_EVENTS) return;
     stopLoop();
     targetRef.current = null;
     velocityRef.current = 0;
@@ -340,18 +354,23 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
 
   if (n === 0) return null;
 
-  // Con menos de 3 eventos no hay tambor: hilera simple con los pósters.
-  // Las tarjetas miden 170 px, así que 400 px sobra (antes pedían 800 px
-  // como las caras del tambor, el doble de lo necesario).
-  if (n < 3) {
+  // Con pocos eventos no hay tambor: fila horizontal deslizable con las
+  // tarjetas a tamaño completo. El scroll con snap es el indicador (sin
+  // puntos de la rueda): se ve una tarjeta casi entera y un pico de la
+  // siguiente, como las demás filas del inicio (TopImperdibles). La
+  // tarjeta mide min(78%, 300px): a 300 px CSS y 3x en teléfono son
+  // ~900 px de dispositivo, así que el póster va a 800 px (SRCSET_CARD),
+  // no a 400 px: a 400 se veía blando, igual que le pasaba a la cara del
+  // frente de la rueda (PR #264).
+  if (n <= WHEEL_ROW_MAX_EVENTS) {
     return (
       <section style={{ marginBottom: 32 }}>
         {header}
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div className="event-wheel-row scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', margin: '0 -20px', padding: '0 20px 16px' }}>
           {items.map((item) => (
-            <article key={item.key} onClick={() => onSelect?.(item)} style={{ flex: '0 0 170px', borderRadius: 16, overflow: 'hidden', background: '#111', cursor: 'pointer' }}>
+            <article key={item.key} onClick={() => onSelect?.(item)} style={{ flex: '0 0 min(78%, 300px)', scrollSnapAlign: 'start', borderRadius: 16, overflow: 'hidden', background: '#111', cursor: 'pointer' }}>
               <div style={{ position: 'relative', aspectRatio: '3 / 4' }}>
-                {item.img ? (<><WheelFacePlaceholder title={item.title} dark={T.dark} /><OptimizedImage src={item.img} alt={item.title || ''} widthRequest={400} srcSetWidths={SRCSET_THUMB} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative' }} /></>) : <EventPosterFallback title={item.title} radius={0} />}
+                {item.img ? (<><WheelFacePlaceholder title={item.title} dark={T.dark} /><OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 78vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative' }} /></>) : <EventPosterFallback title={item.title} radius={0} />}
                 {pill(item)}
               </div>
             </article>

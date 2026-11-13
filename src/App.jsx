@@ -6,6 +6,7 @@ const lazy = reactLazy;
 import { m } from "framer-motion";
 import './App.css';
 import { sb, cloudUpload } from './lib/supabase.js';
+import { persistMapPinsCache } from './lib/safeStorage.js';
 import * as dbService from './services/dbService.js';
 
 import BottomNav from './components/BottomNav.jsx';
@@ -1029,11 +1030,17 @@ useEffect(() => {
       await dbService.updateBusinessStats(bizId, { rating: avg, review_count: count });
       
       const updateBiz = b => b.id === bizId ? { ...b, rating: avg, review_count: count } : b;
-      setMapPins(prev => {
-        const next = prev.map(updateBiz);
-        if (activeCity) localStorage.setItem(`cg_mapPins_${activeCity}`, JSON.stringify(next));
-        return next;
-      });
+      // La escritura a localStorage NUNCA va dentro del updater de
+      // setMapPins: React evalúa el updater de forma síncrona al
+      // despachar y un QuotaExceededError ahí tumbaba toda la
+      // publicación aunque la reseña ya estaba guardada en la base.
+      // La caché de pines es opcional: si el almacenamiento está lleno
+      // se descarta en silencio (persistMapPinsCache nunca lanza) y
+      // solo guarda la primera página (20), no el array entero que
+      // crece con cada desplazamiento del mapa.
+      const nextPins = mapPins.map(updateBiz);
+      setMapPins(nextPins);
+      persistMapPinsCache(activeCity, nextPins);
       setMyBizList(prev => prev.map(updateBiz));
       setBanners(prev => prev.map(b => (b.business_id === bizId && b.businesses) ? { ...b, businesses: { ...b.businesses, rating: avg, review_count: count } } : b));
       setSelected(prev => prev?.id === bizId ? { ...prev, rating: avg, review_count: count } : prev);
@@ -1044,7 +1051,7 @@ useEffect(() => {
       setShowReview(false);
       toast$("Reseña publicada");
     } catch(err) {
-      toast$("Error: " + err.message);
+      toast$("No se pudo publicar la reseña, inténtalo de nuevo");
     } finally {
       setReviewImgLoading(false);
     }
@@ -1085,11 +1092,11 @@ useEffect(() => {
       const avg = count > 0 ? Math.round((allWithNew.reduce((s, r) => s + (r.stars || 0), 0) / count) * 10) / 10 : 0;
       await dbService.updateExperienceStats(expId, { rating: avg, review_count: count });
       
-      setExperiences(prev => {
-        const next = prev.map(e => e.id === expId ? { ...e, rating: avg, review_count: count } : e);
-        if (activeCity) localStorage.setItem(`cg_experiences_${activeCity}`, JSON.stringify(next));
-        return next;
-      });
+      // Sin escritura a localStorage aquí: la caché cg_experiences_* no
+      // la lee nadie y su escritura sin proteger dentro del updater
+      // tumbaba la publicación con QuotaExceededError igual que en
+      // postReview.
+      setExperiences(prev => prev.map(e => e.id === expId ? { ...e, rating: avg, review_count: count } : e));
       setSelectedEvent(prev => prev?.id === expId ? { ...prev, rating: avg, review_count: count } : prev);
       await loadExperienceReviews(expId);
       setReviewText("");
@@ -1097,7 +1104,7 @@ useEffect(() => {
       setShowReview(false);
       toast$("Reseña publicada");
     } catch(err) {
-      toast$("Error: " + err.message);
+      toast$("No se pudo publicar la reseña, inténtalo de nuevo");
     } finally {
       setReviewImgLoading(false);
     }

@@ -117,8 +117,8 @@ describe('Performance Optimizations - Banner & Event Loading', () => {
       );
 
       // Skeleton should be rendered (CoverflowSk del PR #188, geometría
-      // corregida en la Fase 2); el estado vacío honesto solo aparece
-      // cuando la secundaria ya resolvió (PR #202).
+      // corregida en la Fase 2); la sección ya no se monta cuando la
+      // secundaria resolvió sin eventos (decisión 13 Nov 2026).
       expect(html).toContain('skel-block');
       expect(html).not.toContain('todavía no hay eventos');
     });

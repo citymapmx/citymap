@@ -7,7 +7,7 @@ import Uploader from './Uploader.jsx';
 import BizRequestCard from './BizRequestCard.jsx';
 import { parseEditBizDeepLink, badgeText } from '../lib/notifications.js';
 import { bizToForm } from '../lib/bizForm.js';
-import { sb } from '../lib/supabase.js';
+import { sb, cloudDelete } from '../lib/supabase.js';
 import { isOpenNow } from '../lib/utils.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
@@ -18,7 +18,8 @@ import LoyaltyDesigner from './loyalty/LoyaltyDesigner.jsx';
 import BizShareHub from './BizShareHub.jsx';
 import ProfileLoyaltyCarousel from './loyalty/ProfileLoyaltyCarousel.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
-import { privateEventUrl } from '../lib/privateEvents.js';
+import { privateEventUrl, isPrivateEventHost, deletePrivateEvent, PRIVATE_EVENT_DELETED_EVENT } from '../lib/privateEvents.js';
+import CheckConfirmacion from './CheckConfirmacion.jsx';
 export default function AccountView({
   user, profile, isAdmin, T, dark, favIds, reviews,
   wallet, coupons, claimedCoupons, biz, myBizList,
@@ -73,6 +74,9 @@ export default function AccountView({
   const [editName, setEditName] = useState("");
   const [editPhoto, setEditPhoto] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  // Check de confirmación: al guardar el perfil se reproduce una sola
+  // vez en el modal y luego se cierra.
+  const [showCheck, setShowCheck] = useState(false);
   const [showUserQR, setShowUserQR] = useState(false);
   const [shareHubBiz, setShareHubBiz] = useState(null);
   const [loyaltyDesignerBiz, setLoyaltyDesignerBiz] = useState(null);
@@ -106,6 +110,35 @@ export default function AccountView({
     try { return new Date(ev.date + "T00:00:00").toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', { day: "numeric", month: "short", year: "numeric" }); } catch { return ev.date; }
   };
 
+  // Borrar un evento privado para todos (solo el anfitrión lo ve: la lista
+  // ya es solo de eventos propios, pero el criterio se exige explícito).
+  const [deletingPrivateId, setDeletingPrivateId] = useState(null);
+  // Si el evento se borra desde su detalle (modal), la tarjeta se quita
+  // de esta lista sin recargar.
+  useEffect(() => {
+    const onDeleted = (e) => {
+      const id = e?.detail?.id;
+      if (id) setMyPrivateEvents(list => list.filter(item => item.id !== id));
+    };
+    window.addEventListener(PRIVATE_EVENT_DELETED_EVENT, onDeleted);
+    return () => window.removeEventListener(PRIVATE_EVENT_DELETED_EVENT, onDeleted);
+  }, []);
+  const confirmDeletePrivateEvent = async (ev) => {
+    if (!ev?.id || deletingPrivateId) return;
+    const ok = window.confirm(t("cuenta_eliminar_evento_confirmar", "¿Eliminar «${title}» para todos? Esta acción no se puede deshacer. Se borra el evento, las confirmaciones de asistencia y el chat.", { title: ev.title || '' }));
+    if (!ok) return;
+    setDeletingPrivateId(ev.id);
+    try {
+      await deletePrivateEvent({ db: sb, deleteImage: cloudDelete, event: ev });
+      setMyPrivateEvents(list => list.filter(item => item.id !== ev.id));
+      toast$(t("cuenta_evento_eliminado", "Evento eliminado"));
+    } catch (err) {
+      toast$(t("cuenta_evento_no_eliminado", "No se pudo eliminar el evento, inténtalo de nuevo"));
+    } finally {
+      setDeletingPrivateId(null);
+    }
+  };
+
   const startEditProfile = () => {
     setEditName(user?.user_metadata?.name || profile?.name || user.email?.split("@")[0] || "");
     setEditPhoto(user?.user_metadata?.avatar_url || profile?.avatar_url || "");
@@ -124,7 +157,9 @@ export default function AccountView({
         const authSt = useAuthStore.getState();
         if (authSt.profile) authSt.setProfile({ ...authSt.profile, name: editName, avatar_url: editPhoto });
       }
-      setIsEditingProfile(false);
+      // El modal no se cierra de inmediato: primero se reproduce el
+      // check de confirmación y al terminar se cierra (onDone).
+      setShowCheck(true);
       toast$(t("perfil_actualizado", "Perfil actualizado ✓"));
     } catch (e) {
       toast$(e.message);
@@ -248,8 +283,14 @@ export default function AccountView({
               <label style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6, display: "block" }}>{t("nombre", "Nombre")}</label>
               <input value={editName} onChange={e => setEditName(e.target.value)} placeholder={t("tu_nombre", "Tu nombre")} style={{ width: "100%", padding: "12px 14px", border: `1.5px solid ${T.border}`, background: "transparent", borderRadius: 12, fontSize: 15, color: T.text, fontFamily: "inherit", marginBottom: 20 }} />
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => setIsEditingProfile(false)} style={{ flex: 1, padding: "12px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>{t("cancelar", "Cancelar")}</button>
-                <button onClick={saveProfile} disabled={savingProfile} style={{ flex: 1, padding: "12px 0", background: T.green, border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", opacity: savingProfile ? 0.7 : 1 }}>{savingProfile ? t("guardando", "Guardando...") : t("guardar", "Guardar")}</button>
+                {showCheck ? (
+                  <div style={{ flex: 1 }}>
+                    <CheckConfirmacion show size={72} onDone={() => { setShowCheck(false); setIsEditingProfile(false); }} />
+                  </div>
+                ) : (<>
+                  <button onClick={() => setIsEditingProfile(false)} style={{ flex: 1, padding: "12px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>{t("cancelar", "Cancelar")}</button>
+                  <button onClick={saveProfile} disabled={savingProfile} style={{ flex: 1, padding: "12px 0", background: T.green, border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", opacity: savingProfile ? 0.7 : 1 }}>{savingProfile ? t("guardando", "Guardando...") : t("guardar", "Guardar")}</button>
+                </>)}
               </div>
             </div>
           </div>
@@ -452,6 +493,11 @@ export default function AccountView({
                   <button onClick={() => { navigator.clipboard?.writeText(privateEventUrl(ev)); toast$(t("cuenta_enlace_copiado", "Enlace secreto copiado")); }} style={{ flex: 1, padding: "9px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>{t("cuenta_copiar_enlace", "Copiar enlace")}</button>
                   <button onClick={() => setSelectedEvent(ev)} style={{ flex: 1, padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>{t("cuenta_abrir_evento", "Abrir evento")}</button>
                 </div>
+                {isPrivateEventHost(ev, user?.id) && (
+                  <button onClick={() => confirmDeletePrivateEvent(ev)} disabled={deletingPrivateId === ev.id} style={{ width: "100%", marginTop: 8, padding: "9px 0", background: "transparent", border: "none", fontSize: 13, fontWeight: 700, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: deletingPrivateId === ev.id ? 0.6 : 1 }}>
+                    <Icon name="trash" size={14} color="#D94F3D" /> {deletingPrivateId === ev.id ? t("cuenta_eliminando_evento", "Eliminando…") : t("cuenta_eliminar_evento", "Eliminar evento")}
+                  </button>
+                )}
               </div>
             ))}
           </div>

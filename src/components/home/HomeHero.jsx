@@ -7,6 +7,7 @@ import DebouncedSearchBar from './DebouncedSearchBar.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { SRCSET_CARD } from '../../lib/utils.js';
 import { Sk } from '../ui/Skeleton.jsx';
+import { getHeroSubtitle } from '../../lib/heroSubtitle.js';
 
 export default memo(function HomeHero({
   dark, T, t, search, setSearch, localizedPlaceholders, phIdx, 
@@ -75,102 +76,10 @@ export default memo(function HomeHero({
     return t("home_saludo_linda_noche", "¡Linda noche!");
   };
 
-  const contextMessage = React.useMemo(() => {
-    const now = new Date();
-    const h = now.getHours();
-    const dayIndex = now.getDay();
-    const isWeekend = dayIndex === 0 || dayIndex === 5 || dayIndex === 6;
-
-    const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-    if (h < 11) {
-      return isWeekend 
-        ? rand([
-            t("home_hero_msg_01", "El fin de semana merece un desayuno especial"), 
-            t("home_hero_msg_02", "Empieza tu día de descanso con un buen brunch"), 
-            t("home_hero_msg_03", "Mañana perfecta para salir por un café"),
-            t("home_hero_msg_04", "¿Listos para salir a explorar la ciudad hoy?"),
-            t("home_hero_msg_05", "Descubre qué eventos hay este fin de semana")
-          ])
-        : rand([
-            t("home_hero_msg_06", "Ideal para un buen café mañanero"), 
-            t("home_hero_msg_07", "Empieza el día con energía y un buen desayuno"), 
-            t("home_hero_msg_08", "¡Buenos días! ¿Qué se te antoja desayunar hoy?"),
-            t("home_hero_msg_09", "Planea tus actividades y rutas para hoy"),
-            t("home_hero_msg_10", "Descubre nuevos lugares cerca de ti")
-          ]);
-    }
-    
-    if (h >= 11 && h < 14) {
-      return isWeekend
-        ? rand([
-            t("home_hero_msg_11", "¿Listo para el antojo de fin de semana?"), 
-            t("home_hero_msg_12", "¿Dónde vamos a comer hoy?"), 
-            t("home_hero_msg_13", "Busca el plan perfecto para esta tarde"),
-            t("home_hero_msg_14", "Descubre museos, parques y lugares increíbles"),
-            t("home_hero_msg_15", "Hay mucho por hacer hoy en la ciudad")
-          ])
-        : rand([
-            t("home_hero_msg_16", "¿Ya hace hambre? Descubre dónde comer"), 
-            t("home_hero_msg_17", "Haz una pausa y disfruta una buena comida"), 
-            t("home_hero_msg_18", "Encuentra el lugar perfecto para tu hora de comida"),
-            t("home_hero_msg_19", "Busca qué hacer al salir de la oficina"),
-            t("home_hero_msg_20", "Explora los mejores lugares de la zona")
-          ]);
-    }
-    
-    if (h >= 14 && h < 18) {
-      return isWeekend 
-        ? rand([
-            t("home_hero_msg_21", "Tarde perfecta para salir por un postre"), 
-            t("home_hero_msg_22", "Aprovecha la tarde libre para explorar"), 
-            t("home_hero_msg_23", "Busca eventos y música en vivo para hoy"),
-            t("home_hero_msg_24", "¿Un paseo por la ciudad o un buen café?"),
-            t("home_hero_msg_25", "Descubre las mejores experiencias locales")
-          ])
-        : rand([
-            t("home_hero_msg_26", "Para romper la rutina con algo dulce"), 
-            t("home_hero_msg_27", "Haz una pausa en tu tarde con un buen café"), 
-            t("home_hero_msg_28", "Un gustito a mitad del día no hace daño"),
-            t("home_hero_msg_29", "Escapa de la rutina y descubre algo nuevo"),
-            t("home_hero_msg_30", "¿Qué plan hay para salir del trabajo?")
-          ]);
-    }
-    
-    if (h >= 18 && h < 22) {
-      return isWeekend 
-        ? rand([
-            t("home_hero_msg_31", "La noche es joven. Ideal para una cena o tragos"), 
-            t("home_hero_msg_32", "Descubre dónde cenar y relajarte este fin de semana"), 
-            t("home_hero_msg_33", "Busca eventos, teatro o comedia para esta noche"),
-            t("home_hero_msg_34", "Noche perfecta para probar algo diferente"),
-            t("home_hero_msg_35", "Encuentra el mejor ambiente nocturno")
-          ])
-        : rand([
-            t("home_hero_msg_36", "¿Antojo de cenar algo rico?"), 
-            t("home_hero_msg_37", "Termina tu día con una cena espectacular"), 
-            t("home_hero_msg_38", "Descubre qué hacer esta noche en la ciudad"),
-            t("home_hero_msg_39", "El día aún no termina, sal a explorar"),
-            t("home_hero_msg_40", "Relájate en un buen bar o terraza")
-          ]);
-    }
-    
-    return isWeekend
-      ? rand([
-            t("home_hero_msg_41", "Para los que todavía no quieren dormir"), 
-            t("home_hero_msg_42", "Descubre la vida nocturna de la ciudad"), 
-            t("home_hero_msg_43", "Los mejores eventos para alargar la noche"),
-            t("home_hero_msg_44", "Encuentra música y fiesta cerca de ti"),
-            t("home_hero_msg_45", "Una noche inolvidable te espera")
-          ])
-      : rand([
-            t("home_hero_msg_46", "Descubre los mejores lugares nocturnos"), 
-            t("home_hero_msg_47", "¿Antojo de medianoche?"), 
-            t("home_hero_msg_48", "La ciudad nunca duerme"),
-            t("home_hero_msg_49", "Lugares increíbles que abren hasta tarde"),
-            t("home_hero_msg_50", "Encuentra dónde terminar la noche")
-          ]);
-  }, [t]);
+  // Subtítulo por franja horaria (src/lib/heroSubtitle.js): de noche
+  // (22:00–05:59) nunca habla de desayuno/brunch; la frase rota por día,
+  // estable dentro del día, sin aleatorio en cada render.
+  const contextMessage = React.useMemo(() => getHeroSubtitle(t), [t]);
 
 
 
@@ -232,7 +141,7 @@ export default memo(function HomeHero({
                 }
                 
               `}</style>
-              <h1  style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(22px, 5.5vw, 28px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: (dark || hasBg) ? "#fff" : T.text }}>
+              <h1 className="text-focus-in" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(22px, 5.5vw, 28px)", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.5px", color: (dark || hasBg) ? "#fff" : T.text }}>
                 {getGreeting()} <span className={hasBg ? undefined : "animated-city"}>{cityName}</span>
 
               </h1>

@@ -520,3 +520,45 @@ iframe[id^="credential_picker"] {
   -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent 100%);
   mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent 100%);
 }
+
+/* Animista text-focus-in (13 nov 2026, elegido por Jonathan en la página
+   de propuestas, sección 09): el título del héroe del inicio entra
+   desenfocado y se enfoca en 1 s, una sola vez al cargar la vista.
+   Fuente: https://animista.net/play/text/focus-in/text-focus-in
+   Solo CSS, sin librería. Se aplica con la clase `text-focus-in` al h1
+   del héroe del muro global (GlobalHomeView) y del inicio de ciudad
+   (HomeHero). Con `prefers-reduced-motion` no se anima. */
+@-webkit-keyframes text-focus-in {
+  0% {
+    -webkit-filter: blur(12px);
+    filter: blur(12px);
+    opacity: 0;
+  }
+  100% {
+    -webkit-filter: blur(0px);
+    filter: blur(0px);
+    opacity: 1;
+  }
+}
+@keyframes text-focus-in {
+  0% {
+    -webkit-filter: blur(12px);
+    filter: blur(12px);
+    opacity: 0;
+  }
+  100% {
+    -webkit-filter: blur(0px);
+    filter: blur(0px);
+    opacity: 1;
+  }
+}
+.text-focus-in {
+  -webkit-animation: text-focus-in 1s cubic-bezier(0.550, 0.085, 0.680, 0.530) both;
+  animation: text-focus-in 1s cubic-bezier(0.550, 0.085, 0.680, 0.530) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .text-focus-in {
+    -webkit-animation: none;
+    animation: none;
+  }
+}

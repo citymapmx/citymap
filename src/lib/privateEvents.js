@@ -8,6 +8,38 @@ export function isPrivateEvent(event) {
   return event?.visibility === 'private';
 }
 
+// ¿Es este usuario el anfitrión (creador) del evento privado? Solo el
+// anfitrión ve el botón «Eliminar evento».
+export function isPrivateEventHost(event, userId) {
+  return Boolean(userId && event?.user_id && String(event.user_id) === String(userId));
+}
+
+// Nombre del evento de ventana que se dispara al borrar un evento privado
+// para todos: «Mis eventos privados» lo escucha y quita la tarjeta sin recargar.
+export const PRIVATE_EVENT_DELETED_EVENT = 'citymap:private-event-deleted';
+
+// Borra un evento privado para todos: la fila del evento (la cascada de la
+// base borra sus RSVPs, sus mensajes del chat y los likes de esos
+// mensajes), su imagen en Storage y, por si la cascada no estuviera, una
+// limpieza best-effort de RSVPs y mensajes. `db` es el cliente sb (o un
+// doble en tests) y `deleteImage` es cloudDelete. Lanza si no se pudo
+// borrar el evento; la limpieza posterior nunca lanza.
+export async function deletePrivateEvent({ db, deleteImage, event }) {
+  if (!event?.id) throw new Error('Evento sin id');
+  await db.del('events', event.id);
+  const img = event.img_url || event.img;
+  if (img && deleteImage) {
+    try { await deleteImage(img); } catch { /* una imagen huérfana no bloquea el borrado */ }
+  }
+  // Best-effort: la cascada ya borró RSVPs y mensajes; si no, esto los quita.
+  try {
+    await Promise.all([
+      db.delWhere?.('event_rsvps', 'event_id', event.id),
+      db.delWhere?.('event_messages', 'event_id', event.id),
+    ]);
+  } catch { /* no bloquea: el evento ya está borrado */ }
+}
+
 export function privateEventUrl(event, origin = '') {
   const base = origin || (typeof window !== 'undefined' ? window.location.origin : 'https://citymap.mx');
   return eventUrl(event, base);

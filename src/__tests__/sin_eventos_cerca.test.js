@@ -1,6 +1,7 @@
 // Sin fallback de «eventos cerca» (decisión de Jonathan, 12 Nov 2026):
 // en el inicio de una ciudad sin eventos no aparece ninguna
-// recomendación — solo el mensaje de que todavía no hay eventos.
+// recomendación. Desde el 13 Nov 2026 la sección «Próximos eventos»
+// completa se oculta (ni título, ni mensaje, ni cubos).
 // Se eliminaron selectNearbyEvents, NearbyEventsList, loadNearbyEvents y
 // las claves i18n del fallback. «Más eventos en [ciudad]» del detalle
 // (EventDetailModal + eventListing.js) NO se toca: filtra estricto por

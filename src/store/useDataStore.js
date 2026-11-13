@@ -4,6 +4,7 @@ import { sb } from '../lib/supabase.js';
 import { preloadWheelFirstImage } from '../lib/wheelPreload.js';
 
 import { METRO_ZONES, updateMetroZones } from '../lib/utils.js';
+import { safeSetItem } from '../lib/safeStorage.js';
 
 const getCityFilterEq = (city) => {
   const zone = METRO_ZONES[city];
@@ -33,7 +34,10 @@ let googleRatingsInFlight = null;
 const updateCityCache = (key, updates) => {
   try {
     const existing = JSON.parse(localStorage.getItem(key) || "{}");
-    localStorage.setItem(key, JSON.stringify({ ...existing, ...updates }));
+    // safeSetItem nunca lanza: ante falta de cuota desaloja cachés de
+    // otras ciudades y reintenta; si ni así cabe, el caché queda viejo
+    // pero la app sigue funcionando (se re-descarga de la red).
+    safeSetItem(key, JSON.stringify({ ...existing, ...updates }));
   } catch (err) {
     console.warn("City cache write error", err);
   }
@@ -159,9 +163,7 @@ export const useDataStore = create((set, get) => ({
       if (requestId !== businessLoadId) return;
       const initialPins = processBatch(firstBatch);
       set({ mapPins: initialPins, initialBizCount: initialPins.length });
-      try {
-        if (typeof localStorage !== 'undefined') localStorage.setItem(cacheKey, JSON.stringify(initialPins));
-      } catch { /* Storage may be full or disabled. */ }
+      if (typeof localStorage !== 'undefined') safeSetItem(cacheKey, JSON.stringify(initialPins));
       // Further rows are requested only by pagination or the map viewport.
     } catch (e) {
       console.warn("Error fetching map pins", e);
