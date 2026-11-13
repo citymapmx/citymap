@@ -6,7 +6,7 @@ import { getT, FONT_BIZ, CITY_TZ } from '../../lib/constants';
 import { getThumbUrl } from '../../lib/utils';
 import { eventUrl } from '../../lib/eventUrls';
 import { eventCalendarDay, isPastEvent, upcomingEvents, formatEventCardDate } from '../../lib/eventListing';
-import { sb, cloudUpload } from '../../lib/supabase';
+import { sb, cloudUpload, cloudDelete } from '../../lib/supabase';
 import { EVENT_IMAGE_OPTIMIZE, resolveOptimizeOptions, shouldOptimizeImage } from '../../lib/imageOptimize.js';
 import Icon from '../ui/Icon';
 import SaveHeartButton from '../ui/SaveHeartButton.jsx';
@@ -14,7 +14,7 @@ import EventPoster from '../detail/EventPoster.jsx';
 import EventInformation, { EventTicketBar } from '../detail/EventInformation.jsx';
 import PrivateEventRsvp from '../detail/PrivateEventRsvp.jsx';
 import PrivateEventChat from '../detail/PrivateEventChat.jsx';
-import { isPrivateEvent, privateEventUrl, summarizeRsvps, heroDateParts } from '../../lib/privateEvents';
+import { isPrivateEvent, isPrivateEventHost, privateEventUrl, summarizeRsvps, heroDateParts, deletePrivateEvent, PRIVATE_EVENT_DELETED_EVENT } from '../../lib/privateEvents';
 import { getEventPrice, getEventPriceAmount, getEventMusicQuery, getEventMusicFallbackQuery, loadMusicTracks } from '../../lib/eventDetails.js';
 import { SPRING_UI } from '../../lib/spring.js';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -121,6 +121,28 @@ export default function EventDetailModal() {
   }, [setSelectedEvent, routerNavigate, location.state?.background, activeCity]);
   const closeRef = useRef(closeEvent);
   closeRef.current = closeEvent;
+
+  // Borrar el evento privado para todos (solo el anfitrión lo ve): tras
+  // borrar, se avisa a «Mis eventos privados» para que quite la tarjeta
+  // sin recargar y se cierra el detalle.
+  const [deletingPrivate, setDeletingPrivate] = useState(false);
+  const confirmDeletePrivateEvent = async () => {
+    const ev = selectedEvent;
+    if (!ev?.id || deletingPrivate || !isPrivateEvent(ev) || !isPrivateEventHost(ev, user?.id)) return;
+    const ok = window.confirm(t("eventos_eliminar_evento_confirmar", "¿Eliminar «${title}» para todos? Esta acción no se puede deshacer. Se borra el evento, las confirmaciones de asistencia y el chat.", { title: ev.title || '' }));
+    if (!ok) return;
+    setDeletingPrivate(true);
+    try {
+      await deletePrivateEvent({ db: sb, deleteImage: cloudDelete, event: ev });
+      toast$(t("eventos_evento_eliminado", "Evento eliminado"));
+      window.dispatchEvent(new CustomEvent(PRIVATE_EVENT_DELETED_EVENT, { detail: { id: ev.id } }));
+      setSelectedEvent(null);
+    } catch (err) {
+      toast$(t("eventos_evento_no_eliminado", "No se pudo eliminar el evento, inténtalo de nuevo"));
+    } finally {
+      setDeletingPrivate(false);
+    }
+  };
   useEffect(() => {
     if (!selectedEvent?.id) return;
     setPrivateTab('chat');
@@ -441,13 +463,22 @@ export default function EventDetailModal() {
                     {privateTab === 'detalles' && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={false} hidePriceRow={Boolean(topPriceLabel)} />}
                     {privateTab === 'invitados' && <PrivateEventRsvp event={ev} T={T} dark={dark} luma={luma} toast$={toast$} onCountChange={setGuestCount} />}
 
-                    {user?.id && ev.user_id && user.id === ev.user_id && (
-                      <button
-                        onClick={() => { navigator.clipboard?.writeText(privateEventUrl(ev)); toast$(t("eventos_enlace_secreto_copiado", "Enlace secreto copiado")); }}
-                        style={{ width: '100%', margin: '0 0 12px 0', padding: luma ? '12px 0' : '10px 0', background: luma ? '#FFFFFF' : 'transparent', border: luma ? '1px solid #E5E7EB' : `1.5px solid ${T.border}`, borderRadius: luma ? 16 : 12, boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', fontSize: 14, fontWeight: 800, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}
-                      >
-                        {t("eventos_copiar_enlace_secreto", "🔗 Copiar enlace secreto")}
-                      </button>
+                    {isPrivateEventHost(ev, user?.id) && (
+                      <>
+                        <button
+                          onClick={() => { navigator.clipboard?.writeText(privateEventUrl(ev)); toast$(t("eventos_enlace_secreto_copiado", "Enlace secreto copiado")); }}
+                          style={{ width: '100%', margin: '0 0 12px 0', padding: luma ? '12px 0' : '10px 0', background: luma ? '#FFFFFF' : 'transparent', border: luma ? '1px solid #E5E7EB' : `1.5px solid ${T.border}`, borderRadius: luma ? 16 : 12, boxShadow: luma ? '0 4px 16px rgba(15,23,42,0.06)' : 'none', fontSize: 14, fontWeight: 800, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}
+                        >
+                          {t("eventos_copiar_enlace_secreto", "🔗 Copiar enlace secreto")}
+                        </button>
+                        <button
+                          onClick={confirmDeletePrivateEvent}
+                          disabled={deletingPrivate}
+                          style={{ width: '100%', margin: '0 0 12px 0', padding: '10px 0', background: 'transparent', border: '1px solid #FECACA', borderRadius: 12, fontSize: 14, fontWeight: 800, color: '#D94F3D', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: deletingPrivate ? 0.6 : 1 }}
+                        >
+                          <Icon name="trash" size={15} color="#D94F3D" /> {deletingPrivate ? t("eventos_eliminando_evento", "Eliminando…") : t("eventos_eliminar_evento", "Eliminar evento")}
+                        </button>
+                      </>
                     )}
                     <div style={{ margin: '0 0 8px 0', fontSize: 12, color: T.sub, textAlign: 'center' }}>{t("eventos_privado_solo_enlace", "🔒 Evento privado · solo visible con el enlace")}</div>
                   </>
