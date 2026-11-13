@@ -31,11 +31,18 @@
 // 7. Reloj — «time». REMOTO (URL de LottieFiles, verificada): junto a
 //    la duración del detalle del tour. Bucle lento. Elegido por
 //    Jonathan de la misma vista previa.
+// 8. Corazón que late — «Beating Heart», de Bar Zamir. REMOTO (URL de
+//    LottieFiles, verificada): reemplaza al corazón estático blanco
+//    junto al contador de likes en el héroe del detalle del tour.
+//    El arte original es rojo; se renderiza en blanco con un filtro
+//    CSS (brightness(0) invert(1)) donde se usa. Bucle lento.
+//    Elegido por Jonathan de la vista previa «Animaciones de corazón»
+//    (13 nov 2026).
 //
 // Las 1-5 son gratuitas bajo la Lottie Simple License y viven en
 // public/lottie/ como archivos .lottie (dotLottie). Los archivos
 // binarios se suben aparte: el flujo de PR no transporta binarios.
-// Las 6-7 son REMOTAS: no hay binario en el repo, se cargan por URL
+// Las 6-8 son REMOTAS: no hay binario en el repo, se cargan por URL
 // con el mismo reproductor (DotLottieReact acepta URL remota; el
 // servidor responde Access-Control-Allow-Origin: *, verificado).
 // Si la URL falla o no hay red, LottieAnim se oculta solo.
@@ -47,3 +54,4 @@ export const TROFEO_LOGRO_SRC = '/lottie/trofeo-logro.lottie';
 export const CHECK_CONFIRMACION_SRC = '/lottie/check-confirmacion.lottie';
 export const PIN_UBICACION_SRC = 'https://assets-v2.lottiefiles.com/a/33adfd0a-1152-11ee-bf4c-cf4f5408cb33/Qw1z0D2rdR.lottie';
 export const RELOJ_DURACION_SRC = 'https://assets-v2.lottiefiles.com/a/399811bc-1164-11ee-ab46-5f393e5d8bac/9mUqK6fQog.lottie';
+export const CORAZON_LATE_SRC = 'https://assets-v2.lottiefiles.com/a/1b1f4610-1178-11ee-ac0f-df86f528f719/nW2jpdbaX3.lottie';

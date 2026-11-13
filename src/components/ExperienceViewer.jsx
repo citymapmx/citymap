@@ -18,7 +18,7 @@ import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
 import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle, localizedDescription } from "../lib/i18nContent.js";
 import LottieAnim from './LottieAnim.jsx';
-import { PIN_UBICACION_SRC, RELOJ_DURACION_SRC } from '../lib/lottieAnimaciones.js';
+import { PIN_UBICACION_SRC, RELOJ_DURACION_SRC, CORAZON_LATE_SRC } from '../lib/lottieAnimaciones.js';
 
 const Gallery = lazy(() => import('./Gallery').catch(() => {
   window.location.reload();
@@ -376,7 +376,11 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#fff", fontSize: 14, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
-            <Icon name="heart" size={16} color="#fff" /> {exp.id ? (exp.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 350 + 24) : 120}
+            {/* Corazón animado (remoto, en blanco con filtro): el arte
+                original es rojo; brightness(0) invert(1) lo deja blanco
+                como el icono estático anterior. Solo visual: el corazón
+                no tiene acción al tocar, el contador sigue igual. */}
+            <LottieAnim src={CORAZON_LATE_SRC} loop speed={0.7} width={16} height={16} ariaLabel="Me gusta" style={{ filter: 'brightness(0) invert(1)' }} /> {exp.id ? (exp.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 350 + 24) : 120}
           </div>
         </div>
       </div>
