@@ -1,6 +1,6 @@
 // Estilos de color para el menú del negocio (PR #291).
 //
-// Reutiliza los 30 estilos de las tarjetas de lealtad
+// Reutiliza los 36 estilos de las tarjetas de lealtad
 // (loyaltyColorStyles.js) tal cual, sin paletas nuevas. El negocio guarda
 // solo el id del estilo en businesses.menu_style (p. ej. "perla") o null
 // = sin estilo, y el menú se ve exacto como hoy.
