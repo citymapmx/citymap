@@ -1,6 +1,11 @@
 import { seoSite } from '../src/lib/seoRoutes.js';
 import { tourSchemaNodes } from '../src/lib/tourSchema.js';
 import { eventUrl, resolveEventSlug } from '../src/lib/eventUrls.js';
+import { CITY_TZ } from '../src/lib/constants.js';
+import {
+  scheduleToOpeningHours, eventStartDate, eventEndDate, eventStatusUrl,
+  eventOffer, breadcrumbList, faqPage, businessDescriptionFallback,
+} from '../src/lib/structuredData.js';
 const SUPABASE_URL  = "https://dpkjxhjkzdlkvyotoeai.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
 
@@ -47,7 +52,7 @@ function notFoundResponse(title) {
 
 // Página de categoría para bots: mismo marcado para las categorías
 // de CAT_SEO y para las subcategorías /:ciudad/c/:subcategoria.
-function renderCategoryPage({ title, desc, label, cityName, canonicalUrl, img, listing, siteName, locale }) {
+function renderCategoryPage({ title, desc, label, cityName, canonicalUrl, img, listing, siteName, locale, schemaJson = "" }) {
   return `<!doctype html>
 <html lang="es" prefix="og: https://ogp.me/ns#">
 <head>
@@ -70,6 +75,7 @@ function renderCategoryPage({ title, desc, label, cityName, canonicalUrl, img, l
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(desc)}"/>
 <meta name="twitter:image" content="${esc(img)}"/>
+${schemaJson}
 </head>
 <body>
 <h1>${esc(label)} en ${esc(cityName)}</h1>
@@ -235,11 +241,28 @@ async function getCityCount() {
   } catch { return null; }
 }
 
+// Preguntas frecuentes de /negocios: una sola fuente para el HTML de la
+// landing y para el JSON-LD FAQPage (las respuestas son las de la landing
+// en BusinessLanding.jsx / i18n). faq5 lleva el número de ciudades en vivo.
+function negociosFaqItems(faq5) {
+  return [
+    { q: "¿Cuánto cuesta empezar?", a: "Nada. Crear tu perfil y publicar tu negocio es gratis. Solo pagas si quieres Destacado o Premium." },
+    { q: "¿Necesito pagar para aparecer en CityMap?", a: "No. Con el plan gratuito tu negocio ya tiene su página pública, con teléfono, dirección, horarios y portada." },
+    { q: "¿CityMap cobra comisión por mis ventas?", a: "No. Los pedidos te llegan por WhatsApp y el pago es directo entre tu cliente y tú." },
+    { q: "¿Puedo probar los planes de pago gratis?", a: "Sí. Los planes Destacado y Premium mensuales tienen 7 días de prueba gratis, sin compromiso." },
+    { q: "¿En qué ciudades está CityMap?", a: faq5 },
+    { q: "¿Qué necesito para registrar mi negocio?", a: "Solo tu información básica: nombre, fotos, horarios y un teléfono o WhatsApp para que te contacten." },
+  ];
+}
+
 // Contenido estático de la landing /negocios para bots (copia real de
 // BusinessLanding.jsx / i18n: beneficios, cómo funciona, planes con
 // precios MXN y preguntas frecuentes). faq5 lleva el número de ciudades
 // en vivo, que se resuelve en la rama de vista.
 function negociosBody(faq5) {
+  const faqHtml = `<section><h2>Preguntas frecuentes</h2><dl>`
+    + negociosFaqItems(faq5).map(({ q, a }) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")
+    + `</dl></section>`;
   return `<section><h2>Por qué CityMap</h2><p>Lo que gana tu negocio</p><ul>`
     + `<li><h3>Te encuentran en el mapa</h3><p>Tu negocio aparece con su pin en el mapa de tu ciudad, junto a los lugares, restaurantes y eventos que la gente ya busca. Con Premium, tu logotipo se ve directo en el mapa.</p></li>`
     + `<li><h3>Te encuentran en Google</h3><p>Tu página queda indexada y aparece en las búsquedas de Google. Con Destacado, tu posicionamiento mejora; con Premium, hasta tu menú interactivo aparece en Google.</p></li>`
@@ -258,14 +281,7 @@ function negociosBody(faq5) {
     + `<li><h3>Destacado</h3><p>$99 MXN / mes o $990 MXN / año</p><p>Ideal para negocios que buscan captar clientes y mayor visibilidad.</p><p>Pruébalo 7 días gratis (solo en el pago mensual).</p></li>`
     + `<li><h3>Premium</h3><p>$199 MXN / mes o $1,990 MXN / año</p><p>Todas las herramientas para dominar tu presencia digital y vender más.</p><p>Pruébalo 7 días gratis (solo en el pago mensual).</p></li>`
     + `</ul></section>`
-    + `<section><h2>Preguntas frecuentes</h2><dl>`
-    + `<dt>¿Cuánto cuesta empezar?</dt><dd>Nada. Crear tu perfil y publicar tu negocio es gratis. Solo pagas si quieres Destacado o Premium.</dd>`
-    + `<dt>¿Necesito pagar para aparecer en CityMap?</dt><dd>No. Con el plan gratuito tu negocio ya tiene su página pública, con teléfono, dirección, horarios y portada.</dd>`
-    + `<dt>¿CityMap cobra comisión por mis ventas?</dt><dd>No. Los pedidos te llegan por WhatsApp y el pago es directo entre tu cliente y tú.</dd>`
-    + `<dt>¿Puedo probar los planes de pago gratis?</dt><dd>Sí. Los planes Destacado y Premium mensuales tienen 7 días de prueba gratis, sin compromiso.</dd>`
-    + `<dt>¿En qué ciudades está CityMap?</dt><dd>${esc(faq5)}</dd>`
-    + `<dt>¿Qué necesito para registrar mi negocio?</dt><dd>Solo tu información básica: nombre, fotos, horarios y un teléfono o WhatsApp para que te contacten.</dd>`
-    + `</dl></section>`
+    + faqHtml
     + `<section><h2>Tu negocio ya lo buscan. Que lo encuentren.</h2><p>Crear perfil gratis en CityMap.</p></section>`;
 }
 
@@ -327,7 +343,7 @@ async function getEv(id, city) {
     }
 
     let r = await fetch(
-      `${SUPABASE_URL}/rest/v1/events?${q}&select=id,slug,title,description,date,venue_name,img_url,img,event_category,city_slug`,
+      `${SUPABASE_URL}/rest/v1/events?${q}&select=id,slug,title,description,date,time,end_date,end_time,price,price_type,website,status,venue_name,venue_address,lat,lng,img_url,img,event_category,city_slug`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
     );
     if (!r.ok) return null;
@@ -335,7 +351,7 @@ async function getEv(id, city) {
     if (!d?.[0] && !isUUID && !q.startsWith("id=")) {
       const searchName = id.split("-").join("%25");
       r = await fetch(
-        `${SUPABASE_URL}/rest/v1/events?title=ilike.*${searchName}*&select=id,slug,title,description,date,venue_name,img_url,img,event_category,city_slug`,
+        `${SUPABASE_URL}/rest/v1/events?title=ilike.*${searchName}*&select=id,slug,title,description,date,time,end_date,end_time,price,price_type,website,status,venue_name,venue_address,lat,lng,img_url,img,event_category,city_slug`,
         { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
       );
       if (r.ok) d = await r.json();
@@ -495,6 +511,10 @@ export default async function handler(req) {
     const img = cityBgImage || `${BASE_URL}/og-image.png`;
     const listing = await getListing(city, null, BASE_URL, cityPath);
     const categoryLinks = `<nav aria-label="Categorías"><ul>${Object.entries(CAT_SEO).map(([slug, info]) => `<li><a href="${esc(BASE_URL + cityPath + '/' + slug)}">${esc(info.label)}</a></li>`).join('')}</ul></nav>`;
+    const citySchema = `<script type="application/ld+json">${JSON.stringify(breadcrumbList([
+      { name: "Inicio", item: BASE_URL },
+      { name: cityName, item: `${BASE_URL}${cityPath}` },
+    ]))}</script>`;
     
     const html = `<!doctype html>
 <html lang="es" prefix="og: https://ogp.me/ns#">
@@ -518,6 +538,7 @@ export default async function handler(req) {
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(desc)}"/>
 <meta name="twitter:image" content="${esc(img)}"/>
+${citySchema}
 </head>
 <body>
 <h1>${esc(title)}</h1>
@@ -599,6 +620,8 @@ ${categoryLinks}
       const faq5 = cityCount
         ? `En ${cityCount} ciudades, entre ellas Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Ciudad de México, Mérida, Monterrey, Cancún y Playa del Carmen.`
         : `En Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Ciudad de México, Mérida, Monterrey, Cancún, Playa del Carmen y más ciudades.`;
+      const faqItems = negociosFaqItems(faq5);
+      schemaJson = `<script type="application/ld+json">${JSON.stringify(faqPage(faqItems))}</script>`;
       bodyExtra = negociosBody(faq5) + await getNegociosExamples(BASE_URL);
     } else if (vista === "login") {
       canonicalUrl = `${BASE_URL}/login`;
@@ -654,7 +677,7 @@ ${bodyExtra}
     });
   }
 
-  let name = "", desc, img = "", url = "", category = "", fullDesc = "", linkHref = "", canonicalUrl = "", cityNameFormat = "";
+  let name = "", desc, img = "", url = "", category = "", fullDesc = "", linkHref = "", canonicalUrl = "", cityNameFormat = "", bizCityPath = "";
   let bizData = null, evData = null, expData = null;
 
   if (id) {
@@ -672,8 +695,13 @@ ${bodyExtra}
       const listingHtml = listing.includes("<article")
         ? listing
         : listing + `<p>Aún no hay lugares de esta categoría en ${esc(cityName)}.</p>`;
+      const catSchema = `<script type="application/ld+json">${JSON.stringify(breadcrumbList([
+        { name: "Inicio", item: BASE_URL },
+        { name: cityName, item: `${BASE_URL}${specificCityPath}` },
+        { name: catInfo.label, item: canonicalUrl },
+      ]))}</script>`;
       
-      const html = renderCategoryPage({ title, desc, label: catInfo.label, cityName, canonicalUrl, img, listing: listingHtml, siteName: SITE_NAME, locale });
+      const html = renderCategoryPage({ title, desc, label: catInfo.label, cityName, canonicalUrl, img, listing: listingHtml, siteName: SITE_NAME, locale, schemaJson: catSchema });
 
       return new Response(html, {
         status: 200,
@@ -704,7 +732,12 @@ ${bodyExtra}
         const listingHtml = listing.includes("<article")
           ? listing
           : listing + `<p>Aún no hay lugares de esta categoría en ${esc(cityName)}.</p>`;
-        return new Response(renderCategoryPage({ title, desc, label, cityName, canonicalUrl, img, listing: listingHtml, siteName: SITE_NAME, locale }), {
+        const catSchema = `<script type="application/ld+json">${JSON.stringify(breadcrumbList([
+          { name: "Inicio", item: BASE_URL },
+          { name: cityName, item: `${BASE_URL}${specificCityPath}` },
+          { name: label, item: canonicalUrl },
+        ]))}</script>`;
+        return new Response(renderCategoryPage({ title, desc, label, cityName, canonicalUrl, img, listing: listingHtml, siteName: SITE_NAME, locale, schemaJson: catSchema }), {
           status: 200,
           headers: {
             "Content-Type": "text/html; charset=utf-8",
@@ -749,6 +782,7 @@ ${bodyExtra}
     
     const { country_code: bizCountry } = await getCityData(bizCity);
     const specificCityPath = isWorld ? `/${bizCountry}/${bizCity}` : `/${bizCity}`;
+    bizCityPath = specificCityPath;
     canonicalUrl = bizCity ? `${BASE_URL}${specificCityPath}/${esc(bizSlug)}` : BASE_URL;
     url = canonicalUrl;
     linkHref = canonicalUrl;
@@ -796,7 +830,10 @@ ${bodyExtra}
       "@type": "LocalBusiness",
       "name": bizData.name,
       "url": canonicalUrl,
-      "description": bizData.description || bizData.tagline || "",
+      // Si no hay descripción ni tagline en base, texto real con nombre y
+      // ciudad (nunca vacío, nunca inventado).
+      "description": bizData.description || bizData.tagline
+        || businessDescriptionFallback(bizData.name, cityNameFormat),
     };
     if (bizData.photos?.[0]?.url) schema.image = bizData.photos[0].url;
     if (bizData.address) schema.address = { "@type": "PostalAddress", "streetAddress": bizData.address };
@@ -813,12 +850,12 @@ ${bodyExtra}
       schema.geo = { "@type": "GeoCoordinates", "latitude": parseFloat(bizData.lat), "longitude": parseFloat(bizData.lng) };
     }
     if (bizData.schedule && typeof bizData.schedule === 'object') {
-      const dayMap = { lun: "Monday", mar: "Tuesday", mie: "Wednesday", jue: "Thursday", vie: "Friday", sab: "Saturday", dom: "Sunday" };
-      const hours = [];
-      for (const [key, val] of Object.entries(bizData.schedule)) {
-        if (key === "type" || !val || /cerrado/i.test(val)) continue;
-        if (dayMap[key]) hours.push(`${dayMap[key]} ${val}`);
-      }
+      // Horario en formato válido de schema.org ("Mo 08:45-23:00"): el
+      // formato anterior ("Monday 08:45 a.m. - 11:00 p.m.") no es válido.
+      // Se convierte fielmente de 12 h a 24 h; si el dato de origen es
+      // sospechoso (p. ej. apertura a las 12:30 a.m.), se refleja tal cual
+      // y se corrige en el panel, no aquí.
+      const hours = scheduleToOpeningHours(bizData.schedule);
       if (hours.length > 0) schema.openingHours = hours;
     }
     const bizReviews = await getReviews(bizData.id);
@@ -835,19 +872,58 @@ ${bodyExtra}
         "datePublished": r.created_at ? r.created_at.split("T")[0] : undefined
       }));
     }
-    jsonLd = `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
+    const bizNodes = [schema];
+    if (bizData.city_slug) {
+      bizNodes.push(breadcrumbList([
+        { name: "Inicio", item: BASE_URL },
+        { name: cityNameFormat || bizData.city_slug, item: `${BASE_URL}${bizCityPath}` },
+        { name: bizData.name, item: canonicalUrl },
+      ]));
+    }
+    jsonLd = `<script type="application/ld+json">${JSON.stringify(bizNodes.length > 1 ? bizNodes : schema)}</script>`;
   } else if (evData) {
+    const tz = CITY_TZ[String(evData.city_slug || "").split(",")[0]] || "America/Mexico_City";
     const schema = {
       "@context": "https://schema.org",
       "@type": "Event",
       "name": evData.title,
       "url": canonicalUrl,
       "description": evData.description || "",
+      "eventStatus": eventStatusUrl(evData.status),
+      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
     };
-    if (evData.date) schema.startDate = evData.date;
+    const start = eventStartDate(evData, tz);
+    if (start) schema.startDate = start;
+    const end = eventEndDate(evData, tz);
+    if (end) schema.endDate = end;
     if (evData.img_url || evData.img) schema.image = evData.img_url || evData.img;
-    if (evData.venue_name) schema.location = { "@type": "Place", "name": evData.venue_name };
-    jsonLd = `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
+    if (evData.venue_name) {
+      schema.location = { "@type": "Place", "name": evData.venue_name };
+      if (evData.venue_address) {
+        schema.location.address = { "@type": "PostalAddress", "streetAddress": evData.venue_address };
+      }
+      if (evData.lat && evData.lng) {
+        schema.location.geo = { "@type": "GeoCoordinates", "latitude": parseFloat(evData.lat), "longitude": parseFloat(evData.lng) };
+      }
+    }
+    // Oferta con el precio mínimo publicado en base (nunca inventado) y
+    // el enlace real de boletos; sin precio publicado no hay offers.
+    // performer/organizer no existen como columnas en la base: se omiten.
+    const offer = eventOffer(evData);
+    if (offer) schema.offers = offer;
+    const evCity = String(evData.city_slug || "").split(",")[0];
+    const evCityName = evCity
+      ? evCity.charAt(0).toUpperCase() + evCity.slice(1).replace(/-/g, " ")
+      : "";
+    const evNodes = [schema];
+    if (evCity) {
+      evNodes.push(breadcrumbList([
+        { name: "Inicio", item: BASE_URL },
+        { name: evCityName, item: `${BASE_URL}/${evCity}` },
+        { name: evData.title, item: canonicalUrl },
+      ]));
+    }
+    jsonLd = `<script type="application/ld+json">${JSON.stringify(evNodes)}</script>`;
   } else if (expData) {
     const expImage = (Array.isArray(expData.gallery) && expData.gallery[0]) ? expData.gallery[0] : null;
     const tourNodes = tourSchemaNodes(expData, canonicalUrl, expImage);
