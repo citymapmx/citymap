@@ -5,6 +5,7 @@ import { useDataStore } from "../store/useDataStore.js";
 import Icon from "../components/ui/Icon.jsx";
 import FavoriteCollectionModal from "../components/FavoriteCollectionModal.jsx";
 import FavoritosMapa from "../components/favoritos/FavoritosMapa.jsx";
+import EstadoVacio from "../components/EstadoVacio.jsx";
 import AgendaEventos from "../components/favoritos/AgendaEventos.jsx";
 import { ordenarAgendaEventos } from "../lib/countdownEvento.js";
 import { loadVisitados, saveVisitados, loadAlertasCalendario, saveAlertasCalendario, toggleIdInList } from "../lib/favoritosLocales.js";
@@ -107,8 +108,8 @@ export default function FavsView({ hideHeader }) {
                     }} style={{ width: 40, height: 40, borderRadius: "50%", background: T.white, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: T.shadow }}><Icon name="trash" size={20} color={T.red} /></button>
                   </div>
                   {colItems.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                      <p style={{ color: T.sub }}>{t("col_vacia_1", "Esta colección está vacía.")}<br/>{t("col_vacia_2", "Guarda lugares para que aparezcan aquí.")}</p>
+                    <div style={{ padding: "40px 20px" }}>
+                      <EstadoVacio titulo={t("col_vacia_1", "Esta colección está vacía.")} descripcion={t("col_vacia_2", "Guarda lugares para que aparezcan aquí.")} T={T} />
                     </div>
                   ) : (
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

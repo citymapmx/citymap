@@ -16,6 +16,7 @@ import { getThumbUrl, haptic, SRCSET_CARD } from "../lib/utils";
 import { smoothScrollIntoView } from "../lib/smoothScroll.js";
 import { useFlipList } from "../lib/useFlipList.js";
 import SaveHeartButton from "../components/ui/SaveHeartButton.jsx";
+import EstadoVacio from "../components/EstadoVacio.jsx";
 import { cascadeDelayS, CASCADE_WINDOW_MS } from "../lib/cascade.js";
 import useTimeStore from "../store/useTimeStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
@@ -522,20 +523,17 @@ export default function EventsView() {
                 <EventGridSk dark={dark} />
               ) : (
               <div style={{ textAlign: "center", padding: "60px 20px" }}>
-                <div style={{ width: 60, height: 60, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.05)" : "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
-                  <Icon name="calendar" size={28} color={T.sub} />
-                </div>
-                <div style={{ fontWeight: 800, fontSize: 16, color: T.text }}>{hasActiveFilters ? t("eventos_sin_resultados", "Sin resultados") : visibleEvents.length === 0 ? t("eventos_ciudad_vacia", "En ${ciudad} todavía no hay eventos", { ciudad: shortCity }) : t("sin_eventos", "Sin eventos por ahora")}</div>
-                {/* Sin eventos en la ciudad: solo el mensaje, sin línea
-                    de «cerca» ni recomendaciones (decisión de Jonathan,
-                    12 Nov 2026). La descripción solo sale con filtros
-                    activos o cuando la ciudad sí tiene eventos. */}
-                {(hasActiveFilters || visibleEvents.length > 0) && (
-                  <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{hasActiveFilters ? t("eventos_sin_resultados_desc", "Prueba con otra búsqueda o quita los filtros") : t("sin_eventos_desc", "Pronto habrá novedades en tu ciudad")}</div>
-                )}
-                {hasActiveFilters && (
-                  <button onClick={clearFilters} className="press" style={{ marginTop: 16, padding: "10px 18px", borderRadius: 9999, border: `1px solid ${T.border}`, background: T.white, color: T.text, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{t("eventos_limpiar_filtros", "Limpiar filtros")}</button>
-                )}
+                {/* Estado vacío con los cubos de Lottie (EstadoVacio):
+                    mismo título, descripción y botón que antes, sin
+                    cambiar el copy. La descripción solo sale con
+                    filtros activos o cuando la ciudad sí tiene eventos. */}
+                <EstadoVacio
+                  titulo={hasActiveFilters ? t("eventos_sin_resultados", "Sin resultados") : visibleEvents.length === 0 ? t("eventos_ciudad_vacia", "En ${ciudad} todavía no hay eventos", { ciudad: shortCity }) : t("sin_eventos", "Sin eventos por ahora")}
+                  descripcion={(hasActiveFilters || visibleEvents.length > 0) ? (hasActiveFilters ? t("eventos_sin_resultados_desc", "Prueba con otra búsqueda o quita los filtros") : t("sin_eventos_desc", "Pronto habrá novedades en tu ciudad")) : undefined}
+                  accionLabel={hasActiveFilters ? t("eventos_limpiar_filtros", "Limpiar filtros") : undefined}
+                  onAccion={hasActiveFilters ? clearFilters : undefined}
+                  T={T}
+                />
               </div>
               )
             ) : (
