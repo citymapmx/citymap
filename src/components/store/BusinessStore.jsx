@@ -19,7 +19,7 @@ import { AppContext } from '../../context/AppContext.jsx';
 import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic, SRCSET_THUMB } from '../../lib/utils.js';
 import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
-import { isCategoryVisibleNow } from '../../lib/menuCategoryHours.js';
+import { isCategoryVisibleNow, categoryHasSchedule, categoryScheduleLabel12h, offHoursMessage } from '../../lib/menuCategoryHours.js';
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
   const navigate = useNavigate();
@@ -37,6 +37,19 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   }, [viewMode]);
   const [showToast, setShowToast] = useState(false);
   const [toastName, setToastName] = useState('');
+  // Aviso de categoría fuera de horario (opción A, nov 2026): las secciones
+  // con horario ya no se ocultan; al tocarlas se avisa que están fuera de
+  // servicio. Se muestra como un toast y se quita solo.
+  const [offHoursNotice, setOffHoursNotice] = useState('');
+  const offHoursTimer = useRef(null);
+  const showOffHoursNotice = useCallback((cat) => {
+    const message = offHoursMessage(cat);
+    if (!message) return;
+    if (offHoursTimer.current) clearTimeout(offHoursTimer.current);
+    setOffHoursNotice(message);
+    offHoursTimer.current = setTimeout(() => setOffHoursNotice(''), 3000);
+  }, []);
+  useEffect(() => () => { if (offHoursTimer.current) clearTimeout(offHoursTimer.current); }, []);
   const [activeTabId, setActiveTabId] = useState(null);
   const activeTabIdRef = useRef(activeTabId);
   useEffect(() => { activeTabIdRef.current = activeTabId; }, [activeTabId]);
@@ -136,17 +149,15 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
     return () => clearInterval(id);
   }, []);
 
-  // Filter out empty categories and sections outside their schedule window
-  // (a section without a schedule is always visible).
-  const activeCategories = categories.filter(c => c.store_products && c.store_products.length > 0 && isCategoryVisibleNow(c, { now, timeZone }));
-  const hasAnyProducts = categories.some(c => c.store_products && c.store_products.length > 0);
+  // Las secciones con horario ya NO se ocultan fuera de su ventana (opción A,
+  // nov 2026): siempre se muestran, atenuadas, y al tocar avisan que están
+  // fuera de servicio. Una sección sin horario siempre está en horario.
+  const isCatOffHours = (c) => categoryHasSchedule(c) && !isCategoryVisibleNow(c, { now, timeZone });
+  const activeCategories = categories.filter(c => c.store_products && c.store_products.length > 0);
 
   useEffect(() => {
     if (!activeTabId && activeCategories.length > 0) {
        
-      setActiveTabId('all');
-    } else if (activeTabId && activeTabId !== 'all' && !activeCategories.some(c => c.id === activeTabId)) {
-      // La sección que se estaba viendo salió de horario: volver a "Todos".
       setActiveTabId('all');
     }
   }, [activeCategories, activeTabId]);
@@ -200,17 +211,9 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   }
 
   if (activeCategories.length === 0) {
-    // El negocio SÍ tiene menú, pero ninguna sección está en horario ahora:
-    // estado vacío amable en vez de un menú vacío (o de la landing de "sin menú").
-    if (hasAnyProducts) {
-      return (
-        <div style={{ minHeight: inline ? '60dvh' : 'auto', background: dark ? '#18181B' : '#FFFFFF', color: dark ? '#A1A1AA' : '#71717A', padding: '48px 20px', boxSizing: 'border-box', textAlign: 'center' }}>
-          <Icon name="clock" size={32} color={T.border} />
-          <p style={{ marginTop: 12, fontSize: 15, color: T.text, fontWeight: 700 }}>En este momento no hay secciones disponibles</p>
-          <p style={{ marginTop: 4, fontSize: 13, fontWeight: 500 }}>Vuelve más tarde: el menú cambia según el horario de cada sección.</p>
-        </div>
-      );
-    }
+    // El negocio no tiene productos en ninguna sección: landing de "sin menú"
+    // (o nada, si va incrustado en la ficha). Las secciones fuera de horario
+    // ya no se ocultan, así que este caso ya no es "todo fuera de horario".
     if (inline) {
       return <NoMenuLanding business={business} T={T} dark={dark} onBack={onBack} />;
     }
@@ -517,7 +520,12 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             </div>
             
             <div style={{ paddingBottom: cartCount > 0 ? 100 : 80 }}>
-      <StorePromotions products={activeCategories.flatMap(cat=>(cat.store_products||[]).map(product=>({...product,cat_name:cat.name})))} intent={menuIntent} timeZone={timeZone} T={T} onSelect={setSelectedProduct}/>
+      <StorePromotions products={activeCategories.flatMap(cat=>(cat.store_products||[]).map(product=>({...product,cat_name:cat.name})))} intent={menuIntent} timeZone={timeZone} T={T} onSelect={(p) => {
+        // Una promoción de una sección fuera de horario no abre el modal: avisa.
+        const cat = categories.find((c) => c.id === p.category_id);
+        if (cat && isCatOffHours(cat)) { showOffHoursNotice(cat); return; }
+        setSelectedProduct(p);
+      }} />
       {/* Sticky Header: Search + Tabs */}
       <div style={{ position: 'sticky', top: 0, zIndex: 100, background: dark ? '#18181B' : '#FFFFFF', paddingBottom: 12, paddingTop: 4, borderBottom: `1px solid ${dark ? '#232326' : '#F4F4F5'}` }}>
         {/* Search & Toggle */}
@@ -558,6 +566,9 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             <SlidingCategoryTrack dark={dark} selectedKey={activeTabId}  style={{ display: 'inline-flex', gap: 8 }}>
               {[{id: 'all', name: 'Todos'}, ...activeCategories].map(cat => {
                 const isActive = activeTabId === cat.id;
+                // La pestaña de una sección fuera de horario se atenúa, pero
+                // sigue siendo tocable: lleva a la sección atenuada.
+                const tabOffHours = cat.id !== 'all' && isCatOffHours(cat);
                 return (
                   <button
                     key={cat.id}
@@ -590,6 +601,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                       flexShrink: 0,
                       transition: 'all 0.2s',
                       textTransform: 'uppercase',
+                      opacity: tabOffHours ? 0.55 : 1,
                     }}
                   >
                     {cat.name}
@@ -611,6 +623,9 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
       <div style={{ paddingTop: 16 }}>
       {(searchLower ? filteredCategories : activeCategories).map(cat => {
         const availableProducts = cat.store_products.filter(p => p.is_available);
+        // Sección fuera de horario: se muestra atenuada con su horario y
+        // al tocar avisa que está fuera de servicio (opción A, nov 2026).
+        const offHours = isCatOffHours(cat);
 
         return (
           <m.div 
@@ -619,8 +634,13 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             viewport={{ once: true, margin: "-10px" }}
             transition={{ duration: 0.35, ease: "easeOut" }}
             key={cat.id} data-catid={cat.id} ref={el => categoryRefs.current[cat.id] = el} style={{ marginBottom: 24, scrollMarginTop: '130px' }}>
-            <div style={{ margin: '0 16px 12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ margin: '0 16px 12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
               <h3 style={{ fontSize: 19, fontWeight: 800, color: dark ? '#F87171' : '#EF4444', margin: 0, letterSpacing: '-0.5px', textTransform: 'uppercase' }}>{cat.name}</h3>
+              {offHours && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: dark ? '#A1A1AA' : '#71717A', whiteSpace: 'nowrap' }}>
+                  Fuera de servicio · {categoryScheduleLabel12h(cat)}
+                </span>
+              )}
             </div>
             
             <div style={
@@ -632,12 +652,14 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 margin: '0 16px',
                 boxShadow: dark ? '0 2px 10px rgba(0,0,0,0.2)' : '0 2px 12px rgba(0,0,0,0.04)',
                 border: `1px solid ${dark ? '#3F3F46' : '#F3F4F6'}`,
-                overflow: 'hidden'
+                overflow: 'hidden',
+                opacity: offHours ? 0.55 : 1
               } : {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: 12,
                 margin: '0 16px',
+                opacity: offHours ? 0.55 : 1
               }
             }>
               {availableProducts.map((product, index) => {
@@ -656,10 +678,14 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 return (
                 <div 
                   key={product.id} 
-                  onClick={() => canOpenModal ? setSelectedProduct(productWithCategory) : null}
+                  onClick={() => {
+                    // Fuera de horario el toque no abre el detalle: avisa.
+                    if (offHours) { showOffHoursNotice(cat); return; }
+                    if (canOpenModal) setSelectedProduct(productWithCategory);
+                  }}
                   style={{ 
                     display: 'flex', 
-                    cursor: canOpenModal ? 'pointer' : 'default',
+                    cursor: (offHours || canOpenModal) ? 'pointer' : 'default',
                     flexDirection: viewMode === 'grid' ? 'column' : 'row',
                     alignItems: 'stretch',
                     position: 'relative',
@@ -721,15 +747,19 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                           {totalInCart === 0 ? (
                             <m.button 
                               whileTap={{ scale: 0.75 }}
+                              aria-disabled={offHours || undefined}
+                              aria-label={offHours ? `Fuera de servicio: ${product.name}` : undefined}
                               onClick={(e) => {
                                 e.stopPropagation();
+                                // Fuera de horario el + no agrega: avisa.
+                                if (offHours) { showOffHoursNotice(cat); return; }
                                 if (hasOptions) {
                                   setSelectedProduct(productWithCategory);
                                 } else {
                                   handleAddWithToast(productWithCategory, [], "", 1, business.id);
                                 }
                               }}
-                              style={{ width: 34, height: 34, borderRadius: '50%', background: '#3F3F46', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, outline: 'none' }}
+                              style={{ width: 34, height: 34, borderRadius: '50%', background: offHours ? (dark ? '#52525B' : '#D4D4D8') : '#3F3F46', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: offHours ? 'not-allowed' : 'pointer', flexShrink: 0, outline: 'none', opacity: offHours ? 0.6 : 1 }}
                             >
                               <Icon name="plus" size={16} color="#FFF" />
                             </m.button>
@@ -765,15 +795,19 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                               
                               <m.button 
                                 whileTap={{ scale: 0.8 }}
+                                aria-disabled={offHours || undefined}
+                                aria-label={offHours ? `Fuera de servicio: ${product.name}` : undefined}
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  // Fuera de horario no se puede agregar más: avisa.
+                                  if (offHours) { showOffHoursNotice(cat); return; }
                                   if (hasOptions) {
                                      setSelectedProduct(productWithCategory);
                                   } else {
                                      handleAddWithToast(productWithCategory, [], "", 1, business.id);
                                   }
                                 }}
-                                style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', outline: 'none' }}
+                                style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: offHours ? 'not-allowed' : 'pointer', outline: 'none', opacity: offHours ? 0.5 : 1 }}
                               ><Icon name="plus" size={16} color={dark ? "#FAFAFA" : "#3F3F46"} /></m.button>
                             </div>
                           )}
@@ -872,6 +906,37 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             <Icon name="check" size={12} color="#fff" sw={2.5} />
           </div>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Agregado: {toastName}</span>
+        </div>
+      )}
+
+      {/* Aviso de sección fuera de horario: mismo toast, con reloj ámbar. */}
+      {offHoursNotice && (
+        <div role="status" aria-live="polite" style={{
+          position: 'fixed',
+          top: 40,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: dark ? 'rgba(30, 41, 59, 0.9)' : 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          color: '#ffffff',
+          padding: '8px 16px 8px 12px',
+          borderRadius: 30,
+          fontSize: 13,
+          fontWeight: 600,
+          boxShadow: '0 12px 32px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.1)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          animation: 'toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          whiteSpace: 'nowrap',
+          maxWidth: '90%'
+        }}>
+          <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name="clock" size={12} color="#fff" sw={2.5} />
+          </div>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{offHoursNotice}</span>
         </div>
       )}
 

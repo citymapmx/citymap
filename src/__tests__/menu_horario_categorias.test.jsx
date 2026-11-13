@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { isCategoryVisibleNow, timeToMinutes, categoryScheduleLabel } from '../lib/menuCategoryHours.js';
+import { isCategoryVisibleNow, timeToMinutes, categoryScheduleLabel, formatMinutes12h, categoryScheduleLabel12h, offHoursMessage } from '../lib/menuCategoryHours.js';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
@@ -15,7 +15,7 @@ const drinks = { id: 'beb', name: 'BEBIDAS', available_from: null, available_to:
 const overnight = { id: 'noc', name: 'NOCTURNO', available_from: '18:00', available_to: '02:00' };
 
 describe('Visibilidad de secciones de menú por horario', () => {
-  it('muestra desayunos a las 10:00 y los oculta a las 14:00', () => {
+  it('desayunos están en horario a las 10:00 y fuera a las 14:00', () => {
     expect(isCategoryVisibleNow(breakfast, { now: at('2026-11-12T17:00:00Z'), timeZone: MAZ })).toBe(true);
     expect(isCategoryVisibleNow(breakfast, { now: at('2026-11-12T21:00:00Z'), timeZone: MAZ })).toBe(false);
   });
@@ -25,14 +25,14 @@ describe('Visibilidad de secciones de menú por horario', () => {
     expect(isCategoryVisibleNow(breakfast, { now: at('2026-11-12T20:00:00Z'), timeZone: MAZ })).toBe(false);
   });
 
-  it('oculta la comida de la tarde a las 11:23 y la muestra a las 16:00', () => {
+  it('la comida de la tarde está fuera a las 11:23 y en horario a las 16:00', () => {
     expect(isCategoryVisibleNow(lunch, { now: at('2026-11-12T18:23:00Z'), timeZone: MAZ })).toBe(false);
     expect(isCategoryVisibleNow(lunch, { now: at('2026-11-12T23:00:00Z'), timeZone: MAZ })).toBe(true);
     expect(isCategoryVisibleNow(lunch, { now: at('2026-11-12T22:00:00Z'), timeZone: MAZ })).toBe(true);
     expect(isCategoryVisibleNow(lunch, { now: at('2026-11-13T04:00:00Z'), timeZone: MAZ })).toBe(false);
   });
 
-  it('en el hueco 12:30–15:00 de KAVA solo quedan las bebidas', () => {
+  it('en el hueco 12:30–15:00 de KAVA solo las bebidas están en horario', () => {
     const menu = [breakfast, lunch, drinks];
     const visibleAt1400 = menu.filter((c) => isCategoryVisibleNow(c, { now: at('2026-11-12T21:00:00Z'), timeZone: MAZ }));
     expect(visibleAt1400.map((c) => c.id)).toEqual(['beb']);
@@ -76,14 +76,51 @@ describe('Visibilidad de secciones de menú por horario', () => {
   });
 });
 
+describe('Formato 12 h y aviso de fuera de servicio (opción A)', () => {
+  it('formatea minutos a 12 h sin cero inicial en la hora', () => {
+    expect(formatMinutes12h(0)).toBe('12:00 a.m.');
+    expect(formatMinutes12h(60)).toBe('1:00 a.m.');
+    expect(formatMinutes12h(480)).toBe('8:00 a.m.');
+    expect(formatMinutes12h(510)).toBe('8:30 a.m.');
+    expect(formatMinutes12h(720)).toBe('12:00 p.m.');
+    expect(formatMinutes12h(750)).toBe('12:30 p.m.');
+    expect(formatMinutes12h(1260)).toBe('9:00 p.m.');
+    expect(formatMinutes12h(null)).toBe('');
+  });
+
+  it('etiqueta el horario en 12 h o null sin horario', () => {
+    expect(categoryScheduleLabel12h(breakfast)).toBe('8:30 a.m. – 1:00 p.m.');
+    expect(categoryScheduleLabel12h(lunch)).toBe('3:00 p.m. – 9:00 p.m.');
+    expect(categoryScheduleLabel12h(drinks)).toBeNull();
+  });
+
+  it('el aviso dice la próxima apertura (available_from) en 12 h', () => {
+    expect(offHoursMessage(breakfast)).toBe('Fuera de servicio, vuelve a las 8:30 a.m.');
+    expect(offHoursMessage(lunch)).toBe('Fuera de servicio, vuelve a las 3:00 p.m.');
+    // Ventana nocturna: la próxima apertura también es available_from.
+    expect(offHoursMessage(overnight)).toBe('Fuera de servicio, vuelve a las 6:00 p.m.');
+    expect(offHoursMessage(drinks)).toBeNull();
+  });
+});
+
 describe('Cableado de la visibilidad por horario', () => {
-  it('el menú público filtra por horario y no filtra las promociones de secciones ocultas', () => {
+  it('el menú público ya no oculta secciones fuera de horario: las atenúa y avisa', () => {
     const store = read('../components/store/BusinessStore.jsx');
     expect(store).toContain('isCategoryVisibleNow');
     expect(store).toContain('available_from,available_to');
     expect(store).toContain('setInterval');
     expect(store).toContain('activeCategories.flatMap');
-    expect(store).toContain('En este momento no hay secciones disponibles');
+    // Ya no hay estado vacío de "todo fuera de horario": las secciones
+    // siempre se muestran.
+    expect(store).not.toContain('En este momento no hay secciones disponibles');
+    // Opción A: atenuado + etiqueta con horario + aviso al tocar.
+    expect(store).toContain('isCatOffHours');
+    expect(store).toContain('offHoursMessage');
+    expect(store).toContain('showOffHoursNotice');
+    expect(store).toContain('Fuera de servicio');
+    expect(store).toContain('categoryScheduleLabel12h');
+    expect(store).toContain('aria-disabled');
+    expect(store).toContain('offHoursNotice');
   });
 
   it('el panel del dueño recibe las columnas y edita el horario por categoría', () => {
