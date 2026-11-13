@@ -294,17 +294,17 @@ export default function AccountView({
         {/* ── HEADER USER INFO ── */}
         {/* Propuesta C (12 Nov 2026, elegida por Jonathan): avatar centrado
             con nombre y correo centrados y alineados a él; en la misma
-            fila del avatar, dos botones redondos grandes (56 px): editar
+            fila del avatar, dos botones redondos (44 px): editar
             a la izquierda (abre el mismo modal de edición de siempre) y
             tema a la derecha (el mismo ThemeToggle: setDark). La opción
             de horario automático no se pierde: queda como texto/botón
             pequeño bajo el botón de tema (igual que en ThemeToggle). */}
         <div style={{ padding: "24px 20px 24px", background: T.white, borderBottom: `1px solid ${T.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* Editar perfil — botón redondo grande */}
+            {/* Editar perfil — botón redondo */}
             <button type="button" aria-label={t("editar_perfil", "Editar perfil")} title={t("editar_perfil", "Editar perfil")} onClick={startEditProfile}
-              style={{ width: 56, height: 56, minWidth: 56, borderRadius: "50%", background: T.bg, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}>
-              <Icon name="edit" size={24} color={T.text} />
+              style={{ width: 44, height: 44, minWidth: 44, borderRadius: "50%", background: T.bg, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}>
+              <Icon name="edit" size={20} color={T.text} />
             </button>
             {/* Avatar centrado */}
             <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
@@ -318,10 +318,10 @@ export default function AccountView({
                 );
               })()}
             </div>
-            {/* Tema — botón redondo grande (mismo ThemeToggle) + horario automático */}
+            {/* Tema — botón redondo (mismo ThemeToggle) + horario automático */}
             <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-              <div style={{ width: 56, height: 56, borderRadius: "50%", background: T.bg, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                <ThemeToggle size={56} round />
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: T.bg, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                <ThemeToggle size={44} round />
               </div>
               {(!themeMode || themeMode === 'auto') ? (
                 <span style={{ fontSize: 11, color: T.sub, textAlign: "center", whiteSpace: "nowrap" }}>{lang === 'en' ? 'Automatic' : 'Automático'}</span>

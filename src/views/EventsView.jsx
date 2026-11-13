@@ -21,7 +21,6 @@ import useTimeStore from "../store/useTimeStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle } from "../lib/i18nContent.js";
 import { EventGridSk } from "../components/ui/Skeleton.jsx";
-import NearbyEventsList from "../components/home/NearbyEventsList.jsx";
 
 const PAGE_SIZE = 20;
 const DATE_FILTERS = [
@@ -42,7 +41,7 @@ export default function EventsView() {
   const ctx = useAppContext();
   const { dark, activeCity } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity })));
   const { user } = useAuthStore(useShallow(s => ({ user: s.user })));
-  const { cities, dbReady, nearbyEvents, loadNearbyEvents } = useDataStore(useShallow(s => ({ cities: s.cities, dbReady: s.dbReady, nearbyEvents: s.nearbyEvents, loadNearbyEvents: s.loadNearbyEvents })));
+  const { cities, dbReady } = useDataStore(useShallow(s => ({ cities: s.cities, dbReady: s.dbReady })));
   const now = useTimeStore(s => s.now);
 
   const {
@@ -253,14 +252,6 @@ export default function EventsView() {
   const hasActiveFilters = searchQuery.trim() !== "" || dateFilter !== "todos" || eventCategoryFilter !== "Todos" || priceFilter !== "todos" || sortBy !== "fecha";
   const activeFilterCount = (dateFilter !== "todos" ? 1 : 0) + (eventCategoryFilter !== "Todos" ? 1 : 0) + (priceFilter !== "todos" ? 1 : 0) + (sortBy !== "fecha" ? 1 : 0);
   const clearFilters = () => { setSearchQuery(""); setDateFilter("todos"); setCustomDate(""); setEventCategoryFilter("Todos"); setPriceFilter("todos"); setSortBy("fecha"); };
-
-  // Ciudad sin eventos: pedir los cercanos una sola vez (el store
-  // cachea por ciudad) para el estado vacío honesto de abajo.
-  // Va DESPUÉS de visibleEvents y hasActiveFilters: el efecto los lee
-  // (leerlos antes de su const tumba la vista al montar, PR #136).
-  useEffect(() => {
-    if (dbReady && visibleEvents.length === 0 && !hasActiveFilters) loadNearbyEvents(activeCity);
-  }, [dbReady, visibleEvents.length, hasActiveFilters, activeCity, loadNearbyEvents]);
 
   // La tarjeta abre con los filtros actuales en borrador; "Mostrar eventos" los aplica.
   const openSheet = () => {
@@ -535,17 +526,15 @@ export default function EventsView() {
                   <Icon name="calendar" size={28} color={T.sub} />
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 16, color: T.text }}>{hasActiveFilters ? t("eventos_sin_resultados", "Sin resultados") : visibleEvents.length === 0 ? t("eventos_ciudad_vacia", "En ${ciudad} todavía no hay eventos", { ciudad: shortCity }) : t("sin_eventos", "Sin eventos por ahora")}</div>
-                <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{hasActiveFilters ? t("eventos_sin_resultados_desc", "Prueba con otra búsqueda o quita los filtros") : visibleEvents.length === 0 ? t("eventos_ciudad_vacia_desc", "Pero hay eventos cerca que te pueden gustar.") : t("sin_eventos_desc", "Pronto habrá novedades en tu ciudad")}</div>
+                {/* Sin eventos en la ciudad: solo el mensaje, sin línea
+                    de «cerca» ni recomendaciones (decisión de Jonathan,
+                    12 Nov 2026). La descripción solo sale con filtros
+                    activos o cuando la ciudad sí tiene eventos. */}
+                {(hasActiveFilters || visibleEvents.length > 0) && (
+                  <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{hasActiveFilters ? t("eventos_sin_resultados_desc", "Prueba con otra búsqueda o quita los filtros") : t("sin_eventos_desc", "Pronto habrá novedades en tu ciudad")}</div>
+                )}
                 {hasActiveFilters && (
                   <button onClick={clearFilters} className="press" style={{ marginTop: 16, padding: "10px 18px", borderRadius: 9999, border: `1px solid ${T.border}`, background: T.white, color: T.text, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{t("eventos_limpiar_filtros", "Limpiar filtros")}</button>
-                )}
-                {/* Ciudad sin eventos: los cercanos, cada uno con su
-                    ciudad visible — nunca como si fueran de aquí. */}
-                {!hasActiveFilters && visibleEvents.length === 0 && nearbyEvents.length > 0 && (
-                  <div style={{ textAlign: "left", marginTop: 28 }}>
-                    <h3 style={{ margin: "0 0 10px", textAlign: "center", fontFamily: "var(--heading)", fontSize: 17, fontWeight: 800, color: T.text }}>{t("eventos_cerca_de", "Eventos cerca de ${ciudad}", { ciudad: shortCity })}</h3>
-                    <NearbyEventsList events={nearbyEvents} cities={cities} T={T} dark={dark} lang={lang} onSelect={handleEventTap} />
-                  </div>
                 )}
               </div>
               )

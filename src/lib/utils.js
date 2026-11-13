@@ -399,6 +399,17 @@ export function cleanCityPrefix(slug, citySlug) {
   return slug.startsWith(prefix) ? slug.substring(prefix.length) : slug;
 }
 
+// Nombre visible de una ciudad por su slug: nombre de la base si está,
+// si no el slug capitalizado. Antes vivía en lib/nearbyEvents.js (junto
+// al selector de eventos cercanos, eliminado en el PR de «sin eventos
+// cerca»); HomeEvents lo sigue usando para el estado vacío.
+export function cityDisplayName(slug, cities = []) {
+  const found = (cities || []).find(c => c.slug === slug);
+  if (found?.name) return found.name;
+  if (!slug) return '';
+  return slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ');
+}
+
 // Parses menu_pdf_url which can be a legacy PDF string or a JSON array of image URLs
 export function parseMenuUrls(val) {
   if (!val) return [];

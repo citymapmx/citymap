@@ -5,8 +5,7 @@ import {eventDayKey, selectHomeEvents} from '../../lib/homeEventSelection.js';
 import { localizedTitle } from '../../lib/i18nContent.js';
 import {EventSk, CoverflowSk} from '../ui/Skeleton.jsx';
 import EventWheel3D from './EventWheel3D.jsx';
-import NearbyEventsList from './NearbyEventsList.jsx';
-import { cityDisplayName } from '../../lib/nearbyEvents.js';
+import { cityDisplayName } from '../../lib/utils.js';
 
 // En la página de ciudad los eventos van en la misma rueda 3D del inicio
 // global (más fluida y con todas las tarjetas del mismo tamaño), no en el
@@ -14,7 +13,7 @@ import { cityDisplayName } from '../../lib/nearbyEvents.js';
 // de inicio y su píldora muestra el rango ("28 NOV — 6 DIC", o "HASTA
 // 6 DIC" si ya empezó) en vez de solo el día de inicio. La rueda muestra
 // los 10 más próximos; la lista completa sigue en la pestaña Eventos.
-export default memo(function HomeEvents({events = [], activeCity, userCoords, dbReady, secondaryReady = true, dark, handleEventTap, T, t = (k, f) => (f !== undefined ? f : k), lang = 'es', cities = [], nearbyEvents = [], onRequestNearbyEvents}) {
+export default memo(function HomeEvents({events = [], activeCity, userCoords, dbReady, secondaryReady = true, dark, handleEventTap, T, t = (k, f) => (f !== undefined ? f : k), lang = 'es', cities = []}) {
   const timeZone = CITY_TZ[activeCity];
   const [today, setToday] = useState(() => eventDayKey(new Date(), timeZone));
   useEffect(() => {
@@ -44,10 +43,6 @@ export default memo(function HomeEvents({events = [], activeCity, userCoords, db
     return value;
   };
   const cityName = cityDisplayName(activeCity, cities);
-  // Sin eventos en la ciudad (ni en su zona): pedir los cercanos una vez.
-  useEffect(() => {
-    if (!all.length && dbReady && onRequestNearbyEvents) onRequestNearbyEvents(activeCity);
-  }, [all.length, dbReady, activeCity, onRequestNearbyEvents]);
   if (!all.length) {
     // Sin eventos todavía: el esqueleto mientras falte CUALQUIER carga
     // (la principal o la secundaria, que trae los eventos). Antes, al
@@ -57,21 +52,14 @@ export default memo(function HomeEvents({events = [], activeCity, userCoords, db
     // vacío honesto solo aparece cuando la secundaria ya resolvió y
     // confirmó que no hay eventos.
     if (!dbReady || !secondaryReady) return <CoverflowSk dark={dark}/>;
-    // Estado vacío honesto: la ciudad no tiene eventos, pero hay cerca.
-    // Cada evento cercano lleva su ciudad visible en su fila, nunca se
-    // presenta como si fuera de esta ciudad.
+    // Estado vacío honesto: la ciudad no tiene eventos y no se muestra
+    // ninguna recomendación (decisión de Jonathan, 12 Nov 2026: sin
+    // fallback de «eventos cerca»). Solo el mensaje.
     return <div style={{padding:'4px 0 0'}}>
       <header style={{ margin: '0 20px 16px', textAlign: 'center' }}>
         <h2 style={{ margin: 0, fontFamily: 'var(--heading)', fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px', textTransform: 'uppercase', color: T.text }}>{t("home_proximos_eventos", "Próximos eventos")}</h2>
       </header>
       <p style={{ margin: '0 20px 8px', textAlign: 'center', fontSize: 15, fontWeight: 700, color: T.text }}>{tt("eventos_ciudad_vacia", "En ${ciudad} todavía no hay eventos", { ciudad: cityName })}</p>
-      <p style={{ margin: '0 20px 16px', textAlign: 'center', fontSize: 13, lineHeight: 1.4, color: T.sub }}>{t("eventos_ciudad_vacia_desc", "Pero hay eventos cerca que te pueden gustar.")}</p>
-      {nearbyEvents.length > 0 && (
-        <div style={{ margin: '0 20px' }}>
-          <h3 style={{ margin: '0 0 10px', textAlign: 'center', fontFamily: 'var(--heading)', fontSize: 17, fontWeight: 800, color: T.text }}>{tt("eventos_cerca_de", "Eventos cerca de ${ciudad}", { ciudad: cityName })}</h3>
-          <NearbyEventsList events={nearbyEvents} cities={cities} T={T} dark={dark} lang={lang} onSelect={handleEventTap} />
-        </div>
-      )}
     </div>;
   }
   // La rueda renderiza item.title (alt y póster sin imagen): se le pasa ya

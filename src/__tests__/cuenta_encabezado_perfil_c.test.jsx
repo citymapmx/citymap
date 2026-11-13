@@ -90,7 +90,7 @@ afterAll(() => {
   vi.unstubAllGlobals();
 });
 
-describe('Cuenta: encabezado propuesta C (botones redondos grandes, nombre centrado)', () => {
+describe('Cuenta: encabezado propuesta C (botones redondos de 44 px, nombre centrado)', () => {
   it('el nombre y el correo quedan centrados y alineados al avatar', () => {
     const html = renderAccount();
     expect(html).toContain('Jonathan Arana');
@@ -104,30 +104,33 @@ describe('Cuenta: encabezado propuesta C (botones redondos grandes, nombre centr
     const mailPos = html.indexOf('jgarana18@gmail.com');
     const mailDiv = html.lastIndexOf('<div', mailPos);
     expect(html.slice(mailDiv, mailPos)).toContain('text-align:center');
-    // El avatar (iniciales, sin foto) sigue en el encabezado, antes del nombre.
+    // El avatar (iniciales, sin foto) sigue en el encabezado, antes del nombre,
+    // y sigue en 72 px.
     expect(html).toContain('JO');
     expect(html.indexOf('JO')).toBeLessThan(namePos);
+    expect(html).toContain('width:72px');
+    expect(html).toContain('height:72px');
   });
 
-  it('en la fila del avatar hay dos botones redondos grandes: editar a la izquierda y tema a la derecha', () => {
+  it('en la fila del avatar hay dos botones redondos de 44 px: editar a la izquierda y tema a la derecha', () => {
     const html = renderAccount();
-    // Botón de editar: abre el modal de edición, 56 px, redondo.
+    // Botón de editar: abre el modal de edición, 44 px, redondo.
     expect(html).toContain('aria-label="Editar perfil"');
     const editPos = html.indexOf('aria-label="Editar perfil"');
     const editBtn = html.lastIndexOf('<button', editPos);
     const editTagEnd = html.indexOf('>', editPos);
     const editStyle = html.slice(editBtn, editTagEnd);
-    expect(editStyle).toContain('width:56px');
-    expect(editStyle).toContain('height:56px');
+    expect(editStyle).toContain('width:44px');
+    expect(editStyle).toContain('height:44px');
     expect(editStyle).toContain('border-radius:50%');
-    // Botón de tema: mismo ThemeToggle (modo claro → «Cambiar a modo oscuro»), 56 px, redondo.
+    // Botón de tema: mismo ThemeToggle (modo claro → «Cambiar a modo oscuro»), 44 px, redondo.
     expect(html).toContain('aria-label="Cambiar a modo oscuro"');
     const themePos = html.indexOf('aria-label="Cambiar a modo oscuro"');
     const themeBtn = html.lastIndexOf('<button', themePos);
     const themeTagEnd = html.indexOf('>', themePos);
     const themeStyle = html.slice(themeBtn, themeTagEnd);
-    expect(themeStyle).toContain('width:56px');
-    expect(themeStyle).toContain('min-height:56px');
+    expect(themeStyle).toContain('width:44px');
+    expect(themeStyle).toContain('min-height:44px');
     expect(themeStyle).toContain('border-radius:50%');
     expect(themeStyle).toContain('aria-pressed="false"');
     // Editar a la izquierda, tema a la derecha, ambos en el encabezado
@@ -141,8 +144,8 @@ describe('Cuenta: encabezado propuesta C (botones redondos grandes, nombre centr
     const src = read('../components/AccountView.jsx');
     // El botón redondo de editar llama startEditProfile (el mismo modal).
     expect(src).toContain('onClick={startEditProfile}');
-    // El botón de tema es el ThemeToggle de siempre, en grande y redondo.
-    expect(src).toContain('<ThemeToggle size={56} round />');
+    // El botón de tema es el ThemeToggle de siempre, de 44 px y redondo.
+    expect(src).toContain('<ThemeToggle size={44} round />');
     const toggleSrc = read('../components/ui/ThemeToggle.jsx');
     expect(toggleSrc).toContain('setDark(!dark)');
     expect(toggleSrc).toContain('size = 44');
