@@ -19,6 +19,12 @@
 //   eligió solo la 1 y la 2 de la vista previa): el pin en el punto
 //   de encuentro y el reloj junto a la duración, en bucle lento.
 //   No hay binario en el repo: si la URL falla, LottieAnim se oculta.
+// - Corazón que late («Beating Heart», Bar Zamir): REMOTO por URL de
+//   LottieFiles en el héroe del detalle del tour (13 nov 2026,
+//   Jonathan eligió la 1 de la vista previa «Animaciones de corazón»):
+//   reemplaza al corazón estático blanco junto al contador de likes.
+//   El arte es rojo y se renderiza en blanco con un filtro CSS.
+//   Bucle lento. No hay binario en el repo.
 // Las cinco primeras son gratuitas (Lottie Simple License) y viven en
 // public/lottie/ como .lottie. El motor WASM va empaquetado con la
 // app, sin CDN.
@@ -32,7 +38,7 @@ import EstadoVacio from '../components/EstadoVacio.jsx';
 import ConfettiLogro from '../components/ConfettiLogro.jsx';
 import TrofeoLogro from '../components/TrofeoLogro.jsx';
 import CheckConfirmacion from '../components/CheckConfirmacion.jsx';
-import { CUBOS_VACIOS_SRC, CONFETTI_LOGRO_SRC, BOLETO_AVION_SRC, TROFEO_LOGRO_SRC, CHECK_CONFIRMACION_SRC, PIN_UBICACION_SRC, RELOJ_DURACION_SRC } from '../lib/lottieAnimaciones.js';
+import { CUBOS_VACIOS_SRC, CONFETTI_LOGRO_SRC, BOLETO_AVION_SRC, TROFEO_LOGRO_SRC, CHECK_CONFIRMACION_SRC, PIN_UBICACION_SRC, RELOJ_DURACION_SRC, CORAZON_LATE_SRC } from '../lib/lottieAnimaciones.js';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const readBin = (p) => readFileSync(new URL(p, import.meta.url));
@@ -343,11 +349,57 @@ describe('Pin y reloj remotos en el detalle del tour (solo la 1 y la 2)', () => 
     expect(htmlReloj).toContain('<canvas');
   });
 
-  it('la 3 (corazón) y la 4 (check) NO se agregan al detalle', () => {
+  it('la 4 (check) sigue sin agregarse al detalle', () => {
     const src = read('../components/ExperienceViewer.jsx');
     expect(src).not.toContain('CHECK_CONFIRMACION_SRC');
     expect(src).not.toContain('CheckConfirmacion');
     expect(src).not.toContain('TROFEO_LOGRO_SRC');
+  });
+});
+
+describe('Corazón que late en blanco en el héroe del detalle del tour', () => {
+  it('la ruta remota es la URL verificada de la vista previa «Animaciones de corazón»', () => {
+    expect(CORAZON_LATE_SRC).toBe('https://assets-v2.lottiefiles.com/a/1b1f4610-1178-11ee-ac0f-df86f528f719/nW2jpdbaX3.lottie');
+  });
+
+  it('el detalle monta el corazón animado junto al contador de likes, en blanco y a 16 px', () => {
+    const src = read('../components/ExperienceViewer.jsx');
+    expect(src).toContain('CORAZON_LATE_SRC');
+    expect(src).toContain('<LottieAnim src={CORAZON_LATE_SRC}');
+    // Mismo tamaño que el icono estático anterior, bucle lento.
+    expect(src).toContain('width={16}');
+    expect(src).toContain('height={16}');
+    expect(src).toContain('speed={0.7}');
+    // Blanco: el arte original es rojo; el filtro lo deja blanco
+    // como el corazón estático anterior sobre la foto oscura.
+    expect(src).toContain("filter: 'brightness(0) invert(1)'");
+    // El corazón estático del héroe ya no está (el de las tarjetas
+    // de Revista es otro, aparte, y no se toca).
+    expect(src).not.toContain('name="heart"');
+    // El contador de likes sigue igual, junto a la animación.
+    expect(src).toContain("exp.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 350 + 24");
+  });
+
+  it('el corazón del héroe es solo visual: no tiene acción al tocar', () => {
+    const src = read('../components/ExperienceViewer.jsx');
+    // El bloque del corazón no está dentro de un botón ni tiene
+    // onClick: la animación reemplaza un icono estático sin acción.
+    const i = src.indexOf('<LottieAnim src={CORAZON_LATE_SRC}');
+    const ventana = src.slice(Math.max(0, i - 600), i);
+    expect(ventana).not.toContain('onClick');
+    expect(ventana).not.toContain('<button');
+  });
+
+  it('las tarjetas de Revista conservan su corazón estático (no se tocan)', () => {
+    const src = read('../components/TripsView.jsx');
+    expect(src).toContain('name="heart"');
+    expect(src).not.toContain('CORAZON_LATE_SRC');
+  });
+
+  it('el reproductor renderiza el canvas con el filtro de blanco', () => {
+    const html = renderToStaticMarkup(<LottieAnim src={CORAZON_LATE_SRC} width={16} height={16} ariaLabel="Me gusta" style={{ filter: 'brightness(0) invert(1)' }} />);
+    expect(html).toContain('<canvas');
+    expect(html).toContain('brightness(0) invert(1)');
   });
 });
 
