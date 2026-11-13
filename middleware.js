@@ -89,12 +89,16 @@ export default async function middleware(request) {
 
   let ogUrl = null;
 
-  // Rutas reservadas del sistema que no deben interpretarse como /:city/:slug
+  // Rutas reservadas del sistema que no deben interpretarse como /:city/:slug.
+  // /tours y /negocios son secciones de nivel superior (están en el
+  // sitemap): sin ellas aquí el middleware las trataba como ciudades y
+  // devolvía 404 a los bots. /login es página de acceso (noindex).
   const RESERVED_FIRST_SEGS = new Set([
     'experiencias', 'evento', 'mapa', 'planes', 'explorar', 'eventos',
     'mis-planes', 'revista', 'favoritos', 'explorer', 'cuenta', 'itinerarios',
     'itinerario', 'plan', 'about', 'privacy', 'terms', 'admin_notifs',
-    'user_notifs', 'manage', 'stats', 'precios', 'lealtad', 'wallet', 'scan', 'admin'
+    'user_notifs', 'manage', 'stats', 'precios', 'lealtad', 'wallet', 'scan', 'admin',
+    'tours', 'negocios', 'login'
   ]);
 
   // /explorar o /explorar/:city → og?vista=eventos&city=:city
@@ -189,13 +193,17 @@ export default async function middleware(request) {
     });
     if (ogRes.ok || ogRes.status === 404) {
       const html = await ogRes.text();
+      // /login es página de acceso: se sirve con 200 pero no se indexa.
+      const robotsTag = ogRes.status === 404 || ogUrl.searchParams.get('vista') === 'login'
+        ? 'noindex'
+        : 'index, follow, max-image-preview:large';
       return new Response(html, {
         status: ogRes.status,
         headers: {
           'content-type': 'text/html; charset=utf-8',
           'cache-control': 'public, s-maxage=3600, stale-while-revalidate=86400',
           'x-og-served': '1',
-          'x-robots-tag': ogRes.status === 404 ? 'noindex' : 'index, follow, max-image-preview:large'
+          'x-robots-tag': robotsTag
         }
       });
     }

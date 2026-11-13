@@ -163,6 +163,112 @@ async function getListing(city, category, origin, cityPath) {
   } catch { return ''; }
 }
 
+// Slug para la URL del artículo de un tour en la Revista, igual que
+// tourCardUrl (src/lib/tours.js): /revista/:ciudad/:slug-del-titulo.
+// Se duplica aquí para no meter React (vía utils.js) en el Edge.
+function tourSlug(title) {
+  return String(title || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+// Lista de tours para la página /tours: misma consulta que la SPA
+// (ToursView): experiences con activity_type Tour, aprobados y activos.
+async function getToursListing(origin) {
+  try {
+    const query = new URLSearchParams({ select: 'id,title,city_slug,price,duration,gallery,booking_config', activity_type: 'eq.Tour', status: 'eq.approved', active: 'eq.true', order: 'created_at.desc', limit: '24' });
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/experiences?${query}`, {
+      headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` }
+    });
+    if (!response.ok) return '';
+    const rows = await response.json();
+    if (!Array.isArray(rows) || !rows.length) return '';
+    return `<section><h2>Tours destacados</h2><ul>${rows.map(tour => {
+      const cityName = String(tour.city_slug || '').replace(/-/g, ' ');
+      const url = `${origin}/revista/${tour.city_slug || ''}/${tourSlug(tour.title)}`;
+      const price = Number(tour.price);
+      const priceText = Number.isFinite(price) && price > 0
+        ? `desde $${Math.round(price).toLocaleString('es-MX')} MXN`
+        : (tour.price === 0 || tour.price === '0' ? 'Gratis' : '');
+      let duration = String(tour?.duration || '').trim();
+      if (!duration && Array.isArray(tour?.booking_config?.quick_facts)) {
+        for (const fact of tour.booking_config.quick_facts) {
+          const m = String(fact || '').match(/⏱️?\s*Tiempo:\s*(.+)$/i);
+          if (m && m[1].trim()) { duration = m[1].trim(); break; }
+        }
+      }
+      const photo = photoList(tour.gallery)[0];
+      const image = (typeof photo === 'string' ? photo : photo?.url) || '';
+      return `<li><article><h3><a href="${esc(url)}">${esc(tour.title)}</a></h3>${/^https?:\/\//i.test(image) ? `<img src="${esc(image)}" alt="${esc(tour.title)}" loading="lazy" style="max-width:100%;height:auto" />` : ''}${cityName ? `<p>${esc(cityName)}</p>` : ''}${priceText ? `<p>${esc(priceText)}</p>` : ''}${duration ? `<p>⏱ ${esc(duration)}</p>` : ''}</article></li>`;
+    }).join('')}</ul></section>`;
+  } catch { return ''; }
+}
+
+// Negocios de ejemplo para la página /negocios ("Ya están en CityMap"):
+// negocios aprobados con enlace a su página pública.
+async function getNegociosExamples(origin) {
+  try {
+    const query = new URLSearchParams({ select: 'id,slug,name,city_slug', status: 'eq.approved', order: 'name.asc', limit: '8' });
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/businesses?${query}`, {
+      headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` }
+    });
+    if (!response.ok) return '';
+    const rows = await response.json();
+    if (!Array.isArray(rows)) return '';
+    const withCity = rows.filter(b => b.city_slug && (b.slug || b.id));
+    if (!withCity.length) return '';
+    return `<section><h2>Ya están en CityMap</h2><ul>${withCity.map(business => {
+      const slug = String(business.slug || business.id).replace(new RegExp(`^${business.city_slug}-`), '');
+      return `<li><a href="${esc(origin + '/' + business.city_slug + '/' + slug)}">${esc(business.name)}</a></li>`;
+    }).join('')}</ul></section>`;
+  } catch { return ''; }
+}
+
+// Número de ciudades con página en CityMap (para el texto de la landing
+// en /negocios). Si falla, se devuelve null y el texto no lleva cifra.
+async function getCityCount() {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/cities?select=slug&limit=100`, {
+      headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` }
+    });
+    if (!response.ok) return null;
+    const rows = await response.json();
+    return Array.isArray(rows) ? rows.length : null;
+  } catch { return null; }
+}
+
+// Contenido estático de la landing /negocios para bots (copia real de
+// BusinessLanding.jsx / i18n: beneficios, cómo funciona, planes con
+// precios MXN y preguntas frecuentes). faq5 lleva el número de ciudades
+// en vivo, que se resuelve en la rama de vista.
+function negociosBody(faq5) {
+  return `<section><h2>Por qué CityMap</h2><p>Lo que gana tu negocio</p><ul>`
+    + `<li><h3>Te encuentran en el mapa</h3><p>Tu negocio aparece con su pin en el mapa de tu ciudad, junto a los lugares, restaurantes y eventos que la gente ya busca. Con Premium, tu logotipo se ve directo en el mapa.</p></li>`
+    + `<li><h3>Te encuentran en Google</h3><p>Tu página queda indexada y aparece en las búsquedas de Google. Con Destacado, tu posicionamiento mejora; con Premium, hasta tu menú interactivo aparece en Google.</p></li>`
+    + `<li><h3>Pedidos por WhatsApp, sin comisiones</h3><p>Tus clientes ven tu menú, arman su pedido y te lo mandan por WhatsApp. CityMap no cobra comisión por tus ventas: el pago es directo entre tu cliente y tú.</p></li>`
+    + `<li><h3>Un menú digital que vende solo</h3><p>Con Premium, tu menú es interactivo: fotos, precios, opciones y carrito. Tus clientes piden desde el celular sin llamarte. Con Destacado, tienes tu menú en QR para ponerlo en las mesas del local.</p></li>`
+    + `<li><h3>Tus eventos y promociones llegan a la gente</h3><p>Con Premium, publicas tus eventos y reservas, lanzas cupones y creas tarjetas de lealtad para que tus clientes regresen.</p></li>`
+    + `<li><h3>Sabes qué está funcionando</h3><p>Desde tu panel ves tus visitas y tus pedidos, y con Premium tienes estadísticas y soporte prioritario.</p></li>`
+    + `</ul></section>`
+    + `<section><h2>Cómo funciona</h2><ol>`
+    + `<li><h3>Crea tu perfil gratis</h3><p>Te registras y publicas tu negocio en minutos: nombre, fotos, horarios y contacto.</p></li>`
+    + `<li><h3>Completa tu información</h3><p>Sube tu portada, tu galería y tu menú. Entre más completo, más te encuentran.</p></li>`
+    + `<li><h3>Te encuentran y te escriben</h3><p>Tu negocio aparece en el mapa, en el buscador, en la guía de tu ciudad y en Google. Los clientes te escriben directo por WhatsApp.</p></li>`
+    + `</ol></section>`
+    + `<section><h2>Planes</h2><p>Precios por negocio. Pago mensual o anual (el anual sale 17% menos).</p><ul>`
+    + `<li><h3>Gratuito</h3><p>$0 MXN / mes</p><p>Tu negocio en el mapa y en el buscador, con foto, dirección, teléfono y horarios.</p></li>`
+    + `<li><h3>Destacado</h3><p>$99 MXN / mes o $990 MXN / año</p><p>Ideal para negocios que buscan captar clientes y mayor visibilidad.</p><p>Pruébalo 7 días gratis (solo en el pago mensual).</p></li>`
+    + `<li><h3>Premium</h3><p>$199 MXN / mes o $1,990 MXN / año</p><p>Todas las herramientas para dominar tu presencia digital y vender más.</p><p>Pruébalo 7 días gratis (solo en el pago mensual).</p></li>`
+    + `</ul></section>`
+    + `<section><h2>Preguntas frecuentes</h2><dl>`
+    + `<dt>¿Cuánto cuesta empezar?</dt><dd>Nada. Crear tu perfil y publicar tu negocio es gratis. Solo pagas si quieres Destacado o Premium.</dd>`
+    + `<dt>¿Necesito pagar para aparecer en CityMap?</dt><dd>No. Con el plan gratuito tu negocio ya tiene su página pública, con teléfono, dirección, horarios y portada.</dd>`
+    + `<dt>¿CityMap cobra comisión por mis ventas?</dt><dd>No. Los pedidos te llegan por WhatsApp y el pago es directo entre tu cliente y tú.</dd>`
+    + `<dt>¿Puedo probar los planes de pago gratis?</dt><dd>Sí. Los planes Destacado y Premium mensuales tienen 7 días de prueba gratis, sin compromiso.</dd>`
+    + `<dt>¿En qué ciudades está CityMap?</dt><dd>${esc(faq5)}</dd>`
+    + `<dt>¿Qué necesito para registrar mi negocio?</dt><dd>Solo tu información básica: nombre, fotos, horarios y un teléfono o WhatsApp para que te contacten.</dd>`
+    + `</dl></section>`
+    + `<section><h2>Tu negocio ya lo buscan. Que lo encuentren.</h2><p>Crear perfil gratis en CityMap.</p></section>`;
+}
+
 async function getBiz(id, city) {
   try {
     const RESERVED_SLUGS = new Set([
@@ -440,6 +546,10 @@ ${categoryLinks}
     const cityName = city ? (city.charAt(0).toUpperCase() + city.slice(1).replace(/-/g, " ")) : "";
     let canonicalUrl = `${BASE_URL}/?vista=${esc(vista)}`;
     let schemaJson = "";
+    // Contenido extra del cuerpo para las vistas con lista o landing
+    // propia; robotsMeta solo se usa en /login (página de acceso: noindex).
+    let bodyExtra = "";
+    let robotsMeta = "";
 
     if (vista === "eventos" || vista === "explorar") {
       canonicalUrl = city ? `${BASE_URL}/eventos/${city}` : `${BASE_URL}/eventos`;
@@ -476,6 +586,25 @@ ${categoryLinks}
       title = `Mi Cuenta — ${SITE_NAME}`;
       desc = `Gestiona tu perfil, reseñas y membresías en ${SITE_NAME}.`;
       canonicalUrl = `${BASE_URL}/cuenta`;
+    } else if (vista === "tours") {
+      canonicalUrl = `${BASE_URL}/tours`;
+      title = `Tours en Guadalajara, Tepic, Puerto Vallarta y más | ${SITE_NAME}`;
+      desc = `Tours guiados y excursiones en Guadalajara, Tepic, Puerto Vallarta, Ciudad de México y más, con precio desde y reserva en línea. Encuentra tu próximo tour en ${SITE_NAME}.`;
+      bodyExtra = await getToursListing(BASE_URL);
+    } else if (vista === "negocios") {
+      canonicalUrl = `${BASE_URL}/negocios`;
+      title = `Haz que más personas encuentren tu negocio. | ${SITE_NAME}`;
+      desc = `CityMap ayuda a que más personas descubran negocios, lugares y servicios cuando buscan en internet. Las páginas de nuestra plataforma ya generan visitas desde Google, acercando a nuevos clientes a los negocios publicados.`;
+      const cityCount = await getCityCount();
+      const faq5 = cityCount
+        ? `En ${cityCount} ciudades, entre ellas Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Ciudad de México, Mérida, Monterrey, Cancún y Playa del Carmen.`
+        : `En Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Ciudad de México, Mérida, Monterrey, Cancún, Playa del Carmen y más ciudades.`;
+      bodyExtra = negociosBody(faq5) + await getNegociosExamples(BASE_URL);
+    } else if (vista === "login") {
+      canonicalUrl = `${BASE_URL}/login`;
+      title = `Iniciar sesión — ${SITE_NAME}`;
+      desc = `Inicia sesión en ${SITE_NAME} con tu cuenta de Google para guardar favoritos, asistir a eventos y gestionar tu negocio.`;
+      robotsMeta = `<meta name="robots" content="noindex"/>`;
     }
 
     const html = `<!doctype html>
@@ -500,23 +629,28 @@ ${categoryLinks}
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(desc)}"/>
 <meta name="twitter:image" content="${esc(img)}"/>
-
+${robotsMeta}
 ${schemaJson}
 </head>
 <body>
 <h1>${esc(title)}</h1>
 <img src="${esc(img)}" alt="${esc(title)}" style="max-width: 100%; height: auto;" />
 <p>${esc(desc)}</p>
+${bodyExtra}
 <a href="${canonicalUrl}">Abrir en ${esc(SITE_NAME)}</a>
 </body>
 </html>`;
 
+    const vistaHeaders = {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+    };
+    // /login se sirve con 200 pero no se indexa (también en la cabecera,
+    // porque el middleware construye su propia respuesta y no la hereda).
+    if (vista === "login") vistaHeaders["X-Robots-Tag"] = "noindex";
     return new Response(html, {
       status: 200,
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-      },
+      headers: vistaHeaders,
     });
   }
 
