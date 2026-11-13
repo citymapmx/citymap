@@ -20,6 +20,7 @@ import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanSho
 import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
 import { isCategoryVisibleNow, categoryHasSchedule, categoryScheduleLabel12h, offHoursMessage } from '../../lib/menuCategoryHours.js';
+import { findMenuStyleById, menuThemeForStyle, menuHexAlpha } from '../../lib/menuColorStyles.js';
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
   const navigate = useNavigate();
@@ -64,6 +65,11 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   const favIds = appContext?.favIds || [];
   const toggleFav = appContext?.toggleFav;
   const isFav = business?.id ? favIds.includes(business.id) : false;
+
+  // Estilo del menú elegido por el negocio (PR #291): sin estilo, el menú
+  // se ve exacto como hoy; con estilo, fondo, píldora activa, títulos,
+  // precios y botones + usan sus colores.
+  const menuTheme = menuThemeForStyle(findMenuStyleById(business?.menu_style));
 
   const handleHeartClick = (e) => {
     if (e) e.stopPropagation();
@@ -368,7 +374,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                  maxWidth: inline ? 'none' : 600,
                  height: inline ? 'auto' : '100%',
                  position: 'relative',
-                 background: dark ? '#18181B' : '#FAFAFA', 
+                 background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FAFAFA'), 
                  overflowY: inline ? 'visible' : 'auto',
                  minHeight: inline ? '100%' : '100vh',
                  boxShadow: inline ? 'none' : '0 0 40px rgba(0,0,0,0.2)'
@@ -527,7 +533,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
         setSelectedProduct(p);
       }} />
       {/* Sticky Header: Search + Tabs */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: dark ? '#18181B' : '#FFFFFF', paddingBottom: 12, paddingTop: 4, borderBottom: `1px solid ${dark ? '#232326' : '#F4F4F5'}` }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: menuTheme ? menuTheme.firstColor : (dark ? '#18181B' : '#FFFFFF'), paddingBottom: 12, paddingTop: 4, borderBottom: `1px solid ${dark ? '#232326' : '#F4F4F5'}` }}>
         {/* Search & Toggle */}
         <div style={{ padding: '0 16px', marginBottom: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1, minWidth:0 }}>
@@ -589,8 +595,8 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                       setTimeout(() => { isClickScrolling.current = false; }, 800);
                     }}
                     style={{
-                      background: isActive ? (dark ? '#FFFFFF' : '#111111') : (dark ? '#232326' : '#F3F4F6'),
-                      color: isActive ? (dark ? '#111111' : '#FFFFFF') : (dark ? '#E4E4E7' : '#111111'),
+                      background: isActive ? (menuTheme ? menuTheme.primary : (dark ? '#FFFFFF' : '#111111')) : (dark ? '#232326' : '#F3F4F6'),
+                      color: isActive ? (menuTheme ? menuTheme.onPrimary : (dark ? '#111111' : '#FFFFFF')) : (dark ? '#E4E4E7' : '#111111'),
                       border: 'none',
                       padding: '6px 14px',
                       borderRadius: 16,
@@ -635,7 +641,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             transition={{ duration: 0.35, ease: "easeOut" }}
             key={cat.id} data-catid={cat.id} ref={el => categoryRefs.current[cat.id] = el} style={{ marginBottom: 24, scrollMarginTop: '130px' }}>
             <div style={{ margin: '0 16px 12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-              <h3 style={{ fontSize: 19, fontWeight: 800, color: dark ? '#F87171' : '#EF4444', margin: 0, letterSpacing: '-0.5px', textTransform: 'uppercase' }}>{cat.name}</h3>
+              <h3 style={{ fontSize: 19, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#F87171' : '#EF4444'), margin: 0, letterSpacing: '-0.5px', textTransform: 'uppercase' }}>{cat.name}</h3>
               {offHours && (
                 <span style={{ fontSize: 11, fontWeight: 700, color: dark ? '#A1A1AA' : '#71717A', whiteSpace: 'nowrap' }}>
                   Fuera de servicio · {categoryScheduleLabel12h(cat)}
@@ -647,11 +653,11 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               viewMode === 'list' ? { 
                 display: 'flex', 
                 flexDirection: 'column', 
-                background: dark ? '#232326' : '#FFFFFF',
+                background: menuTheme ? 'transparent' : (dark ? '#232326' : '#FFFFFF'),
                 borderRadius: 20,
                 margin: '0 16px',
                 boxShadow: dark ? '0 2px 10px rgba(0,0,0,0.2)' : '0 2px 12px rgba(0,0,0,0.04)',
-                border: `1px solid ${dark ? '#3F3F46' : '#F3F4F6'}`,
+                border: menuTheme ? `1px solid ${menuHexAlpha(menuTheme.text, '33')}` : `1px solid ${dark ? '#3F3F46' : '#F3F4F6'}`,
                 overflow: 'hidden',
                 opacity: offHours ? 0.55 : 1
               } : {
@@ -689,11 +695,11 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                     flexDirection: viewMode === 'grid' ? 'column' : 'row',
                     alignItems: 'stretch',
                     position: 'relative',
-                    background: viewMode === 'grid' ? (dark ? '#232326' : '#FFFFFF') : 'transparent',
+                    background: viewMode === 'grid' ? (menuTheme ? 'transparent' : (dark ? '#232326' : '#FFFFFF')) : 'transparent',
                     borderRadius: viewMode === 'grid' ? 16 : 0,
                     overflow: viewMode === 'grid' ? 'hidden' : 'visible',
-                    border: viewMode === 'grid' ? `1px solid ${dark ? '#3F3F46' : '#F3F4F6'}` : 'none',
-                    borderBottom: (viewMode === 'list' && index < availableProducts.length - 1) ? `1px solid ${dark ? '#3F3F46' : '#E5E7EB'}` : (viewMode === 'grid' ? `1px solid ${dark ? '#3F3F46' : '#F3F4F6'}` : 'none'),
+                    border: viewMode === 'grid' ? (menuTheme ? `1px solid ${menuHexAlpha(menuTheme.text, '33')}` : `1px solid ${dark ? '#3F3F46' : '#F3F4F6'}`) : 'none',
+                    borderBottom: (viewMode === 'list' && index < availableProducts.length - 1) ? `1px solid ${menuTheme ? menuHexAlpha(menuTheme.text, '26') : (dark ? '#3F3F46' : '#E5E7EB')}` : (viewMode === 'grid' ? `1px solid ${menuTheme ? menuHexAlpha(menuTheme.text, '33') : (dark ? '#3F3F46' : '#F3F4F6')}` : 'none'),
                     boxShadow: viewMode === 'grid' ? (dark ? '0 2px 10px rgba(0,0,0,0.2)' : '0 2px 12px rgba(0,0,0,0.04)') : 'none',
                   }}
                 >
@@ -730,12 +736,12 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                       : { flex: 1, display: "flex", flexDirection: "column", padding: "12px", position: 'relative' }
                   }>
                     <div style={{ display: "flex", flexDirection: "column", textAlign: 'left' }}>
-                      <div style={{ fontSize: viewMode === 'grid' ? 14 : 15, fontWeight: 800, color: dark ? '#FAFAFA' : '#111111', marginBottom: product.image_url ? 4 : 2, lineHeight: 1.3, wordBreak: 'break-word', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: viewMode === 'grid' ? 14 : 15, fontWeight: 800, color: menuTheme ? menuTheme.text : (dark ? '#FAFAFA' : '#111111'), marginBottom: product.image_url ? 4 : 2, lineHeight: 1.3, wordBreak: 'break-word', textTransform: 'uppercase' }}>
                         {product.name}
                       </div>
                       
                       {product.description && viewMode === 'list' && (
-                        <div style={{ fontSize: 13, color: dark ? '#A1A1AA' : '#6B7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4, marginBottom: product.image_url ? 8 : 4, paddingRight: 8 }}>
+                        <div style={{ fontSize: 13, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#6B7280'), display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4, marginBottom: product.image_url ? 8 : 4, paddingRight: 8 }}>
                           {product.description}
                         </div>
                       )}
@@ -759,9 +765,9 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                                   handleAddWithToast(productWithCategory, [], "", 1, business.id);
                                 }
                               }}
-                              style={{ width: 34, height: 34, borderRadius: '50%', background: offHours ? (dark ? '#52525B' : '#D4D4D8') : '#3F3F46', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: offHours ? 'not-allowed' : 'pointer', flexShrink: 0, outline: 'none', opacity: offHours ? 0.6 : 1 }}
+                              style={{ width: 34, height: 34, borderRadius: '50%', background: offHours ? (dark ? '#52525B' : '#D4D4D8') : (menuTheme ? menuTheme.primary : '#3F3F46'), border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: offHours ? 'not-allowed' : 'pointer', flexShrink: 0, outline: 'none', opacity: offHours ? 0.6 : 1 }}
                             >
-                              <Icon name="plus" size={16} color="#FFF" />
+                              <Icon name="plus" size={16} color={menuTheme ? menuTheme.onPrimary : '#FFF'} />
                             </m.button>
                           ) : (
                             <div 
@@ -824,12 +830,12 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                           {priceInfo.isFrom ? (
                             <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
                               <span style={{ fontSize: 12, fontWeight: 600, color: dark ? '#A1A1AA' : '#6B7280' }}>Desde</span>
-                              <span style={{ fontSize: viewMode === 'grid' ? 13 : 16, fontWeight: 800, color: dark ? '#FAFAFA' : '#111827' }}>
+                              <span style={{ fontSize: viewMode === 'grid' ? 13 : 16, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#FAFAFA' : '#111827') }}>
                                 ${Number(priceInfo.amount).toFixed(0)}
                               </span>
                             </span>
                           ) : (
-                            <span style={{ fontSize: viewMode === 'grid' ? 13 : 16, fontWeight: 800, color: dark ? '#FAFAFA' : '#111827' }}>
+                            <span style={{ fontSize: viewMode === 'grid' ? 13 : 16, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#FAFAFA' : '#111827') }}>
                               ${Number(priceInfo.amount).toFixed(0)}
                             </span>
                           )}
