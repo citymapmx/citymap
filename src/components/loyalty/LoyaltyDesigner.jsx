@@ -253,6 +253,11 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
           <h2 style={{ margin: 0, fontSize: isMobile ? 15 : 18, fontWeight: 800, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Tarjetas de Lealtad</h2>
           {!isMobile && <p style={{ margin: 0, fontSize: 13, color: T.sub }}>Diseña el pase digital de tu negocio</p>}
         </div>
+        {config.id && (
+          <button onClick={handleDeleteProgram} disabled={saving} style={{ background: "transparent", border: "none", color: "#EF4444", fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, padding: "6px 2px", opacity: saving ? 0.7 : 1 }}>
+            Borrar programa y clientes
+          </button>
+        )}
         <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: "50%", background: T.border, color: T.text, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
           <Icon name="x" size={15} />
         </button>
@@ -448,9 +453,6 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
             </div>
           </div>
 
-          <div style={{ marginTop: isMobile ? -10 : 0, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "rgba(0,0,0,0.5)", borderRadius: 100, color: "#fff", fontSize: 12, fontWeight: 700 }}>
-            <span style={{ color: "#F5A623" }}>✨</span> Previsualización en vivo
-          </div>
         </div>
 
         {/* LEFT COLUMN: CONTROLS */}
@@ -530,17 +532,6 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
                         </button>
                       );
                     })}
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.sub, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" }}>Logo</label>
-                  <div style={{ padding: 24, border: `2px dashed ${T.border}`, borderRadius: 16, textAlign: "center", cursor: "pointer", background: "rgba(0,0,0,0.02)" }}>
-                    {config.logo_url ? (
-                      <img src={config.logo_url} alt="Logo" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
-                    ) : (
-                      <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>Subir Logo (PNG Transparente)</span>
-                    )}
                   </div>
                 </div>
               </>
@@ -651,11 +642,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
               style={{ width: "100%", padding: 16, background: "#000", color: "#fff", border: "none", borderRadius: 14, fontWeight: 800, fontSize: 15, cursor: "pointer", boxShadow: "0 8px 16px rgba(0,0,0,0.15)", opacity: saving ? 0.7 : 1 }}>
               {saving ? "Guardando..." : (config.id ? "Guardar Cambios" : "Activar Tarjeta")}
             </button>
-            {config.id ? (
-              <button onClick={handleDeleteProgram} disabled={saving} style={{ width: "100%", padding: 16, background: "transparent", color: "#EF4444", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer", marginTop: 8, opacity: saving ? 0.7 : 1 }}>
-                Borrar programa y clientes
-              </button>
-            ) : (
+            {!config.id && (
               <p style={{ margin: "12px 0 0 0", fontSize: 11, color: T.sub, textAlign: "center", fontWeight: 600 }}>Requiere plan destacado activo</p>
             )}
           </div>
