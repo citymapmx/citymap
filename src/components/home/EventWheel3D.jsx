@@ -1,8 +1,16 @@
 import './EventWheel3D.css';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
-import { SRCSET_CARD, SRCSET_THUMB } from '../../lib/utils.js';
-import { wheelFrontIndex, wheelNearFaces } from '../../lib/wheelPreload.js';
+import { getThumbSrcSet, getThumbUrl, SRCSET_CARD, SRCSET_THUMB } from '../../lib/utils.js';
+import {
+  WHEEL_BASE_SIZES,
+  WHEEL_BASE_W,
+  WHEEL_IMG_W,
+  WHEEL_PRELOAD_SIZES,
+  prefetchWheelFaces,
+  wheelFrontIndex,
+  wheelNearFaces,
+} from '../../lib/wheelPreload.js';
 import {
   WHEEL_AUTO_RESUME_MS,
   WHEEL_FACE_W,
@@ -33,9 +41,21 @@ import { useTranslation } from '../../hooks/useTranslation.js';
 // poco con un velo negro de opacidad, como en el Coverflow — nunca con
 // `filter`, que parpadeaba en el teléfono (PR #194).
 const MAX_FACES = 10;
-// La cara del frente se ve a ~216 px CSS y en el teléfono a 3x son ~650 px
-// de dispositivo: a 400 px el póster se veía blando. A 800 px se ve nítido.
-const WHEEL_IMG_W = 800;
+
+// Placeholder de una cara mientras su póster carga (nunca una tarjeta
+// negra vacía): fondo claro u oscuro según el tema + el shimmer del repo
+// (.skel-shimmer) + el título del evento. Va DEBAJO del <img> (que lo
+// tapa al cargar, con su fundido de opacidad) y encima del fondo #111 de
+// la cara. El título es solo texto: en el tambor las tarjetas son solo
+// imagen, sin píldora de ciudad ni fecha.
+function WheelFacePlaceholder({ title, dark }) {
+  return (
+    <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: dark ? '#232326' : '#e8ecf0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, overflow: 'hidden' }}>
+      <div className="skel-shimmer" />
+      <span style={{ position: 'relative', color: dark ? '#fff' : '#333', fontSize: 15, fontWeight: 800, lineHeight: 1.35, textAlign: 'center', overflowWrap: 'anywhere' }}>{title}</span>
+    </div>
+  );
+}
 
 export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading, T = {} }) {
   const { t } = useTranslation();
@@ -94,16 +114,25 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   }, [n, step, reducedMotion]);
 
   // Caras con <img> montada: las cercanas al frente ahora (la del frente y
-  // 2 a cada lado, wheelNearFaces) más las que ya estuvieron cerca
+  // 3 a cada lado, wheelNearFaces) más las que ya estuvieron cerca
   // (loadedFacesRef): una vez cargada, la cara no se desmonta para que el
   // póster no parpadee en cada giro. Las caras de atrás no montan imagen
-  // hasta que el giro las acerca (ver wheelPreload.js).
+  // hasta que el giro las acerca (ver wheelPreload.js). La base que se
+  // monta es de 400 px (WHEEL_BASE_W); la cara del frente lleva además
+  // una segunda imagen a 800 px encima (ver el render), que se funde al
+  // cargar sin tapar nunca la base.
   const frontIdx = n >= 3 ? wheelFrontIndex(rotation, step, n) : 0;
   const nearFaces = n >= 3 ? wheelNearFaces(frontIdx, n) : [];
   const loadedFacesRef = useRef(new Set());
+  // Las imágenes que van a entrar se precargan por adelantado (la nítida
+  // de las vecinas y la base de las siguientes): el efecto lee los items
+  // por ref para no re-dispararse en cada fotograma del giro.
+  const itemsRef = useRef(items);
+  useEffect(() => { itemsRef.current = items; });
   useEffect(() => {
     const s = loadedFacesRef.current;
     wheelNearFaces(frontIdx, n).forEach((i) => s.add(i));
+    prefetchWheelFaces(itemsRef.current, frontIdx);
   }, [frontIdx, n]);
 
   const setPausedBoth = useCallback((v) => {
@@ -322,7 +351,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
           {items.map((item) => (
             <article key={item.key} onClick={() => onSelect?.(item)} style={{ flex: '0 0 170px', borderRadius: 16, overflow: 'hidden', background: '#111', cursor: 'pointer' }}>
               <div style={{ position: 'relative', aspectRatio: '3 / 4' }}>
-                {item.img ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={400} srcSetWidths={SRCSET_THUMB} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <EventPosterFallback title={item.title} radius={0} />}
+                {item.img ? (<><WheelFacePlaceholder title={item.title} dark={T.dark} /><OptimizedImage src={item.img} alt={item.title || ''} widthRequest={400} srcSetWidths={SRCSET_THUMB} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative' }} /></>) : <EventPosterFallback title={item.title} radius={0} />}
                 {pill(item)}
               </div>
             </article>
@@ -351,9 +380,13 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
           {items.map((item, i) => {
             const angle = normalizeAngleDeg(i * step + rotation);
             // Sin imagen montada hasta que la cara se acerca al frente:
-            // la cara queda con su fondo oscuro hasta que entra en la
-            // ventana de cercanas (va girada y apagada, no se nota).
+            // la cara muestra el placeholder (shimmer + título), nunca
+            // el fondo oscuro vacío. La base es de 400 px y la cara del
+            // frente lleva encima la versión nítida a 800 px, que se
+            // funde al cargar sin tapar nunca la base (si tarda o falla,
+            // la base sigue viéndose).
             const faceLoaded = loadedFacesRef.current.has(i) || nearFaces.includes(i);
+            const isFront = i === frontIdx;
             // Oscurecido de la cara lateral SIN filter: antes iba un
             // `filter: brightness(...)` en línea que cambiaba en cada
             // fotograma (el tambor gira a 60 fps) y obligaba al navegador
@@ -368,7 +401,14 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
             return (
               <div key={item.key} data-face={i} className="event-wheel-face" style={{ transform: `rotateY(${i * step}deg) translateZ(${radius}px)` }}>
                 {item.img
-                  ? (faceLoaded ? <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} priority={i === 0} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null)
+                  ? (<>
+                    <WheelFacePlaceholder title={item.title} dark={T.dark} />
+                    {faceLoaded ? (<>
+                      <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_BASE_W} priority={i === 0} srcSetWidths={SRCSET_THUMB} sizes={WHEEL_BASE_SIZES} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative' }} />
+                      {isFront ? <img className="event-wheel-front-img" src={getThumbUrl(item.img, WHEEL_IMG_W)} srcSet={getThumbSrcSet(item.img, SRCSET_CARD)} sizes={WHEEL_PRELOAD_SIZES} alt="" aria-hidden="true" loading="eager" fetchPriority="high" decoding="sync" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: 0, transition: 'opacity 0.3s ease-out', pointerEvents: 'none' }} onLoad={(e) => { e.currentTarget.style.opacity = '1'; }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      : null}
+                    </>) : null}
+                  </>)
                   : <EventPosterFallback title={item.title} radius={12} dark={T.dark} />}
                 <span className="event-wheel-shade" aria-hidden="true" style={{ opacity: shadeOpacity }} />
               </div>

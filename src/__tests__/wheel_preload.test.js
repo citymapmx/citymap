@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { firstWheelEvent, preloadWheelFirstImage, wheelFirstImageUrl, wheelFrontIndex, wheelNearFaces, WHEEL_NEAR_RADIUS } from '../lib/wheelPreload.js';
+import { firstWheelEvent, prefetchWheelFaces, preloadWheelFirstImage, wheelFirstImageUrl, wheelFrontIndex, wheelNearFaces, WHEEL_NEAR_RADIUS } from '../lib/wheelPreload.js';
 import { useDataStore } from '../store/useDataStore.js';
 import { sb } from '../lib/supabase.js';
 
@@ -212,13 +212,79 @@ describe('wheelPreload: caras diferidas (rendimiento teléfono)', () => {
     expect(wheelFrontIndex(-17, 36, 10)).toBe(0);
   });
 
-  it('las cercanas al frente son el frente y 2 a cada lado, en círculo', () => {
-    expect(WHEEL_NEAR_RADIUS).toBe(2);
-    expect(wheelNearFaces(0, 10)).toEqual([8, 9, 0, 1, 2]);
-    expect(wheelNearFaces(9, 10)).toEqual([7, 8, 9, 0, 1]);
-    expect(wheelNearFaces(0, 6)).toEqual([4, 5, 0, 1, 2]);
-    expect(wheelNearFaces(0, 3)).toEqual([1, 2, 0, 1, 2]);
-    expect(wheelNearFaces(0, 1)).toEqual([0, 0, 0, 0, 0]);
+  it('las cercanas al frente son el frente y 3 a cada lado, en círculo', () => {
+    expect(WHEEL_NEAR_RADIUS).toBe(3);
+    expect(wheelNearFaces(0, 10)).toEqual([7, 8, 9, 0, 1, 2, 3]);
+    expect(wheelNearFaces(9, 10)).toEqual([6, 7, 8, 9, 0, 1, 2]);
+    expect(wheelNearFaces(0, 6)).toEqual([3, 4, 5, 0, 1, 2, 3]);
+    expect(wheelNearFaces(0, 3)).toEqual([0, 1, 2, 0, 1, 2, 0]);
+    expect(wheelNearFaces(0, 1)).toEqual([0, 0, 0, 0, 0, 0, 0]);
     expect(wheelNearFaces(0, 0)).toEqual([]);
+  });
+});
+
+describe('wheelPreload: precarga por adelantado de las caras que entran', () => {
+  // Image falsa (la suite no tiene DOM): registra lo que se le pide.
+  class FakeImage {
+    static instances = [];
+    constructor() {
+      FakeImage.instances.push(this);
+      this.srcset = '';
+      this.sizes = '';
+      this.src = '';
+      this.decoding = '';
+    }
+  }
+
+  const items = Array.from({ length: 10 }, (_, i) => ({
+    id: `e${i}`,
+    img_url: `https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/poster-${i}.jpg`,
+  }));
+
+  it('precarga la nítida (800) de las vecinas y la base (400) de las siguientes', () => {
+    FakeImage.instances = [];
+    const seen = new Set();
+    const started = prefetchWheelFaces(items, 0, FakeImage, seen);
+    // Vecinas (frente ±1): 800; a distancia radio+1 (4): base 400.
+    expect(started).toBe(4);
+    expect(FakeImage.instances).toHaveLength(4);
+    const bySrc = (w) => FakeImage.instances.filter((im) => im.src.includes(`width=${w}`));
+    expect(bySrc(800)).toHaveLength(2);
+    expect(bySrc(400)).toHaveLength(2);
+    // La nítida usa el mismo srcset/sizes que el <img> de frente...
+    const sharp = bySrc(800);
+    expect(sharp.every((im) => im.srcset.includes('800w') && im.sizes === '(max-width: 640px) 50vw, 300px')).toBe(true);
+    // ...y la base los mismos que el <img> base de la rueda.
+    const base = bySrc(400);
+    expect(base.every((im) => im.srcset.includes('400w') && im.sizes === '(max-width: 640px) 140px, 200px')).toBe(true);
+    // Las vecinas son las caras 1 y 9; las siguientes, las 4 y 6.
+    expect(sharp.map((im) => im.src)).toEqual(expect.arrayContaining([
+      expect.stringContaining('poster-1.jpg'),
+      expect.stringContaining('poster-9.jpg'),
+    ]));
+    expect(base.map((im) => im.src)).toEqual(expect.arrayContaining([
+      expect.stringContaining('poster-4.jpg'),
+      expect.stringContaining('poster-6.jpg'),
+    ]));
+  });
+
+  it('no repite las URLs ya pedidas', () => {
+    FakeImage.instances = [];
+    const seen = new Set();
+    expect(prefetchWheelFaces(items, 0, FakeImage, seen)).toBe(4);
+    expect(prefetchWheelFaces(items, 0, FakeImage, seen)).toBe(0);
+    expect(FakeImage.instances).toHaveLength(4);
+    // Al avanzar el frente se piden las nuevas (vecinas 2 y 0, siguientes 5 y 7).
+    expect(prefetchWheelFaces(items, 1, FakeImage, seen)).toBe(4);
+    expect(FakeImage.instances).toHaveLength(8);
+  });
+
+  it('no hace nada sin Image, sin items o con menos de 3 caras', () => {
+    expect(prefetchWheelFaces(items, 0, null, new Set())).toBe(0);
+    expect(prefetchWheelFaces([], 0, FakeImage, new Set())).toBe(0);
+    expect(prefetchWheelFaces(items.slice(0, 2), 0, FakeImage, new Set())).toBe(0);
+    // Sin imagen en el evento no se pide nada por esa cara.
+    const noImg = items.map((it) => ({ ...it, img_url: null }));
+    expect(prefetchWheelFaces(noImg, 0, FakeImage, new Set())).toBe(0);
   });
 });
