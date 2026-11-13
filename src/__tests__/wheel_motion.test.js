@@ -5,8 +5,10 @@ import {
   WHEEL_DRUM_FACES,
   WHEEL_FACE_W,
   WHEEL_FACE_W_MOBILE,
+  WHEEL_PROJECTED_W_MOBILE_FEW,
   wheelAutoStep,
   wheelDrumGeometry,
+  wheelDrumHalfSpan,
   wheelDrumRadius,
   wheelFaceRadius,
   wheelProjectedFace,
@@ -131,5 +133,56 @@ describe('wheelMotion: tarjetas juntas con pocos eventos (Tepic)', () => {
   it('con 3 o menos no hay tambor (va la fila) y la geometría devuelve los nominales', () => {
     expect(wheelDrumGeometry(162, 212, 3)).toEqual({ faceW: 162, faceH: 212, radius: 249 });
     expect(wheelDrumGeometry(162, 212, 0)).toEqual({ faceW: 162, faceH: 212, radius: 249 });
+  });
+});
+
+describe('wheelMotion: rueda a sangre en teléfono (pocos eventos)', () => {
+  it('la referencia ancha es 215 px y la cara del frente se ve más grande', () => {
+    expect(WHEEL_PROJECTED_W_MOBILE_FEW).toBe(215);
+    // Con 7 eventos (Tepic) en teléfono: cara 176x231 y radio 183 px.
+    expect(wheelDrumGeometry(140, 184, 7, 1000, WHEEL_PROJECTED_W_MOBILE_FEW))
+      .toEqual({ faceW: 176, faceH: 231, radius: 183 });
+    // La cara del frente se ve a 215x283 (antes 178x233 con la
+    // referencia de siempre).
+    const g = wheelDrumGeometry(140, 184, 7, 1000, WHEEL_PROJECTED_W_MOBILE_FEW);
+    expect(wheelProjectedFace(g.faceW, g.faceH, 7)).toEqual({ w: 215, h: 283 });
+  });
+
+  it('con 10 eventos la referencia ancha no cambia nada (el global sigue igual)', () => {
+    expect(wheelDrumGeometry(140, 184, 10, 1000, WHEEL_PROJECTED_W_MOBILE_FEW))
+      .toEqual({ faceW: 140, faceH: 184, radius: 215 });
+    expect(wheelDrumGeometry(162, 212, 10, 1000, WHEEL_PROJECTED_W_MOBILE_FEW))
+      .toEqual({ faceW: 162, faceH: 212, radius: 249 });
+  });
+
+  it('sin la referencia ancha la geometría es la de siempre (es opt-in)', () => {
+    expect(wheelDrumGeometry(140, 184, 7)).toEqual({ faceW: 150, faceH: 197, radius: 156 });
+  });
+
+  it('el tambor llega a los extremos de la pantalla del teléfono (mitad 195 px)', () => {
+    // El global ya llegaba: ~228 px a cada lado con 10 caras (las de
+    // ±72° asoman por los bordes).
+    expect(wheelDrumHalfSpan(140, 184, 10)).toBe(228);
+    // Con 7 eventos y la referencia ancha: 205 px, las laterales se
+    // cortan por los bordes de la pantalla.
+    expect(wheelDrumHalfSpan(140, 184, 7, 1000, WHEEL_PROJECTED_W_MOBILE_FEW)).toBe(205);
+    // Con la referencia de siempre no llegaba: 174 px (21 px de hueco
+    // blanco a cada lado).
+    expect(wheelDrumHalfSpan(140, 184, 7)).toBe(174);
+    // Con 8 y 9 también llega a sangre; con 6 queda cerca (185 px).
+    expect(wheelDrumHalfSpan(140, 184, 8, 1000, WHEEL_PROJECTED_W_MOBILE_FEW)).toBeGreaterThanOrEqual(195);
+    expect(wheelDrumHalfSpan(140, 184, 9, 1000, WHEEL_PROJECTED_W_MOBILE_FEW)).toBeGreaterThanOrEqual(195);
+  });
+
+  it('con 4 a 9 eventos la referencia ancha mantiene las vecinas pegadas y el frente a 215 px', () => {
+    for (const n of [4, 5, 6, 8, 9]) {
+      const g = wheelDrumGeometry(140, 184, n, 1000, WHEEL_PROJECTED_W_MOBILE_FEW);
+      // Radio = apotema de n caras: las vecinas se tocan.
+      expect(wheelFaceRadius(g.faceW, n)).toBe(g.radius);
+      // Frente del mismo tamaño con cualquier número de eventos.
+      const seen = wheelProjectedFace(g.faceW, g.faceH, n);
+      expect(seen.w).toBeGreaterThanOrEqual(214);
+      expect(seen.w).toBeLessThanOrEqual(216);
+    }
   });
 });

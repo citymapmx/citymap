@@ -13,12 +13,16 @@ import {
 } from '../../lib/wheelPreload.js';
 import {
   WHEEL_AUTO_RESUME_MS,
+  WHEEL_DRUM_FACES,
   WHEEL_FACE_H,
   WHEEL_FACE_H_MOBILE,
   WHEEL_FACE_W,
   WHEEL_FACE_W_MOBILE,
+  WHEEL_PERSPECTIVE,
+  WHEEL_PROJECTED_W_MOBILE_FEW,
   wheelAutoStep,
   wheelDrumGeometry,
+  wheelProjectedFace,
   wheelShouldAutoRotate,
 } from '../../lib/wheelMotion.js';
 import EventPosterFallback from './EventPosterFallback.jsx';
@@ -121,8 +125,32 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   // Tepic (7 eventos) — y la cara del frente se sigue viendo igual de
   // grande que en el inicio global. El tamaño va en línea en cada cara
   // (el CSS trae el nominal de 10 caras como base).
-  const drum = wheelDrumGeometry(faceW, faceH, n);
+  //
+  // A sangre en teléfono: con menos de 10 eventos la referencia de
+  // siempre (frente a 178 px) dejaba el tambor en ~174 px a cada lado
+  // del centro en una pantalla de 390 (mitad 195 px): las tarjetas ya
+  // estaban juntas pero no llegaban a los extremos. En teléfono se pasa
+  // la referencia ancha (WHEEL_PROJECTED_W_MOBILE_FEW, 215 px): la cara
+  // del frente se ve más grande (~215x283 con 7 eventos) y el tambor
+  // abarca 205 px a cada lado, así las laterales se cortan por los
+  // bordes de la pantalla como en el global. El global (10 eventos) y
+  // el escritorio no cambian.
+  const drum = wheelDrumGeometry(
+    faceW,
+    faceH,
+    n,
+    WHEEL_PERSPECTIVE,
+    isMobile && n < WHEEL_DRUM_FACES ? WHEEL_PROJECTED_W_MOBILE_FEW : null,
+  );
   const radius = drum.radius;
+  // Alto de la escena: la cara ancha de teléfono se ve más alta (~283 px
+  // con 7 eventos) que la escena del CSS (262 px). La escena crece solo
+  // cuando hace falta (móvil y pocos eventos): el tambor no se sale por
+  // arriba ni tapa el título, y los puntos quedan debajo con su margen.
+  // Con 10 eventos o en escritorio la escena queda como siempre.
+  const viewportHeight = isMobile
+    ? Math.max(262, wheelProjectedFace(drum.faceW, drum.faceH, n).h + 16)
+    : undefined;
 
   useEffect(() => {
     nRef.current = n;
@@ -397,7 +425,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
       {header}
       <div
         className={`event-wheel-viewport${dragging ? ' event-wheel-dragging' : ''}`}
-        style={{ perspective: '1000px' }}
+        style={{ perspective: '1000px', height: viewportHeight }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

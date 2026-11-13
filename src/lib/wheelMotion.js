@@ -60,6 +60,18 @@ export function wheelShouldAutoRotate({ paused, dragging, tabHidden, reducedMoti
 // global (ver wheelDrumGeometry).
 export const WHEEL_DRUM_FACES = 10;
 
+// Ancho PROYECTADO (visto) de la cara del frente en teléfono cuando la
+// ciudad tiene menos de 10 eventos: 215 px en vez de 178 px. Con la
+// referencia de 178 px las tarjetas ya quedaban juntas tras la #292, pero
+// el tambor solo abarcaba ~174 px a cada lado del centro en una pantalla
+// de 390 (mitad 195 px): quedaban ~21 px de hueco blanco a cada lado y no
+// llegaba a los extremos. Con 215 px la cara del frente se ve más grande
+// (~215x283) y el borde exterior del tambor pasa de los 195 px con 7
+// eventos (205 px), así las laterales se cortan por los bordes de la
+// pantalla, como en el inicio global. Solo aplica en teléfono y con
+// menos de 10 eventos: el global (10) y el escritorio no cambian.
+export const WHEEL_PROJECTED_W_MOBILE_FEW = 215;
+
 // Radio del tambor para que la rueda de ciudad se vea como la del inicio
 // global, independiente del número de eventos de la ciudad.
 export function wheelDrumRadius(faceW) {
@@ -85,16 +97,52 @@ export function wheelDrumRadius(faceW) {
 // 156 px (la cara se ve a 178x233, como el global); con 4, cara 163x214
 // y radio 82 px. En escritorio (P = 216): con 7 eventos, cara 176x230 y
 // radio 183 px (la cara se ve a 215x282).
-export function wheelDrumGeometry(faceW, faceH, n, perspective = WHEEL_PERSPECTIVE) {
-  const ref = wheelProjectedFace(faceW, faceH, WHEEL_DRUM_FACES, perspective);
+//
+// projectedRefW (opcional) cambia la P de referencia: en teléfono y con
+// menos de 10 eventos el componente pasa WHEEL_PROJECTED_W_MOBILE_FEW
+// (215 px) para que la rueda llegue a sangre a los extremos de la
+// pantalla: con 7 eventos, cara 176x231 y radio 183 px (la cara se ve a
+// 215x283 y el tambor abarca 205 px a cada lado del centro, más que la
+// mitad de la pantalla de 390 px). Sin projectedRefW la geometría es la
+// de siempre (P = 178 px en teléfono).
+export function wheelDrumGeometry(faceW, faceH, n, perspective = WHEEL_PERSPECTIVE, projectedRefW = null) {
+  const refW = projectedRefW ?? wheelProjectedFace(faceW, faceH, WHEEL_DRUM_FACES, perspective).w;
   if (!n || n < 4 || n >= WHEEL_DRUM_FACES) {
     return { faceW, faceH, radius: wheelDrumRadius(faceW) };
   }
   const t = Math.tan(Math.PI / n);
-  const w = Math.round((perspective * ref.w) / (perspective + ref.w / (2 * t)));
+  const w = Math.round((perspective * refW) / (perspective + refW / (2 * t)));
   const radius = Math.round((w / 2) / t);
   const h = Math.round((w * faceH) / faceW);
   return { faceW: w, faceH: h, radius };
+}
+
+// Medio ancho que abarca el tambor en pantalla: la distancia del centro
+// al borde exterior de la cara visible más alejada (la vecina más lejana
+// que no está de espaldas). Sirve para afirmar que la rueda llega a los
+// extremos: en un teléfono de 390 px la mitad de la pantalla son 195 px,
+// así que el tambor llega a sangre cuando el medio ancho supera 195 px.
+// Con 10 caras en teléfono son ~228 px (las caras a ±72° asoman por los
+// bordes); con 7 eventos y la referencia ancha, 205 px; con la
+// referencia de siempre, solo 174 px (por eso quedaba hueco blanco a los
+// lados). Con 4 eventos las vecinas van de canto (invisibles) y el medio
+// ancho es el de la cara del frente.
+export function wheelDrumHalfSpan(faceW, faceH, n, perspective = WHEEL_PERSPECTIVE, projectedRefW = null) {
+  if (!n || n < 4) return 0;
+  const g = wheelDrumGeometry(faceW, faceH, n, perspective, projectedRefW);
+  const a = g.faceW / 2;
+  const step = (2 * Math.PI) / n;
+  // La cara del frente: medio ancho proyectado.
+  let span = (g.faceW * perspective) / (perspective - g.radius) / 2;
+  for (let k = 1; k * step < Math.PI / 2; k++) {
+    const th = k * step;
+    const s = Math.sin(th);
+    const c = Math.cos(th);
+    const mag = perspective / (perspective - g.radius * c);
+    const edge = g.radius * s + a * c * mag;
+    if (edge > span) span = edge;
+  }
+  return Math.round(span);
 }
 
 // Radio del cilindro para que las tarjetas queden casi pegadas: la apotema
