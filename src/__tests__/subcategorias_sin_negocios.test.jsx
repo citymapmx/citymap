@@ -1,1 +1,84 @@
-aW1wb3J0IHsgZGVzY3JpYmUsIGl0LCBleHBlY3QgfSBmcm9tICd2aXRlc3QnOwppbXBvcnQgeyByZWFkRmlsZVN5bmMgfSBmcm9tICdub2RlOmZzJzsKaW1wb3J0IHsgZ2V0QXZhaWxhYmxlU3ViY2F0cyB9IGZyb20gJy4uL2xpYi9idXNpbmVzc1N1YmNhdHMuanMnOwoKY29uc3QgcmVhZCA9IChwKSA9PiByZWFkRmlsZVN5bmMobmV3IFVSTChwLCBpbXBvcnQubWV0YS51cmwpLCAndXRmOCcpOwoKLy8gU3ViY2F0ZWdvcsOtYXMgdmFjw61hcyAoMTIgbm92IDIwMjYsIGNhcHR1cmEgZGUgSm9uYXRoYW4gZW4KLy8gL2d1YWRhbGFqYXJhL2MvcmVzdGF1cmFudGVzKTogY29uICJNYXJpc2NvcyIgc2VsZWNjaW9uYWRvIHNhbMOtYQovLyAiMCBsdWdhcmVzIiB5ICJTaW4gbmVnb2Npb3MgZW4gTWFyaXNjb3MiLCBhdW5xdWUgbGEgcMOtbGRvcmEgZXN0YWJhCi8vIHZpc2libGUuIENhdXNhOiBsYXMgcMOtbGRvcmFzIHNlIGRlcml2YWJhbiBkZSBgYml6YCAodG9kYSBsYSBsaXN0YQovLyBmaWx0cmFkYSBwb3IgY2l1ZGFkL2NhdGVnb3LDrWEpIHBlcm8gbG9zIHJlc3VsdGFkb3Mgc2UgZmlsdHJhbiBzb2JyZQovLyBgZGlzcGxheUxpc3RgIChsYSBsaXN0YSB5YSBwYWdpbmFkYSB5IGNydXphZGEgY29uIGxvcyBpZHMgZGVsCi8vIHNlcnZpZG9yKTogdW4gbmVnb2NpbyBjb24gZXNhIHN1YmNhdGVnb3LDrWEgcHVlZGUgZXN0YXIgZW4gYGJpemAgc2luCi8vIGVzdGFyIGVuIGxhIGxpc3RhIHZpc2libGUuIEFycmVnbG86IGxhcyBww61sZG9yYXMgc2FsZW4gZGUgZGlzcGxheUxpc3QsCi8vIGxhIG1pc21hIGxpc3RhIHF1ZSBsYSB2aXN0YSB5YSBmaWx0cmEuCi8vIE1pc21hIHJlZ2xhIGRlIGNvaW5jaWRlbmNpYSBxdWUgZmluYWxEaXNwbGF5TGlzdCBlbiBIb21lVmlldy5qc3guCmNvbnN0IG1hdGNoZXNTdWJjYXQgPSAoYiwgc3ViY2F0KSA9PiB7CiAgY29uc3QgdGFyZ2V0ID0gc3ViY2F0LnRvTG93ZXJDYXNlKCkudHJpbSgpOwogIGNvbnN0IHN1YiA9IChiLnN1YmNhdGVnb3J5IHx8ICcnKS50b0xvd2VyQ2FzZSgpOwogIGNvbnN0IHR5cCA9IChiLnR5cGUgfHwgJycpLnRvTG93ZXJDYXNlKCk7CiAgY29uc3QgdGFncyA9IEFycmF5LmlzQXJyYXkoYi50YWdzKSA/IGIudGFncy5qb2luKCcgJykudG9Mb3dlckNhc2UoKSA6IChiLnRhZ3MgfHwgJycpLnRvTG93ZXJDYXNlKCk7CiAgcmV0dXJuIHN1Yi5pbmNsdWRlcyh0YXJnZXQpIHx8IHR5cC5pbmNsdWRlcyh0YXJnZXQpIHx8IHRhZ3MuaW5jbHVkZXModGFyZ2V0KTsKfTsKCi8vIFJlc3RhdXJhbnRlcyBlbiBHdWFkYWxhamFyYTogbGEgbGlzdGEgY29tcGxldGEgdHJhZSBNYXJpc2NvcwovLyAoQ2FtcG9tYXIpLCBwZXJvIGxhIHByaW1lcmEgcMOhZ2luYSB2aXNpYmxlIG5vIGxvIHRyYWUgKGVzdMOhIG3DoXMgYWxsw6EKLy8gZGVsIGNvcnRlIGRlIHBhZ2luYWNpw7NuIC8gZnVlcmEgZGUgbG9zIGlkcyBkZWwgc2Vydmlkb3IpLgpjb25zdCBiaXpDb21wbGV0YSA9IFsKICB7IG5hbWU6ICdTU0FNIENvbWlkYSBDb3JlYW5hJywgc3ViY2F0ZWdvcnk6ICdDb21pZGEgQ29yZWFuYScsIHR5cGU6IG51bGwgfSwKICB7IG5hbWU6ICJMJ2VudHJlY290ZSBGYW50YXN0aXF1ZSIsIHN1YmNhdGVnb3J5OiBudWxsLCB0eXBlOiAnUmVzdGF1cmFudGUgRnJhbmPDqXMgJyB9LAogIHsgbmFtZTogJ0NhbXBvbWFyIFB1bnRvIFN1cicsIHN1YmNhdGVnb3J5OiAnTWFyaXNjb3MnLCB0eXBlOiBudWxsIH0sCiAgeyBuYW1lOiAnT2N0byBSZXN0YXVyYW50ZScsIHN1YmNhdGVnb3J5OiBudWxsLCB0eXBlOiBudWxsIH0sCiAgeyBuYW1lOiAnRWwgTWFsdMOpcycsIHN1YmNhdGVnb3J5OiBudWxsLCB0eXBlOiBudWxsIH0sCl07CmNvbnN0IGxpc3RhVmlzaWJsZSA9IGJpekNvbXBsZXRhLmZpbHRlcihiID0+IGIubmFtZSAhPT0gJ0NhbXBvbWFyIFB1bnRvIFN1cicpOwoKZGVzY3JpYmUoJ3N1YmNhdGVnb3LDrWFzIHNpbiBuZWdvY2lvczogbGEgcMOtbGRvcmEgc29sbyBhcGFyZWNlIHNpIGhheSB1biBuZWdvY2lvIHZpc2libGUnLCAoKSA9PiB7CiAgaXQoJ2Nhc28gcmVwb3J0YWRvOiAiTWFyaXNjb3MiIGVzdMOhIGVuIGxhIGxpc3RhIGNvbXBsZXRhIHBlcm8gbm8gZW4gbGEgdmlzaWJsZSwgYXPDrSBxdWUgbm8gYXBhcmVjZSBjb21vIHDDrWxkb3JhJywgKCkgPT4gewogICAgZXhwZWN0KGdldEF2YWlsYWJsZVN1YmNhdHMoYml6Q29tcGxldGEpKS50b0NvbnRhaW4oJ01hcmlzY29zJyk7CiAgICBleHBlY3QoZ2V0QXZhaWxhYmxlU3ViY2F0cyhsaXN0YVZpc2libGUpKS5ub3QudG9Db250YWluKCdNYXJpc2NvcycpOwogICAgZXhwZWN0KGdldEF2YWlsYWJsZVN1YmNhdHMobGlzdGFWaXNpYmxlKSkudG9FcXVhbChbJ0NvbWlkYSBDb3JlYW5hJywgJ1Jlc3RhdXJhbnRlIEZyYW5jw6lzJ10pOwogIH0pOwoKICBpdCgnaW52YXJpYW50ZTogY2FkYSBww61sZG9yYSBkZXJpdmFkYSBkZSBsYSBsaXN0YSB2aXNpYmxlIGNvaW5jaWRlIGNvbiBhbCBtZW5vcyB1biBuZWdvY2lvIHZpc2libGUnLCAoKSA9PiB7CiAgICBjb25zdCBzdWJjYXRzID0gZ2V0QXZhaWxhYmxlU3ViY2F0cyhsaXN0YVZpc2libGUpOwogICAgZXhwZWN0KHN1YmNhdHMubGVuZ3RoKS50b0JlR3JlYXRlclRoYW4oMCk7CiAgICBzdWJjYXRzLmZvckVhY2goc3ViID0+IHsKICAgICAgZXhwZWN0KGxpc3RhVmlzaWJsZS5zb21lKGIgPT4gbWF0Y2hlc1N1YmNhdChiLCBzdWIpKSkudG9CZSh0cnVlKTsKICAgIH0pOwogIH0pOwoKICBpdCgnZmlsdHJvIHBvc3Rlcmlvcjogc2kgbGEgbGlzdGEgdmlzaWJsZSBzZSBhY2hpY2EgeSB1bmEgc3ViY2F0ZWdvcsOtYSBxdWVkYSBlbiAwLCBzdSBww61sZG9yYSBkZXNhcGFyZWNlJywgKCkgPT4gewogICAgZXhwZWN0KGdldEF2YWlsYWJsZVN1YmNhdHMobGlzdGFWaXNpYmxlKSkudG9Db250YWluKCdDb21pZGEgQ29yZWFuYScpOwogICAgY29uc3QgdHJhc0ZpbHRybyA9IGxpc3RhVmlzaWJsZS5maWx0ZXIoYiA9PiBiLm5hbWUgIT09ICdTU0FNIENvbWlkYSBDb3JlYW5hJyk7CiAgICBleHBlY3QoZ2V0QXZhaWxhYmxlU3ViY2F0cyh0cmFzRmlsdHJvKSkubm90LnRvQ29udGFpbignQ29taWRhIENvcmVhbmEnKTsKICAgIGV4cGVjdChnZXRBdmFpbGFibGVTdWJjYXRzKHRyYXNGaWx0cm8pKS50b0VxdWFsKFsnUmVzdGF1cmFudGUgRnJhbmPDqXMnXSk7CiAgfSk7CgogIGl0KCdzaW4gbmVnb2Npb3MgdmlzaWJsZXMgbm8gaGF5IHDDrWxkb3JhcyBkZSBzdWJjYXRlZ29yw61hJywgKCkgPT4gewogICAgZXhwZWN0KGdldEF2YWlsYWJsZVN1YmNhdHMoW10pKS50b0VxdWFsKFtdKTsKICB9KTsKCiAgaXQoJ0hvbWVWaWV3IGRlcml2YSBsYXMgcMOtbGRvcmFzIGRlIGRpc3BsYXlMaXN0IChsYSBsaXN0YSBxdWUgbGEgdmlzdGEgZmlsdHJhKSwgbm8gZGUgYml6JywgKCkgPT4gewogICAgY29uc3QgaG9tZSA9IHJlYWQoJy4uL3ZpZXdzL0hvbWVWaWV3LmpzeCcpOwogICAgZXhwZWN0KGhvbWUpLnRvQ29udGFpbignZ2V0QXZhaWxhYmxlU3ViY2F0cyhkaXNwbGF5TGlzdCknKTsKICAgIGV4cGVjdChob21lKS5ub3QudG9Db250YWluKCdnZXRBdmFpbGFibGVTdWJjYXRzKGJpeiknKTsKICB9KTsKCiAgaXQoJ2xhIHDDrWxkb3JhICJUb2RvcyIgc2llbXByZSBzZSBxdWVkYTogc2UgcGludGEgZW4gbGEgYmFycmEgZnVlcmEgZGVsIG1hcGEgZGUgc3ViY2F0ZWdvcsOtYXMnLCAoKSA9PiB7CiAgICBjb25zdCBob21lID0gcmVhZCgnLi4vdmlld3MvSG9tZVZpZXcuanN4Jyk7CiAgICBjb25zdCB0b2Rvc0lkeCA9IGhvbWUuaW5kZXhPZigndCgiaG9tZV90b2RvcyIsICJUb2RvcyIpJyk7CiAgICBjb25zdCBtYXBJZHggPSBob21lLmluZGV4T2YoJ2F2YWlsYWJsZVN1YmNhdHMubWFwKHN1YiA9PiB7Jyk7CiAgICBleHBlY3QodG9kb3NJZHgpLnRvQmVHcmVhdGVyVGhhbigtMSk7CiAgICBleHBlY3QobWFwSWR4KS50b0JlR3JlYXRlclRoYW4oLTEpOwogICAgZXhwZWN0KHRvZG9zSWR4KS50b0JlTGVzc1RoYW4obWFwSWR4KTsKICB9KTsKCiAgaXQoJ2VsIGVzdGFkbyB2YWPDrW8gc2UgY29uc2VydmEgY29tbyByZXNwYWxkbyAocC4gZWouIFVSTCBkaXJlY3RhKTogc2lndWUgZXhpc3RpZW5kbyAiU2luIG5lZ29jaW9zIGVuIiBjb24gc3UgYm90w7NuJywgKCkgPT4gewogICAgY29uc3QgaG9tZSA9IHJlYWQoJy4uL3ZpZXdzL0hvbWVWaWV3LmpzeCcpOwogICAgZXhwZWN0KGhvbWUpLnRvQ29udGFpbigndCgiaG9tZV9zaW5fbmVnb2Npb3NfZW4iLCAiU2luIG5lZ29jaW9zIGVuIiknKTsKICAgIGV4cGVjdChob21lKS50b0NvbnRhaW4oJ3QoImhvbWVfdmVyX3RvZGFzX29wY2lvbmVzIiwgIlZlciB0b2RhcyBsYXMgb3BjaW9uZXMiKScpOwogICAgZXhwZWN0KGhvbWUpLnRvQ29udGFpbignc2VsZWN0ZWRTdWJjYXQgIT09ICJ0b2RhcyInKTsKICB9KTsKfSk7Cg==
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { getAvailableSubcats } from '../lib/businessSubcats.js';
+
+const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+// Subcategorías vacías (12 nov 2026, captura de Jonathan en
+// /guadalajara/c/restaurantes): con "Mariscos" seleccionado salía
+// "0 lugares" y "Sin negocios en Mariscos", aunque la píldora estaba
+// visible. Causa: las píldoras se derivaban de `biz` (toda la lista
+// filtrada por ciudad/categoría) pero los resultados se filtran sobre
+// `displayList` (la lista ya paginada y cruzada con los ids del
+// servidor): un negocio con esa subcategoría puede estar en `biz` sin
+// estar en la lista visible. Arreglo: las píldoras salen de displayList,
+// la misma lista que la vista ya filtra.
+// Misma regla de coincidencia que finalDisplayList en HomeView.jsx.
+const matchesSubcat = (b, subcat) => {
+  const target = subcat.toLowerCase().trim();
+  const sub = (b.subcategory || '').toLowerCase();
+  const typ = (b.type || '').toLowerCase();
+  const tags = Array.isArray(b.tags) ? b.tags.join(' ').toLowerCase() : (b.tags || '').toLowerCase();
+  return sub.includes(target) || typ.includes(target) || tags.includes(target);
+};
+
+// Restaurantes en Guadalajara: la lista completa trae Mariscos
+// (Campomar), pero la primera página visible no lo trae (está más allá
+// del corte de paginación / fuera de los ids del servidor).
+const bizCompleta = [
+  { name: 'SSAM Comida Coreana', subcategory: 'Comida Coreana', type: null },
+  { name: "L'entrecote Fantastique", subcategory: null, type: 'Restaurante Francés ' },
+  { name: 'Campomar Punto Sur', subcategory: 'Mariscos', type: null },
+  { name: 'Octo Restaurante', subcategory: null, type: null },
+  { name: 'El Maltés', subcategory: null, type: null },
+];
+const listaVisible = bizCompleta.filter(b => b.name !== 'Campomar Punto Sur');
+
+describe('subcategorías sin negocios: la píldora solo aparece si hay un negocio visible', () => {
+  it('caso reportado: "Mariscos" está en la lista completa pero no en la visible, así que no aparece como píldora', () => {
+    expect(getAvailableSubcats(bizCompleta)).toContain('Mariscos');
+    expect(getAvailableSubcats(listaVisible)).not.toContain('Mariscos');
+    expect(getAvailableSubcats(listaVisible)).toEqual(['Comida Coreana', 'Restaurante Francés']);
+  });
+
+  it('invariante: cada píldora derivada de la lista visible coincide con al menos un negocio visible', () => {
+    const subcats = getAvailableSubcats(listaVisible);
+    expect(subcats.length).toBeGreaterThan(0);
+    subcats.forEach(sub => {
+      expect(listaVisible.some(b => matchesSubcat(b, sub))).toBe(true);
+    });
+  });
+
+  it('filtro posterior: si la lista visible se achica y una subcategoría queda en 0, su píldora desaparece', () => {
+    expect(getAvailableSubcats(listaVisible)).toContain('Comida Coreana');
+    const trasFiltro = listaVisible.filter(b => b.name !== 'SSAM Comida Coreana');
+    expect(getAvailableSubcats(trasFiltro)).not.toContain('Comida Coreana');
+    expect(getAvailableSubcats(trasFiltro)).toEqual(['Restaurante Francés']);
+  });
+
+  it('sin negocios visibles no hay píldoras de subcategoría', () => {
+    expect(getAvailableSubcats([])).toEqual([]);
+  });
+
+  it('HomeView deriva las píldoras de displayList (la lista que la vista filtra), no de biz', () => {
+    const home = read('../views/HomeView.jsx');
+    expect(home).toContain('getAvailableSubcats(displayList)');
+    expect(home).not.toContain('getAvailableSubcats(biz)');
+  });
+
+  it('la píldora "Todos" siempre se queda: se pinta en la barra fuera del mapa de subcategorías', () => {
+    const home = read('../views/HomeView.jsx');
+    const todosIdx = home.indexOf('t("home_todos", "Todos")');
+    const mapIdx = home.indexOf('availableSubcats.map(sub => {');
+    expect(todosIdx).toBeGreaterThan(-1);
+    expect(mapIdx).toBeGreaterThan(-1);
+    expect(todosIdx).toBeLessThan(mapIdx);
+  });
+
+  it('el estado vacío se conserva como respaldo (p. ej. URL directa): sigue existiendo "Sin negocios en" con su botón', () => {
+    const home = read('../views/HomeView.jsx');
+    expect(home).toContain('t("home_sin_negocios_en", "Sin negocios en")');
+    expect(home).toContain('t("home_ver_todas_opciones", "Ver todas las opciones")');
+    expect(home).toContain('selectedSubcat !== "todas"');
+  });
+});
