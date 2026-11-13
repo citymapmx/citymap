@@ -48,7 +48,7 @@ async function runReminders(req, res) {
     // 1. Eventos de hoy aprobados.
     const events = [];
     for (let offset = 0; ; offset += 1000) {
-      const r = await fetch(`${supabaseUrl}/rest/v1/events?select=id,title,slug,city_slug,date,time,status,event_category,img_url,img&status=eq.approved&date=eq.${today}&order=time.asc&limit=1000&offset=${offset}`, { headers });
+      const r = await fetch(`${supabaseUrl}/rest/v1/events?select=id,title,slug,city_slug,date,time,status,venue_name,img_url,img&status=eq.approved&date=eq.${today}&order=time.asc&limit=1000&offset=${offset}`, { headers });
       if (!r.ok) throw new Error(`PostgREST events: HTTP ${r.status}`);
       const batch = await r.json();
       events.push(...batch);

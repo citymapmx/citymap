@@ -38,42 +38,45 @@ export function toTitleCaseIfUpper(title) {
   return t.toLowerCase().replace(/(^|[\s\-'¿¡(«"])([a-záéíóúñü])/g, (_, pre, ch) => pre + ch.toUpperCase());
 }
 
-// Sustantivo del mensaje según la categoría del evento. Para conciertos
-// lleva "de" ("el concierto de X"); el resto va sin "de" ("el festival X").
-export function reminderNoun(eventCategory) {
-  const c = String(eventCategory || '').trim().toLowerCase();
-  if (c.includes('concierto')) return 'el concierto de';
-  if (c.includes('festival')) return 'el festival';
-  if (c.includes('obra de teatro') || c === 'teatro') return 'la obra de teatro';
-  if (c.startsWith('show')) return 'el show';
-  if (c.includes('danza') || c.includes('ballet')) return 'el espectáculo de danza';
-  if (c.includes('corrida') || c.includes('novillada')) return 'la corrida';
-  if (c.includes('comedia')) return 'el show de comedia';
-  if (c.includes('lucha')) return 'la lucha libre';
-  if (c.includes('carrera') || c.includes('tenis') || c === 'deporte') return 'el evento deportivo';
-  if (c.includes('gastronom')) return 'el evento gastronómico';
-  if (c.includes('feria')) return 'la feria';
-  if (c.includes('conferencia') || c.includes('congreso')) return 'la conferencia';
-  if (c.includes('expo')) return 'la expo';
-  if (c.includes('convenci')) return 'la convención';
-  if (c.includes('fiesta') || c.includes('posada')) return 'la fiesta';
-  if (c.includes('jazz')) return 'el concierto de jazz';
-  return 'el evento';
+// Cierres del cuerpo del recordatorio, en orden. La rotación es
+// determinista por evento (hash djb2 del id): el mismo evento siempre
+// recibe el mismo cierre y distintos eventos varían, sin azar entre
+// corridas. Sin id se usa el título; sin nada, el primer cierre.
+export const REMINDER_CLOSINGS = ['¡Nos vemos ahí!', '¡Hoy es el día!', '¡Ya casi!', 'No te lo pierdas'];
+
+// Artículo del recinto: la mayoría de los recintos llevan "el"
+// ("en el Teatro Diana", "en el PALCCO"); si el nombre ya trae
+// artículo ("El Parián", "La Concha Acústica") no se duplica.
+export function venueWithArticle(venue) {
+  const v = String(venue || '').trim();
+  if (!v) return '';
+  return /^(el|la|los|las)\s/i.test(v) ? v : `el ${v}`;
+}
+
+export function reminderClosingFor(event) {
+  const key = String(event?.id || event?.title || '');
+  let hash = 5381;
+  for (let i = 0; i < key.length; i += 1) hash = ((hash << 5) + hash + key.charCodeAt(i)) >>> 0;
+  return REMINDER_CLOSINGS[hash % REMINDER_CLOSINGS.length];
 }
 
 // Mensaje del recordatorio: { title, body, deepLink } o null si al evento le
-// falta lo mínimo (título o fecha). La hora es opcional: sin hora, el mensaje
-// no lleva "a las …". Si el evento tiene imagen (img_url o img, solo HTTPS)
-// lleva imageUrl para que el aviso muestre el póster; sin imagen no lleva
-// la clave y el aviso se manda igual que hoy.
+// falta lo mínimo (título o fecha). El título del evento NO se repite en el
+// cuerpo (muchos títulos ya incluyen la ciudad): el cuerpo dice la hora y
+// el recinto (venue_name), que es lo que el título no dice. Sin recinto no
+// se inventa ninguno: se omite "en …". Sin hora no lleva "a las …". El
+// punto final no se duplica tras "p. m." / "a. m." (ya terminan en punto).
+// Si el evento tiene imagen (img_url o img, solo HTTPS) lleva imageUrl
+// para que el aviso muestre el póster; sin imagen no lleva la clave y el
+// aviso se manda igual que hoy.
 export function buildReminderMessage(event) {
   const title = toTitleCaseIfUpper(event?.title);
   if (!title || !event?.date) return null;
-  const noun = reminderNoun(event?.event_category);
   const time12 = formatReminderTime(event?.time);
-  const body = time12
-    ? `Hoy es ${noun} ${title} a las ${time12}, no te lo pierdas`
-    : `Hoy es ${noun} ${title}, no te lo pierdas`;
+  const venue = venueWithArticle(event?.venue_name);
+  const closing = reminderClosingFor(event);
+  const core = `Hoy${time12 ? ` a las ${time12}` : ''}${venue ? ` en ${venue}` : ''}`;
+  const body = `${core}${core.endsWith('.') ? '' : '.'} ${closing}`;
   const imageUrl = eventNotificationImage(event);
   return { title, body, deepLink: eventUrl(event), ...(imageUrl ? { imageUrl } : {}) };
 }
