@@ -248,34 +248,48 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
 
           <div style={{ padding: "0 8px", display: "flex", flexDirection: "column" }}>
 
-            {/* Detect location */}
-            <button
-              onClick={onDetectCity}
-              disabled={locating}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: dark ? "rgba(255,255,255,0.05)" : "#ffffff", border: `1px solid ${dark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`, borderRadius: 10, cursor: locating ? "wait" : "pointer", color: dark ? "#f8fafc" : "#0f172a", boxShadow: dark ? "none" : "0 2px 4px rgba(0,0,0,0.02)", fontSize: 14, fontWeight: 600, textAlign: "left", transition: "all 0.2s", marginBottom: 12, opacity: locating ? 0.7 : 1 }}
-              onMouseOver={e => { if (!locating) e.currentTarget.style.background = dark ? "rgba(255,255,255,0.08)" : "#f8fafc"; }}
-              onMouseOut={e => { if (!locating) e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "#ffffff"; }}
-            >
-              {locating ? (
-                <div style={{ width: 18, height: 18, border: `2px solid ${dark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'}`, borderTop: `2px solid ${dark ? '#fff' : '#000'}`, borderRadius: '50%', animation: 'spin .8s linear infinite' }} />
-              ) : (
-                <span style={{ fontSize: 16 }}>📍</span>
-              )}
-              <span>{locating ? "Buscando..." : "Encontrar lugares cerca de mí"}</span>
-            </button>
-
-            {/* Inicio global: el muro de todas las ciudades (solo fuera de la bienvenida) */}
-            {!isWelcome && onGoToWall && (
+            {/* Filas discretas (propuesta A, nov 2026, elegida por Jonathan):
+                ubicación e inicio global como filas planas con icono,
+                título, subtítulo y flecha, separadas por una línea fina
+                en vez de cajas de botón. El cableado (onDetectCity /
+                onGoToWall) queda intacto. */}
+            <div style={{ marginBottom: 12 }}>
               <button
-                onClick={() => { onGoToWall(); onClose(); }}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: dark ? "rgba(255,255,255,0.05)" : "#ffffff", border: `1px solid ${dark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`, borderRadius: 10, cursor: "pointer", color: dark ? "#f8fafc" : "#0f172a", boxShadow: dark ? "none" : "0 2px 4px rgba(0,0,0,0.02)", fontSize: 14, fontWeight: 600, textAlign: "left", transition: "all 0.2s", marginBottom: 12 }}
-                onMouseOver={e => { e.currentTarget.style.background = dark ? "rgba(255,255,255,0.08)" : "#f8fafc"; }}
-                onMouseOut={e => { e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "#ffffff"; }}
+                onClick={onDetectCity}
+                disabled={locating}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "transparent", border: "none", borderBottom: `1px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`, borderRadius: 0, cursor: locating ? "wait" : "pointer", color: dark ? "#f8fafc" : "#0f172a", fontSize: 15, fontWeight: 600, textAlign: "left", transition: "background 0.2s", width: "100%", opacity: locating ? 0.7 : 1 }}
+                onMouseOver={e => { if (!locating) e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"; }}
+                onMouseOut={e => { if (!locating) e.currentTarget.style.background = "transparent"; }}
               >
-                <span style={{ fontSize: 16 }}>🌐</span>
-                <span>Inicio global — todas las ciudades</span>
+                {locating ? (
+                  <div style={{ width: 18, height: 18, border: `2px solid ${dark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'}`, borderTop: `2px solid ${dark ? '#fff' : '#000'}`, borderRadius: '50%', animation: 'spin .8s linear infinite' }} />
+                ) : (
+                  <span style={{ fontSize: 18 }}>📍</span>
+                )}
+                <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                  <span>{locating ? "Buscando..." : "Cerca de mí"}</span>
+                  <span style={{ fontSize: 12, fontWeight: 400, color: T.sub }}>usa tu ubicación</span>
+                </span>
+                <Icon name="chevron" size={14} color={T.sub} />
               </button>
-            )}
+
+              {/* Inicio global: el muro de todas las ciudades (solo fuera de la bienvenida) */}
+              {!isWelcome && onGoToWall && (
+                <button
+                  onClick={() => { onGoToWall(); onClose(); }}
+                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "transparent", border: "none", borderRadius: 0, cursor: "pointer", color: dark ? "#f8fafc" : "#0f172a", fontSize: 15, fontWeight: 600, textAlign: "left", transition: "background 0.2s", width: "100%" }}
+                  onMouseOver={e => { e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"; }}
+                  onMouseOut={e => { e.currentTarget.style.background = "transparent"; }}
+                >
+                  <span style={{ fontSize: 18 }}>🌐</span>
+                  <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                    <span>Todas las ciudades</span>
+                    <span style={{ fontSize: 12, fontWeight: 400, color: T.sub }}>sin filtro de ciudad</span>
+                  </span>
+                  <Icon name="chevron" size={14} color={T.sub} />
+                </button>
+              )}
+            </div>
 
             {/* Popular cities */}
             {!isSearching && (
