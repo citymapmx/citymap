@@ -5,16 +5,18 @@ const mocks = vi.hoisted(() => ({ send: vi.fn() }));
 vi.mock('firebase-admin/app', () => ({ getApps: () => [{}], initializeApp: vi.fn(), cert: vi.fn() }));
 vi.mock('firebase-admin/messaging', () => ({ getMessaging: () => ({ sendEachForMulticast: mocks.send }) }));
 import {
+  REMINDER_CLOSINGS,
   buildReminderMessage,
   buildReminderPlan,
   countReminderPairs,
   formatReminderTime,
   isDuplicateReminder,
-  reminderNoun,
+  reminderClosingFor,
   selectTodayReminders,
   todayInMexicoCity,
   toTitleCaseIfUpper,
   usersToRemind,
+  venueWithArticle,
 } from '../lib/recordatoriosEventos.js';
 
 const TODAY = todayInMexicoCity();
@@ -26,6 +28,7 @@ const CALAMARO = {
   date: TODAY,
   end_date: null,
   time: '21:00',
+  venue_name: 'Teatro Diana',
   status: 'approved',
   event_category: 'Concierto',
 };
@@ -47,36 +50,63 @@ describe('recordatorios: hora en formato 12 h', () => {
   });
 });
 
-describe('recordatorios: título y sustantivo del mensaje', () => {
+describe('recordatorios: título y cuerpo nuevo (hora + recinto + cierre)', () => {
   it('el título todo en mayúsculas pasa a formato título', () => {
     expect(toTitleCaseIfUpper('ANDRÉS CALAMARO')).toBe('Andrés Calamaro');
     expect(toTitleCaseIfUpper('Katseye')).toBe('Katseye');
     expect(toTitleCaseIfUpper('')).toBe('');
   });
-  it('el sustantivo sale de la categoría (con espacios de más, sin problema)', () => {
-    expect(reminderNoun('Concierto')).toBe('el concierto de');
-    expect(reminderNoun('Concierto ')).toBe('el concierto de');
-    expect(reminderNoun('Festival')).toBe('el festival');
-    expect(reminderNoun('Obra de teatro')).toBe('la obra de teatro');
-    expect(reminderNoun('Lucha libre')).toBe('la lucha libre');
-    expect(reminderNoun('')).toBe('el evento');
-    expect(reminderNoun(null)).toBe('el evento');
-  });
-  it('el mensaje de Calamaro es exacto, con enlace corto al evento', () => {
+  it('el mensaje de Calamaro es exacto: hora + recinto + cierre, sin repetir el título', () => {
     const msg = buildReminderMessage(CALAMARO);
     expect(msg).toEqual({
       title: 'Andrés Calamaro',
-      body: 'Hoy es el concierto de Andrés Calamaro a las 9:00 p. m., no te lo pierdas',
+      body: 'Hoy a las 9:00 p. m. en el Teatro Diana. ¡Ya casi!',
       deepLink: '/evento/guadalajara/andres-calamaro',
     });
   });
+  it('sin recinto no se inventa ninguno: solo hora y cierre (sin punto doble tras "p. m.")', () => {
+    const msg = buildReminderMessage({ ...CALAMARO, venue_name: '' });
+    expect(msg.body).toBe('Hoy a las 9:00 p. m. ¡Ya casi!');
+    expect(buildReminderMessage({ ...CALAMARO, venue_name: '   ' }).body).toBe('Hoy a las 9:00 p. m. ¡Ya casi!');
+    expect(buildReminderMessage({ ...CALAMARO, venue_name: null }).body).toBe('Hoy a las 9:00 p. m. ¡Ya casi!');
+  });
   it('sin hora, el mensaje no lleva "a las …"', () => {
-    const msg = buildReminderMessage({ ...CALAMARO, time: null });
-    expect(msg.body).toBe('Hoy es el concierto de Andrés Calamaro, no te lo pierdas');
+    expect(buildReminderMessage({ ...CALAMARO, time: null }).body).toBe('Hoy en el Teatro Diana. ¡Ya casi!');
+    expect(buildReminderMessage({ ...CALAMARO, time: null, venue_name: '' }).body).toBe('Hoy. ¡Ya casi!');
+  });
+  it('el recinto lleva "el" salvo que ya traiga artículo', () => {
+    expect(venueWithArticle('Teatro Diana')).toBe('el Teatro Diana');
+    expect(venueWithArticle('PALCCO')).toBe('el PALCCO');
+    expect(venueWithArticle('El Parián de Tlaquepaque')).toBe('El Parián de Tlaquepaque');
+    expect(venueWithArticle('La Concha Acústica')).toBe('La Concha Acústica');
+    expect(venueWithArticle('')).toBe('');
+    expect(venueWithArticle(null)).toBe('');
+    expect(venueWithArticle('  Teatro Diana  ')).toBe('el Teatro Diana');
   });
   it('sin título o sin fecha no hay mensaje', () => {
     expect(buildReminderMessage({ ...CALAMARO, title: '' })).toBeNull();
     expect(buildReminderMessage({ ...CALAMARO, date: null })).toBeNull();
+  });
+});
+
+describe('recordatorios: cierres rotando (determinista por evento)', () => {
+  it('los 4 cierres son los acordados, en orden', () => {
+    expect(REMINDER_CLOSINGS).toEqual(['¡Nos vemos ahí!', '¡Hoy es el día!', '¡Ya casi!', 'No te lo pierdas']);
+  });
+  it('el mismo evento siempre recibe el mismo cierre', () => {
+    expect(reminderClosingFor(CALAMARO)).toBe('¡Ya casi!');
+    expect(reminderClosingFor({ ...CALAMARO })).toBe('¡Ya casi!');
+    expect(reminderClosingFor({ id: 'evento-0' })).toBe('No te lo pierdas');
+  });
+  it('distintos eventos varían y los 4 cierres se usan', () => {
+    const closings = ['evento-0', 'evento-1', 'evento-2', 'evento-3'].map((id) => reminderClosingFor({ id }));
+    expect(closings).toEqual(['No te lo pierdas', '¡Nos vemos ahí!', '¡Hoy es el día!', '¡Ya casi!']);
+    expect(new Set(closings).size).toBe(4);
+  });
+  it('sin id usa el título; sin nada, un cierre válido y estable', () => {
+    expect(REMINDER_CLOSINGS).toContain(reminderClosingFor({ title: 'Algo' }));
+    expect(REMINDER_CLOSINGS).toContain(reminderClosingFor({}));
+    expect(reminderClosingFor({ title: 'Algo' })).toBe(reminderClosingFor({ title: 'Algo' }));
   });
 });
 
@@ -130,7 +160,8 @@ describe('recordatorios: selección de eventos y plan', () => {
     ];
     const plan = buildReminderPlan({ events: [CALAMARO], favorites: favs, existingNotifs: [], todayISO: TODAY });
     expect(plan).toHaveLength(2);
-    expect(plan[0].body).toContain('Andrés Calamaro');
+    expect(plan[0].title).toBe('Andrés Calamaro');
+    expect(plan[0].body).toBe('Hoy a las 9:00 p. m. en el Teatro Diana. ¡Ya casi!');
     expect(countReminderPairs([CALAMARO], favs, TODAY)).toBe(2);
   });
   it('con un aviso igual sin leer de hoy, ese usuario no recibe otro', () => {
@@ -237,7 +268,7 @@ describe('recordatorios: modo recordatorios en api/send-notification.js', () => 
     expect(res.body.dry).toBe(true);
     expect(res.body.events).toBe(1);
     expect(res.body.reminders).toBe(1);
-    expect(res.body.plan[0].body).toBe('Hoy es el concierto de Andrés Calamaro a las 9:00 p. m., no te lo pierdas');
+    expect(res.body.plan[0].body).toBe('Hoy a las 9:00 p. m. en el Teatro Diana. ¡Ya casi!');
     expect(res.body.plan[0].deepLink).toBe('/evento/guadalajara/andres-calamaro');
     expect(sendCalls).toHaveLength(0);
   });
@@ -250,7 +281,7 @@ describe('recordatorios: modo recordatorios en api/send-notification.js', () => 
     expect(sendCalls).toHaveLength(1);
     expect(sendCalls[0].body).toMatchObject({
       title: 'Andrés Calamaro',
-      body: 'Hoy es el concierto de Andrés Calamaro a las 9:00 p. m., no te lo pierdas',
+      body: 'Hoy a las 9:00 p. m. en el Teatro Diana. ¡Ya casi!',
       type: 'reminder',
       user_id: USER_A,
       deepLink: '/evento/guadalajara/andres-calamaro',

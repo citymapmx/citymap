@@ -530,10 +530,12 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
 // endpoint (PR #220): el panel solo es la interfaz que faltaba, porque el
 // fetch en consola no se puede ejecutar desde los navegadores de aquí.
 
-// "Hoy es el concierto de X a las 9:00 p. m., no te lo pierdas" → "9:00 p. m."
+// "Hoy a las 9:00 p. m. en el Teatro Diana. ¡Nos vemos ahí!" → "9:00 p. m."
+// (también lee el formato viejo "… a las 9:00 p. m., no te lo pierdas").
+// Sin "a las …" (evento sin hora) devuelve null.
 /* eslint-disable-next-line react-refresh/only-export-components */
 export function reminderTimeFromBody(body) {
-  const m = String(body || "").match(/a las ([^,]+),/);
+  const m = String(body || "").match(/a las (\d{1,2}:\d{2} [ap]\. m\.)/);
   return m ? m[1].trim() : null;
 }
 

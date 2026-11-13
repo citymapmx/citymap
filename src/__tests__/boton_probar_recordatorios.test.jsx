@@ -19,17 +19,21 @@ import { sb } from '../lib/supabase.js';
 const SRC = fs.readFileSync(new URL('../components/AdminPanel.jsx', import.meta.url), 'utf8');
 
 const PLAN = [
-  { eventId: 'ev-calamaro', userId: 'u1', title: 'Andrés Calamaro', body: 'Hoy es el concierto de Andrés Calamaro a las 9:00 p. m., no te lo pierdas', deepLink: '/evento/guadalajara/andres-calamaro' },
-  { eventId: 'ev-calamaro', userId: 'u2', title: 'Andrés Calamaro', body: 'Hoy es el concierto de Andrés Calamaro a las 9:00 p. m., no te lo pierdas', deepLink: '/evento/guadalajara/andres-calamaro' },
-  { eventId: 'ev-otro', userId: 'u1', title: 'Show Sin Hora', body: 'Hoy es el concierto de Show Sin Hora, no te lo pierdas', deepLink: '/evento/x/show' },
+  { eventId: 'ev-calamaro', userId: 'u1', title: 'Andrés Calamaro', body: 'Hoy a las 9:00 p. m. en el Teatro Diana. ¡Nos vemos ahí!', deepLink: '/evento/guadalajara/andres-calamaro' },
+  { eventId: 'ev-calamaro', userId: 'u2', title: 'Andrés Calamaro', body: 'Hoy a las 9:00 p. m. en el Teatro Diana. ¡Nos vemos ahí!', deepLink: '/evento/guadalajara/andres-calamaro' },
+  { eventId: 'ev-otro', userId: 'u1', title: 'Show Sin Hora', body: 'Hoy en el Teatro Diana. ¡Hoy es el día!', deepLink: '/evento/x/show' },
 ];
 
 describe('botón Probar recordatorios: hora en 12 h desde el mensaje', () => {
-  it('saca "9:00 p. m." del cuerpo del aviso', () => {
+  it('saca "9:00 p. m." del cuerpo nuevo (con recinto)', () => {
+    expect(reminderTimeFromBody('Hoy a las 9:00 p. m. en el Teatro Diana. ¡Nos vemos ahí!')).toBe('9:00 p. m.');
+  });
+  it('también lee el formato viejo (por compatibilidad con avisos ya guardados)', () => {
     expect(reminderTimeFromBody('Hoy es el concierto de Andrés Calamaro a las 9:00 p. m., no te lo pierdas')).toBe('9:00 p. m.');
   });
   it('sin "a las" devuelve null', () => {
-    expect(reminderTimeFromBody('Hoy es el concierto de Show Sin Hora, no te lo pierdas')).toBeNull();
+    expect(reminderTimeFromBody('Hoy en el Teatro Diana. ¡Hoy es el día!')).toBeNull();
+    expect(reminderTimeFromBody('Hoy. ¡Ya casi!')).toBeNull();
     expect(reminderTimeFromBody('')).toBeNull();
     expect(reminderTimeFromBody(null)).toBeNull();
   });
