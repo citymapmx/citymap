@@ -17,6 +17,26 @@ export function getCountryCode(citySlug, cities = []) {
   return city?.country_code || "mx";
 }
 
+// ¿Esta ciudad pertenece al dominio actual? En citymap.world solo las
+// ciudades fuera de México; en citymap.mx solo México. Las ciudades que
+// no están en la lista (o sin country_code) se tratan como mexicanas,
+// igual que en el resto del código.
+export function isWorldCity(citySlug, cities = []) {
+  return (getCountryCode(citySlug, cities) || "mx").toLowerCase() !== "mx";
+}
+
+export function hostIncludesCity(citySlug, cities = []) {
+  return IS_WORLD ? isWorldCity(citySlug, cities) : !isWorldCity(citySlug, cities);
+}
+
+// city_slug puede ser una lista separada por comas (eventos multi-ciudad):
+// el contenido pertenece al dominio si ALGUNA de sus ciudades es de aquí.
+export function hostIncludesCityList(citySlugValue, cities = []) {
+  const slugs = String(citySlugValue || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (slugs.length === 0) return !IS_WORLD;
+  return slugs.some((slug) => hostIncludesCity(slug, cities));
+}
+
 export function buildCityPath(citySlug, cities = []) {
   if (!citySlug) return "/";
   if (!IS_WORLD) return "/" + citySlug;

@@ -1,7 +1,7 @@
 import { useRef, useMemo } from 'react';
 import { getIdFromSlug } from '../lib/utils.js';
-import { parseSegments } from '../lib/domain.js';
-import { CATEGORY_SLUGS } from '../lib/seoRoutes.js';
+import { parseSegments, IS_WORLD } from '../lib/domain.js';
+import { CATEGORY_SLUGS, isWorldCitySlug } from '../lib/seoRoutes.js';
 
 export function useAppInitialization() {
   const initialView = useMemo(() => {
@@ -169,16 +169,27 @@ export function useAppInitialization() {
       }
     }
     
-    // La ciudad por defecto ("guadalajara") solo existe en memoria: si no
-    // hay ciudad guardada ni ciudad en la URL, citySlugIsDefault es true y
-    // el arranque NO debe persistirla como elección del usuario (App.jsx
-    // usa setActiveCity con persist:false). Si se guardara, la entrada
-    // rápida y la "Segunda entrada" leerían cg_city_slug y sacarían de "/"
-    // a esa ciudad en la primera visita. La redirección a la ciudad
-    // guardada solo se conserva cuando la ciudad se eligió explícitamente
-    // (globo, URL o "Cerca de mí").
-    const resolvedCity = localStorage.getItem("cg_city_slug");
-    return { b, ev, vista, cat, manage, planId, joinToken, expSlug, citySlug: resolvedCity || "guadalajara", citySlugIsDefault: !resolvedCity };
+    // La ciudad por defecto (Guadalajara en .mx, París en .world) solo
+    // existe en memoria: si no hay ciudad guardada ni ciudad en la URL,
+    // citySlugIsDefault es true y el arranque NO debe persistirla como
+    // elección del usuario (App.jsx usa setActiveCity con persist:false).
+    // Si se guardara, la entrada rápida y la "Segunda entrada" leerían
+    // cg_city_slug y sacarían de "/" a esa ciudad en la primera visita.
+    // La redirección a la ciudad guardada solo se conserva cuando la
+    // ciudad se eligió explícitamente (globo, URL o "Cerca de mí").
+    // La ciudad guardada pertenece a su dominio: si el usuario guardó una
+    // ciudad mexicana y abre .world (o al revés), se ignora y se usa la
+    // ciudad por defecto de este dominio. No se borra el dato: al volver
+    // al otro dominio se vuelve a usar. Se relee de localStorage (no se
+    // usa `storedCity` de arriba): las ramas de la URL ya pudieron
+    // guardar otra ciudad en este mismo arranque.
+    const savedCity = localStorage.getItem("cg_city_slug");
+    const savedCityIsHere = savedCity
+      ? (IS_WORLD ? isWorldCitySlug(savedCity) : !isWorldCitySlug(savedCity))
+      : false;
+    const resolvedCity = savedCityIsHere ? savedCity : null;
+    const defaultCity = IS_WORLD ? "paris" : "guadalajara";
+    return { b, ev, vista, cat, manage, planId, joinToken, expSlug, citySlug: resolvedCity || defaultCity, citySlugIsDefault: !resolvedCity };
   })());
 
   const initialBizParam = useRef(initialParams.current.b);

@@ -35,22 +35,35 @@ describe('public dynamic SEO endpoints', () => {
     const xml = await response.text();
     const origin = `https://${host}`;
     expect(xml).toContain(`<loc>${origin}/</loc>`);
-    expect(xml).toContain('https://images.test/food.webp?a=1&amp;b=2');
-    expect(xml).toContain('<image:loc>https://images.test/laguna.webp</image:loc>');
-    expect(xml).toContain('<image:title>Café &amp; pan</image:title>');
+    // El evento multi-ciudad (tepic,san-diego) pertenece a los dos dominios.
     expect(xml).toContain('<image:title>Festival de Tepic</image:title>');
-    expect(xml).toContain('<image:title>Guía de la laguna</image:title>');
-    expect(xml).toContain('<image:loc>https://images.test/tepic.webp</image:loc><image:title>Tepic</image:title>');
-    expect(xml).toContain(`${origin}/revista/tepic/laguna`);
     expect(xml).not.toContain('/experiencias/');
     expect(xml).not.toContain('/c/');
     expect(xml).not.toContain('/tepic,san-diego/');
     if (host.includes('world')) {
       expect(xml).toContain(`${origin}/us/san-diego/place`);
-      expect(xml).toContain(`${origin}/mx/tepic/cafe`);
+      expect(xml).toContain(`${origin}/eventos/san-diego`);
+      expect(xml).not.toContain(`${origin}/mx/tepic/cafe`);
+      expect(xml).not.toContain('/mx/tepic/');
+      expect(xml).not.toContain('/eventos/tepic');
+      expect(xml).not.toContain(`${origin}/revista/tepic/laguna`);
+      expect(xml).not.toContain('<image:title>Guía de la laguna</image:title>');
+      expect(xml).not.toContain('<image:loc>https://images.test/tepic.webp</image:loc>');
+      expect(xml).not.toContain('<image:title>Café &amp; pan</image:title>');
+      expect(xml).not.toContain(`${origin}/tours`);
+      expect(xml).not.toContain(`${origin}/negocios`);
       expect(xml).not.toContain('https://citymap.mx/');
     } else {
       expect(xml).not.toContain('/san-diego/');
+      expect(xml).toContain('https://images.test/food.webp?a=1&amp;b=2');
+      expect(xml).toContain('<image:loc>https://images.test/laguna.webp</image:loc>');
+      expect(xml).toContain('<image:title>Café &amp; pan</image:title>');
+      expect(xml).toContain('<image:title>Guía de la laguna</image:title>');
+      expect(xml).toContain('<image:loc>https://images.test/tepic.webp</image:loc><image:title>Tepic</image:title>');
+      expect(xml).toContain(`${origin}/revista/tepic/laguna`);
+      expect(xml).toContain(`${origin}/eventos/tepic`);
+      expect(xml).toContain(`${origin}/tours`);
+      expect(xml).toContain(`${origin}/negocios`);
     }
     expect(fetch.mock.calls.filter(([url]) => String(url).includes('/experiences?'))[0][0]).toContain('status=eq.approved');
   });
@@ -93,7 +106,9 @@ describe('domain and category redirects', () => {
     ['www.citymap.mx', '/tepic?q=pizza', 'https://citymap.mx/tepic?q=pizza'],
     ['citymap.world', '/mx/tepic', 'https://www.citymap.world/mx/tepic'],
     ['citymap.mx', '/tepic/c/restaurantes?q=local', 'https://citymap.mx/tepic/restaurantes?q=local'],
-    ['www.citymap.world', '/mx/tepic/c/restaurantes', 'https://www.citymap.world/mx/tepic/restaurantes'],
+    // Una ciudad mexicana en .world sale de .world (la normalización /c/
+    // la hace después el middleware de .mx, en un segundo 308).
+    ['www.citymap.world', '/mx/tepic/c/restaurantes', 'https://citymap.mx/tepic/c/restaurantes'],
   ])('redirects %s%s without losing the path or search', async (host, path, expected) => {
     const response = await middleware(request(path, host, 'Mozilla/5.0'));
     expect(response.status).toBe(308);
@@ -104,10 +119,10 @@ describe('domain and category redirects', () => {
 
 describe('international crawler routes', () => {
   it.each([
-    ['/mx/tepic', { city: 'tepic' }],
-    ['/mx/tepic/jaguares', { city: 'tepic', b: 'jaguares' }],
-    ['/mx/tepic/jaguares/menu', { city: 'tepic', b: 'jaguares', menu: 'true' }],
+    // En .world las ciudades mexicanas ya no se sirven: redirigen a .mx.
     ['/us/san-diego', { city: 'san-diego' }],
+    ['/us/san-diego/place', { city: 'san-diego', b: 'place' }],
+    ['/us/san-diego/place/menu', { city: 'san-diego', b: 'place', menu: 'true' }],
   ])('recognizes %s', async (path, params) => {
     fetch.mockResolvedValue(new Response('<h1>Contenido específico</h1>'));
     const response = await middleware(request(path, 'www.citymap.world'));

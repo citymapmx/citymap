@@ -1,4 +1,4 @@
-import { seoSite, normalizeCitySlug, legacyCitySlug } from '../src/lib/seoRoutes.js';
+import { seoSite, normalizeCitySlug, legacyCitySlug, isWorldCitySlug } from '../src/lib/seoRoutes.js';
 import { tourSchemaNodes } from '../src/lib/tourSchema.js';
 import { eventUrl, resolveEventSlug } from '../src/lib/eventUrls.js';
 import { CITY_TZ } from '../src/lib/constants.js';
@@ -196,7 +196,11 @@ async function getToursListing(origin) {
     if (!response.ok) return '';
     const rows = await response.json();
     if (!Array.isArray(rows) || !rows.length) return '';
-    return `<section><h2>Tours destacados</h2><ul>${rows.map(tour => {
+    // /tours es de México: los tours de ciudades internacionales no se
+    // listan aquí (viven en .world).
+    const mxRows = rows.filter(tour => !isWorldCitySlug(String(tour.city_slug || '').split(',')[0]));
+    if (!mxRows.length) return '';
+    return `<section><h2>Tours destacados</h2><ul>${mxRows.map(tour => {
       const cityName = String(tour.city_slug || '').replace(/-/g, ' ');
       const url = `${origin}/revista/${tour.city_slug || ''}/${tourSlug(tour.title)}`;
       const price = Number(tour.price);
@@ -228,7 +232,8 @@ async function getNegociosExamples(origin) {
     if (!response.ok) return '';
     const rows = await response.json();
     if (!Array.isArray(rows)) return '';
-    const withCity = rows.filter(b => b.city_slug && (b.slug || b.id));
+    // /negocios es de México: solo negocios mexicanos como ejemplo.
+    const withCity = rows.filter(b => b.city_slug && !isWorldCitySlug(b.city_slug) && (b.slug || b.id));
     if (!withCity.length) return '';
     return `<section><h2>Ya están en CityMap</h2><ul>${withCity.map(business => {
       const slug = String(business.slug || business.id).replace(new RegExp(`^${business.city_slug}-`), '');
@@ -237,11 +242,12 @@ async function getNegociosExamples(origin) {
   } catch { return ''; }
 }
 
-// Número de ciudades con página en CityMap (para el texto de la landing
-// en /negocios). Si falla, se devuelve null y el texto no lleva cifra.
+// Número de ciudades mexicanas con página en CityMap (para el texto de
+// la landing en /negocios, que es de México). Si falla, se devuelve null
+// y el texto no lleva cifra.
 async function getCityCount() {
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/cities?select=slug&limit=100`, {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/cities?select=slug&country_code=eq.mx&limit=100`, {
       headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` }
     });
     if (!response.ok) return null;
@@ -451,6 +457,15 @@ export default async function handler(req) {
     const title = `${SITE_NAME} — Descubre tu ciudad`;
     const desc = "Explora negocios locales, lugares de interés y eventos exclusivos. Encuentra lo mejor cerca de ti en un solo lugar.";
     const img = `${BASE_URL}/og-image.png`;
+    // Mismo grafo WebSite + Organization que index.html, pero con las
+    // URLs del host que sirve la página (en .world no apunta a .mx).
+    const homeSchema = `<script type="application/ld+json">${JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": [
+        { "@type": "WebSite", "name": "CityMap", "url": `${BASE_URL}/`, "description": desc, "inLanguage": "es" },
+        { "@type": "Organization", "name": "CityMap", "url": `${BASE_URL}/`, "logo": `${BASE_URL}/citymap.mx.png` },
+      ],
+    })}</script>`;
 
     const html = `<!doctype html>
 <html lang="es" prefix="og: https://ogp.me/ns#">
@@ -474,6 +489,7 @@ export default async function handler(req) {
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(desc)}"/>
 <meta name="twitter:image" content="${esc(img)}"/>
+${homeSchema}
 </head>
 <body>
 <h1>${esc(title)}</h1>
@@ -930,9 +946,13 @@ ${bodyExtra}
       : "";
     const evNodes = [schema];
     if (evCity) {
+      // En .world la ciudad del evento lleva su prefijo de país
+      // (/fr/paris), igual que en el resto de las migas de pan.
+      const { country_code: evCityCountry } = await getCityData(evCity);
+      const evCityPath = isWorld ? `/${evCityCountry}/${evCity}` : `/${evCity}`;
       evNodes.push(breadcrumbList([
         { name: "Inicio", item: BASE_URL },
-        { name: evCityName, item: `${BASE_URL}/${evCity}` },
+        { name: evCityName, item: `${BASE_URL}${evCityPath}` },
         { name: evData.title, item: canonicalUrl },
       ]));
     }

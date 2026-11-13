@@ -18,6 +18,7 @@ import TravelAffiliateRow from '../components/home/TravelAffiliateRow.jsx';
 import Footer from '../components/Footer.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { localizedTitle } from '../lib/i18nContent.js';
+import { IS_WORLD, hostIncludesCity, hostIncludesCityList } from '../lib/domain.js';
 
 const BIZ_PAGE = 60;
 
@@ -141,41 +142,57 @@ export default function GlobalHomeView() {
       try {
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const [bizRes, evRes, exRes, citiesRes, placesRes, toursRes] = await Promise.all([
-          sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=0`).catch(() => []),
-          sb.get('events', `?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved&order=date.asc&limit=60`).catch(() => []),
-          sb.get('experiences', `?select=id,title,title_en,description_en,city_slug,activity_type,price,duration,people,gallery,created_at&status=eq.approved&order=created_at.desc&limit=12`).catch(() => []),
-          (cities && cities.length > 0)
-            ? Promise.resolve(cities)
-            : sb.get('cities', '?active=eq.true&select=id,name,slug,state,country,country_code,bg_image&order=name.asc').catch(() => []),
+        // Primero las ciudades: el muro es por dominio (citymap.mx solo
+        // México, citymap.world solo internacional) y la consulta de
+        // negocios, que es paginada, ya viene acotada a las ciudades de
+        // aquí — si no, en .world la página se llenaba de negocios
+        // mexicanos y París no aparecía.
+        const citiesRes = (cities && cities.length > 0)
+          ? cities
+          : await sb.get('cities', '?active=eq.true&select=id,name,slug,state,country,country_code,bg_image&order=name.asc').catch(() => []);
+        if (cancelled) return;
+        const cityList = Array.isArray(citiesRes) ? citiesRes : [];
+        const hostCities = cityList.filter((c) => hostIncludesCity(c.slug, cityList));
+        const hostSlugs = hostCities.map((c) => c.slug);
+        // city_slug puede ser lista con comas (eventos multi-ciudad): para
+        // eventos/experiencias/tours el filtro del servidor es `like`.
+        const worldSlugs = cityList.filter((c) => (c.country_code || 'mx').toLowerCase() !== 'mx').map((c) => c.slug);
+        const likeFilter = worldSlugs.length > 0
+          ? `&or=(${worldSlugs.map((s) => `city_slug.like.*${s}*`).join(',')})`
+          : '';
+        const bizFilter = hostSlugs.length > 0 ? `&city_slug=in.(${hostSlugs.join(',')})` : '';
+        const [bizRes, evRes, exRes, placesRes, toursRes] = await Promise.all([
+          sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=0${bizFilter}`).catch(() => []),
+          sb.get('events', `?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved&order=date.asc&limit=60${IS_WORLD ? likeFilter : ''}`).catch(() => []),
+          sb.get('experiences', `?select=id,title,title_en,description_en,city_slug,activity_type,price,duration,people,gallery,created_at&status=eq.approved&order=created_at.desc&limit=12${IS_WORLD ? likeFilter : ''}`).catch(() => []),
           // Lugares (puntos de interés, unidad deportiva, playas): consulta propia
           // para que el filtro "Lugares" tenga contenido desde el inicio y no
           // dependa de que aparezcan en la paginación de negocios.
-          sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&or=(category.eq.lugares,category.eq.unidad%20deportiva,category.eq.playa,is_place.eq.true)&order=plan.desc,rating.desc.nullslast,id.desc&limit=60`).catch(() => []),
+          sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&or=(category.eq.lugares,category.eq.unidad%20deportiva,category.eq.playa,is_place.eq.true)&order=plan.desc,rating.desc.nullslast,id.desc&limit=60${bizFilter}`).catch(() => []),
           // Tours para la sección "Tours por ciudad": solo tipo Tour, todas las ciudades.
-          sb.get('experiences', `?select=id,title,title_en,description_en,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=200`).catch(() => []),
+          sb.get('experiences', `?select=id,title,title_en,description_en,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=200${IS_WORLD ? likeFilter : ''}`).catch(() => []),
         ]);
         if (cancelled) return;
         const bizRows = Array.isArray(bizRes) ? bizRes : [];
         const placeRows = Array.isArray(placesRes) ? placesRes : [];
         const bizIds = new Set(bizRows.map((b) => b.id));
-        setBiz([...bizRows, ...placeRows.filter((b) => !bizIds.has(b.id))]);
+        setBiz([...bizRows, ...placeRows.filter((b) => !bizIds.has(b.id))].filter((b) => hostIncludesCity(b.city_slug, cityList)));
         const evRows = (Array.isArray(evRes) ? evRes : []).filter((ev) => {
           if (!ev || !ev.date) return false;
           if (ev.visibility === 'private') return false;
+          if (!hostIncludesCityList(ev.city_slug, cityList)) return false;
           if (ev.end_date) return ev.end_date >= todayStr;
           return ev.date >= todayStr;
         });
         // Sin recorte: la hilera "Próximos eventos" carga de 5 en 5, así que
         // guarda todos los próximos (hasta 60) en vez de solo los primeros 12.
         setEvents(evRows);
-        setExperiences(Array.isArray(exRes) ? exRes : []);
-        setTours(Array.isArray(toursRes) ? toursRes : []);
-        const cityList = Array.isArray(citiesRes) ? citiesRes : [];
-        setAllCities(cityList);
+        setExperiences((Array.isArray(exRes) ? exRes : []).filter((x) => hostIncludesCityList(x.city_slug, cityList)));
+        setTours((Array.isArray(toursRes) ? toursRes : []).filter((x) => hostIncludesCityList(x.city_slug, cityList)));
+        setAllCities(hostCities);
         // Popularidad por ciudad: negocios + eventos registrados (conteos exactos).
-        if (cityList.length > 0) {
-          Promise.all(cityList.map(async (c) => {
+        if (hostCities.length > 0) {
+          Promise.all(hostCities.map(async (c) => {
             const [b, e] = await Promise.all([
               sb.count('businesses', `?status=eq.approved&plan=neq.menu&city_slug=eq.${c.slug}`).catch(() => 0),
               sb.count('events', `?status=eq.approved&city_slug=like.*${c.slug}*`).catch(() => 0),
@@ -240,11 +257,16 @@ export default function GlobalHomeView() {
         if (cancelled) return;
         const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const qn = norm(q);
+        // La búsqueda global también es por dominio: la lista de ciudades
+        // para resolver el país es la completa de la tienda (allCities ya
+        // viene filtrada por dominio y una ciudad del otro dominio se
+        // resolvería mal como mexicana).
+        const lookupCities = (cities && cities.length > 0) ? cities : allCities;
         setSearchResults({
           cities: (allCities || []).filter((c) => norm(c.name).includes(qn)),
-          biz: Array.isArray(b) ? b : [],
-          events: Array.isArray(e) ? e.filter((ev) => ev.visibility !== 'private') : [],
-          exps: Array.isArray(x) ? x : [],
+          biz: Array.isArray(b) ? b.filter((x) => hostIncludesCity(x.city_slug, lookupCities)) : [],
+          events: Array.isArray(e) ? e.filter((ev) => ev.visibility !== 'private' && hostIncludesCityList(ev.city_slug, lookupCities)) : [],
+          exps: Array.isArray(x) ? x.filter((v) => hostIncludesCityList(v.city_slug, lookupCities)) : [],
         });
       } catch (err) {
         console.warn('Error en búsqueda global', err);
@@ -254,7 +276,7 @@ export default function GlobalHomeView() {
       }
     })();
     return () => { cancelled = true; };
-  }, [query, allCities]);
+  }, [query, allCities, cities]);
 
   // Saludo y mensaje del día, igual que en los inicios de ciudad.
   const greeting = useMemo(() => {
@@ -273,7 +295,8 @@ export default function GlobalHomeView() {
     return rand([
       t('home_contexto_01', 'Descubre qué hay hoy en todas las ciudades'),
       t('home_contexto_02', 'Negocios, lugares, artículos y eventos de todas nuestras ciudades'),
-      t('home_contexto_03', 'Lo mejor de Guadalajara, Tepic, Vallarta y más'),
+      // Nombra ciudades mexicanas: solo en .mx.
+      ...(IS_WORLD ? [] : [t('home_contexto_03', 'Lo mejor de Guadalajara, Tepic, Vallarta y más')]),
       t('home_contexto_04', '¿Qué plan hay hoy? Explora todas las ciudades'),
       t('home_contexto_05', 'Encuentra dónde comer, qué visitar y qué hacer'),
     ]);

@@ -75,6 +75,28 @@
       ]
     }
     </script>
+
+    <script>
+      // En citymap.world el shell estático trae URLs de citymap.mx: se
+      // cambian por las del host actual antes de que cargue React (que
+      // luego vuelve a fijar los meta con useAppSEO). Sin esto, la primera
+      // pintura en .world anuncia la canónica de .mx.
+      (function () {
+        if (!window.location.hostname.endsWith("citymap.world")) return;
+        var from = "https://citymap.mx", to = "https://www.citymap.world";
+        document.querySelectorAll('link[rel="canonical"]').forEach(function (el) {
+          var href = el.getAttribute("href");
+          if (href) el.setAttribute("href", href.replace(from, to));
+        });
+        document.querySelectorAll('meta[property="og:url"], meta[property="og:image"], meta[name="twitter:image"]').forEach(function (el) {
+          var content = el.getAttribute("content");
+          if (content) el.setAttribute("content", content.replace(from, to));
+        });
+        document.querySelectorAll('script[type="application/ld+json"]').forEach(function (el) {
+          el.textContent = el.textContent.split(from).join(to);
+        });
+      })();
+    </script>
   </head>
   <body>
     <!-- Pantalla de arranque: se ve desde el primer pintado, antes de que
