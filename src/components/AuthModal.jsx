@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { sb } from '../lib/supabase.js';
 import { Capacitor } from '@capacitor/core';
 import { ensureGoogleIdentityServices } from '../lib/googleIdentity.js';
+import { isUserCancelledError, signInWithNativeGoogle } from '../lib/nativeGoogleAuth.js';
 import { deviceHasAccount } from '../lib/hasAccountFlag.js';
 import { checkPassword } from '../lib/passwordRules.js';
 import { sendPasswordReset } from '../lib/passwordRecovery.js';
@@ -258,7 +259,10 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
 
       {/* ── Botón Google ── */}
       {isNativeApp ? (
-        /* En app nativa Capacitor: OAuth con Custom Tab */
+        /* En app nativa Capacitor: login nativo de Google (selector de
+           cuentas de Android, sin navegador). Si el usuario cancela, se
+           queda en el modal; si el plugin falla, respaldo con el Custom
+           Tab de siempre (citymap.mx/login?from=app). */
         <button
           className="press"
           style={{
@@ -272,8 +276,20 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
           }}
           onClick={async () => {
             setAuthErr("");
-            try { await sb.signInWithOAuth('google'); }
-            catch (err) { setAuthErr(t("modal_error_google", "Error con Google: ") + err.message); }
+            let idToken;
+            try {
+              idToken = await signInWithNativeGoogle();
+            } catch (err) {
+              if (isUserCancelledError(err)) return;
+              try { await sb.signInWithOAuth('google'); }
+              catch (err2) { setAuthErr(t("modal_error_google", "Error con Google: ") + err2.message); }
+              return;
+            }
+            const uid = await handleGoogleIdToken(idToken);
+            if (uid) {
+              setShowAuth(false);
+              toast$(t("modal_bienvenido", "Bienvenido a CityMap"));
+            }
           }}
         >
           <svg width="22" height="22" viewBox="0 0 48 48" style={{ flexShrink: 0 }}>
