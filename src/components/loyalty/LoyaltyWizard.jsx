@@ -1,12 +1,12 @@
 import React from 'react';
 import Icon from '../ui/Icon.jsx';
+import StyleCategoryCarousel from '../ui/StyleCategoryCarousel.jsx';
 import {
-  LOYALTY_COLOR_CATEGORIES,
   loyaltyStyleBackground,
   loyaltyBgFirstColor,
+  findLoyaltyStyleByBackground,
   findLoyaltyCategoryByBackground,
 } from '../../lib/loyaltyColorStyles.js';
-import { menuThemeForStyle } from '../../lib/menuColorStyles.js';
 
 export default function LoyaltyWizard({ 
   wizardStep, 
@@ -20,12 +20,9 @@ export default function LoyaltyWizard({
 }) {
   const STAMPS = Array.from({ length: 10 });
 
-  // Categoría expandida: la del estilo que ya trae la tarjeta (si es uno
-  // de los 36) o Premium por defecto.
-  const [activeCategory, setActiveCategory] = React.useState(
-    () => findLoyaltyCategoryByBackground(config.bg_color) || "premium"
-  );
-  const activeStyles = (LOYALTY_COLOR_CATEGORIES.find((cat) => cat.id === activeCategory) || LOYALTY_COLOR_CATEGORIES[0]).styles;
+  // El estilo guardado (por su fondo) y su categoría: el carrusel abre
+  // en esa categoría, o en Premium si el fondo no es un estilo (color
+  // manual exacto o tarjeta vieja).
 
   const ICONS = [
     { id: "star", name: "Estrella" },
@@ -106,72 +103,19 @@ export default function LoyaltyWizard({
                 {renderCardPreview()}
               </div>
 
-              {/* Selector de estilo por categoría */}
+              {/* Selector de estilo: el mismo carrusel que el diseñador
+                  del menú (StyleCategoryCarousel): una categoría visible
+                  a la vez en 3×3, se desliza de lado con loop infinito y
+                  puntos abajo. Al tocar un estilo, la vista previa de la
+                  tarjeta se actualiza al instante. */}
               <div style={{ width: "100%", maxWidth: 320 }}>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" }}>Selecciona tu estilo</label>
-                {/* Píldoras de categoría: 2 por fila, todas visibles sin deslizar */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  {LOYALTY_COLOR_CATEGORIES.map((cat) => {
-                    const isActive = activeCategory === cat.id;
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => setActiveCategory(cat.id)}
-                        style={{
-                          minHeight: 40,
-                          padding: "7px 10px",
-                          borderRadius: 100,
-                          background: isActive ? "#0F172A" : "#fff",
-                          color: isActive ? "#fff" : "#0F172A",
-                          border: `2px solid ${isActive ? "#0F172A" : "#E2E8F0"}`,
-                          fontWeight: 800,
-                          fontSize: 12,
-                          cursor: "pointer",
-                          whiteSpace: "nowrap",
-                          textAlign: "center",
-                          transition: "all 0.2s"
-                        }}
-                      >
-                        {cat.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                {/* Panel de la categoría activa: todos sus estilos en cuadrícula
-                    compacta de 3 por fila (círculo arriba, nombre abajo), igual
-                    que el diseñador del menú (PR #294). */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 12 }}>
-                  {activeStyles.map((style) => {
-                    const bg = loyaltyStyleBackground(style);
-                    const isSelected = config.bg_color === bg;
-                    const styleTheme = menuThemeForStyle(style);
-                    return (
-                      <button
-                        key={style.id}
-                        onClick={() => setConfig(prev => ({ ...prev, bg_color: bg, text_color: style.text, primary_color: style.primary }))}
-                        aria-pressed={isSelected}
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 6,
-                          padding: "10px 4px",
-                          border: "none",
-                          background: "transparent",
-                          cursor: "pointer"
-                        }}
-                      >
-                        <span style={{ position: "relative", width: 52, height: 52, flexShrink: 0 }}>
-                          <span style={{ width: 52, height: 52, borderRadius: "50%", background: bg, border: "1px solid rgba(0,0,0,0.08)", display: "block", boxShadow: isSelected ? `0 0 0 2px #fff, 0 0 0 5px ${styleTheme ? styleTheme.primary : "#0F172A"}` : "none" }} />
-                          {isSelected && (
-                            <span style={{ position: "absolute", right: -2, top: -2, width: 20, height: 20, borderRadius: "50%", background: styleTheme ? styleTheme.primary : "#0F172A", color: styleTheme ? styleTheme.onPrimary : "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, border: "2px solid #fff" }}>✓</span>
-                          )}
-                        </span>
-                        <span style={{ fontSize: 12, fontWeight: isSelected ? 800 : 600, color: isSelected ? (styleTheme ? styleTheme.primary : "#0F172A") : "#0F172A", textAlign: "center", lineHeight: 1.3 }}>{style.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <StyleCategoryCarousel
+                  selectedId={findLoyaltyStyleByBackground(config.bg_color)?.id ?? null}
+                  onSelectStyle={(style) => setConfig(prev => ({ ...prev, bg_color: loyaltyStyleBackground(style), text_color: style.text, primary_color: style.primary }))}
+                  initialCategoryId={findLoyaltyCategoryByBackground(config.bg_color) || "premium"}
+                  tokens={{ bg: "#F8FAFC", border: "#E2E8F0", text: "#0F172A", sub: "#64748B" }}
+                />
               </div>
 
               {/* Manual Color Pickers */}

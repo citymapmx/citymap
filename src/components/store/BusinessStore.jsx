@@ -290,10 +290,17 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
           >
             <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}`, padding: 8, boxSizing: 'border-box' }}>
               {(business.logo_url || business.logo) ? (
-                <OptimizedImage 
-                  src={getThumbUrl(business.logo_url || business.logo, 200, 200)} 
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-                  alt={business.name} 
+                // El logo llena el círculo (cover) y el recorte circular
+                // quita las esquinas: los logos cuadrados con esquinas
+                // oscuras (p. ej. KAVA: cuadrado negro con el emblema
+                // circular oliva en el centro) se veían mal con contain,
+                // porque el cuadrado entero cabía dentro del círculo
+                // blanco y las esquinas negras quedaban a la vista.
+                // Igual que el logo del encabezado del menú (ya cover).
+                <OptimizedImage
+                  src={getThumbUrl(business.logo_url || business.logo, 200, 200)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  alt={business.name}
                 />
               ) : (
                 <img src="/pedido.png" alt="Pedido" style={{ width: 40, height: 40, objectFit: 'contain' }} />

@@ -146,8 +146,8 @@ describe('Estilos de color de lealtad: fondo y primera parada', () => {
   });
 });
 
-describe('LoyaltyWizard Paso 1: píldoras por categoría (PR #239)', () => {
-  it('dice «Selecciona tu estilo» y muestra las 4 píldoras de categoría, sin «Estilos Rápidos» ni «Clásicos»', () => {
+describe('LoyaltyWizard Paso 1: carrusel de categorías, igual que el diseñador del menú', () => {
+  it('dice «Selecciona tu estilo» y muestra las 4 categorías, sin «Estilos Rápidos» ni «Clásicos»', () => {
     const html = renderWizard();
     expect(html).toContain("Selecciona tu estilo");
     for (const label of ["Premium", "Sobrios", "Cafetería", "Coloridos"]) {
@@ -159,8 +159,8 @@ describe('LoyaltyWizard Paso 1: píldoras por categoría (PR #239)', () => {
 
   it('con una tarjeta vieja de color clásico plano (#1B1107) se cae a Premium y la vista previa sigue con su color', () => {
     const html = renderWizard({ bg_color: "#1B1107" });
-    // Premium expandido: se ven sus 7 estilos.
-    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia"]) {
+    // Premium en el carrusel: se ven sus 9 estilos.
+    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia", "Zafiro", "Amatista"]) {
       expect(html).toContain(label);
     }
     // Ningún estilo viejo aparece.
@@ -171,7 +171,7 @@ describe('LoyaltyWizard Paso 1: píldoras por categoría (PR #239)', () => {
     expect(html).toContain("#1B1107");
   });
 
-  it('con un degradado Premium (Oro negro) se despliegan los 9 Premium', () => {
+  it('con un degradado Premium (Oro negro) el carrusel abre en Premium y trae los 36 estilos en el DOM', () => {
     const html = renderWizard({
       bg_color: "linear-gradient(135deg, #262626, #000000)",
       text_color: "#FAFAFA",
@@ -180,7 +180,14 @@ describe('LoyaltyWizard Paso 1: píldoras por categoría (PR #239)', () => {
     for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia", "Zafiro", "Amatista"]) {
       expect(html).toContain(label);
     }
-    expect(html).not.toContain("Espresso");
+    // El carrusel renderiza todas las categorías (las demás se llegan
+    // deslizando de lado), así que los 36 estilos están en el DOM.
+    for (const label of ["Espresso", "Perla", "Coral", "Ámbar"]) {
+      expect(html).toContain(label);
+    }
+    // Y el wizard le pasa al carrusel la categoría del fondo guardado.
+    const src = read('../components/loyalty/LoyaltyWizard.jsx');
+    expect(src).toContain('initialCategoryId={findLoyaltyCategoryByBackground(config.bg_color) || "premium"}');
   });
 
   it('la vista previa del Paso 1 lleva la leyenda «Ejemplo» (el premio que se ve es solo un ejemplo; el real se define en el Paso 2)', () => {
@@ -192,21 +199,32 @@ describe('LoyaltyWizard Paso 1: píldoras por categoría (PR #239)', () => {
     expect(src).toContain("el premio real se define en el Paso 2");
   });
 
-  it('las píldoras van en 2 columnas (todas visibles, sin scroll horizontal) y el estilo se aplica al tocarlo', () => {
-    const src = read('../components/loyalty/LoyaltyWizard.jsx');
-    expect(src).toContain('gridTemplateColumns: "1fr 1fr"');
-    expect(src).not.toContain('scrollSnapType: "x mandatory"');
-    expect(src).not.toContain('overflowX: "auto"');
-    expect(src).toContain("setConfig(prev => ({ ...prev, bg_color: bg, text_color: style.text, primary_color: style.primary }))");
-    expect(src).toContain("onClick={() => setActiveCategory(cat.id)}");
-    // Las 4 píldoras se renderizan y la categoría activa despliega sus estilos.
+  it('el selector es el carrusel compartido: una categoría por página, scroll-snap, puntos y loop (ya no píldoras 2×2)', () => {
+    const wizard = read('../components/loyalty/LoyaltyWizard.jsx');
+    // El wizard monta el carrusel compartido con el diseñador del menú.
+    expect(wizard).toContain("import StyleCategoryCarousel from '../ui/StyleCategoryCarousel.jsx'");
+    expect(wizard).toContain('<StyleCategoryCarousel');
+    // Las píldoras 2×2 ya no existen: ni la cuadrícula 1fr 1fr ni el
+    // estado de categoría activa.
+    expect(wizard).not.toContain('gridTemplateColumns: "1fr 1fr"');
+    expect(wizard).not.toContain('setActiveCategory');
+    expect(wizard).not.toContain('activeCategory');
+    // Al tocar un estilo se aplica al instante (fondo, texto y botón).
+    expect(wizard).toContain("onSelectStyle={(style) => setConfig(prev => ({ ...prev, bg_color: loyaltyStyleBackground(style), text_color: style.text, primary_color: style.primary }))}");
+    // El carrusel en sí (scroll-snap, loop con clones, puntos tocables,
+    // vertical sobre los círculos) vive en el componente compartido.
+    const shared = read('../components/ui/StyleCategoryCarousel.jsx');
+    expect(shared).toContain("scrollSnapType: 'x mandatory'");
+    expect(shared).toContain("touchAction: 'pan-x pan-y'");
+    expect(shared).toContain("key: 'clone-last'");
+    expect(shared).toContain("key: 'clone-first'");
+    expect(shared).toContain('aria-label={`Ir a ${cat.label}`}');
+    // Las 4 categorías se renderizan y los puntos son 4.
     const html = renderWizard();
     for (const label of ["Premium", "Sobrios", "Cafetería", "Coloridos"]) {
       expect(html).toContain(label);
     }
-    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia", "Zafiro", "Amatista"]) {
-      expect(html).toContain(label);
-    }
+    expect(html.split('Ir a ').length - 1).toBe(4);
   });
 
   it('la vista previa y el selector manual usan la primera parada, no el degradado entero', () => {
@@ -219,13 +237,14 @@ describe('LoyaltyWizard Paso 1: píldoras por categoría (PR #239)', () => {
   });
 });
 
-describe('LoyaltyWizard Paso 1: estilos en cuadrícula compacta de 3 por fila (PR #295)', () => {
-  it('la lista de estilos es una cuadrícula de 3 columnas: círculo de 52 px arriba, nombre abajo (ya no filas completas)', () => {
-    const src = read('../components/loyalty/LoyaltyWizard.jsx');
-    expect(src).toContain('gridTemplateColumns: "repeat(3, 1fr)"');
+describe('LoyaltyWizard Paso 1: estilos en cuadrícula compacta de 3 por fila, igual que el menú', () => {
+  it('la lista de estilos es una cuadrícula de 3 columnas: círculo de 44 px arriba, nombre abajo (igual que el diseñador del menú)', () => {
+    const src = read('../components/ui/StyleCategoryCarousel.jsx');
+    expect(src).toContain("gridTemplateColumns: 'repeat(3, 1fr)'");
     // La celda es columna: el círculo va arriba y el nombre abajo, centrado.
-    expect(src).toContain('width: 52, height: 52');
-    expect(src).toContain("textAlign: \"center\"");
+    expect(src).toContain('width: 44, height: 44');
+    expect(src).not.toContain('width: 52, height: 52');
+    expect(src).toContain("textAlign: 'center'");
     // La fila completa vieja ya no existe: ni el contenedor columna con gap 8
     // ni el círculo chico de 28 px.
     expect(src).not.toContain('display: "flex", flexDirection: "column", gap: 8, marginTop: 12');
@@ -235,25 +254,26 @@ describe('LoyaltyWizard Paso 1: estilos en cuadrícula compacta de 3 por fila (P
     for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia", "Zafiro", "Amatista"]) {
       expect(html).toContain(label);
     }
-    expect(html).toContain("width:52px");
+    expect(html).toContain("width:44px");
   });
 
-  it('el estilo seleccionado se marca claro: anillo en su primary y palomita sobre el círculo, una sola', () => {
-    const src = read('../components/loyalty/LoyaltyWizard.jsx');
+  it('el estilo seleccionado se marca claro: anillo en su primary y palomita sobre el círculo', () => {
+    const src = read('../components/ui/StyleCategoryCarousel.jsx');
     expect(src).toContain('aria-pressed={isSelected}');
-    expect(src).toContain('0 0 0 5px ${styleTheme ? styleTheme.primary : "#0F172A"}');
+    expect(src).toContain('0 0 0 4px ${styleTheme ? styleTheme.primary : t.text}');
     expect(src).toContain('styleTheme.onPrimary');
-    // Con Oro negro guardado solo hay una palomita: la de Oro negro.
+    // Con Oro negro guardado la palomita sale 2 veces: en la página real
+    // de Premium y en su clon del loop infinito (mismo contenido).
     const html = renderWizard({
       bg_color: "linear-gradient(135deg, #262626, #000000)",
       text_color: "#FAFAFA",
       primary_color: "#F5B301",
     });
-    expect(html.split('✓').length - 1).toBe(1);
-    expect(html.split('aria-pressed="true"').length - 1).toBe(1);
+    expect(html.split('✓').length - 1).toBe(2);
+    expect(html.split('aria-pressed="true"').length - 1).toBe(2);
   });
 
-  it('las píldoras, «O personalizar colores exactos» y la vista previa siguen igual', () => {
+  it('el carrusel, «O personalizar colores exactos» y la vista previa siguen igual', () => {
     const html = renderWizard();
     for (const label of ["Premium", "Sobrios", "Cafetería", "Coloridos"]) {
       expect(html).toContain(label);

@@ -111,14 +111,32 @@ describe('modo oscuro: contraste en todo el sitio', () => {
     expect(count).toBe(2);
   });
 
-  it('modal «¿Cómo nos visitas hoy?» (ficha y menú): el logo va en círculo BLANCO y entero (contain), no recortado sobre fondo oscuro', () => {
-    for (const file of ['../views/DetailView.jsx', '../components/store/BusinessStore.jsx']) {
-      const src = read(file);
-      const block = src.slice(src.indexOf('¿Cómo nos visitas hoy?') - 1200, src.indexOf('¿Cómo nos visitas hoy?') + 200);
-      expect(block).toContain("background: '#FFFFFF'");
-      expect(block).toContain("objectFit: 'contain'");
-      expect(block).not.toContain("objectFit: 'cover'");
-    }
+  it('modal «¿Cómo nos visitas hoy?» de la ficha: el logo va en círculo BLANCO y entero (contain), no recortado sobre fondo oscuro', () => {
+    const src = read('../views/DetailView.jsx');
+    const block = src.slice(src.indexOf('¿Cómo nos visitas hoy?') - 1200, src.indexOf('¿Cómo nos visitas hoy?') + 200);
+    expect(block).toContain("background: '#FFFFFF'");
+    expect(block).toContain("objectFit: 'contain'");
+    expect(block).not.toContain("objectFit: 'cover'");
+  });
+
+  it('modal «¿Cómo nos visitas hoy?» del menú: el logo LLENA el círculo (cover) para que las esquinas de los logos cuadrados no se vean', () => {
+    // Los logos cuadrados con esquinas oscuras (p. ej. KAVA: cuadrado
+    // negro con el emblema circular oliva en el centro, verificado en la
+    // base) se veían mal con contain: el cuadrado entero cabía dentro
+    // del círculo blanco y las esquinas negras quedaban a la vista. Con
+    // cover el logo llena el círculo y el recorte circular quita las
+    // esquinas. El logo del encabezado del menú ya usaba cover.
+    const src = read('../components/store/BusinessStore.jsx');
+    const block = src.slice(src.indexOf('¿Cómo nos visitas hoy?') - 1600, src.indexOf('¿Cómo nos visitas hoy?') + 200);
+    expect(block).toContain("background: '#FFFFFF'");
+    // La imagen del logo del modal (la del getThumbUrl, no el icono de
+    // respaldo /pedido.png que sigue en contain) va en cover.
+    const logoAt = src.indexOf('getThumbUrl(business.logo_url || business.logo, 200, 200)');
+    expect(logoAt).toBeGreaterThan(-1);
+    expect(src.slice(logoAt, logoAt + 200)).toContain("objectFit: 'cover'");
+    // El encabezado del menú sigue en cover (no tenía el problema).
+    const header = src.slice(src.indexOf('Profile Logo Circular Superpuesto'), src.indexOf('Profile Logo Circular Superpuesto') + 1500);
+    expect(header).toContain("objectFit: 'cover'");
   });
 
   it('ficha del negocio: las 5 estrellas vacías son gris medio en modo oscuro (no T.border, casi negro sobre negro)', () => {

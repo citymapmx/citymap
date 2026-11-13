@@ -157,13 +157,15 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
   it('Guardar escribe menu_style en la fila del negocio y la vista previa usa su menú real', () => {
     const src = read('../components/store/MenuStyleDesigner.jsx');
     expect(src).toContain("sb.patch('businesses', business.id, { menu_style: selectedId })");
-    expect(src).toContain('LOYALTY_COLOR_CATEGORIES.map');
     expect(src).toContain("sb.get('store_categories'");
     expect(src).toContain('setSelectedId(style.id)');
+    // La lista de estilos la itera el carrusel compartido.
+    const shared = read('../components/ui/StyleCategoryCarousel.jsx');
+    expect(shared).toContain('LOYALTY_COLOR_CATEGORIES.map');
   });
 
   it('cuadrícula compacta de 3 por fila: círculo arriba, nombre abajo (ya no filas completas)', () => {
-    const src = read('../components/store/MenuStyleDesigner.jsx');
+    const src = read('../components/ui/StyleCategoryCarousel.jsx');
     expect(src).toContain("gridTemplateColumns: 'repeat(3, 1fr)'");
     expect(src).not.toContain("gridTemplateColumns: '1fr 1fr'");
     // La celda es columna: el círculo va arriba y el nombre abajo, centrado.
@@ -177,7 +179,7 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
   });
 
   it('el estilo seleccionado se marca claro: anillo en su primary y palomita sobre el círculo', () => {
-    const src = read('../components/store/MenuStyleDesigner.jsx');
+    const src = read('../components/ui/StyleCategoryCarousel.jsx');
     expect(src).toContain('aria-pressed={isSelected}');
     expect(src).toContain('0 0 0 4px ${styleTheme ? styleTheme.primary : t.text}');
     expect(src).toContain('styleTheme.onPrimary');
@@ -354,7 +356,9 @@ describe('Menú personalizado: carrusel de 9 por categoría + scroll vertical', 
   });
 
   it('el selector es un carrusel: una página por categoría, scroll-snap horizontal y puntos tocables', () => {
-    const src = read('../components/store/MenuStyleDesigner.jsx');
+    // El carrusel vive en el componente compartido (StyleCategoryCarousel),
+    // que usan el diseñador del menú y el wizard de lealtad.
+    const src = read('../components/ui/StyleCategoryCarousel.jsx');
     // Pista horizontal con snap nativo (funciona en navegador y WebView).
     expect(src).toContain("scrollSnapType: 'x mandatory'");
     expect(src).toContain("overflowX: 'auto'");
@@ -385,14 +389,16 @@ describe('Menú personalizado: carrusel de 9 por categoría + scroll vertical', 
 
   it('al abrir, el carrusel muestra la categoría del estilo guardado', () => {
     const src = read('../components/store/MenuStyleDesigner.jsx');
-    expect(src).toContain("selectedStyle?.category || 'premium'");
-    expect(src).toContain('LOYALTY_COLOR_CATEGORIES.findIndex');
+    expect(src).toContain("initialCategoryId={selectedStyle?.category || 'premium'}");
+    // La lógica de la página inicial vive en el componente compartido.
+    const shared = read('../components/ui/StyleCategoryCarousel.jsx');
+    expect(shared).toContain('LOYALTY_COLOR_CATEGORIES.findIndex');
     // +1 por el clon de la izquierda (Coloridos) antes de Premium.
-    expect(src).toContain('el.scrollLeft = (initialPageRef.current + 1) * el.clientWidth');
+    expect(shared).toContain('el.scrollLeft = (initialPageRef.current + 1) * el.clientWidth');
   });
 
   it('carrusel infinito: clones al inicio y al fin, y el índice envuelve de la última a la primera', () => {
-    const src = read('../components/store/MenuStyleDesigner.jsx');
+    const src = read('../components/ui/StyleCategoryCarousel.jsx');
     // Páginas: clon de la última, las 4 reales, clon de la primera.
     expect(src).toContain("key: 'clone-last'");
     expect(src).toContain("key: 'clone-first'");
@@ -438,11 +444,25 @@ describe('Menú personalizado: carrusel de 9 por categoría + scroll vertical', 
     // el pie son hijos flex fijos (flexShrink 0) de la columna.
     expect(src).not.toContain("position: 'sticky'");
   });
+  it('el diseñador del menú y el wizard de lealtad usan el mismo carrusel compartido', () => {
+    const menu = read('../components/store/MenuStyleDesigner.jsx');
+    expect(menu).toContain("import StyleCategoryCarousel from '../ui/StyleCategoryCarousel.jsx'");
+    expect(menu).toContain('<StyleCategoryCarousel');
+    expect(menu).toContain("initialCategoryId={selectedStyle?.category || 'premium'}");
+    // El carrusel ya no vive duplicado en el diseñador.
+    expect(menu).not.toContain("key: 'clone-last'");
+    const wizard = read('../components/loyalty/LoyaltyWizard.jsx');
+    expect(wizard).toContain("import StyleCategoryCarousel from '../ui/StyleCategoryCarousel.jsx'");
+    expect(wizard).toContain('<StyleCategoryCarousel');
+    // El wizard ya no trae su propio selector de píldoras.
+    expect(wizard).not.toContain('setActiveCategory');
+    expect(wizard).not.toContain('gridTemplateColumns: "1fr 1fr"');
+  });
 });
 
 describe('Menú personalizado: ajustes del diseñador (título, Guardar, Sin estilo, círculos)', () => {
   it('título de categoría centrado en su página', () => {
-    const src = read('../components/store/MenuStyleDesigner.jsx');
+    const src = read('../components/ui/StyleCategoryCarousel.jsx');
     expect(src).toContain("letterSpacing: 0.5, textAlign: 'center' }}>{cat.label}</div>");
     const html = renderDesigner(CARRITO);
     expect(html).toContain('text-align:center">Premium</div>');
@@ -470,7 +490,7 @@ describe('Menú personalizado: ajustes del diseñador (título, Guardar, Sin est
   });
 
   it('círculos de estilos más chicos y menos espaciado (siguen 3 por fila)', () => {
-    const src = read('../components/store/MenuStyleDesigner.jsx');
+    const src = read('../components/ui/StyleCategoryCarousel.jsx');
     expect(src).toContain("gridTemplateColumns: 'repeat(3, 1fr)'");
     expect(src).toContain('width: 44, height: 44');
     expect(src).not.toContain('width: 52, height: 52');
