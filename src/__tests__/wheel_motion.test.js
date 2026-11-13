@@ -6,6 +6,7 @@ import {
   WHEEL_FACE_W,
   WHEEL_FACE_W_MOBILE,
   wheelAutoStep,
+  wheelDrumGeometry,
   wheelDrumRadius,
   wheelFaceRadius,
   wheelProjectedFace,
@@ -59,11 +60,11 @@ describe('wheelMotion: cilindro cerrado (tarjetas casi pegadas)', () => {
     expect(wheelFaceRadius(162, 0)).toBe(0);
   });
 
-  it('el radio del tambor es fijo (10 caras) y no depende de los eventos de la ciudad', () => {
-    // Tepic (~7 eventos) se veía chica y centrada porque el radio era la
-    // apotema de 7 caras (145 px en teléfono); el inicio global, siempre
-    // con 10, usa 215 px. El tambor ahora usa siempre el radio de 10
-    // caras, así la rueda de ciudad mide lo mismo que la del global.
+  it('el radio de referencia es fijo (10 caras) y no depende de los eventos de la ciudad', () => {
+    // Radio de 10 caras: 249 px en escritorio y 215 px en teléfono. Es
+    // la referencia que usa wheelDrumGeometry para que la cara del frente
+    // se vea igual de grande con cualquier número de eventos (la geometría
+    // por ciudad ajusta cara y radio juntas, ver el test de abajo).
     expect(WHEEL_DRUM_FACES).toBe(10);
     expect(wheelDrumRadius(162)).toBe(249);
     expect(wheelDrumRadius(140)).toBe(215);
@@ -76,5 +77,59 @@ describe('wheelMotion: cilindro cerrado (tarjetas casi pegadas)', () => {
     // veía a 323x422 y tapaba el título).
     expect(wheelProjectedFace(162, 212, 10)).toEqual({ w: 216, h: 282 });
     expect(wheelProjectedFace(140, 184, 10)).toEqual({ w: 178, h: 234 });
+  });
+});
+
+describe('wheelMotion: tarjetas juntas con pocos eventos (Tepic)', () => {
+  it('con 10 eventos devuelve los valores nominales de siempre', () => {
+    expect(wheelDrumGeometry(162, 212, 10)).toEqual({ faceW: 162, faceH: 212, radius: 249 });
+    expect(wheelDrumGeometry(140, 184, 10)).toEqual({ faceW: 140, faceH: 184, radius: 215 });
+    // Con más de 10 tampoco cambia (el tambor se capa en 10 caras).
+    expect(wheelDrumGeometry(162, 212, 12)).toEqual({ faceW: 162, faceH: 212, radius: 249 });
+  });
+
+  it('con 7 eventos (Tepic) la cara se ensancha y el radio se achica, sin hueco entre vecinas', () => {
+    // Antes (#290, radio fijo de 10 caras) quedaban ~60 px de aire entre
+    // tarjetas en teléfono: el paso entre caras es 360°/7 y la cara
+    // seguía midiendo 140 px. Ahora la cara mide 150x197 y el radio 156
+    // px en teléfono (176x230 y 183 px en escritorio).
+    expect(wheelDrumGeometry(162, 212, 7)).toEqual({ faceW: 176, faceH: 230, radius: 183 });
+    expect(wheelDrumGeometry(140, 184, 7)).toEqual({ faceW: 150, faceH: 197, radius: 156 });
+    // Las vecinas quedan PEGADAS al frente: el radio es la apotema del
+    // polígono de 7 caras con ese ancho (las caras se tocan en los
+    // bordes, como con 10 caras en el global).
+    expect(wheelFaceRadius(176, 7)).toBe(183);
+    expect(wheelFaceRadius(150, 7)).toBe(156);
+  });
+
+  it('con 7 eventos la cara del frente se ve igual de grande que en el global', () => {
+    // La cara más ancha compensa el radio más chico: la perspectiva la
+    // magnifica menos, y el visto queda igual que con 10 caras.
+    const desktop = wheelDrumGeometry(162, 212, 7);
+    expect(wheelProjectedFace(desktop.faceW, desktop.faceH, 7)).toEqual({ w: 215, h: 282 });
+    const mobile = wheelDrumGeometry(140, 184, 7);
+    expect(wheelProjectedFace(mobile.faceW, mobile.faceH, 7)).toEqual({ w: 178, h: 233 });
+  });
+
+  it('con 4 a 9 eventos también se juntan y el frente mide lo mismo que el global', () => {
+    for (const n of [4, 5, 6, 8, 9]) {
+      const g = wheelDrumGeometry(140, 184, n);
+      // Radio = apotema de n caras: las vecinas se tocan.
+      expect(wheelFaceRadius(g.faceW, n)).toBe(g.radius);
+      // Frente del mismo tamaño que el global (~178x234 en teléfono).
+      const seen = wheelProjectedFace(g.faceW, g.faceH, n);
+      expect(seen.w).toBeGreaterThanOrEqual(177);
+      expect(seen.w).toBeLessThanOrEqual(179);
+      expect(seen.h).toBeGreaterThanOrEqual(232);
+      expect(seen.h).toBeLessThanOrEqual(235);
+    }
+    // Con 4 eventos la cara es la más ancha (163 px) y el radio el más
+    // chico (82 px en teléfono).
+    expect(wheelDrumGeometry(140, 184, 4)).toEqual({ faceW: 163, faceH: 214, radius: 82 });
+  });
+
+  it('con 3 o menos no hay tambor (va la fila) y la geometría devuelve los nominales', () => {
+    expect(wheelDrumGeometry(162, 212, 3)).toEqual({ faceW: 162, faceH: 212, radius: 249 });
+    expect(wheelDrumGeometry(162, 212, 0)).toEqual({ faceW: 162, faceH: 212, radius: 249 });
   });
 });
