@@ -5,6 +5,7 @@ import {eventDayKey, selectHomeEvents} from '../../lib/homeEventSelection.js';
 import { localizedTitle } from '../../lib/i18nContent.js';
 import {EventSk, CoverflowSk} from '../ui/Skeleton.jsx';
 import EventWheel3D from './EventWheel3D.jsx';
+import EstadoVacio from '../EstadoVacio.jsx';
 import { cityDisplayName } from '../../lib/utils.js';
 
 // En la página de ciudad los eventos van en la misma rueda 3D del inicio
@@ -54,12 +55,15 @@ export default memo(function HomeEvents({events = [], activeCity, userCoords, db
     if (!dbReady || !secondaryReady) return <CoverflowSk dark={dark}/>;
     // Estado vacío honesto: la ciudad no tiene eventos y no se muestra
     // ninguna recomendación (decisión de Jonathan, 12 Nov 2026: sin
-    // fallback de «eventos cerca»). Solo el mensaje.
+    // fallback de «eventos cerca»). Solo el mensaje, con los cubos
+    // de Lottie (EstadoVacio) encima.
     return <div style={{padding:'4px 0 0'}}>
       <header style={{ margin: '0 20px 16px', textAlign: 'center' }}>
         <h2 style={{ margin: 0, fontFamily: 'var(--heading)', fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px', textTransform: 'uppercase', color: T.text }}>{t("home_proximos_eventos", "Próximos eventos")}</h2>
       </header>
-      <p style={{ margin: '0 20px 8px', textAlign: 'center', fontSize: 15, fontWeight: 700, color: T.text }}>{tt("eventos_ciudad_vacia", "En ${ciudad} todavía no hay eventos", { ciudad: cityName })}</p>
+      <div style={{ margin: '0 20px 8px' }}>
+        <EstadoVacio titulo={tt("eventos_ciudad_vacia", "En ${ciudad} todavía no hay eventos", { ciudad: cityName })} T={T} />
+      </div>
     </div>;
   }
   // La rueda renderiza item.title (alt y póster sin imagen): se le pasa ya

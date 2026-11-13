@@ -149,7 +149,7 @@ describe('sonido propio: cableado (fuente)', () => {
   });
   it('el .b64 versionado decodifica al pop ganador E (0.23 s, 1500→2200 Hz) en MP3 válido', () => {
     const b64 = fs.readFileSync(
-      new URL('../../android/app/src/main/res/raw/citymap_alert.mp3.b64', import.meta.url),
+      new URL('../../android/app/src/main/assets/citymap_alert.mp3.b64', import.meta.url),
       'utf8',
     );
     expect(b64.trim()).toMatch(/^[A-Za-z0-9+/=\s]+$/);

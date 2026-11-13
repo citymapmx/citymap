@@ -19,6 +19,7 @@ import BizShareHub from './BizShareHub.jsx';
 import ProfileLoyaltyCarousel from './loyalty/ProfileLoyaltyCarousel.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { privateEventUrl } from '../lib/privateEvents.js';
+import CheckConfirmacion from './CheckConfirmacion.jsx';
 export default function AccountView({
   user, profile, isAdmin, T, dark, favIds, reviews,
   wallet, coupons, claimedCoupons, biz, myBizList,
@@ -73,6 +74,9 @@ export default function AccountView({
   const [editName, setEditName] = useState("");
   const [editPhoto, setEditPhoto] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  // Check de confirmación: al guardar el perfil se reproduce una sola
+  // vez en el modal y luego se cierra.
+  const [showCheck, setShowCheck] = useState(false);
   const [showUserQR, setShowUserQR] = useState(false);
   const [shareHubBiz, setShareHubBiz] = useState(null);
   const [loyaltyDesignerBiz, setLoyaltyDesignerBiz] = useState(null);
@@ -124,7 +128,9 @@ export default function AccountView({
         const authSt = useAuthStore.getState();
         if (authSt.profile) authSt.setProfile({ ...authSt.profile, name: editName, avatar_url: editPhoto });
       }
-      setIsEditingProfile(false);
+      // El modal no se cierra de inmediato: primero se reproduce el
+      // check de confirmación y al terminar se cierra (onDone).
+      setShowCheck(true);
       toast$(t("perfil_actualizado", "Perfil actualizado ✓"));
     } catch (e) {
       toast$(e.message);
@@ -248,8 +254,14 @@ export default function AccountView({
               <label style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6, marginBottom: 6, display: "block" }}>{t("nombre", "Nombre")}</label>
               <input value={editName} onChange={e => setEditName(e.target.value)} placeholder={t("tu_nombre", "Tu nombre")} style={{ width: "100%", padding: "12px 14px", border: `1.5px solid ${T.border}`, background: "transparent", borderRadius: 12, fontSize: 15, color: T.text, fontFamily: "inherit", marginBottom: 20 }} />
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => setIsEditingProfile(false)} style={{ flex: 1, padding: "12px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>{t("cancelar", "Cancelar")}</button>
-                <button onClick={saveProfile} disabled={savingProfile} style={{ flex: 1, padding: "12px 0", background: T.green, border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", opacity: savingProfile ? 0.7 : 1 }}>{savingProfile ? t("guardando", "Guardando...") : t("guardar", "Guardar")}</button>
+                {showCheck ? (
+                  <div style={{ flex: 1 }}>
+                    <CheckConfirmacion show size={72} onDone={() => { setShowCheck(false); setIsEditingProfile(false); }} />
+                  </div>
+                ) : (<>
+                  <button onClick={() => setIsEditingProfile(false)} style={{ flex: 1, padding: "12px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>{t("cancelar", "Cancelar")}</button>
+                  <button onClick={saveProfile} disabled={savingProfile} style={{ flex: 1, padding: "12px 0", background: T.green, border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit", opacity: savingProfile ? 0.7 : 1 }}>{savingProfile ? t("guardando", "Guardando...") : t("guardar", "Guardar")}</button>
+                </>)}
               </div>
             </div>
           </div>
