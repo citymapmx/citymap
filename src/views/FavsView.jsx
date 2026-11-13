@@ -1,10 +1,17 @@
+import { useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import Icon from "../components/ui/Icon.jsx";
 import FavoriteCollectionModal from "../components/FavoriteCollectionModal.jsx";
+import FavoritosMapa from "../components/favoritos/FavoritosMapa.jsx";
+import AgendaEventos from "../components/favoritos/AgendaEventos.jsx";
+import { projectToMap } from "../lib/mapaFavoritos.js";
+import { ordenarAgendaEventos } from "../lib/countdownEvento.js";
+import { loadVisitados, saveVisitados, loadAlertasCalendario, saveAlertasCalendario, toggleIdInList } from "../lib/favoritosLocales.js";
+import { getEventCalendarUrl } from "../lib/eventCalendar.js";
 import { useShallow } from 'zustand/react/shallow';
-import { getThumbUrl, isNear } from "../lib/utils.js";
+import { getThumbUrl, isNear, METRO_ZONES, getLocalIsoDate } from "../lib/utils.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 
 export default function FavsView({ hideHeader }) {
@@ -13,6 +20,13 @@ export default function FavsView({ hideHeader }) {
   const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
   const { mapPins, events } = useDataStore(useShallow(s => ({ mapPins: s.mapPins, events: s.events })));
   const { viewStyle, T, favIds, toggleFav, biz, navigate, setSelected, trackEvent, userCoords, getKm, collections, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, createCollection, updateCollection, deleteCollection, city, savedEventIds, setCollections, FONT_BIZ, goDir, setMovingBiz, setSelectedEvent, handleEventTap, movingBiz } = ctx;
+  // Mis Favoritos, propuesta C: filtro del mapa, pin seleccionado, lugares
+  // marcados como visitados y eventos con alerta de calendario (estos dos
+  // últimos viven en localStorage de este dispositivo).
+  const [favFilter, setFavFilter] = useState('todos');
+  const [favSelectedId, setFavSelectedId] = useState(null);
+  const [visitados, setVisitados] = useState(() => loadVisitados());
+  const [alertasCal, setAlertasCal] = useState(() => loadAlertasCalendario());
 
   return (
     <div style={hideHeader ? { paddingBottom: 20 } : { paddingBottom: 84, ...viewStyle, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
@@ -29,12 +43,52 @@ export default function FavsView({ hideHeader }) {
       <div style={{ padding: "20px", flex: 1 }}>
         {(() => {
               const allSavedBiz = mapPins.filter(b => favIds.includes(b.id) && isNear(b, userCoords, activeCity));
-              const unsortedBiz = allSavedBiz.filter(b => !collections.some(c => c.items.includes(b.id)));
               const savedEv = events.filter(e => {
                 if (!savedEventIds.includes(e.id)) return false;
                 return isNear(e, userCoords, activeCity);
               });
               const hasFavs = allSavedBiz.length > 0 || savedEv.length > 0;
+              // Propuesta C: mapa con los lugares guardados y agenda de
+              // eventos guardados. La fecha de hoy es la local del
+              // dispositivo, como la cuenta atrás del artefacto.
+              const todayStr = getLocalIsoDate();
+              const isGdlMetro = (METRO_ZONES[activeCity] || []).includes('guadalajara');
+              const collectionNameFor = (id) => {
+                const col = collections.find(c => (c.items || []).includes(id));
+                return col ? col.name : t('sin_organizar', 'Sin organizar');
+              };
+              const favPlaces = projectToMap(allSavedBiz.map(b => ({ ...b, collectionName: collectionNameFor(b.id) })));
+              const favSelId = favSelectedId && favPlaces.some(p => p.id === favSelectedId) ? favSelectedId : favPlaces[0]?.id;
+              const agendaEv = ordenarAgendaEventos(savedEv, todayStr);
+              const handleToggleVisit = (biz) => {
+                const next = toggleIdInList(visitados, biz.id);
+                const nowVisited = next.includes(biz.id);
+                setVisitados(next);
+                saveVisitados(next);
+                toast$(nowVisited
+                  ? t('fav_marcado_toast', 'Marcado como visitado: ${name}', { name: biz.name })
+                  : t('fav_pendiente_toast', 'Volvió a pendientes: ${name}', { name: biz.name }));
+              };
+              // La campana es el recordatorio por evento que ya existe en
+              // la app: abre el enlace de Google Calendar con la alerta
+              // (igual que el aviso al guardar un evento). El aviso push
+              // del día del evento ya lo tienen todos los guardados por el
+              // cron de recordatorios, así que la campana no desactiva
+              // nada: solo marca que ya le pusiste alerta en tu calendario.
+              const handleBell = (ev) => {
+                const url = getEventCalendarUrl(ev);
+                if (!url) {
+                  toast$(t('fav_recordatorio_error', 'No se pudo crear el recordatorio para este evento'));
+                  return;
+                }
+                if (typeof window !== 'undefined' && window.open) window.open(url, '_blank', 'noopener,noreferrer');
+                if (!alertasCal.includes(ev.id)) {
+                  const next = [...alertasCal, ev.id];
+                  setAlertasCal(next);
+                  saveAlertasCalendario(next);
+                }
+                toast$(t('fav_recordatorio_calendario', 'Se abrió tu calendario para ponerle una alerta a este evento'));
+              };
 
               if (activeCollection) {
                 const colItems = allSavedBiz.filter(b => activeCollection.items.includes(b.id));
@@ -77,44 +131,28 @@ export default function FavsView({ hideHeader }) {
               }
 
               return <>
-                {/* COLECCIONES GRID */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
-                  {collections.map(col => {
-                    const validItems = col.items.filter(id => favIds.includes(id));
-                    return (
-                      <div key={col.id}
-                        onClick={() => setActiveCollection(col)}
-                        onDragOver={e => { e.preventDefault(); e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.15)"; }}
-                        onDragLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}
-                        onDrop={e => {
-                          e.preventDefault();
-                          e.currentTarget.style.transform = "scale(1)";
-                          e.currentTarget.style.boxShadow = T.shadow;
-                          const bizId = e.dataTransfer.getData("bizId");
-                          if (bizId) {
-                            const updatedCol = { ...col, items: [...new Set([...col.items, bizId])] };
-                            updateCollection(updatedCol);
-                            toast$(t("agregado_a", "Agregado a ") + col.name);
-                          }
-                        }}
-                        style={{ background: T.white, borderRadius: 24, padding: "20px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, transition: "all .2s ease", cursor: "pointer", boxShadow: T.shadow }}>
-                        <div style={{ fontSize: 36, filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.1))" }}>{col.emoji}</div>
-                        <div style={{ textAlign: "center" }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>{col.name}</div>
-                          <div style={{ fontSize: 11, color: T.sub, marginTop: 4 }}>{validItems.length} {validItems.length === 1 ? t("lugar", "lugar") : t("lugares", "lugares")}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {collections.length < 6 && (
-                    <div className="press" onClick={() => setNewColModal(true)} style={{ background: T.bg, borderRadius: 24, padding: "20px 16px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, cursor: "pointer", border: `2px dashed ${T.border}` }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, padding: "24px 0" }}>
-                        <div style={{ width: 44, height: 44, borderRadius: "50%", background: T.white, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px rgba(0,0,0,0.1)" }}><Icon name="plus" size={20} color={T.green} /></div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{t("crear_coleccion", "Crear Colección")}</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* TIRA DE COLECCIONES: las colecciones no se pierden; aquí
+                    se ven, se abren y se crea una nueva. Los lugares van en
+                    el mapa de abajo, con su colección en la leyenda. */}
+                {hasFavs && (
+                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 20, scrollbarWidth: 'none' }}>
+                    {collections.map(col => {
+                      const validItems = col.items.filter(id => favIds.includes(id));
+                      return (
+                        <button key={col.id} type="button" onClick={() => setActiveCollection(col)} style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8, background: T.white, border: `1px solid ${T.border}`, borderRadius: 99, padding: '8px 14px 8px 10px', fontSize: 13, fontWeight: 700, color: T.text, cursor: 'pointer', fontFamily: 'inherit', boxShadow: T.shadow }}>
+                          <span style={{ fontSize: 18 }}>{col.emoji}</span>
+                          <span>{col.name}</span>
+                          <span style={{ fontSize: 12, color: T.sub }}>{validItems.length}</span>
+                        </button>
+                      );
+                    })}
+                    {collections.length < 6 && (
+                      <button type="button" onClick={() => setNewColModal(true)} style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 6, background: T.bg, border: `2px dashed ${T.border}`, borderRadius: 99, padding: '8px 14px', fontSize: 13, fontWeight: 700, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        <Icon name="plus" size={16} color={T.green} />{t("crear_coleccion", "Crear Colección")}
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {!hasFavs && <div style={{ textAlign: "center", padding: "60px 20px" }}>
                   <div style={{ width: 80, height: 80, borderRadius: 24, background: T.greenL, margin: "0 auto 20px", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="heart" size={36} color={T.green} /></div>
@@ -123,44 +161,34 @@ export default function FavsView({ hideHeader }) {
                   <button className="btn-g press" onClick={() => navigate("home")}>{t("explorar_ciudad", "Explorar ciudad")}</button>
                 </div>}
 
-                {unsortedBiz.length > 0 && <div style={{ marginBottom: 24 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12 }}>{t("sin_organizar", "Sin organizar")}</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    {unsortedBiz.map(b => (
-                      <div key={b.id} className="press" draggable={true} onDragStart={e => { e.dataTransfer.setData("bizId", b.id); e.currentTarget.style.opacity = "0.5"; }} onDragEnd={e => { e.currentTarget.style.opacity = "1"; }} onClick={() => setMovingBiz(b)} style={{ background: T.bg, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", position: "relative", cursor: "grab" }}>
-                        <div style={{ height: 140, background: "transparent", position: "relative" }}>
-                          {b.photos?.[0]?.url ? <img src={getThumbUrl(b.photos[0].url, 400, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={24} color={T.sub} /></div>}
-                          <button onClick={e => toggleFav(b.id, e)} style={{ position: "absolute", top: 10, right: 10, background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}><Icon name="heart_overlay_f" size={26} color="none" /></button>
-                        </div>
-                        <div style={{ padding: "10px 12px" }}>
-                          <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 13, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</div>
-                          <div style={{ fontSize: 11, color: T.sub, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t(b.type, b.type)}</div>
-                          <button onClick={e => { e.stopPropagation(); goDir(b, null); }} style={{ marginTop: 8, width: "100%", background: T.greenL, border: "none", borderRadius: 8, padding: "6px 0", fontSize: 11, fontWeight: 700, color: T.green, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><Icon name="nav" size={10} color={T.green} />{t("como_llegar", "Cómo llegar")}</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>}
+                {allSavedBiz.length > 0 && (
+                  <FavoritosMapa
+                    T={T} t={t}
+                    places={favPlaces}
+                    selectedId={favSelId}
+                    onSelect={setFavSelectedId}
+                    filter={favFilter}
+                    onFilterChange={setFavFilter}
+                    visitedIds={visitados}
+                    onToggleVisit={handleToggleVisit}
+                    onGoDir={(b) => goDir(b, null)}
+                    onOrganize={(b) => setMovingBiz(b)}
+                    onToggleFav={toggleFav}
+                    onOpen={(b) => { setSelected(b); navigate("detail"); }}
+                    showZones={isGdlMetro}
+                    cityName={city?.name || activeCity}
+                  />
+                )}
 
-                {savedEv.length > 0 && <div style={{ marginBottom: 24 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 12 }}>{t("eventos_guardados", "Eventos Guardados")}</h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {savedEv.map(e => (
-                      <div key={e.id} className="press" onClick={() => handleEventTap(e)} style={{ display: "flex", background: T.bg, borderRadius: 16, overflow: "hidden", position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-                        <div style={{ width: 100, height: 100, background: "transparent", flexShrink: 0, position: "relative" }}>
-                          {e.img_url ? (
-                            <img src={getThumbUrl(e.img_url, 300, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} loading="lazy" />
-                          ) : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar" size={24} color={T.sub} /></div>}
-                        </div>
-                        <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", justifyContent: "center", flex: 1 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: T.green, textTransform: "uppercase", letterSpacing: .6, marginBottom: 4 }}>{e.date && new Date(e.date + "T00:00:00").toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', { day: "numeric", month: "short" })}</div>
-                          <div style={{ fontFamily: FONT_BIZ, fontWeight: 800, fontSize: 14, color: T.text, lineHeight: 1.2, marginBottom: 4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{e.title}</div>
-                          {e.venue_name && <div style={{ fontSize: 12, color: T.sub }}><Icon name="pin" size={10} color={T.sub} /> {e.venue_name}</div>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>}
+                {savedEv.length > 0 && (
+                  <AgendaEventos
+                    T={T} t={t} lang={lang}
+                    events={agendaEv} todayStr={todayStr}
+                    alertIds={alertasCal}
+                    onOpen={(ev) => handleEventTap(ev)}
+                    onBell={handleBell}
+                  />
+                )}
 
                 <FavoriteCollectionModal business={movingBiz} collections={collections} T={T} t={t}
                   onClose={() => setMovingBiz(null)}
