@@ -110,25 +110,24 @@ describe('Vite home events: ciudad sin eventos (estado vacío honesto)', () => {
     { id: 'n2', title: 'Festival Vecino', date: dayKey(9), city_slug: 'zapopan', status: 'approved', venue_name: 'Auditorio Telmex', img_url: 'https://example.supabase.co/n2.jpg' },
   ];
 
-  it('muestra el mensaje y los eventos cercanos con su ciudad visible', () => {
+  it('muestra solo el mensaje, sin línea de cerca ni lista de cercanos', () => {
+    const html = renderToStaticMarkup(
+      <HomeEvents events={[]} activeCity="tlaquepaque" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} t={t} cities={cities} />,
+    );
+    expect(html).toContain('Próximos eventos');
+    expect(html).toContain('En Tlaquepaque todavía no hay eventos');
+    expect(html).not.toContain('Pero hay eventos cerca que te pueden gustar.');
+    expect(html).not.toContain('Eventos cerca de');
+    expect(html).not.toContain('Concierto Cercano');
+  });
+
+  it('aunque lleguen eventos cercanos por props viejos, no se muestran ni se piden', () => {
     const html = renderToStaticMarkup(
       <HomeEvents events={[]} activeCity="tlaquepaque" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} t={t} cities={cities} nearbyEvents={nearby} onRequestNearbyEvents={() => {}} />,
     );
     expect(html).toContain('En Tlaquepaque todavía no hay eventos');
-    expect(html).toContain('Pero hay eventos cerca que te pueden gustar.');
-    expect(html).toContain('Eventos cerca de Tlaquepaque');
-    expect(html).toContain('Concierto Cercano');
-    expect(html).toContain('Festival Vecino');
-    // La ciudad de cada evento cercano se ve en su fila.
-    expect(html).toContain('Guadalajara');
-    expect(html).toContain('Zapopan');
-  });
-
-  it('sin eventos cercanos solo muestra el mensaje', () => {
-    const html = renderToStaticMarkup(
-      <HomeEvents events={[]} activeCity="tlaquepaque" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} cities={cities} nearbyEvents={[]} onRequestNearbyEvents={() => {}} />,
-    );
-    expect(html).toContain('En Tlaquepaque todavía no hay eventos');
+    expect(html).not.toContain('Concierto Cercano');
+    expect(html).not.toContain('Festival Vecino');
     expect(html).not.toContain('Eventos cerca de');
   });
 

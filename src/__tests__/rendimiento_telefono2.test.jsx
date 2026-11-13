@@ -25,8 +25,6 @@ const baseProps = {
   t: (k, f) => (f !== undefined ? f : k),
   lang: 'es',
   cities: [],
-  nearbyEvents: [],
-  onRequestNearbyEvents: () => {},
 };
 
 describe('Fase 2: la sección de eventos no parpadea al estado vacío', () => {

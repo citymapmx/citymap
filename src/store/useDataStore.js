@@ -4,7 +4,6 @@ import { sb } from '../lib/supabase.js';
 import { preloadWheelFirstImage } from '../lib/wheelPreload.js';
 
 import { METRO_ZONES, updateMetroZones } from '../lib/utils.js';
-import { selectNearbyEvents } from '../lib/nearbyEvents.js';
 
 const getCityFilterEq = (city) => {
   const zone = METRO_ZONES[city];
@@ -29,7 +28,6 @@ const mergeById = (first, second) => {
 let inFlightLoadPromise = null;
 let inFlightCity = null;
 let citiesRefreshPromise = null;
-let nearbyEventsPromise = null;
 let googleRatingsInFlight = null;
 
 const updateCityCache = (key, updates) => {
@@ -97,28 +95,6 @@ export const useDataStore = create((set, get) => ({
     })();
     return citiesRefreshPromise;
   },
-  // Eventos de otras ciudades para el estado vacío de una ciudad sin
-  // eventos: se piden una vez por ciudad (los próximos 60 globales,
-  // como el muro) y se eligen los cercanos con selectNearbyEvents
-  // (primero la zona metropolitana, luego las ciudades más cercanas
-  // por lat/lng; sin coordenadas, los próximos en fecha).
-  loadNearbyEvents: async (citySlug) => {
-    if (!citySlug) return [];
-    if (get().nearbyEventsCity === citySlug) return get().nearbyEvents;
-    if (nearbyEventsPromise) return nearbyEventsPromise;
-    nearbyEventsPromise = (async () => {
-      try {
-        const rows = await sb.get('events', '?status=eq.approved&order=date.asc&limit=60').catch(() => null);
-        const picked = selectNearbyEvents(Array.isArray(rows) ? rows : [], citySlug, get().cities);
-        set({ nearbyEvents: picked, nearbyEventsCity: citySlug });
-        return picked;
-      } catch (err) {
-        console.warn('Could not load nearby events', err);
-        return [];
-      } finally { nearbyEventsPromise = null; }
-    })();
-    return nearbyEventsPromise;
-  },
   wallet: (() => { try { return JSON.parse(localStorage.getItem("citymap_wallet") || "[]"); } catch { return []; } })(),
   setWallet: (val) => set(s => ({ wallet: typeof val === 'function' ? val(s.wallet) : val })),
   claimedCoupons: (() => { try { return JSON.parse(localStorage.getItem("citymap_claims") || "{}"); } catch { return {}; } })(),
@@ -127,10 +103,6 @@ export const useDataStore = create((set, get) => ({
   homeCoreError: false,
   homeSecondaryCity: null,
   homeSecondaryError: false,
-  // Eventos cercanos para el estado vacío de una ciudad sin eventos
-  // (HomeEvents y EventsView los piden con loadNearbyEvents).
-  nearbyEvents: [],
-  nearbyEventsCity: null,
   dbReady: false, setDbReady: (val) => set(s => ({ dbReady: typeof val === 'function' ? val(s.dbReady) : val })),
   dbError: false, setDbError: (val) => set(s => ({ dbError: typeof val === 'function' ? val(s.dbError) : val })),
   mapPins: [], setMapPins: (val) => set(s => ({ mapPins: typeof val === 'function' ? val(s.mapPins) : val })),
