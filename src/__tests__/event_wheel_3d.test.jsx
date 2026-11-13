@@ -45,14 +45,21 @@ describe('event wheel 3D', () => {
     expect(html).not.toContain('Evento 12');
   });
 
-  it('with 7 events (a city like Tepic) the drum keeps the global radius, not a smaller one', () => {
+  it('with 7 events (a city like Tepic) the faces stay touching, as wide as the global front', () => {
     const html = renderWheel({ events: events.slice(0, 7) });
     expect(html.match(/event-wheel-face/g)).toHaveLength(7);
     expect(html.match(/event-wheel-dot[ "]/g)).toHaveLength(7);
-    // Radio fijo de 10 caras (249 px en escritorio): con 7 eventos el
-    // tambor medía 168 px y se veía chico y centrado en la página de
-    // ciudad; ahora mide lo mismo que el del inicio global.
-    expect(html).toContain('rotateY(0deg) translateZ(249px)');
+    // Con 7 eventos la cara se ensancha a 176x230 y el radio se achica a
+    // 183 px (escritorio): las vecinas quedan PEGADAS al frente, como
+    // con 10 caras en el global. Con el radio fijo de la #290 (249 px)
+    // quedaban ~60 px de aire entre tarjetas y la de la izquierda ni se
+    // veía; y con la apotema de 7 caras (168 px) el tambor se veía chico
+    // y centrado. La cara del frente se sigue viendo igual de grande que
+    // en el global (~216x282 en escritorio).
+    expect(html).toContain('rotateY(0deg) translateZ(183px)');
+    expect(html).toContain('width:176px');
+    expect(html).toContain('height:230px');
+    expect(html).not.toContain('translateZ(249px)');
     expect(html).not.toContain('translateZ(168px)');
     // La cara del frente sigue siendo la primera.
     expect(html).toContain('>Evento 1</button>');
@@ -120,7 +127,7 @@ describe('event wheel 3D', () => {
     // teléfono (PR #194). El velo negro con opacidad da el mismo
     // oscurecido sin re-rasterizar (la opacidad la mueve el compositor).
     expect(html).not.toContain('filter:brightness');
-    expect(html).toContain('class="event-wheel-face" style="transform:rotateY(0deg) translateZ(249px)"');
+    expect(html).toContain('class="event-wheel-face" style="transform:rotateY(0deg) translateZ(249px);width:162px;height:212px;margin-left:-81px;margin-top:-106px"');
     expect(html.match(/event-wheel-shade/g)).toHaveLength(10);
     // Frente sin velo (opacidad 0), vecinas con velo (0.12 a ±36°, 0.24
     // a ±72°, 0.3 atrás): mismo oscurecido que brightness(0.88/0.76/0.7).
