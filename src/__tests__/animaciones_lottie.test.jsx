@@ -6,7 +6,8 @@
 //   Design) una sola vez al completar la tarjeta de lealtad y al
 //   canjear un premio (ScanView).
 // - Boleto de avión («Plane Ticket - Blue», Yelena Mirsakova):
-//   encabezado de /tours y detalle de tour junto al botón de Reservar.
+//   encabezado de /tours y al inicio de la sección Revista, grande
+//   (13 nov 2026, Jonathan: se movió del detalle del tour).
 // - Trofeo de logro («trophy», Gift chuks): junto al confeti en
 //   ScanView y cuando se completa una colección en Mis Favoritos.
 // - Check de confirmación («Processing animation with a checkmark»,
@@ -263,7 +264,7 @@ describe('Archivos .lottie nuevos (ampliación, 3 más)', () => {
   });
 });
 
-describe('Boleto de avión: /tours y detalle de tour', () => {
+describe('Boleto de avión: /tours, inicio de Revista y detalle de tour', () => {
   it('ToursView lo pone en el encabezado, en bucle lento', () => {
     const src = read('../components/ToursView.jsx');
     expect(src).toContain('BOLETO_AVION_SRC');
@@ -272,11 +273,28 @@ describe('Boleto de avión: /tours y detalle de tour', () => {
     expect(src).toContain('width={220}');
   });
 
-  it('ExperienceViewer lo pone junto a los botones de reserva', () => {
-    const src = read('../components/ExperienceViewer.jsx');
+  it('TripsView (Revista) lo pone grande al inicio, bajo el subtítulo y arriba de las píldoras', () => {
+    const src = read('../components/TripsView.jsx');
     expect(src).toContain('BOLETO_AVION_SRC');
-    expect(src).toContain('externalLinks.length > 0');
-    expect(src).toContain('width={180}');
+    expect(src).toContain('LottieAnim');
+    expect(src).toContain('speed={0.7}');
+    expect(src).toContain('width={320}');
+    expect(src).toContain('height={133}');
+    // Orden en la vista: subtítulo → boleto → píldoras de filtros.
+    // (Se ancla en el uso JSX, no en el import, que está arriba del todo.)
+    const iSubtitulo = src.indexOf('revista_subtitulo", "Historias');
+    const iBoleto = src.indexOf('<LottieAnim src={BOLETO_AVION_SRC}');
+    const iPildoras = src.indexOf('selectedKey={typeFilter}');
+    expect(iSubtitulo).toBeGreaterThan(-1);
+    expect(iBoleto).toBeGreaterThan(iSubtitulo);
+    expect(iPildoras).toBeGreaterThan(iBoleto);
+  });
+
+  it('ExperienceViewer ya NO lo pone en el detalle del tour', () => {
+    const src = read('../components/ExperienceViewer.jsx');
+    expect(src).not.toContain('BOLETO_AVION_SRC');
+    expect(src).not.toContain('LottieAnim');
+    expect(src).not.toContain('Reservar tour');
   });
 });
 
