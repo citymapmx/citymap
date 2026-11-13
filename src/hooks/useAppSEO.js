@@ -5,6 +5,8 @@ import { useUIStore } from '../store/useUIStore.js';
 import { useDataStore } from '../store/useDataStore.js';
 import { IS_WORLD, buildCityPath, getCountryCode } from '../lib/domain.js';
 import { eventUrl } from '../lib/eventUrls.js';
+import { CITY_TZ } from '../lib/constants.js';
+import { scheduleToOpeningHours, eventStartDate, eventEndDate, eventOffer } from '../lib/structuredData.js';
 
 export function useAppSEO({ city }) {
   const location = useLocation();
@@ -138,12 +140,10 @@ export function useAppSEO({ city }) {
         };
       }
       if (selected.schedule && typeof selected.schedule === "object") {
-        const dayMap = { lun: "Monday", mar: "Tuesday", mie: "Wednesday", jue: "Thursday", vie: "Friday", sab: "Saturday", dom: "Sunday" };
-        const hours = [];
-        for (const [key, val] of Object.entries(selected.schedule)) {
-          if (key === "type" || !val || /cerrado/i.test(val)) continue;
-          if (dayMap[key]) hours.push(`${dayMap[key]} ${val}`);
-        }
+        // Horario en formato válido de schema.org ("Mo 08:45-23:00"), igual
+        // que en api/og.js; el formato anterior con el día en inglés y la
+        // hora en 12 h no es válido.
+        const hours = scheduleToOpeningHours(selected.schedule);
         if (hours.length > 0) businessSchema.openingHours = hours;
       }
       try {
@@ -173,18 +173,28 @@ export function useAppSEO({ city }) {
       canonical = eventUrl(selectedEvent, BASE_URL);
       
       const countryCode = getCountryCode(selectedEvent.city_slug || activeCity, cities).toUpperCase();
-      schemaJson = JSON.stringify({
+      // Igual que en api/og.js: fecha CON hora y oferta con el precio real.
+      // Antes se leían date_start/date_end, que no existen en el evento:
+      // el JSON-LD del cliente no llevaba startDate ni endDate.
+      const evTz = CITY_TZ[String(selectedEvent.city_slug || "").split(",")[0]]
+        || CITY_TZ[activeCity] || "America/Mexico_City";
+      const evStart = eventStartDate(selectedEvent, evTz);
+      const evEnd = eventEndDate(selectedEvent, evTz);
+      const evOffer = eventOffer(selectedEvent);
+      const eventSchema = {
         "@context": "https://schema.org",
         "@type": "Event",
         "name": selectedEvent.title,
-        "startDate": selectedEvent.date_start,
-        "endDate": selectedEvent.date_end || selectedEvent.date_start,
+        "startDate": evStart,
+        "endDate": evEnd,
         "location": { "@type": "Place", "name": selectedEvent.venue_name || selectedEvent.location || cityCapitalized, "address": { "@type": "PostalAddress", "addressLocality": cityCapitalized, "addressCountry": countryCode } },
         "image": selectedEvent.image ? [selectedEvent.image] : [],
         "description": selectedEvent.description || "",
         "eventStatus": "https://schema.org/EventScheduled",
         "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode"
-      });
+      };
+      if (evOffer) eventSchema.offers = evOffer;
+      schemaJson = JSON.stringify(eventSchema);
     } else {
       // Rutas de nivel superior con título propio: una categoría activa de
       // otra vista (p. ej. restaurantes) no debe taparles el título.
