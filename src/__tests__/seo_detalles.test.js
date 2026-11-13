@@ -5,10 +5,10 @@ import og from '../../api/og.js';
 import robots from '../../api/robots.txt.js';
 
 // Fase 4 del plan SEO (13 nov 2026): los detalles chicos.
-// 1. og-image.png comprimida (504 KB -> ~94 KB, misma imagen, ahora
-//    720x402 con paleta de 96 colores: a tamaño de vista previa de
-//    enlace se ve igual; el límite de subida por CLI no admitía el
-//    archivo de 175 KB en 860x480).
+// 1. og-image.png comprimida (504 KB -> ~125 KB, misma imagen, ahora
+//    720x402 con paleta: a tamaño de vista previa de enlace se ve
+//    igual; el límite de subida por CLI no admitía el archivo de
+//    175 KB en 860x480).
 // 2. public/sitemap.xml y public/robots.txt obsoletos borrados (el
 //    generador scripts/generate-sitemap.js también se va: nada los
 //    referencia y el test de seo_routes ya exigía su ausencia).
@@ -86,7 +86,7 @@ describe('og-image.png comprimida', () => {
     // 720x402 (antes 860x480): a tamaño de vista previa de enlace la
     // imagen se ve igual; el ancho sigue sobrado para WhatsApp/Facebook.
     expect(pngSize(buf)).toEqual({ width: 720, height: 402 });
-    // Era 504099 bytes; la versión comprimida ronda 94 KB.
+    // Era 504099 bytes; la versión comprimida ronda 125 KB.
     expect(buf.length).toBeLessThan(150000);
     expect(statSync(path).size).toBe(buf.length);
   });
