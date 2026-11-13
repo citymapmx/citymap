@@ -157,6 +157,34 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
     expect(src).toContain("sb.get('store_categories'");
     expect(src).toContain('setSelectedId(style.id)');
   });
+
+  it('cuadrícula compacta de 3 por fila: círculo arriba, nombre abajo (ya no filas completas)', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    expect(src).toContain("gridTemplateColumns: 'repeat(3, 1fr)'");
+    expect(src).not.toContain("gridTemplateColumns: '1fr 1fr'");
+    // La celda es columna: el círculo va arriba y el nombre abajo, centrado.
+    expect(src).toContain("flexDirection: 'column'");
+    expect(src).toContain("textAlign: 'center'");
+    // Los 30 nombres siguen visibles en la cuadrícula.
+    const html = renderDesigner(CARRITO);
+    for (const label of ['Oro negro', 'Esmeralda', 'Perla', 'Espresso', 'Rosa claro', 'Coral', 'Ámbar']) {
+      expect(html).toContain(label);
+    }
+  });
+
+  it('el estilo seleccionado se marca claro: anillo en su primary y palomita sobre el círculo', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    expect(src).toContain('aria-pressed={isSelected}');
+    expect(src).toContain('0 0 0 5px ${styleTheme ? styleTheme.primary : t.text}');
+    expect(src).toContain('styleTheme.onPrimary');
+    // Con Perla guardada solo hay una palomita: la de Perla (Sin estilo no la lleva).
+    const htmlPerla = renderDesigner({ ...CARRITO, menu_style: 'perla' });
+    expect(htmlPerla.split('✓').length - 1).toBe(1);
+    expect(htmlPerla).toContain('aria-pressed="true"');
+    // Sin estilo, la única palomita es la de «Sin estilo».
+    const htmlSin = renderDesigner(CARRITO);
+    expect(htmlSin.split('✓').length - 1).toBe(1);
+  });
 });
 
 describe('Menú personalizado: entrada en la cuenta y migración (PR #291)', () => {

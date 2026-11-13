@@ -143,18 +143,24 @@ export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
           {LOYALTY_COLOR_CATEGORIES.map((cat) => (
             <div key={cat.id} style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: t.sub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>{cat.label}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                 {cat.styles.map((style) => {
                   const isSelected = selectedId === style.id;
+                  const styleTheme = menuThemeForStyle(style);
                   return (
                     <button
                       key={style.id}
                       onClick={() => setSelectedId(style.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14, border: isSelected ? `2px solid ${t.text}` : `1px solid ${t.border}`, background: isSelected ? (t.surface || t.bg) : 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                      aria-pressed={isSelected}
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '10px 4px', border: 'none', background: 'transparent', cursor: 'pointer' }}
                     >
-                      <span style={{ width: 28, height: 28, borderRadius: '50%', background: loyaltyStyleBackground(style), border: `1px solid ${t.border}`, flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: t.text, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{style.label}</span>
-                      {isSelected && <span style={{ fontSize: 14, color: t.text }}>✓</span>}
+                      <span style={{ position: 'relative', width: 52, height: 52, flexShrink: 0 }}>
+                        <span style={{ width: 52, height: 52, borderRadius: '50%', background: loyaltyStyleBackground(style), border: `1px solid ${t.border}`, display: 'block', boxShadow: isSelected ? `0 0 0 2px ${t.bg}, 0 0 0 5px ${styleTheme ? styleTheme.primary : t.text}` : 'none' }} />
+                        {isSelected && (
+                          <span style={{ position: 'absolute', right: -2, top: -2, width: 20, height: 20, borderRadius: '50%', background: styleTheme ? styleTheme.primary : t.text, color: styleTheme ? styleTheme.onPrimary : '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, border: `2px solid ${t.bg}` }}>✓</span>
+                        )}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: isSelected ? 800 : 600, color: isSelected ? (styleTheme ? styleTheme.primary : t.text) : t.text, textAlign: 'center', lineHeight: 1.3 }}>{style.label}</span>
                     </button>
                   );
                 })}
