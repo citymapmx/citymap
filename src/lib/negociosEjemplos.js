@@ -68,15 +68,20 @@ export const EJEMPLO_POR_PLAN = {
 };
 
 // «Ya están en CityMap»: tira de prueba social de /negocios con 8 negocios
-// REALES de la base (verificados por PostgREST el 11 nov 2026): status
-// approved, con foto (photo0 con HTTP 200 verificado) y calificación real
-// en google_ratings_cache. A diferencia de EJEMPLO_POR_PLAN, aquí SÍ se
-// guarda rating/review_count: NO son los valores por defecto de la base
-// (5.0 / 1), son el caché de Google tal como estaba el 11 nov 2026, y
-// sirven de reserva si el caché no cargó todavía: en vivo displayRating
-// prefiere el caché vigente y solo usa estos valores si no hay dato.
-// `googleRating: true` marca que el valor viene del caché de Google (por
-// eso la tarjeta muestra la «G»). `cityName` es el nombre de la tabla
+// REALES de la base (verificados por PostgREST el 11 nov 2026; planes
+// verificados el 12 nov 2026): status approved, con foto (photo0 con
+// HTTP 200 verificado) y, SOLO en los de pago (Destacado/Premium),
+// calificación real en google_ratings_cache. A diferencia de
+// EJEMPLO_POR_PLAN, en los de pago SÍ se guarda rating/review_count: NO
+// son los valores por defecto de la base (5.0 / 1), son el caché de
+// Google tal como estaba el 11 nov 2026, y sirven de reserva si el caché
+// no cargó todavía: en vivo displayRating prefiere el caché vigente y
+// solo usa estos valores si no hay dato. `googleRating: true` marca que
+// el valor viene del caché de Google (por eso la tarjeta muestra la
+// «G»). Los gratuitos NO llevan rating/review_count/googleRating: desde
+// el 12 nov 2026 las reseñas de Google solo se muestran en Destacado y
+// Premium, así que sus tarjetas no muestran calificación. `plan` es el
+// plan REAL del negocio en la base. `cityName` es el nombre de la tabla
 // cities (verificado). `slug` lleva el prefijo de ciudad; la URL de la
 // ficha es /<city_slug>/<slug sin el prefijo>. Si un negocio cambia su
 // foto o su calificación en la base, hay que actualizar su copia aquí.
@@ -91,6 +96,7 @@ export const YA_ESTAN_EN_CITYMAP = [
     city_slug: "guadalajara",
     cityName: "Guadalajara",
     category: "restaurantes",
+    plan: "premium",
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1791991014199_weowej.jpg" }],
     rating: 4.8, review_count: 8825, googleRating: true,
   },
@@ -101,6 +107,7 @@ export const YA_ESTAN_EN_CITYMAP = [
     city_slug: "guadalajara",
     cityName: "Guadalajara",
     category: "restaurantes",
+    plan: "premium",
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1792964914898_mz0ybd.webp" }],
     rating: 4.6, review_count: 23774, googleRating: true,
   },
@@ -111,6 +118,7 @@ export const YA_ESTAN_EN_CITYMAP = [
     city_slug: "zapopan",
     cityName: "Zapopan",
     category: "restaurantes",
+    plan: "premium",
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1790960701800_uppt95.jpeg" }],
     rating: 4.8, review_count: 6761, googleRating: true,
   },
@@ -121,8 +129,8 @@ export const YA_ESTAN_EN_CITYMAP = [
     city_slug: "zapopan",
     cityName: "Zapopan",
     category: "compras",
+    plan: "free",
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785468187660_0j99hh.jpg" }],
-    rating: 4.7, review_count: 7126, googleRating: true,
   },
   {
     id: "5d368352-5988-42c3-b79c-38eb5a388842",
@@ -131,8 +139,8 @@ export const YA_ESTAN_EN_CITYMAP = [
     city_slug: "tepic",
     cityName: "Tepic",
     category: "restaurantes",
+    plan: "free",
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785484593338_qjpzu.webp" }],
-    rating: 4.7, review_count: 963, googleRating: true,
   },
   {
     id: "7f903fdd-71e7-4828-be12-0172e80bd110",
@@ -141,8 +149,8 @@ export const YA_ESTAN_EN_CITYMAP = [
     city_slug: "puerto-vallarta",
     cityName: "Puerto Vallarta",
     category: "hospedaje",
+    plan: "free",
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785786662230_mruaob.avif" }],
-    rating: 4.6, review_count: 5503, googleRating: true,
   },
   {
     id: "8f0303be-2b0b-465d-a90a-0910432300b1",
@@ -151,6 +159,7 @@ export const YA_ESTAN_EN_CITYMAP = [
     city_slug: "ciudad-de-mexico",
     cityName: "Ciudad de México",
     category: "hospedaje",
+    plan: "premium",
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1786258865528_n6yadu.jpg" }],
     rating: 4.7, review_count: 20141, googleRating: true,
   },
@@ -161,6 +170,7 @@ export const YA_ESTAN_EN_CITYMAP = [
     city_slug: "playa-del-carmen",
     cityName: "Playa del Carmen",
     category: "ocio",
+    plan: "premium",
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785137020147_whdtc.jpg" }],
     rating: 4.8, review_count: 118896, googleRating: true,
   },

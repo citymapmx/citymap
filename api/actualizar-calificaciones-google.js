@@ -3,7 +3,8 @@
 // La invoca el cron de Vercel (vercel.json) el día 1 de cada mes a las 04:00 CST.
 // Pide a Places API (New) SOLO rating + userRatingCount (sin textos de
 // reseñas: es la categoría Enterprise, $20 por cada 1,000 llamadas, con
-// 1,000 gratis al mes; ~209 negocios con place_id = $0). El dato se guarda
+// 1,000 gratis al mes; ~111 negocios de pago (Destacado/Premium) con
+// place_id = $0; los gratuitos no se refrescan). El dato se guarda
 // en public.google_ratings_cache con vencimiento a 30 días: por reglas de
 // Google la calificación no se guarda fija en businesses, solo en caché
 // con expiración, y el front solo lee filas vigentes. Las reseñas propias
@@ -33,6 +34,11 @@ const CONCURRENCY = 10;
 const PLACE_IDS_BATCH = 20;
 const PLACE_IDS_CONCURRENCY = 5;
 const ADMIN_EMAIL = 'admin@cityguide.com';
+
+// Solo los planes de pago muestran reseñas de Google (decisión 12 Nov
+// 2026): 'destacado' y 'premium'. Un plan null, 'free' u otro se trata
+// como gratuito y se salta sin gastar llamadas a Places.
+const isPaidPlan = (plan) => plan === 'destacado' || plan === 'premium';
 
 const shiftDays = (iso, days) => {
   const d = new Date(iso);
@@ -91,13 +97,17 @@ async function handleCompletarPlaceIds(req, res) {
     // 1. Negocios aprobados sin google_place_id + mapa de ciudades.
     const rows = [];
     for (let offset = 0; ; offset += 1000) {
-      const r = await fetch(`${supabaseUrl}/rest/v1/businesses?select=id,name,address,lat,lng,city_slug,social_links&status=eq.approved&order=id.asc&limit=1000&offset=${offset}`, { headers });
+      const r = await fetch(`${supabaseUrl}/rest/v1/businesses?select=id,name,plan,address,lat,lng,city_slug,social_links&status=eq.approved&order=id.asc&limit=1000&offset=${offset}`, { headers });
       if (!r.ok) throw new Error(`PostgREST businesses: HTTP ${r.status}`);
       const batch = await r.json();
       rows.push(...batch);
       if (batch.length < 1000) break;
     }
-    const without = rows.filter((b) => !(b.social_links?.google_place_id || '').trim());
+    // Solo Destacado/Premium: los gratuitos sin place_id quedan fuera de
+    // without/remaining/targets (el loop del botón del admin termina
+    // igual). skippedFree = gratuitos sin place_id excluidos de la corrida.
+    const skippedFree = rows.filter((b) => !(b.social_links?.google_place_id || '').trim() && !isPaidPlan(b.plan)).length;
+    const without = rows.filter((b) => !(b.social_links?.google_place_id || '').trim() && isPaidPlan(b.plan));
     const remainingBefore = without.length;
     // exclude_ids: negocios ya intentados en tandas anteriores de esta
     // corrida (los ambiguos no se vuelven a consultar a Google).
@@ -114,7 +124,7 @@ async function handleCompletarPlaceIds(req, res) {
 
     if (dry) {
       return res.status(200).json({
-        ok: true, dry: true, remaining: remainingBefore,
+        ok: true, dry: true, remaining: remainingBefore, skippedFree,
         wouldProcess: targets.map((t) => ({ business_id: t.id, name: t.name, city_slug: t.city_slug })),
       });
     }
@@ -186,7 +196,7 @@ async function handleCompletarPlaceIds(req, res) {
 
     const alreadyFilled = ambiguous.filter((a) => a.reason === 'ya-tiene-place-id').length;
     return res.status(200).json({
-      ok: true, processed: targets.length, updated, ambiguous, failed,
+      ok: true, processed: targets.length, updated, ambiguous, failed, skippedFree,
       remaining: remainingBefore - updated.length - alreadyFilled,
     });
   } catch (err) {
@@ -235,7 +245,7 @@ export default async function handler(req, res) {
     // 1. Negocios aprobados con place_id de Google.
     const rows = [];
     for (let page = 0; ; page += 1000) {
-      const r = await fetch(`${supabaseUrl}/rest/v1/businesses?select=id,name,social_links&status=eq.approved&order=id.asc&limit=1000&offset=${page}`, { headers });
+      const r = await fetch(`${supabaseUrl}/rest/v1/businesses?select=id,name,plan,social_links&status=eq.approved&order=id.asc&limit=1000&offset=${page}`, { headers });
       if (!r.ok) throw new Error(`PostgREST businesses: HTTP ${r.status}`);
       const batch = await r.json();
       rows.push(...batch);
@@ -244,14 +254,21 @@ export default async function handler(req, res) {
     // place_id recortado; los que no empiezan por «ChIJ» no son IDs de
     // Google (hay strings CID y blancos en la base) y se saltan sin gastar
     // llamadas, contándolos como fallidos en la tanda que les toque.
-    const withPlaceId = rows
-      .map(b => ({ id: b.id, name: b.name || '', placeId: (b.social_links?.google_place_id || '').trim() || null }))
+    // Solo planes de pago (Destacado/Premium): los gratuitos con place_id
+    // se saltan sin llamar a Google y NO cuentan en withPlaceId,
+    // remaining ni processed, para que el loop del botón del admin
+    // termine igual. skippedFree = negocios aprobados con place_id
+    // saltados por ser gratuitos (plan 'free', null u otro).
+    const withPlaceIdAll = rows
+      .map(b => ({ id: b.id, name: b.name || '', plan: b.plan, placeId: (b.social_links?.google_place_id || '').trim() || null }))
       .filter(t => t.placeId);
+    const skippedFree = withPlaceIdAll.filter(t => !isPaidPlan(t.plan)).length;
+    const withPlaceId = withPlaceIdAll.filter(t => isPaidPlan(t.plan));
     const targets = withPlaceId.slice(offset, offset + limit);
     const remaining = Math.max(0, withPlaceId.length - offset - targets.length);
 
     if (dry) {
-      return res.status(200).json({ ok: true, dry: true, checked: rows.length, withPlaceId: withPlaceId.length, offset, remaining, wouldRefresh: targets.map(t => t.id) });
+      return res.status(200).json({ ok: true, dry: true, checked: rows.length, withPlaceId: withPlaceId.length, skippedFree, offset, remaining, wouldRefresh: targets.map(t => t.id) });
     }
 
     // 2. Borrar filas vencidas (el caché nunca guarda datos de más de 30 días).
@@ -307,7 +324,7 @@ export default async function handler(req, res) {
       if (!up.ok) throw new Error(`PostgREST upsert google_ratings_cache: HTTP ${up.status}`);
     }
 
-    return res.status(200).json({ ok: true, dry: false, checked: rows.length, withPlaceId: withPlaceId.length, offset, remaining, processed: targets.length, updated: updated.length, updatedItems, sinCalificacion: sinCalificacion.length, sinCalificacionItems: sinCalificacion, failed, deletedExpired });
+    return res.status(200).json({ ok: true, dry: false, checked: rows.length, withPlaceId: withPlaceId.length, skippedFree, offset, remaining, processed: targets.length, updated: updated.length, updatedItems, sinCalificacion: sinCalificacion.length, sinCalificacionItems: sinCalificacion, failed, deletedExpired });
   } catch (err) {
     console.error('actualizar-calificaciones-google error:', err);
     return res.status(500).json({ ok: false, error: String(err?.message || err) });

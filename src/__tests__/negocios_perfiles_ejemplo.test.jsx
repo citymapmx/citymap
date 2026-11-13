@@ -109,18 +109,30 @@ describe('Ejemplos por plan en /negocios', () => {
 
   it('la calificación se lee en vivo con displayRating: solo con dato real de Google (source google)', () => {
     // Dato real del caché (verificado por PostgREST el 11 nov 2026).
-    const conDato = displayRating({ id: AKAMI_ID }, { [AKAMI_ID]: { rating: 4.6, count: 47 } });
+    // Akami Sushi y Four Seasons son premium, así que sí muestran Google.
+    const conDato = displayRating({ id: AKAMI_ID, plan: 'premium' }, { [AKAMI_ID]: { rating: 4.6, count: 47 } });
     expect(conDato).toEqual({ rating: 4.6, count: 47, source: 'google' });
     // Four Seasons (ejemplo Premium): el caché SÍ tiene su dato (4.8,
     // 3,766 reseñas), así que con showStars la tarjeta lo muestra.
     const FOUR_SEASONS_ID = "6a49d84a-6feb-4b74-89a8-8f68bab27849";
-    expect(displayRating({ id: FOUR_SEASONS_ID }, { [FOUR_SEASONS_ID]: { rating: 4.8, count: 3766 } }))
+    expect(displayRating({ id: FOUR_SEASONS_ID, plan: 'premium' }, { [FOUR_SEASONS_ID]: { rating: 4.8, count: 3766 } }))
       .toEqual({ rating: 4.8, count: 3766, source: 'google' });
     // Sin dato en el caché, la tarjeta no muestra calificación: el
     // componente solo la pinta cuando source === 'google'.
-    const sinDato = displayRating({ id: AKAMI_ID }, {});
+    const sinDato = displayRating({ id: AKAMI_ID, plan: 'premium' }, {});
     expect(sinDato.source).toBe('citymap');
     expect(sinDato.rating).toBeNull();
+  });
+
+  it('Dalila (ejemplo gratuito) ignora el dato de Google del caché', () => {
+    // Regla 12 nov 2026: las reseñas de Google solo se muestran en
+    // Destacado y Premium. Dalila es gratuita: aunque el caché traiga su
+    // 4.9 (762), displayRating devuelve el conteo propio (aquí sin dato:
+    // rating null, sin «G»).
+    const DALILA_ID = "6b146d7a-2bd9-41c6-9947-799cc68e1267";
+    const disp = displayRating({ id: DALILA_ID, plan: 'free' }, { [DALILA_ID]: { rating: 4.9, count: 762 } });
+    expect(disp.source).toBe('citymap');
+    expect(disp.rating).toBeNull();
   });
 
   it('defecto 1: la fila de estado de Dalila envuelve en vez de recortar «Cerrado»', () => {

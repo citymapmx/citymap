@@ -10,7 +10,7 @@ import FeaturedCard from "./cards/FeaturedCard.jsx";
 import { getBusinessPricing, buildBusinessPlans } from "../lib/businessPlans.js";
 import { NEGOCIOS_STATS_FALLBACK, fetchNegociosStats } from "../lib/negociosStats.js";
 import { EJEMPLO_POR_PLAN, YA_ESTAN_EN_CITYMAP } from "../lib/negociosEjemplos.js";
-import { displayRating, formatReviewCount } from "../lib/googleRatings.js";
+import { displayRating, businessShowsGoogleRating, formatReviewCount } from "../lib/googleRatings.js";
 import { useCountUp } from "../hooks/useCountUp.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { Reveal } from "./ui/Reveal.jsx";
@@ -299,8 +299,9 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         (ver YA_ESTAN_EN_CITYMAP en negociosEjemplos.js). Va después de los
         planes y antes de las preguntas frecuentes. La calificación se lee
         en vivo con displayRating (caché de Google vigente cuando lo hay);
-        la «G» se muestra cuando el dato es de Google, incluido el valor
-        verificado que se guarda como reserva en la constante. */}
+        la «G» se muestra solo en negocios de pago (Destacado/Premium, regla
+        12 nov 2026), incluido el valor verificado que se guarda como
+        reserva en la constante (solo los de pago lo llevan). */}
         <section style={{ marginTop: 64 }}>
           <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_ya_estan_titulo", "Ya están en CityMap")}</h2></Reveal>
           <Reveal delay={90}><p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_ya_estan_sub", "Negocios reales que ya reciben clientes desde CityMap.")}</p></Reveal>
@@ -309,7 +310,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
               const shortSlug = b.slug.startsWith(`${b.city_slug}-`) ? b.slug.slice(b.city_slug.length + 1) : b.slug;
               const href = `/${b.city_slug}/${shortSlug}`;
               const disp = displayRating(b, googleRatings);
-              const isGoogle = disp.source === "google" || b.googleRating;
+              const isGoogle = businessShowsGoogleRating(b) && (disp.source === "google" || b.googleRating);
               return (
                 <a key={b.id} href={href} onClick={(e) => { if (navigate) { e.preventDefault(); navigate(href); } }} className="ya-estan-card">
                   <img src={b.photos[0].url} alt={b.name} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', display: 'block' }} />

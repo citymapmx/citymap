@@ -16,7 +16,7 @@ import { useNavigate, useNavigationType } from "react-router-dom";
 
 import { m, AnimatePresence } from "framer-motion";
 import { getBizTier } from '../lib/gamification';
-import { displayRating, formatReviewCount } from '../lib/googleRatings.js';
+import { displayRating, businessShowsGoogleRating, formatReviewCount } from '../lib/googleRatings.js';
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
@@ -105,6 +105,8 @@ export default function DetailView() {
 
   const mapsOk = useGMaps();
   const [googleData, setGoogleData] = useState(null);
+  // Reseñas de Google solo en negocios de pago (regla 12 nov 2026).
+  const showGoogleReviews = businessShowsGoogleRating(selected);
   const [asyncEmbedUrl, setAsyncEmbedUrl] = useState(null);
   const [showBooking, setShowBooking] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
@@ -130,7 +132,10 @@ export default function DetailView() {
   };
 
   useEffect(() => {
-    if (!mapsOk || !selected?.social_links?.google_place_id) return;
+    // Reseñas de Google (textos) solo en negocios de pago (regla 12 nov
+    // 2026): en gratuitos ni se piden a la API de Maps (también gastan
+    // cuota) ni se muestra la sección.
+    if (!mapsOk || !selected?.social_links?.google_place_id || !showGoogleReviews) return;
     try {
       const service = new window.google.maps.places.PlacesService(document.createElement('div'));
       service.getDetails({
@@ -148,7 +153,7 @@ export default function DetailView() {
     } catch (e) {
       console.error("Error fetching Google Reviews:", e);
     }
-  }, [mapsOk, selected?.social_links?.google_place_id]);
+  }, [mapsOk, selected?.social_links?.google_place_id, showGoogleReviews]);
 
   useQuery({
     queryKey: ['fullBusiness', selected?.id],
@@ -794,8 +799,8 @@ export default function DetailView() {
             </div>}
           </div>
 
-          {/* Reseñas de Google Maps */}
-          {selected.social_links?.google_place_id && googleData && googleData.reviews && googleData.reviews.length > 0 && (
+          {/* Reseñas de Google Maps (solo en negocios de pago, regla 12 nov 2026) */}
+          {showGoogleReviews && selected.social_links?.google_place_id && googleData && googleData.reviews && googleData.reviews.length > 0 && (
             <div style={{ padding: "32px 20px 0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
