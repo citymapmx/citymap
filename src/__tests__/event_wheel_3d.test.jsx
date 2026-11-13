@@ -65,6 +65,37 @@ describe('event wheel 3D', () => {
     expect(html).toContain('>Evento 1</button>');
   });
 
+  it('en teléfono con 7 eventos la rueda va a sangre (cara ancha y escena más alta)', () => {
+    // Simula el teléfono: solo la media query de ancho coincide. Este
+    // archivo corre sin DOM (window no existe): se crea un window mínimo
+    // con matchMedia y se restaura al terminar.
+    const origWindow = globalThis.window;
+    globalThis.window = {
+      matchMedia: (query) => ({
+        matches: query === '(max-width: 640px)',
+        media: query,
+        addEventListener() {},
+        removeEventListener() {},
+      }),
+    };
+    try {
+      const html = renderWheel({ events: events.slice(0, 7) });
+      expect(html.match(/event-wheel-face/g)).toHaveLength(7);
+      // Referencia ancha (215 px): cara 176x231 y radio 183 px, no los
+      // 150x197 y 156 px de la referencia de siempre.
+      expect(html).toContain('rotateY(0deg) translateZ(183px)');
+      expect(html).toContain('width:176px');
+      expect(html).toContain('height:231px');
+      expect(html).not.toContain('translateZ(156px)');
+      // La escena crece para que quepa la cara del frente, que se ve a
+      // 283 px de alto: 283 + 16 = 299 px (la escena del CSS es 262 px).
+      expect(html).toContain('height:299px');
+    } finally {
+      if (origWindow === undefined) delete globalThis.window;
+      else globalThis.window = origWindow;
+    }
+  });
+
   it('shows the heading without a subheading, same size as the other section titles', () => {
     const html = renderWheel();
     expect(html).toContain('Próximos eventos');

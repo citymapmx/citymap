@@ -5,7 +5,9 @@
    de la rueda; sin chevrones (PR #194). Formato corto: la tarjeta se VE a
    ~216x282 (nominal 162x212; la perspectiva la magnifica) y a ~178x234 en
    teléfono, dentro de una escena de 306 px (262 px en teléfono) que no tapa
-   el encabezado. El oscurecido lateral es un velo negro con opacidad
+   el encabezado. Con pocos eventos en teléfono la cara se ensancha
+   (referencia ancha, ver wheelMotion.js): la del frente se ve a ~215x283
+   y la escena crece en línea hasta ~299 px para que quepa. El oscurecido lateral es un velo negro con opacidad
    (.event-wheel-shade), nunca `filter`: el filtro cambiaba en cada
    fotograma y hacía parpadear la sección en blanco y negro al hacer scroll
    en el teléfono (PR #194). */
