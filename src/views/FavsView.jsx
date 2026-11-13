@@ -6,7 +6,6 @@ import Icon from "../components/ui/Icon.jsx";
 import FavoriteCollectionModal from "../components/FavoriteCollectionModal.jsx";
 import FavoritosMapa from "../components/favoritos/FavoritosMapa.jsx";
 import AgendaEventos from "../components/favoritos/AgendaEventos.jsx";
-import { getCityCenter } from "../lib/mapCentering.js";
 import { ordenarAgendaEventos } from "../lib/countdownEvento.js";
 import { loadVisitados, saveVisitados, loadAlertasCalendario, saveAlertasCalendario, toggleIdInList } from "../lib/favoritosLocales.js";
 import { getEventCalendarUrl } from "../lib/eventCalendar.js";
@@ -18,11 +17,11 @@ export default function FavsView({ hideHeader }) {
   const { t, lang } = useTranslation();
   const ctx = useAppContext();
   const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
-  const { mapPins, events, cities } = useDataStore(useShallow(s => ({ mapPins: s.mapPins, events: s.events, cities: s.cities })));
-  const { viewStyle, T, favIds, toggleFav, biz, navigate, setSelected, trackEvent, userCoords, getKm, collections, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, createCollection, updateCollection, deleteCollection, city, savedEventIds, setCollections, FONT_BIZ, goDir, setMovingBiz, setSelectedEvent, handleEventTap, movingBiz } = ctx;
-  // Mis Favoritos, propuesta C: filtro del mapa, pin seleccionado, lugares
-  // marcados como visitados y eventos con alerta de calendario (estos dos
-  // últimos viven en localStorage de este dispositivo).
+  const { mapPins, events } = useDataStore(useShallow(s => ({ mapPins: s.mapPins, events: s.events })));
+  const { viewStyle, T, favIds, toggleFav, biz, navigate, setSelected, trackEvent, userCoords, getKm, collections, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, createCollection, updateCollection, deleteCollection, savedEventIds, setCollections, FONT_BIZ, goDir, setMovingBiz, setSelectedEvent, handleEventTap, movingBiz } = ctx;
+  // Mis Favoritos, propuesta C: filtro de la lista, lugar seleccionado,
+  // lugares marcados como visitados y eventos con alerta de calendario
+  // (estos dos últimos viven en localStorage de este dispositivo).
   const [favFilter, setFavFilter] = useState('todos');
   const [favSelectedId, setFavSelectedId] = useState(null);
   const [visitados, setVisitados] = useState(() => loadVisitados());
@@ -48,7 +47,7 @@ export default function FavsView({ hideHeader }) {
                 return isNear(e, userCoords, activeCity);
               });
               const hasFavs = allSavedBiz.length > 0 || savedEv.length > 0;
-              // Propuesta C: mapa con los lugares guardados y agenda de
+              // Propuesta C: lista de lugares guardados y agenda de
               // eventos guardados. La fecha de hoy es la local del
               // dispositivo, como la cuenta atrás del artefacto.
               const todayStr = getLocalIsoDate();
@@ -56,11 +55,9 @@ export default function FavsView({ hideHeader }) {
                 const col = collections.find(c => (c.items || []).includes(id));
                 return col ? col.name : t('sin_organizar', 'Sin organizar');
               };
-              // Mapa real de Google: los lugares van tal cual (con lat/lng
-              // de la tabla businesses); el mapa pone el pin solo si tiene
-              // coordenadas reales. Centro de reserva: la ciudad activa.
+              // Sin mapa desde 13 nov 2026: los lugares van tal cual a la
+              // lista (con su colección y su estado de visitado).
               const favPlaces = allSavedBiz.map(b => ({ ...b, collectionName: collectionNameFor(b.id) }));
-              const favCityCenter = getCityCenter(cities.find(c => c.slug === activeCity), allSavedBiz);
               const favSelId = favSelectedId && favPlaces.some(p => p.id === favSelectedId) ? favSelectedId : favPlaces[0]?.id;
               const agendaEv = ordenarAgendaEventos(savedEv, todayStr);
               const handleToggleVisit = (biz) => {
@@ -136,7 +133,7 @@ export default function FavsView({ hideHeader }) {
               return <>
                 {/* TIRA DE COLECCIONES: las colecciones no se pierden; aquí
                     se ven, se abren y se crea una nueva. Los lugares van en
-                    el mapa de abajo, con su colección en la leyenda. */}
+                    la lista de abajo, con su colección. */}
                 {hasFavs && (
                   <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 20, scrollbarWidth: 'none' }}>
                     {collections.map(col => {
@@ -178,8 +175,6 @@ export default function FavsView({ hideHeader }) {
                     onOrganize={(b) => setMovingBiz(b)}
                     onToggleFav={toggleFav}
                     onOpen={(b) => { setSelected(b); navigate("detail"); }}
-                    cityCenter={favCityCenter}
-                    cityName={city?.name || activeCity}
                   />
                 )}
 

@@ -1,25 +1,11 @@
-// Coordenadas de los lugares de Mis Favoritos (propuesta C) y color de
-// portada determinista por id.
+// Color de portada determinista por id para los lugares de Mis
+// Favoritos (propuesta C).
 //
-// Las coordenadas salen de la tabla businesses (columnas lat/lng), las
-// mismas que usa el mapa principal (mapPins): un lugar sin coordenadas
-// válidas NO lleva pin en el mapa de Google, solo aparece en la leyenda.
-// Puro y testeable.
-
-export function parseCoord(v) {
-  const n = typeof v === 'number' ? v : parseFloat(String(v ?? '').trim());
-  return Number.isFinite(n) ? n : null;
-}
-
-// Lat/lng válidos de un lugar, o null si no tiene coordenadas reales.
-// Nunca inventa una posición.
-export function parseLatLng(p) {
-  const lat = parseCoord(p?.lat);
-  const lng = parseCoord(p?.lng);
-  if (lat === null || lng === null) return null;
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-  return { lat, lng };
-}
+// Antes este archivo también parseaba las coordenadas (parseLatLng /
+// parseCoord) para los pines del mapa de Google; el mapa se quitó de
+// Mis Favoritos el 13 nov 2026 y ya nada las usa. Queda solo el color,
+// que usa la agenda de eventos guardados (AgendaEventos.jsx) y la
+// tarjeta del lugar (FavoritosMapa.jsx). Puro y testeable.
 
 // Color de portada determinista por id (misma paleta que los avatares de
 // eventos privados): el mismo lugar siempre lleva el mismo color.
