@@ -45,9 +45,13 @@ export default async function handler(req) {
     // slug antes de buscar, así funcionan en ambos casos (también para
     // negocios con city_slug en mayúscula, p. ej. 'Zapopan').
     const byCity = new Map(cities.map(city => [normalizeCitySlug(city.slug), city]));
+    // Split por dominio: citymap.mx lista solo México; citymap.world
+    // lista solo las ciudades fuera de México (hoy 11). Ninguna URL
+    // aparece en los dos sitemaps.
+    const isMxCity = slug => byCity.has(slug) && (byCity.get(slug).country_code || 'mx').toLowerCase() === 'mx';
     const allowedCity = slug => {
       const norm = normalizeCitySlug(slug);
-      return byCity.has(norm) && (isWorld || (byCity.get(norm).country_code || 'mx').toLowerCase() === 'mx');
+      return byCity.has(norm) && (isWorld ? !isMxCity(norm) : isMxCity(norm));
     };
     // El sitemap solo emite el slug normalizado, aunque la base aún
     // tenga la forma vieja.
@@ -98,7 +102,11 @@ export default async function handler(req) {
       const date = modified && !Number.isNaN(Date.parse(modified)) ? new Date(modified).toISOString() : null;
       urls.set(origin + path, { images: imagesXml(images, title), date });
     };
-    ['/', '/mapa', '/eventos', '/revista', '/tours', '/negocios', '/about', '/privacy', '/terms'].forEach(path => add(path));
+    // /tours y /negocios son de México: en .world redirigen a .mx y no
+    // se listan en su sitemap.
+    const staticPages = ['/', '/mapa', '/eventos', '/revista', '/about', '/privacy', '/terms'];
+    if (!isWorld) staticPages.push('/tours', '/negocios');
+    staticPages.forEach(path => add(path));
     const categories = CATEGORY_SLUGS;
     for (const city of cities.filter(city => allowedCity(city.slug))) {
       const norm = normalizeCitySlug(city.slug);
@@ -121,7 +129,11 @@ export default async function handler(req) {
       if (event.slug || event.id) add(eventUrl(event), [event.img_url || event.img], event.updated_at, event.title);
     }
     for (const experience of experiences.filter(experience => belongs(experience.city_slug))) {
-      const city = cityList(experience.city_slug).find(allowedCity) || (byCity.has('tepic') ? 'tepic' : cities.find(city => allowedCity(city.slug))?.slug);
+      // La ciudad del artículo es la primera de sus ciudades que pertenece
+      // a este dominio; si ninguna pertenece, se usa otra ciudad del
+      // dominio (nunca una del otro: su URL saldría en el sitemap
+      // equivocado).
+      const city = cityList(experience.city_slug).find(allowedCity) || cities.find(c => allowedCity(c.slug))?.slug;
       if (city && (experience.slug || experience.id)) add(`/revista/${city}/${experience.slug || experience.id}`, asArray(experience.gallery), experience.updated_at, experience.title);
     }
     const xml = `<?xml version="1.0" encoding="UTF-8"?>

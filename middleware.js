@@ -1,6 +1,6 @@
 import sitemap from './api/sitemap.xml.js';
 import robots from './api/robots.txt.js';
-import { seoSite, seoSegments, CATEGORY_SLUGS, SYSTEM_FIRST_SEGMENTS, normalizeCitySlug } from './src/lib/seoRoutes.js';
+import { seoSite, seoSegments, CATEGORY_SLUGS, SYSTEM_FIRST_SEGMENTS, SEO_COUNTRIES, normalizeCitySlug, isWorldCitySlug, worldCityCountry } from './src/lib/seoRoutes.js';
 
 // Bots sociales que necesitan OG tags pre-renderizados
 const SOCIAL_BOTS = [
@@ -27,6 +27,68 @@ export default async function middleware(request) {
   // Run before static-file handling so build artifacts cannot shadow SEO endpoints.
   if (pathname === '/sitemap.xml') return sitemap(request);
   if (pathname === '/robots.txt') return robots(request);
+
+  // ── SPLIT POR DOMINIO (citymap.mx = México; citymap.world = internacional)
+  // Cada página tiene un solo hogar: las URLs cruzadas redirigen 308 al
+  // dominio que les toca, con la forma de ruta de ese dominio, y la ciudad
+  // sale ya normalizada (un solo salto: /mx/San-Pedro-Garza-García en
+  // .world va directo a /san-pedro-garza-garcia en .mx, sin pasar por la
+  // normalización de la Fase 3). En .world las páginas de
+  // ciudad/negocio/categoría llevan prefijo de país (p. ej. /fr/paris,
+  // /fr/paris/restaurantes); las de eventos, revista, /eventos/:ciudad y
+  // /mapa/:ciudad son planas en los dos dominios
+  // (/evento/:ciudad/:slug, /revista/:ciudad/:slug, /eventos/:ciudad).
+  // /tours y /negocios son de México: en .world redirigen a .mx.
+  // /login y las páginas de cuenta se quedan en los dos dominios.
+  // Solo rutas de página: nunca API, assets ni archivos.
+  if (!pathname.startsWith('/api/') && !pathname.startsWith('/assets/') &&
+      !pathname.startsWith('/_next/') && !pathname.startsWith('/web-next/') &&
+      !pathname.includes('.')) {
+    const decodePart = part => { try { return decodeURIComponent(part); } catch { return part; } };
+    // Segmentos decodificados para comparar (la í de García llega como %C3%AD).
+    const rawParts = pathname.split('/').filter(Boolean);
+    const parts = rawParts.map(decodePart);
+    const seg1 = parts[0] || '';
+    const seg2 = parts[1] || '';
+    const lower1 = seg1.toLowerCase();
+    const lower2 = seg2.toLowerCase();
+    const normCity = seg => normalizeCitySlug(decodePart(seg));
+    // Reconstruye la ruta con la ciudad normalizada en la posición dada
+    // (el resto de segmentos se deja tal cual).
+    const withCity = (cityIndex, city) => '/' + rawParts.map((p, i) => (i === cityIndex ? city : p)).join('/');
+    const to = (hostOrigin, path) => Response.redirect(new URL(path + url.search, hostOrigin), 308);
+    // Ciudad en el segundo segmento de una ruta plana
+    // (/evento/:ciudad/:slug, /revista/:ciudad/:slug,
+    // /experiencias/:ciudad/:slug, /eventos/:ciudad, /mapa/:ciudad).
+    // El /evento/:slug viejo (2 segmentos) no trae ciudad: no se toca.
+    const flatCitySeg = (['evento', 'revista', 'experiencias'].includes(lower1) && parts.length >= 3)
+      || (['eventos', 'mapa'].includes(lower1) && parts.length >= 2)
+      ? lower2 : null;
+    const flatCityIsCountry = flatCitySeg ? SEO_COUNTRIES.has(flatCitySeg) : false;
+    if (isWorld) {
+      if (lower1 === 'tours' || lower1 === 'negocios') return to('https://citymap.mx', pathname);
+      if (SEO_COUNTRIES.has(lower1)) {
+        // /mx/<ciudad>[/...] es una ciudad mexicana: a .mx sin el prefijo.
+        // /fr/<ciudad>[/...] ya está en su dominio con su forma canónica.
+        if (lower1 === 'mx' && seg2) return to('https://citymap.mx', '/' + [normCity(seg2), ...rawParts.slice(2)].join('/'));
+      } else if (flatCitySeg && !flatCityIsCountry && !isWorldCitySlug(flatCitySeg)) {
+        // Ruta plana de una ciudad mexicana: misma ruta en .mx.
+        return to('https://citymap.mx', withCity(1, normCity(seg2)));
+      } else if (seg1 && !SYSTEM_FIRST_SEGMENTS.has(lower1)) {
+        // /<ciudad>[/...]: ciudad internacional sin prefijo → su forma
+        // canónica en este dominio; ciudad mexicana (o desconocida) → .mx.
+        if (isWorldCitySlug(seg1)) return to('https://www.citymap.world', `/${worldCityCountry(normCity(seg1))}${withCity(0, normCity(seg1))}`);
+        return to('https://citymap.mx', withCity(0, normCity(seg1)));
+      }
+    } else if (flatCitySeg && !flatCityIsCountry && isWorldCitySlug(flatCitySeg)) {
+      // Ruta plana de una ciudad internacional: misma ruta en .world.
+      return to('https://www.citymap.world', withCity(1, normCity(seg2)));
+    } else if (seg1 && !SYSTEM_FIRST_SEGMENTS.has(lower1) && isWorldCitySlug(seg1)) {
+      // /<ciudad>[/...] internacional: a .world con su prefijo de país.
+      return to('https://www.citymap.world', `/${worldCityCountry(normCity(seg1))}${withCity(0, normCity(seg1))}`);
+    }
+  }
+
   const routeParts = seoSegments(pathname, isWorld);
   // The legacy "Planes" section was removed: /planes and /planes/* answer a real 404 (no redirect).
   if (routeParts[0] === 'planes') {
@@ -212,6 +274,11 @@ export default async function middleware(request) {
   else if (parts.length === 1 && RESERVED_FIRST_SEGS.has(seg1)) {
     ogUrl = new URL('/api/og', request.url);
     ogUrl.searchParams.set('vista', seg1);
+  }
+  // / → la rama de home de og.js: canónica y contenido según el host
+  // (en .world la canónica es citymap.world, no citymap.mx).
+  else if (parts.length === 0) {
+    ogUrl = new URL('/api/og', request.url);
   }
 
   if (ogUrl) {

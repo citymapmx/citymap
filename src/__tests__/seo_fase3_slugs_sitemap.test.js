@@ -54,13 +54,16 @@ describe('redirección 308 de slugs de ciudad viejos', () => {
 
   it.each([
     ['/San-Pedro-Garza-García', 'https://citymap.mx/san-pedro-garza-garcia'],
-    ['/Barcelona', 'https://citymap.mx/barcelona'],
+    // Barcelona es internacional: en .mx sale a .world con prefijo de
+    // país (el split por dominio tiene prioridad sobre la normalización
+    // en el mismo dominio).
+    ['/Barcelona', 'https://www.citymap.world/es/barcelona'],
     ['/San-Miguel-de-allende', 'https://citymap.mx/san-miguel-de-allende'],
     ['/San-Pedro-Garza-García/la-madalena', 'https://citymap.mx/san-pedro-garza-garcia/la-madalena'],
     ['/eventos/San-Miguel-de-allende', 'https://citymap.mx/eventos/san-miguel-de-allende'],
     ['/revista/San-Miguel-de-allende/visita-guiada', 'https://citymap.mx/revista/san-miguel-de-allende/visita-guiada'],
     ['/evento/San-Pedro-Garza-García/x', 'https://citymap.mx/evento/san-pedro-garza-garcia/x'],
-    ['/mapa/Barcelona', 'https://citymap.mx/mapa/barcelona'],
+    ['/mapa/Barcelona', 'https://www.citymap.world/mapa/barcelona'],
     ['/explorar/San-Miguel-de-allende', 'https://citymap.mx/explorar/san-miguel-de-allende'],
     ['/San-Pedro-Garza-García?q=pizza', 'https://citymap.mx/san-pedro-garza-garcia?q=pizza'],
   ])('redirige %s a %s', async (path, expected) => {
@@ -69,10 +72,10 @@ describe('redirección 308 de slugs de ciudad viejos', () => {
     expect(response.headers.get('location')).toBe(expected);
     expect(fetch).not.toHaveBeenCalled();
   });
-  it('en citymap.world conserva el prefijo de país', async () => {
+  it('una ciudad mexicana en .world sale a .mx ya normalizada', async () => {
     const response = await middleware(request('/mx/San-Pedro-Garza-García', 'www.citymap.world'));
     expect(response.status).toBe(308);
-    expect(response.headers.get('location')).toBe('https://www.citymap.world/mx/san-pedro-garza-garcia');
+    expect(response.headers.get('location')).toBe('https://citymap.mx/san-pedro-garza-garcia');
   });
   it('no redirige slugs ya normalizados ni rutas del sistema', async () => {
     expect(await middleware(request('/tepic'))).toBeUndefined();
@@ -146,13 +149,18 @@ describe('sitemap con slugs normalizados y lastmod', () => {
     // Categoría sin negocios en esa ciudad: sin lastmod.
     expect(entry(xml, 'https://citymap.mx/san-pedro-garza-garcia/restaurantes')).not.toContain('<lastmod>');
   });
-  it('en citymap.world incluye las 33 ciudades (París y Barcelona normalizadas)', async () => {
+  it('en citymap.world incluye solo las ciudades internacionales (París y Barcelona normalizadas)', async () => {
     const xml = await (await sitemap(request('/sitemap.xml', 'www.citymap.world', 'Googlebot'))).text();
     expect(xml).toContain('https://www.citymap.world/eventos/paris');
     expect(xml).toContain('https://www.citymap.world/eventos/barcelona');
     expect(xml).toContain('https://www.citymap.world/fr/paris');
     expect(xml).not.toContain('/Barcelona');
     expect(xml).not.toContain('https://citymap.mx/');
+    // Las ciudades mexicanas viven solo en el sitemap de .mx.
+    expect(xml).not.toContain('/eventos/tepic');
+    expect(xml).not.toContain('/mx/tepic');
+    expect(xml).not.toContain('/mx/zapopan');
+    expect(xml).not.toContain('/eventos/san-pedro-garza-garcia');
   });
 });
 

@@ -54,7 +54,9 @@ export function useAppSEO({ city }) {
     if (isGenericRoot) {
       // Portada global — representa todas las ciudades, no solo la actual
       title = `CityMap — Descubre negocios, lugares y eventos de todas las ciudades`;
-      desc = `Descubre negocios, lugares, artículos y eventos de todas nuestras ciudades: Guadalajara, Tepic, Puerto Vallarta, Zapopan, Ciudad de México y más. Encuentra dónde comer, qué hacer y qué está pasando con CityMap.`;
+      desc = IS_WORLD
+        ? `Descubre negocios, lugares, artículos y eventos de París y todas nuestras ciudades internacionales. Encuentra dónde comer, qué hacer y qué está pasando con CityMap.`
+        : `Descubre negocios, lugares, artículos y eventos de todas nuestras ciudades: Guadalajara, Tepic, Puerto Vallarta, Zapopan, Ciudad de México y más. Encuentra dónde comer, qué hacer y qué está pasando con CityMap.`;
     } else {
       title = `Qué hacer en ${cityCapitalized}: Dónde comer, eventos y lugares | CityMap`;
       desc = `Descubre dónde comer, qué hacer y qué está pasando en ${cityCapitalized}. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.`;
