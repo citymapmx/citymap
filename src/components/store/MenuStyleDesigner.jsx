@@ -3,10 +3,11 @@
 // El negocio elige uno de los 30 estilos de las tarjetas de lealtad para
 // su menú público; se guarda solo el id en businesses.menu_style (null =
 // sin estilo, el menú se ve como hoy). La vista previa usa el menú real
-// del negocio (primeras 2 secciones, hasta 3 productos por sección) con
-// el mismo mapeo de colores que BusinessStore: fondo degradado, píldora
-// activa y botón + en primary, títulos y precios en primary, texto del
-// estilo para nombres y descripciones.
+// del negocio (primeras 2 secciones, 1 producto por sección: compacta,
+// aprox. la mitad de alto que la lista completa, para que los estilos
+// queden visibles sin bajar tanto) con el mismo mapeo de colores que
+// BusinessStore: fondo degradado, píldora activa y botón + en primary,
+// títulos y precios en primary, texto del estilo para nombres y descripciones.
 import React, { useState, useEffect } from 'react';
 import Icon from '../ui/Icon.jsx';
 import { sb } from '../../lib/supabase.js';
@@ -35,7 +36,7 @@ export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
         const data = await sb.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,store_products(id,name,description,price,is_available,sort_order)&order=sort_order.asc&limit=2`);
         if (Array.isArray(data)) {
           setPreviewCats(data
-            .map((cat) => ({ ...cat, store_products: (cat.store_products || []).filter((p) => p.is_available).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).slice(0, 3) }))
+            .map((cat) => ({ ...cat, store_products: (cat.store_products || []).filter((p) => p.is_available).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).slice(0, 1) }))
             .filter((cat) => cat.store_products.length > 0));
         }
       } catch {
@@ -82,40 +83,40 @@ export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
         <div>
           <div style={{ fontSize: 12, fontWeight: 800, color: t.sub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Vista previa de tu menú</div>
           <div style={{ width: '100%', borderRadius: 20, overflow: 'hidden', background: theme ? theme.background : '#FAFAFA', border: `1px solid ${t.border}`, boxShadow: '0 12px 32px rgba(0,0,0,0.08)' }}>
-            <div style={{ padding: '16px 16px 4px' }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: theme ? theme.text : '#111111' }}>{business?.name || 'Tu negocio'}</div>
-              <div style={{ fontSize: 12, color: theme ? menuHexAlpha(theme.text, 'B3') : '#71717A', marginTop: 2 }}>
+            <div style={{ padding: '12px 14px 2px' }}>
+              <div style={{ fontSize: 15, fontWeight: 900, color: theme ? theme.text : '#111111' }}>{business?.name || 'Tu negocio'}</div>
+              <div style={{ fontSize: 11, color: theme ? menuHexAlpha(theme.text, 'B3') : '#71717A', marginTop: 1 }}>
                 {selectedStyle ? `Estilo: ${selectedStyle.label}` : 'Sin estilo · como se ve hoy'}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, padding: '10px 16px 4px' }}>
-              <span style={{ background: theme ? theme.primary : '#111111', color: theme ? theme.onPrimary : '#FFFFFF', padding: '6px 14px', borderRadius: 16, fontSize: 13, fontWeight: 700, textTransform: 'uppercase' }}>Todos</span>
-              <span style={{ background: theme ? menuHexAlpha(theme.text, '1A') : '#F3F4F6', color: theme ? theme.text : '#111111', padding: '6px 14px', borderRadius: 16, fontSize: 13, fontWeight: 700, textTransform: 'uppercase' }}>
+            <div style={{ display: 'flex', gap: 8, padding: '8px 14px 2px' }}>
+              <span style={{ background: theme ? theme.primary : '#111111', color: theme ? theme.onPrimary : '#FFFFFF', padding: '5px 11px', borderRadius: 16, fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>Todos</span>
+              <span style={{ background: theme ? menuHexAlpha(theme.text, '1A') : '#F3F4F6', color: theme ? theme.text : '#111111', padding: '5px 11px', borderRadius: 16, fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>
                 {previewCats[0]?.name || 'Tostadas'}
               </span>
             </div>
             {previewLoading ? (
-              <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: 13, color: theme ? menuHexAlpha(theme.text, 'B3') : '#71717A' }}>Cargando tu menú…</div>
+              <div style={{ padding: '14px 16px', textAlign: 'center', fontSize: 12, color: theme ? menuHexAlpha(theme.text, 'B3') : '#71717A' }}>Cargando tu menú…</div>
             ) : previewCats.length === 0 ? (
-              <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: 13, color: theme ? menuHexAlpha(theme.text, 'B3') : '#71717A', lineHeight: 1.5 }}>
+              <div style={{ padding: '14px 16px', textAlign: 'center', fontSize: 12, color: theme ? menuHexAlpha(theme.text, 'B3') : '#71717A', lineHeight: 1.5 }}>
                 Aún no tienes productos en tu menú.<br />Agrega productos para ver la vista previa con tu menú.
               </div>
             ) : previewCats.map((cat) => (
-              <div key={cat.id} style={{ padding: '8px 16px 16px' }}>
-                <div style={{ fontSize: 15, fontWeight: 800, textTransform: 'uppercase', color: theme ? theme.primary : '#EF4444', marginBottom: 4 }}>{cat.name}</div>
+              <div key={cat.id} style={{ padding: '6px 14px 10px' }}>
+                <div style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', color: theme ? theme.primary : '#EF4444', marginBottom: 3 }}>{cat.name}</div>
                 {cat.store_products.map((p) => (
-                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 0', borderBottom: `1px solid ${theme ? menuHexAlpha(theme.text, '26') : '#E5E7EB'}` }}>
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: `1px solid ${theme ? menuHexAlpha(theme.text, '26') : '#E5E7EB'}` }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', color: theme ? theme.text : '#111111' }}>{p.name}</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', color: theme ? theme.text : '#111111' }}>{p.name}</div>
                       {p.description && (
-                        <div style={{ fontSize: 12, color: theme ? menuHexAlpha(theme.text, 'B3') : '#6B7280', lineHeight: 1.4, marginTop: 2 }}>{p.description}</div>
+                        <div style={{ fontSize: 11, color: theme ? menuHexAlpha(theme.text, 'B3') : '#6B7280', lineHeight: 1.35, marginTop: 1 }}>{p.description}</div>
                       )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                       {p.price != null && (
-                        <span style={{ fontSize: 15, fontWeight: 800, color: theme ? theme.primary : '#111827' }}>${Number(p.price).toFixed(0)}</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: theme ? theme.primary : '#111827' }}>${Number(p.price).toFixed(0)}</span>
                       )}
-                      <span style={{ width: 30, height: 30, borderRadius: '50%', background: theme ? theme.primary : '#3F3F46', color: theme ? theme.onPrimary : '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, lineHeight: 1 }}>+</span>
+                      <span style={{ width: 26, height: 26, borderRadius: '50%', background: theme ? theme.primary : '#3F3F46', color: theme ? theme.onPrimary : '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, lineHeight: 1 }}>+</span>
                     </div>
                   </div>
                 ))}

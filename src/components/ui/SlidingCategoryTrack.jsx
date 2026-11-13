@@ -1,6 +1,6 @@
 import React, {useLayoutEffect, useRef, useState} from 'react';
 
-export default function SlidingCategoryTrack({selectedKey, dark, variant = 'pill', children, style, className = '', ...props}) {
+export default function SlidingCategoryTrack({selectedKey, dark, indicatorColor, variant = 'pill', children, style, className = '', ...props}) {
   const track = useRef(null);
   const [position, setPosition] = useState(null);
   useLayoutEffect(() => {
@@ -32,7 +32,7 @@ export default function SlidingCategoryTrack({selectedKey, dark, variant = 'pill
       .sliding-category-indicator { transition: transform 280ms cubic-bezier(.22,1,.36,1), width 280ms cubic-bezier(.22,1,.36,1), height 280ms cubic-bezier(.22,1,.36,1), background-color 180ms ease; }
       @media (prefers-reduced-motion: reduce) { .sliding-category-indicator { transition: none; } }
     `}</style>
-    {position && <span aria-hidden="true" className="sliding-category-indicator" style={{position:'absolute',top:0,left:0,zIndex:0,pointerEvents:'none',borderRadius:9999,background:dark ? '#FFFFFF' : '#0F172A',width:position.width,height:position.height,transform:`translate3d(${position.x}px,${position.y}px,0)`}} />}
+    {position && <span aria-hidden="true" className="sliding-category-indicator" style={{position:'absolute',top:0,left:0,zIndex:0,pointerEvents:'none',borderRadius:9999,background:indicatorColor || (dark ? '#FFFFFF' : '#0F172A'),width:position.width,height:position.height,transform:`translate3d(${position.x}px,${position.y}px,0)`}} />}
     {children}
   </div>;
 }

@@ -57,9 +57,10 @@ describe('modo oscuro: contraste en todo el sitio', () => {
     expect(src).not.toContain('color: isSel ? "#FFFFFF"');
   });
 
-  it('logo del pie del menú: se invierte a blanco en modo oscuro, como todos los demás logos (MapView, Footer, SideMenu)', () => {
+  it('logo del pie del menú: se invierte a blanco en modo oscuro, como todos los demás logos (MapView, Footer, SideMenu); con estilo, según la última parada del degradado', () => {
     const src = read('../components/store/BusinessStore.jsx');
-    expect(src).toContain('filter: dark ? "brightness(0) invert(1)" : "brightness(0)"');
+    expect(src).toContain('dark ? "brightness(0) invert(1)" : "brightness(0)"');
+    expect(src).toContain("textOnMenuSurface(menuTheme.lastColor) === '#FFFFFF'");
     expect(src).not.toContain('filter: "brightness(0)"');
   });
 
@@ -125,11 +126,12 @@ describe('modo oscuro: contraste en todo el sitio', () => {
     expect(src).toContain('color={isElite ? "rgba(255,255,255,0.2)" : (dark ? "#71717A" : T.border)}');
   });
 
-  it('aviso legal del pie del menú: gris claro en modo oscuro (estaba invertido: gris oscuro en oscuro) y sin opacity que lo apagara', () => {
+  it('aviso legal del pie del menú: gris claro en modo oscuro (estaba invertido: gris oscuro en oscuro) y sin opacity que lo apagara; con estilo, usa el texto del tema atenuado', () => {
     const src = read('../components/store/BusinessStore.jsx');
     const at = src.indexOf('Aviso legal');
     const block = src.slice(at - 400, at + 100);
-    expect(block).toContain("color: dark ? '#A1A1AA' : '#71717A'");
+    expect(block).toContain("menuTheme ? menuHexAlpha(menuTheme.text, 'B3')");
+    expect(block).toContain("dark ? '#A1A1AA' : '#71717A'");
     expect(block).not.toContain('opacity: 0.8');
   });
 
