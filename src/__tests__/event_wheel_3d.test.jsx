@@ -45,6 +45,19 @@ describe('event wheel 3D', () => {
     expect(html).not.toContain('Evento 12');
   });
 
+  it('with 7 events (a city like Tepic) the drum keeps the global radius, not a smaller one', () => {
+    const html = renderWheel({ events: events.slice(0, 7) });
+    expect(html.match(/event-wheel-face/g)).toHaveLength(7);
+    expect(html.match(/event-wheel-dot[ "]/g)).toHaveLength(7);
+    // Radio fijo de 10 caras (249 px en escritorio): con 7 eventos el
+    // tambor medía 168 px y se veía chico y centrado en la página de
+    // ciudad; ahora mide lo mismo que el del inicio global.
+    expect(html).toContain('rotateY(0deg) translateZ(249px)');
+    expect(html).not.toContain('translateZ(168px)');
+    // La cara del frente sigue siendo la primera.
+    expect(html).toContain('>Evento 1</button>');
+  });
+
   it('shows the heading without a subheading, same size as the other section titles', () => {
     const html = renderWheel();
     expect(html).toContain('Próximos eventos');
