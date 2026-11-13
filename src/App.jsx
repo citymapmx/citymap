@@ -26,6 +26,7 @@ import { prefetchLoyaltyEntries, clearPrefetchedLoyaltyEntries } from './lib/loy
 import { SPRING_UI } from './lib/spring.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
 import { sectionPathForCity, isSectionCityPath } from './lib/sectionRouting.js';
+import { isRevistaArticlePath } from './lib/revistaRoute.js';
 import { eventUrl, resolveEventSlug } from './lib/eventUrls.js';
 import { isStayOnInitialPath, resolveHomePath } from './lib/initialRoute.js';
 import Icon from './components/ui/Icon.jsx';
@@ -1528,6 +1529,7 @@ useEffect(() => {
           !location.pathname.startsWith("/stats/") && 
           !location.pathname.includes("/lugar/") && 
           !location.pathname.includes("/evento/") &&
+          !isRevistaArticlePath(location.pathname) &&
           !location.pathname.endsWith("/menu")) && (
           <div style={{ 
             position: "fixed", 
