@@ -27,6 +27,7 @@ import { useShallow } from 'zustand/react/shallow';
 import * as dbService from '../services/dbService';
 import useTimeStore from "../store/useTimeStore.js";
 import Icon from "../components/ui/Icon.jsx";
+import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import SaveHeartButton from "../components/ui/SaveHeartButton.jsx";
 import CouponCard from "../components/ui/CouponCard.jsx";
 import StarRow from "../components/ui/StarRow.jsx";
@@ -1067,9 +1068,16 @@ export default function DetailView() {
                   BRUNCH» intactos). Zoom mayor (1.25+) sí recorta. */}
               <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}`, boxSizing: 'border-box' }}>
                 {(selected.logo_url || selected.logo) ? (
-                  <img
+                  // Logo con prioridad (hallazgo #7): antes era un <img>
+                  // plano con el original entero (132 KB en Carrito La
+                  // Paz); ahora se pide el render 200×200 (~10 KB) con
+                  // eager + fetchpriority high, sin fundido tardío.
+                  <OptimizedImage
                     src={selected.logo_url || selected.logo}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.12)' }}
+                    widthRequest={200}
+                    heightRequest={200}
+                    priority
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'translateZ(0) scale(1.12)' }}
                     alt={selected.name}
                   />
                 ) : (

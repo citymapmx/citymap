@@ -129,8 +129,8 @@ describe('modo oscuro: contraste en todo el sitio', () => {
     // /pedido.png que sigue en contain) va en cover y con zoom.
     const logoAt = block.indexOf('selected.logo_url || selected.logo');
     expect(logoAt).toBeGreaterThan(-1);
-    expect(block.slice(logoAt, logoAt + 300)).toContain("objectFit: 'cover'");
-    expect(block.slice(logoAt, logoAt + 300)).toContain('scale(1.12)');
+    expect(block.slice(logoAt, logoAt + 800)).toContain("objectFit: 'cover'");
+    expect(block.slice(logoAt, logoAt + 800)).toContain('scale(1.12)');
   });
 
   it('el menú ya NO tiene modal «¿Cómo nos visitas hoy?» que lo tape (hallazgo #2): el logo en círculo BLANCO con cover y zoom vive en la pantalla de carga única', () => {
@@ -151,12 +151,17 @@ describe('modo oscuro: contraste en todo el sitio', () => {
     expect(store).not.toContain('¿Cómo nos visitas hoy?');
     const screen = read('../components/store/MenuLoadingScreen.jsx');
     expect(screen).toContain("background: '#FFFFFF'");
-    const logoAt = screen.indexOf('getThumbUrl(business.logo_url || business.logo, 200, 200)');
+    // Logo 200×200 con prioridad (hallazgo #7): URL original +
+    // widthRequest/heightRequest en OptimizedImage, en vez del
+    // getThumbUrl precalculado sin prioridad.
+    const logoAt = screen.indexOf('src={business.logo_url || business.logo}');
     expect(logoAt).toBeGreaterThan(-1);
+    expect(screen.slice(logoAt, logoAt + 300)).toContain('widthRequest={200}');
+    expect(screen.slice(logoAt, logoAt + 300)).toContain('priority');
     expect(screen.slice(logoAt, logoAt + 300)).toContain("objectFit: 'cover'");
     expect(screen.slice(logoAt, logoAt + 300)).toContain('scale(1.12)');
     // El encabezado del menú sigue en cover (no tenía el problema).
-    const header = store.slice(store.indexOf('Profile Logo Circular Superpuesto'), store.indexOf('Profile Logo Circular Superpuesto') + 1500);
+    const header = store.slice(store.indexOf('Profile Logo Circular Superpuesto'), store.indexOf('Profile Logo Circular Superpuesto') + 2000);
     expect(header).toContain("objectFit: 'cover'");
   });
 

@@ -160,6 +160,13 @@ export default memo(function BusinessCard({
   showStars = true
 }) {
   const thumb = b.photos?.[0] || (b.banner_url ? { url: b.banner_url } : null) || (b.logo_url ? { url: b.logo_url } : null);
+  // Placeholder de color mientras carga la foto de la tarjeta
+  // (hallazgo #7): antes se pedía además un thumb 20×20 al Render API
+  // solo para el desenfoque; ahora el fondo de color hace de
+  // placeholder y la foto aparece con fundido.
+  const thumbPlaceholder = dark
+    ? 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)'
+    : 'linear-gradient(135deg, #EDEFF2 0%, #E2E6EB 100%)';
   const [showPlus, setShowPlus] = useState(false);
   const { t } = useTranslation();
   const googleRatings = useDataStore(s => s.googleRatings);
@@ -253,7 +260,7 @@ export default memo(function BusinessCard({
                   variants={{ hover: { scale: 1.08 } }} 
                   transition={{ duration: 0.4, ease: "easeOut" }} 
                   src={getThumbUrl(thumb.url, 300, 300)} 
-                  thumbSrc={getThumbUrl(thumb.url, 20, 20)}
+                  placeholder={thumbPlaceholder}
                   srcSet={getThumbSrcSet(thumb.url, SRCSET_THUMB, 400)}
                   sizes="135px"
                   alt={b.name} 
@@ -349,7 +356,7 @@ export default memo(function BusinessCard({
                 variants={{ hover: { scale: 1.08 } }} 
                 transition={{ duration: 0.4, ease: "easeOut" }} 
                 src={getThumbUrl(thumb.url, 600, 400)} 
-                thumbSrc={getThumbUrl(thumb.url, 20, 20)}
+                placeholder={thumbPlaceholder}
                 srcSet={getThumbSrcSet(thumb.url, SRCSET_CARD, 533)}
                 sizes="(max-width: 640px) 100vw, 400px"
                 alt={b.name} 
@@ -419,7 +426,7 @@ export default memo(function BusinessCard({
                 variants={{ hover: { scale: 1.08 } }} 
                 transition={{ duration: 0.4, ease: "easeOut" }} 
                 src={getThumbUrl(thumb.url, 800, 600)} 
-                thumbSrc={getThumbUrl(thumb.url, 20, 20)}
+                placeholder={thumbPlaceholder}
                 srcSet={getThumbSrcSet(thumb.url, SRCSET_CARD, 600)}
                 sizes="(max-width: 640px) 100vw, 800px"
                 alt={b.name} 

@@ -85,7 +85,7 @@ describe('2) el logo del modal «¿Cómo nos visitas hoy?» llena el círculo', 
 
   it('el logo del encabezado del menú sigue en cover sin zoom (no se tocó)', () => {
     const src = read('../components/store/BusinessStore.jsx');
-    const header = src.slice(src.indexOf('Profile Logo Circular Superpuesto'), src.indexOf('Profile Logo Circular Superpuesto') + 1500);
+    const header = src.slice(src.indexOf('Profile Logo Circular Superpuesto'), src.indexOf('Profile Logo Circular Superpuesto') + 2000);
     expect(header).toContain("objectFit: 'cover'");
     expect(header).not.toContain('scale(1.12)');
   });
@@ -121,7 +121,11 @@ describe('3) la pantalla de carga del menú usa el tema del negocio', () => {
   it('la carga muestra el logo y el nombre del negocio, no solo «Cargando menú…» y barras', () => {
     const block = loadingBlock();
     expect(block).toContain('business.name');
-    expect(block).toContain('getThumbUrl(business.logo_url');
+    // Logo con prioridad (hallazgo #7): URL original + 200×200 con
+    // priority, en vez del getThumbUrl precalculado sin prioridad.
+    expect(block).toContain('src={business.logo_url || business.logo}');
+    expect(block).toContain('widthRequest={200}');
+    expect(block).toContain('priority');
     expect(block).toContain('Cargando {storeLabel}');
   });
 

@@ -1,7 +1,7 @@
 import {isCatalogBusiness} from '../../lib/storePresentation.js';
 import StorePromotions from './StorePromotions.jsx';
 import SlidingCategoryTrack from '../ui/SlidingCategoryTrack.jsx';
-import { useState, useEffect, useRef, useCallback, useContext } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import Icon from '../ui/Icon.jsx';
@@ -15,10 +15,10 @@ import { useDataStore } from '../../store/useDataStore.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { AppContext } from '../../context/AppContext.jsx';
  
-import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic, SRCSET_THUMB } from '../../lib/utils.js';
+import { isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanShortAddress, haptic, SRCSET_THUMB } from '../../lib/utils.js';
 import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
-import { isCategoryVisibleNow, categoryHasSchedule, categoryScheduleLabel12h, offHoursMessage } from '../../lib/menuCategoryHours.js';
+import { isCategoryVisibleNow, categoryHasSchedule, categoryScheduleLabel12h, offHoursMessage, menuTimeKey } from '../../lib/menuCategoryHours.js';
 import { resolveMenuTheme, menuHexAlpha, textOnMenuSurface } from '../../lib/menuColorStyles.js';
 import { fetchStoreCategories } from '../../lib/storeCategories.js';
 import { resolveMenuIntent, readSavedMenuIntent, saveMenuIntent } from '../../lib/menuIntent.js';
@@ -37,6 +37,14 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   const loading = initialCategories ? false : fetching;
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [menuSearch, setMenuSearch] = useState('');
+  // Búsqueda con debounce (hallazgo #8): el input reacciona al instante
+  // (value={menuSearch}), pero el filtro solo se aplica 180 ms después
+  // de la última tecla, para no re-renderizar todo el menú por tecla.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(menuSearch), 180);
+    return () => clearTimeout(id);
+  }, [menuSearch]);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('cg_menu_view') || 'list');
   
   useEffect(() => {
@@ -90,7 +98,17 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   // predefinido (menu_style); sin tema, el menú se ve exacto como hoy.
   // Con tema, fondo, píldora activa, títulos, precios y botones + usan
   // sus colores.
-  const menuTheme = resolveMenuTheme(business);
+  // Memoizado por sus entradas reales (estilo + personalizado):
+  // resolveMenuTheme construye un objeto nuevo en cada llamada y el
+  // tema se usa como identidad en los useMemo de abajo (menuT,
+  // StorePromotions memoizado). Se pasan solo los dos campos que
+  // lee el resolvedor, para que el memo no se rompa si el objeto
+  // negocio cambia de identidad sin cambiar el tema.
+  const { menu_custom, menu_style } = business || {};
+  const menuTheme = useMemo(
+    () => resolveMenuTheme({ menu_custom, menu_style }),
+    [menu_custom, menu_style]
+  );
 
   // El menú público NUNCA va en modo oscuro (nov 2026, Jonathan): sin
   // estilo elegido, siempre claro aunque el teléfono/app esté en oscuro.
@@ -99,7 +117,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   // Paleta clara del menú cuando no hay estilo: se ignora el T oscuro que
   // llegue de la app (fondos, textos y bordes claros para el menú, la
   // promo, el modal de producto y el carrito).
-  const menuT = menuTheme ? T : { ...(T || {}), bg: '#FFFFFF', border: '#E4E4E7', text: '#18181B', sub: '#71717A', surface: '#F4F4F5', white: '#FFFFFF', green: '#16A34A', dark: false };
+  const menuT = useMemo(() => (menuTheme ? T : { ...(T || {}), bg: '#FFFFFF', border: '#E4E4E7', text: '#18181B', sub: '#71717A', surface: '#F4F4F5', white: '#FFFFFF', green: '#16A34A', dark: false }), [menuTheme, T]);
 
   const handleHeartClick = (e) => {
     if (e) e.stopPropagation();
@@ -154,16 +172,63 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   // sin recargar la página.
   const timeZone = CITY_TZ[business.city_slug] || 'America/Mazatlan';
   const [now, setNow] = useState(() => new Date());
+  // Tick de 60 s (hallazgo #8): solo re-renderiza si cambió algo que
+  // depende de la hora (firma menuTimeKey). Sin cambios, el menú no se
+  // vuelve a pintar cada minuto. Las entradas actuales (negocio,
+  // categorías, zona horaria) se leen de un ref para no recrear el
+  // intervalo; la firma vigente se guarda en otro ref y se actualiza
+  // en cada render con la hora actual.
+  const menuTimeDepsRef = useRef({ business, categories, timeZone });
+  menuTimeDepsRef.current = { business, categories, timeZone };
+  const lastMenuTimeKeyRef = useRef(null);
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60000);
+    lastMenuTimeKeyRef.current = menuTimeKey({ business, categories, now, timeZone });
+  }, [business, categories, now, timeZone]);
+  useEffect(() => {
+    const id = setInterval(() => {
+      const next = new Date();
+      const { business: b, categories: cats, timeZone: tz } = menuTimeDepsRef.current;
+      if (menuTimeKey({ business: b, categories: cats, now: next, timeZone: tz }) !== lastMenuTimeKeyRef.current) {
+        setNow(next);
+      }
+    }, 60000);
     return () => clearInterval(id);
   }, []);
 
   // Las secciones con horario ya NO se ocultan fuera de su ventana (opción A,
   // nov 2026): siempre se muestran, atenuadas, y al tocar avisan que están
   // fuera de servicio. Una sección sin horario siempre está en horario.
-  const isCatOffHours = (c) => categoryHasSchedule(c) && !isCategoryVisibleNow(c, { now, timeZone });
-  const activeCategories = categories.filter(c => c.store_products && c.store_products.length > 0);
+  const isCatOffHours = useCallback((c) => categoryHasSchedule(c) && !isCategoryVisibleNow(c, { now, timeZone }), [now, timeZone]);
+  const activeCategories = useMemo(() => categories.filter(c => c.store_products && c.store_products.length > 0), [categories]);
+
+  // Lista filtrada memoizada (hallazgo #8): el map/filter sobre todas
+  // las categorías ya no corre en cada render; solo cuando cambian las
+  // categorías o la búsqueda ya con debounce. Va antes de los retornos
+  // tempranos porque los hooks no pueden ser condicionales.
+  const searchLower = debouncedSearch.toLowerCase().trim();
+  const filteredCategories = useMemo(() => (
+    searchLower
+      ? activeCategories.map(cat => ({
+          ...cat,
+          store_products: cat.store_products.filter(p =>
+            p.is_available && p.name.toLowerCase().includes(searchLower)
+          )
+        })).filter(cat => cat.store_products.length > 0)
+      : activeCategories
+  ), [activeCategories, searchLower]);
+
+  // Productos para las promos memoizados (hallazgo #8): el flatMap ya no
+  // corre en cada render. El onSelect estable (useCallback) deja que
+  // StorePromotions memoizado no se vuelva a pintar con cada tecla.
+  const promotionProducts = useMemo(() => (
+    activeCategories.flatMap(cat => (cat.store_products || []).map(product => ({ ...product, cat_name: cat.name })))
+  ), [activeCategories]);
+  const handlePromotionSelect = useCallback((p) => {
+    // Una promoción de una sección fuera de horario no abre el modal: avisa.
+    const cat = categories.find((c) => c.id === p.category_id);
+    if (cat && isCatOffHours(cat)) { showOffHoursNotice(cat); return; }
+    setSelectedProduct(p);
+  }, [categories, isCatOffHours, showOffHoursNotice]);
 
   useEffect(() => {
     if (!activeTabId && activeCategories.length > 0) {
@@ -211,7 +276,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
     });
 
     return () => observer.disconnect();
-  }, [activeCategories, menuSearch]);
+  }, [activeCategories, debouncedSearch]);
 
   if (loading) {
     // Una sola pantalla de carga del menú (hallazgo #2): la misma que
@@ -233,17 +298,6 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
     }
     return null; // Don't show anything if there is no menu and it's embedded in the profile
   }
-
-  // Filter products by search
-  const searchLower = menuSearch.toLowerCase().trim();
-  const filteredCategories = searchLower
-    ? activeCategories.map(cat => ({
-        ...cat,
-        store_products: cat.store_products.filter(p =>
-          p.is_available && p.name.toLowerCase().includes(searchLower)
-        )
-      })).filter(cat => cat.store_products.length > 0)
-    : activeCategories;
 
   const previewProducts = [];
   let totalProducts = 0;
@@ -429,10 +483,15 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                   justifyContent: 'center'
                 }}>
                   {(business.logo_url || business.logo) ? (
-                    <OptimizedImage 
-                      src={getThumbUrl(business.logo_url || business.logo, 200, 200)} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                      alt="Logo" 
+                    // Logo con prioridad (hallazgo #7): está arriba del
+                    // todo (96 px) y con lazy + fundido llegaba tarde.
+                    <OptimizedImage
+                      src={business.logo_url || business.logo}
+                      widthRequest={200}
+                      heightRequest={200}
+                      priority
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      alt="Logo"
                     />
                   ) : (
                     <Icon name="store" size={40} color="#6B7280" />
@@ -551,12 +610,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             )}
 
             <div style={{ paddingBottom: cartCount > 0 ? 100 : 80 }}>
-      <StorePromotions products={activeCategories.flatMap(cat=>(cat.store_products||[]).map(product=>({...product,cat_name:cat.name})))} intent={menuIntent} timeZone={timeZone} T={menuT} onSelect={(p) => {
-        // Una promoción de una sección fuera de horario no abre el modal: avisa.
-        const cat = categories.find((c) => c.id === p.category_id);
-        if (cat && isCatOffHours(cat)) { showOffHoursNotice(cat); return; }
-        setSelectedProduct(p);
-      }} />
+      <StorePromotions products={promotionProducts} intent={menuIntent} timeZone={timeZone} T={menuT} onSelect={handlePromotionSelect} />
       {/* Sticky Header: Search + Tabs. Con estilo, fondo sólido con la
           primera parada del degradado (menuTheme.firstColor): sin blur, el
           navegador ya no repinta la zona esmerilada en cada frame al bajar
@@ -579,7 +633,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               placeholder={`Buscar en el ${storeLabel}`}
               style={{ width: '100%', padding: '12px 16px 12px 40px', borderRadius: 12, border: 'none', background: dark ? '#232326' : '#F3F4F6', color: dark ? '#FFFFFF' : '#111111', fontSize: 16, fontWeight: 500, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
             />
-            {menuSearch && <button aria-label="Borrar búsqueda de productos" onClick={() => setMenuSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><Icon name="x" size={16} color={dark ? '#A1A1AA' : '#6B7280'} /></button>}
+            {menuSearch && <button aria-label="Borrar búsqueda de productos" onClick={() => { setMenuSearch(''); setDebouncedSearch(''); }} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><Icon name="x" size={16} color={dark ? '#A1A1AA' : '#6B7280'} /></button>}
           </div>
           <div style={{ display: 'flex', background: dark ? '#232326' : '#F3F4F6', borderRadius: 12, padding: 4 }}>
             <button 
@@ -655,7 +709,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
       {filteredCategories.length === 0 && searchLower && (
         <div style={{ padding: '40px 20px', textAlign: 'center' }}>
           <Icon name="search" size={32} color={menuT.border} />
-          <p style={{ marginTop: 12, fontSize: 15, color: menuT.sub, fontWeight: 600 }}>No se encontraron productos para "{menuSearch}"</p>
+          <p style={{ marginTop: 12, fontSize: 15, color: menuT.sub, fontWeight: 600 }}>No se encontraron productos para "{debouncedSearch}"</p>
         </div>
       )}
 

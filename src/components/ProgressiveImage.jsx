@@ -3,9 +3,15 @@ import { m } from "framer-motion";
 
 const globalLoadedImages = new Set();
 
+// Placeholder de color mientras carga la foto real (hallazgo #7, nov
+// 2026): antes cada tarjeta pedía además un thumb de 20×20 al Render
+// API solo para el desenfoque — una petición extra por tarjeta (con 20
+// tarjetas, 40 peticiones de imagen en la primera tanda). Ahora el
+// fondo de color/gradiente hace de placeholder y la foto real aparece
+// con un fundido suave al cargar. Sin thumb: la mitad de peticiones,
+// mismo aspecto.
 export default function ProgressiveImage({
   src,
-  thumbSrc,
   alt,
   style = {},
   className = "",
@@ -13,10 +19,13 @@ export default function ProgressiveImage({
   transition,
   // srcset del mismo patrón que OptimizedImage: cadena ya construida con
   // getThumbSrcSet (el candidato mayor nunca supera el ancho de `src`) y
-  // sizes con el ancho en pantalla del hueco. Solo van en la imagen real,
-  // no en el placeholder borroso (20 px).
+  // sizes con el ancho en pantalla del hueco. Solo va en la imagen real.
   srcSet = undefined,
   sizes = undefined,
+  // Fondo del placeholder mientras carga (CSS background). El llamador
+  // lo pasa según el tema (claro/oscuro); el valor por defecto es un
+  // gris claro neutro.
+  placeholder = 'linear-gradient(135deg, #EDEFF2 0%, #E2E6EB 100%)',
   ...props
 }) {
   const [isLoaded, setIsLoaded] = useState(() => globalLoadedImages.has(src));
@@ -29,34 +38,12 @@ export default function ProgressiveImage({
       style={{
         position: 'relative',
         overflow: 'hidden',
-        background: 'transparent',
-        backgroundColor: 'transparent',
+        background: placeholder,
         ...style
       }}
       {...props}
     >
-      {/* Blurred Placeholder */}
-      {!isLoaded && thumbSrc && (
-        <img
-          src={thumbSrc}
-          alt=""
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: style.objectFit || 'cover',
-            objectPosition: style.objectPosition || 'center',
-            filter: 'blur(20px)',
-            transform: 'scale(1.2)', // Prevent white edges from blur
-            transition: 'opacity 0.25s ease-out',
-            opacity: isLoaded ? 0 : 1,
-            backgroundColor: 'transparent',
-          }}
-        />
-      )}
-      
-      {/* Actual High Res Image */}
+      {/* Actual High Res Image: aparece con fundido sobre el placeholder */}
       <img
         src={src}
         alt={alt}
@@ -75,7 +62,7 @@ export default function ProgressiveImage({
           objectFit: style.objectFit || 'cover',
           objectPosition: style.objectPosition || 'center',
           backgroundColor: 'transparent',
-          opacity: isLoaded ? 1 : (thumbSrc ? 0 : 1),
+          opacity: isLoaded ? 1 : 0,
           transition: isLoaded ? 'none' : 'opacity 0.25s ease-out'
         }}
       />

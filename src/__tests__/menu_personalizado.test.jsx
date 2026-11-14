@@ -89,7 +89,9 @@ describe('Menú personalizado: resolvedor de estilos (PR #291)', () => {
 describe('Menú personalizado: BusinessStore aplica el estilo (PR #291)', () => {
   it('lee el tema del negocio y lo resuelve (personalizado manda, si no el predefinido)', () => {
     const src = read('../components/store/BusinessStore.jsx');
-    expect(src).toContain('const menuTheme = resolveMenuTheme(business);');
+    // Memoizado por sus entradas (hallazgo #8): el tema se usa como
+    // identidad en los useMemo de abajo.
+    expect(src).toContain('() => resolveMenuTheme({ menu_custom, menu_style }),');
     expect(src).toContain("import { resolveMenuTheme, menuHexAlpha, textOnMenuSurface } from '../../lib/menuColorStyles.js'");
     // El resolvedor vive en el lib: personalizado primero, predefinido después.
     const lib = read('../lib/menuColorStyles.js');
@@ -307,7 +309,9 @@ describe('Menú público: el tema se adapta a todo (encabezado, píldoras, texto
     expect(src).toContain('const dark = menuTheme ? appDark : false;');
     // Paleta clara (ignora el T oscuro que llegue) para el menú, la promo,
     // el modal de producto y el carrito.
-    expect(src).toContain("const menuT = menuTheme ? T : { ...(T || {}), bg: '#FFFFFF'");
+    // menuT también memoizado (hallazgo #8): si no, StorePromotions
+    // memoizado se volvería a pintar en cada render del padre.
+    expect(src).toContain("const menuT = useMemo(() => (menuTheme ? T : { ...(T || {}), bg: '#FFFFFF'");
     expect(src).toContain('T={menuT}');
   });
 
@@ -847,7 +851,9 @@ describe('Menú personalizado: editor universal de colores propios', () => {
 
   it('BusinessStore aplica el tema propio igual que un estilo (mismo menú, mismo mapeo)', () => {
     const src = read('../components/store/BusinessStore.jsx');
-    expect(src).toContain('const menuTheme = resolveMenuTheme(business);');
+    // Memoizado por sus entradas (hallazgo #8): el tema se usa como
+    // identidad en los useMemo de abajo.
+    expect(src).toContain('() => resolveMenuTheme({ menu_custom, menu_style }),');
     // El mapeo no distingue predefinido de propio: fondo, primary y texto
     // del tema, con los mismos fallbacks sin tema.
     expect(src).toContain('menuTheme ? menuTheme.background');
