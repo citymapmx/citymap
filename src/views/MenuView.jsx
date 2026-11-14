@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import Icon from '../components/ui/Icon.jsx';
 import BusinessStore from '../components/store/BusinessStore.jsx';
+import MenuLoadingScreen from '../components/store/MenuLoadingScreen.jsx';
+import { fetchStoreCategories } from '../lib/storeCategories.js';
 import NoMenuLanding from '../components/store/NoMenuLanding.jsx';
 import { isOpenNow, cleanCityPrefix } from '../lib/utils.js';
 import { Helmet } from 'react-helmet-async';
@@ -43,17 +45,34 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
 
   const error = queryError ? "Negocio no encontrado" : null;
 
+  // Carga única del menú (hallazgo #2, nov 2026): las categorías se
+  // piden en cuanto se conoce el negocio, en paralelo al resto, y la
+  // MISMA pantalla de carga cubre negocio + categorías (antes eran
+  // dos esqueletos en secuencia: el del negocio y «Cargando menú…»).
+  // Sin menú (no elite) no se piden categorías: va directo al landing.
+  const isElite = !!biz && (biz.plan === 'destacado' || biz.plan === 'premium' || biz.plan === 'pro');
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
+    queryKey: ['store-categories', biz?.id],
+    queryFn: () => fetchStoreCategories(biz.id),
+    enabled: !!biz?.id && isElite,
+    staleTime: 5 * 60 * 1000,
+  });
+
   useEffect(() => {
     if (biz && (!selected || selected.id !== biz.id)) {
       setSelected(biz);
     }
   }, [biz, selected, setSelected]);
 
-  if (loading) {
+  if (loading || (biz && categoriesLoading)) {
+    // Una sola pantalla de carga: con el negocio ya conocido muestra
+    // su tema, su logo y su nombre; sin él, la misma pantalla en
+    // neutro. El contenido se rellena en la misma pantalla, no hay
+    // un segundo esqueleto distinto después.
     return (
       <>
         <Helmet><title>Cargando productos… - CityMap</title></Helmet>
-        <SkeletonMenu dark={dark} />
+        <MenuLoadingScreen business={biz || null} storeLabel="menú" dark={dark} />
       </>
     );
   }
@@ -69,8 +88,6 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
     </div>;
   }
 
-  const isElite = biz.plan === 'destacado' || biz.plan === 'premium' || biz.plan === 'pro';
-
   if (!isElite) {
     return (
       <NoMenuLanding business={biz} T={T} dark={dark} onBack={() => {
@@ -84,68 +101,13 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
   return (
     <div style={{ minHeight: '100vh', background: dark ? '#18181B' : '#FFFFFF', display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, position: 'relative' }}>
-        <BusinessStore business={biz} T={T} isElite={isElite} inline={true} initialIntent={initialIntent} onBack={() => {
+        <BusinessStore business={biz} T={T} isElite={isElite} inline={true} initialIntent={initialIntent} initialCategories={categoriesData || []} onBack={() => {
           setSelected(biz);
           const navCity = biz.city_slug || city;
           const navSlug = cleanCityPrefix(biz.slug || '', navCity) || slug;
           navigate(`/${navCity}/${navSlug}`);
         }} />
       </div>
-    </div>
-  );
-}
-
-function SkeletonMenu({ dark }) {
-  const bg = dark ? '#232326' : '#E4E4E7';
-  const shimmer = `linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)`;
-  
-  return (
-    <div role="status" aria-label="Cargando productos" style={{ minHeight: '100vh', background: dark ? '#18181B' : '#FFFFFF', display: 'flex', flexDirection: 'column' }}>
-      {/* Banner */}
-      <div style={{ height: 200, width: '100%', background: bg, position: 'relative', overflow: 'hidden' }}>
-        <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
-      </div>
-      
-      <div style={{ padding: '0 16px', position: 'relative', top: -30 }}>
-        {/* Logo */}
-        <div style={{ width: 80, height: 80, borderRadius: '50%', background: bg, border: `4px solid ${dark ? '#18181B' : '#FFFFFF'}`, overflow: 'hidden', position: 'relative' }}>
-          <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
-        </div>
-        
-        {/* Name & Subtitle */}
-        <div style={{ width: '60%', height: 24, background: bg, borderRadius: 8, marginTop: 12, overflow: 'hidden', position: 'relative' }}>
-           <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
-        </div>
-        <div style={{ width: '40%', height: 16, background: bg, borderRadius: 8, marginTop: 8, overflow: 'hidden', position: 'relative' }}>
-           <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
-        </div>
-      </div>
-      
-      {/* List items */}
-      <div style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} style={{ display: 'flex', gap: 16 }}>
-             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-               <div style={{ width: '80%', height: 18, background: bg, borderRadius: 4, overflow: 'hidden', position: 'relative' }}><div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} /></div>
-               <div style={{ width: '100%', height: 14, background: bg, borderRadius: 4, overflow: 'hidden', position: 'relative' }}><div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} /></div>
-               <div style={{ width: '60%', height: 14, background: bg, borderRadius: 4, overflow: 'hidden', position: 'relative' }}><div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} /></div>
-             </div>
-             <div style={{ width: 80, height: 80, background: bg, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
-               <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', background: shimmer }} />
-             </div>
-          </div>
-        ))}
-      </div>
-      
-      <style>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        .skeleton-shimmer {
-          animation: shimmer 1.5s infinite linear;
-        }
-      `}</style>
     </div>
   );
 }

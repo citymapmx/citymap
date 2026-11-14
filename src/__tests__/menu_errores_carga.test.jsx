@@ -62,15 +62,20 @@ describe('1) la reserva se abre completa en una sola vez', () => {
 });
 
 describe('2) el logo del modal «¿Cómo nos visitas hoy?» llena el círculo', () => {
-  it('el círculo del modal no lleva padding y la imagen lleva el zoom que llena el círculo', () => {
-    const src = read('../components/store/BusinessStore.jsx');
+  it('el círculo del modal (ficha) no lleva padding y la imagen lleva el zoom que llena el círculo', () => {
+    // Hallazgo #2: el modal del MENÚ se eliminó (el menú ya no tiene
+    // puerta obligatoria); el modal que queda es el de la FICHA, que
+    // era el que Jonathan veía chico en su teléfono: seguía en
+    // contain + padding 8 (la #306 solo arregló el del menú). El
+    // círculo y el zoom son los mismos que verificó la #306.
+    const src = read('../views/DetailView.jsx');
     const at = src.indexOf('¿Cómo nos visitas hoy?');
     expect(at).toBeGreaterThan(-1);
     // El bloque cubre el círculo entero: el div del círculo abre ~1900
     // caracteres antes del título (el comentario del logo es largo).
     const block = src.slice(at - 2600, at + 200);
     // Sin padding: con padding 8 la imagen solo ocupaba 58 px dentro
-    // del círculo de 80 px y el emblema quedaba chico (~67%).
+    // del círculo de 80 px y el emblema quedaba chico (~62%).
     expect(block).not.toContain('padding: 8');
     // Con el zoom, el emblema llega al borde del círculo y las esquinas
     // (textos diagonales de Carrito, esquinas negras de KAVA) se recortan.
@@ -85,20 +90,27 @@ describe('2) el logo del modal «¿Cómo nos visitas hoy?» llena el círculo', 
     expect(header).not.toContain('scale(1.12)');
   });
 
-  it('el modal de la ficha sigue en contain (ese no se tocó)', () => {
+  it('el modal de la ficha no se desborda en 360 px: tarjeta con border-box y título a 20 px', () => {
+    // 13 nov 2026 (Jonathan): el título se veía cortado a los lados.
+    // A 22 px mide ~281 px en fuentes anchas y el contenido en 360 px
+    // es de 272 px; a 20 px cabe en una línea. Con border-box la
+    // tarjeta nunca supera los 320 px con su padding.
     const src = read('../views/DetailView.jsx');
-    const block = src.slice(src.indexOf('¿Cómo nos visitas hoy?') - 1200, src.indexOf('¿Cómo nos visitas hoy?') + 200);
-    expect(block).toContain("objectFit: 'contain'");
+    const at = src.indexOf('¿Cómo nos visitas hoy?');
+    const block = src.slice(at - 2600, at + 200);
+    expect(block).toContain("boxSizing: 'border-box'");
+    expect(block).toContain('fontSize: 20');
+    expect(block).not.toContain('fontSize: 22');
   });
 });
 
 describe('3) la pantalla de carga del menú usa el tema del negocio', () => {
-  const loadingBlock = () => {
-    const src = read('../components/store/BusinessStore.jsx');
-    const at = src.indexOf('if (loading) {');
-    expect(at).toBeGreaterThan(-1);
-    return src.slice(at, at + 2500);
-  };
+  // Hallazgo #2: la pantalla de carga es ahora UN solo componente
+  // compartido (MenuLoadingScreen): lo muestra MenuView mientras
+  // cargan negocio + categorías, y BusinessStore lo reutiliza cuando
+  // carga solo (ficha). La #306 le puso el tema; la carga única la
+  // comparte en vez de tener dos esqueletos.
+  const loadingBlock = () => read('../components/store/MenuLoadingScreen.jsx');
 
   it('el fondo de la carga es el degradado del tema (no blanco fijo) y el texto usa el color del tema', () => {
     const block = loadingBlock();
@@ -118,5 +130,11 @@ describe('3) la pantalla de carga del menú usa el tema del negocio', () => {
     expect(block).toContain("menuHexAlpha(menuTheme.text, '26')");
     expect(block).toContain('menuSkeletonPulse');
     expect(block).not.toContain("background:dark ? '#232326' : '#F4F4F5'");
+  });
+
+  it('BusinessStore ya no tiene su propia pantalla de carga: usa la compartida', () => {
+    const store = read('../components/store/BusinessStore.jsx');
+    expect(store).toContain('<MenuLoadingScreen business={business} storeLabel={storeLabel} dark={dark} />');
+    expect(store).not.toContain('menuSkeletonPulse');
   });
 });

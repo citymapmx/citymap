@@ -111,40 +111,52 @@ describe('modo oscuro: contraste en todo el sitio', () => {
     expect(count).toBe(2);
   });
 
-  it('modal «¿Cómo nos visitas hoy?» de la ficha: el logo va en círculo BLANCO y entero (contain), no recortado sobre fondo oscuro', () => {
+  it('modal «¿Cómo nos visitas hoy?» de la ficha: el logo LLENA el círculo BLANCO (cover + zoom), como en el perfil', () => {
+    // 13 nov 2026 (Jonathan, con captura): el logo se veía chico en
+    // el modal de la ficha — era el único que seguía en contain +
+    // padding 8 (la #306 solo arregló el del menú): el emblema
+    // quedaba al ~62% y se veían los textos diagonales de Carrito
+    // (+52 311 300 76 20, @carrito.la.paz) y las esquinas negras de
+    // KAVA. Ahora va en cover sin padding y con zoom 1.12, verificado
+    // con los logos reales: el emblema llega al borde sin recortar el
+    // texto; un zoom mayor (1.25+) sí recorta «TOSTADAS DE ATÚN» y
+    // las letras de «KAVA». El círculo sigue siendo blanco.
     const src = read('../views/DetailView.jsx');
-    const block = src.slice(src.indexOf('¿Cómo nos visitas hoy?') - 1200, src.indexOf('¿Cómo nos visitas hoy?') + 200);
-    expect(block).toContain("background: '#FFFFFF'");
-    expect(block).toContain("objectFit: 'contain'");
-    expect(block).not.toContain("objectFit: 'cover'");
-  });
-
-  it('modal «¿Cómo nos visitas hoy?» del menú: el logo LLENA el círculo (cover, sin padding y con zoom) para que las esquinas de los logos cuadrados no se vean', () => {
-    // Los logos cuadrados con esquinas oscuras (p. ej. KAVA: cuadrado
-    // negro con el emblema circular oliva en el centro, verificado en la
-    // base) se veían mal con contain: el cuadrado entero cabía dentro
-    // del círculo blanco y las esquinas negras quedaban a la vista. Con
-    // cover el logo llena el círculo y el recorte circular quita las
-    // esquinas. El logo del encabezado del menú ya usaba cover.
-    // Nov 2026: el cover solo no bastaba — el padding 8 del círculo
-    // encogía la imagen a 58 px y el emblema de Carrito La Paz quedaba
-    // chico (~67% del círculo), con los textos diagonales de las
-    // esquinas a la vista. Sin padding y con zoom 1.12 el emblema llega
-    // al borde del círculo en los dos logos reales verificados (Carrito
-    // La Paz y KAVA): los textos diagonales y las esquinas negras se
-    // recortan, y el texto de KAVA queda intacto.
-    const src = read('../components/store/BusinessStore.jsx');
     const block = src.slice(src.indexOf('¿Cómo nos visitas hoy?') - 2600, src.indexOf('¿Cómo nos visitas hoy?') + 200);
     expect(block).toContain("background: '#FFFFFF'");
     expect(block).not.toContain('padding: 8');
-    // La imagen del logo del modal (la del getThumbUrl, no el icono de
-    // respaldo /pedido.png que sigue en contain) va en cover y con zoom.
-    const logoAt = block.indexOf('getThumbUrl(business.logo_url || business.logo, 200, 200)');
+    // La imagen del logo (la del src, no el icono de respaldo
+    // /pedido.png que sigue en contain) va en cover y con zoom.
+    const logoAt = block.indexOf('selected.logo_url || selected.logo');
     expect(logoAt).toBeGreaterThan(-1);
     expect(block.slice(logoAt, logoAt + 300)).toContain("objectFit: 'cover'");
     expect(block.slice(logoAt, logoAt + 300)).toContain('scale(1.12)');
+  });
+
+  it('el menú ya NO tiene modal «¿Cómo nos visitas hoy?» que lo tape (hallazgo #2): el logo en círculo BLANCO con cover y zoom vive en la pantalla de carga única', () => {
+    // Nov 2026 (hallazgo #2): el modal bloqueante se eliminó; el menú
+    // se muestra con el modo por defecto y se cambia desde la píldora.
+    // Los logos cuadrados con esquinas oscuras (p. ej. KAVA: cuadrado
+    // negro con el emblema circular oliva en el centro, verificado en
+    // la base) se veían mal con contain: el cuadrado entero cabía
+    // dentro del círculo blanco y las esquinas negras quedaban a la
+    // vista. Con cover el logo llena el círculo y el recorte circular
+    // quita las esquinas. Ese círculo con cover vive ahora en la
+    // pantalla de carga única (MenuLoadingScreen) y en el encabezado.
+    // Nov 2026 (#306, verificado con los dos logos reales): el cover
+    // solo no bastaba — sin padding el emblema llega al 86% del
+    // círculo y el zoom 1.12 lo lleva al borde, recortando los textos
+    // diagonales de Carrito y las esquinas negras de KAVA.
+    const store = read('../components/store/BusinessStore.jsx');
+    expect(store).not.toContain('¿Cómo nos visitas hoy?');
+    const screen = read('../components/store/MenuLoadingScreen.jsx');
+    expect(screen).toContain("background: '#FFFFFF'");
+    const logoAt = screen.indexOf('getThumbUrl(business.logo_url || business.logo, 200, 200)');
+    expect(logoAt).toBeGreaterThan(-1);
+    expect(screen.slice(logoAt, logoAt + 300)).toContain("objectFit: 'cover'");
+    expect(screen.slice(logoAt, logoAt + 300)).toContain('scale(1.12)');
     // El encabezado del menú sigue en cover (no tenía el problema).
-    const header = src.slice(src.indexOf('Profile Logo Circular Superpuesto'), src.indexOf('Profile Logo Circular Superpuesto') + 1500);
+    const header = store.slice(store.indexOf('Profile Logo Circular Superpuesto'), store.indexOf('Profile Logo Circular Superpuesto') + 1500);
     expect(header).toContain("objectFit: 'cover'");
   });
 

@@ -4,7 +4,6 @@ import SlidingCategoryTrack from '../ui/SlidingCategoryTrack.jsx';
 import { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
-import { sb } from '../../lib/supabase.js';
 import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 import ProductModal from './ProductModal.jsx';
@@ -21,13 +20,21 @@ import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
 import { isCategoryVisibleNow, categoryHasSchedule, categoryScheduleLabel12h, offHoursMessage } from '../../lib/menuCategoryHours.js';
 import { resolveMenuTheme, menuHexAlpha, textOnMenuSurface } from '../../lib/menuColorStyles.js';
+import { fetchStoreCategories } from '../../lib/storeCategories.js';
+import { resolveMenuIntent, readSavedMenuIntent, saveMenuIntent } from '../../lib/menuIntent.js';
+import MenuLoadingScreen from './MenuLoadingScreen.jsx';
 
-export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
+export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null, initialCategories = null }) {
   const navigate = useNavigate();
   const isCatalog = isCatalogBusiness(business);
   const storeLabel = isCatalog ? 'catálogo' : 'menú';
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Categorías: MenuView ya las trae (carga única del menú, hallazgo
+  // #2) y se pasan por prop; sin prop (ficha del negocio) se piden
+  // aquí como siempre. La prop manda y no se vuelve a pedir.
+  const [fetchedCategories, setFetchedCategories] = useState([]);
+  const [fetching, setFetching] = useState(!initialCategories);
+  const categories = initialCategories ?? fetchedCategories;
+  const loading = initialCategories ? false : fetching;
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [menuSearch, setMenuSearch] = useState('');
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('cg_menu_view') || 'list');
@@ -55,9 +62,21 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   const activeTabIdRef = useRef(activeTabId);
   useEffect(() => { activeTabIdRef.current = activeTabId; }, [activeTabId]);
   const [showMenuModal, setShowMenuModal] = useState(false);
-  const [menuIntent, setMenuIntent] = useState(() => {
-    return isCatalog ? 'delivery' : initialIntent || localStorage.getItem(`intent_${business?.id}`) || null;
-  });
+  // Modo del menú (hallazgo #2, nov 2026): ya no hay modal que tape
+  // el menú. Sin elección guardada el menú se muestra con el modo por
+  // defecto (delivery, el menú completo con pedido) y el visitante
+  // cambia cuando quiere desde la píldora del menú; la elección se
+  // recuerda por negocio. Catálogo siempre es delivery (no tiene
+  // modos). La intención explícita (?intent= o location.state) manda.
+  const [menuIntent, setMenuIntent] = useState(() => resolveMenuIntent({
+    isCatalog,
+    initialIntent,
+    saved: readSavedMenuIntent(business?.id),
+  }));
+  const handleIntentChange = (intent) => {
+    setMenuIntent(intent);
+    saveMenuIntent(business?.id, intent);
+  };
   const { dark: appDark } = useUIStore();
   const { globalFavCounts } = useDataStore();
   const { user, setShowAuth } = useAuthStore();
@@ -117,44 +136,18 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
     return success;
   }, [addItem]);
 
+  // Sin prop (ficha del negocio) las categorías se piden aquí; con
+  // prop (MenuView, carga única) ya vienen y no se vuelve a pedir.
   useEffect(() => {
-    async function loadStore() {
-      if (!business?.id) return;
-      
-      // Load categories with products and options
-      try {
-        let data = null;
-        try {
-          // Try with image_url first (for category image fallback feature)
-          data = await sb.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,image_url,available_from,available_to,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
-        } catch {
-          // Fallback: query without image_url (in case column doesn't have permissions yet)
-          // Tampoco trae available_from/available_to: sin la migración, las
-          // categorías se tratan como siempre visibles.
-          data = await sb.get('store_categories', `?business_id=eq.${business.id}&select=id,name,sort_order,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))&order=sort_order.asc`);
-        }
-        
-        // PostgREST doesn't support ordering nested resources directly in the main order clause easily without specific syntax, 
-        // but we can sort the nested arrays in JS to be safe.
-        if (data) {
-          data.forEach(cat => {
-            if (cat.store_products) {
-              cat.store_products = [...cat.store_products].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-            }
-          });
-           
-          setCategories(data);
-        }
-      } catch (error) {
-        console.error("Error loading store:", error);
-         
-        setCategories([]);
-      }
-       
-      setLoading(false);
-    }
-    loadStore();
-  }, [business?.id]);
+    if (!business?.id || initialCategories) return;
+    let cancelled = false;
+    fetchStoreCategories(business.id).then((data) => {
+      if (cancelled) return;
+      setFetchedCategories(data);
+      setFetching(false);
+    });
+    return () => { cancelled = true; };
+  }, [business?.id, initialCategories]);
 
   // Hora actual en la zona horaria del negocio: las secciones con horario se
   // re-evalúan cada minuto para que el menú cambie solo al llegar la hora,
@@ -221,31 +214,14 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   }, [activeCategories, menuSearch]);
 
   if (loading) {
+    // Una sola pantalla de carga del menú (hallazgo #2): la misma que
+    // muestra MenuView mientras cargan negocio y categorías — fondo
+    // con el tema, logo, nombre y barras. Sin inline (ficha del
+    // negocio) no hay pantalla de carga: el menú va incrustado.
+    // El diseño es el de la #306 (fondo con el tema + logo + nombre +
+    // barras con el color del tema), ahora compartido con MenuView.
     if (!inline) return null;
-    // La pantalla de carga usa el tema del negocio y muestra su logo y
-    // su nombre: el tema ya se conoce aquí (viene en la prop business,
-    // antes de que carguen las categorías). Antes era una página blanca
-    // con «Cargando menú…» y 3 barras grises (nov 2026, Jonathan). Sin
-    // tema, fondo claro con el logo y el nombre del negocio, no solo
-    // barras. Las barras usan el color del texto del tema atenuado para
-    // que se lean sobre cualquier degradado.
-    const loadBg = menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FFFFFF');
-    const loadText = menuTheme ? menuTheme.text : (dark ? '#FAFAFA' : '#18181B');
-    const loadSub = menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A');
-    const loadBar = menuTheme ? menuHexAlpha(menuTheme.text, '26') : (dark ? '#232326' : '#F4F4F5');
-    return (
-      <div role="status" aria-label={`Cargando productos del ${storeLabel}`} style={{minHeight:'100dvh',background:loadBg,color:loadSub,padding:'32px 20px',boxSizing:'border-box'}}>
-        <style>{`@keyframes menuSkeletonPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }`}</style>
-        {(business?.logo_url || business?.logo) ? (
-          <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#FFFFFF', overflow: 'hidden', margin: '8px auto 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <OptimizedImage src={getThumbUrl(business.logo_url || business.logo, 200, 200)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={business.name} />
-          </div>
-        ) : null}
-        {business?.name ? <p style={{fontSize:20,fontWeight:800,margin:'0 0 4px',color:loadText,textAlign:'center'}}>{business.name}</p> : null}
-        <p style={{fontSize:14,margin:'0 0 24px',textAlign:'center'}}>Cargando {storeLabel}…</p>
-        {[1,2,3].map(row => <div key={row} aria-hidden="true" style={{height:84,borderRadius:14,marginBottom:12,background:loadBar,animation:'menuSkeletonPulse 1.4s ease-in-out infinite'}} />)}
-      </div>
-    );
+    return <MenuLoadingScreen business={business} storeLabel={storeLabel} dark={dark} />;
   }
 
   if (activeCategories.length === 0) {
@@ -301,69 +277,13 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
 
   return (
     <div style={{ marginTop: inline ? 0 : 24, paddingBottom: (cartCount > 0 && (showMenuModal || inline)) ? 80 : 0 }}>
-      {inline && !isCatalog && menuIntent === null && (
-        <m.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <m.div 
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            style={{ background: dark ? '#232326' : '#FFFFFF', width: '100%', maxWidth: 320, borderRadius: 24, padding: '32px 24px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}
-          >
-            <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}`, boxSizing: 'border-box' }}>
-              {(business.logo_url || business.logo) ? (
-                // El logo llena el círculo (cover) SIN padding y con un
-                // zoom 1.12: verificado con los dos logos reales (nov
-                // 2026). Con el padding 8 de antes la imagen solo ocupaba
-                // 58 px dentro del círculo de 80 px: el emblema de
-                // Carrito La Paz quedaba chico (~67% del círculo) y se
-                // veían los textos diagonales de las esquinas (+52 311
-                // 300 76 20 y @carrito.la.paz); en KAVA se veían las
-                // esquinas negras del cuadrado. Sin padding el emblema
-                // llega al 86% y el zoom lo lleva al borde del círculo,
-                // recortando esquinas y textos fuera del emblema; el
-                // texto de KAVA («KAVA», «BAKERY COFFEE & BRUNCH») queda
-                // intacto. El logo del encabezado del menú ya usaba
-                // cover sin padding y no se toca.
-                <OptimizedImage
-                  src={getThumbUrl(business.logo_url || business.logo, 200, 200)}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'translateZ(0) scale(1.12)' }}
-                  alt={business.name}
-                />
-              ) : (
-                <img src="/pedido.png" alt="Pedido" style={{ width: 40, height: 40, objectFit: 'contain' }} />
-              )}
-            </div>
-            <h2 style={{ margin: '0 0 12px 0', fontSize: 22, fontWeight: 800, color: dark ? '#FFF' : '#111', fontFamily: 'system-ui, -apple-system, sans-serif', letterSpacing: '-0.3px' }}>
-              ¿Cómo nos visitas hoy?
-            </h2>
-            <p style={{ margin: '0 0 28px 0', fontSize: 14, color: dark ? '#A1A1AA' : '#71717A', lineHeight: 1.5 }}>
-              Elige una opción para mostrarte el menú adecuado.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <button 
-                onClick={() => { setMenuIntent('local'); localStorage.setItem(`intent_${business?.id}`, 'local'); }}
-                className="press"
-                style={{ width: '100%', padding: '16px', background: dark ? '#18181B' : '#FAFAFA', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, borderRadius: 16, color: dark ? '#FAFAFA' : '#18181B', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-              >
-                <span style={{ fontSize: 24 }}>🍽️</span>
-                Estoy en el local
-              </button>
-              
-              <button 
-                onClick={() => { setMenuIntent('delivery'); localStorage.setItem(`intent_${business?.id}`, 'delivery'); }}
-                className="press"
-                style={{ width: '100%', padding: '16px', background: dark ? '#18181B' : '#FAFAFA', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, borderRadius: 16, color: dark ? '#FAFAFA' : '#18181B', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-              >
-                <img src="/pedido.png" alt="Para llevar" style={{ width: 24, height: 24, objectFit: 'contain' }} />
-                Para llevar / Domicilio
-              </button>
-            </div>
-          </m.div>
-        </m.div>
-      )}
+      {/* El modal de intención ya no tapa el menú (hallazgo
+          #2, nov 2026): el menú se muestra con el modo por defecto y
+          se cambia desde la píldora de modo, bajo la información del
+          negocio. El logo en círculo con cover + zoom (verificado en
+          la #306 con los logos reales) vive ahora en la pantalla de
+          carga única (MenuLoadingScreen) y en el modal de la ficha
+          (DetailView), que es el que pregunta antes de entrar. */}
       {!showMenuModal && !inline ? (
         <div style={{ margin: '0 16px', marginBottom: 24 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 16, gap: 12 }}>
@@ -580,7 +500,51 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 )}
               </div>
             </div>
-            
+
+            {/* Píldora de modo (hallazgo #2, nov 2026): el modal de
+                intención ya no tapa el menú; el menú se muestra con
+                el modo por defecto (delivery) y el visitante cambia aquí
+                cuando quiera. El cambio es inmediato (botones +, carrito,
+                saludo y promos reaccionan a menuIntent) y se recuerda por
+                negocio en localStorage. En catálogo no hay modos. */}
+            {!isCatalog && (
+              <div role="group" aria-label="Modo del menú" style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
+                {[
+                  { id: 'local', label: 'En el local', icon: '🍽️' },
+                  { id: 'delivery', label: 'Para llevar / Domicilio', icon: '🛍️' },
+                ].map((opt) => {
+                  const isActive = menuIntent === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      aria-pressed={isActive}
+                      onClick={() => handleIntentChange(opt.id)}
+                      className="press"
+                      style={{
+                        flex: 1,
+                        padding: '10px 8px',
+                        borderRadius: 999,
+                        border: 'none',
+                        background: isActive ? (menuTheme ? menuTheme.primary : (dark ? '#FFFFFF' : '#111111')) : (menuTheme ? menuHexAlpha(menuTheme.text, '1A') : (dark ? '#232326' : '#F3F4F6')),
+                        color: isActive ? (menuTheme ? menuTheme.onPrimary : (dark ? '#111111' : '#FFFFFF')) : (menuTheme ? menuTheme.text : (dark ? '#E4E4E7' : '#111111')),
+                        fontSize: 13,
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span aria-hidden="true">{opt.icon}</span>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             <div style={{ paddingBottom: cartCount > 0 ? 100 : 80 }}>
       <StorePromotions products={activeCategories.flatMap(cat=>(cat.store_products||[]).map(product=>({...product,cat_name:cat.name})))} intent={menuIntent} timeZone={timeZone} T={menuT} onSelect={(p) => {
         // Una promoción de una sección fuera de horario no abre el modal: avisa.
