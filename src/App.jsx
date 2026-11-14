@@ -146,7 +146,7 @@ const isEventsRoute = (pathname) => {
 import { categoryFromUrl } from './lib/categoryRouting.js';
 import { rankTopRated } from './lib/googleRatings.js';
 import { shouldHoldSplashForSavedCity } from './lib/savedCityBoot.js';
-const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
+const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login', '/reservar'];
 
 function isHomePath(pathname) {
   if (pathname === '/') return true;
