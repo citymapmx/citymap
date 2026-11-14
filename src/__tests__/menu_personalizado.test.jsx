@@ -6,8 +6,18 @@ import MenuStyleDesigner from '../components/store/MenuStyleDesigner.jsx';
 import {
   LOYALTY_COLOR_CATEGORIES,
   LOYALTY_COLOR_STYLES,
+  MENU_BASIC_COLORS,
   findMenuStyleById,
   menuThemeForStyle,
+  menuThemeForCustom,
+  parseMenuCustom,
+  customFromTheme,
+  resolveMenuTheme,
+  menuDarken,
+  isValidMenuHex,
+  menuBestText,
+  menuBestTextOnGradient,
+  menuContrastRatio,
   textOnMenuPrimary,
   textOnMenuSurface,
   menuHexAlpha,
@@ -77,11 +87,15 @@ describe('Menú personalizado: resolvedor de estilos (PR #291)', () => {
 });
 
 describe('Menú personalizado: BusinessStore aplica el estilo (PR #291)', () => {
-  it('lee menu_style del negocio y resuelve el tema', () => {
+  it('lee el tema del negocio y lo resuelve (personalizado manda, si no el predefinido)', () => {
     const src = read('../components/store/BusinessStore.jsx');
-    expect(src).toContain("findMenuStyleById(business?.menu_style)");
-    expect(src).toContain('menuThemeForStyle(');
-    expect(src).toContain("import { findMenuStyleById, menuThemeForStyle, menuHexAlpha, textOnMenuSurface } from '../../lib/menuColorStyles.js'");
+    expect(src).toContain('const menuTheme = resolveMenuTheme(business);');
+    expect(src).toContain("import { resolveMenuTheme, menuHexAlpha, textOnMenuSurface } from '../../lib/menuColorStyles.js'");
+    // El resolvedor vive en el lib: personalizado primero, predefinido después.
+    const lib = read('../lib/menuColorStyles.js');
+    expect(lib).toContain('export function resolveMenuTheme(business)');
+    expect(lib).toContain('menuThemeForCustom(business.menu_custom)');
+    expect(lib).toContain('menuThemeForStyle(findMenuStyleById(business.menu_style))');
   });
 
   it('con estilo: fondo degradado en la página, píldora y botón en primary (el encabezado ya no usa la primera parada sólida)', () => {
@@ -157,9 +171,9 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
     expect(src).toContain('Aún no tienes productos en tu menú');
   });
 
-  it('Guardar escribe menu_style en la fila del negocio y la vista previa usa su menú real', () => {
+  it('Guardar escribe menu_style y menu_custom en la fila del negocio y la vista previa usa su menú real', () => {
     const src = read('../components/store/MenuStyleDesigner.jsx');
-    expect(src).toContain("sb.patch('businesses', business.id, { menu_style: selectedId })");
+    expect(src).toContain("sb.patch('businesses', business.id, { menu_style: selectedId, menu_custom: custom })");
     expect(src).toContain("sb.get('store_categories'");
     expect(src).toContain('setSelectedId(style.id)');
     // La lista de estilos la itera el carrusel compartido.
@@ -641,5 +655,187 @@ describe('Menú público: el texto de horario/estado va en píldora oscura con t
         expect(contrastRatio('#FFFFFF', pillOver(0.55, stop))).toBeGreaterThanOrEqual(4.5);
       }
     }
+  });
+});
+
+describe('Menú personalizado: editor universal de colores propios', () => {
+  it('los colores básicos van primero en el editor, antes que los selectores exactos', () => {
+    // Los 10 básicos que pidió Jonathan, en orden: negro, blanco, gris,
+    // rojo, azul, verde, amarillo, naranja, morado, rosa.
+    expect(MENU_BASIC_COLORS.map((c) => c.label)).toEqual([
+      'Negro', 'Blanco', 'Gris', 'Rojo', 'Azul', 'Verde', 'Amarillo', 'Naranja', 'Morado', 'Rosa',
+    ]);
+    expect(MENU_BASIC_COLORS.map((c) => c.hex)).toEqual([
+      '#000000', '#FFFFFF', '#6B7280', '#EF4444', '#2563EB', '#16A34A', '#FACC15', '#F97316', '#7C3AED', '#EC4899',
+    ]);
+    for (const c of MENU_BASIC_COLORS) expect(isValidMenuHex(c.hex)).toBe(true);
+    // En el diseñador: la fila de básicos aparece antes que los inputs
+    // de color exacto (los básicos van primero, los exactos después).
+    const html = renderDesigner(CARRITO);
+    expect(html).toContain('O personalizar colores exactos');
+    expect(html).toContain('Fondo');
+    expect(html).toContain('Botón');
+    expect(html).toContain('Color básico Negro para Fondo');
+    expect(html).toContain('Color básico Rosa para Botón');
+    expect(html).toContain('Color exacto de Fondo');
+    expect(html).toContain('Color exacto de Botón');
+    const firstBasic = html.indexOf('Color básico Negro para Fondo');
+    const firstExact = html.indexOf('Color exacto de Fondo');
+    expect(firstBasic).toBeGreaterThan(-1);
+    expect(firstExact).toBeGreaterThan(-1);
+    expect(firstBasic).toBeLessThan(firstExact);
+  });
+
+  it('menuDarken oscurece hacia negro: la segunda parada del degradado propio', () => {
+    expect(menuDarken('#FFFFFF', 0.3)).toBe('#B3B3B3');
+    expect(menuDarken('#F97316', 0.3)).toBe('#AE510F');
+    expect(menuDarken('#000000', 0.3)).toBe('#000000');
+    expect(menuDarken('#FFFFFF', 0)).toBe('#FFFFFF');
+    expect(menuDarken('no-es-hex')).toBe('#000000');
+    expect(menuDarken(null)).toBe('#000000');
+  });
+
+  it('parseMenuCustom: objeto o texto JSON válidos; a medias o malos no se aplican', () => {
+    expect(parseMenuCustom({ bg: '#f97316', primary: '#111111' })).toEqual({ bg: '#F97316', primary: '#111111' });
+    expect(parseMenuCustom('{"bg":"#F97316","primary":"#111111"}')).toEqual({ bg: '#F97316', primary: '#111111' });
+    expect(parseMenuCustom(null)).toBe(null);
+    expect(parseMenuCustom(undefined)).toBe(null);
+    expect(parseMenuCustom('no-json')).toBe(null);
+    expect(parseMenuCustom({ bg: '#F97316' })).toBe(null); // sin primary
+    expect(parseMenuCustom({ primary: '#111111' })).toBe(null); // sin bg
+    expect(parseMenuCustom({ bg: 'naranja', primary: '#111111' })).toBe(null);
+    expect(parseMenuCustom({ bg: '#F97316', primary: '#111111', extra: 1 })).toEqual({ bg: '#F97316', primary: '#111111' });
+    expect(parseMenuCustom(['#F97316'])).toBe(null);
+  });
+
+  it('menuThemeForCustom: degradado del color base, texto derivado por contraste', () => {
+    const theme = menuThemeForCustom({ bg: '#F97316', primary: '#111111' });
+    expect(theme.background).toBe('linear-gradient(135deg, #F97316, #AE510F)');
+    expect(theme.firstColor).toBe('#F97316');
+    expect(theme.lastColor).toBe('#AE510F');
+    expect(theme.primary).toBe('#111111');
+    expect(theme.onPrimary).toBe('#FFFFFF');
+    expect(theme.custom).toBe(true);
+    // Texto legible sobre la primera parada (la más clara del degradado)
+    // y también sobre la segunda (la más oscura).
+    expect(theme.text).toBe(menuBestTextOnGradient('#F97316', '#AE510F'));
+    expect(contrastRatio(theme.text, theme.firstColor)).toBeGreaterThanOrEqual(3);
+    expect(menuThemeForCustom(null)).toBe(null);
+    expect(menuThemeForCustom({ bg: '#F97316' })).toBe(null);
+    expect(menuThemeForCustom('{"bg":"#2563EB","primary":"#FFFFFF"}')).not.toBe(null);
+  });
+
+  it('customFromTheme: tocar un color propio parte de lo que se ve ahora', () => {
+    const perla = menuThemeForStyle(findMenuStyleById('perla'));
+    expect(customFromTheme(perla)).toEqual({ bg: '#F8FAFC', primary: '#64748B' });
+    expect(customFromTheme(null)).toEqual({ bg: '#FFFFFF', primary: '#111111' });
+    expect(customFromTheme({})).toEqual({ bg: '#FFFFFF', primary: '#111111' });
+  });
+
+  it('resolveMenuTheme: el personalizado manda; si no, el predefinido; si no, null', () => {
+    // Personalizado + predefinido: manda el personalizado.
+    const ambos = resolveMenuTheme({ menu_style: 'perla', menu_custom: { bg: '#F97316', primary: '#111111' } });
+    expect(ambos.background).toBe('linear-gradient(135deg, #F97316, #AE510F)');
+    expect(ambos.custom).toBe(true);
+    // Solo predefinido: el estilo de siempre.
+    const soloEstilo = resolveMenuTheme({ menu_style: 'perla', menu_custom: null });
+    expect(soloEstilo.background).toBe('linear-gradient(135deg, #F8FAFC, #E2E8F0)');
+    expect(soloEstilo.custom).toBe(undefined);
+    // Personalizado inválido + predefinido válido: cae al predefinido.
+    const invalido = resolveMenuTheme({ menu_style: 'perla', menu_custom: { bg: 'naranja' } });
+    expect(invalido.background).toBe('linear-gradient(135deg, #F8FAFC, #E2E8F0)');
+    // Nada de nada: null, el menú se ve como hoy.
+    expect(resolveMenuTheme({ menu_style: null, menu_custom: null })).toBe(null);
+    expect(resolveMenuTheme({})).toBe(null);
+    expect(resolveMenuTheme(null)).toBe(null);
+    expect(resolveMenuTheme(undefined)).toBe(null);
+  });
+
+  it('menuBestTextOnGradient: el texto se elige por su peor parada, no por la primera', () => {
+    // Rojo: el oscuro gana en la primera parada pero cae a 2.62 en la
+    // segunda; el blanco se lee bien en ambas.
+    expect(menuBestTextOnGradient('#EF4444', '#A73030')).toBe('#FFFFFF');
+    // Naranja: el oscuro es el mejor en ambas paradas.
+    expect(menuBestTextOnGradient('#F97316', '#AE510F')).toBe('#18181B');
+    expect(menuBestTextOnGradient('#FFFFFF', '#B3B3B3')).toBe('#18181B');
+    expect(menuBestTextOnGradient('#000000', '#000000')).toBe('#FFFFFF');
+    expect(menuBestTextOnGradient('no-es-hex', '#000000')).toBe('#FFFFFF');
+    expect(menuBestTextOnGradient(null, null)).toBe('#FFFFFF');
+  });
+
+  it('menuBestText elige el texto con mejor contraste WCAG (no el umbral de brillo)', () => {
+    // El naranja es el caso que delata el umbral: blanco da 2.80 y el
+    // oscuro da 6.33 (mismo naranja que Atardecer, cuyo caso justo ya está
+    // documentado en los predefinidos).
+    expect(menuBestText('#F97316')).toBe('#18181B');
+    expect(menuContrastRatio('#18181B', '#F97316')).toBeGreaterThanOrEqual(6);
+    expect(menuContrastRatio('#FFFFFF', '#F97316')).toBeLessThan(3);
+    expect(menuBestText('#000000')).toBe('#FFFFFF');
+    expect(menuBestText('#FFFFFF')).toBe('#18181B');
+    expect(menuBestText('no-es-hex')).toBe('#FFFFFF');
+    expect(menuBestText(null)).toBe('#FFFFFF');
+  });
+
+  it('cualquier básico sirve de fondo o de botón: el texto derivado se lee (contraste >= 3:1)', () => {
+    for (const c of MENU_BASIC_COLORS) {
+      // Como fondo: texto derivado sobre el color base.
+      expect(contrastRatio(textOnMenuSurface(c.hex), c.hex)).toBeGreaterThanOrEqual(3);
+      // Como botón: el onPrimary del tema propio se mide por contraste
+      // (menuBestText), no por el umbral de los predefinidos.
+      const theme = menuThemeForCustom({ bg: c.hex, primary: c.hex });
+      expect(theme.onPrimary).toBe(menuBestText(c.hex));
+      expect(contrastRatio(theme.onPrimary, theme.primary)).toBeGreaterThanOrEqual(3);
+      // Y el tema propio completo se lee sobre sus dos paradas.
+      expect(contrastRatio(theme.text, theme.firstColor)).toBeGreaterThanOrEqual(3);
+      expect(contrastRatio(theme.text, theme.lastColor)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('con tema propio guardado la vista previa dice «Personalizado» y lleva su degradado', () => {
+    const html = renderDesigner({ ...CARRITO, menu_custom: { bg: '#F97316', primary: '#111111' } });
+    expect(html).toContain('Personalizado');
+    expect(html).toContain('linear-gradient(135deg, #F97316, #AE510F)');
+    // Ni «Sin estilo» ni el carrusel marcan nada: ninguna palomita.
+    expect(html.split('✓').length - 1).toBe(0);
+    // Sin tema propio, la vista previa sigue diciendo lo de antes.
+    expect(renderDesigner(CARRITO)).toContain('Sin estilo · como se ve hoy');
+    expect(renderDesigner({ ...CARRITO, menu_style: 'perla' })).toContain('Estilo: Perla');
+  });
+
+  it('elegir predefinido quita lo propio, tocar un color quita el predefinido, «Sin estilo» limpia ambos', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    // Predefinido -> setCustom(null).
+    expect(src).toContain('const handleSelectStyle = (style) => {');
+    expect(src).toContain('setSelectedId(style.id);');
+    expect(src).toContain('setCustom(null);');
+    // Color propio -> setSelectedId(null) y parte del tema actual.
+    expect(src).toContain('const handleCustomColor = (field, hex) => {');
+    expect(src).toContain('const base = custom || customFromTheme(theme);');
+    expect(src).toContain('setSelectedId(null);');
+    // «Sin estilo» limpia ambos y su palomita solo sale sin ninguno.
+    expect(src).toContain('const handleClearStyle = () => {');
+    expect(src).toContain('onClick={handleClearStyle}');
+    expect(src).toContain('(selectedId === null && !custom)');
+    // El carrusel usa el handler que limpia lo propio.
+    expect(src).toContain('onSelectStyle={handleSelectStyle}');
+  });
+
+  it('Guardar escribe menu_style y menu_custom; la migración agrega menu_custom jsonb', () => {
+    const src = read('../components/store/MenuStyleDesigner.jsx');
+    expect(src).toContain("sb.patch('businesses', business.id, { menu_style: selectedId, menu_custom: custom })");
+    expect(src).toContain('¡Tema personalizado guardado!');
+    const sql = read('../../supabase/migrations/20261114003000_add_menu_custom_to_businesses.sql');
+    expect(sql).toContain('alter table public.businesses');
+    expect(sql).toContain('add column if not exists menu_custom jsonb null');
+  });
+
+  it('BusinessStore aplica el tema propio igual que un estilo (mismo menú, mismo mapeo)', () => {
+    const src = read('../components/store/BusinessStore.jsx');
+    expect(src).toContain('const menuTheme = resolveMenuTheme(business);');
+    // El mapeo no distingue predefinido de propio: fondo, primary y texto
+    // del tema, con los mismos fallbacks sin tema.
+    expect(src).toContain('menuTheme ? menuTheme.background');
+    expect(src).toContain('menuTheme ? menuTheme.primary');
+    expect(src).toContain('menuTheme ? menuTheme.text');
   });
 });

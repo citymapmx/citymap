@@ -20,7 +20,7 @@ import { getThumbUrl, isOpenNow, getSmartScheduleInfo, cleanCityPrefix, cleanSho
 import { FONT_BIZ, CITY_TZ } from '../../lib/constants.js';
 import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPricing.js';
 import { isCategoryVisibleNow, categoryHasSchedule, categoryScheduleLabel12h, offHoursMessage } from '../../lib/menuCategoryHours.js';
-import { findMenuStyleById, menuThemeForStyle, menuHexAlpha, textOnMenuSurface } from '../../lib/menuColorStyles.js';
+import { resolveMenuTheme, menuHexAlpha, textOnMenuSurface } from '../../lib/menuColorStyles.js';
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null }) {
   const navigate = useNavigate();
@@ -66,10 +66,12 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   const toggleFav = appContext?.toggleFav;
   const isFav = business?.id ? favIds.includes(business.id) : false;
 
-  // Estilo del menú elegido por el negocio (PR #291): sin estilo, el menú
-  // se ve exacto como hoy; con estilo, fondo, píldora activa, títulos,
-  // precios y botones + usan sus colores.
-  const menuTheme = menuThemeForStyle(findMenuStyleById(business?.menu_style));
+  // Tema del menú elegido por el negocio (PR #291 + editor universal):
+  // tema personalizado (menu_custom) si lo hay, si no el estilo
+  // predefinido (menu_style); sin tema, el menú se ve exacto como hoy.
+  // Con tema, fondo, píldora activa, títulos, precios y botones + usan
+  // sus colores.
+  const menuTheme = resolveMenuTheme(business);
 
   // El menú público NUNCA va en modo oscuro (nov 2026, Jonathan): sin
   // estilo elegido, siempre claro aunque el teléfono/app esté en oscuro.
