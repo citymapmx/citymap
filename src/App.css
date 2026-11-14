@@ -20,6 +20,7 @@ input, textarea, button, select { font-family: inherit; outline: none; }
 .dot-o { width: 6px; height: 6px; border-radius: 50%; background: #16A34A; display: inline-block; }
 .dot-c { width: 6px; height: 6px; border-radius: 50%; background: #DC2626; display: inline-block; }
 .dot-p { width: 6px; height: 6px; border-radius: 50%; background: #3B82F6; display: inline-block; }
+.dot-n { width: 6px; height: 6px; border-radius: 50%; background: #18181B; display: inline-block; }
 .dot-d { width: 6px; height: 6px; border-radius: 50%; background: #F59E0B; display: inline-block; }
 
 .plan-badge-free      { background: #F3F4F6; color: #6B7280; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 800; }

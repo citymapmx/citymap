@@ -5,7 +5,8 @@
  * que reportó el usuario a las 12:27 AM del domingo.
  */
 import { describe, it, expect } from 'vitest';
-import { isOpenNow, getMinutesToClose } from '../lib/utils.js';
+import fs from 'node:fs';
+import { isOpenNow, getMinutesToClose, getScheduleStatus, getSmartScheduleInfo } from '../lib/utils.js';
 
 // Helper: crea un objeto negocio con el horario especificado
 function makeBiz(schedule) {
@@ -190,5 +191,36 @@ describe('getMinutesToClose — tiempo restante para cerrar', () => {
     const biz = makeBiz({ sab: '22:00 - 03:00', dom: 'Cerrado' });
     // Domingo 1:00 AM = dentro del turno del sábado, faltan 2h = 120 min
     expect(getMinutesToClose(biz, TZ, makeDate(0, 1, 0))).toBe(120);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+describe('Previa cita — nunca «Cerrado», en negro (Jonathan 14 Nov 2026)', () => {
+
+  const appointmentBiz = {
+    schedule: { type: 'appointment', lun: 'Cerrado', mar: 'Cerrado', mie: 'Cerrado', jue: 'Cerrado', vie: 'Cerrado', sab: 'Cerrado', dom: 'Cerrado' },
+    open: true,
+  };
+  const readSrc = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('getScheduleStatus muestra solo «Previa cita» en negro, sin Cerrado (abierto o no)', () => {
+    for (const isOpen of [false, true]) {
+      const st = getScheduleStatus(appointmentBiz, isOpen);
+      expect(st.text.join('')).toBe('Previa cita');
+      expect(st.color).toBe('#18181B');
+      expect(st.dot).toBe('dot-n');
+    }
+  });
+
+  it('getSmartScheduleInfo muestra solo «Previa cita» en negro, sin Cerrado', () => {
+    const info = getSmartScheduleInfo(appointmentBiz, TZ, makeDate(1, 14));
+    expect(info.text).toBe('Previa cita');
+    expect(info.color).toBe('#18181B');
+  });
+
+  it('existe el punto negro .dot-n para el estado por cita', () => {
+    const css = readSrc('../App.css');
+    expect(css).toContain('.dot-n');
+    expect(css).toContain('#18181B');
   });
 });
