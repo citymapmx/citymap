@@ -5,7 +5,7 @@ const src = fs.readFileSync(new URL('../components/store/BusinessStore.jsx', imp
 
 describe('Encabezado sticky del menú (buscador + categorías)', () => {
   it('tiene el encabezado de búsqueda y categorías como sticky arriba', () => {
-    expect(src).toContain('{/* Sticky Header: Search + Tabs. Sin fondo propio:');
+    expect(src).toContain('{/* Sticky Header: Search + Tabs. Con estilo, fondo sólido');
     expect(src).toContain("position: 'sticky', top: 0, zIndex: 100");
   });
 

@@ -557,12 +557,16 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
         if (cat && isCatOffHours(cat)) { showOffHoursNotice(cat); return; }
         setSelectedProduct(p);
       }} />
-      {/* Sticky Header: Search + Tabs. Sin fondo propio: el degradado único
-          de la página fluye por aquí (antes era la primera parada sólida y
-          se veía la banda naranja partida del resto). El blur esmerila lo
-          que pasa por debajo al bajar, para que no se vean las tarjetas
-          por entre el buscador y las píldoras; el degradado no se repinta. */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: menuTheme ? 'transparent' : (dark ? '#18181B' : '#FFFFFF'), backdropFilter: menuTheme ? 'blur(12px)' : undefined, WebkitBackdropFilter: menuTheme ? 'blur(12px)' : undefined, paddingBottom: 12, paddingTop: 4, borderBottom: `1px solid ${dark ? '#232326' : '#F4F4F5'}` }}>
+      {/* Sticky Header: Search + Tabs. Con estilo, fondo sólido con la
+          primera parada del degradado (menuTheme.firstColor): sin blur, el
+          navegador ya no repinta la zona esmerilada en cada frame al bajar
+          (hallazgo #4, nov 2026; en el WebView del moto g54 se notaba como
+          tirón). El sólido opaco tapa las tarjetas que pasan por debajo,
+          que era el trabajo del blur; el degradado de la página sigue
+          intacto detrás, y el texto de las píldoras inactivas ya se calcula
+          contra esta parada (textOnMenuSurface), así que se siguen leyendo
+          en los 36 estilos. Sin estilo, el sólido de hoy. */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: menuTheme ? menuTheme.firstColor : (dark ? '#18181B' : '#FFFFFF'), paddingBottom: 12, paddingTop: 4, borderBottom: `1px solid ${dark ? '#232326' : '#F4F4F5'}` }}>
         {/* Search & Toggle */}
         <div style={{ padding: '0 16px', marginBottom: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1, minWidth:0 }}>

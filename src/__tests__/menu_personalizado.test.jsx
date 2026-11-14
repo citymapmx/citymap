@@ -98,13 +98,14 @@ describe('Menú personalizado: BusinessStore aplica el estilo (PR #291)', () => 
     expect(lib).toContain('menuThemeForStyle(findMenuStyleById(business.menu_style))');
   });
 
-  it('con estilo: fondo degradado en la página, píldora y botón en primary (el encabezado ya no usa la primera parada sólida)', () => {
+  it('con estilo: fondo degradado en la página, píldora y botón en primary (la barra fija sí usa la primera parada sólida)', () => {
     const src = read('../components/store/BusinessStore.jsx');
     expect(src).toContain('menuTheme ? menuTheme.background');
-    // La primera parada sólida solo queda para el borde del logo: ninguna
-    // sección pinta ya un fondo distinto (ver el bloque del degradado parejo).
+    // La primera parada sólida vive solo en la barra fija (sin blur,
+    // hallazgo #4, nov 2026) y en el borde del logo: ninguna sección
+    // pinta ya un fondo distinto (ver el bloque del degradado parejo).
     expect(src).toContain('menuTheme.firstColor');
-    expect(src).not.toContain("background: menuTheme ? menuTheme.firstColor");
+    expect(src).toContain("background: menuTheme ? menuTheme.firstColor : (dark ? '#18181B' : '#FFFFFF')");
     expect(src).toContain('menuTheme ? menuTheme.primary : (dark');
     expect(src).toContain('menuTheme ? menuTheme.onPrimary');
     expect(src).toContain("menuTheme ? menuTheme.primary : '#3F3F46'");
@@ -542,11 +543,17 @@ describe('Menú público: un solo degradado parejo en toda la página (no por pa
     expect(src).toContain("background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FAFAFA')");
     const screen = read('../components/store/MenuLoadingScreen.jsx');
     expect(screen).toContain('menuTheme.background');
-    // Ninguna sección pinta ya la primera parada sólida como fondo: ni el
-    // banner (antes repetía el degradado), ni la portada, ni la barra fija
-    // (antes era la banda naranja partida del resto).
-    expect(src).not.toContain("background: menuTheme ? menuTheme.firstColor");
-    // La primera parada solo queda como borde del logo circular.
+    // La primera parada sólida como fondo vive SOLO en la barra fija: el
+    // blur(12px) se quitó por fluidez (hallazgo #4, nov 2026) y la barra
+    // volvió a su diseño documentado (menuColorStyles: "encabezado fijo:
+    // la primera parada (sólido, para que tape al bajar)"). Ni el banner
+    // ni la portada la repiten como fondo.
+    const firstColorUses = src.match(/background: menuTheme \? menuTheme\.firstColor/g) || [];
+    expect(firstColorUses.length).toBe(1);
+    const stickyAt = src.indexOf("position: 'sticky'");
+    expect(stickyAt).toBeGreaterThan(-1);
+    expect(src.slice(stickyAt, stickyAt + 400)).toContain('menuTheme.firstColor');
+    // La primera parada también queda como borde del logo circular.
     expect(src).toContain("border: `4px solid ${menuTheme ? menuTheme.firstColor");
   });
 
@@ -563,23 +570,26 @@ describe('Menú público: un solo degradado parejo en toda la página (no por pa
     expect(bannerBlock).toContain("background: menuTheme ? 'transparent' : '#232326'");
   });
 
-  it('la barra fija (buscador + píldoras) es transparente con estilo y esmerila lo que pasa por debajo', () => {
+  it('la barra fija (buscador + píldoras) es sólida con la primera parada y SIN blur con estilo', () => {
     const src = read('../components/store/BusinessStore.jsx');
     const stickyAt = src.indexOf("position: 'sticky'");
     expect(stickyAt).toBeGreaterThan(-1);
     const stickyBlock = src.slice(stickyAt - 100, stickyAt + 500);
-    // Sin fondo propio: el degradado único fluye por la barra.
-    expect(stickyBlock).toContain("background: menuTheme ? 'transparent'");
-    // El blur evita que las tarjetas se vean por entre el buscador y las
-    // píldoras al bajar; sin estilo el fondo sigue siendo el sólido de hoy.
-    expect(stickyBlock).toContain("backdropFilter: menuTheme ? 'blur(12px)'");
-    expect(stickyBlock).toContain("WebkitBackdropFilter: menuTheme ? 'blur(12px)'");
-    expect(stickyBlock).toContain("background: menuTheme ? 'transparent' : (dark ? '#18181B' : '#FFFFFF')");
+    // Con estilo, fondo sólido con la primera parada del degradado (el
+    // diseño documentado en menuColorStyles): el sólido opaco tapa las
+    // tarjetas que pasan por debajo, que era el trabajo del blur.
+    expect(stickyBlock).toContain("background: menuTheme ? menuTheme.firstColor : (dark ? '#18181B' : '#FFFFFF')");
+    // Sin blur: el blur(12px) repintaba la zona en cada frame al bajar
+    // (hallazgo #4, nov 2026). La píldora de horario (blur 4px) y los
+    // toasts no se tocan: no se mueven al hacer scroll.
+    expect(stickyBlock).not.toContain('backdropFilter');
+    expect(stickyBlock).not.toContain('blur(12px)');
+    expect(stickyBlock).not.toContain("background: menuTheme ? 'transparent'");
   });
 
   it('sin estilo, la página queda igual que hoy: la barra y el banner conservan sus fondos sólidos', () => {
     const src = read('../components/store/BusinessStore.jsx');
-    expect(src).toContain("background: menuTheme ? 'transparent' : (dark ? '#18181B' : '#FFFFFF')");
+    expect(src).toContain("background: menuTheme ? menuTheme.firstColor : (dark ? '#18181B' : '#FFFFFF')");
     expect(src).toContain("background: menuTheme ? 'transparent' : '#232326'");
     expect(src).toContain("background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FAFAFA')");
   });
