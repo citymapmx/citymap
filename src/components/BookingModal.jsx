@@ -358,13 +358,14 @@ ${notes ? `*Notas:* ${notes}` : ""}
       onClick={(e) => { e.stopPropagation(); onClose(); }}
     >
       {/* La reserva se abre completa en una sola vez (nov 2026, Jonathan):
-          el panel es un div normal, sin entrada animada, y las tarjetas de
-          servicio tampoco animan su entrada. Antes el panel nacía con
-          opacity 0 y las tarjetas entraban escalonadas (delay por índice)
-          tras la carga lazy del chunk: primero se veía la ficha atenuada
-          y luego las tarjetas saltaban en un segundo momento, flotando
-          sin el resto del modal. */}
+          el panel entra con scale-in-center, la misma animación de las
+          tarjetas del mapa: crece desde el centro en 0.5 s. Antes el
+          panel nacía con opacity 0 y las tarjetas entraban escalonadas
+          (delay por índice) tras la carga lazy del chunk: primero se
+          veía la ficha atenuada y luego las tarjetas saltaban en un
+          segundo momento, flotando sin el resto del modal. */}
       <div
+        className="scale-in-center"
         onClick={e => e.stopPropagation()}
         style={{ background: T.white, border: dark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)", width: "100%", maxWidth: 440, borderRadius: 28, padding: 24, boxShadow: "0 24px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.02)", maxHeight: "90vh", overflowY: "auto" }}
       >

@@ -72,11 +72,17 @@ describe('modales centrados en la pantalla del teléfono', () => {
     expect(html).toContain('max-height:90vh');
   });
 
-  it('el detalle de la tarjeta no se pinta sin miembro, tarjeta o negocio', () => {
-    expect(renderModal({ member: null })).toBe('');
+  it('el detalle de la tarjeta no se pinta sin tarjeta o negocio, pero sí sin miembro (formulario de alta)', () => {
     expect(renderModal({ card: null })).toBe('');
     expect(renderModal({ biz: null })).toBe('');
     expect(renderModal({ open: false })).toBe('');
+    // Sin miembro ya NO es vacío (nov 2026, captura de Jonathan: el
+    // visitante veía NADA): enseña «Únete al programa» con el
+    // formulario de alta, y el QR solo aparece con membresía.
+    const html = renderModal({ member: null });
+    expect(html).toContain('Únete al programa');
+    expect(html).toContain('Agrega tu número');
+    expect(html).not.toContain('Muestra este código en el negocio');
   });
 
   it('la tarjeta de filtros se monta con portal en document.body', () => {

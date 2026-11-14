@@ -202,10 +202,14 @@ describe('ScheduleManagerModal: hoja completa a variante oscura', () => {
 });
 
 describe('DetailView: fallbacks de carga con color explícito', () => {
-  it('los dos fallbacks («Cargando reservaciones…» y «Cargando…») usan fondo y texto del tema', () => {
+  it('los tres fallbacks («Cargando reservaciones…», «Cargando…» y «Cargando tarjeta…») usan fondo y texto del tema', () => {
     const src = read('../views/DetailView.jsx');
     const count = src.split('background: T.white, color: T.text, borderRadius: 24').length - 1;
-    expect(count).toBe(2);
+    // El tercero es el fallback del lazy de LoyaltyCardModal (nov 2026:
+    // el botón «Tarjeta Lealtad» abre el modal en la ficha): mismo
+    // patrón con colores del tema, nunca #fff fijo.
+    expect(count).toBe(3);
+    expect(src).toContain('Cargando tarjeta...');
     expect(src).not.toContain('background: "#fff", borderRadius: 24, width: "100%", maxWidth: 440');
   });
 });
