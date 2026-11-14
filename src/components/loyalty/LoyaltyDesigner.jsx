@@ -4,6 +4,16 @@ import { sb } from '../../lib/supabase.js';
 import { loyaltyBgFirstColor } from '../../lib/loyaltyColorStyles.js';
 import LoyaltyWizard from './LoyaltyWizard.jsx';
 import LoyaltyWhatsAppButton from './LoyaltyWhatsAppButton.jsx';
+import LoyaltyMemberDetail from './LoyaltyMemberDetail.jsx';
+import LoyaltyConfirmSheet from './LoyaltyConfirmSheet.jsx';
+import {
+  loadBizRewardEvents,
+  loadMemberStampEvents,
+  logStampEvent,
+  formatStampDateTime,
+  latestActiveStampEvent,
+  stampEventLabel,
+} from '../../lib/loyaltyStampHistory.js';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 700);
@@ -111,9 +121,9 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
 
   const handleDeleteProgram = async () => {
     if (!config.id) return;
-    if (!confirm("¿Estás seguro de que quieres borrar el programa de lealtad? Todos tus clientes perderán sus sellos. Esta acción NO se puede deshacer.")) return;
     setSaving(true);
     try {
+      await sb.delWhere("loyalty_stamp_events", "biz_id", business.id);
       await sb.delWhere("loyalty_stamps_log", "biz_id", business.id);
       await sb.delWhere("loyalty_members", "biz_id", business.id);
       await sb.del("loyalty_cards", config.id);
@@ -128,6 +138,23 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
   const [membersLoading, setMembersLoading] = useState(false);
   const [stampingId, setStampingId] = useState(null);
   const [stats, setStats] = useState({ totalMembers: 0, totalStamps: 0 });
+  // Ficha de cliente, recompensas y confirmaciones (rama lealtad-historial).
+  const [detailMemberId, setDetailMemberId] = useState(null);
+  const [rewards, setRewards] = useState([]);
+  const [showRewards, setShowRewards] = useState(false);
+  const [confirmSheet, setConfirmSheet] = useState(null); // { title, message, confirmLabel, onConfirm }
+  const [ownerId, setOwnerId] = useState(null);
+
+  // Quién registra los movimientos (auditoría: created_by).
+  useEffect(() => {
+    sb.getUser().then((u) => setOwnerId(u?.id || null)).catch(() => {});
+  }, []);
+
+  const refreshRewards = async () => {
+    if (!business?.id) return;
+    const rows = await loadBizRewardEvents(business.id);
+    setRewards(rows);
+  };
 
   const loadMembers = async () => {
     if (!business?.id) return;
@@ -160,6 +187,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
   useEffect(() => {
     if (!isEditing && config.id) {
       loadMembers();
+      refreshRewards();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing, config.id]);
@@ -170,18 +198,26 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
     // Si ya completó la tarjeta, la acción es canjear (redeem)
     const isRedeeming = currentStamps >= stampsRequired;
     const newStamps = isRedeeming ? 0 : currentStamps + 1;
-    const action = isRedeeming ? "redeem" : "stamp";
 
     try {
       await sb.patch("loyalty_members", memberId, {
         stamps: newStamps,
         last_stamp_at: new Date().toISOString()
       });
-      await sb.post("loyalty_stamps_log", {
-        member_id: memberId,
-        biz_id: business.id,
-        action: action,
-        amount: 1
+      // Historial/auditoría en loyalty_stamp_events. El INSERT viejo a
+      // loyalty_stamps_log estaba bloqueado por RLS (tabla vacía) y el
+      // fallo mostraba un «Error» fantasma tras dar el sello. Este
+      // registro nunca bloquea el sello (logStampEvent no lanza).
+      await logStampEvent({
+        memberId,
+        bizId: business.id,
+        cardId: config.id,
+        eventType: isRedeeming ? 'reward_delivered' : 'stamp_added',
+        stampNumber: isRedeeming ? null : newStamps,
+        stampsBefore: currentStamps,
+        stampsAfter: newStamps,
+        note: isRedeeming ? config.reward_text : null,
+        createdBy: ownerId,
       });
       
       fetch("/api/wallet-update", {
@@ -194,6 +230,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
       // Update stats correctly
       if (isRedeeming) {
         setStats(s => ({ ...s, totalStamps: s.totalStamps - currentStamps }));
+        refreshRewards();
         alert("🎉 ¡Premio entregado! La tarjeta se reinició.");
       } else {
         setStats(s => ({ ...s, totalStamps: s.totalStamps + 1 }));
@@ -205,16 +242,35 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
     setStampingId(null);
   };
 
-  const removeStamp = async (memberId, currentStamps, stampsRequired) => {
+  // Quitar un sello. Sin confirmación aquí: quien llama ya confirmó en
+  // la hoja dentro de la app. eventToVoid es el sello concreto del
+  // historial que se anula (queda marcado como eliminado, no se borra);
+  // sin él, se quita 1 sello anterior (sin fecha registrada) y queda
+  // registrado como corrección.
+  const removeStamp = async (member, eventToVoid) => {
+    const memberId = member.id;
+    const currentStamps = member.stamps || 0;
     if (currentStamps === 0) return;
     setStampingId(memberId);
     const newStamps = currentStamps - 1;
     try {
       await sb.patch("loyalty_members", memberId, { stamps: newStamps });
-      
+      await logStampEvent({
+        memberId,
+        bizId: business.id,
+        cardId: config.id,
+        eventType: 'stamp_removed',
+        stampNumber: eventToVoid?.stamp_number ?? null,
+        stampsBefore: currentStamps,
+        stampsAfter: newStamps,
+        note: eventToVoid ? null : 'Corrección: se quitó 1 sello anterior (sin fecha registrada).',
+        voidsEventId: eventToVoid?.id || null,
+        createdBy: ownerId,
+      });
+
       fetch("/api/wallet-update", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ member_id: memberId, stamps: newStamps, stamps_required: stampsRequired })
+        body: JSON.stringify({ member_id: memberId, stamps: newStamps, stamps_required: config.stamps_required })
       }).catch(e => console.error(e));
 
       setMembers(prev => prev.map(m => m.id === memberId ? {...m, stamps: newStamps} : m));
@@ -223,8 +279,31 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
     setStampingId(null);
   };
 
+  // Botón «−» de la lista: busca el sello vigente más reciente y pide
+  // confirmación en la hoja dentro de la app (nunca el confirm nativo,
+  // que en el WebView no aparece).
+  const requestRemoveStamp = async (member) => {
+    if ((member.stamps || 0) === 0) return;
+    const { events } = await loadMemberStampEvents(member.id, business.id);
+    const latest = latestActiveStampEvent(events);
+    if (latest) {
+      setConfirmSheet({
+        title: `¿Quitar el ${stampEventLabel(latest)}?`,
+        message: `Se quitará el sello del ${formatStampDateTime(latest.created_at)} de ${member.name || member.email || 'este cliente'}. El movimiento queda registrado en el historial como sello eliminado.`,
+        confirmLabel: 'Sí, quitar sello',
+        onConfirm: async () => { setConfirmSheet(null); await removeStamp(member, latest); },
+      });
+    } else {
+      setConfirmSheet({
+        title: '¿Quitar 1 sello anterior?',
+        message: `Se quitará 1 sello anterior (sin fecha registrada) de ${member.name || member.email || 'este cliente'}. El movimiento queda registrado en el historial.`,
+        confirmLabel: 'Sí, quitar sello',
+        onConfirm: async () => { setConfirmSheet(null); await removeStamp(member, null); },
+      });
+    }
+  };
+
   const deleteMember = async (memberId) => {
-    if (!confirm("¿Eliminar este cliente del programa? Perderá todos sus sellos y beneficios activos.")) return;
     setStampingId(memberId);
     try {
       await sb.del("loyalty_members", memberId);
@@ -244,6 +323,8 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
 
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(loyaltyUrl)}&bgcolor=ffffff&color=000000&qzone=1&format=png`;
 
+  const completedCount = members.filter((m) => (m.stamps || 0) >= config.stamps_required).length;
+
   return (
     <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 10000, display: "flex", flexDirection: "column", animation: "fadeUp .3s ease" }}>
 
@@ -254,7 +335,12 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
           {!isMobile && <p style={{ margin: 0, fontSize: 13, color: T.sub }}>Diseña el pase digital de tu negocio</p>}
         </div>
         {config.id && (
-          <button onClick={handleDeleteProgram} disabled={saving} style={{ background: "transparent", border: "none", color: "#EF4444", fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, padding: "6px 2px", opacity: saving ? 0.7 : 1 }}>
+          <button onClick={() => setConfirmSheet({
+            title: '¿Borrar el programa de lealtad?',
+            message: 'Todos tus clientes perderán sus sellos. Esta acción NO se puede deshacer.',
+            confirmLabel: 'Sí, borrar programa',
+            onConfirm: async () => { setConfirmSheet(null); await handleDeleteProgram(); },
+          })} disabled={saving} style={{ background: "transparent", border: "none", color: "#EF4444", fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, padding: "6px 2px", opacity: saving ? 0.7 : 1 }}>
             Borrar programa y clientes
           </button>
         )}
@@ -276,15 +362,23 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
             </button>
           </div>
 
-          <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-            <div style={{ flex: 1, background: "#F8FAFC", borderRadius: 14, padding: "12px 16px", border: "1px solid #E2E8F0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 20 }}>
+            <div style={{ background: "#F8FAFC", borderRadius: 14, padding: "12px 16px", border: "1px solid #E2E8F0" }}>
               <div style={{ fontSize: 12, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Inscritos</div>
               <div style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", marginTop: 4 }}>{stats.totalMembers}</div>
             </div>
-            <div style={{ flex: 1, background: "#F8FAFC", borderRadius: 14, padding: "12px 16px", border: "1px solid #E2E8F0" }}>
+            <div style={{ background: "#F8FAFC", borderRadius: 14, padding: "12px 16px", border: "1px solid #E2E8F0" }}>
               <div style={{ fontSize: 12, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Sellos actuales</div>
               <div style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", marginTop: 4 }}>{stats.totalStamps}</div>
             </div>
+            <div style={{ background: "#F8FAFC", borderRadius: 14, padding: "12px 16px", border: "1px solid #E2E8F0" }}>
+              <div style={{ fontSize: 12, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Tarjetas completadas</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", marginTop: 4 }}>{completedCount}</div>
+            </div>
+            <button onClick={() => setShowRewards(true)} style={{ background: "#F8FAFC", borderRadius: 14, padding: "12px 16px", border: "1px solid #E2E8F0", textAlign: "left", cursor: "pointer" }}>
+              <div style={{ fontSize: 12, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Premios entregados</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", marginTop: 4 }}>{rewards.length}</div>
+            </button>
           </div>
 
 
@@ -310,19 +404,25 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
                 return (
                   <div key={m.id} style={{ display: "flex", flexDirection: "column", padding: "12px 14px", borderRadius: 14, border: `1px solid ${T.border}`, background: T.bg, gap: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <div onClick={() => setDetailMemberId(m.id)} title="Ver ficha del cliente" style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
                         <div style={{ fontWeight: 700, fontSize: 14, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {m.name || m.email || "Cliente"}
                         </div>
                         <div style={{ fontSize: 12, color: isCompleted ? "#F59E0B" : T.sub, marginTop: 4, fontWeight: isCompleted ? 700 : 500 }}>
                           {m.stamps} / {config.stamps_required} sellos
                           {m.last_stamp_at ? ` · ${new Date(m.last_stamp_at).toLocaleDateString("es-MX", {day:"numeric",month:"short"})}` : ""}
+                          {" · Ver ficha ›"}
                         </div>
                       </div>
-                      
+
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                         <LoyaltyWhatsAppButton member={m} stampsRequired={config.stamps_required} bizName={business?.name} disabled={isStamping} />
-                        <button onClick={() => deleteMember(m.id)} disabled={isStamping} style={{ background: "none", border: "none", color: "#EF4444", padding: 8, cursor: "pointer", opacity: isStamping ? 0.3 : 1 }}>
+                        <button onClick={() => setConfirmSheet({
+                          title: '¿Eliminar este cliente del programa?',
+                          message: `${m.name || m.email || 'Este cliente'} perderá todos sus sellos y beneficios activos. Esta acción no se puede deshacer.`,
+                          confirmLabel: 'Sí, eliminar',
+                          onConfirm: async () => { setConfirmSheet(null); await deleteMember(m.id); },
+                        })} disabled={isStamping} style={{ background: "none", border: "none", color: "#EF4444", padding: 8, cursor: "pointer", opacity: isStamping ? 0.3 : 1 }}>
                           <Icon name="trash" size={16} />
                         </button>
                       </div>
@@ -330,9 +430,11 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
 
                     <div style={{ display: "flex", gap: 8 }}>
                       {m.stamps > 0 && !isCompleted && (
-                        <button 
-                          onClick={() => removeStamp(m.id, m.stamps, config.stamps_required)} 
+                        <button
+                          onClick={() => requestRemoveStamp(m)}
                           disabled={isStamping}
+                          aria-label="Quitar un sello"
+                          title="Quitar un sello"
                           style={{ width: 44, background: T.border, color: T.text, border: "none", borderRadius: 10, fontWeight: 800, fontSize: 16, cursor: "pointer", opacity: isStamping ? 0.5 : 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
                           -
                         </button>
@@ -353,6 +455,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
               <div style={{ textAlign: "center", padding: 32, color: T.sub, fontSize: 13 }}>No se encontraron resultados</div>
             )}
           </div>
+
         </div>
       ) : !config.id && wizardStep < 3 ? (
         <LoyaltyWizard 
@@ -612,13 +715,14 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
                   </div>
                 ) : members.map(m => (
                   <div key={m.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 14, border: `1px solid ${T.border}`, background: T.bg, gap: 12 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div onClick={() => setDetailMemberId(m.id)} title="Ver ficha del cliente" style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
                       <div style={{ fontWeight: 700, fontSize: 13, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {m.name || m.email || "Cliente"}
                       </div>
                       <div style={{ fontSize: 12, color: T.sub, marginTop: 2 }}>
                         {m.stamps} / {config.stamps_required} sellos
                         {m.last_stamp_at ? ` · ${new Date(m.last_stamp_at).toLocaleDateString("es-MX", {day:"numeric",month:"short"})}` : ""}
+                        {" · Ver ficha ›"}
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -652,6 +756,60 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
 
       </div>
       )}
+          {/* Ficha del cliente con historial, recompensas y confirmaciones */}
+          {detailMemberId && (
+            <LoyaltyMemberDetail
+              member={members.find((x) => x.id === detailMemberId)}
+              config={config}
+              business={business}
+              T={T}
+              isMobile={isMobile}
+              onClose={() => setDetailMemberId(null)}
+              onGiveStamp={(m) => giveStamp(m.id, m.stamps, config.stamps_required)}
+              onRemoveStamp={(m, e) => removeStamp(m, e)}
+            />
+          )}
+
+          {showRewards && (
+            <div onClick={() => setShowRewards(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 11000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+              <div onClick={(e) => e.stopPropagation()} style={{ background: T.bg, width: "100%", maxWidth: 480, maxHeight: "80vh", overflowY: "auto", borderRadius: 20, padding: 20, boxShadow: "0 20px 48px rgba(0,0,0,0.25)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: T.text }}>Recompensas entregadas</h3>
+                  <button onClick={() => setShowRewards(false)} aria-label="Cerrar" style={{ width: 32, height: 32, borderRadius: "50%", background: T.border, color: T.text, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                    <Icon name="x" size={14} />
+                  </button>
+                </div>
+                {rewards.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: 24, color: T.sub, fontSize: 13 }}>Aún no se han entregado recompensas.</div>
+                ) : (
+                  rewards.map((r) => {
+                    const rm = members.find((x) => x.id === r.member_id);
+                    return (
+                      <div key={r.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "12px 0", borderTop: `1px solid ${T.border}` }}>
+                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#FEF3C7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <Icon name="gift" size={18} color="#D97706" />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{rm?.name || rm?.email || "Cliente"}</div>
+                          <div style={{ fontSize: 12, color: T.sub, marginTop: 2 }}>{config.reward_text || "Premio"} · {formatStampDateTime(r.created_at)}</div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {confirmSheet && (
+            <LoyaltyConfirmSheet
+              title={confirmSheet.title}
+              message={confirmSheet.message}
+              confirmLabel={confirmSheet.confirmLabel}
+              onConfirm={confirmSheet.onConfirm}
+              onCancel={() => setConfirmSheet(null)}
+            />
+          )}
     </div>
   );
 }

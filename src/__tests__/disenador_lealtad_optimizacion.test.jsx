@@ -72,9 +72,16 @@ describe('Diseñador de lealtad: optimización (sin sección LOGO, borrar arriba
     expect(pos).toBeLessThan(bodyStart);
   });
 
-  it('el botón de borrar del encabezado sigue usando el diálogo de confirmación', () => {
-    expect(SRC).toContain('¿Estás seguro de que quieres borrar el programa de lealtad? Todos tus clientes perderán sus sellos. Esta acción NO se puede deshacer.');
-    const delPos = SRC.indexOf('onClick={handleDeleteProgram}');
+  it('el botón de borrar del encabezado usa la hoja de confirmación dentro de la app (nunca window.confirm)', () => {
+    // El confirm nativo no aparece en el WebView (rama lealtad-historial):
+    // ahora se abre LoyaltyConfirmSheet con el mismo aviso y
+    // handleDeleteProgram se ejecuta al confirmar ahí.
+    expect(SRC).not.toContain('window.confirm');
+    expect(SRC).toContain('¿Borrar el programa de lealtad?');
+    expect(SRC).toContain('Todos tus clientes perderán sus sellos. Esta acción NO se puede deshacer.');
+    expect(SRC).toContain('LoyaltyConfirmSheet');
+    expect(SRC).toContain('handleDeleteProgram');
+    const delPos = SRC.indexOf('Borrar programa y clientes');
     expect(delPos).toBeGreaterThan(-1);
     expect(SRC.indexOf('onClick={onClose}')).toBeGreaterThan(delPos);
   });
