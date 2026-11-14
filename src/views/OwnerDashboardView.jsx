@@ -6,7 +6,6 @@ import { useUIStore } from "../store/useUIStore";
 import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon";
 import ReservationsAgenda from "../components/ReservationsAgenda";
-import GamificationWidget from "../components/admin/GamificationWidget";
 import { ErrorBoundary } from "../components/ErrorBoundary.jsx";
 
 // La hoja de tarjetas para compartir del negocio (la misma de la
@@ -90,6 +89,15 @@ export default function OwnerDashboardView() {
           <div className="text-xl" style={{ fontFamily: FONT_BIZ, fontWeight: 900, color: T.text }}>{ownerView.name}</div>
         </div>
 
+        {/* AGENDA: «Tus Reservaciones» va PRIMERO (nov 2026,
+            Jonathan): la lista de reservaciones arriba de los
+            botones. */}
+        {ownerView.plan !== "free" && (
+          <div style={{ marginBottom: 24 }}>
+            <ReservationsAgenda ownerView={ownerView} ownerRes={ownerRes} setOwnerRes={setOwnerRes} />
+          </div>
+        )}
+
         {/* QUICK LINK */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.white, border: `1.5px solid ${T.border}`, padding: "12px 16px", borderRadius: 16, marginBottom: 24, boxShadow: "0 4px 12px rgba(0,0,0,0.02)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -113,17 +121,6 @@ export default function OwnerDashboardView() {
             Compartir
           </button>
         </div>
-
-        {/* GAMIFICATION WIDGET */}
-        <GamificationWidget ownerView={ownerView} />
-
-
-        {/* AGENDA */}
-        {ownerView.plan !== "free" && (
-          <div style={{ marginTop: 24 }}>
-            <ReservationsAgenda ownerView={ownerView} ownerRes={ownerRes} setOwnerRes={setOwnerRes} />
-          </div>
-        )}
         
       </div>
 
