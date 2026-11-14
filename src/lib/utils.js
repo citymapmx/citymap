@@ -233,8 +233,10 @@ export function getMinutesToClose(b, tz, now) {
 
 export function getScheduleStatus(b, isOpen, short = false) {
   if (b.schedule?.type === "none") return { text: "", color: "transparent", dot: "", bg: "transparent", hidden: true };
+  // Jonathan 14 Nov 2026: un negocio por cita nunca está «Cerrado»: el estado
+  // es solo «Previa cita», en negro (antes decía «Cerrado · Previa Cita» en rojo).
+  if (b.schedule?.type === "appointment") return { text: ["Previa cita"], color: "#18181B", dot: "dot-n", bg: "rgba(24, 24, 27, 0.08)" };
   let suffix = "";
-  if (b.schedule?.type === "appointment") suffix = " · Previa Cita";
   if (b.schedule?.type === "delivery") suffix = " · Solo para llevar";
   
   const deliverySuffix = short ? "" : (b.schedule?.type === "delivery" ? React.createElement('span', { key: 's', style: { color: '#F59E0B' } }, suffix) : suffix);
@@ -250,8 +252,10 @@ export function getSmartScheduleInfo(b, tz, now) {
   const sch = b.schedule;
   if (!sch || typeof sch !== "object" || Object.keys(sch).length === 0) return { text: b.open ? "Abierto ahora" : "Cerrado", color: b.open ? "#16A34A" : "#DC2626" };
   if (sch.type === "none") return { text: "", color: "transparent", hidden: true };
+  // Jonathan 14 Nov 2026: un negocio por cita nunca está «Cerrado»: el estado
+  // es solo «Previa cita», en negro.
+  if (sch.type === "appointment") return { text: "Previa cita", color: "#18181B" };
   let suffix = "";
-  if (sch.type === "appointment") suffix = " · Previa Cita";
   if (sch.type === "delivery") suffix = " · Solo para llevar";
   
   const deliverySuffix = sch.type === "delivery" ? React.createElement('span', { key: 's', style: { color: '#F59E0B' } }, suffix) : suffix;
