@@ -13,8 +13,10 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // {ciudad}» se conserva.
 // Agregados el mismo día: (3) el precio sale de la barra fija de boletos
 // del detalle de evento (ver detalle_evento_barra_fija.test.jsx); (4) la
-// portada del menú usa el mismo encuadre que la ficha (getThumbUrl
-// 1200×900 + cover) porque con 800×340 se veía acercada.
+// portada del menú usa el mismo encuadre que la ficha (recorte 4:3 +
+// cover) porque con 800×340 se veía acercada. Desde el hallazgo #3
+// (nov 2026) el menú pide 800×600 — mismo recorte 4:3, la mitad de
+// peso — con prioridad alta; la ficha sigue en 1200×900.
 describe('cambio de ciudad desde una sección: misma sección, ciudad nueva', () => {
   it('Revista: /revista/:ciudad y /revista/:ciudad/:artículo van a /revista/:nueva', () => {
     expect(sectionPathForCity('/revista/tepic', 'guadalajara')).toBe('/revista/guadalajara');
@@ -103,15 +105,23 @@ describe('encabezado global en Revista, Mapa y Eventos', () => {
 });
 
 describe('portada del menú: mismo encuadre que la ficha', () => {
-  it('la portada del menú usa getThumbUrl 1200×900 + cover, como la ficha', () => {
+  it('la portada del menú usa el mismo recorte 4:3 que la ficha, a 800×600 con prioridad', () => {
     const store = read('../components/store/BusinessStore.jsx');
-    expect(store).toContain(
-      'getThumbUrl(business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url, 1200, 900)',
-    );
+    const bannerAt = store.indexOf('Banner Area');
+    expect(bannerAt).toBeGreaterThan(-1);
+    const bannerBlock = store.slice(bannerAt, store.indexOf('Gradient Overlay', bannerAt));
+    // Mismo recorte 4:3 + cover que la ficha, pero a 800×600 (la mitad
+    // de peso) y con prioridad alta: es el LCP del menú (hallazgo #3).
+    expect(bannerBlock).toContain('<OptimizedImage');
+    expect(bannerBlock).toContain('widthRequest={800}');
+    expect(bannerBlock).toContain('heightRequest={600}');
+    expect(bannerBlock).toContain('priority');
+    expect(bannerBlock).toContain("objectFit: 'cover'");
+    expect(bannerBlock).toContain("aspectRatio: '4 / 3'");
     // El viejo pedido 800×340 (recorte panorámico 2.35:1 en el servidor)
     // ya no existe en la portada: con él la foto se veía acercada.
-    expect(store).not.toContain('widthRequest={800}');
-    expect(store).not.toContain('heightRequest={340}');
+    expect(bannerBlock).not.toContain('heightRequest={340}');
+    expect(bannerBlock).not.toContain('1200, 900');
     const detail = read('../views/DetailView.jsx');
     expect(detail).toContain(
       'getThumbUrl(selected.photos?.find(photo => photo?.url)?.url || selected.banner_url || selected.logo_url, 1200, 900)',
