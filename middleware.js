@@ -21,15 +21,20 @@ export default async function middleware(request) {
   const { pathname, searchParams } = url;
   const ua = request.headers.get("user-agent") || "";
   const { isWorld, origin } = seoSite(url.hostname);
-  // Excepción: /.well-known/assetlinks.json NO se redirige. Android verifica
-  // los App Links pidiendo el archivo en cada host exacto y no sigue
-  // redirecciones: si citymap.world o www.citymap.mx devolvieran 308 aquí,
-  // la verificación fallaría para ese host y sus enlaces no abrirían la app
-  // (verificado en vivo 14 nov 2026: los dos daban 308). Sin redirigir, el
-  // middleware pasa de largo y Vercel sirve el archivo estático con 200.
+  // Excepción: /.well-known/assetlinks.json y /sw.js NO se redirigen.
+  // Android verifica los App Links pidiendo el archivo en cada host exacto
+  // y no sigue redirecciones: si citymap.world o www.citymap.mx devolvieran
+  // 308 aquí, la verificación fallaría para ese host y sus enlaces no
+  // abrirían la app (verificado en vivo 14 nov 2026: los dos daban 308).
+  // Lo mismo vale para /sw.js: la actualización del Service Worker debe
+  // pedirse en el mismo origen; un 308 a otro host rompería el chequeo y
+  // el SW viejo nunca se enteraría del script autodestructivo. Sin
+  // redirigir, el middleware pasa de largo y Vercel sirve el archivo
+  // estático con 200.
   if (
     (url.hostname === 'www.citymap.mx' || url.hostname === 'citymap.world') &&
-    pathname !== '/.well-known/assetlinks.json'
+    pathname !== '/.well-known/assetlinks.json' &&
+    pathname !== '/sw.js'
   ) {
     return Response.redirect(new URL(url.pathname + url.search, origin), 308);
   }
@@ -151,18 +156,22 @@ export default async function middleware(request) {
     }
   }
 
-  // ── 0. KILL SWITCH PARA SERVICE WORKER VIEJO ──────────────────────────────
-  // Si el navegador pide sw.js, devolvemos 404. Esto hace que el navegador 
-  // desinstale el Service Worker silenciosamente sin disparar el evento "updatefound"
-  // que causa el bucle de recarga en el cliente viejo.
-  if (pathname === '/sw.js') {
-    return new Response('Service Worker Removed', { status: 404 });
-  }
+  // ── 0. /sw.js: servir el script autodestructivo (hallazgo #5, nov 2026) ──
+  // El 404 de antes (kill switch de la #229) NO desinstala un SW ya
+  // instalado: los navegadores con el SW viejo quedaban congelados en la
+  // versión vieja. Ahora se pasa de largo (sección 1) y Vercel sirve el
+  // dist/sw.js que genera VitePWA (selfDestroying: skipWaiting +
+  // unregister() + borra cachés): el SW viejo se actualiza a él, se
+  // desinstala y recarga una sola vez. El cliente ya NO registra /sw.js
+  // (main.jsx): registrar el autodestructivo en cada carga haría que se
+  // instalara, se desinstalara y recargara la página en cada visita — el
+  // bucle de recarga de la #229. Solo se limpia lo que ya estaba instalado
+  // (el navegador lo actualiza solo con su chequeo automático de /sw.js).
 
   // ── 1. Archivos estáticos y API: pasar de largo siempre ──────────────────
   if (pathname.startsWith('/api/') || pathname.startsWith('/assets/') ||
       pathname.startsWith('/_next/') || pathname.startsWith('/web-next/') ||
-      (pathname.includes('.') && pathname !== '/sw.js')) {
+      pathname.includes('.')) {
     return;
   }
 

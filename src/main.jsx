@@ -51,22 +51,16 @@ if (isAdminRoute) {
   import('./App.jsx').then(({ default: App }) => {
     return import('./components/GlobalErrorBoundary.jsx').then(({ GlobalErrorBoundary }) => {
 
-      // Register Service Worker - updates silently in background (no forced reload)
-      // IMPORTANT: onNeedRefresh must NOT call updateSW(true) or window.location.reload()
-      // because skipWaiting+clientsClaim in vite.config already handles the update,
-      // and forcing a reload here causes an infinite refresh loop on every page load.
-      import('virtual:pwa-register').then(({ registerSW }) => {
-        registerSW({
-          onNeedRefresh() {
-            // Silently accept - do NOT reload, causes infinite loop
-            console.log('[SW] Update available, will activate on next visit.');
-          },
-          onRegistered(r) {
-            r && setInterval(() => { r.update(); }, 60 * 60 * 1000);
-          },
-          onRegisterError(error) { console.error('SW registration error', error); }
-        });
-      }).catch(() => {});
+      // Sin registro del Service Worker, a conciencia (hallazgo #5, nov 2026):
+      // el SW está muerto (VitePWA selfDestroying) y /sw.js sirve el script
+      // autodestructivo para desinstalar el SW viejo de quien lo tenga. NO se
+      // llama a registerSW(): registrar el autodestructivo en cada carga haría
+      // que se instalara, se desinstalara y recargara la página en cada
+      // visita — el bucle de recarga de la #229. Los navegadores con el SW
+      // viejo lo actualizan solos con su chequeo automático de /sw.js y se
+      // limpian con una sola recarga; el resto nunca instala nada.
+      // (El SW de push, /firebase-messaging-sw.js, es otro registro aparte
+      // y sigue intacto en useWebPush.js.)
 
       // chunk_reload_guard now uses timestamps
 
