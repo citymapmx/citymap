@@ -11,6 +11,15 @@ import { Helmet } from 'react-helmet-async';
 import { useUIStore } from '../store/useUIStore.js';
 import { useQuery } from '@tanstack/react-query';
 
+// Caché del menú (hallazgo #5, nov 2026): el contenido del menú (negocio +
+// categorías/productos) casi no cambia, así que una segunda visita al menú
+// dentro de la sesión no vuelve a pedirlo a la API. 30 min de frescura
+// (antes 5) y 60 min de retención para que la caché sobreviva a ir y volver
+// entre ficha y menú. El dueño que edita su menú lo ve actualizado pasados
+// los 30 min (el panel del dueño no invalida estas consultas al guardar).
+const MENU_STALE_TIME = 30 * 60 * 1000;
+const MENU_GC_TIME = 60 * 60 * 1000;
+
 export default function MenuView({ T, dark, navigate: propNavigate }) {
   const { city, slug } = useParams();
   const setSelected = useUIStore(s => s.setSelected);
@@ -40,7 +49,8 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
       }
       return businessData;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: MENU_STALE_TIME,
+    gcTime: MENU_GC_TIME,
   });
 
   const error = queryError ? "Negocio no encontrado" : null;
@@ -55,7 +65,8 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
     queryKey: ['store-categories', biz?.id],
     queryFn: () => fetchStoreCategories(biz.id),
     enabled: !!biz?.id && isElite,
-    staleTime: 5 * 60 * 1000,
+    staleTime: MENU_STALE_TIME,
+    gcTime: MENU_GC_TIME,
   });
 
   useEffect(() => {

@@ -144,6 +144,28 @@ export default function DetailView() {
     import('../components/BookingModal.jsx').catch(() => {});
   }, []);
 
+  // El menú se precarga al abrir la ficha (hallazgo #5, nov 2026): la ruta
+  // /:ciudad/:slug/menu es lazy (MenuView en AppRouter) y sin esto al tocar
+  // «VER MENÚ» primero hay que descargar su chunk. BusinessStore ya viene
+  // con la ficha (import estático arriba), así que lo que se calienta aquí
+  // es MenuView. Se hace en idle para no competir con la carga de la ficha
+  // (reseñas, fullBusiness); el import es el mismo módulo que el lazy de
+  // AppRouter, así que el navegador lo descarga una sola vez.
+  useEffect(() => {
+    let idle = null;
+    let timer = null;
+    const run = () => { import('../views/MenuView.jsx').catch(() => {}); };
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      idle = window.requestIdleCallback(run, { timeout: 2500 });
+    } else {
+      timer = setTimeout(run, 1500);
+    }
+    return () => {
+      if (idle !== null && typeof window !== 'undefined' && window.cancelIdleCallback) window.cancelIdleCallback(idle);
+      if (timer !== null) clearTimeout(timer);
+    };
+  }, []);
+
   // Link directo de reserva /:ciudad/:slug/reservar: al cargar la ficha
   // se abre SOLO el modal de Reservar. Espera a que se sepa si hay
   // reserva: el objeto de la lista ya trae booking_config (nov 2026,
