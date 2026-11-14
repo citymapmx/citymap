@@ -235,8 +235,12 @@ export default memo(function BusinessCard({
           border: `1px solid ${dark ? "#52525B" : T.border}`, 
           minHeight: 100, 
           cursor: onTap ? "pointer" : "default",
-          contentVisibility: "auto",
-          containIntrinsicSize: "0 100px"
+          // Sin content-visibility: la lista ya virtualiza con Virtuoso
+          // (las filas fuera de vista se desmontan) y con
+          // content-visibility: auto el navegador además dejaba de pintar
+          // las tarjetas montadas fuera de vista: al volver a subir se
+          // volvían a pintar desde cero y se veían borrar y cargar de
+          // nuevo. Las tarjetas montadas siempre se pintan.
         }} 
         variants={{ hover: { y: -3, boxShadow: "0 12px 30px rgba(0, 0, 0, 0.1)" } }} 
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -331,8 +335,9 @@ export default memo(function BusinessCard({
           flexDirection: "column", 
           position: "relative", 
           border: `1.5px solid ${T.green}40`,
-          contentVisibility: "auto",
-          containIntrinsicSize: "0 180px"
+          // Sin content-visibility: ver el comentario en la variante
+          // compacta — con Virtuoso virtualizando, solo hacía que las
+          // tarjetas montadas se volvieran a pintar al volver a subir.
         }} 
         variants={{ hover: { y: -4, boxShadow: "0 16px 40px rgba(0, 0, 0, 0.12)" } }} 
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -401,8 +406,9 @@ export default memo(function BusinessCard({
           flexDirection: "column", 
           border: `1.5px solid ${T.border}`, 
           boxShadow: T.shadow,
-          contentVisibility: "auto",
-          containIntrinsicSize: "0 250px"
+          // Sin content-visibility: ver el comentario en la variante
+          // compacta — con Virtuoso virtualizando, solo hacía que las
+          // tarjetas montadas se volvieran a pintar al volver a subir.
         }} 
         variants={{ hover: { y: -4, boxShadow: T.shadowLg } }} 
         transition={{ duration: 0.3, ease: "easeOut" }}
