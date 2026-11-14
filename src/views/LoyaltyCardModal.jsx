@@ -162,7 +162,7 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz }) {
                 />
               </div>
               <div style={{ fontSize: 11, color: card.text_color, opacity: 0.8, fontWeight: 700, textAlign: "center", padding: "0 10px" }}>
-                {isCompleted ? "Muestra este código al cajero para canjear tu premio" : "Muestra este código al cajero para recibir tu sello"}
+                {isCompleted ? "Muestra este código en el negocio para canjear tu premio" : "Muestra este código en el negocio para recibir tu sello"}
               </div>
             </div>
             </m.div>

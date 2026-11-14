@@ -67,7 +67,7 @@ describe('modales centrados en la pantalla del teléfono', () => {
     expect(html).toContain('Carrito La Paz Tostadas de Atún');
     expect(html).toContain('0 DE 5 SELLOS');
     expect(html).toContain('2 Tostadas gratis');
-    expect(html).toContain('Muestra este código al cajero para recibir tu sello');
+    expect(html).toContain('Muestra este código en el negocio para recibir tu sello');
     // El panel sigue acotado a la altura visible.
     expect(html).toContain('max-height:90vh');
   });
