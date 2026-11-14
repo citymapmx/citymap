@@ -140,7 +140,14 @@ export const useDataStore = create((set, get) => ({
           if (Array.isArray(rows)) set({ mapPins: rows.slice(0, 20) });
         } catch { /* Invalid caches are replaced by the network response. */ }
       }
-      let selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url,is_catalog";
+      // booking_config VA en el select (nov 2026, botón Reservar
+      // intermitente): la ficha decide si muestra «Reservar» con
+      // selected.booking_config?.enabled, y si la lista no trae la
+      // columna el botón no existe hasta que resuelve fullBusiness — o
+      // nunca, si esa consulta falla con red floja. No quitarla de
+      // ninguna lista de columnas de negocios (esta, la de abajo, la de
+      // búsqueda, la de destacados ni la de pines del mapa).
+      let selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url,is_catalog,booking_config";
       
       const processBatch = (batch) => Array.isArray(batch) ? batch.map(b => ({
         ...b,
@@ -184,7 +191,7 @@ export const useDataStore = create((set, get) => ({
     const requestId = ++timeBasedLoadId;
     set({ timeBasedBizCity: targetCity, timeBasedBiz: [] });
     try {
-      let selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url,is_catalog";
+      let selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url,is_catalog,booking_config";
       const processBatch = (batch) => Array.isArray(batch) ? batch.map(b => ({
         ...b,
         schedule: get().parseJSON(b.schedule),
@@ -216,7 +223,7 @@ export const useDataStore = create((set, get) => ({
       // Si el usuario escribe lo que sugiere el buscador ("Buscar tacos"),
       // se quita el verbo para buscar solo el término.
       query = (query || '').replace(/^(buscar|busca)\s+/i, '').trim();
-      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url,description,is_catalog";
+      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url,description,is_catalog,booking_config";
       
       let filters = `status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}`;
       
@@ -285,7 +292,7 @@ export const useDataStore = create((set, get) => ({
     const request = (async () => {
       try {
         const filters = `status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}`;
-        const columns = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,plan,city_slug,status,slug,badge,is_catalog";
+        const columns = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,plan,city_slug,status,slug,badge,is_catalog,booking_config";
         const ratedRequest = sb.get("businesses", `?select=${columns}&${filters}&review_count=gt.0&order=rating.desc.nullslast,review_count.desc,id.desc&limit=10`);
         const favoriteRequest = (async () => {
           const ids = Object.entries(get().globalFavCounts).filter(([, count]) => count > 0).sort((a, b) => b[1] - a[1]).map(([id]) => id);
@@ -317,7 +324,7 @@ export const useDataStore = create((set, get) => ({
   loadMapPinsByBounds: async (targetCity, bounds) => {
     try {
       if (!bounds || !bounds.minLat || !bounds.maxLat || !bounds.minLng || !bounds.maxLng) return;
-      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,banner_url,is_catalog";
+      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,banner_url,is_catalog,booking_config";
       
       const processBatch = (batch) => Array.isArray(batch) ? batch.map(b => ({
         ...b,
