@@ -356,11 +356,16 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                   // 1200×900 + cover): antes se pedía 800×340 y el servidor
                   // recortaba la foto a panorámica 2.35:1, así que en el
                   // menú se veía acercada, recortada por los lados (nov
-                  // 2026, Jonathan). Con 1200×900 la foto se ve como en
-                  // la ficha, con el mismo recorte en ambas páginas.
-                  <img
-                    src={getThumbUrl(business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url, 1200, 900)}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  // 2026, Jonathan). El menú pide 800×600 (mismo recorte
+                  // 4:3, la mitad de peso: 68,8 KB vs 142,4 KB en la foto
+                  // de Carrito La Paz, nov 2026) con prioridad alta: es el
+                  // LCP de la página y se muestra a 390×220.
+                  <OptimizedImage
+                    src={business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url}
+                    widthRequest={800}
+                    heightRequest={600}
+                    priority
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', aspectRatio: '4 / 3' }}
                     alt={business.name}
                   />
                 )}
