@@ -532,10 +532,16 @@ describe('Menú personalizado: ajustes del diseñador (título, Guardar, Sin est
 describe('Menú público: un solo degradado parejo en toda la página (no por partes)', () => {
   it('el degradado vive UNA sola vez: en la tarjeta de la página; las secciones no lo repiten ni pintan otro fondo', () => {
     const src = read('../components/store/BusinessStore.jsx');
-    // La tarjeta de la página es el único fondo con el degradado del tema.
+    // La tarjeta de la página es el único fondo con el degradado del tema
+    // (el segundo uso es la pantalla de carga del menú, que ES la página
+    // antes de que exista el menú: no es una sección que repita el
+    // degradado; nov 2026, error 3).
     const uses = src.match(/menuTheme \? menuTheme\.background/g) || [];
-    expect(uses.length).toBe(1);
+    expect(uses.length).toBe(2);
     expect(src).toContain("background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FAFAFA')");
+    const loadAt = src.indexOf('if (loading) {');
+    expect(loadAt).toBeGreaterThan(-1);
+    expect(src.slice(loadAt, loadAt + 1500)).toContain('menuTheme.background');
     // Ninguna sección pinta ya la primera parada sólida como fondo: ni el
     // banner (antes repetía el degradado), ni la portada, ni la barra fija
     // (antes era la banda naranja partida del resto).

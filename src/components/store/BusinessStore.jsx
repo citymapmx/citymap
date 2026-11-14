@@ -221,10 +221,31 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   }, [activeCategories, menuSearch]);
 
   if (loading) {
-    return inline ? <div role="status" aria-label={`Cargando productos del ${storeLabel}`} style={{minHeight:'100dvh',background:dark ? '#18181B' : '#FFFFFF',color:dark ? '#A1A1AA' : '#71717A',padding:'32px 20px',boxSizing:'border-box'}}>
-      <p style={{fontSize:14,margin:'0 0 24px'}}>Cargando {storeLabel}…</p>
-      {[1,2,3].map(row => <div key={row} aria-hidden="true" style={{height:84,borderRadius:14,marginBottom:12,background:dark ? '#232326' : '#F4F4F5'}} />)}
-    </div> : null;
+    if (!inline) return null;
+    // La pantalla de carga usa el tema del negocio y muestra su logo y
+    // su nombre: el tema ya se conoce aquí (viene en la prop business,
+    // antes de que carguen las categorías). Antes era una página blanca
+    // con «Cargando menú…» y 3 barras grises (nov 2026, Jonathan). Sin
+    // tema, fondo claro con el logo y el nombre del negocio, no solo
+    // barras. Las barras usan el color del texto del tema atenuado para
+    // que se lean sobre cualquier degradado.
+    const loadBg = menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FFFFFF');
+    const loadText = menuTheme ? menuTheme.text : (dark ? '#FAFAFA' : '#18181B');
+    const loadSub = menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A');
+    const loadBar = menuTheme ? menuHexAlpha(menuTheme.text, '26') : (dark ? '#232326' : '#F4F4F5');
+    return (
+      <div role="status" aria-label={`Cargando productos del ${storeLabel}`} style={{minHeight:'100dvh',background:loadBg,color:loadSub,padding:'32px 20px',boxSizing:'border-box'}}>
+        <style>{`@keyframes menuSkeletonPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }`}</style>
+        {(business?.logo_url || business?.logo) ? (
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#FFFFFF', overflow: 'hidden', margin: '8px auto 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <OptimizedImage src={getThumbUrl(business.logo_url || business.logo, 200, 200)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={business.name} />
+          </div>
+        ) : null}
+        {business?.name ? <p style={{fontSize:20,fontWeight:800,margin:'0 0 4px',color:loadText,textAlign:'center'}}>{business.name}</p> : null}
+        <p style={{fontSize:14,margin:'0 0 24px',textAlign:'center'}}>Cargando {storeLabel}…</p>
+        {[1,2,3].map(row => <div key={row} aria-hidden="true" style={{height:84,borderRadius:14,marginBottom:12,background:loadBar,animation:'menuSkeletonPulse 1.4s ease-in-out infinite'}} />)}
+      </div>
+    );
   }
 
   if (activeCategories.length === 0) {
@@ -290,18 +311,24 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             animate={{ opacity: 1, scale: 1, y: 0 }}
             style={{ background: dark ? '#232326' : '#FFFFFF', width: '100%', maxWidth: 320, borderRadius: 24, padding: '32px 24px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}
           >
-            <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}`, padding: 8, boxSizing: 'border-box' }}>
+            <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}`, boxSizing: 'border-box' }}>
               {(business.logo_url || business.logo) ? (
-                // El logo llena el círculo (cover) y el recorte circular
-                // quita las esquinas: los logos cuadrados con esquinas
-                // oscuras (p. ej. KAVA: cuadrado negro con el emblema
-                // circular oliva en el centro) se veían mal con contain,
-                // porque el cuadrado entero cabía dentro del círculo
-                // blanco y las esquinas negras quedaban a la vista.
-                // Igual que el logo del encabezado del menú (ya cover).
+                // El logo llena el círculo (cover) SIN padding y con un
+                // zoom 1.12: verificado con los dos logos reales (nov
+                // 2026). Con el padding 8 de antes la imagen solo ocupaba
+                // 58 px dentro del círculo de 80 px: el emblema de
+                // Carrito La Paz quedaba chico (~67% del círculo) y se
+                // veían los textos diagonales de las esquinas (+52 311
+                // 300 76 20 y @carrito.la.paz); en KAVA se veían las
+                // esquinas negras del cuadrado. Sin padding el emblema
+                // llega al 86% y el zoom lo lleva al borde del círculo,
+                // recortando esquinas y textos fuera del emblema; el
+                // texto de KAVA («KAVA», «BAKERY COFFEE & BRUNCH») queda
+                // intacto. El logo del encabezado del menú ya usaba
+                // cover sin padding y no se toca.
                 <OptimizedImage
                   src={getThumbUrl(business.logo_url || business.logo, 200, 200)}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'translateZ(0) scale(1.12)' }}
                   alt={business.name}
                 />
               ) : (
