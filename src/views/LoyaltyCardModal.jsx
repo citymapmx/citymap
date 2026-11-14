@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import Icon from '../components/ui/Icon.jsx';
 import QRCode from 'react-qr-code';
 import { getThumbUrl } from '../lib/utils.js';
 import { loyaltyBgFirstColor } from '../lib/loyaltyColorStyles.js';
+import { normalizeWhatsApp } from '../lib/loyaltyWhatsapp.js';
+import { clearPrefetchedLoyaltyEntries } from '../lib/loyaltyMemberships.js';
+import { sb } from '../lib/supabase.js';
 
 // El detalle de la tarjeta es un overlay fixed que debe cubrir TODA
 // la ventana y centrarse en la pantalla visible: se monta con
@@ -20,9 +23,93 @@ import { loyaltyBgFirstColor } from '../lib/loyaltyColorStyles.js';
 // la raíz no lleva transform y el modal ya se veía bien, pero el
 // portal lo deja a salvo en los dos sitios que lo usan. En SSR/pruebas
 // (sin document) se pinta en línea, como siempre.
-export default function LoyaltyCardModal({ open, onClose, member, card, biz }) {
-  if (!member || !card || !biz) return null;
-  const currentStamps = member.stamps || 0;
+// Desde la ficha del negocio (DetailView, nov 2026) el modal se abre
+// también para quien NO es miembro: en ese caso enseña el formulario
+// «Únete al programa» (el mismo de LoyaltyCardView) en vez de no
+// pintarse. La guarda solo exige tarjeta y negocio; sin miembro se
+// pinta el alta y el QR solo aparece cuando ya hay membresía.
+// `user` y `setShowAuth` solo los pasa DetailView (perfil y Wallet
+// siempre abren con miembro); `onEnrolled` avisa a la ficha para que
+// refresque su membresía tras el alta.
+export default function LoyaltyCardModal({ open, onClose, member, card, biz, user, setShowAuth, onEnrolled, loading, T }) {
+  // La membresía vive en estado local: al unirse desde el formulario el
+  // modal pasa a mostrar sellos + QR sin esperar a que la ficha
+  // refresque su consulta. Se resincroniza cuando cambia la prop.
+  const [currentMember, setCurrentMember] = useState(member || null);
+  useEffect(() => { setCurrentMember(member || null); }, [member]);
+  const [enrollLoading, setEnrollLoading] = useState(false);
+  const [whatsapp, setWhatsapp] = useState('');
+  const [whatsappError, setWhatsappError] = useState('');
+
+  const handleEnroll = async () => {
+    if (!user) {
+      if (setShowAuth) setShowAuth(true); // Pedimos login
+      return;
+    }
+    if (!card || !biz || enrollLoading) return;
+
+    // WhatsApp obligatorio: se guarda normalizado (+52) para que el
+    // negocio tenga el número registrado en su lista de clientes.
+    const normalizedWhatsapp = normalizeWhatsApp(whatsapp);
+    if (!normalizedWhatsapp) {
+      setWhatsappError('Escribe tu número de WhatsApp (10 dígitos) para unirte al programa.');
+      return;
+    }
+    setWhatsappError('');
+
+    setEnrollLoading(true);
+    // Inscribir al usuario (mismo flujo que LoyaltyCardView).
+    try {
+      const payload = {
+        card_id: card.id,
+        biz_id: biz.id,
+        user_id: user.id,
+        name: user.user_metadata?.full_name || user.email,
+        email: user.email,
+        whatsapp: normalizedWhatsapp,
+        stamps: 0
+      };
+      let res;
+      try {
+        res = await sb.post('loyalty_members', payload);
+      } catch (e) {
+        // Si la columna whatsapp aún no existe en la base (la migración
+        // del PR no se ha aplicado en el editor SQL), el join no debe
+        // romperse: reintentamos sin el número y la membresía se crea
+        // igual.
+        if (String(e?.message || '').includes('whatsapp')) {
+          const { whatsapp: _ignored, ...payloadWithoutWhatsapp } = payload;
+          res = await sb.post('loyalty_members', payloadWithoutWhatsapp);
+        } else {
+          throw e;
+        }
+      }
+      if (res && res[0]) {
+        setCurrentMember(res[0]);
+        // La precarga del perfil es una foto anterior al join: si no se
+        // invalida, la tarjeta nueva no aparece en el perfil hasta
+        // recargar la página (12 Nov 2026).
+        clearPrefetchedLoyaltyEntries();
+        if (onEnrolled) onEnrolled(res[0]);
+      }
+    } catch (e) {
+      alert('Error al inscribirte: ' + e.message);
+    }
+    setEnrollLoading(false);
+  };
+
+  if (!card || !biz) {
+    // Sin tarjeta no hay modal; pero si se abrió desde la ficha y la
+    // consulta aún no resuelve, se enseña «Cargando tarjeta...» en vez
+    // de no hacer nada al tocar el botón.
+    if (!open || !loading) return null;
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
+        <div style={{ textAlign: 'center', padding: 40, background: T?.white || '#fff', color: T?.text || '#111', borderRadius: 24, width: '100%', maxWidth: 360, boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>Cargando tarjeta...</div>
+      </div>
+    );
+  }
+  const currentStamps = currentMember?.stamps || 0;
   const STAMPS = Array.from({ length: 10 });
   const isCompleted = currentStamps >= (card.stamps_required || 5);
 
@@ -51,10 +138,16 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz }) {
             pointerEvents: 'none', 
             padding: 16
           }}>
-            {/* MODAL CONTENT */}
+            {/* MODAL CONTENT — misma entrada scale-in-center que las
+                tarjetas del mapa (MapView): el exterior de framer-motion
+                solo posiciona y anima la salida (initial={false}); el
+                div interior lleva la clase CSS y TODOS los estilos
+                visuales de la tarjeta (fondo, borde, sombra), para que
+                la tarjeta completa crezca desde el centro. El initial
+                con y/scale de antes competía con el keyframe CSS por
+                el transform y se quitó. El overlay conserva su fundido. */}
             <m.div
-              initial={{ opacity: 0, y: 50, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+              initial={false}
               exit={{ opacity: 0, y: 50, scale: 0.95 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               style={{
@@ -62,7 +155,14 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz }) {
                 maxWidth: 360,
                 maxHeight: '90vh',
                 overflowY: 'auto',
-                pointerEvents: 'auto', 
+                pointerEvents: 'auto',
+                position: 'relative'
+              }}
+            >
+            <div
+              className="scale-in-center"
+              style={{
+                width: '100%',
                 background: card.bg_color,
                 borderRadius: 24,
                 boxShadow: '0 24px 48px rgba(0,0,0,0.3)',
@@ -150,11 +250,13 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz }) {
               </div>
             </div>
 
-            {/* QR Code */}
+            {/* QR Code — solo con membresía: sin miembro no hay código
+                que mostrar; en su lugar va el formulario de alta. */}
+            {currentMember ? (
             <div style={{ padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
               <div style={{ background: "#fff", padding: 10, borderRadius: 14, display: "inline-block" }}>
                 <QRCode
-                  value={`https://citymap.mx/scan/${member.id}`}
+                  value={`https://citymap.mx/scan/${currentMember.id}`}
                   size={120}
                   level="Q"
                   bgColor="#ffffff"
@@ -164,6 +266,43 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz }) {
               <div style={{ fontSize: 11, color: card.text_color, opacity: 0.8, fontWeight: 700, textAlign: "center", padding: "0 10px" }}>
                 {isCompleted ? "Muestra este código en el negocio para canjear tu premio" : "Muestra este código en el negocio para recibir tu sello"}
               </div>
+            </div>
+            ) : (
+            /* Alta al programa — mismo formulario que LoyaltyCardView
+               (sin los botones de Wallet, que quedan solo en la página):
+               pide el WhatsApp, valida con normalizeWhatsApp y crea la
+               membresía; sin sesión abre el login. */
+            <div style={{ padding: "20px 20px 24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div style={{ padding: 24, background: "rgba(0,0,0,0.05)", borderRadius: 24, textAlign: "center", width: "100%", boxSizing: "border-box" }}>
+                <h3 style={{ margin: "0 0 8px", color: card.text_color, fontSize: 20, fontWeight: 900 }}>Únete al programa</h3>
+                <p style={{ margin: "0 0 20px", color: card.text_color, opacity: 0.8, fontSize: 14 }}>Guarda sellos en cada visita y canjéalos por recompensas exclusivas.</p>
+                <label style={{ display: "block", textAlign: "left", fontSize: 11, fontWeight: 800, color: card.text_color, opacity: 0.8, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>WhatsApp</label>
+                {/* El placeholder va en el color del texto de la tarjeta y
+                    a opacidad completa; el autofill de Safari/iOS pinta
+                    el input de amarillo pálido (:-webkit-autofill), así
+                    que se anula con una sombra interior del color del
+                    input y el color de texto de la tarjeta. */}
+                <style>{`
+                  .loyalty-whatsapp-input::placeholder { color: ${card.text_color}; opacity: 1; }
+                  .loyalty-whatsapp-input:-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px rgba(255,255,255,0.15) inset; -webkit-text-fill-color: ${card.text_color}; caret-color: ${card.text_color}; transition: background-color 9999s ease-in-out 0s; }
+                `}</style>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  className="loyalty-whatsapp-input"
+                  placeholder="Agrega tu número"
+                  value={whatsapp}
+                  onChange={(e) => { setWhatsapp(e.target.value); if (whatsappError) setWhatsappError(""); }}
+                  style={{ width: "100%", boxSizing: "border-box", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${card.text_color}55`, background: "rgba(255,255,255,0.15)", color: card.text_color, fontSize: 16, fontFamily: "inherit", outline: "none", marginBottom: whatsappError ? 6 : 16 }}
+                />
+                {whatsappError && <div style={{ color: card.text_color, fontSize: 12, fontWeight: 800, marginBottom: 12, textAlign: "left" }}>⚠️ {whatsappError}</div>}
+                <button onClick={handleEnroll} disabled={enrollLoading} style={{ width: "100%", padding: 16, borderRadius: 16, border: "none", background: card.text_color, color: loyaltyBgFirstColor(card.bg_color), fontWeight: 800, fontSize: 16, cursor: "pointer", opacity: enrollLoading ? 0.7 : 1 }}>
+                  {enrollLoading ? "Generando tarjeta..." : "Obtener mi tarjeta"}
+                </button>
+              </div>
+            </div>
+            )}
             </div>
             </m.div>
           </div>
