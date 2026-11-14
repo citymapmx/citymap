@@ -59,8 +59,8 @@ export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
   };
 
   // Selector de estilos: el carrusel compartido con el wizard de lealtad
-  // (StyleCategoryCarousel): una categoría por página, puntos abajo y
-  // loop infinito. Al abrir, la página es la categoría del estilo
+  // (StyleCategoryCarousel): una familia por página, puntos abajo y
+  // loop infinito. Al abrir, la página es la familia del estilo
   // guardado (o Premium).
 
   // Vista previa con el menú real del negocio.
@@ -110,7 +110,7 @@ export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
   // overflowY auto): header y Guardar quedan siempre visibles y toda la
   // pantalla baja con el dedo. El carrusel horizontal usa scroll-snap
   // nativo con touch-action pan-x pan-y: el deslizamiento horizontal
-  // cambia de categoría y el vertical sigue bajando la pantalla, también
+  // cambia de familia y el vertical sigue bajando la pantalla, también
   // cuando el gesto empieza sobre los círculos (con solo pan-x el
   // navegador no maneja el vertical sobre ese elemento).
   return (
@@ -193,11 +193,11 @@ export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
             {(selectedId === null && !custom) && <span style={{ fontSize: 14, color: t.text }}>✓</span>}
           </button>
 
-          {/* CARRUSEL: una categoría por página, se desliza de lado */}
+          {/* CARRUSEL: una familia por página, se desliza de lado */}
           <StyleCategoryCarousel
             selectedId={selectedId}
             onSelectStyle={handleSelectStyle}
-            initialCategoryId={selectedStyle?.category || 'premium'}
+            initialCategoryId={selectedStyle?.category || 'rojos'}
             tokens={t}
           />
         </div>

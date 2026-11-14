@@ -36,12 +36,12 @@ function renderDesigner(business) {
 const CARRITO = { id: '82c9af20-ef42-4a43-87c4-1831a020aace', name: 'Carrito La Paz Tostadas de Atún', menu_style: null };
 
 describe('Menú personalizado: resolvedor de estilos (PR #291)', () => {
-  it('los 36 estilos de lealtad se resuelven por id, con su categoría', () => {
-    expect(LOYALTY_COLOR_STYLES.length).toBe(36);
-    expect(findMenuStyleById('perla')).toEqual({ id: 'perla', label: 'Perla', bg: ['#F8FAFC', '#E2E8F0'], text: '#334155', primary: '#64748B', category: 'sobrios' });
-    expect(findMenuStyleById('esmeralda')?.category).toBe('premium');
-    expect(findMenuStyleById('espresso')?.category).toBe('cafeteria');
-    expect(findMenuStyleById('coral')?.category).toBe('coloridos');
+  it('los 48 estilos de lealtad se resuelven por id, con su familia de color', () => {
+    expect(LOYALTY_COLOR_STYLES.length).toBe(48);
+    expect(findMenuStyleById('perla')).toEqual({ id: 'perla', label: 'Perla', bg: ['#F8FAFC', '#E2E8F0'], text: '#334155', primary: '#64748B', category: 'neutros' });
+    expect(findMenuStyleById('esmeralda')?.category).toBe('verdes');
+    expect(findMenuStyleById('espresso')?.category).toBe('neutros');
+    expect(findMenuStyleById('coral')?.category).toBe('rojos');
     expect(findMenuStyleById('atardecer')?.bg).toEqual(['#F97316', '#DB2777', '#7C3AED']);
   });
 
@@ -144,12 +144,12 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
     expect(html).toContain('Carrito La Paz Tostadas de Atún');
   });
 
-  it('muestra los 36 estilos agrupados en las 4 categorías', () => {
+  it('muestra los 48 estilos agrupados en las 7 familias de color', () => {
     const html = renderDesigner(CARRITO);
-    for (const label of ['Premium', 'Sobrios', 'Cafetería', 'Coloridos']) {
+    for (const label of ['Rojos', 'Naranjas y amarillos', 'Verdes', 'Azules', 'Morados y rosas', 'Cafés', 'Neutros']) {
       expect(html).toContain(label);
     }
-    for (const label of ['Oro negro', 'Esmeralda', 'Medianoche', 'Vino', 'Atardecer', 'Océano', 'Galaxia', 'Zafiro', 'Amatista', 'Pizarra', 'Perla', 'Oliva', 'Petróleo', 'Terracota', 'Malva', 'Bosque', 'Caqui', 'Salvia', 'Espresso', 'Latte', 'Capuccino', 'Mocha', 'Caramelo', 'Crema', 'Chocolate', 'Canela', 'Café helado', 'Grafito plata', 'Rosa claro', 'Lima', 'Cobre', 'Coral', 'Tropical', 'Rosa dorado', 'Menta', 'Ámbar']) {
+    for (const label of ['Oro negro', 'Esmeralda', 'Medianoche', 'Vino', 'Atardecer', 'Océano', 'Galaxia', 'Zafiro', 'Amatista', 'Pizarra', 'Perla', 'Oliva', 'Petróleo', 'Terracota', 'Malva', 'Bosque', 'Caqui', 'Salvia', 'Espresso', 'Latte', 'Capuccino', 'Mocha', 'Caramelo', 'Crema', 'Chocolate', 'Canela', 'Café helado', 'Grafito plata', 'Rosa claro', 'Lima', 'Cobre', 'Coral', 'Tropical', 'Rosa dorado', 'Menta', 'Ámbar', 'Fuego', 'Rosa mexicano', 'Dorado', 'Amanecer', 'Jade', 'Selva', 'Cielo', 'Turquesa', 'Acero', 'Magenta', 'Lavanda', 'Uva']) {
       expect(html).toContain(label);
     }
     // Arena se quitó (casi duplicado de Crema): ya no aparece.
@@ -191,7 +191,7 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
     // La celda es columna: el círculo va arriba y el nombre abajo, centrado.
     expect(src).toContain("flexDirection: 'column'");
     expect(src).toContain("textAlign: 'center'");
-    // Los 36 nombres siguen visibles en la cuadrícula.
+    // Los 48 nombres siguen visibles en la cuadrícula.
     const html = renderDesigner(CARRITO);
     for (const label of ['Oro negro', 'Esmeralda', 'Perla', 'Espresso', 'Rosa claro', 'Coral', 'Ámbar']) {
       expect(html).toContain(label);
@@ -203,8 +203,11 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
     expect(src).toContain('aria-pressed={isSelected}');
     expect(src).toContain('0 0 0 4px ${styleTheme ? styleTheme.primary : t.text}');
     expect(src).toContain('styleTheme.onPrimary');
-    // Con Perla guardada solo hay una palomita: la de Perla (Sin estilo no la lleva).
-    const htmlPerla = renderDesigner({ ...CARRITO, menu_style: 'perla' });
+    // Con Esmeralda guardada solo hay una palomita: la de Esmeralda (Sin
+    // estilo no la lleva). Se usa una familia intermedia: Rojos y Neutros
+    // se duplican por los clones del loop infinito (su palomita sale 2
+    // veces, como la de Oro negro en el wizard).
+    const htmlPerla = renderDesigner({ ...CARRITO, menu_style: 'esmeralda' });
     expect(htmlPerla.split('✓').length - 1).toBe(1);
     expect(htmlPerla).toContain('aria-pressed="true"');
     // Sin estilo, la única palomita es la de «Sin estilo».
@@ -340,7 +343,7 @@ describe('Menú público: el tema se adapta a todo (encabezado, píldoras, texto
     expect(track).toContain("background:indicatorColor || (dark ? '#FFFFFF' : '#0F172A')");
   });
 
-  it('textOnMenuSurface: texto legible sobre la primera parada en los 36 estilos (contraste >= 3:1)', () => {
+  it('textOnMenuSurface: texto legible sobre la primera parada en los 48 estilos (contraste >= 3:1)', () => {
     for (const style of LOYALTY_COLOR_STYLES) {
       const theme = menuThemeForStyle(style);
       // Píldora activa: onPrimary sobre primary.
@@ -361,27 +364,27 @@ describe('Menú público: el tema se adapta a todo (encabezado, píldoras, texto
   });
 });
 
-describe('Menú personalizado: carrusel de 9 por categoría + scroll vertical', () => {
-  it('9 estilos exactos por categoría (36 en total): 7 nuevos, Arena fuera', () => {
-    expect(LOYALTY_COLOR_CATEGORIES.length).toBe(4);
-    for (const cat of LOYALTY_COLOR_CATEGORIES) {
-      expect(cat.styles.length).toBe(9);
-    }
-    expect(LOYALTY_COLOR_STYLES.length).toBe(36);
-    // Nuevos: Premium 2, Sobrios 2, Cafetería 3.
-    for (const id of ['zafiro', 'amatista', 'caqui', 'salvia', 'chocolate', 'canela', 'cafe-helado']) {
+describe('Menú personalizado: carrusel por familia de color + scroll vertical', () => {
+  it('48 estilos en 7 familias de color (4, 7, 8, 8, 8, 6, 7): 12 gradientes nuevos, Arena fuera', () => {
+    expect(LOYALTY_COLOR_CATEGORIES.length).toBe(7);
+    expect(LOYALTY_COLOR_CATEGORIES.map((c) => c.styles.length)).toEqual([4, 7, 8, 8, 8, 6, 7]);
+    expect(LOYALTY_COLOR_STYLES.length).toBe(48);
+    // Nuevos: 12 gradientes (2 Rojos, 2 Naranjas y amarillos, 2 Verdes,
+    // 3 Azules, 3 Morados y rosas). El «Bosque» nuevo de la propuesta ya
+    // existía en Sobrios: el verde oscuro nuevo se llama «Selva».
+    for (const id of ['fuego', 'rosa-mexicano', 'dorado', 'amanecer', 'jade', 'selva', 'cielo', 'turquesa', 'acero', 'magenta', 'lavanda', 'uva']) {
       expect(findMenuStyleById(id)).not.toBe(null);
     }
-    expect(findMenuStyleById('zafiro')?.category).toBe('premium');
-    expect(findMenuStyleById('caqui')?.category).toBe('sobrios');
-    expect(findMenuStyleById('chocolate')?.category).toBe('cafeteria');
+    expect(findMenuStyleById('zafiro')?.category).toBe('azules');
+    expect(findMenuStyleById('caqui')?.category).toBe('cafes');
+    expect(findMenuStyleById('chocolate')?.category).toBe('cafes');
     // Arena se quitó: casi duplicado de Crema (misma primera parada
     // #FFFBEB y segunda parada #FDE68A frente a #FDE9C8).
     expect(findMenuStyleById('arena')).toBe(null);
     expect(findMenuStyleById('crema')).not.toBe(null);
   });
 
-  it('el selector es un carrusel: una página por categoría, scroll-snap horizontal y puntos tocables', () => {
+  it('el selector es un carrusel: una página por familia, scroll-snap horizontal y puntos tocables', () => {
     // El carrusel vive en el componente compartido (StyleCategoryCarousel),
     // que usan el diseñador del menú y el wizard de lealtad.
     const src = read('../components/ui/StyleCategoryCarousel.jsx');
@@ -392,60 +395,60 @@ describe('Menú personalizado: carrusel de 9 por categoría + scroll vertical', 
     // según la dirección del gesto (con solo pan-x el vertical moría ahí).
     expect(src).toContain("touchAction: 'pan-x pan-y'");
     expect(src).not.toContain("touchAction: 'pan-x'");
-    // Cada categoría es una página del ancho del carrusel.
+    // Cada familia es una página del ancho del carrusel.
     expect(src).toContain("flex: '0 0 100%'");
     expect(src).toContain("scrollSnapAlign: 'start'");
-    // Puntos abajo: uno por categoría, con etiqueta para saltar.
+    // Puntos abajo: uno por familia, con etiqueta para saltar.
     expect(src).toContain('aria-label={`Ir a ${cat.label}`}');
     expect(src).toContain('goToCategory(idx)');
     expect(src).toContain("scrollTo({ left: (idx + 1) * el.clientWidth, behavior: 'smooth' })");
     // La página sigue la posición del carrusel al deslizar.
     expect(src).toContain('onScroll={handleCarouselScroll}');
     expect(src).toContain('Math.round(el.scrollLeft / el.clientWidth)');
-    // El nombre de la categoría sigue viéndose en su página, centrado.
+    // El nombre de la familia sigue viéndose en su página, centrado.
     expect(src).toContain("letterSpacing: 0.5, textAlign: 'center' }}>{cat.label}</div>");
     const html = renderDesigner(CARRITO);
-    for (const label of ['Premium', 'Sobrios', 'Cafetería', 'Coloridos']) {
+    for (const label of ['Rojos', 'Naranjas y amarillos', 'Verdes', 'Azules', 'Morados y rosas', 'Cafés', 'Neutros']) {
       expect(html).toContain(label);
     }
-    for (const label of ['Ir a Premium', 'Ir a Sobrios', 'Ir a Cafetería', 'Ir a Coloridos']) {
+    for (const label of ['Ir a Rojos', 'Ir a Naranjas y amarillos', 'Ir a Verdes', 'Ir a Azules', 'Ir a Morados y rosas', 'Ir a Cafés', 'Ir a Neutros']) {
       expect(html).toContain(label);
     }
   });
 
-  it('al abrir, el carrusel muestra la categoría del estilo guardado', () => {
+  it('al abrir, el carrusel muestra la familia del estilo guardado', () => {
     const src = read('../components/store/MenuStyleDesigner.jsx');
-    expect(src).toContain("initialCategoryId={selectedStyle?.category || 'premium'}");
+    expect(src).toContain("initialCategoryId={selectedStyle?.category || 'rojos'}");
     // La lógica de la página inicial vive en el componente compartido.
     const shared = read('../components/ui/StyleCategoryCarousel.jsx');
     expect(shared).toContain('LOYALTY_COLOR_CATEGORIES.findIndex');
-    // +1 por el clon de la izquierda (Coloridos) antes de Premium.
+    // +1 por el clon de la izquierda (Neutros) antes de Rojos.
     expect(shared).toContain('el.scrollLeft = (initialPageRef.current + 1) * el.clientWidth');
   });
 
   it('carrusel infinito: clones al inicio y al fin, y el índice envuelve de la última a la primera', () => {
     const src = read('../components/ui/StyleCategoryCarousel.jsx');
-    // Páginas: clon de la última, las 4 reales, clon de la primera.
+    // Páginas: clon de la última, las 7 reales, clon de la primera.
     expect(src).toContain("key: 'clone-last'");
     expect(src).toContain("key: 'clone-first'");
     expect(src).toContain('LOYALTY_COLOR_CATEGORIES[PAGE_COUNT - 1]');
     expect(src).toContain('LOYALTY_COLOR_CATEGORIES[0]');
-    // Posición -> categoría real: el clon envuelve (0 = última, 5 = primera).
+    // Posición -> familia real: el clon envuelve (0 = última, 8 = primera).
     expect(src).toContain('const real = (pos - 1 + PAGE_COUNT) % PAGE_COUNT;');
     // Al asentarse en un clon, salto sin animación a la página real.
     expect(src).toContain("el.scrollTo({ left: PAGE_COUNT * el.clientWidth, behavior: 'auto' })");
     expect(src).toContain("el.scrollTo({ left: el.clientWidth, behavior: 'auto' })");
     expect(src).toContain('setTimeout(() => repositionLoop(el), 100)');
-    // Los puntos siguen siendo 4 (uno por categoría real).
+    // Los puntos siguen siendo 7 (uno por familia real).
     const html = renderDesigner(CARRITO);
-    expect(html.split('Ir a ').length - 1).toBe(4);
-    // Las páginas clonadas duplican el título de su categoría: Premium y
-    // Coloridos aparecen en 2 páginas; Sobrios y Cafetería en 1.
+    expect(html.split('Ir a ').length - 1).toBe(7);
+    // Las páginas clonadas duplican el título de su familia: Rojos y
+    // Neutros aparecen en 2 páginas; las otras 5 en 1.
     const countLabel = (label) => html.split(`>${label}<`).length - 1;
-    expect(countLabel('Premium')).toBe(2);
-    expect(countLabel('Coloridos')).toBe(2);
-    expect(countLabel('Sobrios')).toBe(1);
-    expect(countLabel('Cafetería')).toBe(1);
+    expect(countLabel('Rojos')).toBe(2);
+    expect(countLabel('Neutros')).toBe(2);
+    expect(countLabel('Verdes')).toBe(1);
+    expect(countLabel('Cafés')).toBe(1);
   });
 
   it('el diseñador se monta con portal en document.body (no atrapado por el transform de Mi Perfil)', () => {
@@ -474,7 +477,7 @@ describe('Menú personalizado: carrusel de 9 por categoría + scroll vertical', 
     const menu = read('../components/store/MenuStyleDesigner.jsx');
     expect(menu).toContain("import StyleCategoryCarousel from '../ui/StyleCategoryCarousel.jsx'");
     expect(menu).toContain('<StyleCategoryCarousel');
-    expect(menu).toContain("initialCategoryId={selectedStyle?.category || 'premium'}");
+    expect(menu).toContain("initialCategoryId={selectedStyle?.category || 'rojos'}");
     // El carrusel ya no vive duplicado en el diseñador.
     expect(menu).not.toContain("key: 'clone-last'");
     const wizard = read('../components/loyalty/LoyaltyWizard.jsx');
@@ -491,8 +494,8 @@ describe('Menú personalizado: ajustes del diseñador (título, Guardar, Sin est
     const src = read('../components/ui/StyleCategoryCarousel.jsx');
     expect(src).toContain("letterSpacing: 0.5, textAlign: 'center' }}>{cat.label}</div>");
     const html = renderDesigner(CARRITO);
-    expect(html).toContain('text-align:center">Premium</div>');
-    expect(html).toContain('text-align:center">Coloridos</div>');
+    expect(html).toContain('text-align:center">Rojos</div>');
+    expect(html).toContain('text-align:center">Neutros</div>');
   });
 
   it('sin texto bajo Guardar y botón más delgado', () => {
@@ -652,7 +655,7 @@ describe('Menú público: el texto de horario/estado va en píldora oscura con t
     expect(block).toContain('isOpen ? "Abierto ahora" : "Cerrado"');
   });
 
-  it('blanco sobre la píldora (0.55) se lee >= 4.5:1 sobre cada parada de los 36 estilos y sin estilo', () => {
+  it('blanco sobre la píldora (0.55) se lee >= 4.5:1 sobre cada parada de los 48 estilos y sin estilo', () => {
     // Con la opacidad 0.25-0.30 que se sugirió, el blanco solo llega a
     // 2.05:1 sobre Crema #FFFBEB (y sobre el fondo claro sin estilo):
     // por eso la píldora va en 0.55. El fondo real tras la píldora es el

@@ -1,14 +1,15 @@
-// Carrusel de categorías de estilos (PR #297/#298, compartido por el
-// diseñador del menú y el wizard de la tarjeta de lealtad).
+// Carrusel de familias de color de estilos (PR #297/#298, compartido por el
+// diseñador del menú y el wizard de la tarjeta de lealtad; desde nov 2026
+// las páginas son familias de color: Rojos, Naranjas y amarillos, Verdes,
+// Azules, Morados y rosas, Cafés, Neutros).
 //
-// Una categoría visible a la vez en cuadrícula 3×3 (9 estilos), con
+// Una familia visible a la vez en cuadrícula 3×3 (hasta 9 estilos), con
 // deslizamiento horizontal (scroll-snap nativo, funciona en navegador y
-// en la WebView de la app), puntos abajo para saltar de categoría y loop
-// infinito: [clon Coloridos, Premium, Sobrios, Cafetería, Coloridos,
-// clon Premium]. Al asentarse sobre un clon, salta sin animación a la
-// página real equivalente (mismo contenido, sin salto visible). Al abrir,
-// la página es la categoría inicial que pasa quien lo monta (la del
-// estilo guardado, o Premium).
+// en la WebView de la app), puntos abajo para saltar de familia y loop
+// infinito: [clon Neutros, Rojos, ..., Neutros, clon Rojos]. Al asentarse
+// sobre un clon, salta sin animación a la página real equivalente (mismo
+// contenido, sin salto visible). Al abrir, la página es la familia
+// inicial que pasa quien lo monta (la del estilo guardado, o Rojos).
 // El deslizamiento vertical sobre los círculos sigue bajando la página:
 // touch-action pan-x pan-y deja que el navegador elija según la
 // dirección del gesto (con solo pan-x el vertical moría ahí).
@@ -16,7 +17,7 @@
 // Props:
 // - selectedId: id del estilo seleccionado (o null)
 // - onSelectStyle(style): al tocar un estilo
-// - initialCategoryId: categoría con la que abre el carrusel
+// - initialCategoryId: familia con la que abre el carrusel
 // - tokens: { bg, border, text, sub } — colores del fondo sobre el que
 //   va el carrusel (anillo, borde del círculo, texto, título)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -36,14 +37,14 @@ export default function StyleCategoryCarousel({ selectedId, onSelectStyle, initi
     { cat: LOYALTY_COLOR_CATEGORIES[0], key: 'clone-first' },
   ];
   const initialPage = Math.max(0, LOYALTY_COLOR_CATEGORIES.findIndex(
-    (cat) => cat.id === (initialCategoryId || 'premium')
+    (cat) => cat.id === (initialCategoryId || 'rojos')
   ));
   const initialPageRef = useRef(initialPage);
   const [page, setPage] = useState(initialPage);
   const carouselRef = useRef(null);
   const settleTimerRef = useRef(null);
   // Posición del clon -> página real: la posición 0 es la última
-  // categoría y PAGE_COUNT + 1 es la primera.
+  // familia y PAGE_COUNT + 1 es la primera.
   const repositionLoop = useCallback((el) => {
     if (!el.clientWidth) return;
     const pos = Math.round(el.scrollLeft / el.clientWidth);
@@ -62,7 +63,7 @@ export default function StyleCategoryCarousel({ selectedId, onSelectStyle, initi
     const el = e.currentTarget;
     if (!el.clientWidth) return;
     const pos = Math.max(0, Math.min(PAGE_COUNT + 1, Math.round(el.scrollLeft / el.clientWidth)));
-    // Posición -> categoría real: el clon envuelve (0 = última, PAGE_COUNT + 1 = primera).
+    // Posición -> familia real: el clon envuelve (0 = última, PAGE_COUNT + 1 = primera).
     const real = (pos - 1 + PAGE_COUNT) % PAGE_COUNT;
     if (real !== page) setPage(real);
     // Cuando el deslizamiento se asienta sobre un clon, saltar a la
@@ -82,7 +83,7 @@ export default function StyleCategoryCarousel({ selectedId, onSelectStyle, initi
 
   return (
     <>
-      {/* CARRUSEL: una categoría por página, se desliza de lado */}
+      {/* CARRUSEL: una familia por página, se desliza de lado */}
       <div
         ref={setCarouselRef}
         onScroll={handleCarouselScroll}
@@ -117,8 +118,8 @@ export default function StyleCategoryCarousel({ selectedId, onSelectStyle, initi
         ))}
       </div>
 
-      {/* PUNTOS: una por categoría, tocables para saltar */}
-      <div role="tablist" aria-label="Categorías de estilos" style={{ display: 'flex', gap: 8, justifyContent: 'center', paddingTop: 14 }}>
+      {/* PUNTOS: una por familia, tocables para saltar */}
+      <div role="tablist" aria-label="Familias de color" style={{ display: 'flex', gap: 8, justifyContent: 'center', paddingTop: 14 }}>
         {LOYALTY_COLOR_CATEGORIES.map((cat, idx) => (
           <button
             key={cat.id}

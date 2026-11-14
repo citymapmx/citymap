@@ -41,19 +41,22 @@ function renderWizard(configOverrides = {}) {
   );
 }
 
-describe('Estilos de color de lealtad: datos (PR #239)', () => {
-  it('hay 4 categorías, en orden: Premium, Sobrios, Cafetería, Coloridos', () => {
+describe('Estilos de color de lealtad: datos (PR #239, familias de color nov 2026)', () => {
+  it('hay 7 familias de color, en orden: Rojos, Naranjas y amarillos, Verdes, Azules, Morados y rosas, Cafés, Neutros', () => {
     expect(LOYALTY_COLOR_CATEGORIES.map((c) => c.label)).toEqual([
-      "Premium",
-      "Sobrios",
-      "Cafetería",
-      "Coloridos",
+      "Rojos",
+      "Naranjas y amarillos",
+      "Verdes",
+      "Azules",
+      "Morados y rosas",
+      "Cafés",
+      "Neutros",
     ]);
   });
 
-  it('cada categoría trae sus estilos: 9 Premium, 9 Sobrios, 9 Cafetería, 9 Coloridos', () => {
-    expect(LOYALTY_COLOR_CATEGORIES.map((c) => c.styles.length)).toEqual([9, 9, 9, 9]);
-    expect(LOYALTY_COLOR_STYLES.length).toBe(36);
+  it('cada familia trae sus estilos: 4 Rojos, 7 Naranjas y amarillos, 8 Verdes, 8 Azules, 8 Morados y rosas, 6 Cafés, 7 Neutros (48 en total)', () => {
+    expect(LOYALTY_COLOR_CATEGORIES.map((c) => c.styles.length)).toEqual([4, 7, 8, 8, 8, 6, 7]);
+    expect(LOYALTY_COLOR_STYLES.length).toBe(48);
   });
 
   it('todos los estilos tienen id y nombre únicos, 1-3 paradas hex y texto/botón hex', () => {
@@ -71,40 +74,54 @@ describe('Estilos de color de lealtad: datos (PR #239)', () => {
     }
   });
 
-  it('los 36 estilos numerados tienen sus 3 colores exactos (muestra por categoría)', () => {
+  it('los 48 estilos numerados tienen sus 3 colores exactos (muestra por familia)', () => {
     const byId = Object.fromEntries(LOYALTY_COLOR_STYLES.map((s) => [s.id, s]));
-    // Premium
-    expect(byId["oro-negro"]).toEqual({ id: "oro-negro", label: "Oro negro", bg: ["#262626", "#000000"], text: "#FAFAFA", primary: "#F5B301", category: "premium" });
+    // Rojos
+    expect(byId["vino"]).toEqual({ id: "vino", label: "Vino", bg: ["#7F1D1D", "#450A0A"], text: "#FEF2F2", primary: "#FDE68A", category: "rojos" });
+    expect(byId["coral"]).toEqual({ id: "coral", label: "Coral", bg: ["#FB7185", "#BE123C"], text: "#FFFFFF", primary: "#FFFFFF", category: "rojos" });
+    expect(byId["fuego"]).toEqual({ id: "fuego", label: "Fuego", bg: ["#DC2626", "#EA580C"], text: "#FFFFFF", primary: "#FDE68A", category: "rojos" });
+    // Naranjas y amarillos
     expect(byId["atardecer"].bg).toEqual(["#F97316", "#DB2777", "#7C3AED"]);
-    expect(byId["galaxia"]).toEqual({ id: "galaxia", label: "Galaxia", bg: ["#0F172A", "#6D28D9"], text: "#EDE9FE", primary: "#FBBF24", category: "premium" });
-    expect(byId["zafiro"]).toEqual({ id: "zafiro", label: "Zafiro", bg: ["#1D4ED8", "#172554"], text: "#EFF6FF", primary: "#FBBF24", category: "premium" });
-    expect(byId["amatista"]).toEqual({ id: "amatista", label: "Amatista", bg: ["#7E22CE", "#3B0764"], text: "#FAF5FF", primary: "#E9D5FF", category: "premium" });
-    // Sobrios
-    expect(byId["perla"]).toEqual({ id: "perla", label: "Perla", bg: ["#F8FAFC", "#E2E8F0"], text: "#334155", primary: "#64748B", category: "sobrios" });
-    expect(byId["bosque"].bg).toEqual(["#166534", "#14532D"]);
-    expect(byId["caqui"]).toEqual({ id: "caqui", label: "Caqui", bg: ["#78716C", "#44403C"], text: "#FAFAF9", primary: "#D6D3D1", category: "sobrios" });
-    expect(byId["salvia"]).toEqual({ id: "salvia", label: "Salvia", bg: ["#7C8A6A", "#3F4A37"], text: "#F4F7F0", primary: "#D9E2D0", category: "sobrios" });
-    // Cafetería
-    expect(byId["espresso"]).toEqual({ id: "espresso", label: "Espresso", bg: ["#292524", "#0C0A09"], text: "#FAFAF9", primary: "#D97706", category: "cafeteria" });
-    expect(byId["crema"].bg).toEqual(["#FFFBEB", "#FDE9C8"]);
-    expect(byId["chocolate"]).toEqual({ id: "chocolate", label: "Chocolate", bg: ["#5D3A1A", "#2A1608"], text: "#FDF6EC", primary: "#D97706", category: "cafeteria" });
-    expect(byId["canela"]).toEqual({ id: "canela", label: "Canela", bg: ["#A16207", "#713F12"], text: "#FFFBEB", primary: "#FDE68A", category: "cafeteria" });
-    expect(byId["cafe-helado"]).toEqual({ id: "cafe-helado", label: "Café helado", bg: ["#E7C9A9", "#D6A97C"], text: "#451A03", primary: "#78350F", category: "cafeteria" });
-    // Coloridos
-    expect(byId["coral"]).toEqual({ id: "coral", label: "Coral", bg: ["#FB7185", "#BE123C"], text: "#FFFFFF", primary: "#FFFFFF", category: "coloridos" });
-    expect(byId["menta"]).toEqual({ id: "menta", label: "Menta", bg: ["#A7F3D0", "#6EE7B7"], text: "#064E3B", primary: "#059669", category: "coloridos" });
+    expect(byId["atardecer"].category).toBe("naranjas-amarillos");
     expect(byId["ambar"].bg).toEqual(["#FBBF24", "#F59E0B"]);
+    // Verdes
+    expect(byId["esmeralda"]).toEqual({ id: "esmeralda", label: "Esmeralda", bg: ["#065F46", "#022C22"], text: "#ECFDF5", primary: "#FBBF24", category: "verdes" });
+    expect(byId["bosque"].bg).toEqual(["#166534", "#14532D"]);
+    expect(byId["bosque"].category).toBe("verdes");
+    expect(byId["salvia"]).toEqual({ id: "salvia", label: "Salvia", bg: ["#7C8A6A", "#3F4A37"], text: "#F4F7F0", primary: "#D9E2D0", category: "verdes" });
+    expect(byId["selva"]).toEqual({ id: "selva", label: "Selva", bg: ["#052E16", "#10B981"], text: "#ECFDF5", primary: "#FBBF24", category: "verdes" });
+    // Azules
+    expect(byId["zafiro"]).toEqual({ id: "zafiro", label: "Zafiro", bg: ["#1D4ED8", "#172554"], text: "#EFF6FF", primary: "#FBBF24", category: "azules" });
+    expect(byId["medianoche"].category).toBe("azules");
+    // Morados y rosas
+    expect(byId["galaxia"]).toEqual({ id: "galaxia", label: "Galaxia", bg: ["#0F172A", "#6D28D9"], text: "#EDE9FE", primary: "#FBBF24", category: "morados-rosas" });
+    expect(byId["amatista"]).toEqual({ id: "amatista", label: "Amatista", bg: ["#7E22CE", "#3B0764"], text: "#FAF5FF", primary: "#E9D5FF", category: "morados-rosas" });
+    expect(byId["uva"]).toEqual({ id: "uva", label: "Uva", bg: ["#9333EA", "#991B1B"], text: "#FAF5FF", primary: "#FBBF24", category: "morados-rosas" });
+    // Cafés
+    expect(byId["chocolate"]).toEqual({ id: "chocolate", label: "Chocolate", bg: ["#5D3A1A", "#2A1608"], text: "#FDF6EC", primary: "#D97706", category: "cafes" });
+    expect(byId["canela"]).toEqual({ id: "canela", label: "Canela", bg: ["#A16207", "#713F12"], text: "#FFFBEB", primary: "#FDE68A", category: "cafes" });
+    expect(byId["cafe-helado"]).toEqual({ id: "cafe-helado", label: "Café helado", bg: ["#E7C9A9", "#D6A97C"], text: "#451A03", primary: "#78350F", category: "cafes" });
+    expect(byId["caqui"]).toEqual({ id: "caqui", label: "Caqui", bg: ["#78716C", "#44403C"], text: "#FAFAF9", primary: "#D6D3D1", category: "cafes" });
+    // Neutros
+    expect(byId["oro-negro"]).toEqual({ id: "oro-negro", label: "Oro negro", bg: ["#262626", "#000000"], text: "#FAFAFA", primary: "#F5B301", category: "neutros" });
+    expect(byId["perla"]).toEqual({ id: "perla", label: "Perla", bg: ["#F8FAFC", "#E2E8F0"], text: "#334155", primary: "#64748B", category: "neutros" });
+    expect(byId["espresso"]).toEqual({ id: "espresso", label: "Espresso", bg: ["#292524", "#0C0A09"], text: "#FAFAF9", primary: "#D97706", category: "neutros" });
+    expect(byId["crema"].bg).toEqual(["#FFFBEB", "#FDE9C8"]);
+    expect(byId["menta"]).toEqual({ id: "menta", label: "Menta", bg: ["#A7F3D0", "#6EE7B7"], text: "#064E3B", primary: "#059669", category: "verdes" });
     // Arena se quitó (casi duplicado de Crema).
     expect(byId["arena"]).toBeUndefined();
   });
 
-  it('no hay categoría Clásicos ni estilos viejos (Café, Neón, Rosado, Azul, Eco, Gold)', () => {
+  it('no hay categorías viejas (Premium/Sobrios/Cafetería/Coloridos) ni estilos viejos (Café, Neón, Rosado, Azul, Eco, Gold)', () => {
     expect(LOYALTY_COLOR_CATEGORIES.find((c) => c.id === "clasicos")).toBeUndefined();
+    for (const oldId of ["premium", "sobrios", "cafeteria", "coloridos"]) {
+      expect(LOYALTY_COLOR_CATEGORIES.find((c) => c.id === oldId)).toBeUndefined();
+    }
     const ids = LOYALTY_COLOR_STYLES.map((s) => s.id);
     for (const oldId of ["cafe", "neon", "rosado", "azul", "eco", "gold"]) {
       expect(ids).not.toContain(oldId);
     }
-    // Y los 36 estilos que quedan son todos degradados (2-3 paradas).
+    // Y los 48 estilos que quedan son todos degradados (2-3 paradas).
     for (const s of LOYALTY_COLOR_STYLES) {
       expect(s.bg.length).toBeGreaterThanOrEqual(2);
     }
@@ -134,11 +151,11 @@ describe('Estilos de color de lealtad: fondo y primera parada', () => {
     expect(loyaltyBgFirstColor(null)).toBe("#ffffff");
   });
 
-  it('un bg_color guardado encuentra su estilo y su categoría', () => {
+  it('un bg_color guardado encuentra su estilo y su familia de color', () => {
     expect(findLoyaltyStyleByBackground("linear-gradient(135deg, #262626, #000000)")?.id).toBe("oro-negro");
-    expect(findLoyaltyCategoryByBackground("linear-gradient(135deg, #262626, #000000)")).toBe("premium");
+    expect(findLoyaltyCategoryByBackground("linear-gradient(135deg, #262626, #000000)")).toBe("neutros");
     // Un color plano viejo (Clásicos, ya quitados) no coincide con ningún
-    // estilo: el wizard cae a Premium, sin romper nada.
+    // estilo: el wizard cae a Rojos, sin romper nada.
     expect(findLoyaltyStyleByBackground("#1B1107")).toBe(null);
     expect(findLoyaltyCategoryByBackground("#1B1107")).toBe(null);
     expect(findLoyaltyStyleByBackground("#123456")).toBe(null);
@@ -146,21 +163,21 @@ describe('Estilos de color de lealtad: fondo y primera parada', () => {
   });
 });
 
-describe('LoyaltyWizard Paso 1: carrusel de categorías, igual que el diseñador del menú', () => {
-  it('dice «Selecciona tu estilo» y muestra las 4 categorías, sin «Estilos Rápidos» ni «Clásicos»', () => {
+describe('LoyaltyWizard Paso 1: carrusel de familias de color, igual que el diseñador del menú', () => {
+  it('dice «Selecciona tu estilo» y muestra las 7 familias, sin «Estilos Rápidos» ni «Clásicos»', () => {
     const html = renderWizard();
     expect(html).toContain("Selecciona tu estilo");
-    for (const label of ["Premium", "Sobrios", "Cafetería", "Coloridos"]) {
+    for (const label of ["Rojos", "Naranjas y amarillos", "Verdes", "Azules", "Morados y rosas", "Cafés", "Neutros"]) {
       expect(html).toContain(label);
     }
     expect(html).not.toContain("Clásicos");
     expect(html).not.toContain("Estilos Rápidos");
   });
 
-  it('con una tarjeta vieja de color clásico plano (#1B1107) se cae a Premium y la vista previa sigue con su color', () => {
+  it('con una tarjeta vieja de color clásico plano (#1B1107) se cae a Rojos y la vista previa sigue con su color', () => {
     const html = renderWizard({ bg_color: "#1B1107" });
-    // Premium en el carrusel: se ven sus 9 estilos.
-    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia", "Zafiro", "Amatista"]) {
+    // Rojos en el carrusel: se ven sus 4 estilos.
+    for (const label of ["Vino", "Coral", "Fuego", "Rosa mexicano"]) {
       expect(html).toContain(label);
     }
     // Ningún estilo viejo aparece.
@@ -171,23 +188,23 @@ describe('LoyaltyWizard Paso 1: carrusel de categorías, igual que el diseñador
     expect(html).toContain("#1B1107");
   });
 
-  it('con un degradado Premium (Oro negro) el carrusel abre en Premium y trae los 36 estilos en el DOM', () => {
+  it('con un degradado Neutros (Oro negro) el carrusel abre en Neutros y trae los 48 estilos en el DOM', () => {
     const html = renderWizard({
       bg_color: "linear-gradient(135deg, #262626, #000000)",
       text_color: "#FAFAFA",
       primary_color: "#F5B301",
     });
-    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia", "Zafiro", "Amatista"]) {
+    for (const label of ["Oro negro", "Grafito plata", "Espresso", "Mocha", "Crema", "Oliva", "Perla"]) {
       expect(html).toContain(label);
     }
-    // El carrusel renderiza todas las categorías (las demás se llegan
-    // deslizando de lado), así que los 36 estilos están en el DOM.
-    for (const label of ["Espresso", "Perla", "Coral", "Ámbar"]) {
+    // El carrusel renderiza todas las familias (las demás se llegan
+    // deslizando de lado), así que los 48 estilos están en el DOM.
+    for (const label of ["Esmeralda", "Coral", "Ámbar", "Fuego", "Selva", "Uva"]) {
       expect(html).toContain(label);
     }
-    // Y el wizard le pasa al carrusel la categoría del fondo guardado.
+    // Y el wizard le pasa al carrusel la familia del fondo guardado.
     const src = read('../components/loyalty/LoyaltyWizard.jsx');
-    expect(src).toContain('initialCategoryId={findLoyaltyCategoryByBackground(config.bg_color) || "premium"}');
+    expect(src).toContain('initialCategoryId={findLoyaltyCategoryByBackground(config.bg_color) || "rojos"}');
   });
 
   it('la vista previa del Paso 1 lleva la leyenda «Ejemplo» (el premio que se ve es solo un ejemplo; el real se define en el Paso 2)', () => {
@@ -219,12 +236,12 @@ describe('LoyaltyWizard Paso 1: carrusel de categorías, igual que el diseñador
     expect(shared).toContain("key: 'clone-last'");
     expect(shared).toContain("key: 'clone-first'");
     expect(shared).toContain('aria-label={`Ir a ${cat.label}`}');
-    // Las 4 categorías se renderizan y los puntos son 4.
+    // Las 7 familias se renderizan y los puntos son 7.
     const html = renderWizard();
-    for (const label of ["Premium", "Sobrios", "Cafetería", "Coloridos"]) {
+    for (const label of ["Rojos", "Naranjas y amarillos", "Verdes", "Azules", "Morados y rosas", "Cafés", "Neutros"]) {
       expect(html).toContain(label);
     }
-    expect(html.split('Ir a ').length - 1).toBe(4);
+    expect(html.split('Ir a ').length - 1).toBe(7);
   });
 
   it('la vista previa y el selector manual usan la primera parada, no el degradado entero', () => {
@@ -249,9 +266,9 @@ describe('LoyaltyWizard Paso 1: estilos en cuadrícula compacta de 3 por fila, i
     // ni el círculo chico de 28 px.
     expect(src).not.toContain('display: "flex", flexDirection: "column", gap: 8, marginTop: 12');
     expect(src).not.toContain('width: 28, height: 28');
-    // Los 9 Premium siguen visibles en la cuadrícula.
+    // Los 7 Neutros siguen visibles en la cuadrícula.
     const html = renderWizard({ bg_color: "#1B1107" });
-    for (const label of ["Oro negro", "Esmeralda", "Medianoche", "Vino", "Atardecer", "Océano", "Galaxia", "Zafiro", "Amatista"]) {
+    for (const label of ["Oro negro", "Grafito plata", "Espresso", "Mocha", "Crema", "Oliva", "Perla"]) {
       expect(html).toContain(label);
     }
     expect(html).toContain("width:44px");
@@ -263,7 +280,7 @@ describe('LoyaltyWizard Paso 1: estilos en cuadrícula compacta de 3 por fila, i
     expect(src).toContain('0 0 0 4px ${styleTheme ? styleTheme.primary : t.text}');
     expect(src).toContain('styleTheme.onPrimary');
     // Con Oro negro guardado la palomita sale 2 veces: en la página real
-    // de Premium y en su clon del loop infinito (mismo contenido).
+    // de Neutros y en su clon del loop infinito (mismo contenido).
     const html = renderWizard({
       bg_color: "linear-gradient(135deg, #262626, #000000)",
       text_color: "#FAFAFA",
@@ -275,7 +292,7 @@ describe('LoyaltyWizard Paso 1: estilos en cuadrícula compacta de 3 por fila, i
 
   it('el carrusel, «O personalizar colores exactos» y la vista previa siguen igual', () => {
     const html = renderWizard();
-    for (const label of ["Premium", "Sobrios", "Cafetería", "Coloridos"]) {
+    for (const label of ["Rojos", "Naranjas y amarillos", "Verdes", "Azules", "Morados y rosas", "Cafés", "Neutros"]) {
       expect(html).toContain(label);
     }
     expect(html).toContain("O personalizar colores exactos");

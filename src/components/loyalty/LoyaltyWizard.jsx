@@ -20,8 +20,8 @@ export default function LoyaltyWizard({
 }) {
   const STAMPS = Array.from({ length: 10 });
 
-  // El estilo guardado (por su fondo) y su categoría: el carrusel abre
-  // en esa categoría, o en Premium si el fondo no es un estilo (color
+  // El estilo guardado (por su fondo) y su familia: el carrusel abre
+  // en esa familia, o en Rojos si el fondo no es un estilo (color
   // manual exacto o tarjeta vieja).
 
   const ICONS = [
@@ -104,7 +104,7 @@ export default function LoyaltyWizard({
               </div>
 
               {/* Selector de estilo: el mismo carrusel que el diseñador
-                  del menú (StyleCategoryCarousel): una categoría visible
+                  del menú (StyleCategoryCarousel): una familia visible
                   a la vez en 3×3, se desliza de lado con loop infinito y
                   puntos abajo. Al tocar un estilo, la vista previa de la
                   tarjeta se actualiza al instante. */}
@@ -113,7 +113,7 @@ export default function LoyaltyWizard({
                 <StyleCategoryCarousel
                   selectedId={findLoyaltyStyleByBackground(config.bg_color)?.id ?? null}
                   onSelectStyle={(style) => setConfig(prev => ({ ...prev, bg_color: loyaltyStyleBackground(style), text_color: style.text, primary_color: style.primary }))}
-                  initialCategoryId={findLoyaltyCategoryByBackground(config.bg_color) || "premium"}
+                  initialCategoryId={findLoyaltyCategoryByBackground(config.bg_color) || "rojos"}
                   tokens={{ bg: "#F8FAFC", border: "#E2E8F0", text: "#0F172A", sub: "#64748B" }}
                 />
               </div>
