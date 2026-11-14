@@ -52,7 +52,7 @@ export function useAppInitialization() {
     let expSlug = null;
     let storedCity = localStorage.getItem("cg_city_slug");
     
-    const SYSTEM_ROUTES = ["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "explorar", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "explorer", "itinerarios", "revista", "experiencias", "manage", "stats", "itinerario", "plan", "evento", "precios", "lealtad", "wallet", "scan", "login", "tours", "negocios"];
+    const SYSTEM_ROUTES = ["mapa", "admin", "mis-planes", "planes", "cuenta", "eventos", "explorar", "admin_notifs", "user_notifs", "about", "privacy", "terms", "favoritos", "explorer", "itinerarios", "revista", "experiencias", "manage", "stats", "itinerario", "plan", "evento", "precios", "lealtad", "wallet", "scan", "login", "tours", "negocios", "reservar"];
 
     if (storedCity && (SYSTEM_ROUTES.includes(storedCity) || storedCity.includes("/"))) {
       localStorage.removeItem("cg_city_slug");
@@ -146,6 +146,17 @@ export function useAppInitialization() {
       if (!SYSTEM_ROUTES.includes(cSlug)) {
         currentCity = cSlug;
         localStorage.setItem("cg_city_slug", currentCity);
+      }
+    } else if (segments.length === 3 && segments[2] === "reservar") {
+      // Link directo de reserva /:ciudad/:slug/reservar: se resuelve
+      // como el detalle normal (b con prefijo de ciudad). El auto-abrir
+      // del modal vive en DetailView, que lee el sufijo de la URL.
+      const cSlug = segments[0].toLowerCase();
+      if (!SYSTEM_ROUTES.includes(cSlug)) {
+        currentCity = cSlug;
+        localStorage.setItem("cg_city_slug", currentCity);
+        b = getIdFromSlug(segments[1]);
+        if (b && currentCity && !b.startsWith(currentCity + "-")) b = currentCity + "-" + b;
       }
     } else if (segments.length >= 3 && (segments[0] === "experiencias" || segments[0] === "revista")) {
       vista = "mis-planes";

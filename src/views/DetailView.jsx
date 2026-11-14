@@ -2,17 +2,18 @@ import { CIVITATIS_PLATFORM } from '../lib/reservationPlatforms.js';
 import '../components/detail/businessTypography.css';
 import {isCatalogBusiness} from '../lib/storePresentation.js';
 import BusinessHours from '../components/detail/BusinessHours.jsx';
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import useGMaps from "../components/map/useGMaps.js";
 import { FONT_BIZ } from "../lib/constants.js";
+import { isBookingPath, bookingModalApplies } from "../lib/bookingLink.js";
 import GoogleReviewItem from '../components/detail/GoogleReviewItem.jsx';
 import TikTokBlock from '../components/detail/TikTokBlock.jsx';
 import GalleryLayout from '../components/detail/GalleryLayout.jsx';
 import JaguaresGames from '../components/detail/JaguaresGames.jsx';
 import { sb } from '../lib/supabase.js';
 
-import { useNavigate, useNavigationType } from "react-router-dom";
+import { useNavigate, useNavigationType, useLocation } from "react-router-dom";
 
 import { m, AnimatePresence } from "framer-motion";
 import { getBizTier } from '../lib/gamification';
@@ -47,6 +48,7 @@ export default function DetailView() {
   const { t, lang } = useTranslation();
   const navType = useNavigationType();
   const isPop = navType === "POP";
+  const location = useLocation();
   const ctx = useAppContext();
   const isCatalog = isCatalogBusiness(ctx.selected);
   const routerNavigate = useNavigate();
@@ -139,6 +141,34 @@ export default function DetailView() {
   useEffect(() => {
     import('../components/BookingModal.jsx').catch(() => {});
   }, []);
+
+  // Link directo de reserva /:ciudad/:slug/reservar: al cargar la ficha
+  // se abre SOLO el modal de Reservar. Espera a que se sepa si hay
+  // reserva: el objeto de la lista no trae booking_config y la consulta
+  // fullBusiness lo completa (al resolver, selected cambia y el efecto
+  // reevalúa). Sin reserva, la ficha queda normal, sin modal ni error.
+  // El ref evita reabrirlo si el visitante lo cierra y sigue en la ficha.
+  const bookingAutoOpened = useRef(false);
+  useEffect(() => {
+    if (!isBookingPath(location.pathname)) return;
+    if (bookingAutoOpened.current) return;
+    if (!selected?.id) return;
+    if (selected.booking_config === undefined && !selected._fullFetched) return;
+    if (!bookingModalApplies(selected.booking_config)) return;
+    bookingAutoOpened.current = true;
+    setShowBooking(true);
+  }, [location.pathname, selected]);
+
+  // Al cerrar el modal del link de reserva, la URL vuelve al detalle
+  // normal (sin /reservar): recargar no reabre el modal y el historial
+  // no guarda el sufijo. replace: no agrega entrada. Cerrar deja la
+  // ficha, no saca de la página.
+  const closeBooking = () => {
+    setShowBooking(false);
+    if (isBookingPath(location.pathname)) {
+      routerNavigate(location.pathname.replace(/\/reservar$/, ''), { replace: true });
+    }
+  };
 
   useEffect(() => {
     // Reseñas de Google (textos) solo en negocios de pago (regla 12 nov
@@ -944,7 +974,7 @@ export default function DetailView() {
                 <div style={{ textAlign: "center", padding: "40px", background: "#fff", borderRadius: 24, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>{t('detalle_cargando_reservaciones', 'Cargando reservaciones...')}</div>
               </div>
             }>
-              <BookingModal biz={selected} onClose={() => setShowBooking(false)} />
+              <BookingModal biz={selected} onClose={closeBooking} />
             </Suspense>
           </ErrorBoundary>
         )}

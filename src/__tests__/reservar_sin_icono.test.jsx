@@ -12,8 +12,11 @@ describe('botón Reservar sin icono de utensilios', () => {
   const src = read('../views/DetailView.jsx');
 
   // Bloque del botón: desde su onClick (setShowBooking) hasta su cierre.
+  // Es la ÚLTIMA aparición de setShowBooking(true): la primera es el
+  // auto-abrir del link directo de reserva /:ciudad/:slug/reservar
+  // (nov 2026), que abre el modal sin botón.
   const reservarBlock = (() => {
-    const start = src.indexOf('setShowBooking(true)');
+    const start = src.lastIndexOf('setShowBooking(true)');
     const end = src.indexOf('</button>', start);
     return src.slice(start, end);
   })();

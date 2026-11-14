@@ -194,7 +194,7 @@ export default async function middleware(request) {
     'mis-planes', 'revista', 'favoritos', 'explorer', 'cuenta', 'itinerarios',
     'itinerario', 'plan', 'about', 'privacy', 'terms', 'admin_notifs',
     'user_notifs', 'manage', 'stats', 'precios', 'lealtad', 'wallet', 'scan', 'admin',
-    'tours', 'negocios', 'login'
+    'tours', 'negocios', 'login', 'reservar'
   ]);
 
   // /explorar o /explorar/:city → og?vista=eventos&city=:city
@@ -250,6 +250,13 @@ export default async function middleware(request) {
     ogUrl.searchParams.set('b', seg2);
     ogUrl.searchParams.set('city', seg1);
     ogUrl.searchParams.set('menu', 'true');
+  }
+  // /:ciudad/:slug/reservar → og?b=slug&city=ciudad (misma vista previa
+  // que la ficha; la canónica sigue siendo el detalle, sin /reservar).
+  else if (parts.length === 3 && seg3 === 'reservar' && !RESERVED_FIRST_SEGS.has(seg1)) {
+    ogUrl = new URL('/api/og', request.url);
+    ogUrl.searchParams.set('b', seg2);
+    ogUrl.searchParams.set('city', seg1);
   }
   // /:ciudad/c/:subcategoria → og?b=subcat&city=ciudad&subcat=1
   // (la subcategoría es un valor de businesses.category; og la valida)
