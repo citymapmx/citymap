@@ -31,6 +31,16 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="citymap.mx" />
+                <data android:scheme="https" android:host="www.citymap.mx" />
+            </intent-filter>
+            <!-- App Links for https://citymap.world (ciudades internacionales:
+                 sin este filtro los enlaces .world no abren en la app) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="citymap.world" />
+                <data android:scheme="https" android:host="www.citymap.world" />
             </intent-filter>
         </activity>
 
