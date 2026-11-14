@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   isNative: true,
+  platform: 'android',
   initialize: vi.fn(async () => {}),
   login: vi.fn(async () => ({
     result: {
@@ -24,7 +25,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@capacitor/core', () => ({
-  Capacitor: { isNativePlatform: () => mocks.isNative },
+  Capacitor: {
+    isNativePlatform: () => mocks.isNative,
+    getPlatform: () => mocks.platform,
+  },
 }));
 
 vi.mock('@capgo/capacitor-social-login', () => ({
@@ -168,12 +172,12 @@ describe('login nativo: cableado en la app', () => {
     expect(src).toContain('client_id: GOOGLE_CLIENT_ID');
   });
 
-  it('capacitor.config.json deja solo Google habilitado', () => {
+  it('capacitor.config.json deja Google y Apple habilitados (iOS Fase 1)', () => {
     const config = JSON.parse(readSource('../../capacitor.config.json'));
     expect(config.plugins.SocialLogin.providers).toEqual({
       google: true,
       facebook: false,
-      apple: false,
+      apple: true,
       twitter: false,
     });
   });
