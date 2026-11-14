@@ -107,7 +107,11 @@ describe('Cableado de la visibilidad por horario', () => {
   it('el menú público ya no oculta secciones fuera de horario: las atenúa y avisa', () => {
     const store = read('../components/store/BusinessStore.jsx');
     expect(store).toContain('isCategoryVisibleNow');
-    expect(store).toContain('available_from,available_to');
+    // La consulta vive en el helper compartido (carga única, hallazgo
+    // #2): BusinessStore la usa vía fetchStoreCategories, no en línea.
+    expect(store).toContain('fetchStoreCategories');
+    const helper = read('../lib/storeCategories.js');
+    expect(helper).toContain('available_from,available_to');
     expect(store).toContain('setInterval');
     expect(store).toContain('activeCategories.flatMap');
     // Ya no hay estado vacío de "todo fuera de horario": las secciones

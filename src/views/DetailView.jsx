@@ -973,20 +973,36 @@ export default function DetailView() {
               onClick={(e) => e.stopPropagation()}
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              style={{ background: dark ? '#232326' : '#FFFFFF', width: '100%', maxWidth: 320, borderRadius: 24, padding: '32px 24px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}
+              style={{ background: dark ? '#232326' : '#FFFFFF', width: '100%', maxWidth: 320, borderRadius: 24, padding: '32px 24px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.2)', boxSizing: 'border-box' }}
             >
-              <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}`, padding: 8, boxSizing: 'border-box' }}>
+              {/* Logo en círculo BLANCO con cover + zoom 1.12 (nov 2026,
+                  Jonathan: debe verse como en el perfil, donde el
+                  emblema llena el círculo). Verificado con los logos
+                  REALES de Carrito La Paz y KAVA: con contain + padding
+                  8 el emblema quedaba al ~62% y se veían los textos
+                  diagonales de las esquinas (+52 311 300 76 20,
+                  @carrito.la.paz) y las esquinas negras de KAVA; con
+                  cover sin padding el emblema llega al 86–92% y el
+                  zoom 1.12 lo lleva al borde sin recortar el texto
+                  («TOSTADAS DE ATÚN», «KAVA», «BAKERY COFFEE &
+                  BRUNCH» intactos). Zoom mayor (1.25+) sí recorta. */}
+              <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden', border: `3px solid ${dark ? '#232326' : '#FFFFFF'}`, boxSizing: 'border-box' }}>
                 {(selected.logo_url || selected.logo) ? (
-                  <img 
-                    src={selected.logo_url || selected.logo} 
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-                    alt={selected.name} 
+                  <img
+                    src={selected.logo_url || selected.logo}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.12)' }}
+                    alt={selected.name}
                   />
                 ) : (
                   <img src="/pedido.png" alt="Pedido" style={{ width: 40, height: 40, objectFit: 'contain' }} />
                 )}
               </div>
-              <h2 style={{ margin: '0 0 12px 0', fontSize: 22, fontWeight: 800, color: dark ? '#FFF' : '#111', fontFamily: 'system-ui, -apple-system, sans-serif', letterSpacing: '-0.3px' }}>
+              {/* Título a 20 px y tarjeta con border-box: a 22 px el
+                  título (~281 px en fuentes anchas) no cabe en una
+                  línea en 360 px (contenido 272 px) y se veía cortado
+                  a los lados; con border-box la tarjeta nunca supera
+                  los 320 px con su padding. */}
+              <h2 style={{ margin: '0 0 12px 0', fontSize: 20, fontWeight: 800, color: dark ? '#FFF' : '#111', fontFamily: 'system-ui, -apple-system, sans-serif', letterSpacing: '-0.3px' }}>
                 {t('detalle_como_visitas', '¿Cómo nos visitas hoy?')}
               </h2>
               <p style={{ margin: '0 0 28px 0', fontSize: 14, color: dark ? '#A1A1AA' : '#71717A', lineHeight: 1.5 }}>
