@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import MapCompass from "./map/MapCompass.jsx";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { GMAPS_KEY } from "../lib/supabase.js";
-import { CAT_EMOJI, getThumbUrl, iconFile } from "../lib/utils.js";
+import { CAT_EMOJI, categoryEmoji, getThumbUrl, iconFile } from "../lib/utils.js";
 import { hasCloseNeighbor, selectionZoom } from "../lib/mapCentering.js";
 import { createOverlayMarker } from "../lib/googleOverlayMarker.js";
 
@@ -421,7 +421,10 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
           
           content.appendChild(img);
         } else {
-          const emojiVal = biz.emoji || iconFile(categories.find(c => c.id === biz.category)?.icon) || CAT_EMOJI[biz.category] || "📍";
+          // La categoría «Puntos de interés» (lugares) muestra 🏛️ como las
+          // demás categorías: el override va antes de iconFile porque el
+          // archivo de la categoría (lugar.svg) taparía el emoji.
+          const emojiVal = biz.emoji || categoryEmoji(biz.category) || iconFile(categories.find(c => c.id === biz.category)?.icon) || CAT_EMOJI[biz.category] || "📍";
           const cleanEmoji = typeof emojiVal === 'string' ? emojiVal.trim() : emojiVal;
           const isImg = typeof cleanEmoji === 'string' && (cleanEmoji.toLowerCase().endsWith('.svg') || cleanEmoji.toLowerCase().endsWith('.png'));
 

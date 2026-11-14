@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import Icon from '../components/ui/Icon.jsx';
+import { logStampEvent } from '../lib/loyaltyStampHistory.js';
 import ConfettiLogro from '../components/ConfettiLogro.jsx';
 import TrofeoLogro from '../components/TrofeoLogro.jsx';
 
@@ -78,22 +79,30 @@ export default function ScanView({ user, T, dark, setShowAuth }) {
 
     const currentStamps = member.stamps || 0;
     const stampsRequired = card.stamps_required || 5;
-    
+
     // Si ya completó la tarjeta, la acción es canjear (redeem)
     const isRedeeming = currentStamps >= stampsRequired;
     const newStamps = isRedeeming ? 0 : currentStamps + 1;
-    const action = isRedeeming ? "redeem" : "stamp";
 
     try {
       await sb.patch("loyalty_members", member.id, {
         stamps: newStamps,
         last_stamp_at: new Date().toISOString()
       });
-      await sb.post("loyalty_stamps_log", {
-        member_id: member.id,
-        biz_id: biz.id,
-        action: action,
-        amount: 1
+      // Historial/auditoría en loyalty_stamp_events. El INSERT viejo a
+      // loyalty_stamps_log estaba bloqueado por RLS (tabla vacía) y el
+      // fallo mostraba un «Error» fantasma tras dar el sello. Este
+      // registro nunca bloquea el sello (logStampEvent no lanza).
+      await logStampEvent({
+        memberId: member.id,
+        bizId: biz.id,
+        cardId: card.id,
+        eventType: isRedeeming ? 'reward_delivered' : 'stamp_added',
+        stampNumber: isRedeeming ? null : newStamps,
+        stampsBefore: currentStamps,
+        stampsAfter: newStamps,
+        note: isRedeeming ? card.reward_text : null,
+        createdBy: user?.id || null,
       });
       
       // Actualizar Google Wallet

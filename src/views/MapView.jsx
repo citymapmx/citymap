@@ -319,7 +319,10 @@ export default function MapView() {
                   ? <img src={getThumbUrl(mapPin.photos?.[0]?.url || mapPin.logo_url || mapPin.banner_url, 800, 400)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>
                       {(() => {
-                        let emojiVal = mapPin.emoji || iconFile(cats.find(c => c.id === mapPin.category)?.icon) || CAT_EMOJI[mapPin.category] || "📍";
+                        // La categoría «Puntos de interés» (lugares) muestra
+                        // 🏛️ como las demás: el override va antes de iconFile
+                        // porque el archivo (lugar.svg) taparía el emoji.
+                        let emojiVal = mapPin.emoji || categoryEmoji(mapPin.category) || iconFile(cats.find(c => c.id === mapPin.category)?.icon) || CAT_EMOJI[mapPin.category] || "📍";
                         let cleanEmoji = typeof emojiVal === 'string' ? emojiVal.trim() : emojiVal;
                         let isImg = typeof cleanEmoji === 'string' && (cleanEmoji.toLowerCase().endsWith('.svg') || cleanEmoji.toLowerCase().endsWith('.png'));
                         return isImg ? <img src={`/${cleanEmoji}`} alt="" style={{ width: 64, height: 64, objectFit: "contain" }} /> : cleanEmoji;

@@ -21,7 +21,7 @@ import { getProductDisplayPrice, getProductPriceLabel } from '../../lib/menuPric
 import { isCategoryVisibleNow, categoryHasSchedule, categoryScheduleLabel12h, offHoursMessage, menuTimeKey } from '../../lib/menuCategoryHours.js';
 import { resolveMenuTheme, menuHexAlpha, textOnMenuSurface } from '../../lib/menuColorStyles.js';
 import { fetchStoreCategories } from '../../lib/storeCategories.js';
-import { resolveMenuIntent, readSavedMenuIntent, saveMenuIntent } from '../../lib/menuIntent.js';
+import { resolveMenuIntent, readSavedMenuIntent } from '../../lib/menuIntent.js';
 import MenuLoadingScreen from './MenuLoadingScreen.jsx';
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null, initialCategories = null }) {
@@ -70,21 +70,19 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   const activeTabIdRef = useRef(activeTabId);
   useEffect(() => { activeTabIdRef.current = activeTabId; }, [activeTabId]);
   const [showMenuModal, setShowMenuModal] = useState(false);
-  // Modo del menú (hallazgo #2, nov 2026): ya no hay modal que tape
-  // el menú. Sin elección guardada el menú se muestra con el modo por
-  // defecto (delivery, el menú completo con pedido) y el visitante
-  // cambia cuando quiere desde la píldora del menú; la elección se
-  // recuerda por negocio. Catálogo siempre es delivery (no tiene
-  // modos). La intención explícita (?intent= o location.state) manda.
+  // Modo del menú (hallazgo #2, nov 2026; píldora quitada nov 2026):
+  // ya no hay modal que tape el menú ni botones para cambiar de modo
+  // dentro de él. El modo lo decide la elección hecha en el modal de
+  // la ficha, guardada por negocio en localStorage, o la intención
+  // explícita (?intent= o location.state); sin elección, el modo por
+  // defecto es delivery (el menú completo con pedido). Catálogo
+  // siempre es delivery (no tiene modos). Botones +, carrito, saludo
+  // y promos reaccionan a menuIntent.
   const [menuIntent, setMenuIntent] = useState(() => resolveMenuIntent({
     isCatalog,
     initialIntent,
     saved: readSavedMenuIntent(business?.id),
   }));
-  const handleIntentChange = (intent) => {
-    setMenuIntent(intent);
-    saveMenuIntent(business?.id, intent);
-  };
   const { dark: appDark } = useUIStore();
   const { globalFavCounts } = useDataStore();
   const { user, setShowAuth } = useAuthStore();
@@ -564,50 +562,6 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 )}
               </div>
             </div>
-
-            {/* Píldora de modo (hallazgo #2, nov 2026): el modal de
-                intención ya no tapa el menú; el menú se muestra con
-                el modo por defecto (delivery) y el visitante cambia aquí
-                cuando quiera. El cambio es inmediato (botones +, carrito,
-                saludo y promos reaccionan a menuIntent) y se recuerda por
-                negocio en localStorage. En catálogo no hay modos. */}
-            {!isCatalog && (
-              <div role="group" aria-label="Modo del menú" style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
-                {[
-                  { id: 'local', label: 'En el local', icon: '🍽️' },
-                  { id: 'delivery', label: 'Para llevar / Domicilio', icon: '🛍️' },
-                ].map((opt) => {
-                  const isActive = menuIntent === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      aria-pressed={isActive}
-                      onClick={() => handleIntentChange(opt.id)}
-                      className="press"
-                      style={{
-                        flex: 1,
-                        padding: '10px 8px',
-                        borderRadius: 999,
-                        border: 'none',
-                        background: isActive ? (menuTheme ? menuTheme.primary : (dark ? '#FFFFFF' : '#111111')) : (menuTheme ? menuHexAlpha(menuTheme.text, '1A') : (dark ? '#232326' : '#F3F4F6')),
-                        color: isActive ? (menuTheme ? menuTheme.onPrimary : (dark ? '#111111' : '#FFFFFF')) : (menuTheme ? menuTheme.text : (dark ? '#E4E4E7' : '#111111')),
-                        fontSize: 13,
-                        fontWeight: 800,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 6,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span aria-hidden="true">{opt.icon}</span>
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
 
             <div style={{ paddingBottom: cartCount > 0 ? 100 : 80 }}>
       <StorePromotions products={promotionProducts} intent={menuIntent} timeZone={timeZone} T={menuT} onSelect={handlePromotionSelect} />

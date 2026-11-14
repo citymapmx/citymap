@@ -67,7 +67,7 @@ export function getLocalIsoDate(d = new Date()) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
 }
 
-export const CAT_EMOJI = { restaurantes: "🍽️", cafe: "☕", salud: "🏥", belleza: "💅", fitness: "💪", compras: "🛍️", tech: "💻", ocio: "🎭", hoteles: "🏨", educacion: "📚" };
+export const CAT_EMOJI = { restaurantes: "🍽️", cafe: "☕", salud: "🏥", belleza: "💅", fitness: "💪", compras: "🛍️", tech: "💻", ocio: "🎭", hoteles: "🏨", educacion: "📚", lugares: "🏛️" };
 
 // El ícono "lugar.png" de la categoría Puntos de interés pesaba 447 KiB
 // (500×500) y se mostraba a 14-64 px. Se sustituyó por lugar.svg: el mismo
@@ -77,13 +77,13 @@ export function iconFile(icon) {
   return icon;
 }
 
-// Emoji que sustituye al archivo de icono de una categoría en las
-// píldoras del mapa: la categoría «Puntos de interés» (lugares)
-// muestra 🏛️ como las demás categorías (decisión de Jonathan,
-// 13 nov 2026; antes usaba el icono vectorial `landmark`).
-// Solo la píldora: los pines del mapa y la tarjeta del pin siguen
-// usando el archivo de la categoría (iconFile).
-// Devuelve el emoji o null si la categoría usa su archivo/emoji.
+// Emoji que sustituye al archivo de icono de una categoría: la categoría
+// «Puntos de interés» (lugares) muestra 🏛️ como las demás categorías
+// (decisión de Jonathan, 13 nov 2026; antes usaba el icono vectorial
+// `landmark`). Se usa donde el archivo de la categoría taparía el emoji:
+// la píldora del mapa, los pines del mapa y la tarjeta del pin. El panel
+// de admin sigue usando el archivo (iconFile). Devuelve el emoji o null
+// si la categoría usa su archivo/emoji.
 export function categoryEmoji(catId) {
   if (typeof catId === 'string' && catId.trim().toLowerCase() === 'lugares') return '🏛️';
   return null;
