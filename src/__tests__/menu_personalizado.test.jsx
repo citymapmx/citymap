@@ -84,10 +84,13 @@ describe('Menú personalizado: BusinessStore aplica el estilo (PR #291)', () => 
     expect(src).toContain("import { findMenuStyleById, menuThemeForStyle, menuHexAlpha, textOnMenuSurface } from '../../lib/menuColorStyles.js'");
   });
 
-  it('con estilo: fondo degradado, encabezado en primera parada, píldora y botón en primary', () => {
+  it('con estilo: fondo degradado en la página, píldora y botón en primary (el encabezado ya no usa la primera parada sólida)', () => {
     const src = read('../components/store/BusinessStore.jsx');
     expect(src).toContain('menuTheme ? menuTheme.background');
-    expect(src).toContain('menuTheme ? menuTheme.firstColor');
+    // La primera parada sólida solo queda para el borde del logo: ninguna
+    // sección pinta ya un fondo distinto (ver el bloque del degradado parejo).
+    expect(src).toContain('menuTheme.firstColor');
+    expect(src).not.toContain("background: menuTheme ? menuTheme.firstColor");
     expect(src).toContain('menuTheme ? menuTheme.primary : (dark');
     expect(src).toContain('menuTheme ? menuTheme.onPrimary');
     expect(src).toContain("menuTheme ? menuTheme.primary : '#3F3F46'");
@@ -293,13 +296,17 @@ describe('Menú público: el tema se adapta a todo (encabezado, píldoras, texto
     expect(src).toContain('T={menuT}');
   });
 
-  it('el encabezado del menú público toma el tema: nada de bloque blanco', () => {
+  it('el encabezado del menú público toma el tema: nada de bloque blanco (el degradado es el de la página, no uno propio)', () => {
     const src = read('../components/store/BusinessStore.jsx');
-    expect(src).toContain("background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FFFFFF')");
+    // El único degradado es el de la tarjeta de la página; el área del
+    // banner ya no repite el degradado (antes lo reiniciaba y el encabezado
+    // se veía rosa→morado mientras el resto era naranja→rosa).
+    expect(src).toContain("background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FAFAFA')");
     expect(src).toContain("color: menuTheme ? menuTheme.text : (dark ? '#FFFFFF' : '#111111')");
     // Dirección, separador y pin en el texto del tema atenuado.
     expect(src).toContain("menuTheme ? menuHexAlpha(menuTheme.text, 'B3')");
-    // Borde del logo y portada sin foto en la primera parada del tema.
+    // Borde del logo en la primera parada del tema (sigue siendo el único
+    // uso de firstColor como color de borde, no de fondo de sección).
     expect(src).toContain('menuTheme.firstColor');
   });
 
@@ -505,5 +512,81 @@ describe('Menú personalizado: ajustes del diseñador (título, Guardar, Sin est
     for (const label of ['Oro negro', 'Esmeralda', 'Perla', 'Espresso', 'Coral', 'Ámbar']) {
       expect(html).toContain(label);
     }
+  });
+});
+
+describe('Menú público: un solo degradado parejo en toda la página (no por partes)', () => {
+  it('el degradado vive UNA sola vez: en la tarjeta de la página; las secciones no lo repiten ni pintan otro fondo', () => {
+    const src = read('../components/store/BusinessStore.jsx');
+    // La tarjeta de la página es el único fondo con el degradado del tema.
+    const uses = src.match(/menuTheme \? menuTheme\.background/g) || [];
+    expect(uses.length).toBe(1);
+    expect(src).toContain("background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FAFAFA')");
+    // Ninguna sección pinta ya la primera parada sólida como fondo: ni el
+    // banner (antes repetía el degradado), ni la portada, ni la barra fija
+    // (antes era la banda naranja partida del resto).
+    expect(src).not.toContain("background: menuTheme ? menuTheme.firstColor");
+    // La primera parada solo queda como borde del logo circular.
+    expect(src).toContain("border: `4px solid ${menuTheme ? menuTheme.firstColor");
+  });
+
+  it('el área del banner y la portada son transparentes con estilo: el degradado de la página fluye por ahí', () => {
+    const src = read('../components/store/BusinessStore.jsx');
+    const bannerAt = src.indexOf('Banner Area');
+    expect(bannerAt).toBeGreaterThan(-1);
+    const bannerBlock = src.slice(bannerAt, bannerAt + 600);
+    // El wrapper del banner no trae fondo propio.
+    expect(bannerBlock).toContain("background: 'transparent'");
+    expect(bannerBlock).not.toContain('menuTheme.background');
+    // La portada sin foto tampoco: con estilo deja ver el degradado de la
+    // página; sin estilo sigue el sólido oscuro de antes.
+    expect(bannerBlock).toContain("background: menuTheme ? 'transparent' : '#232326'");
+  });
+
+  it('la barra fija (buscador + píldoras) es transparente con estilo y esmerila lo que pasa por debajo', () => {
+    const src = read('../components/store/BusinessStore.jsx');
+    const stickyAt = src.indexOf("position: 'sticky'");
+    expect(stickyAt).toBeGreaterThan(-1);
+    const stickyBlock = src.slice(stickyAt - 100, stickyAt + 500);
+    // Sin fondo propio: el degradado único fluye por la barra.
+    expect(stickyBlock).toContain("background: menuTheme ? 'transparent'");
+    // El blur evita que las tarjetas se vean por entre el buscador y las
+    // píldoras al bajar; sin estilo el fondo sigue siendo el sólido de hoy.
+    expect(stickyBlock).toContain("backdropFilter: menuTheme ? 'blur(12px)'");
+    expect(stickyBlock).toContain("WebkitBackdropFilter: menuTheme ? 'blur(12px)'");
+    expect(stickyBlock).toContain("background: menuTheme ? 'transparent' : (dark ? '#18181B' : '#FFFFFF')");
+  });
+
+  it('sin estilo, la página queda igual que hoy: la barra y el banner conservan sus fondos sólidos', () => {
+    const src = read('../components/store/BusinessStore.jsx');
+    expect(src).toContain("background: menuTheme ? 'transparent' : (dark ? '#18181B' : '#FFFFFF')");
+    expect(src).toContain("background: menuTheme ? 'transparent' : '#232326'");
+    expect(src).toContain("background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FAFAFA')");
+  });
+
+  it('textos clave legibles sobre el degradado único: Atardecer (el guardado de Carrito La Paz), Esmeralda (oscuro) y Perla (claro)', () => {
+    // Nombre/descripción (text) y títulos/precios (primary) se leen sobre
+    // CADA parada del degradado, porque el degradado ya no se reinicia por
+    // sección: el texto puede caer sobre cualquier parada al bajar.
+    // Atardecer: la primera parada naranja da 2.80 con el blanco; el nombre
+    // es texto grande en negrita (26px/900) y los títulos 19px/800, así que
+    // el umbral para ese estilo es 2.7; el resto de paradas da >= 4.6.
+    const cases = [
+      { id: 'atardecer', min: 2.7 },
+      { id: 'esmeralda', min: 3 },
+      { id: 'perla', min: 3 },
+    ];
+    for (const { id, min } of cases) {
+      const theme = menuThemeForStyle(findMenuStyleById(id));
+      expect(theme).not.toBe(null);
+      for (const stop of theme.style.bg) {
+        expect(contrastRatio(theme.text, stop)).toBeGreaterThanOrEqual(min);
+        expect(contrastRatio(theme.primary, stop)).toBeGreaterThanOrEqual(min);
+      }
+    }
+    // El caso justo, documentado: blanco sobre naranja de Atardecer.
+    expect(contrastRatio('#FFFFFF', '#F97316')).toBeGreaterThanOrEqual(2.7);
+    expect(contrastRatio('#FFFFFF', '#DB2777')).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio('#FFFFFF', '#7C3AED')).toBeGreaterThanOrEqual(5);
   });
 });

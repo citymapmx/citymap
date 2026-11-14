@@ -396,9 +396,12 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                  boxShadow: inline ? 'none' : '0 0 40px rgba(0,0,0,0.2)'
                }}
             >
-            {/* Banner Area (Baryo Style) */}
-            <div style={{ position: 'relative', width: '100%', background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FFFFFF') }}>
-              <div style={{ position: 'relative', width: '100%', height: coverHeight, background: menuTheme ? menuTheme.firstColor : '#232326' }}>
+            {/* Banner Area (Baryo Style): sin fondo propio — el degradado
+                único de la página (el de la tarjeta, línea de arriba) fluye
+                por aquí; antes este div repetía el degradado y el encabezado
+                se veía rosa→morado mientras el resto era naranja→rosa. */}
+            <div style={{ position: 'relative', width: '100%', background: 'transparent' }}>
+              <div style={{ position: 'relative', width: '100%', height: coverHeight, background: menuTheme ? 'transparent' : '#232326' }}>
                 {(business.banner_url || (business.photos && business.photos[0] ? business.photos[0].url : null) || business.logo_url) && (
                   // El mismo encuadre que la ficha (DetailView: getThumbUrl
                   // 1200×900 + cover): antes se pedía 800×340 y el servidor
@@ -548,8 +551,12 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
         if (cat && isCatOffHours(cat)) { showOffHoursNotice(cat); return; }
         setSelectedProduct(p);
       }} />
-      {/* Sticky Header: Search + Tabs */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: menuTheme ? menuTheme.firstColor : (dark ? '#18181B' : '#FFFFFF'), paddingBottom: 12, paddingTop: 4, borderBottom: `1px solid ${dark ? '#232326' : '#F4F4F5'}` }}>
+      {/* Sticky Header: Search + Tabs. Sin fondo propio: el degradado único
+          de la página fluye por aquí (antes era la primera parada sólida y
+          se veía la banda naranja partida del resto). El blur esmerila lo
+          que pasa por debajo al bajar, para que no se vean las tarjetas
+          por entre el buscador y las píldoras; el degradado no se repinta. */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 100, background: menuTheme ? 'transparent' : (dark ? '#18181B' : '#FFFFFF'), backdropFilter: menuTheme ? 'blur(12px)' : undefined, WebkitBackdropFilter: menuTheme ? 'blur(12px)' : undefined, paddingBottom: 12, paddingTop: 4, borderBottom: `1px solid ${dark ? '#232326' : '#F4F4F5'}` }}>
         {/* Search & Toggle */}
         <div style={{ padding: '0 16px', marginBottom: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1, minWidth:0 }}>
