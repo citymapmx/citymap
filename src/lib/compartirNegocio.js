@@ -4,8 +4,9 @@
 // por TIPO DE MATERIAL con 3 pestañas — Redes (las ShareCard que ya
 // existen), Para imprimir (tarjetas QR diseñadas, estilo 'qr' de
 // ShareCard) y QR suelto (el QR pelado de siempre). Un solo componente
-// (BizShareHub) lo usan Mi Perfil (modal) y el panel del negocio
-// (StoreAdminPanel), para que no haya dos experiencias de QR distintas.
+// (BizShareHub) que usa solo Mi Perfil (modal): el 14 nov 2026 se quitó
+// del panel del negocio (StoreAdminPanel) y del panel de Reservaciones,
+// porque compartir ya vive en el perfil.
 // Los materiales de menú solo existen si el negocio tiene platillos
 // con precio (loadMenuItems); sin menú, solo salen los del perfil.
 import { cleanCityPrefix } from './utils.js';

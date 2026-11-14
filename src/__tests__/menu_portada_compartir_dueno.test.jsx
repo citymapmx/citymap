@@ -12,6 +12,8 @@ const read = (rel) => readFileSync(join(here, rel), 'utf8');
 // página pública del menú y las tarjetas pasan al panel del dueño (el
 // icono superior se conserva); (3) la dirección del menú se ajusta a
 // la pantalla en vez de cortarse en el borde derecho.
+// 14 nov 2026 (Jonathan): la entrada de compartir también sale del
+// panel del dueño — compartir vive solo en Mi Perfil.
 describe('página del menú: portada, compartir y dirección', () => {
   it('la portada del menú mide lo mismo que la de la ficha (220 px con foto, 64 sin foto)', () => {
     const store = read('../components/store/BusinessStore.jsx');
@@ -44,13 +46,12 @@ describe('página del menú: portada, compartir y dirección', () => {
     expect(store).toContain("wordBreak: 'break-word'");
   });
 
-  it('el panel del dueño tiene la entrada «Compartir mi negocio» con la hoja de tarjetas', () => {
+  it('el panel del dueño YA NO tiene la entrada «Compartir mi negocio» (14 nov 2026: compartir vive solo en Mi Perfil)', () => {
     const owner = read('../views/OwnerDashboardView.jsx');
-    expect(owner).toContain('Compartir mi negocio');
-    expect(owner).toContain("lazy(() => import('../components/ShareCardSheet.jsx'))");
-    expect(owner).toContain('<ShareCardSheet biz={ownerView} hasMenu');
-    expect(owner).toContain('onShareLink={(b) => doShare(b)}');
-    expect(owner).toContain('setShowShareCard(true)');
+    expect(owner).not.toContain('Compartir mi negocio');
+    expect(owner).not.toContain('ShareCardSheet');
+    expect(owner).not.toContain('setShowShareCard');
+    expect(owner).not.toContain('doShare');
     // El panel es solo del dueño: sin ownerView redirige a inicio.
     expect(owner).toContain('if (!ownerView) return null');
   });

@@ -215,11 +215,15 @@ describe('Compartir mi negocio: cableado en Mi Perfil y en el panel', () => {
     expect(account).not.toContain('QR_Perfil_');
   });
 
-  it('el panel del negocio usa el mismo centro (una sola experiencia de QR)', () => {
+  it('el panel del negocio YA NO usa el centro (14 nov 2026: compartir vive solo en Mi Perfil)', () => {
     const panel = read('../components/store/StoreAdminPanel.jsx');
-    expect(panel).toContain('<BizShareHub');
+    expect(panel).not.toContain('<BizShareHub');
+    expect(panel).not.toContain('Compartir mi negocio');
     expect(panel).not.toContain('Códigos QR del Negocio');
     expect(panel).not.toContain('api.qrserver.com');
+    // El resto del gestor sigue ahí: categorías y monetización.
+    expect(panel).toContain('StoreCategoriesTab');
+    expect(panel).toContain('StoreMonetizationTab');
   });
 
   it('el centro reutiliza la hoja de compartir y la exportación de ShareCard', () => {

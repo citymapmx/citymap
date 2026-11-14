@@ -19,16 +19,17 @@ describe('panel de Reservaciones del dueño: sin Nivel del Negocio, lista primer
     expect(owner).not.toContain('Progreso al nivel');
   });
 
-  it('el orden es: Tus Reservaciones, Link directo al panel, Compartir mi negocio', () => {
+  it('el orden es: Tus Reservaciones, Link directo al panel, Link para reservar (14 nov 2026: la fila «Compartir mi negocio» se quitó; compartir vive solo en Mi Perfil)', () => {
     const owner = read('../views/OwnerDashboardView.jsx');
     const agendaAt = owner.indexOf('<ReservationsAgenda');
     const linkAt = owner.indexOf('Link directo al panel');
-    const shareAt = owner.indexOf('Compartir mi negocio');
+    const bookingAt = owner.indexOf('Link para reservar');
     expect(agendaAt).toBeGreaterThan(-1);
     expect(linkAt).toBeGreaterThan(-1);
-    expect(shareAt).toBeGreaterThan(-1);
+    expect(bookingAt).toBeGreaterThan(-1);
     expect(agendaAt).toBeLessThan(linkAt);
-    expect(linkAt).toBeLessThan(shareAt);
+    expect(linkAt).toBeLessThan(bookingAt);
+    expect(owner).not.toContain('Compartir mi negocio');
   });
 
   it('la lista sigue condicionada al plan de pago y los botones intactos', () => {
@@ -36,8 +37,9 @@ describe('panel de Reservaciones del dueño: sin Nivel del Negocio, lista primer
     expect(owner).toContain('ownerView.plan !== "free"');
     expect(owner).toContain('<ReservationsAgenda ownerView={ownerView} ownerRes={ownerRes} setOwnerRes={setOwnerRes} />');
     expect(owner).toContain('Link directo al panel');
-    expect(owner).toContain('Compartir mi negocio');
-    expect(owner).toContain('setShowShareCard(true)');
+    expect(owner).toContain('Link para reservar');
+    expect(owner).not.toContain('Compartir mi negocio');
+    expect(owner).not.toContain('setShowShareCard(true)');
   });
 
   it('la lógica de nivel queda guardada para volverla a poner: lib y widget existen, sin render', () => {
