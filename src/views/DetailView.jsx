@@ -13,6 +13,7 @@ import TikTokBlock from '../components/detail/TikTokBlock.jsx';
 import GalleryLayout from '../components/detail/GalleryLayout.jsx';
 import JaguaresGames from '../components/detail/JaguaresGames.jsx';
 import { sb } from '../lib/supabase.js';
+import { getPrefetchedLoyaltyEntries } from '../lib/loyaltyMemberships.js';
 
 import { useNavigate, useNavigationType, useLocation } from "react-router-dom";
 
@@ -39,6 +40,7 @@ import { CAT_EMOJI, getKm, createSlug, getEventStatus, isOpenNow, getThumbUrl, g
 const MapPicker = lazy(() => import('../components/map/MapPicker.jsx'));
 const Gallery = lazy(() => import('../components/Gallery.jsx'));
 const BookingModal = lazy(() => import('../components/BookingModal.jsx'));
+const LoyaltyCardModal = lazy(() => import('../views/LoyaltyCardModal.jsx'));
 const ShareCardSheet = lazy(() => import('../components/ShareCardSheet.jsx'));
 import BusinessStore from '../components/store/BusinessStore.jsx';
 import MercadoLibreShowcase from '../components/MercadoLibreShowcase.jsx';
@@ -97,6 +99,34 @@ export default function DetailView() {
     enabled: !!selected?.id
   });
 
+  // Tarjeta + membresía para el modal de lealtad (nov 2026): el botón
+  // «Tarjeta Lealtad» ya no navega a /lealtad/:bizId, abre el modal en
+  // la ficha, así que la tarjeta y la membresía se cargan al abrir la
+  // ficha, igual que LoyaltyCardView. La tarjeta siempre se consulta
+  // (un no-miembro también debe ver el formulario de alta); para la
+  // membresía sirve de atajo la precarga del perfil, si ya la trae.
+  const loyaltyDetailQuery = useQuery({
+    queryKey: ['loyaltyDetail', selected?.id, user?.id],
+    queryFn: async () => {
+      const cardRes = await sb.get("loyalty_cards", `?biz_id=eq.${selected.id}&active=eq.true&limit=1`);
+      const card = cardRes?.[0] || null;
+      let member = null;
+      if (user) {
+        const prefetched = getPrefetchedLoyaltyEntries(user);
+        if (prefetched) {
+          const entries = await prefetched.catch(() => []);
+          member = entries.find(e => e.biz?.id === selected.id)?.member || null;
+        }
+        if (!member) {
+          const memberRes = await sb.get("loyalty_members", `?user_id=eq.${user.id}&biz_id=eq.${selected.id}&limit=1`);
+          member = memberRes?.[0] || null;
+        }
+      }
+      return { card, member };
+    },
+    enabled: !!selected?.id
+  });
+
   const { data: hasMenu = false } = useQuery({
     queryKey: ['hasMenu', selected?.id],
     queryFn: async () => {
@@ -113,6 +143,7 @@ export default function DetailView() {
   const showGoogleReviews = businessShowsGoogleRating(selected);
   const [asyncEmbedUrl, setAsyncEmbedUrl] = useState(null);
   const [showBooking, setShowBooking] = useState(false);
+  const [showLoyalty, setShowLoyalty] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [showIntentModal, setShowIntentModal] = useState(false);
@@ -142,6 +173,7 @@ export default function DetailView() {
   // servicios apareciendo en un segundo salto (nov 2026, Jonathan).
   useEffect(() => {
     import('../components/BookingModal.jsx').catch(() => {});
+    import('../views/LoyaltyCardModal.jsx').catch(() => {});
   }, []);
 
   // El menú se precarga al abrir la ficha (hallazgo #5, nov 2026): la ruta
@@ -478,7 +510,7 @@ export default function DetailView() {
               {hasLoyalty && (
                 <button 
                   className="press" 
-                  onClick={() => { const cleanSlug = ctx.cleanCityPrefix ? ctx.cleanCityPrefix(selected.slug || selected.id, selected.city_slug || activeCity) : (selected.slug || selected.id); navigate(`/lealtad/${cleanSlug}?from=biz`); }} 
+                  onClick={() => setShowLoyalty(true)} 
                   style={{ 
                     flex: "1 1 140px", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                     padding: "12px 10px", borderRadius: 14, 
@@ -1047,6 +1079,22 @@ export default function DetailView() {
               </div>
             }>
               <BookingModal biz={selected} onClose={closeBooking} />
+            </Suspense>
+          </ErrorBoundary>
+        )}
+
+        {showLoyalty && (
+          <ErrorBoundary>
+            <Suspense fallback={
+              <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+                <div style={{ textAlign: "center", padding: "40px", background: T.white, color: T.text, borderRadius: 24, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>Cargando tarjeta...</div>
+              </div>
+            }>
+              {/* La ficha ya no navega a /lealtad/:bizId (nov 2026): el
+                  botón «Tarjeta Lealtad» abre este modal en la ficha.
+                  La ruta /lealtad/:bizId se conserva para enlaces
+                  directos. */}
+              <LoyaltyCardModal open={showLoyalty} onClose={() => setShowLoyalty(false)} member={loyaltyDetailQuery.data?.member || null} card={loyaltyDetailQuery.data?.card || null} biz={selected} user={user} setShowAuth={setShowAuth} loading={loyaltyDetailQuery.isPending} onEnrolled={() => loyaltyDetailQuery.refetch()} T={T} />
             </Suspense>
           </ErrorBoundary>
         )}
