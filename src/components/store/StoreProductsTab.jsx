@@ -4,6 +4,7 @@ import Icon from '../ui/Icon.jsx';
 import StorePromotionFields,{defaultPromotion} from './StorePromotionFields.jsx';
 import {validatePromotion} from '../../lib/menuPromotions.js';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
+import { MENU_PRODUCT_IMAGE_OPTIMIZE } from '../../lib/imageOptimize.js';
 
 const Uploader = lazy(() => import('../Uploader.jsx'));
 
@@ -126,7 +127,10 @@ export default function StoreProductsTab({
           </div>
           {!prodForm.image_url && (
             <Suspense fallback={<div style={{padding: 20, textAlign: 'center'}}>Cargando módulo de fotos...</div>}>
-              <Uploader label="Subir Foto" onDone={(url) => setProdForm({ ...prodForm, image_url: url })} />
+              {/* Foto del producto con compresión (hallazgo #7): el
+                  original se reduce a ≤800 px / ≤200 KB en WebP antes
+                  de subir (preset MENU_PRODUCT_IMAGE_OPTIMIZE). */}
+              <Uploader label="Subir Foto" optimize={MENU_PRODUCT_IMAGE_OPTIMIZE} onDone={(url) => setProdForm({ ...prodForm, image_url: url })} />
             </Suspense>
           )}
         </div>

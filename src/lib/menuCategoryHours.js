@@ -8,6 +8,8 @@
 // fin exclusivo (08:30 sí, 13:00 no), igual que las promociones en
 // menuPromotions.js.
 
+import { isOpenNow, getSmartScheduleInfo } from './utils.js';
+
 export function timeToMinutes(value) {
   if (typeof value !== 'string') return null;
   const match = value.match(/^(\d{1,2}):(\d{2})/);
@@ -35,8 +37,25 @@ export function categoryScheduleLabel(category) {
   return `${minutesToTimeLabel(from)}–${minutesToTimeLabel(to)}`;
 }
 
-// Minutos desde medianoche → "8:00 a.m.", "12:30 p.m." (hora sin cero
-// inicial, como en el resto del sitio).
+// Firma de todo lo que depende de la hora en el menú (hallazgo #8,
+// nov 2026): franja horaria de cada categoría + abierto/cerrado del
+// negocio + texto de la píldora de horario. El texto incluye el
+// «Cierra pronto (23m)» / «Abre pronto (12m)», que cambia cada minuto
+// solo en la última hora; fuera de esa ventana el texto es estable
+// («Abierto ahora», «abre hoy a las 8:00 am»). El tick de 60 s de
+// BusinessStore solo re-renderiza si cambia esta firma.
+export function menuTimeKey({ business, categories, now, timeZone }) {
+  const cats = (categories || []).map((c) => (
+    categoryHasSchedule(c) && !isCategoryVisibleNow(c, { now, timeZone }) ? '1' : '0'
+  )).join('');
+  const open = isOpenNow(business || {}, business?.timezone, now) ? '1' : '0';
+  const info = getSmartScheduleInfo(business || {}, business?.timezone, now);
+  const text = Array.isArray(info?.text)
+    ? info.text.filter((t) => typeof t === 'string').join('')
+    : String(info?.text ?? '');
+  return `${cats}|${open}|${text}`;
+}
+
 export function formatMinutes12h(minutes) {
   if (minutes == null || !Number.isFinite(minutes)) return '';
   const h24 = Math.floor(minutes / 60) % 24;

@@ -81,8 +81,9 @@ describe('imagenes: entrega más rápida sin bajar la calidad', () => {
     expect(businessCard).toContain('getThumbSrcSet(thumb.url, SRCSET_CARD, 600)');
     expect(progressive).toContain('srcSet={srcSet}');
     expect(progressive).toContain('sizes={sizes}');
-    // El placeholder borroso de 20 px no lleva srcset: solo hay un
-    // srcSet en todo el archivo, el de la imagen real.
+    // Solo hay un srcSet en todo el archivo, el de la imagen real: el
+    // placeholder ya no es un thumb 20×20 (hallazgo #7), es un fondo
+    // de color, así que no hay segunda petición de imagen por tarjeta.
     expect(progressive.split('srcSet={srcSet}').length - 1).toBe(1);
   });
 

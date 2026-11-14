@@ -1,9 +1,14 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useState,memo} from 'react';
 import {getProductPriceLabel,getProductDisplayPrice} from '../../lib/menuPricing.js';
 import {isPromotionActive,getPromotionProduct,promotionScheduleLabel} from '../../lib/menuPromotions.js';
 import {getThumbUrl} from '../../lib/utils.js';
 
-export default function StorePromotions({products = [],intent,timeZone,T,onSelect}) {
+// Memoizado (hallazgo #8): el padre (BusinessStore) re-renderiza por
+// tecla, por tick y por scroll; las promos solo dependen de products,
+// intent, timeZone, T y onSelect — todos estables (useMemo/useCallback
+// en el padre). Su propio tick de 15 s (vigencia de promos) sigue
+// re-pintando solo este componente.
+export default memo(function StorePromotions({products = [],intent,timeZone,T,onSelect}) {
   const [now,setNow]=useState(()=>new Date());
   useEffect(()=>{const update=()=>setNow(new Date());const timer=setInterval(update,15000);window.addEventListener('focus',update);document.addEventListener('visibilitychange',update);return()=>{clearInterval(timer);window.removeEventListener('focus',update);document.removeEventListener('visibilitychange',update);};},[]);
   const active=products.filter(product=>isPromotionActive(product,{now,timeZone,intent}));
@@ -25,4 +30,4 @@ export default function StorePromotions({products = [],intent,timeZone,T,onSelec
       </article>;})}
     </div>
   </section>;
-}
+});

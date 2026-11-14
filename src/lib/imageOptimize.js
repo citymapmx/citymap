@@ -15,6 +15,20 @@ export const EVENT_IMAGE_OPTIMIZE = {
   always: true,
 };
 
+// Preset para la foto de un producto del menú (hallazgo #7, nov 2026):
+// se optimiza SIEMPRE (aunque pese poco), máximo 800 px en el lado
+// largo y calidad 0.82, con un tope de 0.2 MB. La foto se muestra a
+// 400×400 como mucho, así que 800 px sobra (2x). Antes, sin preset,
+// solo se comprimía si el archivo pasaba de 1.5 MB — la foto de
+// Carrito La Paz (PNG 1020×1020 guardado como .webp, 1.394 KB) pasó
+// entera a Storage. Las fotos ya subidas no se tocan, solo las nuevas.
+export const MENU_PRODUCT_IMAGE_OPTIMIZE = {
+  maxSizeMB: 0.2,
+  maxWidthOrHeight: 800,
+  initialQuality: 0.82,
+  always: true,
+};
+
 // Resuelve los parámetros efectivos de optimización. Sin preset (y sin
 // avatarMode) se mantiene el comportamiento histórico: solo se comprime
 // si el archivo pasa de 1.5 MB, a 2000 px y calidad 0.95.

@@ -13,7 +13,6 @@
 // huecos): el contenido se rellena en la misma pantalla, no aparece
 // un segundo esqueleto distinto.
 
-import { getThumbUrl } from '../../lib/utils.js';
 import { resolveMenuTheme, menuHexAlpha } from '../../lib/menuColorStyles.js';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 
@@ -38,8 +37,9 @@ export default function MenuLoadingScreen({ business = null, storeLabel = 'menú
               sin zoom el emblema llega al 86% del círculo; con 1.12
               llega al borde, recortando los textos diagonales de
               Carrito La Paz y las esquinas negras de KAVA. Igual que
-              el logo del encabezado del menú. */}
-          <OptimizedImage src={getThumbUrl(business.logo_url || business.logo, 200, 200)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'translateZ(0) scale(1.12)' }} alt={business.name} />
+              el logo del encabezado del menú. Con prioridad (hallazgo
+              #7): es lo primero que se ve al abrir el menú. */}
+          <OptimizedImage src={business.logo_url || business.logo} widthRequest={200} heightRequest={200} priority style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'translateZ(0) scale(1.12)' }} alt={business.name} />
         </div>
       ) : (
         <div aria-hidden="true" style={{ width: 72, height: 72, borderRadius: '50%', background: loadBar, margin: '8px auto 16px', animation: 'menuSkeletonPulse 1.4s ease-in-out infinite' }} />
