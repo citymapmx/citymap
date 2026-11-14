@@ -1,8 +1,8 @@
 // Estilos de color para el menú del negocio (PR #291).
 //
-// Reutiliza los 48 estilos de las tarjetas de lealtad
+// Reutiliza los 29 estilos de las tarjetas de lealtad
 // (loyaltyColorStyles.js) tal cual, sin paletas nuevas. El negocio guarda
-// solo el id del estilo en businesses.menu_style (p. ej. "perla") o null
+// solo el id del estilo en businesses.menu_style (p. ej. "crema") o null
 // = sin estilo, y el menú se ve exacto como hoy. Además puede guardar un
 // tema propio en businesses.menu_custom (jsonb { bg, primary }): el editor
 // universal del diseñador. El personalizado manda sobre el predefinido
@@ -55,7 +55,7 @@ export function textOnMenuPrimary(hex) {
 // del estilo está pensado para el degradado completo, que se oscurece
 // hacia la última parada; sobre la primera parada (la más clara) un
 // texto blanco se pierde en los estilos claros (Lima, Atardecer, Coral,
-// Tropical, Rosa dorado). Umbral 0.5: por encima, texto oscuro.
+// Tropical, Rosa claro). Umbral 0.5: por encima, texto oscuro.
 export function textOnMenuSurface(hex) {
   if (!hex || typeof hex !== 'string') return '#FFFFFF';
   return menuBrightness(hex) > 0.5 ? '#18181B' : '#FFFFFF';
@@ -100,7 +100,7 @@ export function isValidMenuHex(hex) {
 
 // Mezcla un hex hacia negro (amount 0-1): la segunda parada del
 // degradado del tema personalizado. El degradado va de claro a oscuro,
-// como los estilos predefinidos (p. ej. Perla #F8FAFC -> #E2E8F0).
+// como los estilos predefinidos (p. ej. Crema #FFFBEB -> #FBBF24).
 export function menuDarken(hex, amount = 0.3) {
   if (!isValidMenuHex(hex)) return '#000000';
   const n = parseInt(hex.slice(1), 16);
