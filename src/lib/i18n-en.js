@@ -990,6 +990,7 @@ export const EN_TRANSLATIONS = {
     "detalle_leer_todas_google": "Read all on Google Maps",
     "detalle_llamar": "Call",
     "detalle_logo_de": "Logo of {nombre}",
+    "detalle_mas_fotos": "+{n} more photos",
     "detalle_mas_hojas": "{n} pages",
     "detalle_menu": "Menu",
     "detalle_menu_min": "menu",
