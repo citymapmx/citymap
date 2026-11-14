@@ -34,7 +34,7 @@ import StarRow from "../components/ui/StarRow.jsx";
 import { ErrorBoundary } from "../components/ErrorBoundary.jsx";
 import { haptic } from "../lib/utils.js";
 import { useTranslation } from "../hooks/useTranslation.js";
-import { CAT_EMOJI, getKm, createSlug, getEventStatus, isOpenNow, getThumbUrl, getCategoryDescription, parseMenuUrls, getScheduleStatus, getSmartScheduleInfo } from "../lib/utils";
+import { CAT_EMOJI, createSlug, getEventStatus, isOpenNow, getThumbUrl, getCategoryDescription, parseMenuUrls, getScheduleStatus, getSmartScheduleInfo } from "../lib/utils";
 
 const MapPicker = lazy(() => import('../components/map/MapPicker.jsx'));
 const Gallery = lazy(() => import('../components/Gallery.jsx'));
@@ -84,7 +84,7 @@ export default function DetailView() {
 
   
   
-  const { viewStyle, selected, setView, setFade, navigate, T, favIds, toggleFav, goWhatsApp, goDir, doShare, setReviewStar, setReviewText, setShowReview, biz, userCoords, showGallery, setShowGallery, callPhone, setMapPin, setShowMenuGallery, goWeb, trackEvent, setSelectedEvent, handleEventTap, showReview, reviewStar, reviewText, postReview, isAdmin, setBiz, setSelected, toggleLikeReview, setClaimBiz, reviewImgFile, setReviewImgFile, reviewImgLoading, city } = ctx;
+  const { viewStyle, selected, setView, setFade, navigate, T, favIds, toggleFav, goWhatsApp, goDir, doShare, setReviewStar, setReviewText, setShowReview, biz, showGallery, setShowGallery, callPhone, setMapPin, setShowMenuGallery, goWeb, trackEvent, setSelectedEvent, handleEventTap, showReview, reviewStar, reviewText, postReview, isAdmin, setBiz, setSelected, toggleLikeReview, setClaimBiz, reviewImgFile, setReviewImgFile, reviewImgLoading, city } = ctx;
   const isOpen = (b) => isOpenNow(b, city?.timezone || "America/Mexico_City");
 
   
@@ -356,11 +356,6 @@ export default function DetailView() {
                   </m.button>
                 </div>
               </div>
-              {/* Pill distance if available */}
-              {(selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) && (userCoords && selected.lat && selected.lng && (!selected.hide_location && selected.address && selected.address.trim() !== '')) && (() => {
-                 const dist = getKm(userCoords.lat, userCoords.lng, parseFloat(selected.lat), parseFloat(selected.lng));
-                 return <div className="text-xs" style={{ position: "absolute", bottom: isElite ? 60 : 40, right: 20, background: "rgba(0, 0, 0, 0.65)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", color: "#fff", borderRadius: 20, padding: "5px 10px", fontWeight: 700, display: "flex", alignItems: "center", gap: 4, zIndex: 20 }}><Icon name="nav" size={10} color="#fff" /> {dist < 1 ? Math.round(dist * 1000) + "m" : dist.toFixed(1) + " km"}</div>;
-              })()}
             </div>
 
             {/* White Card Overlapping */}
