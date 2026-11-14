@@ -3,6 +3,7 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 import { buildReminderPlan, countReminderPairs, todayInMexicoCity } from '../src/lib/recordatoriosEventos.js';
 import { buildChatMessage, chatRecipients, CHAT_MESSAGE_DEDUP_MINUTES } from '../src/lib/chatNotifications.js';
+import { buildBookingMessage, bookingRecipients, isDuplicateBookingNotification, BOOKING_NOTIFICATION_TYPE, BOOKING_NOTIFICATION_FRESH_MINUTES, BOOKING_NOTIFICATION_DEDUP_MINUTES } from '../src/lib/bookingNotifications.js';
 import { PUSH_ALERT_CHANNEL_ID, PUSH_ALERT_SOUND_NAME } from '../src/lib/pushAlertChannel.js';
 
 // 1. Iniciar Firebase Admin si no está iniciado
@@ -229,6 +230,178 @@ async function runChatMessage(req, res, senderId) {
   }
 }
 
+// Quiénes son admins para la copia del aviso de reserva: la unión de
+// (1) perfiles con role 'admin', (2) correos de ADMIN_EMAILS y (3)
+// usuarios con app_metadata.isAdmin. Ninguna fuente sola alcanza:
+// Jonathan tiene role 'user' en profiles y su admin viene de (2) o (3).
+// Falla abierta por fuente: si una lectura falla, se usan las demás.
+async function resolveAdminUserIds({ serviceRoleKey, supabaseUrl }) {
+  const headers = { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` };
+  const ids = new Set();
+  try {
+    const r = await fetch(`${supabaseUrl}/rest/v1/profiles?select=id&role=eq.admin&limit=1000`, { headers });
+    if (r.ok) {
+      for (const row of (await r.json()) || []) if (row?.id) ids.add(row.id);
+    } else {
+      console.warn('aviso reserva: no se pudieron leer los perfiles admin', r.status);
+    }
+  } catch (err) {
+    console.warn('aviso reserva: no se pudieron leer los perfiles admin', String(err?.message || err));
+  }
+  try {
+    const wantedEmails = new Set(
+      (process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean),
+    );
+    let page = 1;
+    for (;;) {
+      const r = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=100`, { headers });
+      if (!r.ok) {
+        console.warn('aviso reserva: no se pudieron listar los usuarios de Auth', r.status);
+        break;
+      }
+      const data = await r.json();
+      for (const u of data?.users || []) {
+        if (!u?.id) continue;
+        const email = String(u?.email || '').toLowerCase();
+        if ((email && wantedEmails.has(email)) || u?.app_metadata?.isAdmin === true) ids.add(u.id);
+      }
+      if (!data?.next_page || page >= 20) break;
+      page = data.next_page;
+    }
+  } catch (err) {
+    console.warn('aviso reserva: no se pudieron listar los usuarios de Auth', String(err?.message || err));
+  }
+  return [...ids];
+}
+
+// Aviso de reserva nueva (PR #301). El cliente lo dispara tras confirmar
+// con secure_reserve, con su JWT si tiene sesión (o sin él si fue
+// invitado). El servidor verifica la reserva en la base — nunca confía en
+// el cuerpo que manda el cliente — y avisa al dueño y a los admins por
+// este mismo endpoint (que guarda la copia en la bandeja y envía el push
+// por FCM). Sin función nueva: vive en este mismo endpoint, como el modo
+// de aviso de chat.
+async function runBookingNotification(req, res, callerId) {
+  const reqBody = req.body || {};
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+  const { reservationId, bizId, date, time, clientPhone } = reqBody;
+  const isUuid = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''));
+  const phoneDigits = String(clientPhone || '').replace(/\D/g, '');
+  if (reservationId && !isUuid(reservationId)) {
+    return res.status(400).json({ error: 'reservationId inválido' });
+  }
+  if (!reservationId && (!isUuid(bizId) || !/^\d{4}-\d{2}-\d{2}$/.test(String(date || '')) || !/^\d{1,2}:\d{2}/.test(String(time || '')))) {
+    return res.status(400).json({ error: 'Faltan campos: bizId, date y time son requeridos' });
+  }
+  if (!phoneDigits) {
+    return res.status(400).json({ error: 'Falta el teléfono de la reserva' });
+  }
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || SUPABASE_URL_FALLBACK;
+  if (!serviceRoleKey) return res.status(500).json({ error: 'Supabase env vars missing' });
+  const headers = { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` };
+  const adminSecret = process.env.ADMIN_SECRET;
+
+  try {
+    // 1. La reserva exacta, de la base. Por id si el cliente lo trae (el
+    // RPC lo devuelve a veces); si no, por negocio+fecha+hora y se filtra
+    // por teléfono en código (el teléfono guardado puede llevar formato).
+    let reservation = null;
+    if (reservationId) {
+      const r = await fetch(`${supabaseUrl}/rest/v1/reservations?select=id,biz_id,date,time,client_name,client_phone,service,status,user_id,created_at&id=eq.${reservationId}`, { headers });
+      if (!r.ok) throw new Error(`PostgREST reservations: HTTP ${r.status}`);
+      reservation = (await r.json())?.[0] || null;
+    } else {
+      const r = await fetch(`${supabaseUrl}/rest/v1/reservations?select=id,biz_id,date,time,client_name,client_phone,service,status,user_id,created_at&biz_id=eq.${bizId}&date=eq.${date}&time=eq.${time}&order=created_at.desc&limit=10`, { headers });
+      if (!r.ok) throw new Error(`PostgREST reservations: HTTP ${r.status}`);
+      reservation = ((await r.json()) || []).find((row) => String(row?.client_phone || '').replace(/\D/g, '') === phoneDigits) || null;
+    }
+    if (!reservation) return res.status(404).json({ error: 'Reserva no encontrada' });
+
+    // 2. Solo reservas vigentes y recientes: canceladas o viejas no avisan
+    // (así una reserva vieja no se puede reutilizar para avisar de más).
+    if (reservation.status === 'cancelled' || reservation.status === 'deleted') {
+      return res.status(400).json({ error: 'La reserva ya no está vigente' });
+    }
+    const createdAt = new Date(reservation.created_at).getTime();
+    if (!Number.isFinite(createdAt) || Date.now() - createdAt > BOOKING_NOTIFICATION_FRESH_MINUTES * 60000) {
+      return res.status(400).json({ error: 'La reserva ya no es reciente' });
+    }
+
+    // 3. Identidad: si la reserva tiene usuario, quien dispara debe ser
+    // ese usuario (JWT verificado arriba); si fue invitado, el teléfono
+    // que manda debe coincidir con el guardado.
+    if (reservation.user_id) {
+      if (!callerId || callerId !== reservation.user_id) {
+        return res.status(403).json({ error: 'No eres quien hizo esta reserva' });
+      }
+    } else if (String(reservation.client_phone || '').replace(/\D/g, '') !== phoneDigits) {
+      return res.status(403).json({ error: 'El teléfono no coincide con la reserva' });
+    }
+
+    // 4. El negocio (dueño) y el mensaje, armados desde la base.
+    const bizRes = await fetch(`${supabaseUrl}/rest/v1/businesses?select=id,name,slug,owner_id,user_id,logo_url,banner_url,photos&id=eq.${reservation.biz_id}`, { headers });
+    if (!bizRes.ok) throw new Error(`PostgREST businesses: HTTP ${bizRes.status}`);
+    const business = (await bizRes.json())?.[0];
+    if (!business) return res.status(404).json({ error: 'Negocio no encontrado' });
+    const built = buildBookingMessage({ reservation, business });
+    if (!built) return res.status(400).json({ error: 'No se pudo armar el aviso' });
+
+    // 5. Destinatarios: dueño + admins, sin quien reservó. Si la
+    // resolución de admins falla, el aviso al dueño sale igual (falla
+    // abierta: el dueño es lo principal).
+    const ownerId = business.owner_id || business.user_id || null;
+    let adminIds = [];
+    try {
+      adminIds = await resolveAdminUserIds({ serviceRoleKey, supabaseUrl });
+    } catch (err) {
+      console.warn('aviso reserva: no se pudieron resolver los admins', String(err?.message || err));
+    }
+    const recipientIds = bookingRecipients({ ownerId, adminIds, callerId });
+    if (recipientIds.length === 0) {
+      return res.status(200).json({ ok: true, sent: [], failed: [], skipped: 0 });
+    }
+    if (!adminSecret) return res.status(500).json({ error: 'ADMIN_SECRET no configurado' });
+
+    // 6. Anti-duplicados: el mismo aviso en los últimos 30 minutos no se
+    // vuelve a mandar a ese destinatario (reenvío o doble toque).
+    const since = new Date(Date.now() - BOOKING_NOTIFICATION_DEDUP_MINUTES * 60000).toISOString();
+    const absoluteLink = `https://citymap.mx${built.deepLink}`;
+    const dupRes = await fetch(
+      `${supabaseUrl}/rest/v1/notifications?select=user_id&type=eq.${BOOKING_NOTIFICATION_TYPE}&deep_link=eq.${encodeURIComponent(absoluteLink)}&body=eq.${encodeURIComponent(built.body)}&created_at=gte.${since}&limit=1000`,
+      { headers },
+    );
+    const dupRows = dupRes.ok ? (await dupRes.json()) || [] : [];
+
+    // 7. Mandar cada aviso por este mismo endpoint (que guarda la copia
+    // en la bandeja y envía el push). Un fallo no frena los demás.
+    const sent = [];
+    const failed = [];
+    let skipped = 0;
+    for (const userId of recipientIds) {
+      if (isDuplicateBookingNotification(dupRows, userId, absoluteLink, built.body, since)) { skipped++; continue; }
+      try {
+        const r = await fetch(SEND_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: built.title, body: built.body, type: BOOKING_NOTIFICATION_TYPE, user_id: userId, deepLink: built.deepLink, ...(built.imageUrl ? { imageUrl: built.imageUrl } : {}), secret: adminSecret }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
+        sent.push({ reservationId: reservation.id, userId, successCount: data.successCount ?? null });
+      } catch (err) {
+        failed.push({ reservationId: reservation.id, userId, error: String(err?.message || err) });
+      }
+    }
+    return res.status(200).json({ ok: true, sent, failed, skipped });
+  } catch (err) {
+    console.error('aviso reserva error:', err);
+    return res.status(500).json({ ok: false, error: String(err?.message || err) });
+  }
+}
+
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -306,6 +479,15 @@ export default async function handler(req, res) {
     const wantsChatMessage = reqBody.chatMensaje === true;
     if (wantsChatMessage) {
       return runChatMessage(req, res, verifiedUserId);
+    }
+
+    // Modo aviso de reserva: lo dispara quien reservó tras confirmar con
+    // secure_reserve (con su JWT si tiene sesión, o sin él si fue
+    // invitado). runBookingNotification verifica la reserva en la base
+    // antes de avisar al dueño y a los admins.
+    const wantsBooking = reqBody.reserva === true;
+    if (wantsBooking) {
+      return runBookingNotification(req, res, verifiedUserId);
     }
 
     if (!isAuthorized) {

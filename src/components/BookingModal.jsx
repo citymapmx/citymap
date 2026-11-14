@@ -14,7 +14,7 @@ import { useUIStore } from "../store/useUIStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { getT } from "../lib/constants.js";
 import { sb } from "../lib/supabase.js";
-import { businessNotificationImage } from "../lib/notifications.js";
+import { notifyBooking } from "../lib/bookingNotifications.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 
 export default function BookingModal({ biz, onClose }) {
@@ -141,11 +141,11 @@ export default function BookingModal({ biz, onClose }) {
       if (segs.length < 2) return [];
 
       const toMinutes = (timeStr) => {
-        const m = String(timeStr || "").trim().match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+        const m = String(timeStr || "").trim().match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
         if (!m) return null;
         let h = parseInt(m[1]);
         const min = parseInt(m[2] || 0);
-        const p = (m[3] || "").toLowerCase();
+        const p = (m[3] || "").replace(/\./g, "").toLowerCase();
         if (p === "pm" && h !== 12) h += 12;
         if (p === "am" && h === 12) h = 0;
         return h * 60 + min;
@@ -284,10 +284,20 @@ export default function BookingModal({ biz, onClose }) {
       if (result && result.success === false) {
         throw new Error(result.error || t("revista_horario_no_disponible", "El horario ya no está disponible."));
       }
-      const targetUserId = biz.owner_id || biz.user_id;
-      if (targetUserId) {
-        await sb.notify(targetUserId, t("revista_nueva_reservacion", "Nueva reservación pendiente"), t("revista_solicitud_reserva", `${name} ha solicitado una reserva para el ${date}.`, {name, date}), "booking", `/manage/${biz.slug || biz.id}`, businessNotificationImage(biz));
-      }
+      // El aviso al dueño y a los admins nace en el servidor
+      // (api/send-notification, modo reserva): el sb.notify de antes daba
+      // 401 silencioso porque el endpoint solo acepta admins. La reserva
+      // ya se guardó; si el aviso falla, la pantalla de éxito sale igual
+      // (notifyBooking nunca lanza y deja el fallo en consola).
+      const rpcRow = Array.isArray(result) ? result[0] : result;
+      await notifyBooking({
+        reservationId: rpcRow?.id ?? rpcRow?.reservation_id ?? rpcRow?.reservationId ?? null,
+        bizId: biz.id,
+        date,
+        time,
+        clientPhone: phone,
+        token: sb._token || null,
+      });
       setSuccess(true);
     } catch (err) {
       setSubmitError(err.message || t("revista_error_procesar_reserva", "Error al procesar reserva. Intenta de nuevo."));

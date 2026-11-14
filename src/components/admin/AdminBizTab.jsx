@@ -8,6 +8,7 @@ import FI from './FI';
 import { PLAN_META } from '../../lib/constants';
 import { sb, cloudDeleteBatch } from '../../lib/supabase';
 import { createSlug } from "../../lib/utils";
+import { normalizeSchedule } from '../../lib/scheduleFormat.js';
 import { useGMaps } from "../GMap.jsx";
 import CheckConfirmacion from '../CheckConfirmacion.jsx';
 
@@ -125,6 +126,16 @@ export default function AdminBizTab({
   const saveBiz = async () => {
     setSaving(true);
     try {
+      // El horario que se guarda es exactamente el que muestra el
+      // formulario: los valores por defecto que se ven (cierre 10:00 p. m.)
+      // se escriben si faltaban, y un día con texto ilegible bloquea el
+      // guardado. Antes el cierre que se veía nunca entraba al estado y
+      // se guardaba "09:00 a.m. - " sin cierre (Eduardo Barber, 13 nov).
+      const { schedule: normalizedSchedule, problems: scheduleProblems } = normalizeSchedule(bizForm.schedule || {});
+      if (scheduleProblems.length > 0) {
+        if (onToast) onToast(`Revisa el horario en: ${scheduleProblems.map(p => p.label).join(', ')}`);
+        return;
+      }
       const tags = typeof bizForm.tags === "string" ? bizForm.tags.split(",").map(t => t.trim()).filter(Boolean) : bizForm.tags;
       const cty = (bizForm.city_slug || (data.cities && data.cities.length > 0 ? data.cities[0].slug : "")).toLowerCase();
       const cleanName = createSlug(bizForm.name);
@@ -147,7 +158,7 @@ export default function AdminBizTab({
 
       const payload = {
         category: bizForm.category, name: bizForm.name, slug: newSlug, emoji: bizForm.emoji || null,
-        type: bizForm.type, tagline: bizForm.tagline, schedule: bizForm.schedule || {}, address: bizForm.address,
+        type: bizForm.type, tagline: bizForm.tagline, schedule: normalizedSchedule, address: bizForm.address,
         city_slug: cty, lat: parseCoord(bizForm.lat), lng: parseCoord(bizForm.lng), phone: bizForm.phone,
         whatsapp: bizForm.whatsapp, website: bizForm.website, video_url: bizForm.video_url || null,
         logo_url: bizForm.logo_url || null, hours: bizForm.hours, tags, description: bizForm.description,
@@ -344,7 +355,7 @@ export default function AdminBizTab({
                 </div>
               </div>
               <div style={{ display: "flex", gap: 5 }}>
-                <button onClick={() => setBizForm({ ...b, tags: Array.isArray(b.tags) ? b.tags.join(", ") : b.tags, social_links: b.social_links || {} })} style={{ background: "#EAF4F0", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer" }}><Icon name="edit" size={13} color="#1A7A5E" /></button>
+                <button onClick={() => setBizForm({ ...b, schedule: normalizeSchedule(b.schedule || {}).schedule, tags: Array.isArray(b.tags) ? b.tags.join(", ") : b.tags, social_links: b.social_links || {} })} style={{ background: "#EAF4F0", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer" }}><Icon name="edit" size={13} color="#1A7A5E" /></button>
                 <button onClick={() => { setAnalyticsTarget(b.id); setTab("analytics"); }} style={{ background: "#FEF3C7", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer", display: "flex", alignItems: "center" }}><Icon name="eye" size={13} color="#D97706" /></button>
                 <button onClick={() => { setMediaTarget(b.id); setTab("media"); }} style={{ background: "#EEF2FF", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer" }}><Icon name="image" size={13} color="#4F46E5" /></button>
                 <button onClick={() => onOpenStoreAdmin?.(b)} style={{ background: "#DCFCE7", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer" }}><Icon name="store" size={13} color="#16A34A" /></button>
