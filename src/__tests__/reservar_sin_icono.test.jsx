@@ -14,7 +14,10 @@ describe('botón Reservar sin icono de utensilios', () => {
   // Bloque del botón: el modo 'ready' (nov 2026, el botón tiene tres
   // modos: ready/loading/retry) desde su onClick (setShowBooking) hasta
   // su cierre. Antes se anclaba al primer setShowBooking(true) del
-  // archivo, pero el efecto de apertura tras reintento también lo llama.
+  // archivo, pero el efecto de apertura tras reintento también lo llama
+  // — y el auto-abrir del link directo /:ciudad/:slug/reservar (nov
+  // 2026, PR #310) lo llama antes aún. El ancla al modo 'ready' sigue
+  // señalando el onClick del botón, no los efectos.
   const reservarBlock = (() => {
     const start = src.indexOf("bookingBtn.mode === 'ready'");
     const click = src.indexOf('setShowBooking(true)', start);
