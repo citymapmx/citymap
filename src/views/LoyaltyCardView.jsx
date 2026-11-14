@@ -259,7 +259,7 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
               />
             </div>
             <div style={{ fontSize: 11, color: card.text_color, opacity: 0.9, fontWeight: 700, textAlign: "center" }}>
-              {currentStamps >= (card.stamps_required || 5) ? "Muestra este código al cajero para canjear tu premio" : "Muestra este código al cajero para recibir tu sello"}
+              {currentStamps >= (card.stamps_required || 5) ? "Muestra este código en el negocio para canjear tu premio" : "Muestra este código en el negocio para recibir tu sello"}
             </div>
           </div>
         )}
