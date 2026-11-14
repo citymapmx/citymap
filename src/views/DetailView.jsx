@@ -2,7 +2,8 @@ import { CIVITATIS_PLATFORM } from '../lib/reservationPlatforms.js';
 import '../components/detail/businessTypography.css';
 import {isCatalogBusiness} from '../lib/storePresentation.js';
 import BusinessHours from '../components/detail/BusinessHours.jsx';
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { bookingButtonState } from "../lib/bookingButtonState.js";
 import { useQuery } from "@tanstack/react-query";
 import useGMaps from "../components/map/useGMaps.js";
 import { FONT_BIZ } from "../lib/constants.js";
@@ -164,7 +165,12 @@ export default function DetailView() {
     }
   }, [mapsOk, selected?.social_links?.google_place_id, showGoogleReviews]);
 
-  useQuery({
+  // La ficha depende de esta consulta para saber si el negocio tiene
+  // reserva (booking_config). Antes era un useQuery sin capturar: si
+  // fallaba, el botón «Reservar» simplemente no existía (nov 2026,
+  // Eduardo Barber: estaba a las 22:08 y ya no a las 22:09). Ahora el
+  // estado se usa para mostrar el botón cargando o con reintento.
+  const fullBusinessQuery = useQuery({
     queryKey: ['fullBusiness', selected?.id],
     queryFn: async () => {
       const res = await dbService.fetchFullBusiness(selected.id);
@@ -183,6 +189,26 @@ export default function DetailView() {
     },
     enabled: !!selected?.id && !selected?._fullFetched,
     staleTime: 5 * 60 * 1000
+  });
+
+  // Si el usuario tocó «Reservar» cuando la reserva aún era desconocida
+  // y la consulta falló, el reintento abre el modal solo cuando la
+  // consulta ya trajo booking_config.enabled.
+  const bookingRetryOpen = useRef(false);
+  useEffect(() => {
+    if (bookingRetryOpen.current && selected?.booking_config?.enabled) {
+      bookingRetryOpen.current = false;
+      setShowBooking(true);
+    }
+  }, [selected?.booking_config?.enabled]);
+
+  // El botón «Reservar» nunca se esconde por no saber aún si hay
+  // reserva: mientras la consulta fullBusiness no resuelve sale cargando
+  // y si falló sale con reintento (ver bookingButtonState.js).
+  const bookingBtn = bookingButtonState({
+    bookingConfig: selected?.booking_config,
+    fullPending: fullBusinessQuery.isPending,
+    fullError: fullBusinessQuery.isError,
   });
 
   useEffect(() => {
@@ -393,7 +419,7 @@ export default function DetailView() {
             </div>
 
 
-            <div style={{ display: (hasLoyalty || selected.booking_config?.enabled || (selected.plan === "premium" && hasMenu)) ? "flex" : "none", flexWrap: "wrap", gap: 8, padding: "0 20px", marginTop: 12, opacity: loyaltyLoading ? 0 : 1, transition: "opacity 0.3s ease", pointerEvents: loyaltyLoading ? "none" : "auto" }}>
+            <div style={{ display: (hasLoyalty || bookingBtn.mode !== 'hidden' || (selected.plan === "premium" && hasMenu)) ? "flex" : "none", flexWrap: "wrap", gap: 8, padding: "0 20px", marginTop: 12, opacity: loyaltyLoading ? 0 : 1, transition: "opacity 0.3s ease", pointerEvents: loyaltyLoading ? "none" : "auto" }}>
               {/* LOYALTY PILL */}
               {hasLoyalty && (
                 <button 
@@ -413,7 +439,13 @@ export default function DetailView() {
               )}
 
               {/* Booking and menu remain independent when both are available. */}
-              {selected.booking_config?.enabled && (!selected.booking_config.type || selected.booking_config.type !== "external" || !selected.booking_config.externalLinks || selected.booking_config.externalLinks.length === 0) && (
+              {/* El botón «Reservar» nunca desaparece por no saber aún si
+                  hay reserva (nov 2026, Eduardo Barber): mientras la
+                  consulta fullBusiness no resuelve sale cargando y si
+                  falló sale con reintento — tocarlo vuelve a pedir el
+                  negocio y abre el modal solo cuando ya trae la reserva.
+                  Solo se esconde cuando se SABE que no hay reserva. */}
+              {bookingBtn.mode === 'ready' && (
                 <button className="press" onClick={() => { 
                   if (selected.booking_config?.type === "external" && selected.booking_config?.externalUrl) {
                     let url = selected.booking_config.externalUrl;
@@ -424,6 +456,22 @@ export default function DetailView() {
                   setShowBooking(true); 
                 }} style={{ flex: "1 1 140px", minWidth: 0, background: "#FACC15", border: "none", borderRadius: 14, padding: "12px 10px", color: "#111827", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
                   <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{selected.booking_config.label || t('detalle_reservar', 'Reservar')}</span>
+                </button>
+              )}
+              {bookingBtn.mode === 'loading' && (
+                <button className="press" disabled aria-busy="true" style={{ flex: "1 1 140px", minWidth: 0, background: "#FACC15", border: "none", borderRadius: 14, padding: "12px 10px", color: "#111827", fontSize: 13, fontWeight: 800, cursor: "wait", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)", opacity: 0.65 }}>
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{t('detalle_reservar', 'Reservar')}…</span>
+                </button>
+              )}
+              {bookingBtn.mode === 'retry' && (
+                <button className="press" onClick={() => {
+                  // La consulta fullBusiness falló (red floja): volver a
+                  // pedir el negocio; al llegar con booking_config
+                  // activado el modal se abre solo (bookingRetryOpen).
+                  bookingRetryOpen.current = true;
+                  fullBusinessQuery.refetch();
+                }} style={{ flex: "1 1 140px", minWidth: 0, background: "#FACC15", border: "none", borderRadius: 14, padding: "12px 10px", color: "#111827", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s", letterSpacing: -0.2, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>↻ {t('detalle_reservar', 'Reservar')}</span>
                 </button>
               )}
               {selected.plan === "premium" && hasMenu && (

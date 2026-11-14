@@ -11,11 +11,15 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 describe('botón Reservar sin icono de utensilios', () => {
   const src = read('../views/DetailView.jsx');
 
-  // Bloque del botón: desde su onClick (setShowBooking) hasta su cierre.
+  // Bloque del botón: el modo 'ready' (nov 2026, el botón tiene tres
+  // modos: ready/loading/retry) desde su onClick (setShowBooking) hasta
+  // su cierre. Antes se anclaba al primer setShowBooking(true) del
+  // archivo, pero el efecto de apertura tras reintento también lo llama.
   const reservarBlock = (() => {
-    const start = src.indexOf('setShowBooking(true)');
-    const end = src.indexOf('</button>', start);
-    return src.slice(start, end);
+    const start = src.indexOf("bookingBtn.mode === 'ready'");
+    const click = src.indexOf('setShowBooking(true)', start);
+    const end = src.indexOf('</button>', click);
+    return src.slice(click, end);
   })();
 
   it('el botón Reservar no lleva ningún svg', () => {
