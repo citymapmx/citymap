@@ -217,9 +217,9 @@ const sb = {
     });
     const d = await sb._json(r);
     if (d?.error || d?.error_description) {
-      throw new Error(d.error_description || d.error || "Error al iniciar sesión con Google");
+      throw new Error(d.error_description || d.error || `Error al iniciar sesión con ${provider === 'apple' ? 'Apple' : 'Google'}`);
     }
-    if (!d?.access_token) throw new Error("No se pudo iniciar sesión con Google");
+    if (!d?.access_token) throw new Error(`No se pudo iniciar sesión con ${provider === 'apple' ? 'Apple' : 'Google'}`);
     sb._token = d.access_token;
     localStorage.setItem("cg_t", d.access_token);
     if (d.refresh_token) localStorage.setItem("cg_r", d.refresh_token);

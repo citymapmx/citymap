@@ -7,6 +7,7 @@ import { sb } from '../lib/supabase.js';
 import { Capacitor } from '@capacitor/core';
 import { ensureGoogleIdentityServices } from '../lib/googleIdentity.js';
 import { isUserCancelledError, signInWithNativeGoogle } from '../lib/nativeGoogleAuth.js';
+import { isNativeAppleAuthAvailable, signInWithNativeApple } from '../lib/nativeAppleAuth.js';
 import { deviceHasAccount } from '../lib/hasAccountFlag.js';
 import { checkPassword } from '../lib/passwordRules.js';
 import { sendPasswordReset } from '../lib/passwordRecovery.js';
@@ -16,7 +17,7 @@ const GOOGLE_CLIENT_ID = "128467245162-fjpgeqiqhr4f0p5f430ti0v41jlmuovm.apps.goo
 const RECAPTCHA_SITE_KEY = "6LdK_PItAAAAAAKJNfLuCzIVHInRQ8HJVi9LK5_-";
 
 export default function AuthModal({ T, dark, cities, doAuth }) {
-  const { showAuth, setShowAuth, authMode, setAuthMode, authForm, setAuthForm, authLoading, authErr, setAuthErr, handleGoogleIdToken } = useAuthStore(useShallow(s => ({ showAuth: s.showAuth, setShowAuth: s.setShowAuth, authMode: s.authMode, setAuthMode: s.setAuthMode, authForm: s.authForm, setAuthForm: s.setAuthForm, authLoading: s.authLoading, authErr: s.authErr, setAuthErr: s.setAuthErr, handleGoogleIdToken: s.handleGoogleIdToken })));
+  const { showAuth, setShowAuth, authMode, setAuthMode, authForm, setAuthForm, authLoading, authErr, setAuthErr, handleGoogleIdToken, handleAppleIdToken } = useAuthStore(useShallow(s => ({ showAuth: s.showAuth, setShowAuth: s.setShowAuth, authMode: s.authMode, setAuthMode: s.setAuthMode, authForm: s.authForm, setAuthForm: s.setAuthForm, authLoading: s.authLoading, authErr: s.authErr, setAuthErr: s.setAuthErr, handleGoogleIdToken: s.handleGoogleIdToken, handleAppleIdToken: s.handleAppleIdToken })));
   const toast$ = useUIStore(s => s.toast$);
   const { t } = useTranslation();
 
@@ -258,11 +259,11 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
       </div>
 
       {/* ── Botón Google ── */}
-      {isNativeApp ? (
-        /* En app nativa Capacitor: login nativo de Google (selector de
+      {isNativeApp ? (<>
+        {/* En app nativa Capacitor: login nativo de Google (selector de
            cuentas de Android, sin navegador). Si el usuario cancela, se
            queda en el modal; si el plugin falla, respaldo con el Custom
-           Tab de siempre (citymap.mx/login?from=app). */
+           Tab de siempre (citymap.mx/login?from=app). */}
         <button
           className="press"
           style={{
@@ -300,7 +301,48 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
           </svg>
           <span style={{ letterSpacing: "-0.2px" }}>{t("modal_continuar_google", "Continuar con Google")}</span>
         </button>
-      ) : (
+        {/* En iOS nativo: "Iniciar sesión con Apple" (App Store Guideline
+            4.8: si la app ofrece login de Google, también debe ofrecer el
+            de Apple). Botón negro en claro / blanco en oscuro, según las
+            guías de Apple. Solo se muestra en iOS: en Android no se
+            ofrece y en web no existe este flujo. */}
+        {isNativeAppleAuthAvailable() && (
+          <button
+            className="press"
+            style={{
+              width: "100%", padding: "13px 16px", marginBottom: 20,
+              background: dark ? "#FFFFFF" : "#000000",
+              border: "1.5px solid rgba(0,0,0,0.1)",
+              borderRadius: 999, fontWeight: 700, fontSize: 15,
+              color: dark ? "#000000" : "#FFFFFF",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+              boxShadow: dark ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.04)",
+              cursor: "pointer", fontFamily: "inherit"
+            }}
+            onClick={async () => {
+              setAuthErr("");
+              let res;
+              try {
+                res = await signInWithNativeApple();
+              } catch (err) {
+                if (isUserCancelledError(err)) return;
+                setAuthErr(t("modal_error_apple", "Error con Apple: ") + (err?.message || err));
+                return;
+              }
+              const uid = await handleAppleIdToken(res.idToken, res.profile);
+              if (uid) {
+                setShowAuth(false);
+                toast$(t("modal_bienvenido", "Bienvenido a CityMap"));
+              }
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill={dark ? "#000000" : "#FFFFFF"} style={{ flexShrink: 0 }}>
+              <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.702" />
+            </svg>
+            <span style={{ letterSpacing: "-0.2px" }}>{t("modal_continuar_apple", "Continuar con Apple")}</span>
+          </button>
+        )}
+      </>) : (
         /* En Web (Mac, Windows, Android Chrome, iPhone Safari): SOLO el
            botón oficial de Google (GIS). Sin respaldo por Supabase
            (opción A): mientras GIS carga se muestra un placeholder neutro

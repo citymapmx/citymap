@@ -61,7 +61,13 @@ export function extractGoogleIdToken(result) {
 
 let initializePromise = null;
 
-function ensureInitialized(socialLogin) {
+// Inicializa el plugin una sola vez con TODOS los proveedores que la app
+// usa (Google en Android e iOS; Apple solo en iOS). En iOS el login de
+// Apple es nativo (ASAuthorizationAppleIDProvider) y no necesita clientId:
+// solo redirectUrl '' para que no intente redirigir (doc del plugin).
+// En Android la config de Apple queda inerte: el botón de Apple solo se
+// muestra en iOS.
+export function ensureSocialLoginInitialized(socialLogin) {
   if (!initializePromise) {
     initializePromise = socialLogin.initialize({
       google: {
@@ -72,9 +78,16 @@ function ensureInitialized(socialLogin) {
         // el idToken para autenticar, que es lo que necesita Supabase.
         skipAuthOnlyAuthorizationAfterSignIn: true,
       },
+      ...(Capacitor.getPlatform() === 'ios'
+        ? { apple: { redirectUrl: '' } }
+        : {}),
     });
   }
   return initializePromise;
+}
+
+function ensureInitialized(socialLogin) {
+  return ensureSocialLoginInitialized(socialLogin);
 }
 
 // Abre el selector nativo de cuentas de Google y devuelve el idToken.

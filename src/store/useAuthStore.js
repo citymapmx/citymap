@@ -98,6 +98,34 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  handleAppleIdToken: async (idToken, profile) => {
+    set({ authLoading: true, authErr: "" });
+    try {
+      const s = await sb.signInWithIdToken({ provider: 'apple', token: idToken });
+      const u = s.user || s?.session?.user || await sb.getUser();
+      if (!u?.id) throw new Error("No se pudo obtener el usuario");
+      get().setUser(u);
+      markDeviceHasAccount();
+
+      // Apple solo entrega el nombre la PRIMERA vez que el usuario inicia
+      // sesión (no viene en el idToken). Si el perfil aún no tiene nombre,
+      // se guarda el que devolvió el plugin.
+      const fullName = [profile?.givenName, profile?.familyName].filter(Boolean).join(" ").trim();
+      const loaded = await get().loadProfile(u.id);
+      if (fullName && !loaded?.name) {
+        await sb.patch("profiles", u.id, { name: fullName }).catch(() => {});
+        await get().loadProfile(u.id);
+      }
+
+      return u.id;
+    } catch (e) {
+      set({ authErr: e.message });
+      return null;
+    } finally {
+      set({ authLoading: false });
+    }
+  },
+
   handleSignOut: async () => { 
     try {
       const fcm = localStorage.getItem('cg_push_token') || localStorage.getItem('cg_web_push_token');

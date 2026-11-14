@@ -21,7 +21,8 @@ export default async function middleware(request) {
   const { pathname, searchParams } = url;
   const ua = request.headers.get("user-agent") || "";
   const { isWorld, origin } = seoSite(url.hostname);
-  // Excepción: /.well-known/assetlinks.json y /sw.js NO se redirigen.
+  // Excepción: /.well-known/assetlinks.json, /.well-known/apple-app-site-association
+  // y /sw.js NO se redirigen.
   // Android verifica los App Links pidiendo el archivo en cada host exacto
   // y no sigue redirecciones: si citymap.world o www.citymap.mx devolvieran
   // 308 aquí, la verificación fallaría para ese host y sus enlaces no
@@ -31,9 +32,14 @@ export default async function middleware(request) {
   // el SW viejo nunca se enteraría del script autodestructivo. Sin
   // redirigir, el middleware pasa de largo y Vercel sirve el archivo
   // estático con 200.
+  // Y para iOS: Apple pide apple-app-site-association en cada host exacto
+  // y tampoco sigue redirecciones (Universal Links). Sin esta excepción,
+  // www.citymap.mx y citymap.world devolverían 308 y los enlaces no
+  // abrirían la app en iPhone.
   if (
     (url.hostname === 'www.citymap.mx' || url.hostname === 'citymap.world') &&
     pathname !== '/.well-known/assetlinks.json' &&
+    pathname !== '/.well-known/apple-app-site-association' &&
     pathname !== '/sw.js'
   ) {
     return Response.redirect(new URL(url.pathname + url.search, origin), 308);
