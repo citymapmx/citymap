@@ -47,8 +47,9 @@ import { sb } from '../lib/supabase.js';
 // «Cargando menú…» con barras (categorías) → modal «¿Cómo nos
 // visitas hoy?» que tapaba el menú. Ahora negocio + categorías
 // cargan juntos bajo UNA sola pantalla, y el menú se muestra sin
-// puerta obligatoria: con el modo por defecto (delivery) y una
-// píldora visible para cambiar a «En el local».
+// puerta obligatoria: con el modo por defecto (delivery) y sin
+// botones para cambiar de modo (nov 2026); el modo lo decide la
+// elección del modal de la ficha, guardada por negocio.
 
 // Datos reales de Carrito La Paz (Tepic): estilo Atardecer guardado,
 // Tostada Adobada $70. El horario es amplio para que el + no salga
@@ -232,19 +233,15 @@ describe('carga única del menú (hallazgo #2)', () => {
   });
 
   describe('BusinessStore: el menú se muestra sin modal que lo tape', () => {
-    it('sin elección guardada: menú visible en delivery, píldora con delivery activo, sin modal', () => {
+    it('sin elección guardada: menú visible en delivery, sin botones de modo, sin modal', () => {
       const html = renderStore();
       expect(html).not.toContain('¿Cómo nos visitas hoy?');
       expect(html).toContain('Tostada Adobada');
       expect(html).toContain('$70');
-      // Píldora de modo visible, con delivery activo.
-      expect(html).toContain('aria-label="Modo del menú"');
-      expect(html).toContain('En el local');
-      expect(html).toContain('Para llevar / Domicilio');
-      const pressedAt = html.indexOf('aria-pressed="true"');
-      expect(pressedAt).toBeGreaterThan(-1);
-      expect(pressedAt).toBeGreaterThan(html.indexOf('En el local'));
-      expect(pressedAt).toBeLessThan(html.indexOf('Para llevar / Domicilio'));
+      // Sin píldora de modo (nov 2026): ni el grupo ni los dos botones.
+      expect(html).not.toContain('aria-label="Modo del menú"');
+      expect(html).not.toContain('En el local');
+      expect(html).not.toContain('Para llevar / Domicilio');
       // Modo delivery: el producto tiene + para pedir y la promo se agrega.
       expect(html).toContain(PLUS_SVG);
       expect(html).toContain('Agregar promoción');
@@ -256,10 +253,8 @@ describe('carga única del menú (hallazgo #2)', () => {
       const html = renderStore();
       expect(html).not.toContain('¿Cómo nos visitas hoy?');
       expect(html).toContain('Tostada Adobada');
-      // Píldora de modo visible, con «En el local» activo.
-      const pressedAt = html.indexOf('aria-pressed="true"');
-      expect(pressedAt).toBeGreaterThan(-1);
-      expect(pressedAt).toBeLessThan(html.indexOf('En el local'));
+      // Sin píldora de modo (nov 2026).
+      expect(html).not.toContain('aria-label="Modo del menú"');
       // Modo local: sin + ni carrito, saludo de bienvenida, promo solo se ve.
       expect(html).toContain('¡Qué bueno tenerte aquí!');
       expect(html).not.toContain(PLUS_SVG);
@@ -283,12 +278,15 @@ describe('carga única del menú (hallazgo #2)', () => {
       expect(store).not.toContain('menuIntent === null');
     });
 
-    it('la fuente ya no tiene el modal bloqueante ni la puerta de intención', () => {
+    it('la fuente ya no tiene el modal bloqueante, la puerta de intención ni la píldora de modo', () => {
       const store = read('../components/store/BusinessStore.jsx');
       expect(store).not.toContain('¿Cómo nos visitas hoy?');
       expect(store).not.toContain('menuIntent === null');
-      expect(store).toContain('handleIntentChange');
-      expect(store).toContain('aria-label="Modo del menú"');
+      expect(store).not.toContain('handleIntentChange');
+      expect(store).not.toContain('aria-label="Modo del menú"');
+      // El modo se sigue resolviendo (ficha ?intent= o guardado, o delivery).
+      expect(store).toContain('resolveMenuIntent');
+      expect(store).toContain('readSavedMenuIntent');
     });
   });
 });
