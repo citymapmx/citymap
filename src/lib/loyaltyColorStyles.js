@@ -5,9 +5,8 @@
 // Desde nov 2026 la lista se agrupa por FAMILIAS DE COLOR (7 páginas del
 // carrusel, antes 4 categorías: Premium, Sobrios, Cafetería, Coloridos):
 // es más rápido elegir por color. Cada estilo está en UNA SOLA familia,
-// según su color dominante. 48 estilos en total (36 viejos + 12 gradientes
-// nuevos: Fuego, Magenta, Turquesa, Lavanda, Dorado, Selva, Rosa mexicano,
-// Cielo, Uva, Amanecer, Jade, Acero).
+// según su color dominante. 29 estilos en total (Propuesta A, nov 2026:
+// se quitaron 19 casi-duplicados de los 48 que había).
 //
 // Cada estilo guarda su fondo como lista de paradas hex:
 // - 2-3 paradas = degradado linear-gradient(135deg, ...).
@@ -24,9 +23,8 @@
 //
 // Contraste (regla de la #314): el texto de la píldora inactiva se
 // calcula sobre la primera parada (textOnMenuSurface) y debe dar
-// >= 4.5:1 en TODOS los estilos. Peor caso anterior: Caqui, 4.80:1.
-// Peor caso de los 12 nuevos: Acero, 4.76:1. Al agregar un estilo,
-// verificarlo con menuContrastRatio antes de fusionar.
+// >= 4.5:1 en TODOS los estilos. Peor caso medido (29 estilos): Salvia, 4.81:1.
+// Al agregar un estilo, verificarlo con menuContrastRatio antes de fusionar.
 
 export const LOYALTY_COLOR_CATEGORIES = [
   {
@@ -43,10 +41,7 @@ export const LOYALTY_COLOR_CATEGORIES = [
     id: "naranjas-amarillos",
     label: "Naranjas y amarillos",
     styles: [
-      { id: "atardecer", label: "Atardecer", bg: ["#F97316", "#DB2777", "#7C3AED"], text: "#FFFFFF", primary: "#FFFFFF" },
-      { id: "ambar", label: "Ámbar", bg: ["#FBBF24", "#F59E0B"], text: "#451A03", primary: "#92400E" },
-      { id: "cobre", label: "Cobre", bg: ["#B45309", "#7C2D12"], text: "#FFF7ED", primary: "#FDE68A" },
-      { id: "caramelo", label: "Caramelo", bg: ["#F59E0B", "#D97706"], text: "#451A03", primary: "#78350F" },
+      { id: "atardecer", label: "Atardecer", bg: ["#F97316", "#DB2777"], text: "#FFFFFF", primary: "#FFFFFF" },
       { id: "terracota", label: "Terracota", bg: ["#9A3412", "#7C2D12"], text: "#FFF7ED", primary: "#FDBA74" },
       { id: "dorado", label: "Dorado", bg: ["#FACC15", "#D97706"], text: "#451A03", primary: "#92400E" },
       { id: "amanecer", label: "Amanecer", bg: ["#FDA4AF", "#FB923C"], text: "#7C2D12", primary: "#EA580C" },
@@ -58,11 +53,9 @@ export const LOYALTY_COLOR_CATEGORIES = [
     styles: [
       { id: "esmeralda", label: "Esmeralda", bg: ["#065F46", "#022C22"], text: "#ECFDF5", primary: "#FBBF24" },
       { id: "lima", label: "Lima", bg: ["#84CC16", "#15803D"], text: "#FFFFFF", primary: "#FFFFFF" },
-      { id: "menta", label: "Menta", bg: ["#A7F3D0", "#6EE7B7"], text: "#064E3B", primary: "#059669" },
+      { id: "menta", label: "Menta", bg: ["#A7F3D0", "#34D399"], text: "#064E3B", primary: "#059669" },
       { id: "tropical", label: "Tropical", bg: ["#14B8A6", "#0F766E"], text: "#FFFFFF", primary: "#FDE68A" },
-      { id: "bosque", label: "Bosque", bg: ["#166534", "#14532D"], text: "#F0FDF4", primary: "#FDE68A" },
       { id: "salvia", label: "Salvia", bg: ["#7C8A6A", "#3F4A37"], text: "#F4F7F0", primary: "#D9E2D0" },
-      { id: "jade", label: "Jade", bg: ["#10B981", "#0D9488"], text: "#064E3B", primary: "#059669" },
       { id: "selva", label: "Selva", bg: ["#052E16", "#10B981"], text: "#ECFDF5", primary: "#FBBF24" },
     ],
   },
@@ -72,12 +65,8 @@ export const LOYALTY_COLOR_CATEGORIES = [
     styles: [
       { id: "medianoche", label: "Medianoche", bg: ["#312E81", "#1E1B4B"], text: "#E0E7FF", primary: "#F59E0B" },
       { id: "oceano", label: "Océano", bg: ["#1E3A8A", "#0891B2"], text: "#FFFFFF", primary: "#FDE68A" },
-      { id: "zafiro", label: "Zafiro", bg: ["#1D4ED8", "#172554"], text: "#EFF6FF", primary: "#FBBF24" },
-      { id: "petroleo", label: "Petróleo", bg: ["#155E75", "#164E63"], text: "#ECFEFF", primary: "#A5F3FC" },
-      { id: "pizarra", label: "Pizarra", bg: ["#475569", "#1E293B"], text: "#F1F5F9", primary: "#CBD5E1" },
       { id: "cielo", label: "Cielo", bg: ["#7DD3FC", "#1D4ED8"], text: "#172554", primary: "#1D4ED8" },
       { id: "turquesa", label: "Turquesa", bg: ["#2DD4BF", "#0284C7"], text: "#064E3B", primary: "#FDE68A" },
-      { id: "acero", label: "Acero", bg: ["#64748B", "#1E40AF"], text: "#F8FAFC", primary: "#CBD5E1" },
     ],
   },
   {
@@ -86,11 +75,8 @@ export const LOYALTY_COLOR_CATEGORIES = [
     styles: [
       { id: "galaxia", label: "Galaxia", bg: ["#0F172A", "#6D28D9"], text: "#EDE9FE", primary: "#FBBF24" },
       { id: "amatista", label: "Amatista", bg: ["#7E22CE", "#3B0764"], text: "#FAF5FF", primary: "#E9D5FF" },
-      { id: "rosa-claro", label: "Rosa claro", bg: ["#FDF2F8", "#FBCFE8"], text: "#831843", primary: "#DB2777" },
-      { id: "rosa-dorado", label: "Rosa dorado", bg: ["#F9A8D4", "#EC4899"], text: "#FFFFFF", primary: "#FDE68A" },
-      { id: "malva", label: "Malva", bg: ["#4C1D95", "#2E1065"], text: "#EDE9FE", primary: "#C4B5FD" },
+      { id: "rosa-claro", label: "Rosa claro", bg: ["#FDF2F8", "#F9A8D4"], text: "#831843", primary: "#DB2777" },
       { id: "magenta", label: "Magenta", bg: ["#C2185B", "#7E22CE"], text: "#FFFFFF", primary: "#F0ABFC" },
-      { id: "lavanda", label: "Lavanda", bg: ["#C4B5FD", "#F9A8D4"], text: "#4C1D95", primary: "#7C3AED" },
       { id: "uva", label: "Uva", bg: ["#9333EA", "#991B1B"], text: "#FAF5FF", primary: "#FBBF24" },
     ],
   },
@@ -101,9 +87,6 @@ export const LOYALTY_COLOR_CATEGORIES = [
       { id: "chocolate", label: "Chocolate", bg: ["#5D3A1A", "#2A1608"], text: "#FDF6EC", primary: "#D97706" },
       { id: "canela", label: "Canela", bg: ["#A16207", "#713F12"], text: "#FFFBEB", primary: "#FDE68A" },
       { id: "cafe-helado", label: "Café helado", bg: ["#E7C9A9", "#D6A97C"], text: "#451A03", primary: "#78350F" },
-      { id: "caqui", label: "Caqui", bg: ["#78716C", "#44403C"], text: "#FAFAF9", primary: "#D6D3D1" },
-      { id: "latte", label: "Latte", bg: ["#F5E6D3", "#E7C9A9"], text: "#451A03", primary: "#92400E" },
-      { id: "capuccino", label: "Capuccino", bg: ["#78350F", "#451A03"], text: "#FEF3C7", primary: "#FBBF24" },
     ],
   },
   {
@@ -112,11 +95,7 @@ export const LOYALTY_COLOR_CATEGORIES = [
     styles: [
       { id: "oro-negro", label: "Oro negro", bg: ["#262626", "#000000"], text: "#FAFAFA", primary: "#F5B301" },
       { id: "grafito-plata", label: "Grafito plata", bg: ["#6B7280", "#1F2937"], text: "#F9FAFB", primary: "#E5E7EB" },
-      { id: "espresso", label: "Espresso", bg: ["#292524", "#0C0A09"], text: "#FAFAF9", primary: "#D97706" },
-      { id: "mocha", label: "Mocha", bg: ["#44403C", "#1C1917"], text: "#FAFAF9", primary: "#C9A227" },
-      { id: "crema", label: "Crema", bg: ["#FFFBEB", "#FDE9C8"], text: "#78350F", primary: "#B45309" },
-      { id: "oliva", label: "Oliva", bg: ["#57534E", "#292524"], text: "#FAFAF9", primary: "#A8A29E" },
-      { id: "perla", label: "Perla", bg: ["#F8FAFC", "#E2E8F0"], text: "#334155", primary: "#64748B" },
+      { id: "crema", label: "Crema", bg: ["#FFFBEB", "#FBBF24"], text: "#78350F", primary: "#B45309" },
     ],
   },
 ];

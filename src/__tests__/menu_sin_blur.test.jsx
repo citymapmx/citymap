@@ -34,11 +34,11 @@ describe('Menú sin blur en el encabezado fijo (hallazgo #4)', () => {
     expect(src).toContain("background: menuTheme ? menuTheme.firstColor : (dark ? '#18181B' : '#FFFFFF')");
   });
 
-  it('las píldoras inactivas se leen sobre la primera parada en los 48 estilos (contraste >= 4.5:1)', () => {
+  it('las píldoras inactivas se leen sobre la primera parada en los 29 estilos (contraste >= 4.5:1)', () => {
     // El texto de la píldora inactiva se calcula contra firstColor
     // (textOnMenuSurface); con la barra sólida ese es su fondo real.
-    // Peor caso medido: Acero, 4.76:1 (Caqui, 4.80:1).
-    expect(LOYALTY_COLOR_STYLES.length).toBe(48);
+    // Peor caso medido (Propuesta A): Salvia, 4.81:1.
+    expect(LOYALTY_COLOR_STYLES.length).toBe(29);
     for (const style of LOYALTY_COLOR_STYLES) {
       const theme = menuThemeForStyle(style);
       expect(theme).not.toBe(null);

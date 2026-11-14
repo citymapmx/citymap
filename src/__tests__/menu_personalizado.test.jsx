@@ -36,13 +36,13 @@ function renderDesigner(business) {
 const CARRITO = { id: '82c9af20-ef42-4a43-87c4-1831a020aace', name: 'Carrito La Paz Tostadas de Atún', menu_style: null };
 
 describe('Menú personalizado: resolvedor de estilos (PR #291)', () => {
-  it('los 48 estilos de lealtad se resuelven por id, con su familia de color', () => {
-    expect(LOYALTY_COLOR_STYLES.length).toBe(48);
-    expect(findMenuStyleById('perla')).toEqual({ id: 'perla', label: 'Perla', bg: ['#F8FAFC', '#E2E8F0'], text: '#334155', primary: '#64748B', category: 'neutros' });
+  it('los 29 estilos de lealtad se resuelven por id, con su familia de color', () => {
+    expect(LOYALTY_COLOR_STYLES.length).toBe(29);
+    expect(findMenuStyleById('crema')).toEqual({ id: 'crema', label: 'Crema', bg: ['#FFFBEB', '#FBBF24'], text: '#78350F', primary: '#B45309', category: 'neutros' });
     expect(findMenuStyleById('esmeralda')?.category).toBe('verdes');
-    expect(findMenuStyleById('espresso')?.category).toBe('neutros');
+    expect(findMenuStyleById('grafito-plata')?.category).toBe('neutros');
     expect(findMenuStyleById('coral')?.category).toBe('rojos');
-    expect(findMenuStyleById('atardecer')?.bg).toEqual(['#F97316', '#DB2777', '#7C3AED']);
+    expect(findMenuStyleById('atardecer')?.bg).toEqual(['#F97316', '#DB2777']);
   });
 
   it('id desconocido, vacío o no texto no rompe: devuelve null (menú como hoy)', () => {
@@ -55,14 +55,14 @@ describe('Menú personalizado: resolvedor de estilos (PR #291)', () => {
   });
 
   it('el tema derivado trae degradado, primera parada, texto, primary y texto sobre primary', () => {
-    const perla = menuThemeForStyle(findMenuStyleById('perla'));
-    expect(perla.background).toBe('linear-gradient(135deg, #F8FAFC, #E2E8F0)');
-    expect(perla.firstColor).toBe('#F8FAFC');
-    expect(perla.text).toBe('#334155');
-    expect(perla.primary).toBe('#64748B');
-    expect(perla.onPrimary).toBe('#FFFFFF'); // primary pizarra medio -> texto blanco
+    const crema = menuThemeForStyle(findMenuStyleById('crema'));
+    expect(crema.background).toBe('linear-gradient(135deg, #FFFBEB, #FBBF24)');
+    expect(crema.firstColor).toBe('#FFFBEB');
+    expect(crema.text).toBe('#78350F');
+    expect(crema.primary).toBe('#B45309');
+    expect(crema.onPrimary).toBe('#FFFFFF'); // primary marrón medio -> texto blanco
     const atardecer = menuThemeForStyle(findMenuStyleById('atardecer'));
-    expect(atardecer.background).toBe('linear-gradient(135deg, #F97316, #DB2777, #7C3AED)');
+    expect(atardecer.background).toBe('linear-gradient(135deg, #F97316, #DB2777)');
     expect(atardecer.firstColor).toBe('#F97316');
     expect(atardecer.onPrimary).toBe('#18181B'); // primary #FFFFFF -> texto oscuro
   });
@@ -144,23 +144,27 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
     expect(html).toContain('Carrito La Paz Tostadas de Atún');
   });
 
-  it('muestra los 48 estilos agrupados en las 7 familias de color', () => {
+  it('muestra los 29 estilos agrupados en las 7 familias de color', () => {
     const html = renderDesigner(CARRITO);
     for (const label of ['Rojos', 'Naranjas y amarillos', 'Verdes', 'Azules', 'Morados y rosas', 'Cafés', 'Neutros']) {
       expect(html).toContain(label);
     }
-    for (const label of ['Oro negro', 'Esmeralda', 'Medianoche', 'Vino', 'Atardecer', 'Océano', 'Galaxia', 'Zafiro', 'Amatista', 'Pizarra', 'Perla', 'Oliva', 'Petróleo', 'Terracota', 'Malva', 'Bosque', 'Caqui', 'Salvia', 'Espresso', 'Latte', 'Capuccino', 'Mocha', 'Caramelo', 'Crema', 'Chocolate', 'Canela', 'Café helado', 'Grafito plata', 'Rosa claro', 'Lima', 'Cobre', 'Coral', 'Tropical', 'Rosa dorado', 'Menta', 'Ámbar', 'Fuego', 'Rosa mexicano', 'Dorado', 'Amanecer', 'Jade', 'Selva', 'Cielo', 'Turquesa', 'Acero', 'Magenta', 'Lavanda', 'Uva']) {
+    for (const label of ['Oro negro', 'Esmeralda', 'Medianoche', 'Vino', 'Atardecer', 'Océano', 'Galaxia', 'Amatista', 'Terracota', 'Salvia', 'Crema', 'Chocolate', 'Canela', 'Café helado', 'Grafito plata', 'Rosa claro', 'Lima', 'Coral', 'Tropical', 'Menta', 'Fuego', 'Rosa mexicano', 'Dorado', 'Amanecer', 'Selva', 'Cielo', 'Turquesa', 'Magenta', 'Uva']) {
       expect(html).toContain(label);
     }
     // Arena se quitó (casi duplicado de Crema): ya no aparece.
     expect(html).not.toContain('Arena');
+    // Propuesta A: los 19 casi-duplicados tampoco aparecen.
+    for (const label of ['Ámbar', 'Cobre', 'Caramelo', 'Bosque', 'Jade', 'Zafiro', 'Petróleo', 'Pizarra', 'Acero', 'Malva', 'Rosa dorado', 'Lavanda', 'Capuccino', 'Latte', 'Caqui', 'Espresso', 'Mocha', 'Oliva', 'Perla']) {
+      expect(html).not.toContain(label);
+    }
   });
 
   it('con estilo guardado la vista previa dice el estilo; sin estilo dice «como se ve hoy»', () => {
-    expect(renderDesigner({ ...CARRITO, menu_style: 'perla' })).toContain('Estilo: Perla');
+    expect(renderDesigner({ ...CARRITO, menu_style: 'crema' })).toContain('Estilo: Crema');
     expect(renderDesigner(CARRITO)).toContain('Sin estilo · como se ve hoy');
     // Y la vista previa del estilo elegido lleva su degradado.
-    expect(renderDesigner({ ...CARRITO, menu_style: 'perla' })).toContain('linear-gradient(135deg, #F8FAFC, #E2E8F0)');
+    expect(renderDesigner({ ...CARRITO, menu_style: 'crema' })).toContain('linear-gradient(135deg, #FFFBEB, #FBBF24)');
   });
 
   it('sin productos, la vista previa avisa en vez de inventar productos', () => {
@@ -191,9 +195,9 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
     // La celda es columna: el círculo va arriba y el nombre abajo, centrado.
     expect(src).toContain("flexDirection: 'column'");
     expect(src).toContain("textAlign: 'center'");
-    // Los 48 nombres siguen visibles en la cuadrícula.
+    // Los 29 nombres siguen visibles en la cuadrícula.
     const html = renderDesigner(CARRITO);
-    for (const label of ['Oro negro', 'Esmeralda', 'Perla', 'Espresso', 'Rosa claro', 'Coral', 'Ámbar']) {
+    for (const label of ['Oro negro', 'Esmeralda', 'Crema', 'Grafito plata', 'Rosa claro', 'Coral', 'Terracota']) {
       expect(html).toContain(label);
     }
   });
@@ -207,9 +211,9 @@ describe('Menú personalizado: el diseñador (PR #291)', () => {
     // estilo no la lleva). Se usa una familia intermedia: Rojos y Neutros
     // se duplican por los clones del loop infinito (su palomita sale 2
     // veces, como la de Oro negro en el wizard).
-    const htmlPerla = renderDesigner({ ...CARRITO, menu_style: 'esmeralda' });
-    expect(htmlPerla.split('✓').length - 1).toBe(1);
-    expect(htmlPerla).toContain('aria-pressed="true"');
+    const htmlEsmeralda = renderDesigner({ ...CARRITO, menu_style: 'esmeralda' });
+    expect(htmlEsmeralda.split('✓').length - 1).toBe(1);
+    expect(htmlEsmeralda).toContain('aria-pressed="true"');
     // Sin estilo, la única palomita es la de «Sin estilo».
     const htmlSin = renderDesigner(CARRITO);
     expect(htmlSin.split('✓').length - 1).toBe(1);
@@ -343,7 +347,7 @@ describe('Menú público: el tema se adapta a todo (encabezado, píldoras, texto
     expect(track).toContain("background:indicatorColor || (dark ? '#FFFFFF' : '#0F172A')");
   });
 
-  it('textOnMenuSurface: texto legible sobre la primera parada en los 48 estilos (contraste >= 3:1)', () => {
+  it('textOnMenuSurface: texto legible sobre la primera parada en los 29 estilos (contraste >= 3:1)', () => {
     for (const style of LOYALTY_COLOR_STYLES) {
       const theme = menuThemeForStyle(style);
       // Píldora activa: onPrimary sobre primary.
@@ -355,9 +359,9 @@ describe('Menú público: el tema se adapta a todo (encabezado, píldoras, texto
     const esmeralda = menuThemeForStyle(findMenuStyleById('esmeralda'));
     expect(esmeralda.lastColor).toBe('#022C22');
     expect(textOnMenuSurface(esmeralda.lastColor)).toBe('#FFFFFF');
-    const perla = menuThemeForStyle(findMenuStyleById('perla'));
-    expect(perla.lastColor).toBe('#E2E8F0');
-    expect(textOnMenuSurface(perla.lastColor)).toBe('#18181B');
+    const crema = menuThemeForStyle(findMenuStyleById('crema'));
+    expect(crema.lastColor).toBe('#FBBF24');
+    expect(textOnMenuSurface(crema.lastColor)).toBe('#18181B');
     const coral = menuThemeForStyle(findMenuStyleById('coral'));
     expect(coral.lastColor).toBe('#BE123C');
     expect(textOnMenuSurface(coral.lastColor)).toBe('#FFFFFF');
@@ -365,21 +369,22 @@ describe('Menú público: el tema se adapta a todo (encabezado, píldoras, texto
 });
 
 describe('Menú personalizado: carrusel por familia de color + scroll vertical', () => {
-  it('48 estilos en 7 familias de color (4, 7, 8, 8, 8, 6, 7): 12 gradientes nuevos, Arena fuera', () => {
+  it('29 estilos en 7 familias de color (4, 4, 6, 4, 5, 3, 3): Propuesta A, Arena fuera', () => {
     expect(LOYALTY_COLOR_CATEGORIES.length).toBe(7);
-    expect(LOYALTY_COLOR_CATEGORIES.map((c) => c.styles.length)).toEqual([4, 7, 8, 8, 8, 6, 7]);
-    expect(LOYALTY_COLOR_STYLES.length).toBe(48);
-    // Nuevos: 12 gradientes (2 Rojos, 2 Naranjas y amarillos, 2 Verdes,
-    // 3 Azules, 3 Morados y rosas). El «Bosque» nuevo de la propuesta ya
+    expect(LOYALTY_COLOR_CATEGORIES.map((c) => c.styles.length)).toEqual([4, 4, 6, 4, 5, 3, 3]);
+    expect(LOYALTY_COLOR_STYLES.length).toBe(29);
+    // Nuevos que quedan: 9 gradientes (2 Rojos, 2 Naranjas y amarillos,
+    // 1 Verde, 2 Azules, 2 Morados y rosas). Jade, Acero y Lavanda se
+    // quitaron en la Propuesta A; el «Bosque» nuevo de la propuesta ya
     // existía en Sobrios: el verde oscuro nuevo se llama «Selva».
-    for (const id of ['fuego', 'rosa-mexicano', 'dorado', 'amanecer', 'jade', 'selva', 'cielo', 'turquesa', 'acero', 'magenta', 'lavanda', 'uva']) {
+    for (const id of ['fuego', 'rosa-mexicano', 'dorado', 'amanecer', 'selva', 'cielo', 'turquesa', 'magenta', 'uva']) {
       expect(findMenuStyleById(id)).not.toBe(null);
     }
-    expect(findMenuStyleById('zafiro')?.category).toBe('azules');
-    expect(findMenuStyleById('caqui')?.category).toBe('cafes');
+    expect(findMenuStyleById('oceano')?.category).toBe('azules');
+    expect(findMenuStyleById('canela')?.category).toBe('cafes');
     expect(findMenuStyleById('chocolate')?.category).toBe('cafes');
     // Arena se quitó: casi duplicado de Crema (misma primera parada
-    // #FFFBEB y segunda parada #FDE68A frente a #FDE9C8).
+    // #FFFBEB y segunda parada #FDE68A frente a #FBBF24).
     expect(findMenuStyleById('arena')).toBe(null);
     expect(findMenuStyleById('crema')).not.toBe(null);
   });
@@ -531,7 +536,7 @@ describe('Menú personalizado: ajustes del diseñador (título, Guardar, Sin est
     expect(src).toContain('width: 18, height: 18');
     // El nombre abajo sigue legible y centrado.
     const html = renderDesigner(CARRITO);
-    for (const label of ['Oro negro', 'Esmeralda', 'Perla', 'Espresso', 'Coral', 'Ámbar']) {
+    for (const label of ['Oro negro', 'Esmeralda', 'Crema', 'Grafito plata', 'Coral', 'Terracota']) {
       expect(html).toContain(label);
     }
   });
@@ -601,17 +606,17 @@ describe('Menú público: un solo degradado parejo en toda la página (no por pa
     expect(src).toContain("background: menuTheme ? menuTheme.background : (dark ? '#18181B' : '#FAFAFA')");
   });
 
-  it('textos clave legibles sobre el degradado único: Atardecer (el guardado de Carrito La Paz), Esmeralda (oscuro) y Perla (claro)', () => {
+  it('textos clave legibles sobre el degradado único: Atardecer (el guardado de Carrito La Paz), Esmeralda (oscuro) y Crema (claro)', () => {
     // Nombre/descripción (text) y títulos/precios (primary) se leen sobre
     // CADA parada del degradado, porque el degradado ya no se reinicia por
     // sección: el texto puede caer sobre cualquier parada al bajar.
     // Atardecer: la primera parada naranja da 2.80 con el blanco; el nombre
     // es texto grande en negrita (26px/900) y los títulos 19px/800, así que
-    // el umbral para ese estilo es 2.7; el resto de paradas da >= 4.6.
+    // el umbral para ese estilo es 2.7; la otra parada da 4.60.
     const cases = [
       { id: 'atardecer', min: 2.7 },
       { id: 'esmeralda', min: 3 },
-      { id: 'perla', min: 3 },
+      { id: 'crema', min: 3 },
     ];
     for (const { id, min } of cases) {
       const theme = menuThemeForStyle(findMenuStyleById(id));
@@ -624,7 +629,6 @@ describe('Menú público: un solo degradado parejo en toda la página (no por pa
     // El caso justo, documentado: blanco sobre naranja de Atardecer.
     expect(contrastRatio('#FFFFFF', '#F97316')).toBeGreaterThanOrEqual(2.7);
     expect(contrastRatio('#FFFFFF', '#DB2777')).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio('#FFFFFF', '#7C3AED')).toBeGreaterThanOrEqual(5);
   });
 });
 
@@ -655,7 +659,7 @@ describe('Menú público: el texto de horario/estado va en píldora oscura con t
     expect(block).toContain('isOpen ? "Abierto ahora" : "Cerrado"');
   });
 
-  it('blanco sobre la píldora (0.55) se lee >= 4.5:1 sobre cada parada de los 48 estilos y sin estilo', () => {
+  it('blanco sobre la píldora (0.55) se lee >= 4.5:1 sobre cada parada de los 29 estilos y sin estilo', () => {
     // Con la opacidad 0.25-0.30 que se sugirió, el blanco solo llega a
     // 2.05:1 sobre Crema #FFFBEB (y sobre el fondo claro sin estilo):
     // por eso la píldora va en 0.55. El fondo real tras la píldora es el
@@ -670,8 +674,8 @@ describe('Menú público: el texto de horario/estado va en píldora oscura con t
     expect(contrastRatio('#FFFFFF', pillOver(0.28, '#FFFBEB'))).toBeLessThan(3);
   });
 
-  it('Atardecer (Carrito La Paz), Esmeralda (oscuro) y Perla (claro): el estado se lee sobre sus paradas', () => {
-    for (const id of ['atardecer', 'esmeralda', 'perla']) {
+  it('Atardecer (Carrito La Paz), Esmeralda (oscuro) y Crema (claro): el estado se lee sobre sus paradas', () => {
+    for (const id of ['atardecer', 'esmeralda', 'crema']) {
       const theme = menuThemeForStyle(findMenuStyleById(id));
       expect(theme).not.toBe(null);
       for (const stop of theme.style.bg) {
@@ -749,24 +753,24 @@ describe('Menú personalizado: editor universal de colores propios', () => {
   });
 
   it('customFromTheme: tocar un color propio parte de lo que se ve ahora', () => {
-    const perla = menuThemeForStyle(findMenuStyleById('perla'));
-    expect(customFromTheme(perla)).toEqual({ bg: '#F8FAFC', primary: '#64748B' });
+    const crema = menuThemeForStyle(findMenuStyleById('crema'));
+    expect(customFromTheme(crema)).toEqual({ bg: '#FFFBEB', primary: '#B45309' });
     expect(customFromTheme(null)).toEqual({ bg: '#FFFFFF', primary: '#111111' });
     expect(customFromTheme({})).toEqual({ bg: '#FFFFFF', primary: '#111111' });
   });
 
   it('resolveMenuTheme: el personalizado manda; si no, el predefinido; si no, null', () => {
     // Personalizado + predefinido: manda el personalizado.
-    const ambos = resolveMenuTheme({ menu_style: 'perla', menu_custom: { bg: '#F97316', primary: '#111111' } });
+    const ambos = resolveMenuTheme({ menu_style: 'crema', menu_custom: { bg: '#F97316', primary: '#111111' } });
     expect(ambos.background).toBe('linear-gradient(135deg, #F97316, #AE510F)');
     expect(ambos.custom).toBe(true);
     // Solo predefinido: el estilo de siempre.
-    const soloEstilo = resolveMenuTheme({ menu_style: 'perla', menu_custom: null });
-    expect(soloEstilo.background).toBe('linear-gradient(135deg, #F8FAFC, #E2E8F0)');
+    const soloEstilo = resolveMenuTheme({ menu_style: 'crema', menu_custom: null });
+    expect(soloEstilo.background).toBe('linear-gradient(135deg, #FFFBEB, #FBBF24)');
     expect(soloEstilo.custom).toBe(undefined);
     // Personalizado inválido + predefinido válido: cae al predefinido.
-    const invalido = resolveMenuTheme({ menu_style: 'perla', menu_custom: { bg: 'naranja' } });
-    expect(invalido.background).toBe('linear-gradient(135deg, #F8FAFC, #E2E8F0)');
+    const invalido = resolveMenuTheme({ menu_style: 'crema', menu_custom: { bg: 'naranja' } });
+    expect(invalido.background).toBe('linear-gradient(135deg, #FFFBEB, #FBBF24)');
     // Nada de nada: null, el menú se ve como hoy.
     expect(resolveMenuTheme({ menu_style: null, menu_custom: null })).toBe(null);
     expect(resolveMenuTheme({})).toBe(null);
@@ -822,7 +826,7 @@ describe('Menú personalizado: editor universal de colores propios', () => {
     expect(html.split('✓').length - 1).toBe(0);
     // Sin tema propio, la vista previa sigue diciendo lo de antes.
     expect(renderDesigner(CARRITO)).toContain('Sin estilo · como se ve hoy');
-    expect(renderDesigner({ ...CARRITO, menu_style: 'perla' })).toContain('Estilo: Perla');
+    expect(renderDesigner({ ...CARRITO, menu_style: 'crema' })).toContain('Estilo: Crema');
   });
 
   it('elegir predefinido quita lo propio, tocar un color quita el predefinido, «Sin estilo» limpia ambos', () => {

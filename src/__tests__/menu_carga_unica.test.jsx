@@ -187,10 +187,11 @@ describe('carga única del menú (hallazgo #2)', () => {
       const html = renderToStaticMarkup(<MenuLoadingScreen business={carrito} storeLabel="menú" dark={false} />);
       expect(html).toContain('Cargando menú…');
       expect(html).toContain('Carrito La Paz');
-      // Degradado del tema Atardecer (#F97316 → #DB2777 → #7C3AED).
+      // Degradado del tema Atardecer (#F97316 → #DB2777, 2 paradas desde
+      // la Propuesta A; el morado #7C3AED ya no forma parte del estilo).
       expect(html).toContain('#F97316');
       expect(html).toContain('#DB2777');
-      expect(html).toContain('#7C3AED');
+      expect(html).not.toContain('#7C3AED');
       // Logo en círculo blanco con cover (el caso KAVA). El HTML
       // renderizado serializa los estilos sin espacios ni comillas.
       // Zoom 1.12 de la #306: el emblema llega al borde del círculo.
