@@ -2,30 +2,61 @@
 //
 // El negocio elige uno de los 36 estilos de las tarjetas de lealtad para
 // su menú público; se guarda solo el id en businesses.menu_style (null =
-// sin estilo, el menú se ve como hoy). La vista previa usa el menú real
-// del negocio (primeras 2 secciones, 1 producto por sección: compacta,
-// aprox. la mitad de alto que la lista completa, para que los estilos
-// queden visibles sin bajar tanto) con el mismo mapeo de colores que
-// BusinessStore: fondo degradado, píldora activa y botón + en primary,
+// sin estilo, el menú se ve como hoy). Además tiene el editor universal:
+// colores propios para el fondo y los botones (se guardan en
+// businesses.menu_custom, jsonb { bg, primary }); el personalizado manda
+// sobre el predefinido, y «Sin estilo» limpia ambos. La vista previa usa
+// el menú real del negocio (primeras 2 secciones, 1 producto por sección:
+// compacta, aprox. la mitad de alto que la lista completa, para que los
+// estilos queden visibles sin bajar tanto) con el mismo mapeo de colores
+// que BusinessStore: fondo degradado, píldora activa y botón + en primary,
 // títulos y precios en primary, texto del estilo para nombres y descripciones.
 import React, { useState, useEffect } from 'react';
 import Icon from '../ui/Icon.jsx';
 import StyleCategoryCarousel from '../ui/StyleCategoryCarousel.jsx';
 import { sb } from '../../lib/supabase.js';
 import {
+  MENU_BASIC_COLORS,
   findMenuStyleById,
   menuThemeForStyle,
+  menuThemeForCustom,
+  parseMenuCustom,
+  customFromTheme,
   menuHexAlpha,
 } from '../../lib/menuColorStyles.js';
 
 export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
   const [selectedId, setSelectedId] = useState(() => business?.menu_style || null);
+  const [custom, setCustom] = useState(() => parseMenuCustom(business?.menu_custom));
   const [saving, setSaving] = useState(false);
   const [previewCats, setPreviewCats] = useState([]);
   const [previewLoading, setPreviewLoading] = useState(true);
 
   const selectedStyle = findMenuStyleById(selectedId);
-  const theme = menuThemeForStyle(selectedStyle);
+  // Tema que se ve en la vista previa: el personalizado manda sobre el
+  // predefinido (resolveMenuTheme del negocio con el estado actual).
+  const theme = custom ? menuThemeForCustom(custom) : menuThemeForStyle(selectedStyle);
+
+  // Elegir un estilo predefinido deja de mandar el personalizado.
+  const handleSelectStyle = (style) => {
+    setSelectedId(style.id);
+    setCustom(null);
+  };
+
+  // Tocar un color propio (básico o exacto) cambia a «Personalizado»:
+  // el predefinido deja de mandar. Parte de lo que se ve ahora, para que
+  // el primer toque no salte a colores arbitrarios.
+  const handleCustomColor = (field, hex) => {
+    const base = custom || customFromTheme(theme);
+    setCustom({ ...base, [field]: hex });
+    setSelectedId(null);
+  };
+
+  // «Sin estilo» limpia ambos: ni predefinido ni personalizado.
+  const handleClearStyle = () => {
+    setSelectedId(null);
+    setCustom(null);
+  };
 
   // Selector de estilos: el carrusel compartido con el wizard de lealtad
   // (StyleCategoryCarousel): una categoría por página, puntos abajo y
@@ -55,9 +86,12 @@ export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
     if (!business?.id) return;
     setSaving(true);
     try {
-      await sb.patch('businesses', business.id, { menu_style: selectedId });
+      // Se guardan ambos: el id predefinido y el tema propio (null cuando
+      // no aplica). Si la columna menu_custom aún no existe en la base
+      // (migración pendiente), el guardado falla y se avisa, sin romper.
+      await sb.patch('businesses', business.id, { menu_style: selectedId, menu_custom: custom });
       if (onSaved) onSaved(selectedId);
-      alert(selectedId ? '¡Estilo de menú guardado!' : 'Estilo quitado: tu menú se ve como siempre.');
+      alert(custom ? '¡Tema personalizado guardado!' : selectedId ? '¡Estilo de menú guardado!' : 'Estilo quitado: tu menú se ve como siempre.');
       onClose();
     } catch (e) {
       alert('Error al guardar: ' + e.message);
@@ -104,7 +138,7 @@ export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
             <div style={{ padding: '12px 14px 2px' }}>
               <div style={{ fontSize: 15, fontWeight: 900, color: theme ? theme.text : '#111111' }}>{business?.name || 'Tu negocio'}</div>
               <div style={{ fontSize: 11, color: theme ? menuHexAlpha(theme.text, 'B3') : '#71717A', marginTop: 1 }}>
-                {selectedStyle ? `Estilo: ${selectedStyle.label}` : 'Sin estilo · como se ve hoy'}
+                {custom ? 'Personalizado · colores propios' : selectedStyle ? `Estilo: ${selectedStyle.label}` : 'Sin estilo · como se ve hoy'}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, padding: '8px 14px 2px' }}>
@@ -148,24 +182,75 @@ export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
           <div style={{ fontSize: 12, fontWeight: 800, color: t.sub, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Selecciona tu estilo</div>
 
           <button
-            onClick={() => setSelectedId(null)}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 14, border: selectedId === null ? `2px solid ${t.text}` : `1px solid ${t.border}`, background: selectedId === null ? (t.surface || t.bg) : 'transparent', cursor: 'pointer', marginBottom: 12, textAlign: 'left' }}
+            onClick={handleClearStyle}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 14, border: (selectedId === null && !custom) ? `2px solid ${t.text}` : `1px solid ${t.border}`, background: (selectedId === null && !custom) ? (t.surface || t.bg) : 'transparent', cursor: 'pointer', marginBottom: 12, textAlign: 'left' }}
           >
             <span style={{ width: 26, height: 26, borderRadius: '50%', background: '#FFFFFF', border: `2px solid ${t.border}`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: t.text }}>✕</span>
             <span style={{ flex: 1 }}>
               <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: t.text }}>Sin estilo</span>
               <span style={{ display: 'block', fontSize: 11, color: t.sub }}>Tu menú se ve como hoy</span>
             </span>
-            {selectedId === null && <span style={{ fontSize: 14, color: t.text }}>✓</span>}
+            {(selectedId === null && !custom) && <span style={{ fontSize: 14, color: t.text }}>✓</span>}
           </button>
 
           {/* CARRUSEL: una categoría por página, se desliza de lado */}
           <StyleCategoryCarousel
             selectedId={selectedId}
-            onSelectStyle={(style) => setSelectedId(style.id)}
+            onSelectStyle={handleSelectStyle}
             initialCategoryId={selectedStyle?.category || 'premium'}
             tokens={t}
           />
+        </div>
+
+        {/* EDITOR UNIVERSAL: colores propios (como el de la tarjeta de
+            lealtad, «O personalizar colores exactos»). Los básicos van
+            primero (muestras rápidas) y después el selector de color
+            exacto. Tocar un color propio cambia a «Personalizado» y la
+            vista previa se actualiza al instante, como con los estilos. */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: t.sub, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>O personalizar colores exactos</div>
+          <div style={{ background: '#F1F5F9', borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[
+              { field: 'bg', label: 'Fondo', value: custom?.bg || customFromTheme(theme).bg },
+              { field: 'primary', label: 'Botón', value: custom?.primary || customFromTheme(theme).primary },
+            ].map(({ field, label, value }) => (
+              <div key={field}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', fontFamily: 'monospace' }}>{value}</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                  {/* Básicos primero: muestras rápidas. */}
+                  {MENU_BASIC_COLORS.map((basic) => (
+                    <button
+                      key={basic.id}
+                      type="button"
+                      onClick={() => handleCustomColor(field, basic.hex)}
+                      aria-label={`Color básico ${basic.label} para ${label}`}
+                      aria-pressed={value === basic.hex}
+                      title={`${basic.label} (${basic.hex})`}
+                      style={{ width: 30, height: 30, borderRadius: '50%', background: basic.hex, border: value === basic.hex ? `2px solid #0F172A` : `1px solid #CBD5E1`, boxShadow: value === basic.hex ? '0 0 0 2px #FFFFFF, 0 0 0 4px #0F172A' : 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}
+                    />
+                  ))}
+                  {/* Selector exacto: el círculo muestra el color actual. */}
+                  <span style={{ position: 'relative', width: 34, height: 34, borderRadius: '50%', background: value, border: '2px solid #CBD5E1', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', flexShrink: 0, display: 'inline-block' }}>
+                    <input
+                      type="color"
+                      value={value}
+                      aria-label={`Color exacto de ${label}`}
+                      onChange={(e) => handleCustomColor(field, e.target.value.toUpperCase())}
+                      style={{ opacity: 0, position: 'absolute', inset: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+                    />
+                  </span>
+                </div>
+              </div>
+            ))}
+            {custom && (
+              <div style={{ fontSize: 11, color: '#64748B', lineHeight: 1.5, textAlign: 'center' }}>
+                Personalizado: el fondo es un degradado de tu color y el texto se ajusta solo para leerse bien.
+              </div>
+            )}
+          </div>
         </div>
       </div>
       </div>
