@@ -309,8 +309,14 @@ export default function MapView() {
                 <button onClick={() => setMapPin(null)} style={{ position: "absolute", top: 12, left: 12, zIndex: 5, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.3)", backdropFilter: "blur(6px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="x" size={14} color="#fff" />
                 </button>
+                {/* Imagen Banner: 800×400. La caja es 320×160 CSS (2:1); a 400×300 el
+                    render de Supabase servía 400×300 y en un teléfono DPR 3 se
+                    estiraba 2,4× (borroso, medido con la foto real de Eduardo
+                    Barber, cuya fuente es 1254×1254). 800×400 cubre DPR 2,5 y
+                    calca el popup de eventos (800 de ancho), que es el que se
+                    ve nítido. */}
                 {(mapPin.photos?.[0]?.url || mapPin.logo_url || mapPin.banner_url)
-                  ? <img src={getThumbUrl(mapPin.photos?.[0]?.url || mapPin.logo_url || mapPin.banner_url, 400, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+                  ? <img src={getThumbUrl(mapPin.photos?.[0]?.url || mapPin.logo_url || mapPin.banner_url, 800, 400)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>
                       {(() => {
                         // La categoría «Puntos de interés» (lugares) muestra
