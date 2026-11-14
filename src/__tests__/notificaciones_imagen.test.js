@@ -96,12 +96,19 @@ describe('imagen del aviso: cableado (fuente)', () => {
     expect(admin).toContain('eventNotificationImage(ev)');
     const eventsTab = fs.readFileSync(new URL('../components/admin/AdminEventsTab.jsx', import.meta.url), 'utf8');
     expect(eventsTab).toContain('eventNotificationImage(ev)');
-    const booking = fs.readFileSync(new URL('../components/BookingModal.jsx', import.meta.url), 'utf8');
-    expect(booking).toContain('businessNotificationImage(biz)');
     const agenda = fs.readFileSync(new URL('../components/ReservationsAgenda.jsx', import.meta.url), 'utf8');
     expect(agenda).toContain('businessNotificationImage(ownerView)');
     const resTab = fs.readFileSync(new URL('../components/admin/AdminReservationsTab.jsx', import.meta.url), 'utf8');
     expect(resTab).toContain('businessNotificationImage(biz)');
+  });
+  it('el aviso de reserva ya no pasa su imagen por sb.notify del cliente: la pone el servidor (buildBookingMessage lee logo/banner/fotos del negocio)', () => {
+    const booking = fs.readFileSync(new URL('../components/BookingModal.jsx', import.meta.url), 'utf8');
+    expect(booking).not.toContain('businessNotificationImage(biz)');
+    expect(booking).not.toContain('sb.notify(');
+    const lib = fs.readFileSync(new URL('../lib/bookingNotifications.js', import.meta.url), 'utf8');
+    expect(lib).toContain('businessNotificationImage(business)');
+    const api = fs.readFileSync(new URL('../../api/send-notification.js', import.meta.url), 'utf8');
+    expect(api).toContain('logo_url,banner_url,photos');
   });
   it('runReminders pide la imagen del evento y la pasa en el POST interno', () => {
     const api = fs.readFileSync(new URL('../../api/send-notification.js', import.meta.url), 'utf8');

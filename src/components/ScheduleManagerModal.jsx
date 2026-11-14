@@ -14,6 +14,7 @@ const toLocalYYYYMMDD = (d) => {
 import { useUIStore } from "../store/useUIStore.js";
 import { getT } from "../lib/constants.js";
 import { sb } from "../lib/supabase.js";
+import { normalizeSchedule } from "../lib/scheduleFormat.js";
 
 export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
   const dark = useUIStore(s => s.dark);
@@ -33,7 +34,10 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
     { key: "dom", label: "Domingo" }
   ];
   
-  const [schedule, setSchedule] = useState(biz.schedule || {});
+  // El horario que se ve es el que se guarda: al abrir se normaliza con
+  // los valores por defecto que muestra el formulario (09:00 a 18:00), así
+  // un día sin cierre no queda en "09:00 - " al guardar (Eduardo Barber).
+  const [schedule, setSchedule] = useState(() => normalizeSchedule(biz.schedule || {}, { defaultOpen24: "09:00", defaultClose24: "18:00" }).schedule);
   
   // Setup Blocked Slots State
   // Format: [ { date: "2026-06-16", time: "11:30" }, ... ]
@@ -73,13 +77,22 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
   const handleSave = async () => {
     setLoading(true);
     try {
+      // Lo que se ve es lo que se guarda: el cierre por defecto que muestra
+      // el formulario (6:00 p. m.) se escribe si faltaba; un día con texto
+      // ilegible bloquea el guardado y avisa, para que ningún negocio
+      // vuelva a quedar sin hora de cierre.
+      const { schedule: normalizedSchedule, problems } = normalizeSchedule(schedule, { defaultOpen24: "09:00", defaultClose24: "18:00" });
+      if (problems.length > 0) {
+        toast$(`Completa el horario en: ${problems.map(p => p.label).join(', ')}`);
+        return;
+      }
       const updatedConfig = { ...bookingConfig, blocked_slots: blockedSlots, blocked_dates: blockedDates };
       await sb.patch("businesses", biz.id, {
-        schedule,
+        schedule: normalizedSchedule,
         booking_config: updatedConfig
       });
       toast$("Horario actualizado");
-      if (onUpdate) onUpdate({ ...biz, schedule, booking_config: updatedConfig });
+      if (onUpdate) onUpdate({ ...biz, schedule: normalizedSchedule, booking_config: updatedConfig });
       onClose();
     } catch (err) {
       toast$("Error al guardar agenda");
@@ -125,11 +138,11 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
     }
 
     const toMinutes = (timeStr) => {
-      const m = (timeStr || "").trim().match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+      const m = (timeStr || "").trim().match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
       if (!m) return null;
       let h = parseInt(m[1]);
       const min = parseInt(m[2] || 0);
-      const p = (m[3] || "").toLowerCase();
+      const p = (m[3] || "").replace(/\./g, "").toLowerCase();
       if (p === "pm" && h !== 12) h += 12;
       if (p === "am" && h === 12) h = 0;
       return h * 60 + min;
