@@ -7,6 +7,7 @@ import { IS_WORLD } from '../lib/domain.js';
 import { bizToForm } from '../lib/bizForm.js';
 import { parseRevistaPath } from '../lib/revistaRoute.js';
 import { isDirectCategorySegments } from '../lib/categoryRouting.js';
+import { isBookingPath } from '../lib/bookingLink.js';
 
 // La carga de las rutas NO es la pantalla negra de marca (BrandSplash):
 // al navegar se ven los tres puntos sobre el fondo de la página, sin
@@ -26,7 +27,11 @@ const ToursView = React.lazy(() => import('../components/ToursView.jsx'));
 const BusinessLanding = React.lazy(() => import('../components/BusinessLanding.jsx'));
 
 // Paths that are NOT the home/category view
-const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login'];
+// '/reservar' es solo el sufijo del link directo de reserva
+// (/:ciudad/:slug/reservar): como ruta suelta no es inicio ni detalle,
+// cae en el "*" y redirige a "/". No afecta al sufijo, que no empieza
+// por /reservar (empieza por /:ciudad).
+const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login', '/reservar'];
 
 function isCategoryPath(segments) {
   if (IS_WORLD) return (segments.length === 4 && segments[2] === 'c') || isDirectCategorySegments(segments, true);
@@ -40,6 +45,10 @@ function isHomePath(pathname) {
   
   if (isCategoryPath(segments)) return true;
   
+  // El link de reserva es la ficha con el modal abierto: HomeView se
+  // queda montada detrás, igual que en el detalle normal.
+  if (isBookingPath(pathname)) return true;
+
   // On citymap.world paths have an extra country prefix: /mx/cancun or /mx/cancun/slug
   const maxHomeSegments = IS_WORLD ? 3 : 2;
   return segments.length <= maxHomeSegments;
@@ -51,6 +60,10 @@ function isDetailPath(pathname) {
   
   if (isCategoryPath(segments)) return false;
   
+  // Link directo de reserva /:ciudad/:slug/reservar (en .world con
+  // prefijo de país): es detalle, no inicio ni categoría.
+  if (isBookingPath(pathname)) return true;
+
   // .world: /mx/cancun/slug = 3 segments | .mx: /cancun/slug = 2 segments
   return IS_WORLD ? segments.length === 3 : segments.length === 2;
 }
@@ -164,10 +177,15 @@ export default function AppRouter(props) {
             <Routes location={location} key="detail-overlay">
               {/* citymap.mx routes */}
               <Route path="/:city/:slug" element={<DetailView />} />
+              {/* Link directo de reserva: /:ciudad/:slug/reservar abre la
+                  ficha con el modal de Reservar ya abierto (DetailView
+                  lee el sufijo de la URL). */}
+              <Route path="/:city/:slug/reservar" element={<DetailView />} />
               <Route path="/evento/:slug" element={<DetailView />} />
               <Route path="/evento/:city/:slug" element={<DetailView />} />
               {/* citymap.world routes (country prefix) */}
               <Route path="/:country/:city/:slug" element={<DetailView />} />
+              <Route path="/:country/:city/:slug/reservar" element={<DetailView />} />
               <Route path="/itinerario/:id" element={<ItineraryDetail T={T} dark={dark} navigate={navigate} id={pathname.split('/itinerario/')[1]} userCoords={userCoords} />} />
               <Route path="/plan/:token" element={<ItineraryDetail T={T} dark={dark} navigate={navigate} token={pathname.split('/plan/')[1]} userCoords={userCoords} />} />
             </Routes>

@@ -18,7 +18,7 @@ export const NON_HOME_PREFIXES_INIT = [
   '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta',
   '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms',
   '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios',
-  '/lealtad', '/wallet', '/scan', '/login',
+  '/lealtad', '/wallet', '/scan', '/login', '/reservar',
 ];
 
 // ¿La app debe quedarse en esta ruta al arrancar, sin navegar a "home"?

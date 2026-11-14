@@ -83,7 +83,7 @@ export const SYSTEM_FIRST_SEGMENTS = new Set([
   'admin_notifs', 'user_notifs', 'about', 'privacy', 'terms', 'favoritos',
   'explorer', 'itinerarios', 'revista', 'experiencias', 'manage', 'stats',
   'itinerario', 'plan', 'evento', 'precios', 'lealtad', 'wallet', 'scan',
-  'login', 'tours', 'negocios',
+  'login', 'tours', 'negocios', 'reservar',
 ]);
 
 // Ciudad de la URL, sin depender de la tienda de datos (que carga

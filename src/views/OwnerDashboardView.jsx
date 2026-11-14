@@ -3,6 +3,8 @@ import * as dbService from '../services/dbService';
 import { Helmet } from "react-helmet-async";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore";
+import { useDataStore } from "../store/useDataStore.js";
+import { bookingLinkFor, bookingModalApplies } from "../lib/bookingLink.js";
 import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon";
 import ReservationsAgenda from "../components/ReservationsAgenda";
@@ -18,6 +20,12 @@ export default function OwnerDashboardView() {
   const ctx = useAppContext();
   const { T, FONT_BIZ, navigate, setShowPlans, doShare } = ctx;
   const { toast$, ownerView, setOwnerView } = useUIStore(useShallow(s => ({ toast$: s.toast$, ownerView: s.ownerView, setOwnerView: s.setOwnerView })));
+  const cities = useDataStore(s => s.cities);
+
+  // Link directo para reservar (solo con reserva nativa activada):
+  // citymap.mx/<ciudad>/<slug>/reservar — abre la ficha con el modal
+  // de Reservar ya abierto. Sin reserva no hay fila.
+  const bookingLink = bookingModalApplies(ownerView?.booking_config) ? bookingLinkFor(ownerView, cities) : null;
 
   const [ownerRes, setOwnerRes] = useState([]);
   const [ownerStats, setOwnerStats] = useState({ views: 0, whatsapp: 0, phone: 0 });
@@ -100,6 +108,22 @@ export default function OwnerDashboardView() {
             Copiar
           </button>
         </div>
+
+        {/* LINK PARA RESERVAR (solo con reserva nativa activada): el
+            cliente abre el link y cae en la ficha con el modal de
+            Reservar ya abierto. Mismo patrón de copiado que el link
+            del panel. */}
+        {bookingLink && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.white, border: `1.5px solid ${T.border}`, padding: "12px 16px", borderRadius: 16, marginBottom: 24, boxShadow: "0 4px 12px rgba(0,0,0,0.02)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: T.iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="link" size={16} color={T.sub} /></div>
+              <span className="text-sm" style={{ fontWeight: 700, color: T.text }}>Link para reservar</span>
+            </div>
+            <button className="press text-xs" onClick={() => { navigator.clipboard.writeText(bookingLink); toast$("¡Enlace para reservar copiado!"); }} style={{ background: T.text, padding: "8px 16px", borderRadius: 10, fontWeight: 800, color: T.bg, border: "none", cursor: "pointer", flexShrink: 0 }}>
+              Copiar
+            </button>
+          </div>
+        )}
 
         {/* COMPARTIR MI NEGOCIO (solo el dueño, en su panel): abre la
             hoja de tarjetas para compartir del negocio. Ya no está en
