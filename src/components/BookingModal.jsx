@@ -357,9 +357,14 @@ ${notes ? `*Notas:* ${notes}` : ""}
       style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
       onClick={(e) => { e.stopPropagation(); onClose(); }}
     >
-      <m.div 
-        initial={{ scale: 0.95, opacity: 0, y: 10 }} 
-        animate={{ scale: 1, opacity: 1, y: 0 }} 
+      {/* La reserva se abre completa en una sola vez (nov 2026, Jonathan):
+          el panel es un div normal, sin entrada animada, y las tarjetas de
+          servicio tampoco animan su entrada. Antes el panel nacía con
+          opacity 0 y las tarjetas entraban escalonadas (delay por índice)
+          tras la carga lazy del chunk: primero se veía la ficha atenuada
+          y luego las tarjetas saltaban en un segundo momento, flotando
+          sin el resto del modal. */}
+      <div
         onClick={e => e.stopPropagation()}
         style={{ background: "#ffffff", border: "1px solid rgba(0,0,0,0.05)", width: "100%", maxWidth: 440, borderRadius: 28, padding: 24, boxShadow: "0 24px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.02)", maxHeight: "90vh", overflowY: "auto" }}
       >
@@ -396,7 +401,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
         ) : (
           <form onSubmit={submitBooking} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {step === 1 && (
-              <m.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
+              <div>
                 {Array.isArray(config.services) && config.services.length > 0 ? (
                   <div style={{ marginBottom: 8 }}>
                     <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#5A6872", marginBottom: 16, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("revista_selecciona_servicio", "1. Selecciona el servicio")}</label>
@@ -404,10 +409,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
                       {config.services.map((s, i) => {
                         const isSelected = serviceId === s.id;
                         return (
-                          <m.button
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.05 }}
+                          <button
                             key={s.id}
                             type="button"
                             onClick={() => setServiceId(s.id)}
@@ -438,7 +440,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
                             }}>
                               {isSelected && <Icon name="check" size={16} color="#FFF" />}
                             </div>
-                          </m.button>
+                          </button>
                         );
                       })}
                     </div>
@@ -454,7 +456,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
                     <div style={{ fontSize: 13, marginTop: 6, fontWeight: 500 }}>{t("revista_sin_servicios_desc", "Este negocio no ha configurado sus opciones de reserva. Por favor contacta directamente al lugar.")}</div>
                   </div>
                 )}
-              </m.div>
+              </div>
             )}
 
             {/* 2. Fecha y Hora */}
@@ -635,7 +637,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
             </div>
           </form>
         )}
-      </m.div>
+      </div>
     </div>
   );
 }

@@ -131,6 +131,15 @@ export default function DetailView() {
     return null;
   };
 
+  // La reserva se precarga al abrir la ficha: el modal es lazy y sin esto
+  // al tocar «Reservar» primero sale el fallback «Cargando
+  // reservaciones...» y luego el modal con su entrada escalonada — la
+  // reservación se veía cargarse en 2 partes, con las tarjetas de
+  // servicios apareciendo en un segundo salto (nov 2026, Jonathan).
+  useEffect(() => {
+    import('../components/BookingModal.jsx').catch(() => {});
+  }, []);
+
   useEffect(() => {
     // Reseñas de Google (textos) solo en negocios de pago (regla 12 nov
     // 2026): en gratuitos ni se piden a la API de Maps (también gastan
