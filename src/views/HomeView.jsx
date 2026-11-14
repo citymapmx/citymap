@@ -659,6 +659,13 @@ export default function HomeView({ isBackground }) {
                   ref={virtuosoRef}
                   useWindowScroll
                   data={finalDisplayList}
+                  // Las tarjetas ya vistas no se desmontan al salir de vista:
+                  // sin margen, Virtuoso desmonta las filas fuera de pantalla
+                  // y al volver a subir se remontan desde cero y se ven cargar
+                  // de nuevo (bug reportado en /:ciudad/c/:categoría). Un
+                  // viewport de margen arriba y abajo mantiene montadas las
+                  // vecinas; las lejanas siguen virtualizándose.
+                  increaseViewportBy={{ top: 1000, bottom: 1000 }}
                   // Sin autollenado al bajar: la paginación de la categoría es
                   // solo con el botón "Ver más". Antes, al bajar, la lista
                   // cargaba más negocios sola y el botón se desplazaba
