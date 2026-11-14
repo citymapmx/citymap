@@ -4,7 +4,13 @@
   "webDir": "dist",
   "server": {
     "url": "https://citymap.mx",
-    "cleartext": false
+    "cleartext": false,
+    "allowNavigation": [
+      "citymap.mx",
+      "www.citymap.mx",
+      "citymap.world",
+      "www.citymap.world"
+    ]
   },
   "plugins": {
     "PushNotifications": {

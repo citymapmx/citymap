@@ -21,7 +21,16 @@ export default async function middleware(request) {
   const { pathname, searchParams } = url;
   const ua = request.headers.get("user-agent") || "";
   const { isWorld, origin } = seoSite(url.hostname);
-  if (url.hostname === 'www.citymap.mx' || url.hostname === 'citymap.world') {
+  // Excepción: /.well-known/assetlinks.json NO se redirige. Android verifica
+  // los App Links pidiendo el archivo en cada host exacto y no sigue
+  // redirecciones: si citymap.world o www.citymap.mx devolvieran 308 aquí,
+  // la verificación fallaría para ese host y sus enlaces no abrirían la app
+  // (verificado en vivo 14 nov 2026: los dos daban 308). Sin redirigir, el
+  // middleware pasa de largo y Vercel sirve el archivo estático con 200.
+  if (
+    (url.hostname === 'www.citymap.mx' || url.hostname === 'citymap.world') &&
+    pathname !== '/.well-known/assetlinks.json'
+  ) {
     return Response.redirect(new URL(url.pathname + url.search, origin), 308);
   }
   // Run before static-file handling so build artifacts cannot shadow SEO endpoints.
