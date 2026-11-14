@@ -10,6 +10,7 @@ import { useUIStore } from "../store/useUIStore.js";
 import { getT } from "../lib/constants.js";
 import { sb } from "../lib/supabase.js";
 import { businessNotificationImage } from "../lib/notifications.js";
+import { softDeleteReservation } from "../lib/reservationDelete.js";
 
 export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes }) {
   const dark = useUIStore(s => s.dark);
@@ -64,17 +65,11 @@ export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes })
     }
   };
 
-  const deleteRes = async (id) => {
-    if(!window.confirm("¿Seguro que deseas eliminar permanentemente esta reservación?")) return;
-    try {
-      await sb.patch("reservations", id, { status: "deleted" });
-      setOwnerRes(prev => prev.filter(r => r.id !== id));
-      toast$("Reservación eliminada");
-    } catch (err) {
-      toast$("Error al eliminar");
-      console.error(err);
-    }
-  };
+  // El borrado ya no vive aquí: lo hace `softDeleteReservation` con
+  // confirmación dentro de la fila (sin el diálogo nativo de confirmación: en el
+  // WebView de la app el diálogo nativo no siempre aparece y el tap
+  // volvía en silencio) y con relectura que confirma que el estado
+  // quedó en "deleted". Ver `src/lib/reservationDelete.js`.
 
   const getWhatsAppLink = (r, type) => {
     const clientPhone = (r.client_phone || "").replace(/\D/g, "");
@@ -145,12 +140,12 @@ export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes })
     const waLinkCancel = getWhatsAppLink(r, "cancel");
     const [expanded, setExpanded] = useState(false);
     return (
-      <div style={{ background: "rgba(255, 255, 255, 0.8)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: 18, marginBottom: 12, overflow: "hidden", boxShadow: "0 6px 16px rgba(16, 185, 129, 0.05), 0 1px 2px rgba(0,0,0,0.02)", transition: "all 0.3s ease" }}>
+      <div style={{ background: dark ? "rgba(255,255,255,0.06)" : "rgba(255, 255, 255, 0.8)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: dark ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(16, 185, 129, 0.3)", borderRadius: 18, marginBottom: 12, overflow: "hidden", boxShadow: "0 6px 16px rgba(16, 185, 129, 0.05), 0 1px 2px rgba(0,0,0,0.02)", transition: "all 0.3s ease" }}>
         <div onClick={() => setExpanded(!expanded)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px", cursor: "pointer" }}>
           <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#10B981", flexShrink: 0, boxShadow: "0 0 10px rgba(16,185,129,0.6)" }} />
           <div style={{ minWidth: 70, flexShrink: 0, letterSpacing: "-0.5px" }}>
             <div style={{ fontWeight: 900, fontSize: 16, color: T.text }}>{formatTimeAMPM(r.time)}</div>
-            <div style={{ fontSize: 10, fontWeight: 800, color: "#16A34A", display: "inline-block", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 4 }}>Confirmada</div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: dark ? "#4ADE80" : "#16A34A", display: "inline-block", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 4 }}>Confirmada</div>
           </div>
           <div style={{ flex: 1, minWidth: 0, borderLeft: `1px solid rgba(16, 185, 129, 0.15)`, paddingLeft: 12, textAlign: "left" }}>
             <div style={{ fontWeight: 800, fontSize: 15, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.client_name}</div>
@@ -169,7 +164,7 @@ export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes })
           {expanded && (
             <div style={{ padding: "0 16px 16px 16px" }}>
               <div style={{ height: 1, background: "rgba(16, 185, 129, 0.1)", margin: "0 0 12px 0", borderTop: "1px dashed rgba(16, 185, 129, 0.3)" }}></div>
-              {r.notes && <div style={{ fontSize: 13, color: "#166534", background: "rgba(16, 185, 129, 0.05)", padding: "10px 12px", borderRadius: 12, marginBottom: 12, fontStyle: "italic", border: "1px solid rgba(16, 185, 129, 0.1)" }}>"{r.notes}"</div>}
+              {r.notes && <div style={{ fontSize: 13, color: dark ? "#86EFAC" : "#166534", background: dark ? "rgba(16, 185, 129, 0.12)" : "rgba(16, 185, 129, 0.05)", padding: "10px 12px", borderRadius: 12, marginBottom: 12, fontStyle: "italic", border: dark ? "1px solid rgba(16, 185, 129, 0.25)" : "1px solid rgba(16, 185, 129, 0.1)" }}>"{r.notes}"</div>}
               
               <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                 <button onClick={(e) => { e.stopPropagation(); updateStatus(r.id, "completed"); }} style={{ flex: 1, padding: "10px 0", background: "#3B82F6", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "inherit" }} className="press"><Icon name="check-circle" size={14} color="#fff" /> Completada</button>
@@ -177,8 +172,8 @@ export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes })
               </div>
               
               <div style={{ display: "flex", gap: 8 }}>
-                {waLinkReminder && <button onClick={(e) => { e.stopPropagation(); window.open(waLinkReminder, "_blank"); }} style={{ flex: 1, padding: "10px 0", background: "rgba(220, 252, 231, 0.3)", border: "1px solid rgba(22, 163, 74, 0.2)", borderRadius: 12, fontSize: 13, fontWeight: 800, color: "#16A34A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "inherit" }} className="press"><Icon name="whatsapp" size={14} color="#16A34A" /> WhatsApp</button>}
-                <button onClick={(e) => { e.stopPropagation(); if(waLinkCancel) window.open(waLinkCancel, "_blank"); updateStatus(r.id, "cancelled"); }} style={{ flex: 1, padding: "10px 0", background: "rgba(254, 242, 242, 0.5)", border: "1px solid rgba(220, 38, 38, 0.2)", borderRadius: 12, fontSize: 13, fontWeight: 800, color: "#DC2626", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "inherit" }} className="press"><Icon name="x" size={14} color="#DC2626" /> Cancelar</button>
+                {waLinkReminder && <button onClick={(e) => { e.stopPropagation(); window.open(waLinkReminder, "_blank"); }} style={{ flex: 1, padding: "10px 0", background: dark ? "rgba(22, 163, 74, 0.15)" : "rgba(220, 252, 231, 0.3)", border: dark ? "1px solid rgba(22, 163, 74, 0.35)" : "1px solid rgba(22, 163, 74, 0.2)", borderRadius: 12, fontSize: 13, fontWeight: 800, color: dark ? "#4ADE80" : "#16A34A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "inherit" }} className="press"><Icon name="whatsapp" size={14} color={dark ? "#4ADE80" : "#16A34A"} /> WhatsApp</button>}
+                <button onClick={(e) => { e.stopPropagation(); if(waLinkCancel) window.open(waLinkCancel, "_blank"); updateStatus(r.id, "cancelled"); }} style={{ flex: 1, padding: "10px 0", background: dark ? "rgba(220, 38, 38, 0.15)" : "rgba(254, 242, 242, 0.5)", border: dark ? "1px solid rgba(220, 38, 38, 0.35)" : "1px solid rgba(220, 38, 38, 0.2)", borderRadius: 12, fontSize: 13, fontWeight: 800, color: dark ? "#F87171" : "#DC2626", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "inherit" }} className="press"><Icon name="x" size={14} color={dark ? "#F87171" : "#DC2626"} /> Cancelar</button>
               </div>
             </div>
           )}
@@ -187,23 +182,78 @@ export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes })
   };
 
   const HistoryCard = ({ r }) => {
-    let color = "#64748B";
-    let bg = "#F1F5F9";
-    let text = "Cancelada";
-    
-    if (r.status === "completed") {
-      color = "#3B82F6"; bg = "#DBEAFE"; text = "Completada";
-    } else if (r.status === "noshow") {
-      color = "#EF4444"; bg = "#FEE2E2"; text = "No Asistió";
+    // Confirmación dentro de la fila (sin el diálogo nativo): en el
+    // WebView de la app el diálogo nativo no siempre aparece y el tap
+    // en la papelera volvía en silencio (nov 2026, reporte de
+    // Jonathan). El borrado lo hace `softDeleteReservation` con
+    // relectura: si el estado no queda en "deleted", avisa y la fila
+    // se queda.
+    const [confirming, setConfirming] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    // Colores por estado, con variante oscura. Antes la fila usaba
+    // grises fijos (`#64748B` / `#94A3B8` sobre `rgba(255,255,255,0.4)`)
+    // que en modo oscuro quedaban lavados sobre el gris (~1,2:1 de
+    // contraste): en claro se ven exacto como antes.
+    const statusStyle = {
+      cancelled: dark
+        ? { color: "#CBD5E1", bg: "rgba(148,163,184,0.16)", text: "Cancelada" }
+        : { color: "#64748B", bg: "#F1F5F9", text: "Cancelada" },
+      completed: dark
+        ? { color: "#93C5FD", bg: "rgba(59,130,246,0.18)", text: "Completada" }
+        : { color: "#3B82F6", bg: "#DBEAFE", text: "Completada" },
+      noshow: dark
+        ? { color: "#FCA5A5", bg: "rgba(239,68,68,0.18)", text: "No Asistió" }
+        : { color: "#EF4444", bg: "#FEE2E2", text: "No Asistió" },
+    }[r.status] || (dark
+      ? { color: "#CBD5E1", bg: "rgba(148,163,184,0.16)", text: "Cancelada" }
+      : { color: "#64748B", bg: "#F1F5F9", text: "Cancelada" });
+
+    const rowStyle = {
+      display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
+      background: dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.4)",
+      border: dark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.04)",
+      borderRadius: 16, marginBottom: 8,
+    };
+
+    if (confirming) {
+      return (
+        <div style={{ ...rowStyle, flexWrap: "wrap", rowGap: 10 }}>
+          <div style={{ flex: 1, minWidth: 140, fontSize: 13, fontWeight: 700, color: T.text }}>¿Eliminar esta reservación?</div>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <button
+              disabled={deleting}
+              onClick={async () => {
+                setDeleting(true);
+                const res = await softDeleteReservation(sb, r.id);
+                setDeleting(false);
+                if (res.ok) {
+                  setOwnerRes(prev => prev.filter(x => x.id !== r.id));
+                  toast$("Reservación eliminada");
+                } else {
+                  toast$("No se pudo eliminar. Inténtalo de nuevo.");
+                }
+              }}
+              style={{ background: "#DC2626", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 13, fontWeight: 800, color: "#fff", cursor: deleting ? "wait" : "pointer", fontFamily: "inherit", opacity: deleting ? 0.6 : 1 }}
+              className="press"
+            >{deleting ? "Eliminando…" : "Eliminar"}</button>
+            <button
+              onClick={() => setConfirming(false)}
+              style={{ background: dark ? "rgba(255,255,255,0.08)" : "#F1F5F9", border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.06)", borderRadius: 10, padding: "8px 14px", fontSize: 13, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit" }}
+              className="press"
+            >Cancelar</button>
+          </div>
+        </div>
+      );
     }
 
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "rgba(255,255,255,0.4)", border: "1px solid rgba(0,0,0,0.04)", borderRadius: 16, marginBottom: 8 }}>
-        <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
-        <div style={{ minWidth: 65, fontWeight: 800, fontSize: 14, color: "#94A3B8", flexShrink: 0 }}>{formatTimeAMPM(r.time)}</div>
-        <div style={{ flex: 1, fontSize: 14, color: "#64748B", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: 700 }}>{r.client_name}</div>
-        <div style={{ fontSize: 11, fontWeight: 800, color: color, background: bg, padding: "4px 8px", borderRadius: 8, flexShrink: 0, textTransform: "uppercase", letterSpacing: 0.5 }}>{text}</div>
-        <button onClick={() => deleteRes(r.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, flexShrink: 0 }} className="press"><Icon name="trash" size={14} color="#94A3B8" /></button>
+      <div style={rowStyle}>
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: statusStyle.color, flexShrink: 0 }} />
+        <div style={{ minWidth: 65, fontWeight: 800, fontSize: 14, color: T.sub, flexShrink: 0 }}>{formatTimeAMPM(r.time)}</div>
+        <div style={{ flex: 1, fontSize: 14, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: 700 }}>{r.client_name}</div>
+        <div style={{ fontSize: 11, fontWeight: 800, color: statusStyle.color, background: statusStyle.bg, padding: "4px 8px", borderRadius: 8, flexShrink: 0, textTransform: "uppercase", letterSpacing: 0.5 }}>{statusStyle.text}</div>
+        <button onClick={() => setConfirming(true)} aria-label="Eliminar reservación" style={{ background: "none", border: "none", cursor: "pointer", padding: 6, flexShrink: 0 }} className="press"><Icon name="trash" size={14} color={T.sub} /></button>
       </div>
     );
   };
@@ -240,14 +290,17 @@ export default function ReservationsAgenda({ ownerView, ownerRes, setOwnerRes })
 
       {/* Main Agenda Card */}
       <div style={{ background: T.white, borderRadius: 20, padding: "20px 16px", boxShadow: "0 8px 30px rgba(0,0,0,0.04)", border: `1px solid ${T.border}` }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 24 }}>
-          <div>
+        {/* El subtítulo va en su propia fila a ancho completo: antes
+            compartía la fila con el botón Configurar y se partía a
+            mitad de frase («Todas tus reservas / confirmadas»). */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: T.text, lineHeight: 1.2 }}>Tus Reservaciones</div>
-            <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>Todas tus reservas confirmadas</div>
+            <button onClick={() => setShowConfig(true)} style={{ background: T.white, border: `1px solid ${T.border}`, padding: "8px 12px", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 700, color: T.text, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", flexShrink: 0 }} className="press">
+              <Icon name="settings" size={14} color={T.sub} /> Configurar
+            </button>
           </div>
-          <button onClick={() => setShowConfig(true)} style={{ background: T.white, border: `1px solid ${T.border}`, padding: "8px 12px", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 700, color: T.text, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", flexShrink: 0 }} className="press">
-            <Icon name="settings" size={14} color={T.sub} /> Configurar
-          </button>
+          <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>Todas tus reservas confirmadas</div>
         </div>
 
         <div>
