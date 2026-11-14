@@ -724,7 +724,7 @@ export default function HomeView({ isBackground }) {
                   />
                 ) : selectedSubcat !== "todas" ? (
                   <div style={{ textAlign: "center", padding: "32px 0", color: T.sub }}>
-                    <Icon name="search" size={36} color={T.border} />
+                    <Icon name="search" size={36} color={dark ? "#71717A" : T.border} />
                     <p style={{ fontWeight: 700, color: T.text, marginTop: 14, marginBottom: 6 }}>
                       <>{t("home_sin_negocios_en", "Sin negocios en")} "{selectedSubcat}"</>
                     </p>
@@ -747,7 +747,7 @@ export default function HomeView({ isBackground }) {
                   </div>
                 ) : showGenericEmpty ? null : (
                   <div style={{ textAlign: "center", padding: "32px 0", color: T.sub }}>
-                    <Icon name="search" size={36} color={T.border} />
+                    <Icon name="search" size={36} color={dark ? "#71717A" : T.border} />
                     <p style={{ fontWeight: 700, color: T.text, marginTop: 14, marginBottom: 6 }}>
                       {t("sin_negocios_cat", "Sin negocios en esta categoría")}
                     </p>

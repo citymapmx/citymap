@@ -75,8 +75,8 @@ export default function StoreProductsTab({
     return (
       <div style={{ padding: 16 }}>
         <button onClick={()=>{setSaveError('');setProdForm({name:'',price:'',description:'',image_url:'',is_available:true,promotion:{...defaultPromotion}});setView('prodForm');}} style={{width:'100%',padding:14,borderRadius:12,border:`1px solid ${T.border}`,background:T.white,color:T.text,fontWeight:800,fontFamily:'inherit',cursor:'pointer',marginBottom:10}}>🏷️ Nueva promoción o combo</button>
-        <button onClick={() => { setProdForm({ name: '', price: '', description: '', image_url: '', is_available: true }); setView('prodForm'); }} style={{ width: "100%", background: T.green, color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 15, cursor: "pointer", marginBottom: 20, display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
-          <Icon name="plus" size={18} color="#fff" /> Agregar Nuevo Producto
+        <button onClick={() => { setProdForm({ name: '', price: '', description: '', image_url: '', is_available: true }); setView('prodForm'); }} style={{ width: "100%", background: T.green, color: T.dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 15, cursor: "pointer", marginBottom: 20, display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
+          <Icon name="plus" size={18} color={T.dark ? "#18181B" : "#FFFFFF"} /> Agregar Nuevo Producto
         </button>
 
         {currentCat.store_products.length === 0 ? (
@@ -99,7 +99,7 @@ export default function StoreProductsTab({
                   >
                     <span style={{ fontSize: 10, fontWeight: 700, color: !p.is_available ? T.red : T.sub, transition: "0.2s" }}>Agotado</span>
                     <div style={{ width: 32, height: 18, borderRadius: 12, background: p.is_available ? T.green : T.border, position: "relative", transition: "0.2s" }}>
-                      <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: p.is_available ? 16 : 2, transition: "0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                      <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#fff", border: T.dark ? "1px solid #3F3F46" : "none", position: "absolute", top: 2, left: p.is_available ? 16 : 2, transition: "0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
                     </div>
                     <span style={{ fontSize: 10, fontWeight: 700, color: p.is_available ? T.green : T.sub, transition: "0.2s" }}>Disponible</span>
                   </div>
@@ -107,7 +107,7 @@ export default function StoreProductsTab({
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, justifyContent: "center" }}>
                   <button aria-label={`Editar ${p.name}`} onClick={() => { setSaveError(''); setProdForm(p); setView('prodForm'); }} style={{ background: T.bg, border: "none", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="edit" size={14} color={T.text} /></button>
                   <button onClick={() => { setActiveProd(p); setView('opts'); }} style={{ background: T.greenL, border: "none", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="list" size={14} color={T.green} /></button>
-                  <button onClick={() => deleteProduct(p.id)} style={{ background: "#FEF2F2", border: "none", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="trash" size={14} color={T.red} /></button>
+                  <button onClick={() => deleteProduct(p.id)} style={{ background: "#FEF2F2", border: "none", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="trash" size={14} color={T.dark ? "#DC2626" : T.red} /></button>
                 </div>
               </div>
             ))}
@@ -146,7 +146,7 @@ export default function StoreProductsTab({
 
         <StorePromotionFields value={prodForm.promotion} onChange={promotion=>setProdForm({...prodForm,promotion})} T={T} inpH={inpH}/>
         {saveError&&<p role="alert" style={{color:T.red || '#DC2626',fontSize:13}}>{saveError}</p>}
-        <button disabled={saving} onClick={saveProduct} style={{ marginTop: 10, background: T.green, color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>{saving?'Guardando…':initialForm?'Guardar promoción':'Guardar producto'}</button>
+        <button disabled={saving} onClick={saveProduct} style={{ marginTop: 10, background: T.green, color: T.dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>{saving?'Guardando…':initialForm?'Guardar promoción':'Guardar producto'}</button>
       </div>
     );
   }

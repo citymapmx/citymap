@@ -185,7 +185,7 @@ export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
             onClick={handleClearStyle}
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 14, border: (selectedId === null && !custom) ? `2px solid ${t.text}` : `1px solid ${t.border}`, background: (selectedId === null && !custom) ? (t.surface || t.bg) : 'transparent', cursor: 'pointer', marginBottom: 12, textAlign: 'left' }}
           >
-            <span style={{ width: 26, height: 26, borderRadius: '50%', background: '#FFFFFF', border: `2px solid ${t.border}`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: t.text }}>✕</span>
+            <span style={{ width: 26, height: 26, borderRadius: '50%', background: '#FFFFFF', border: `2px solid ${t.border}`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#18181B' }}>✕</span>
             <span style={{ flex: 1 }}>
               <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: t.text }}>Sin estilo</span>
               <span style={{ display: 'block', fontSize: 11, color: t.sub }}>Tu menú se ve como hoy</span>

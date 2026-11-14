@@ -115,8 +115,12 @@ export default function LoyaltyMemberDetail({
   const removedEventFor = (eventId) =>
     events.find((e) => e.event_type === 'stamp_removed' && e.voids_event_id === eventId);
 
+  // Modo oscuro (14 Nov 2026): T.surface aún no existe en main, así
+  // que el fallback es T.card (#232326 en oscuro, #FFFFFF en claro).
+  // El '#fff' fijo de antes dejaba el texto del tema (casi blanco en
+  // oscuro) invisible sobre tarjeta blanca: 1.1:1.
   const cardStyle = {
-    background: T.surface || '#fff',
+    background: T.surface || T.card,
     border: `1px solid ${T.border}`,
     borderRadius: 16,
     padding: 16,
@@ -176,7 +180,7 @@ export default function LoyaltyMemberDetail({
           </div>
           <div style={cardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="gift" size={18} color="#DC2626" />
+              <Icon name="gift" size={18} color={T.red || '#DC2626'} />
               <span style={{ fontSize: 22, fontWeight: 900, color: T.text }}>{progress.rewardsDelivered}</span>
             </div>
             <div style={{ fontSize: 12, color: T.sub, marginTop: 4, fontWeight: 600 }}>Recompensas</div>
@@ -192,7 +196,7 @@ export default function LoyaltyMemberDetail({
           <div style={{ height: 8, borderRadius: 999, background: '#E2E8F0', marginTop: 12, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: '#22C55E', transition: 'width .3s ease' }} />
           </div>
-          <div style={{ marginTop: 10, fontSize: 13, color: isCompleted ? '#15803D' : T.sub, fontWeight: isCompleted ? 700 : 500 }}>
+          <div style={{ marginTop: 10, fontSize: 13, color: isCompleted ? (T.dark ? '#4ADE80' : '#15803D') : T.sub, fontWeight: isCompleted ? 700 : 500 }}>
             {isCompleted
               ? '¡Premio listo para canjear!'
               : `Le faltan ${remaining} ${remaining === 1 ? 'sello' : 'sellos'} para obtener su recompensa.`}
@@ -400,8 +404,8 @@ export default function LoyaltyMemberDetail({
               onClick={() => askRemoveStamp(latestActive)}
               disabled={busy}
               style={{
-                width: '100%', padding: '12px 16px', background: 'transparent', color: '#DC2626',
-                border: `1.5px solid #FECACA`, borderRadius: 12, fontWeight: 700, fontSize: 14,
+                width: '100%', padding: '12px 16px', background: 'transparent', color: T.red || '#DC2626',
+                border: T.dark ? `1.5px solid ${T.border}` : '1.5px solid #FECACA', borderRadius: 12, fontWeight: 700, fontSize: 14,
                 cursor: 'pointer', opacity: busy ? 0.5 : 1,
               }}
             >
@@ -413,6 +417,7 @@ export default function LoyaltyMemberDetail({
 
       {confirmRemove && (
         <LoyaltyConfirmSheet
+          T={T}
           title={confirmRemove.title}
           message={confirmRemove.message}
           confirmLabel="Sí, quitar sello"

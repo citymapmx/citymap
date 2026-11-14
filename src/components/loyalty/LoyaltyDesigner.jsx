@@ -459,6 +459,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
         </div>
       ) : !config.id && wizardStep < 3 ? (
         <LoyaltyWizard 
+          T={T}
           wizardStep={wizardStep}
           setWizardStep={setWizardStep}
           config={config}
@@ -475,7 +476,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
         <div style={{ 
           flex: isMobile ? "none" : 1, 
           padding: isMobile ? "16px 16px 0 16px" : "24px", 
-          background: "#F4F7F9", 
+          background: T.dark ? T.bg : "#F4F7F9", 
           display: "flex", 
           flexDirection: "column", 
           alignItems: "center",
@@ -683,7 +684,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
                     <div style={{ background: "#fff", padding: 16, borderRadius: 20, boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}>
                       <img src={qrUrl} alt="QR Código" style={{ width: 220, height: 220, display: "block" }} />
                     </div>
-                    <div style={{ background: T.surface || T.border, borderRadius: 12, padding: "10px 16px", fontSize: 11, color: T.sub, wordBreak: "break-all" }}>
+                    <div style={{ background: T.surface || T.card, borderRadius: 12, padding: "10px 16px", fontSize: 11, color: T.sub, wordBreak: "break-all" }}>
                       {loyaltyUrl}
                     </div>
                     <a href={qrUrl} download="qr-lealtad.png" style={{ width: "100%", padding: 14, background: "#000", color: "#fff", borderRadius: 12, fontWeight: 700, fontSize: 14, textDecoration: "none", display: "block", textAlign: "center" }}>
@@ -803,6 +804,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
 
           {confirmSheet && (
             <LoyaltyConfirmSheet
+              T={T}
               title={confirmSheet.title}
               message={confirmSheet.message}
               confirmLabel={confirmSheet.confirmLabel}

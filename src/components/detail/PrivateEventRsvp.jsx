@@ -143,7 +143,7 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
             placeholder={t("eventos_tu_nombre", "Tu nombre")}
             value={name}
             onChange={e => setName(e.target.value)}
-            style={{ marginBottom: 10 }}
+            style={{ marginBottom: 10, width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: 12, border: `1.5px solid ${T.border}`, background: T.white, color: T.text, fontSize: 15, fontFamily: 'inherit', colorScheme: dark ? 'dark' : 'light' }}
           />
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             {STATUS_OPTIONS.map(opt => (
@@ -203,7 +203,7 @@ export default function PrivateEventRsvp({ event, T, dark, luma, toast$, onCount
             </div>
             <span style={{
               fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 9999,
-              background: row.status === 'voy' ? T.greenL : row.status === 'quizas' ? '#FEF3C7' : '#F1F5F9',
+              background: row.status === 'voy' ? T.greenL : row.status === 'quizas' ? '#FEF3C7' : (dark ? 'rgba(255,255,255,0.06)' : '#F1F5F9'),
               color: row.status === 'voy' ? T.green : row.status === 'quizas' ? '#92400E' : T.sub,
             }}>
               {pillLabel(row)}

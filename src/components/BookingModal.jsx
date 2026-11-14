@@ -366,15 +366,15 @@ ${notes ? `*Notas:* ${notes}` : ""}
           sin el resto del modal. */}
       <div
         onClick={e => e.stopPropagation()}
-        style={{ background: "#ffffff", border: "1px solid rgba(0,0,0,0.05)", width: "100%", maxWidth: 440, borderRadius: 28, padding: 24, boxShadow: "0 24px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.02)", maxHeight: "90vh", overflowY: "auto" }}
+        style={{ background: T.white, border: dark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)", width: "100%", maxWidth: 440, borderRadius: 28, padding: 24, boxShadow: "0 24px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.02)", maxHeight: "90vh", overflowY: "auto" }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, position: "relative" }}>
           <div style={{ width: 48, height: 48 }} />
           <div style={{ flex: 1, textAlign: "center", padding: "0 12px" }}>
-            <h2 style={{ fontSize: 20, fontWeight: 900, color: "#0F1A14", margin: 0, letterSpacing: "-0.5px" }}>{config.label || t("revista_reservar", "Reservar")}</h2>
-            <div style={{ fontSize: 13, color: "#5A6872", marginTop: 2, fontWeight: 600 }}>{biz.name}</div>
+            <h2 style={{ fontSize: 20, fontWeight: 900, color: T.text, margin: 0, letterSpacing: "-0.5px" }}>{config.label || t("revista_reservar", "Reservar")}</h2>
+            <div style={{ fontSize: 13, color: dark ? T.sub : "#5A6872", marginTop: 2, fontWeight: 600 }}>{biz.name}</div>
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.6)", backdropFilter: "blur(4px)", border: "1px solid rgba(0,0,0,0.05)", width: 40, height: 40, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}><Icon name="x" size={14} color="#0F1A14" /></button>
+          <button onClick={onClose} style={{ background: dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.6)", backdropFilter: "blur(4px)", border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.05)", width: 40, height: 40, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}><Icon name="x" size={14} color={T.text} /></button>
         </div>
 
         {success ? (
@@ -382,8 +382,8 @@ ${notes ? `*Notas:* ${notes}` : ""}
             <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#DCFCE7", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
               <Icon name="check" size={32} color="#16A34A" />
             </div>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>¡{config.autoApprove ? t("revista_reserva_confirmada", "Reserva Confirmada") : t("revista_solicitud_enviada", "Solicitud enviada")}!</h3>
-            <p style={{ fontSize: 14, color: "#5A6872", marginBottom: 24, lineHeight: 1.5 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 8 }}>¡{config.autoApprove ? t("revista_reserva_confirmada", "Reserva Confirmada") : t("revista_solicitud_enviada", "Solicitud enviada")}!</h3>
+            <p style={{ fontSize: 14, color: dark ? T.sub : "#5A6872", marginBottom: 24, lineHeight: 1.5 }}>
               {config.autoApprove 
                 ? t("revista_reserva_confirmada_desc", `Tu reserva para ${selectedService?.name} en ${biz.name} ha sido confirmada automáticamente. ¡Te esperan!`, {service: selectedService?.name, biz: biz.name}) 
                 : t("revista_solicitud_enviada_desc", `Hemos enviado tu solicitud a ${biz.name}. Para agilizar tu reservación, te recomendamos avisarles por WhatsApp.`, {biz: biz.name})}
@@ -394,7 +394,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
             >
               <Icon name="whatsapp" size={18} color="#fff" /> {t("revista_avisar_whatsapp", "Avisar por WhatsApp")}
             </button>
-            <button onClick={onClose} style={{ width: "100%", padding: 14, background: "transparent", color: "#5A6872", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            <button onClick={onClose} style={{ width: "100%", padding: 14, background: "transparent", color: dark ? T.sub : "#5A6872", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
               {t("revista_cerrar", "Cerrar")}
             </button>
           </div>
@@ -404,7 +404,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
               <div>
                 {Array.isArray(config.services) && config.services.length > 0 ? (
                   <div style={{ marginBottom: 8 }}>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#5A6872", marginBottom: 16, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("revista_selecciona_servicio", "1. Selecciona el servicio")}</label>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: dark ? T.sub : "#5A6872", marginBottom: 16, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("revista_selecciona_servicio", "1. Selecciona el servicio")}</label>
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {config.services.map((s, i) => {
                         const isSelected = serviceId === s.id;
@@ -415,25 +415,25 @@ ${notes ? `*Notas:* ${notes}` : ""}
                             onClick={() => setServiceId(s.id)}
                             style={{
                               width: "100%", textAlign: "left", padding: "18px", borderRadius: 20,
-                              border: isSelected ? "1px solid #BFDBFE" : "1px solid rgba(0,0,0,0.05)",
-                              background: isSelected ? "#EFF6FF" : "#ffffff",
+                              border: isSelected ? (dark ? "1px solid #5CA4FF" : "1px solid #BFDBFE") : (dark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)"),
+                              background: isSelected ? (dark ? "rgba(92,164,255,0.15)" : "#EFF6FF") : T.white,
                               backdropFilter: "blur(10px)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
                               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                              boxShadow: isSelected ? "none" : "0 4px 12px rgba(0,0,0,0.03), inset 0 2px 4px rgba(255,255,255,0.8)",
+                              boxShadow: isSelected ? "none" : (dark ? "none" : "0 4px 12px rgba(0,0,0,0.03), inset 0 2px 4px rgba(255,255,255,0.8)"),
                               transform: isSelected ? "scale(1.02)" : "scale(1)"
                             }}
                           >
                             <div>
-                              <div style={{ fontSize: 16, fontWeight: 800, color: isSelected ? "#1E3A8A" : "#0F1A14", marginBottom: 6 }}>{s.name}</div>
-                              <div style={{ fontSize: 13, color: isSelected ? "#2563EB" : "#64748B", display: "flex", gap: 12, fontWeight: 600 }}>
-                                {s.durationMin && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="clock" size={14} color={isSelected ? "#2563EB" : "#94A3B8"} />{formatDuration(s.durationMin)}</span>}
-                                {s.price && s.price !== "0" && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="credit-card" size={14} color={isSelected ? "#2563EB" : "#94A3B8"} />${s.price}</span>}
+                              <div style={{ fontSize: 16, fontWeight: 800, color: isSelected ? (dark ? "#93C5FD" : "#1E3A8A") : T.text, marginBottom: 6 }}>{s.name}</div>
+                              <div style={{ fontSize: 13, color: isSelected ? (dark ? "#93C5FD" : "#2563EB") : (dark ? T.sub : "#64748B"), display: "flex", gap: 12, fontWeight: 600 }}>
+                                {s.durationMin && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="clock" size={14} color={isSelected ? (dark ? "#93C5FD" : "#2563EB") : (dark ? T.sub : "#94A3B8")} />{formatDuration(s.durationMin)}</span>}
+                                {s.price && s.price !== "0" && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="credit-card" size={14} color={isSelected ? (dark ? "#93C5FD" : "#2563EB") : (dark ? T.sub : "#94A3B8")} />${s.price}</span>}
                               </div>
                             </div>
                             <div style={{
                               width: 28, height: 28, borderRadius: "50%",
-                              border: isSelected ? "none" : "2px solid rgba(15,26,20,0.15)",
-                              background: isSelected ? "#5CA4FF" : "rgba(255,255,255,0.5)",
+                              border: isSelected ? "none" : (dark ? "2px solid rgba(255,255,255,0.25)" : "2px solid rgba(15,26,20,0.15)"),
+                              background: isSelected ? "#5CA4FF" : (dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.5)"),
                               display: "flex", alignItems: "center", justifyContent: "center",
                               boxShadow: "none",
                               transition: "all 0.3s"
@@ -446,13 +446,13 @@ ${notes ? `*Notas:* ${notes}` : ""}
                     </div>
                   </div>
                 ) : (
-                  <div style={{ padding: "30px 20px", textAlign: "center", color: "#5A6872", background: "rgba(255,255,255,0.5)", backdropFilter: "blur(10px)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.5)" }}>
+                  <div style={{ padding: "30px 20px", textAlign: "center", color: dark ? T.sub : "#5A6872", background: dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.5)", backdropFilter: "blur(10px)", borderRadius: 20, border: dark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(255,255,255,0.5)" }}>
                     <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.8)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-                        <Icon name="calendar" size={24} color="#9CA3AF" />
+                      <div style={{ width: 48, height: 48, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.8)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+                        <Icon name="calendar" size={24} color={dark ? T.sub : "#9CA3AF"} />
                       </div>
                     </div>
-                    <div style={{ fontWeight: 800, color: "#0F1A14", fontSize: 16 }}>{t("revista_sin_servicios", "Aún no hay servicios disponibles")}</div>
+                    <div style={{ fontWeight: 800, color: T.text, fontSize: 16 }}>{t("revista_sin_servicios", "Aún no hay servicios disponibles")}</div>
                     <div style={{ fontSize: 13, marginTop: 6, fontWeight: 500 }}>{t("revista_sin_servicios_desc", "Este negocio no ha configurado sus opciones de reserva. Por favor contacta directamente al lugar.")}</div>
                   </div>
                 )}
@@ -462,11 +462,11 @@ ${notes ? `*Notas:* ${notes}` : ""}
             {/* 2. Fecha y Hora */}
             {step === 2 && (
               <m.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#5A6872", marginBottom: 16, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("revista_selecciona_fecha_hora", "2. Selecciona Fecha y Hora")}</label>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: dark ? T.sub : "#5A6872", marginBottom: 16, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("revista_selecciona_fecha_hora", "2. Selecciona Fecha y Hora")}</label>
                 
                 {/* Month Label */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, padding: "0 4px" }}>
-                  <h3 style={{ fontSize: 20, fontWeight: 900, color: "#0F1A14", margin: 0, textTransform: "capitalize", letterSpacing: "-0.5px" }}>{formatMonthName(selectedDateObj)} {selectedDateObj.getFullYear()}</h3>
+                  <h3 style={{ fontSize: 20, fontWeight: 900, color: T.text, margin: 0, textTransform: "capitalize", letterSpacing: "-0.5px" }}>{formatMonthName(selectedDateObj)} {selectedDateObj.getFullYear()}</h3>
                 </div>
                 
                 {/* Day Strip */}
@@ -485,42 +485,42 @@ ${notes ? `*Notas:* ${notes}` : ""}
                         onClick={() => setDate(localDate)}
                         style={{
                           flexShrink: 0, width: 64, height: 84, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 24,
-                          border: isSelected ? "2px solid #0F1A14" : "2px solid rgba(15,26,20,0.15)",
-                          background: isSelected ? "#0F1A14" : "#ffffff",
-                          color: isSelected ? "#fff" : "#0F1A14", cursor: "pointer",
+                          border: isSelected ? (dark ? "2px solid #F4F4F5" : "2px solid #0F1A14") : (dark ? "2px solid rgba(255,255,255,0.15)" : "2px solid rgba(15,26,20,0.15)"),
+                          background: isSelected ? (dark ? "#F4F4F5" : "#0F1A14") : T.white,
+                          color: isSelected ? (dark ? "#18181B" : "#fff") : T.text, cursor: "pointer",
                           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                           boxShadow: "none",
                           transform: isSelected ? "scale(1.05)" : "scale(1)"
                         }}
                       >
-                        <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? "rgba(255,255,255,0.8)" : "#64748B", marginBottom: 6 }}>{formatDayName(d)}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? (dark ? "rgba(24,24,27,0.7)" : "rgba(255,255,255,0.8)") : (dark ? T.sub : "#64748B"), marginBottom: 6 }}>{formatDayName(d)}</span>
                         <span style={{ fontSize: 20, fontWeight: 900 }}>{d.getDate()}</span>
                       </m.button>
                     );
                   })}
                 </div>
 
-                <div style={{ fontSize: 12, color: "#64748B", textAlign: "center", paddingBottom: 16, borderBottom: "1px solid rgba(0,0,0,0.05)", marginBottom: 16, fontWeight: 600 }}>{t("revista_horas_local", "Las horas se muestran en tu horario local")}</div>
+                <div style={{ fontSize: 12, color: dark ? T.sub : "#64748B", textAlign: "center", paddingBottom: 16, borderBottom: dark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)", marginBottom: 16, fontWeight: 600 }}>{t("revista_horas_local", "Las horas se muestran en tu horario local")}</div>
 
                 <div style={{ minHeight: 260 }}>
                   {date && (
                     fetchingSlots ? (
-                      <div style={{ textAlign: "center", padding: "40px 20px", color: "#9CA3AF", fontSize: 14, fontWeight: 600 }}>
-                        <Icon name="clock" size={24} color="#D1D5DB" style={{ marginBottom: 12, display: "block", margin: "0 auto" }} />
+                      <div style={{ textAlign: "center", padding: "40px 20px", color: dark ? T.sub : "#9CA3AF", fontSize: 14, fontWeight: 600 }}>
+                        <Icon name="clock" size={24} color={dark ? "#52525B" : "#D1D5DB"} style={{ marginBottom: 12, display: "block", margin: "0 auto" }} />
                         {t("revista_cargando_disponibilidad", "Cargando disponibilidad...")}
                       </div>
                     ) : (biz.booking_config?.blocked_dates || []).includes(date) ? (
-                    <div style={{ textAlign: "center", padding: "20px", background: "rgba(254, 226, 226, 0.8)", backdropFilter: "blur(10px)", color: "#991B1B", borderRadius: 16, fontSize: 14, fontWeight: 700, border: "1px solid rgba(254, 226, 226, 0.9)" }}>
+                    <div style={{ textAlign: "center", padding: "20px", background: dark ? "rgba(220,38,38,0.15)" : "rgba(254, 226, 226, 0.8)", backdropFilter: "blur(10px)", color: dark ? "#FCA5A5" : "#991B1B", borderRadius: 16, fontSize: 14, fontWeight: 700, border: dark ? "1px solid rgba(220,38,38,0.35)" : "1px solid rgba(254, 226, 226, 0.9)" }}>
                       {t("revista_sin_espacios_fecha", "No hay espacios disponibles para esta fecha.")}
                     </div>
                   ) : availableSlots.length > 0 ? (
                     isAllDay ? (
-                      <div style={{ textAlign: "center", padding: "24px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 20 }}>
+                      <div style={{ textAlign: "center", padding: "24px", background: dark ? "rgba(92,164,255,0.12)" : "#EFF6FF", border: dark ? "1px solid rgba(92,164,255,0.4)" : "1px solid #BFDBFE", borderRadius: 20 }}>
                         <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#5CA4FF", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
                           <Icon name="check" size={24} color="#FFF" />
                         </div>
-                        <div style={{ fontWeight: 900, color: "#1E3A8A", fontSize: 18, marginTop: 8 }}>{t("revista_evento_todo_dia", "Evento de Todo el Día")}</div>
-                        <div style={{ fontSize: 14, color: "#2563EB", marginTop: 6, fontWeight: 600, lineHeight: 1.4 }}>{t("revista_evento_todo_dia_desc", "Esta reservación asegurará tu lugar para todo el turno de la fecha seleccionada.")}</div>
+                        <div style={{ fontWeight: 900, color: dark ? "#93C5FD" : "#1E3A8A", fontSize: 18, marginTop: 8 }}>{t("revista_evento_todo_dia", "Evento de Todo el Día")}</div>
+                        <div style={{ fontSize: 14, color: dark ? "#BFDBFE" : "#2563EB", marginTop: 6, fontWeight: 600, lineHeight: 1.4 }}>{t("revista_evento_todo_dia_desc", "Esta reservación asegurará tu lugar para todo el turno de la fecha seleccionada.")}</div>
                       </div>
                     ) : (
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
@@ -535,14 +535,14 @@ ${notes ? `*Notas:* ${notes}` : ""}
                             onClick={() => setTime(slot.time)}
                             style={{
                               width: "100%", padding: "14px 8px",
-                              border: time === slot.time ? "2px solid #0F1A14" : !slot.available ? "2px solid rgba(0,0,0,0.03)" : "2px solid rgba(15,26,20,0.15)",
+                              border: time === slot.time ? (dark ? "2px solid #F4F4F5" : "2px solid #0F1A14") : !slot.available ? (dark ? "2px solid rgba(255,255,255,0.06)" : "2px solid rgba(0,0,0,0.03)") : (dark ? "2px solid rgba(255,255,255,0.15)" : "2px solid rgba(15,26,20,0.15)"),
                               borderRadius: 18,
-                              background: time === slot.time ? "#ffffff" : !slot.available ? "rgba(0,0,0,0.02)" : "#ffffff",
+                              background: time === slot.time ? T.white : !slot.available ? (dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)") : T.white,
                               display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 4,
                               cursor: slot.available ? "pointer" : "not-allowed",
                               transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                               boxShadow: "none",
-                              color: !slot.available ? "#D1D5DB" : (time === slot.time ? "#064E3B" : "#0F1A14"),
+                              color: !slot.available ? (dark ? "#52525B" : "#D1D5DB") : (time === slot.time ? (dark ? "#4ADE80" : "#064E3B") : T.text),
                               transform: time === slot.time ? "scale(1.05)" : "scale(1)"
                             }}
                           >
@@ -550,9 +550,9 @@ ${notes ? `*Notas:* ${notes}` : ""}
                               {formatTimeAMPM(slot.time)}
                             </span>
                             {time === slot.time ? (
-                              <span style={{ fontSize: 11, fontWeight: 800, color: "#10B981" }}>{t("revista_elegido", "Elegido")}</span>
+                              <span style={{ fontSize: 11, fontWeight: 800, color: dark ? "#4ADE80" : "#10B981" }}>{t("revista_elegido", "Elegido")}</span>
                             ) : (
-                              <span style={{ fontSize: 11, color: !slot.available ? "#D1D5DB" : "#64748B", fontWeight: 600 }}>
+                              <span style={{ fontSize: 11, color: !slot.available ? (dark ? "#52525B" : "#D1D5DB") : (dark ? T.sub : "#64748B"), fontWeight: 600 }}>
                                 {formatTimeRange(slot.time).split(" - ")[1]}
                               </span>
                             )}
@@ -561,7 +561,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
                       </div>
                     )
                   ) : (
-                    <div style={{ textAlign: "center", padding: "20px", background: "rgba(254, 226, 226, 0.8)", backdropFilter: "blur(10px)", color: "#991B1B", borderRadius: 16, fontSize: 14, fontWeight: 700, border: "1px solid rgba(254, 226, 226, 0.9)" }}>
+                    <div style={{ textAlign: "center", padding: "20px", background: dark ? "rgba(220,38,38,0.15)" : "rgba(254, 226, 226, 0.8)", backdropFilter: "blur(10px)", color: dark ? "#FCA5A5" : "#991B1B", borderRadius: 16, fontSize: 14, fontWeight: 700, border: dark ? "1px solid rgba(220,38,38,0.35)" : "1px solid rgba(254, 226, 226, 0.9)" }}>
                       {t("revista_cerrado_sin_disponibilidad", "Cerrado o sin disponibilidad este día.")}
                     </div>
                   )
@@ -573,27 +573,27 @@ ${notes ? `*Notas:* ${notes}` : ""}
             {/* 3. Datos Personales */}
             {step === 3 && (
               <m.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#5A6872", marginBottom: 20, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("revista_tus_datos", "3. Tus Datos")}</label>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: dark ? T.sub : "#5A6872", marginBottom: 20, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("revista_tus_datos", "3. Tus Datos")}</label>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 6, letterSpacing: "0.5px" }}>{t("revista_nombre_completo", "Nombre completo *")}</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t("revista_ej_nombre", "Ej: Carlos Slim")} style={{ width: "100%", padding: "16px", border: "2px solid rgba(15,26,20,0.15)", borderRadius: 16, fontSize: 15, background: "#ffffff", color: T?.text || "#0F1A14", fontFamily: "inherit", fontWeight: 600, boxShadow: "none", outline: "none", transition: "all 0.2s" }} onFocus={e => e.target.style.border="2px solid #0F1A14"} onBlur={e => e.target.style.border="2px solid rgba(15,26,20,0.15)"} required />
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.text, marginBottom: 6, letterSpacing: "0.5px" }}>{t("revista_nombre_completo", "Nombre completo *")}</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t("revista_ej_nombre", "Ej: Carlos Slim")} style={{ width: "100%", padding: "16px", border: dark ? "2px solid rgba(255,255,255,0.15)" : "2px solid rgba(15,26,20,0.15)", borderRadius: 16, fontSize: 15, background: T.white, color: T?.text || "#0F1A14", colorScheme: dark ? "dark" : "light", fontFamily: "inherit", fontWeight: 600, boxShadow: "none", outline: "none", transition: "all 0.2s" }} onFocus={e => e.target.style.border = dark ? "2px solid #F4F4F5" : "2px solid #0F1A14"} onBlur={e => e.target.style.border = dark ? "2px solid rgba(255,255,255,0.15)" : "2px solid rgba(15,26,20,0.15)"} required />
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 6, letterSpacing: "0.5px" }}>{t("revista_telefono_whatsapp", "Teléfono / WhatsApp *")}</label>
-                    <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder={t("revista_ej_telefono", "Ej: 311 123 4567")} style={{ width: "100%", padding: "16px", border: "2px solid rgba(15,26,20,0.15)", borderRadius: 16, fontSize: 15, background: "#ffffff", color: T?.text || "#0F1A14", fontFamily: "inherit", fontWeight: 600, boxShadow: "none", outline: "none", transition: "all 0.2s" }} onFocus={e => e.target.style.border="2px solid #0F1A14"} onBlur={e => e.target.style.border="2px solid rgba(15,26,20,0.15)"} required />
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.text, marginBottom: 6, letterSpacing: "0.5px" }}>{t("revista_telefono_whatsapp", "Teléfono / WhatsApp *")}</label>
+                    <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder={t("revista_ej_telefono", "Ej: 311 123 4567")} style={{ width: "100%", padding: "16px", border: dark ? "2px solid rgba(255,255,255,0.15)" : "2px solid rgba(15,26,20,0.15)", borderRadius: 16, fontSize: 15, background: T.white, color: T?.text || "#0F1A14", colorScheme: dark ? "dark" : "light", fontFamily: "inherit", fontWeight: 600, boxShadow: "none", outline: "none", transition: "all 0.2s" }} onFocus={e => e.target.style.border = dark ? "2px solid #F4F4F5" : "2px solid #0F1A14"} onBlur={e => e.target.style.border = dark ? "2px solid rgba(255,255,255,0.15)" : "2px solid rgba(15,26,20,0.15)"} required />
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 6, letterSpacing: "0.5px" }}>{t("revista_notas_adicionales", "Notas Adicionales")}</label>
-                    <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={t("revista_ej_notas", "Ej: Alergias, celebrar un cumpleaños...")} rows={2} style={{ width: "100%", padding: "16px", border: "2px solid rgba(15,26,20,0.15)", borderRadius: 16, fontSize: 15, background: "#ffffff", color: T?.text || "#0F1A14", fontFamily: "inherit", fontWeight: 600, boxShadow: "none", outline: "none", transition: "all 0.2s", resize: "none" }} onFocus={e => e.target.style.border="2px solid #0F1A14"} onBlur={e => e.target.style.border="2px solid rgba(15,26,20,0.15)"} />
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.text, marginBottom: 6, letterSpacing: "0.5px" }}>{t("revista_notas_adicionales", "Notas Adicionales")}</label>
+                    <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={t("revista_ej_notas", "Ej: Alergias, celebrar un cumpleaños...")} rows={2} style={{ width: "100%", padding: "16px", border: dark ? "2px solid rgba(255,255,255,0.15)" : "2px solid rgba(15,26,20,0.15)", borderRadius: 16, fontSize: 15, background: T.white, color: T?.text || "#0F1A14", colorScheme: dark ? "dark" : "light", fontFamily: "inherit", fontWeight: 600, boxShadow: "none", outline: "none", transition: "all 0.2s", resize: "none" }} onFocus={e => e.target.style.border = dark ? "2px solid #F4F4F5" : "2px solid #0F1A14"} onBlur={e => e.target.style.border = dark ? "2px solid rgba(255,255,255,0.15)" : "2px solid rgba(15,26,20,0.15)"} />
                   </div>
                 </div>
 
                 {submitError && (
-                  <div style={{ padding: "16px", background: "rgba(254, 226, 226, 0.8)", backdropFilter: "blur(10px)", color: "#991B1B", borderRadius: 16, fontSize: 14, fontWeight: 700, marginTop: 20, border: "1px solid rgba(254, 226, 226, 0.9)" }}>
+                  <div style={{ padding: "16px", background: dark ? "rgba(220,38,38,0.15)" : "rgba(254, 226, 226, 0.8)", backdropFilter: "blur(10px)", color: dark ? "#FCA5A5" : "#991B1B", borderRadius: 16, fontSize: 14, fontWeight: 700, marginTop: 20, border: dark ? "1px solid rgba(220,38,38,0.35)" : "1px solid rgba(254, 226, 226, 0.9)" }}>
                     {submitError}
                   </div>
                 )}
@@ -601,9 +601,9 @@ ${notes ? `*Notas:* ${notes}` : ""}
             )}
 
             {/* Pagination Controls */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, paddingTop: 20, borderTop: "1px solid rgba(0,0,0,0.05)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, paddingTop: 20, borderTop: dark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)" }}>
               {step > 1 ? (
-                <button type="button" onClick={() => setStep(step - 1)} style={{ padding: "12px 20px", background: "#ffffff", border: "2px solid rgba(15,26,20,0.15)", borderRadius: 20, fontSize: 14, fontWeight: 800, color: "#0F1A14", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "none" }}>
+                <button type="button" onClick={() => setStep(step - 1)} style={{ padding: "12px 20px", background: T.white, border: dark ? "2px solid rgba(255,255,255,0.15)" : "2px solid rgba(15,26,20,0.15)", borderRadius: 20, fontSize: 14, fontWeight: 800, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "none" }}>
                   <Icon name="chevron-left" size={16} /> {t("revista_atras", "Atrás")}
                 </button>
               ) : (
@@ -612,7 +612,7 @@ ${notes ? `*Notas:* ${notes}` : ""}
               
               <div style={{ display: "flex", gap: 6 }}>
                 {[1, 2, 3].map(i => (
-                  <div key={i} style={{ width: i === step ? 24 : 8, height: 8, borderRadius: 4, background: i === step ? "#5CA4FF" : "rgba(0,0,0,0.1)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }} />
+                  <div key={i} style={{ width: i === step ? 24 : 8, height: 8, borderRadius: 4, background: i === step ? "#5CA4FF" : (dark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)"), transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }} />
                 ))}
               </div>
 
@@ -621,15 +621,15 @@ ${notes ? `*Notas:* ${notes}` : ""}
                   type="button" 
                   disabled={(step === 1 && !serviceId) || (step === 2 && (!date || !time))}
                   onClick={() => setStep(step + 1)} 
-                  style={{ padding: "12px 24px", background: (step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? "rgba(0,0,0,0.05)" : "#0F1A14", border: "none", borderRadius: 20, fontSize: 14, fontWeight: 800, color: (step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? "#9CA3AF" : "#fff", cursor: (step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "none", transition: "all 0.2s" }}
+                  style={{ padding: "12px 24px", background: (step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)") : (dark ? "#F4F4F5" : "#0F1A14"), border: "none", borderRadius: 20, fontSize: 14, fontWeight: 800, color: (step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? (dark ? "#71717A" : "#9CA3AF") : (dark ? "#18181B" : "#fff"), cursor: (step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "none", transition: "all 0.2s" }}
                 >
-                  {t("revista_siguiente", "Siguiente")} <Icon name="chevron-right" size={16} color={(step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? "#9CA3AF" : "#fff"} />
+                  {t("revista_siguiente", "Siguiente")} <Icon name="chevron-right" size={16} color={(step === 1 && !serviceId) || (step === 2 && (!date || !time)) ? (dark ? "#71717A" : "#9CA3AF") : (dark ? "#18181B" : "#fff")} />
                 </button>
               ) : (
                 <button 
                   type="submit" 
                   disabled={loading || !date || !time || !name || !phone || !serviceId}
-                  style={{ padding: "12px 24px", background: loading || !name || !phone ? "rgba(0,0,0,0.05)" : "#1877F2", border: "none", borderRadius: 20, fontSize: 14, fontWeight: 800, color: loading || !name || !phone ? "#9CA3AF" : "#fff", cursor: loading || !name || !phone ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "none", transition: "all 0.2s" }}
+                  style={{ padding: "12px 24px", background: loading || !name || !phone ? (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)") : "#1877F2", border: "none", borderRadius: 20, fontSize: 14, fontWeight: 800, color: loading || !name || !phone ? (dark ? "#71717A" : "#9CA3AF") : "#fff", cursor: loading || !name || !phone ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "none", transition: "all 0.2s" }}
                 >
                   {loading ? t("revista_enviando", "Enviando...") : config.autoApprove ? t("revista_confirmar", "Confirmar") : t("revista_solicitar", "Solicitar")}
                 </button>

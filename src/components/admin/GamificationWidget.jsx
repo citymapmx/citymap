@@ -21,7 +21,7 @@ export default function GamificationWidget({ ownerView }) {
           </h3>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: T.sub, fontWeight: 500 }}>Sube de nivel para destacar más.</p>
         </div>
-        <div style={{ background: currentTier ? currentTier.color : '#f1f5f9', padding: "8px 12px", borderRadius: 12, display: "flex", alignItems: "center", gap: 6, color: currentTier ? '#fff' : T.text, fontWeight: 800, fontSize: 14 }}>
+        <div style={{ background: currentTier ? currentTier.color : T.iconBg, padding: "8px 12px", borderRadius: 12, display: "flex", alignItems: "center", gap: 6, color: currentTier ? '#18181B' : T.text, fontWeight: 800, fontSize: 14 }}>
           <span>{currentTier ? currentTier.icon : '🌱'}</span>
           {currentTier ? currentTier.name : 'Nuevo'}
         </div>

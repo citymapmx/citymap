@@ -226,7 +226,7 @@ export default function StoreCategoriesTab({
                         onKeyDown={e => { if (e.key === 'Enter') renameCategory(c.id, editingCatName); if (e.key === 'Escape') setEditingCatId(null); }}
                         style={{ ...inpH, padding: '8px 10px', fontSize: 15, fontWeight: 700 }} 
                       />
-                      <button onClick={() => renameCategory(c.id, editingCatName)} style={{ background: T.green, color: '#fff', border: 'none', borderRadius: 8, padding: '0 12px', fontWeight: 700, cursor: 'pointer', fontSize: 12, flexShrink: 0 }}>OK</button>
+                      <button onClick={() => renameCategory(c.id, editingCatName)} style={{ background: T.green, color: T.dark ? '#18181B' : '#FFFFFF', border: 'none', borderRadius: 8, padding: '0 12px', fontWeight: 700, cursor: 'pointer', fontSize: 12, flexShrink: 0 }}>OK</button>
                       <button onClick={() => setEditingCatId(null)} style={{ background: T.border, color: T.text, border: 'none', borderRadius: 8, padding: '0 10px', cursor: 'pointer', fontSize: 12, flexShrink: 0 }}><Icon name="x" size={12} /></button>
                     </div>
                   ) : (
@@ -246,7 +246,7 @@ export default function StoreCategoriesTab({
                     <button aria-label={`Horario de ${c.name}`} title="Horario en que se muestra esta categoría" onClick={() => { if (scheduleCatId === c.id) setScheduleCatId(null); else openScheduleEditor(c); }} style={{ background: scheduleCatId === c.id ? '#0F172A' : T.bg, border: `1px solid ${T.border}`, width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="clock" size={14} color={scheduleCatId === c.id ? '#fff' : T.text} /></button>
                     <button onClick={() => { setEditingCatId(c.id); setEditingCatName(c.name); }} style={{ background: T.bg, border: `1px solid ${T.border}`, width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="edit" size={14} color={T.text} /></button>
                     <button onClick={() => { setActiveCat(c); setView('prods'); }} style={{ background: '#0F172A', border: 'none', width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="chevron" size={14} color="#fff" /></button>
-                    <button onClick={() => deleteCategory(c.id)} style={{ background: '#FEF2F2', border: 'none', width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="trash" size={14} color={T.red} /></button>
+                    <button onClick={() => deleteCategory(c.id)} style={{ background: '#FEF2F2', border: 'none', width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="trash" size={14} color={T.dark ? "#DC2626" : T.red} /></button>
                   </div>
                 )}
               </div>

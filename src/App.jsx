@@ -1364,7 +1364,7 @@ useEffect(() => {
     .card:hover{box-shadow:${T.shadowLg};transform:translateY(-2px);}
     .inp{width:100%;padding:14px 16px;background:${T.white};border:1.5px solid ${T.border};border-radius:12px;font-size:15px;color:${T.text};transition:border-color .2s,background .3s;}
     .inp:focus{border-color:${T.green};}.inp::placeholder{color:${T.sub};}
-    .btn-g{background:${T.green};color:#fff;border:none;padding:15px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;transition:background .18s;}
+    .btn-g{background:${T.green};color:${dark ? '#18181B' : '#FFFFFF'};border:none;padding:15px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;transition:background .18s;}
     .btn-g:hover{background:${T.greenD};}
     .btn-s{background:${T.white};color:${T.green};border:1.5px solid ${T.green};padding:14px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;}
     .act{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 6px;background:${T.white};border:1.5px solid ${T.border};border-radius:12px;cursor:pointer;transition:all .18s;flex:1;}

@@ -11,7 +11,9 @@ import { useGMaps } from "./GMap.jsx";
 // ─── ANALYTICS MINI CARD ──────────────────────────────────────────────────────
 
 function MetricCard({ label, value, icon, color, T }) {
-  return <div style={{ background: T.white, borderRadius: 14, padding: "14px 16px", boxShadow: T.shadow, flex: 1, minWidth: 0 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}><span className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6 }}>{label}</span><div style={{ width: 30, height: 30, borderRadius: 8, background: color + "22", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={icon} size={14} color={color} /></div></div><div className="text-2xl" style={{ fontWeight: 800, color: T.text }}>{value}</div></div>;
+  // Vive dentro de tarjetas blancas fijas sobre la cáscara clara del admin.
+  const LT = T.dark ? { white: "#FFFFFF", sub: "#6B7280", text: "#0F1A14", shadow: "0 2px 8px rgba(0,0,0,.05)" } : T;
+  return <div style={{ background: LT.white, borderRadius: 14, padding: "14px 16px", boxShadow: LT.shadow, flex: 1, minWidth: 0 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}><span className="text-xs" style={{ fontWeight: 700, color: LT.sub, textTransform: "uppercase", letterSpacing: .6 }}>{label}</span><div style={{ width: 30, height: 30, borderRadius: 8, background: color + "22", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={icon} size={14} color={color} /></div></div><div className="text-2xl" style={{ fontWeight: 800, color: LT.text }}>{value}</div></div>;
 }
 
 
@@ -35,6 +37,9 @@ const AdminActivityTab = lazy(() => import('./admin/AdminActivityTab.jsx'));
 const AdminWelcomeTab = lazy(() => import('./admin/AdminWelcomeTab.jsx'));
 
 function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
+  // Cáscara clara fija (#F7F8F6): en oscuro esta sección se queda en paleta clara
+  // local para no mezclar texto claro (T.text/T.sub) sobre fondo claro.
+  const LT = T.dark ? { text: "#0F1A14", sub: "#5A6872", border: "#E5E7EB", white: "#FFFFFF", bg: "#F7F8F6", green: "#000000", shadow: "0 2px 8px rgba(0,0,0,.05)" } : T;
   const [tab, setTab] = useState("welcome");
   const [data, setData] = useState({ biz: [], events: [], experiences: [], promos: [], coupons: [], raffles: [], banners: [], cities: [], categories: [], city_categories: [], analytics: [], reservations: [], claims: [] });
   const [loading, setLoading] = useState(true);
@@ -222,14 +227,14 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
               {claims.map(claim => {
                 const b = data.biz.find(x => x.id === claim.business_id);
                 const bizName = b ? b.name : "Negocio Desconocido";
-                return <div key={claim.id} style={{ background: T.white, borderRadius: 14, padding: "14px", marginBottom: 12, boxShadow: T.shadow, border: `1px solid ${T.border}` }}>
+                return <div key={claim.id} style={{ background: LT.white, borderRadius: 14, padding: "14px", marginBottom: 12, boxShadow: LT.shadow, border: `1px solid ${LT.border}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <div className="text-base" style={{ fontWeight: 800, color: T.text }}>Reclamo de {bizName}</div>
-                    <span className="text-micro" style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontWeight: 800 }}>Por revisar</span>
+                    <div className="text-base" style={{ fontWeight: 800, color: LT.text }}>Reclamo de {bizName}</div>
+                    <span className="text-micro" style={{ background: LT.bg, color: LT.text, border: `1px solid ${LT.border}`, borderRadius: 20, padding: "3px 10px", fontWeight: 800 }}>Por revisar</span>
                   </div>
-                  <div className="text-sm" style={{ color: T.sub, marginBottom: 4 }}><strong>Email:</strong> {claim.email}</div>
-                  <div className="text-sm" style={{ color: T.sub, marginBottom: 4 }}><strong>Teléfono:</strong> {claim.phone}</div>
-                  <div className="text-sm" style={{ color: T.sub, marginBottom: 12 }}><strong>Rol:</strong> {claim.role}</div>
+                  <div className="text-sm" style={{ color: LT.sub, marginBottom: 4 }}><strong>Email:</strong> {claim.email}</div>
+                  <div className="text-sm" style={{ color: LT.sub, marginBottom: 4 }}><strong>Teléfono:</strong> {claim.phone}</div>
+                  <div className="text-sm" style={{ color: LT.sub, marginBottom: 12 }}><strong>Rol:</strong> {claim.role}</div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={async () => { 
                       await sb.patch("businesses", claim.business_id, { owner_id: claim.user_id }); 
@@ -238,8 +243,8 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                       await sb.notify(claim.user_id, "Reclamo aprobado", `Eres el administrador oficial de ${b ? b.name : 'tu negocio'}.`, "approval", null, businessNotificationImage(b));
                       onToast("Reclamo aprobado ✓"); 
                       await load(); 
-                    }} style={{ flex: 1, padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>Aprobar Reclamo</button>
-                    <button onClick={async () => { await sb.patch("business_claims", claim.id, { status: "rejected" }); onToast("Reclamo rechazado"); await load(); }} style={{ flex: 1, padding: "9px 0", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 800, fontSize: 12, color: T.sub, cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
+                    }} style={{ flex: 1, padding: "9px 0", background: LT.text, border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, color: LT.bg, cursor: "pointer", fontFamily: "inherit" }}>Aprobar Reclamo</button>
+                    <button onClick={async () => { await sb.patch("business_claims", claim.id, { status: "rejected" }); onToast("Reclamo rechazado"); await load(); }} style={{ flex: 1, padding: "9px 0", background: "transparent", border: `1px solid ${LT.border}`, borderRadius: 10, fontWeight: 800, fontSize: 12, color: LT.sub, cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
                   </div>
                 </div>
               })}
@@ -252,7 +257,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div className="text-base" style={{ fontWeight: 700, color: "#0F1A14" }}>{b.name}</div>
-                  <span className="text-micro" style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontWeight: 800, flexShrink: 0, marginLeft: 6 }}>{b.status === "needs_changes" ? "Requiere cambios" : "Pendiente"}</span>
+                  <span className="text-micro" style={{ background: LT.bg, color: LT.text, border: `1px solid ${LT.border}`, borderRadius: 20, padding: "3px 10px", fontWeight: 800, flexShrink: 0, marginLeft: 6 }}>{b.status === "needs_changes" ? "Requiere cambios" : "Pendiente"}</span>
                 </div>
                 <div className="text-xs" style={{ color: "#5A6872", marginTop: 2 }}>{b.type || b.category} · {b.address}</div>
                 {b.phone && <div className="text-xs" style={{ color: "#5A6872" }}>Tel: {b.phone}{b.whatsapp && " · WA: " + b.whatsapp}</div>}
@@ -260,15 +265,15 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                 {(b.facebook || b.instagram || b.tiktok) && <div className="text-xs" style={{ color: "#5A6872", marginTop: 4 }}>{[b.facebook && "FB", b.instagram && "IG", b.tiktok && "TK"].filter(Boolean).join(" · ")}</div>}
               </div>
             </div>
-            {b.admin_notes && <div className="text-xs" style={{ background: T.bg, borderRadius: 8, padding: "8px 10px", color: T.sub, marginBottom: 8, borderLeft: `3px solid ${T.border}` }}>Nota anterior: {b.admin_notes}</div>}
+            {b.admin_notes && <div className="text-xs" style={{ background: LT.bg, borderRadius: 8, padding: "8px 10px", color: LT.sub, marginBottom: 8, borderLeft: `3px solid ${LT.border}` }}>Nota anterior: {b.admin_notes}</div>}
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <button onClick={() => approveBiz(b.id)} style={{ flex: 1, padding: "9px 0", background: T.text, border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, color: T.bg, cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>
-              <button onClick={() => rejectBiz(b.id)} style={{ flex: 1, padding: "9px 0", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 800, fontSize: 12, color: T.sub, cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
-              <button onClick={() => setTab("biz")} style={{ padding: "9px 12px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, cursor: "pointer" }}><Icon name="edit" size={13} color={T.text} /></button>
+              <button onClick={() => approveBiz(b.id)} style={{ flex: 1, padding: "9px 0", background: LT.text, border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, color: LT.bg, cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>
+              <button onClick={() => rejectBiz(b.id)} style={{ flex: 1, padding: "9px 0", background: "transparent", border: `1px solid ${LT.border}`, borderRadius: 10, fontWeight: 800, fontSize: 12, color: LT.sub, cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
+              <button onClick={() => setTab("biz")} style={{ padding: "9px 12px", background: "transparent", border: `1px solid ${LT.border}`, borderRadius: 10, cursor: "pointer" }}><Icon name="edit" size={13} color={LT.text} /></button>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <input className="text-xs" placeholder="Comentario para el propietario..." style={{ flex: 1, padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: 10, color: T.text, background: "transparent", fontFamily: "inherit" }} id={`note-${b.id}`} defaultValue={b.admin_notes || ""} />
-              <button onClick={() => requestBizChanges(b)} disabled={requestingChangesId === b.id} style={{ padding: "9px 12px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 12, fontWeight: 800, color: T.text, cursor: requestingChangesId === b.id ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap", opacity: requestingChangesId === b.id ? 0.5 : 1 }}>{requestingChangesId === b.id ? "Enviando..." : "Pedir cambios"}</button>
+              <input className="text-xs" placeholder="Comentario para el propietario..." style={{ flex: 1, padding: "9px 12px", border: `1px solid ${LT.border}`, borderRadius: 10, color: LT.text, background: "transparent", fontFamily: "inherit" }} id={`note-${b.id}`} defaultValue={b.admin_notes || ""} />
+              <button onClick={() => requestBizChanges(b)} disabled={requestingChangesId === b.id} style={{ padding: "9px 12px", background: "transparent", border: `1px solid ${LT.border}`, borderRadius: 10, fontSize: 12, fontWeight: 800, color: LT.text, cursor: requestingChangesId === b.id ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap", opacity: requestingChangesId === b.id ? 0.5 : 1 }}>{requestingChangesId === b.id ? "Enviando..." : "Pedir cambios"}</button>
             </div>
           </div>)}
 
@@ -280,7 +285,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div className="text-base" style={{ fontWeight: 700, color: "#0F1A14" }}>{ev.title}</div>
-                    <span className="text-micro" style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", fontWeight: 800, flexShrink: 0, marginLeft: 6 }}>Pendiente</span>
+                    <span className="text-micro" style={{ background: LT.bg, color: LT.text, border: `1px solid ${LT.border}`, borderRadius: 20, padding: "3px 10px", fontWeight: 800, flexShrink: 0, marginLeft: 6 }}>Pendiente</span>
                   </div>
                   <div className="text-xs" style={{ color: "#5A6872", marginTop: 2 }}>{ev.date}{ev.time && " · " + ev.time}</div>
                   {ev.venue_name && <div className="text-xs" style={{ color: "#5A6872" }}>Lugar: {ev.venue_name}</div>}
@@ -569,6 +574,9 @@ export async function callRecordatorios(dry) {
 }
 
 function PushTab({ T, onToast }) {
+  // Cáscara clara fija (#F7F8F6): en oscuro esta sección se queda en paleta clara
+  // local para no mezclar el texto claro del tema sobre fondo claro.
+  const LT = T.dark ? { text: "#0F1A14", sub: "#5A6872", border: "#E5E7EB", white: "#FFFFFF", bg: "#F7F8F6", green: "#000000", shadow: "0 2px 8px rgba(0,0,0,.05)" } : T;
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [imgUrl, setImgUrl] = useState(null);
@@ -695,39 +703,39 @@ function PushTab({ T, onToast }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h3 className="text-lg" style={{ margin: 0, color: T.text }}>Enviar Notificación Push</h3>
-      <p className="text-sm" style={{ margin: 0, color: T.sub }}>Se enviará a los dispositivos que hayan activado las notificaciones de CityMap.</p>
+      <h3 className="text-lg" style={{ margin: 0, color: LT.text }}>Enviar Notificación Push</h3>
+      <p className="text-sm" style={{ margin: 0, color: LT.sub }}>Se enviará a los dispositivos que hayan activado las notificaciones de CityMap.</p>
       
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase" }}>Ciudad Destino</label>
-        <select value={targetCity} onChange={e => setTargetCity(e.target.value)} style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid " + T.border, outline: "none", fontSize: 14, fontFamily: "inherit", background: T.white, color: T.text, appearance: "none" }}>
+        <label className="text-xs" style={{ fontWeight: 700, color: LT.sub, textTransform: "uppercase" }}>Ciudad Destino</label>
+        <select value={targetCity} onChange={e => setTargetCity(e.target.value)} style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid " + LT.border, outline: "none", fontSize: 14, fontFamily: "inherit", background: LT.white, color: LT.text, appearance: "none" }}>
           <option value="">🌎 Enviar a TODAS las ciudades (Global)</option>
           {cities.map(c => <option key={c.slug} value={c.slug}>📍 Solo usuarios en: {c.name}</option>)}
         </select>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase" }}>Título</label>
-        <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: ¡Nueva Taquería!" style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid " + T.border, outline: "none", fontSize: 14, fontFamily: "inherit", background: T.white, color: T.text }} />
+        <label className="text-xs" style={{ fontWeight: 700, color: LT.sub, textTransform: "uppercase" }}>Título</label>
+        <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: ¡Nueva Taquería!" style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid " + LT.border, outline: "none", fontSize: 14, fontFamily: "inherit", background: LT.white, color: LT.text }} />
       </div>
       
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase" }}>Mensaje</label>
-        <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Descubre los mejores tacos de pastor de la ciudad..." rows={3} style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid " + T.border, outline: "none", fontSize: 14, fontFamily: "inherit", background: T.white, color: T.text, resize: "none" }} />
+        <label className="text-xs" style={{ fontWeight: 700, color: LT.sub, textTransform: "uppercase" }}>Mensaje</label>
+        <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Descubre los mejores tacos de pastor de la ciudad..." rows={3} style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid " + LT.border, outline: "none", fontSize: 14, fontFamily: "inherit", background: LT.white, color: LT.text, resize: "none" }} />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase" }}>Imagen Destacada (Opcional)</label>
+        <label className="text-xs" style={{ fontWeight: 700, color: LT.sub, textTransform: "uppercase" }}>Imagen Destacada (Opcional)</label>
         <Uploader aspect={21/9} onDone={url => setImgUrl(url)} />
         {imgUrl && <div style={{ marginTop: 8, height: 120, borderRadius: 10, overflow: "hidden" }}><img src={imgUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>}
       </div>
 
       {/* Deep Link Selector */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <label className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase" }}>Al tocar la notificación, abrir… (opcional)</label>
+        <label className="text-xs" style={{ fontWeight: 700, color: LT.sub, textTransform: "uppercase" }}>Al tocar la notificación, abrir… (opcional)</label>
         <div style={{ display: "flex", gap: 8 }}>
           {[["none", "Solo la app"], ["biz", "Un negocio"], ["event", "Un evento"]].map(([val, lbl]) => (
-            <button key={val} onClick={() => setDeepLinkType(val)} style={{ flex: 1, padding: "10px 8px", borderRadius: 10, border: "2px solid " + (deepLinkType === val ? T.green : T.border), background: deepLinkType === val ? T.green + "18" : T.white, color: deepLinkType === val ? T.green : T.sub, fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all 0.2s" }}>
+            <button key={val} onClick={() => setDeepLinkType(val)} style={{ flex: 1, padding: "10px 8px", borderRadius: 10, border: "2px solid " + (deepLinkType === val ? LT.green : LT.border), background: deepLinkType === val ? LT.green + "18" : LT.white, color: deepLinkType === val ? LT.green : LT.sub, fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all 0.2s" }}>
               {lbl}
             </button>
           ))}
@@ -741,51 +749,51 @@ function PushTab({ T, onToast }) {
               onChange={e => { setSearch(e.target.value); setSelectedItem(null); setShowDropdown(true); }}
               onFocus={() => setShowDropdown(true)}
               placeholder={deepLinkType === "biz" ? "Buscar negocio..." : "Buscar evento..."}
-              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid " + (selectedItem ? T.green : T.border), outline: "none", fontSize: 14, fontFamily: "inherit", background: T.white, color: T.text, boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid " + (selectedItem ? LT.green : LT.border), outline: "none", fontSize: 14, fontFamily: "inherit", background: LT.white, color: LT.text, boxSizing: "border-box" }}
             />
             {showDropdown && !selectedItem && items.length > 0 && (
-              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: T.white, border: "1px solid " + T.border, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,.12)", zIndex: 100, maxHeight: 200, overflowY: "auto" }}>
+              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: LT.white, border: "1px solid " + LT.border, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,.12)", zIndex: 100, maxHeight: 200, overflowY: "auto" }}>
                 {items.slice(0, 20).map(item => (
-                  <div key={item.id} onClick={() => { setSelectedItem(item); setShowDropdown(false); setSearch(""); }} style={{ padding: "10px 14px", cursor: "pointer", fontSize: 13, color: T.text, borderBottom: "1px solid " + T.border + "66" }}
-                    onMouseEnter={e => e.currentTarget.style.background = T.green + "18"}
+                  <div key={item.id} onClick={() => { setSelectedItem(item); setShowDropdown(false); setSearch(""); }} style={{ padding: "10px 14px", cursor: "pointer", fontSize: 13, color: LT.text, borderBottom: "1px solid " + LT.border + "66" }}
+                    onMouseEnter={e => e.currentTarget.style.background = LT.green + "18"}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     {item.name || item.title}
-                    {item.city_slug && <span className="text-xs" style={{ color: T.sub, marginLeft: 6 }}>({item.city_slug})</span>}
+                    {item.city_slug && <span className="text-xs" style={{ color: LT.sub, marginLeft: 6 }}>({item.city_slug})</span>}
                   </div>
                 ))}
               </div>
             )}
             {selectedItem && (
               <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8 }}>
-                <span className="text-xs" style={{ color: T.green, fontWeight: 700 }}>✅ {selectedItem.name || selectedItem.title}</span>
-                <button onClick={() => { setSelectedItem(null); setSearch(""); }} style={{ background: "none", border: "none", color: T.sub, cursor: "pointer", fontSize: 12 }}>✕ Cambiar</button>
+                <span className="text-xs" style={{ color: LT.green, fontWeight: 700 }}>✅ {selectedItem.name || selectedItem.title}</span>
+                <button onClick={() => { setSelectedItem(null); setSearch(""); }} style={{ background: "none", border: "none", color: LT.sub, cursor: "pointer", fontSize: 12 }}>✕ Cambiar</button>
               </div>
             )}
           </div>
         )}
       </div>
 
-      <button type="button" onClick={() => handleSend(true)} disabled={loading} style={{ padding: "12px 16px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.white, color: T.text, fontWeight: 700, cursor: "pointer" }}>Enviar prueba a mi cuenta</button>
+      <button type="button" onClick={() => handleSend(true)} disabled={loading} style={{ padding: "12px 16px", borderRadius: 12, border: `1px solid ${LT.border}`, background: LT.white, color: LT.text, fontWeight: 700, cursor: "pointer" }}>Enviar prueba a mi cuenta</button>
       <button className="text-base" onClick={() => handleSend(false)} disabled={loading} style={{ background: T.green, color: T.dark ? "#18181B" : "#FFFFFF", padding: "14px 20px", borderRadius: 12, border: "none", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "all 0.2s", marginTop: 6 }}>
         {loading ? "Enviando..." : "Enviar Notificación Masiva"}
       </button>
 
       {/* Recordatorios de eventos */}
-      <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-        <h3 className="text-lg" style={{ margin: 0, color: T.text }}>Recordatorios de eventos</h3>
-        <p className="text-sm" style={{ margin: 0, color: T.sub }}>Avisa a quienes guardaron un evento que es hoy. Primero corre el simulacro para ver cuántos avisos se enviarían, sin mandar nada. Solo si hay avisos aparece el botón para enviarlos.</p>
-        <button type="button" onClick={handleTestReminders} disabled={remLoading} style={{ padding: "12px 16px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.white, color: T.text, fontWeight: 700, cursor: remLoading ? "not-allowed" : "pointer", opacity: remLoading ? 0.7 : 1 }}>
+      <div style={{ borderTop: `1px solid ${LT.border}`, paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+        <h3 className="text-lg" style={{ margin: 0, color: LT.text }}>Recordatorios de eventos</h3>
+        <p className="text-sm" style={{ margin: 0, color: LT.sub }}>Avisa a quienes guardaron un evento que es hoy. Primero corre el simulacro para ver cuántos avisos se enviarían, sin mandar nada. Solo si hay avisos aparece el botón para enviarlos.</p>
+        <button type="button" onClick={handleTestReminders} disabled={remLoading} style={{ padding: "12px 16px", borderRadius: 12, border: `1px solid ${LT.border}`, background: LT.white, color: LT.text, fontWeight: 700, cursor: remLoading ? "not-allowed" : "pointer", opacity: remLoading ? 0.7 : 1 }}>
           {remLoading ? "Calculando..." : "Probar recordatorios"}
         </button>
         {remError && <div style={{ padding: "12px 14px", borderRadius: 10, background: "#FEE2E2", color: "#991B1B", fontSize: 14, fontWeight: 600 }}>⚠️ {remError}</div>}
         {remPlan && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.white }}>
-            <div className="text-sm" style={{ color: T.text, fontWeight: 700 }}>Hoy {remPlan.today} · {remPlan.events} evento(s) · {remPlan.reminders} recordatorio(s)</div>
-            {remPlan.skipped > 0 && <div className="text-sm" style={{ color: T.sub }}>{remPlan.skipped} omitido(s) por ya enviado(s) hoy.</div>}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 14px", borderRadius: 10, border: `1px solid ${LT.border}`, background: LT.white }}>
+            <div className="text-sm" style={{ color: LT.text, fontWeight: 700 }}>Hoy {remPlan.today} · {remPlan.events} evento(s) · {remPlan.reminders} recordatorio(s)</div>
+            {remPlan.skipped > 0 && <div className="text-sm" style={{ color: LT.sub }}>{remPlan.skipped} omitido(s) por ya enviado(s) hoy.</div>}
             {remPlan.reminders === 0
-              ? <div className="text-sm" style={{ color: T.sub }}>No hay recordatorios para hoy: nadie guardó un evento de hoy o ya se avisó.</div>
+              ? <div className="text-sm" style={{ color: LT.sub }}>No hay recordatorios para hoy: nadie guardó un evento de hoy o ya se avisó.</div>
               : groupReminderPlan(remPlan.plan).map((g) => (
-                <div key={g.eventId || g.title} className="text-sm" style={{ color: T.text }}>
+                <div key={g.eventId || g.title} className="text-sm" style={{ color: LT.text }}>
                   <strong>{g.title || "Evento"}</strong>{g.time ? ` · ${g.time}` : ""} · {g.users} usuario(s)
                 </div>
               ))}
@@ -797,8 +805,8 @@ function PushTab({ T, onToast }) {
           </div>
         )}
         {remSent && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.white }}>
-            <div className="text-sm" style={{ color: T.text, fontWeight: 700 }}>✅ Enviados: {remSent.sent?.length || 0} · Fallidos: {remSent.failed?.length || 0} · Omitidos: {remSent.skipped || 0}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", borderRadius: 10, border: `1px solid ${LT.border}`, background: LT.white }}>
+            <div className="text-sm" style={{ color: LT.text, fontWeight: 700 }}>✅ Enviados: {remSent.sent?.length || 0} · Fallidos: {remSent.failed?.length || 0} · Omitidos: {remSent.skipped || 0}</div>
             {(remSent.failed || []).map((f, i) => (
               <div key={i} className="text-sm" style={{ color: "#991B1B" }}>Falló {f.eventId}: {f.error}</div>
             ))}

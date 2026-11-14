@@ -308,15 +308,21 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
            desaparece y solo queda el formulario de email. */
         (gisRendered || !gisTimedOut) && (
         <div style={{ width: "100%", height: 48, marginBottom: 20, display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <div 
-            ref={googleBtnRef} 
-            style={{ 
+          {/* Anillo en modo oscuro: el botón oficial de Google usa theme
+              'filled_black' (negro) y se funde con la hoja oscura; el
+              contorno claro delimita la píldora. Va en el contenedor del
+              botón (oculto hasta gisRendered) para no duplicar el borde
+              del placeholder de carga. En claro no se añade nada. */}
+          <div
+            ref={googleBtnRef}
+            style={{
               width: "100%",
               height: 48,
-              display: gisRendered ? "flex" : "none", 
+              display: gisRendered ? "flex" : "none",
               justifyContent: "center",
-              alignItems: "center"
-            }} 
+              alignItems: "center",
+              ...(dark ? { border: "1px solid rgba(255,255,255,0.35)", borderRadius: 999, boxSizing: "border-box" } : {}),
+            }}
           />
           {!gisRendered && (
             <div
@@ -351,7 +357,7 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
       </div>
 
       {/* ── Error ── */}
-      {authErr && <div role="alert" style={{ padding: "12px 16px", background: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: 12, color: "#DC2626", marginBottom: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}><Icon name="info" size={16} color="#DC2626" />{authErr}</div>}
+      {authErr && <div role="alert" style={{ padding: "12px 16px", background: dark ? "rgba(220,38,38,0.12)" : "#FEF2F2", border: dark ? "1px solid rgba(248,113,113,0.4)" : "1px solid #FEE2E2", borderRadius: 12, color: dark ? "#FCA5A5" : "#DC2626", marginBottom: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}><Icon name="info" size={16} color={dark ? "#FCA5A5" : "#DC2626"} />{authErr}</div>}
 
       {/* ── Inputs ── */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -428,11 +434,11 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
           </div>
         )}
         {authMode === "login" && forgotSent && (
-          <div role="status" style={{ padding: "12px 16px", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, color: "#166534", fontWeight: 600, fontSize: 14, lineHeight: 1.5 }}>
+          <div role="status" style={{ padding: "12px 16px", background: dark ? "rgba(34,197,94,0.12)" : "#F0FDF4", border: dark ? "1px solid rgba(34,197,94,0.35)" : "1px solid #BBF7D0", borderRadius: 12, color: dark ? "#4ADE80" : "#166534", fontWeight: 600, fontSize: 14, lineHeight: 1.5 }}>
             <div style={{ fontWeight: 800, marginBottom: 2 }}>{t("modal_revisa_correo", "Revisa tu correo")}</div>
             {t("modal_recuperacion_enviada", "Te enviamos un enlace para crear una contraseña nueva a ${email}.", { email: sentEmail })}
             <div style={{ marginTop: 8 }}>
-              <button type="button" onClick={() => { setForgotSent(false); setForgotOpen(false); setAuthErr(""); }} style={{ background: "transparent", border: 0, color: "#166534", fontWeight: 800, fontSize: 13, cursor: "pointer", padding: 0 }}>
+              <button type="button" onClick={() => { setForgotSent(false); setForgotOpen(false); setAuthErr(""); }} style={{ background: "transparent", border: 0, color: dark ? "#4ADE80" : "#166534", fontWeight: 800, fontSize: 13, cursor: "pointer", padding: 0 }}>
                 {t("modal_volver_inicio_sesion", "Volver al inicio de sesión")}
               </button>
             </div>

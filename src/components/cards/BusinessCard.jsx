@@ -73,7 +73,7 @@ const renderRatingRow = (b, realFavs, hideReviews, hideFavs, T, starStyle = {}, 
           )}
           {!hideFavs && realFavs > 0 && (
             <>
-              <span style={{ fontSize: 10, color: T.border, margin: "0 2px" }}>·</span>
+              <span style={{ fontSize: 10, color: T.dark ? "#71717A" : T.border, margin: "0 2px" }}>·</span>
               <Icon name="heart" size={11} color={T.sub} />
               <span style={{ fontSize: 11, fontWeight: 700, color: T.sub, marginLeft: 2, ...textStyle }}>{realFavs}</span>
             </>
@@ -81,7 +81,7 @@ const renderRatingRow = (b, realFavs, hideReviews, hideFavs, T, starStyle = {}, 
         </div>
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {[1,2,3,4,5].map(i => <Icon key={i} name="star" size={11} color={T.border} />)}
+          {[1,2,3,4,5].map(i => <Icon key={i} name="star" size={11} color={T.dark ? "#71717A" : T.border} />)}
         </div>
       )}
     </div>
@@ -290,7 +290,7 @@ export default memo(function BusinessCard({
               {renderRatingRow(b, 0, hideReviews, hideFavs, T, {}, { fontSize: 11 }, googleRatings)}
               {!hideSchedule && !schedHidden && (
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  {!hideReviews && <span style={{ fontSize: 10, color: T.border, margin: "0 2px", flexShrink: 0 }}>·</span>}
+                  {!hideReviews && <span style={{ fontSize: 10, color: dark ? "#71717A" : T.border, margin: "0 2px", flexShrink: 0 }}>·</span>}
                   {renderScheduleRow(b, T, t)}
                 </div>
               )}
@@ -384,7 +384,7 @@ export default memo(function BusinessCard({
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {renderRatingRow(b, realFavs, hideReviews, hideFavs, T, { width: 16, height: 16 }, { fontSize: 13 }, googleRatings)}
               
-              <span style={{ fontSize: 10, color: T.border }}>·</span>
+              <span style={{ fontSize: 10, color: dark ? "#71717A" : T.border }}>·</span>
               {renderScheduleRow(b, T, t)}
             </div>
             

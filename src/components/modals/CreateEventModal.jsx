@@ -184,7 +184,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
             </div>
             <div style={{ background: T.bg, border: `1.5px solid ${T.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 13, color: T.text, wordBreak: "break-all", textAlign: "left" }}>{privateEventUrl(createdPrivate)}</div>
             <button onClick={() => { navigator.clipboard?.writeText(privateEventUrl(createdPrivate)); toast$(t('modal_enlace_copiado', 'Enlace secreto copiado')); }} style={{ padding: "13px 0", background: T.green, border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>{t('modal_copiar_enlace_secreto', 'Copiar enlace secreto')}</button>
-            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(t('modal_invito_evento_privado', 'Te invito a mi evento privado: {titulo} {enlace}').replace('{titulo}', createdPrivate.title || t('modal_evento_generico', 'Evento')).replace('{enlace}', privateEventUrl(createdPrivate)))}`, "_blank")} style={{ padding: "13px 0", background: "#25D366", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>{t('modal_compartir_whatsapp', 'Compartir por WhatsApp')}</button>
+            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(t('modal_invito_evento_privado', 'Te invito a mi evento privado: {titulo} {enlace}').replace('{titulo}', createdPrivate.title || t('modal_evento_generico', 'Evento')).replace('{enlace}', privateEventUrl(createdPrivate)))}`, "_blank")} style={{ padding: "13px 0", background: "#25D366", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 800, color: dark ? "#18181B" : "#FFFFFF", cursor: "pointer", fontFamily: "inherit" }}>{t('modal_compartir_whatsapp', 'Compartir por WhatsApp')}</button>
             <button onClick={() => { const ev = createdPrivate; close(); setCreateEvForm(EMPTY_FORM); setShowManualAddr(false); setSelectedEvent(ev); }} style={{ padding: "13px 0", background: "transparent", border: `1.5px solid ${T.border}`, borderRadius: 14, fontSize: 14, fontWeight: 800, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>{t('modal_abrir_evento', 'Abrir evento')}</button>
           </div>
         )}
@@ -271,7 +271,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
                   {!showManualAddr && (
                     <button
                       onClick={(e) => { e.preventDefault(); setShowManualAddr(true); }}
-                      style={{ background: "transparent", border: "none", color: "#1A7A5E", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
+                      style={{ background: "transparent", border: "none", color: dark ? "#4ADE80" : "#1A7A5E", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
                     >
                       {t('modal_ingresar_manual', '¿Ingresar manual?')}
                     </button>
@@ -294,7 +294,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
                     {t('modal_direccion_manual', 'Dirección Manual')}
                     <button
                       onClick={(e) => { e.preventDefault(); setShowManualAddr(false); setCreateEvForm(f => ({ ...f, venue_address: f.venue_name })); }}
-                      style={{ background: "transparent", border: "none", color: "#D94F3D", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
+                      style={{ background: "transparent", border: "none", color: dark ? T.red : "#D94F3D", fontWeight: 700, fontSize: 11, cursor: "pointer", padding: 0 }}
                     >
                       {t('modal_ocultar', 'Ocultar')}
                     </button>

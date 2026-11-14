@@ -405,7 +405,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
             <span>{t("revista_escrito_por", "Escrito por ")}<strong style={{ color: T.text }}>{exp.author_name}</strong></span>
             {exp.created_at && (
               <>
-                <span style={{ margin: "0 4px", color: T.border }}>•</span>
+                <span style={{ margin: "0 4px", color: dark ? "#71717A" : T.border }}>•</span>
                 <span>{new Date(exp.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
               </>
             )}
@@ -783,7 +783,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
             </div>
             <p className="text-sm" style={{ color: T.text, lineHeight: 1.6, marginTop: 10, marginBottom: r.img_url ? 10 : 12 }}>{r.text}</p>
             {r.img_url && (
-              <div style={{ marginBottom: 12, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}`, width: "100%", maxWidth: 300, background: "#f5f5f5" }}>
+              <div style={{ marginBottom: 12, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}`, width: "100%", maxWidth: 300, background: dark ? "rgba(255,255,255,0.05)" : "#f5f5f5" }}>
                 <img src={getThumbUrl(r.img_url, 600, 600)} alt={t("revista_foto_resena", "Foto de la reseña")} loading="lazy" style={{ width: "100%", height: "auto", display: "block", maxHeight: 300, objectFit: "cover" }} />
               </div>
             )}

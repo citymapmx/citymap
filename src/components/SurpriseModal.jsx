@@ -404,7 +404,7 @@ export default function SurpriseModal({ open, onClose, mapPins, events = [], exp
               <button disabled={changing} onClick={handleAnother} style={{ minHeight: 46, background: dCard, color: dText, border: `1px solid ${dBorder}`, borderRadius: 14, padding: '10px 8px', fontWeight: 700, fontSize: 13, cursor: changing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>{changing ? t('modal_buscando', 'Buscando…') : t('modal_buscar_otro_lugar', 'Buscar otro lugar')}</button>
             </div>
             <div role="status" aria-live="polite" style={{ fontSize: 13, color: dSub, textAlign: 'center', lineHeight: 1.5, marginTop: rotationNotice ? 10 : 0 }}>{rotationNotice}</div>
-            {aiError && <p style={{ color: '#EF4444', fontSize: 12, textAlign: 'center', marginTop: 8 }}>{aiError}</p>}
+            {aiError && <p style={{ color: dark ? '#F87171' : '#EF4444', fontSize: 12, textAlign: 'center', marginTop: 8 }}>{aiError}</p>}
 
           </div>
         )}
