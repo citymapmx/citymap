@@ -30,7 +30,7 @@ afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('public dynamic SEO endpoints', () => {
   it.each(['citymap.mx', 'www.citymap.world'])('serves the correct sitemap host and image entries for %s', async host => {
-    const response = await middleware(request('/sitemap.xml', host));
+    const response = await middleware(request('/sitemap.xml?page=1', host));
     expect(response.status).toBe(200);
     const xml = await response.text();
     const origin = `https://${host}`;
@@ -83,7 +83,7 @@ describe('public dynamic SEO endpoints', () => {
   it('reports an upstream failure instead of publishing an incomplete sitemap', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     fetch.mockResolvedValue(new Response('Unavailable', { status: 503 }));
-    const response = await sitemap(request('/sitemap.xml'));
+    const response = await sitemap(request('/sitemap.xml?page=1'));
     expect(response.status).toBe(503);
     expect(response.headers.get('retry-after')).toBe('300');
     expect(response.headers.get('cache-control')).toBe('no-store');
@@ -95,7 +95,10 @@ describe('public dynamic SEO endpoints', () => {
       if (parsed.pathname.endsWith('/businesses')) return json(parsed.searchParams.get('offset') === '0' ? first : [{ id: 'last', city_slug: 'tepic' }]);
       return json(records[parsed.pathname.split('/').pop()] || []);
     });
-    const response = await sitemap(request('/sitemap.xml'));
+    // Con la paginación (1000 URLs/página) el negocio 1001 cae en la
+    // página 2: la 1 se llena con las estáticas, ciudades y los
+    // primeros ~990 negocios.
+    const response = await sitemap(request('/sitemap.xml?page=2'));
     expect(await response.text()).toContain('https://citymap.mx/tepic/last');
     expect(fetch.mock.calls.some(([url]) => String(url).includes('offset=1000'))).toBe(true);
   });
