@@ -6,7 +6,6 @@ import {useUIStore} from '../../store/useUIStore.js';
 import {useDataStore} from '../../store/useDataStore.js';
 import { sb } from '../../lib/supabase.js';
 import Icon from '../ui/Icon.jsx';
-import BizShareHub from '../BizShareHub.jsx';
 import { lazy } from "react";
 import { useAuthStore } from "../../store/useAuthStore.js";
 
@@ -157,17 +156,8 @@ export default function StoreAdminPanel({ business, onClose, T, dataClient = sb 
             />
             
             <div style={{ padding: "0 16px" }}>
-              {/* COMPARTIR MI NEGOCIO (PR #240): el mismo centro que el
-                  modal de Mi Perfil (Redes / Para imprimir / QR suelto).
-                  Antes esta sección solo descargaba los 2 QR pelados. */}
-            <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px solid ${T.border}` }}>
-              <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
-                <div style={{ padding: 20 }}>
-                  <BizShareHub biz={business} T={T} isCatalog={isCatalog} />
-                </div>
-              </div>
-            </div>
-            
+              {/* El centro de compartir ya no vive aquí (14 nov 2026,
+                  Jonathan): quedó solo en Mi Perfil. */}
             <StoreMonetizationTab business={business} T={T} inpH={inpH} profile={profile} />
             </div>
           </div>
