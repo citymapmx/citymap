@@ -149,7 +149,7 @@ describe('redirecciones 308 entre dominios', () => {
 
 describe('sitemap por dominio', () => {
   it('en .mx no hay nada de las ciudades internacionales', async () => {
-    const xml = await (await middleware(request('/sitemap.xml', 'citymap.mx'))).text();
+    const xml = await (await middleware(request('/sitemap.xml?page=1', 'citymap.mx'))).text();
     expect(xml).toContain('https://citymap.mx/tepic/cafe');
     expect(xml).toContain('https://citymap.mx/eventos/tepic');
     expect(xml).toContain('https://citymap.mx/tours');
@@ -159,7 +159,7 @@ describe('sitemap por dominio', () => {
     expect(xml).not.toContain('citymap.world');
   });
   it('en .world solo las ciudades internacionales, sin México ni /tours ni /negocios', async () => {
-    const xml = await (await middleware(request('/sitemap.xml', 'www.citymap.world'))).text();
+    const xml = await (await middleware(request('/sitemap.xml?page=1', 'www.citymap.world'))).text();
     expect(xml).toContain('https://www.citymap.world/fr/paris');
     expect(xml).toContain('https://www.citymap.world/fr/paris/bistro');
     expect(xml).toContain('https://www.citymap.world/eventos/paris');

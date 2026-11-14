@@ -35,7 +35,7 @@ export default async function handler(req) {
     }
     const [businesses, events, cities, experiences] = await Promise.all([
       rows('businesses', 'status=eq.approved&select=slug,id,city_slug,category,updated_at,logo_url,photos,name'),
-      rows('events', 'status=eq.approved&select=slug,id,city_slug,updated_at,img_url,img,title'),
+      rows('events', 'status=eq.approved&select=slug,id,city_slug,updated_at,img_url,img,title,date,end_date'),
       rows('cities', 'select=id,slug,name,country_code,bg_image,created_at'),
       rows('experiences', 'status=eq.approved&select=slug,id,city_slug,updated_at,gallery,title'),
     ]);
@@ -61,6 +61,22 @@ export default async function handler(req) {
     };
     const cityList = value => String(value || '').split(',').map(slug => normalizeCitySlug(slug.trim())).filter(Boolean);
     const belongs = value => !value || value === 'all' || cityList(value).some(allowedCity);
+    // Fecha de hoy en UTC (el runtime edge corre en UTC), como el `today`
+    // de structuredData.eventOffer. Un evento queda fuera del sitemap
+    // solo cuando está TOTALMENTE terminado: end_date no vacío y anterior
+    // a hoy, o (sin end_date) date anterior a hoy. La cadena vacía de
+    // end_date se trata como nula. Los multi-día vigentes (end_date >=
+    // hoy) y los de hoy siguen dentro. La base no se toca: solo el
+    // sitemap los omite.
+    const today = new Date().toISOString().slice(0, 10);
+    const dayOf = value => String(value || '').trim().slice(0, 10);
+    const isEventEnded = event => {
+      const end = dayOf(event.end_date);
+      if (end) return end < today;
+      const start = dayOf(event.date);
+      return Boolean(start) && start < today;
+    };
+    const liveEvents = events.filter(event => belongs(event.city_slug) && event.visibility !== 'private' && !isEventEnded(event));
     // lastmod real para ciudades y categorías, que no tienen updated_at
     // propio: la última actualización de su contenido (negocios, eventos
     // y experiencias de esa ciudad; para categorías, negocios de esa
@@ -88,7 +104,7 @@ export default async function handler(req) {
         catMod.set(key, latest(catMod.get(key), business.updated_at));
       }
     }
-    for (const event of events) {
+    for (const event of liveEvents) {
       for (const slug of cityList(event.city_slug)) {
         noteCity(slug, event.updated_at);
         eventMod.set(slug, latest(eventMod.get(slug), event.updated_at));
@@ -125,7 +141,7 @@ export default async function handler(req) {
       add(path, [business.logo_url, ...photos], business.updated_at, business.name);
       if (['restaurantes', 'cafe'].includes(business.category)) add(`${path}/menu`, [], business.updated_at);
     }
-    for (const event of events.filter(event => belongs(event.city_slug) && event.visibility !== 'private')) {
+    for (const event of liveEvents) {
       if (event.slug || event.id) add(eventUrl(event), [event.img_url || event.img], event.updated_at, event.title);
     }
     for (const experience of experiences.filter(experience => belongs(experience.city_slug))) {
@@ -136,11 +152,34 @@ export default async function handler(req) {
       const city = cityList(experience.city_slug).find(allowedCity) || cities.find(c => allowedCity(c.slug))?.slug;
       if (city && (experience.slug || experience.id)) add(`/revista/${city}/${experience.slug || experience.id}`, asArray(experience.gallery), experience.updated_at, experience.title);
     }
+    // Paginación: 1000 URLs por página. Sin ?page se devuelve un índice
+    // de sitemaps; ?page=N devuelve el urlset de esa página. Una página
+    // fuera de rango (o no numérica) devuelve un urlset vacío, no un
+    // error.
+    const PAGE_SIZE = 1000;
+    const xmlHeaders = { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' };
+    const allEntries = [...urls];
+    const totalPages = Math.ceil(allEntries.length / PAGE_SIZE);
+    const pageParam = new URL(req.url).searchParams.get('page');
+    if (pageParam === null) {
+      const index = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${Array.from({ length: totalPages }, (_, i) => {
+  const chunk = allEntries.slice(i * PAGE_SIZE, (i + 1) * PAGE_SIZE);
+  const lastmod = chunk.reduce((max, [, entry]) => latest(max, entry.date), null);
+  return `<sitemap><loc>${esc(`${origin}/sitemap.xml?page=${i + 1}`)}</loc>${lastmod ? `<lastmod>${esc(lastmod)}</lastmod>` : ''}</sitemap>`;
+}).join('\n')}
+</sitemapindex>`;
+      return new Response(index, { headers: xmlHeaders });
+    }
+    const page = Number.parseInt(pageParam, 10);
+    const inRange = Number.isInteger(page) && page >= 1 && page <= totalPages;
+    const pageEntries = inRange ? allEntries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : [];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-${[...urls].map(([url, entry]) => `<url><loc>${esc(url)}</loc>${entry.images}${entry.date ? `<lastmod>${entry.date}</lastmod>` : ''}</url>`).join('\n')}
+${pageEntries.map(([url, entry]) => `<url><loc>${esc(url)}</loc>${entry.images}${entry.date ? `<lastmod>${entry.date}</lastmod>` : ''}</url>`).join('\n')}
 </urlset>`;
-    return new Response(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } });
+    return new Response(xml, { headers: xmlHeaders });
   } catch (error) {
     console.error('Sitemap error:', error);
     // Do not replace a valid sitemap with an empty successful response during an outage.

@@ -256,6 +256,113 @@ async function getCityCount() {
   } catch { return null; }
 }
 
+// Fecha local YYYY-MM-DD (misma idea que todayLocalStr en
+// negociosStats.js): "próximo" se mide con el día del servidor, igual
+// que la app mide "vigente" con el día del usuario.
+function todayStr(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+// Criterio de "próximo" del sitemap (punto 2 de la fontanería SEO):
+// fuera solo si end_date no vacío y < hoy, o end_date vacío y date <
+// hoy. Los de varios días cuentan mientras su end_date no haya pasado.
+function isUpcomingEvent(ev, today) {
+  const end = String(ev?.end_date || "").trim();
+  if (end) return end >= today;
+  return String(ev?.date || "").trim() >= today;
+}
+
+// Pertenencia a ciudad, mismo criterio `belongs` del sitemap
+// (api/sitemap.xml.js): alguno de los segmentos de city_slug partido
+// por coma es esa ciudad (normalizado); 'all' o vacío vale para todas.
+function eventBelongsToCity(citySlug, city) {
+  const value = String(citySlug || "").trim();
+  if (!value || value === "all") return true;
+  const target = normalizeCitySlug(city);
+  return value.split(",").map(s => normalizeCitySlug(s.trim())).filter(Boolean).includes(target);
+}
+
+// Pertenencia a un dominio (.mx o .world): alguno de los segmentos de
+// city_slug está entre las ciudades de ese dominio; 'all' o vacío vale
+// para todas (igual que `belongs` del sitemap).
+function eventBelongsToDomain(citySlug, allowedCities) {
+  const value = String(citySlug || "").trim();
+  if (!value || value === "all") return true;
+  return value.split(",").map(s => normalizeCitySlug(s.trim())).filter(Boolean).some(s => allowedCities.has(s));
+}
+
+// Fecha legible y determinista (zona UTC: la fecha guardada es
+// YYYY-MM-DD sin hora, así no baila un día según la zona del edge).
+function eventDateText(date) {
+  if (!date) return "";
+  try {
+    return new Date(`${String(date).slice(0, 10)}T12:00:00Z`).toLocaleDateString("es-MX", { timeZone: "UTC", weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  } catch { return String(date).slice(0, 10); }
+}
+
+// Ciudades de un dominio (la tabla cities es la fuente de verdad, igual
+// que en el sitemap): en .mx solo México, en .world solo fuera de
+// México. Si falla, se devuelve [] y la home queda como antes.
+async function getDomainCities(isWorld) {
+  try {
+    const query = new URLSearchParams({ select: 'slug,name,country_code', order: 'name.asc', limit: '100' });
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/cities?${query}`, {
+      headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` }
+    });
+    if (!response.ok) return [];
+    const rows = await response.json();
+    if (!Array.isArray(rows)) return [];
+    return rows.filter(c => {
+      const cc = String(c.country_code || 'mx').toLowerCase();
+      return isWorld ? cc !== 'mx' : cc === 'mx';
+    });
+  } catch { return []; }
+}
+
+// Enlaces a las páginas de ciudad para la home.
+function cityLinksHtml(cities, origin, isWorld) {
+  if (!cities.length) return '';
+  return `<nav aria-label="Ciudades"><h2>Ciudades</h2><ul>${cities.map(c => {
+    const slug = normalizeCitySlug(c.slug);
+    const path = isWorld ? `/${String(c.country_code || 'mx').toLowerCase()}/${slug}` : `/${slug}`;
+    const name = c.name || slug.replace(/-/g, ' ');
+    return `<li><a href="${esc(origin + path)}">${esc(name)}</a></li>`;
+  }).join('')}</ul></nav>`;
+}
+
+// Listado de eventos próximos para bots: home (city null: todas las
+// ciudades del dominio, vía allowedCities) y páginas de ciudad /
+// /eventos/:ciudad (city con el slug de esa ciudad). Misma consulta
+// PostgREST que getEv/getListing (status approved, orden por fecha);
+// la pertenencia a la ciudad y el filtro de "próximo" se hacen en JS
+// porque city_slug es multi-valor (segmentos por coma) y end_date
+// puede venir vacío. Los privados no se listan (igual que el sitemap).
+async function getEventsListing(city, origin, allowedCities = null) {
+  try {
+    const query = new URLSearchParams({ status: 'eq.approved', select: 'id,slug,title,date,end_date,venue_name,city_slug,visibility', order: 'date.asc', limit: '500' });
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/events?${query}`, {
+      headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` }
+    });
+    if (!response.ok) return '';
+    const rows = await response.json();
+    if (!Array.isArray(rows)) return '';
+    const today = todayStr();
+    const upcoming = rows.filter(ev => {
+      if (ev.visibility === 'private') return false;
+      if (!isUpcomingEvent(ev, today)) return false;
+      if (city) return eventBelongsToCity(ev.city_slug, city);
+      if (allowedCities) return eventBelongsToDomain(ev.city_slug, allowedCities);
+      return true;
+    }).slice(0, 24);
+    if (!upcoming.length) return '';
+    return `<section><h2>Próximos eventos</h2><ul>${upcoming.map(ev => {
+      const url = eventUrl(ev, origin);
+      const dateText = eventDateText(ev.date);
+      return `<li><article><h3><a href="${esc(url)}">${esc(ev.title)}</a></h3>${dateText ? `<p>📅 ${esc(dateText)}</p>` : ''}${ev.venue_name ? `<p>📍 ${esc(ev.venue_name)}</p>` : ''}</article></li>`;
+    }).join('')}</ul></section>`;
+  } catch { return ''; }
+}
+
 // Preguntas frecuentes de /negocios: una sola fuente para el HTML de la
 // landing y para el JSON-LD FAQPage (las respuestas son las de la landing
 // en BusinessLanding.jsx / i18n). faq5 lleva el número de ciudades en vivo.
@@ -467,6 +574,9 @@ export default async function handler(req) {
       ],
     })}</script>`;
 
+    const homeCities = await getDomainCities(isWorld);
+    const homeEvents = await getEventsListing(null, BASE_URL, new Set(homeCities.map(c => normalizeCitySlug(c.slug))));
+    const homeCityLinks = cityLinksHtml(homeCities, BASE_URL, isWorld);
     const html = `<!doctype html>
 <html lang="es" prefix="og: https://ogp.me/ns#">
 <head>
@@ -495,6 +605,8 @@ ${homeSchema}
 <h1>${esc(title)}</h1>
 <img src="${esc(img)}" alt="${esc(title)}" style="max-width: 100%; height: auto;" />
 <p>${esc(desc)}</p>
+${homeEvents}
+${homeCityLinks}
 <a href="${BASE_URL}">Abrir ${esc(SITE_NAME)}</a>
 </body>
 </html>`;
@@ -539,6 +651,7 @@ ${homeSchema}
     const desc = `Encuentra los mejores restaurantes, servicios y eventos en ${cityName}. Explora lugares increíbles cerca de ti.`;
     const img = cityBgImage || `${BASE_URL}/og-image.png`;
     const listing = await getListing(city, null, BASE_URL, cityPath);
+    const eventsListing = await getEventsListing(city, BASE_URL);
     const categoryLinks = `<nav aria-label="Categorías"><ul>${Object.entries(CAT_SEO).map(([slug, info]) => `<li><a href="${esc(BASE_URL + cityPath + '/' + slug)}">${esc(info.label)}</a></li>`).join('')}</ul></nav>`;
     const citySchema = `<script type="application/ld+json">${JSON.stringify(breadcrumbList([
       { name: "Inicio", item: BASE_URL },
@@ -574,6 +687,7 @@ ${citySchema}
 <img src="${esc(img)}" alt="${esc(title)}" style="max-width: 100%; height: auto;" />
 <p>${esc(desc)}</p>
 ${listing}
+${eventsListing}
 ${categoryLinks}
 <a href="${BASE_URL}${cityPath}">Abrir ${esc(SITE_NAME)} en ${esc(cityName)}</a>
 </body>
@@ -606,6 +720,7 @@ ${categoryLinks}
       if (city) {
         title = `Cartelera de Eventos en ${cityName} — Conciertos y Festivales | ${SITE_NAME}`;
         desc = `Consulta la cartelera de eventos en ${cityName}. Conciertos, obras de teatro, festivales y actividades imperdibles para salir hoy en ${cityName}.`;
+        bodyExtra = await getEventsListing(city, BASE_URL);
       } else {
         title = `Cartelera de Eventos — ${SITE_NAME}`;
         desc = `Descubre los mejores eventos, conciertos y actividades en tu ciudad con ${SITE_NAME}.`;

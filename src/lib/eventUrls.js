@@ -13,26 +13,71 @@
 
 import { normalizeCitySlug } from './seoRoutes.js';
 
-export function eventShortSlug(event) {
-  const slug = String(event?.slug || '');
-  const city = String(event?.city_slug || '');
-  if (slug && city && slug.startsWith(city + '-')) return slug.slice(city.length + 1);
+// Slugs corruptos con comas (varias ciudades pegadas, p. ej.
+// 'guadalajara-zapopan,tepic,guadalajara-camila-adios-world-tour'):
+// el slug real es el ÚLTIMO segmento y la ciudad de la URL es el
+// PRIMER segmento de city_slug. La URL nunca lleva comas.
+function lastCommaSegment(value) {
+  const s = String(value || '');
+  const i = s.lastIndexOf(',');
+  return i === -1 ? s : s.slice(i + 1);
+}
+
+function firstCommaSegment(value) {
+  const s = String(value || '');
+  const i = s.indexOf(',');
+  return i === -1 ? s : s.slice(0, i);
+}
+
+// Quita el prefijo de la ciudad del slug (misma lógica que
+// cleanCityPrefix en utils.js, aceptando la forma vieja y la
+// normalizada). En un slug corrupto con comas el prefijo real puede
+// venir precedido de otra ciudad pegada (p. ej.
+// 'tepic-puerto-vallarta-maroon-5' con ciudad 'puerto-vallarta'): en
+// ese caso se corta todo hasta el prefijo de la ciudad. Ese recorte
+// solo se aplica a slugs que venían corruptos; con datos limpios la
+// salida es exactamente la de antes.
+function stripCityPrefix(slug, rawCity, city, wasCorrupt) {
+  const prefix = rawCity && slug.startsWith(rawCity + '-') ? rawCity
+    : (city && slug.startsWith(city + '-') ? city : null);
+  if (prefix) return slug.slice(prefix.length + 1);
+  if (wasCorrupt) {
+    for (const needle of [rawCity, city]) {
+      if (!needle) continue;
+      const at = slug.indexOf(needle + '-');
+      if (at > 0) {
+        const rest = slug.slice(at + needle.length + 1);
+        if (rest) return rest;
+      }
+    }
+  }
   return slug;
 }
 
+export function eventShortSlug(event) {
+  const rawSlug = String(event?.slug || '');
+  const wasCorrupt = rawSlug.includes(',');
+  const slug = lastCommaSegment(rawSlug);
+  const rawCity = firstCommaSegment(event?.city_slug);
+  const city = normalizeCitySlug(rawCity);
+  if (!slug || !rawCity) return slug;
+  return stripCityPrefix(slug, rawCity, city, wasCorrupt);
+}
+
 export function eventUrl(event, base = '') {
-  const slug = String(event?.slug || event?.id || '');
+  const raw = String(event?.slug || event?.id || '');
+  const wasCorrupt = raw.includes(',');
+  const slug = lastCommaSegment(raw) || (event?.id ? lastCommaSegment(event.id) : '');
   if (!slug) return `${base}/eventos`;
-  const rawCity = String(event?.city_slug || '');
+  const rawCity = firstCommaSegment(event?.city_slug);
   const city = normalizeCitySlug(rawCity);
   // El slug puede llevar el prefijo de la ciudad en su forma vieja
   // (mayúsculas/tildes, antes del SQL de la Fase 3) o en la canónica:
   // se aceptan ambas, pero la URL que se emite siempre lleva la ciudad
   // normalizada.
-  const prefix = rawCity && slug.startsWith(rawCity + '-') ? rawCity
-    : (city && slug.startsWith(city + '-') ? city : null);
-  if (prefix) {
-    return `${base}/evento/${city}/${slug.slice(prefix.length + 1)}`;
+  const short = stripCityPrefix(slug, rawCity, city, wasCorrupt);
+  if (short !== slug) {
+    return `${base}/evento/${city}/${short}`;
   }
   return `${base}/evento/${slug}`;
 }

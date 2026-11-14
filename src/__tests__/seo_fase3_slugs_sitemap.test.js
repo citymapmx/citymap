@@ -119,7 +119,7 @@ describe('sitemap con slugs normalizados y lastmod', () => {
   };
 
   it('emite /eventos/:ciudad solo con slugs normalizados', async () => {
-    const xml = await (await sitemap(request('/sitemap.xml', 'citymap.mx', 'Googlebot'))).text();
+    const xml = await (await sitemap(request('/sitemap.xml?page=1', 'citymap.mx', 'Googlebot'))).text();
     expect(xml).toContain('https://citymap.mx/eventos/tepic');
     expect(xml).toContain('https://citymap.mx/eventos/san-pedro-garza-garcia');
     expect(xml).toContain('https://citymap.mx/eventos/san-miguel-de-allende');
@@ -132,12 +132,12 @@ describe('sitemap con slugs normalizados y lastmod', () => {
     expect(xml).not.toContain('/eventos/paris');
   });
   it('incluye el negocio con city_slug en mayúscula en su URL canónica', async () => {
-    const xml = await (await sitemap(request('/sitemap.xml', 'citymap.mx', 'Googlebot'))).text();
+    const xml = await (await sitemap(request('/sitemap.xml?page=1', 'citymap.mx', 'Googlebot'))).text();
     expect(xml).toContain('https://citymap.mx/zapopan/la-madalena');
     expect(xml).toContain('https://citymap.mx/revista/san-miguel-de-allende/San-Miguel-de-allende-visita-guiada');
   });
   it('pone lastmod en ciudades, categorías y /eventos/:ciudad', async () => {
-    const xml = await (await sitemap(request('/sitemap.xml', 'citymap.mx', 'Googlebot'))).text();
+    const xml = await (await sitemap(request('/sitemap.xml?page=1', 'citymap.mx', 'Googlebot'))).text();
     // Tepic: última actualización de su contenido (el evento del 1 nov).
     expect(entry(xml, 'https://citymap.mx/tepic')).toContain('<lastmod>2026-11-01T08:00:00.000Z</lastmod>');
     // Restaurantes en Tepic: última actualización de sus negocios (1 oct).
@@ -150,7 +150,7 @@ describe('sitemap con slugs normalizados y lastmod', () => {
     expect(entry(xml, 'https://citymap.mx/san-pedro-garza-garcia/restaurantes')).not.toContain('<lastmod>');
   });
   it('en citymap.world incluye solo las ciudades internacionales (París y Barcelona normalizadas)', async () => {
-    const xml = await (await sitemap(request('/sitemap.xml', 'www.citymap.world', 'Googlebot'))).text();
+    const xml = await (await sitemap(request('/sitemap.xml?page=1', 'www.citymap.world', 'Googlebot'))).text();
     expect(xml).toContain('https://www.citymap.world/eventos/paris');
     expect(xml).toContain('https://www.citymap.world/eventos/barcelona');
     expect(xml).toContain('https://www.citymap.world/fr/paris');
