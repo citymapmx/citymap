@@ -560,11 +560,6 @@ export default function HomeView({ isBackground }) {
             <div style={{ textAlign: "center", marginBottom: availableSubcats.length > 0 ? 12 : 16 }}>
               {!dbReady ? <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Sk w="60%" h={26} r={6} dark={dark} /></div> : <h1 style={{ fontFamily: "var(--heading)", fontWeight: 900, letterSpacing: "-0.5px", fontSize: 26, color: T.text, margin: "0 0 6px 0", padding: 0, textAlign: "center" }}>{t(cats.find(c => c.id === activeCat)?.label || activeCat)} {lang === 'en' ? 'in' : 'en'} {(city || "").split(',')[0]}</h1>}
               {!dbReady ? <div style={{ display: "flex", justifyContent: "center" }}><Sk w="80%" h={14} r={4} dark={dark} /></div> : <h2 style={{ fontSize: 13, color: T.sub, fontWeight: 500, margin: 0, lineHeight: 1.4, textAlign: "center" }}>{getCategoryDesc(activeCat, cats.find(c => c.id === activeCat)?.label, city)}</h2>}
-              {dbReady && businessListReady && biz.length > 0 && (
-                <p style={{ fontSize: 13, color: T.sub, fontWeight: 600, margin: "8px 0 0", textAlign: "center" }}>
-                  {selectedSubcat === "todas" ? biz.length : finalDisplayList.length} {t("lugares", "lugares")}
-                </p>
-              )}
             </div>
 
             {/* ── BARRA DE SUBCATEGORÍAS ── */}

@@ -58,10 +58,12 @@ describe('categoría Restaurantes en Guadalajara: los 21 alcanzables', () => {
     expect(app).toContain('setPage(1);');
   });
 
-  it('la vista de categoría muestra el total y un botón Ver más', () => {
+  it('la vista de categoría ya no muestra el total, pero sigue con Ver más', () => {
     const home = read('../views/HomeView.jsx');
-    expect(home).toContain('{selectedSubcat === "todas" ? biz.length : finalDisplayList.length}');
-    expect(home).toContain('t("lugares", "lugares")');
+    // Jonathan 14 Nov 2026: el conteo («5 lugares») robaba espacio bajo la
+    // descripción de la categoría, así que ya no se muestra.
+    expect(home).not.toContain('{selectedSubcat === "todas" ? biz.length : finalDisplayList.length}');
+    expect(home).not.toContain('t("lugares", "lugares")');
     // El onClick también marca el lote nuevo para la animación
     // scale-in-ver-top (PR #136); lo que importa es que siga cargando
     // la siguiente página con loadPaginatedBiz.
