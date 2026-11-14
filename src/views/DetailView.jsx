@@ -1043,7 +1043,7 @@ export default function DetailView() {
           <ErrorBoundary>
             <Suspense fallback={
               <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-                <div style={{ textAlign: "center", padding: "40px", background: "#fff", borderRadius: 24, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>{t('detalle_cargando_reservaciones', 'Cargando reservaciones...')}</div>
+                <div style={{ textAlign: "center", padding: "40px", background: T.white, color: T.text, borderRadius: 24, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>{t('detalle_cargando_reservaciones', 'Cargando reservaciones...')}</div>
               </div>
             }>
               <BookingModal biz={selected} onClose={closeBooking} />
@@ -1055,7 +1055,7 @@ export default function DetailView() {
           <ErrorBoundary>
             <Suspense fallback={
               <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-                <div style={{ textAlign: "center", padding: "40px", background: "#fff", borderRadius: 24, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>Cargando…</div>
+                <div style={{ textAlign: "center", padding: "40px", background: T.white, color: T.text, borderRadius: 24, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>Cargando…</div>
               </div>
             }>
               {/* PR #162: la ficha ya no pasa hasMenu: «Para pedir» y

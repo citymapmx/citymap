@@ -452,7 +452,7 @@ export default function EventDetailModal() {
                           >
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{tab.label}</span>
                             {tab.count > 0 && (
-                              <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 800, padding: '1px 7px', borderRadius: 9999, background: active ? 'rgba(255,255,255,0.35)' : T.green, color: '#FFFFFF' }}>{tab.count}</span>
+                              <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 800, padding: '1px 7px', borderRadius: 9999, background: active ? (dark ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.35)') : T.green, color: dark ? '#18181B' : '#FFFFFF' }}>{tab.count}</span>
                             )}
                           </button>
                         );
@@ -474,9 +474,9 @@ export default function EventDetailModal() {
                         <button
                           onClick={confirmDeletePrivateEvent}
                           disabled={deletingPrivate}
-                          style={{ width: '100%', margin: '0 0 12px 0', padding: '10px 0', background: 'transparent', border: '1px solid #FECACA', borderRadius: 12, fontSize: 14, fontWeight: 800, color: '#D94F3D', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: deletingPrivate ? 0.6 : 1 }}
+                          style={{ width: '100%', margin: '0 0 12px 0', padding: '10px 0', background: 'transparent', border: '1px solid #FECACA', borderRadius: 12, fontSize: 14, fontWeight: 800, color: dark ? T.red : '#D94F3D', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: deletingPrivate ? 0.6 : 1 }}
                         >
-                          <Icon name="trash" size={15} color="#D94F3D" /> {deletingPrivate ? t("eventos_eliminando_evento", "Eliminando…") : t("eventos_eliminar_evento", "Eliminar evento")}
+                          <Icon name="trash" size={15} color={dark ? T.red : '#D94F3D'} /> {deletingPrivate ? t("eventos_eliminando_evento", "Eliminando…") : t("eventos_eliminar_evento", "Eliminar evento")}
                         </button>
                       </>
                     )}

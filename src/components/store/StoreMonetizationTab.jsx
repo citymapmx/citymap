@@ -55,7 +55,7 @@ export default function StoreMonetizationTab({ business, T, inpH, profile }) {
                     const n = [...mlForm.products];
                     n.splice(idx, 1);
                     setMlForm({ ...mlForm, products: n });
-                  }} style={{ position: "absolute", top: 12, right: 12, background: "#FEF2F2", border: "none", width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.red }}>
+                  }} style={{ position: "absolute", top: 12, right: 12, background: "#FEF2F2", border: "none", width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.dark ? "#DC2626" : T.red }}>
                     <Icon name="x" size={16} />
                   </button>
 
@@ -112,7 +112,7 @@ export default function StoreMonetizationTab({ business, T, inpH, profile }) {
           </div>
           
           <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end", gap: 12 }}>
-            <button onClick={saveMlConfig} style={{ background: T.green, color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 800, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={saveMlConfig} style={{ background: T.green, color: T.dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 800, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               {loading ? "Guardando..." : "Guardar Cambios"}
             </button>
           </div>

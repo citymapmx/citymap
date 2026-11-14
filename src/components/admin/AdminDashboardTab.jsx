@@ -3,15 +3,17 @@ import Icon from '../ui/Icon';
 import { PLAN_META } from '../../lib/constants';
 
 function MetricCard({ label, value, icon, color, T }) {
+  // Vive sobre la cáscara clara fija del admin: paleta clara local en oscuro.
+  const LT = T.dark ? { white: "#FFFFFF", sub: "#6B7280", text: "#0F1A14", shadow: "0 2px 16px rgba(0,0,0,.07)" } : T;
   return (
-    <div style={{ background: T.white, borderRadius: 14, padding: "14px 16px", boxShadow: T.shadow, flex: 1, minWidth: 0 }}>
+    <div style={{ background: LT.white, borderRadius: 14, padding: "14px 16px", boxShadow: LT.shadow, flex: 1, minWidth: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-        <span className="text-xs" style={{ fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .6 }}>{label}</span>
+        <span className="text-xs" style={{ fontWeight: 700, color: LT.sub, textTransform: "uppercase", letterSpacing: .6 }}>{label}</span>
         <div style={{ width: 30, height: 30, borderRadius: 8, background: color + "22", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Icon name={icon} size={14} color={color} />
         </div>
       </div>
-      <div className="text-2xl" style={{ fontWeight: 800, color: T.text }}>{value}</div>
+      <div className="text-2xl" style={{ fontWeight: 800, color: LT.text }}>{value}</div>
     </div>
   );
 }

@@ -25,6 +25,8 @@ function TrafficDot({ views }) {
 }
 
 export default function AdminActivityTab({ data, sb, onToast, load, T }) {
+  // Vive sobre la cáscara clara fija del admin: paleta clara local en oscuro.
+  const LT = T.dark ? { text: "#0F1A14", sub: "#5A6872", border: "#E5E7EB", white: "#FFFFFF", bg: "#FFFFFF" } : T;
   const [cityFilter, setCityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("views_asc");
   const [search, setSearch] = useState("");
@@ -85,9 +87,9 @@ export default function AdminActivityTab({ data, sb, onToast, load, T }) {
   return (
     <div style={{ padding: "0 0 80px 0" }}>
       {/* Header */}
-      <div style={{ padding: "20px 20px 12px", borderBottom: `1px solid ${T.border}` }}>
-        <h2 style={{ margin: "0 0 4px 0", fontSize: 18, fontWeight: 800, color: T.text }}>📊 Actividad de Negocios</h2>
-        <p style={{ margin: 0, fontSize: 13, color: T.sub }}>Identifica negocios sin tráfico para depurar la base de datos</p>
+      <div style={{ padding: "20px 20px 12px", borderBottom: `1px solid ${LT.border}` }}>
+        <h2 style={{ margin: "0 0 4px 0", fontSize: 18, fontWeight: 800, color: LT.text }}>📊 Actividad de Negocios</h2>
+        <p style={{ margin: 0, fontSize: 13, color: LT.sub }}>Identifica negocios sin tráfico para depurar la base de datos</p>
       </div>
 
       {/* Summary chips */}
@@ -110,23 +112,23 @@ export default function AdminActivityTab({ data, sb, onToast, load, T }) {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Buscar negocio..."
-          style={{ width: "100%", boxSizing: "border-box", padding: "10px 14px", borderRadius: 10, border: `1px solid ${T.border}`, fontSize: 14, fontFamily: "inherit", background: T.bg, color: T.text, outline: "none" }}
+          style={{ width: "100%", boxSizing: "border-box", padding: "10px 14px", borderRadius: 10, border: `1px solid ${LT.border}`, fontSize: 14, fontFamily: "inherit", background: LT.bg, color: LT.text, outline: "none" }}
         />
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <select value={period} onChange={e => setPeriod(e.target.value)}
-            style={{ flex: 1, padding: "8px 10px", borderRadius: 10, border: `1px solid ${T.border}`, fontSize: 13, background: T.bg, color: T.text, fontFamily: "inherit" }}>
+            style={{ flex: 1, padding: "8px 10px", borderRadius: 10, border: `1px solid ${LT.border}`, fontSize: 13, background: LT.bg, color: LT.text, fontFamily: "inherit" }}>
             <option value="7">Últimos 7 días</option>
             <option value="30">Últimos 30 días</option>
             <option value="90">Últimos 90 días</option>
             <option value="all">Todo el tiempo</option>
           </select>
           <select value={cityFilter} onChange={e => setCityFilter(e.target.value)}
-            style={{ flex: 1, padding: "8px 10px", borderRadius: 10, border: `1px solid ${T.border}`, fontSize: 13, background: T.bg, color: T.text, fontFamily: "inherit" }}>
+            style={{ flex: 1, padding: "8px 10px", borderRadius: 10, border: `1px solid ${LT.border}`, fontSize: 13, background: LT.bg, color: LT.text, fontFamily: "inherit" }}>
             <option value="all">Todas las ciudades</option>
             {cities.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-            style={{ flex: 1, padding: "8px 10px", borderRadius: 10, border: `1px solid ${T.border}`, fontSize: 13, background: T.bg, color: T.text, fontFamily: "inherit" }}>
+            style={{ flex: 1, padding: "8px 10px", borderRadius: 10, border: `1px solid ${LT.border}`, fontSize: 13, background: LT.bg, color: LT.text, fontFamily: "inherit" }}>
             <option value="views_asc">↑ Menos vistas primero</option>
             <option value="views_desc">↓ Más vistas primero</option>
             <option value="name">A-Z por nombre</option>
@@ -137,14 +139,14 @@ export default function AdminActivityTab({ data, sb, onToast, load, T }) {
       {/* List */}
       <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 8 }}>
         {bizWithViews.length === 0 && (
-          <div style={{ textAlign: "center", padding: 40, color: T.sub, fontSize: 14 }}>No hay negocios con estos filtros</div>
+          <div style={{ textAlign: "center", padding: 40, color: LT.sub, fontSize: 14 }}>No hay negocios con estos filtros</div>
         )}
         {bizWithViews.map(b => {
           const isRed = b.views <= TRAFFIC_THRESHOLDS.dead;
           return (
             <div key={b.id} style={{
-              background: T.bg,
-              border: `1px solid ${isRed ? "#FECACA" : T.border}`,
+              background: LT.bg,
+              border: `1px solid ${isRed ? "#FECACA" : LT.border}`,
               borderRadius: 12,
               padding: "12px 14px",
               display: "flex",
@@ -156,7 +158,7 @@ export default function AdminActivityTab({ data, sb, onToast, load, T }) {
               <div style={{
                 width: 40, height: 40, borderRadius: 10, flexShrink: 0,
                 background: b.img1 ? `url(${b.img1}) center/cover` : "#F1F5F9",
-                border: `1px solid ${T.border}`,
+                border: `1px solid ${LT.border}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 18
               }}>
@@ -167,9 +169,9 @@ export default function AdminActivityTab({ data, sb, onToast, load, T }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <TrafficDot views={b.views} />
-                  <span style={{ fontWeight: 700, fontSize: 14, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</span>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: LT.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</span>
                 </div>
-                <div style={{ fontSize: 12, color: T.sub, marginTop: 2, display: "flex", gap: 8 }}>
+                <div style={{ fontSize: 12, color: LT.sub, marginTop: 2, display: "flex", gap: 8 }}>
                   <span>{b.city_slug || "—"}</span>
                   <span>·</span>
                   <span>{b.category || "Sin categoría"}</span>
@@ -189,7 +191,7 @@ export default function AdminActivityTab({ data, sb, onToast, load, T }) {
                 <div style={{ fontSize: 16, fontWeight: 900, color: b.views <= TRAFFIC_THRESHOLDS.dead ? "#EF4444" : b.views <= TRAFFIC_THRESHOLDS.low ? "#F59E0B" : "#10B981", lineHeight: 1.1 }}>
                   {b.views}
                 </div>
-                <div style={{ fontSize: 9, fontWeight: 600, color: T.sub }}>vistas</div>
+                <div style={{ fontSize: 9, fontWeight: 600, color: LT.sub }}>vistas</div>
               </div>
 
               {/* Delete */}

@@ -195,13 +195,13 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
         initial={{ scale: 0.95, opacity: 0, y: 10 }} 
         animate={{ scale: 1, opacity: 1, y: 0 }} 
         onClick={e => e.stopPropagation()}
-        style={{ background: "#fff", width: "100%", maxWidth: 500, borderRadius: 24, boxShadow: "0 10px 40px rgba(0,0,0,0.2)", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}
+        style={{ background: T.white, width: "100%", maxWidth: 500, borderRadius: 24, boxShadow: "0 10px 40px rgba(0,0,0,0.2)", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 24px 16px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F1A14", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: T.text, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
             <Icon name="settings" size={20} color={T.green} /> Configurar Agenda
           </h2>
-          <button onClick={onClose} style={{ background: "#F3F4F6", border: "none", width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="x" size={14} color="#5A6872" /></button>
+          <button onClick={onClose} style={{ background: dark ? "rgba(255,255,255,0.08)" : "#F3F4F6", border: "none", width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="x" size={14} color={dark ? T.sub : "#5A6872"} /></button>
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "0 24px" }}>
@@ -226,17 +226,17 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
               </div>
 
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>Paso 1: Selecciona la fecha</label>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.text, marginBottom: 8 }}>Paso 1: Selecciona la fecha</label>
                 <div style={{ display: "flex", gap: 10 }}>
                   <input 
                     type="date" 
                     value={date} 
                     min={toLocalYYYYMMDD(new Date())}
                     onChange={e => setDate(e.target.value)} 
-                    style={{ flex: 1, padding: "12px", border: "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 14, background: "#F9FAFB", color: T.text || "#0F1A14", fontFamily: "inherit" }} 
+                    style={{ flex: 1, padding: "12px", border: dark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #E4E8E4", borderRadius: 10, fontSize: 14, background: dark ? "rgba(255,255,255,0.06)" : "#F9FAFB", color: T.text || "#0F1A14", colorScheme: dark ? "dark" : "light", fontFamily: "inherit" }} 
                   />
-                  <button onClick={toggleBlockDate} style={{ padding: "0 16px", background: isDateBlocked ? "#FEE2E2" : "#fff", border: `1.5px solid ${isDateBlocked ? "#FCA5A5" : "#E4E8E4"}`, borderRadius: 10, color: isDateBlocked ? "#DC2626" : T.sub, fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s" }} className="press">
-                    <Icon name="slash" size={14} color={isDateBlocked ? "#DC2626" : T.sub} />
+                  <button onClick={toggleBlockDate} style={{ padding: "0 16px", background: isDateBlocked ? (dark ? "rgba(220,38,38,0.2)" : "#FEE2E2") : (dark ? "rgba(255,255,255,0.06)" : "#fff"), border: `1.5px solid ${isDateBlocked ? (dark ? "rgba(220,38,38,0.5)" : "#FCA5A5") : (dark ? "rgba(255,255,255,0.15)" : "#E4E8E4")}`, borderRadius: 10, color: isDateBlocked ? (dark ? "#FCA5A5" : "#DC2626") : T.sub, fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s" }} className="press">
+                    <Icon name="slash" size={14} color={isDateBlocked ? (dark ? "#FCA5A5" : "#DC2626") : T.sub} />
                     {isDateBlocked ? "Día Suspendido" : "Suspender Día"}
                   </button>
                 </div>
@@ -244,9 +244,9 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
 
               {!isDateBlocked ? (
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#0F1A14", marginBottom: 8 }}>Paso 2: Toca las horas para cancelarlas/bloquearlas en este día</label>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.text, marginBottom: 8 }}>Paso 2: Toca las horas para cancelarlas/bloquearlas en este día</label>
                   {availableSlotsForDate.length === 0 ? (
-                    <div style={{ padding: 16, textAlign: "center", background: "#FEE2E2", color: "#991B1B", borderRadius: 12, fontSize: 13, fontWeight: 700 }}>
+                    <div style={{ padding: 16, textAlign: "center", background: dark ? "rgba(220,38,38,0.15)" : "#FEE2E2", color: dark ? "#FCA5A5" : "#991B1B", borderRadius: 12, fontSize: 13, fontWeight: 700 }}>
                       El negocio está marcado como Cerrado en tu "Horario Base" para este día.
                     </div>
                   ) : (
@@ -261,10 +261,10 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
                             style={{
                               flex: "1 0 calc(33.33% - 10px)",
                               padding: "12px 0",
-                              border: `1.5px solid ${blocked ? "#FEE2E2" : "#E4E8E4"}`,
+                              border: `1.5px solid ${blocked ? (dark ? "rgba(220,38,38,0.5)" : "#FEE2E2") : (dark ? "rgba(255,255,255,0.15)" : "#E4E8E4")}`,
                               borderRadius: 12,
-                              background: blocked ? "#FEF2F2" : "#fff",
-                              color: blocked ? "#EF4444" : "#0F1A14",
+                              background: blocked ? (dark ? "rgba(220,38,38,0.12)" : "#FEF2F2") : T.white,
+                              color: blocked ? (dark ? "#F87171" : "#EF4444") : T.text,
                               fontWeight: 800,
                               fontSize: 13,
                               cursor: "pointer",
@@ -275,7 +275,7 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
                               gap: 6
                             }}
                           >
-                            {blocked && <Icon name="slash" size={14} color="#EF4444" />}
+                            {blocked && <Icon name="slash" size={14} color={dark ? "#F87171" : "#EF4444"} />}
                             {formatTimeAMPM(time)}
                           </button>
                         );
@@ -283,17 +283,17 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
                     </div>
                   )}
                   <div style={{ fontSize: 12, color: T.sub, marginTop: 12, display: "flex", gap: 16, justifyContent: "center" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #E4E8E4", background: "#fff" }}></div> Disponible</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#FEF2F2", border: "1.5px solid #FEE2E2" }}></div> Bloqueado</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", border: dark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #E4E8E4", background: T.white }}></div> Disponible</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: dark ? "rgba(220,38,38,0.12)" : "#FEF2F2", border: dark ? "1.5px solid rgba(220,38,38,0.5)" : "1.5px solid #FEE2E2" }}></div> Bloqueado</span>
                   </div>
                 </div>
               ) : (
-                <div style={{ padding: "30px 20px", textAlign: "center", background: "#FEF2F2", border: "1.5px dashed #FCA5A5", borderRadius: 16, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-                    <Icon name="slash" size={24} color="#DC2626" />
+                <div style={{ padding: "30px 20px", textAlign: "center", background: dark ? "rgba(220,38,38,0.12)" : "#FEF2F2", border: dark ? "1.5px dashed rgba(220,38,38,0.5)" : "1.5px dashed #FCA5A5", borderRadius: 16, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: dark ? "rgba(220,38,38,0.2)" : "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                    <Icon name="slash" size={24} color={dark ? "#FCA5A5" : "#DC2626"} />
                   </div>
-                  <div style={{ fontWeight: 800, color: "#991B1B", fontSize: 16 }}>Día completo bloqueado</div>
-                  <div style={{ fontSize: 13, color: "#B91C1C", marginTop: 4, maxWidth: 280, margin: "4px auto 0" }}>Los clientes no podrán ver disponibilidad ni reservar en esta fecha.</div>
+                  <div style={{ fontWeight: 800, color: dark ? "#FCA5A5" : "#991B1B", fontSize: 16 }}>Día completo bloqueado</div>
+                  <div style={{ fontSize: 13, color: dark ? "#F87171" : "#B91C1C", marginTop: 4, maxWidth: 280, margin: "4px auto 0" }}>Los clientes no podrán ver disponibilidad ni reservar en esta fecha.</div>
                 </div>
               )}
             </m.div>
@@ -332,22 +332,22 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
                               type="time" 
                               value={open || "09:00"} 
                               onChange={e => handleTimeChange(day.key, "open", e.target.value)}
-                              style={{ flex: 1, padding: "8px", border: "1.5px solid #E4E8E4", borderRadius: 8, fontSize: 13, background: "#fff", color: T.text || "#0F1A14", fontFamily: "inherit" }}
+                              style={{ flex: 1, padding: "8px", border: dark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #E4E8E4", borderRadius: 8, fontSize: 13, background: T.white, color: T.text || "#0F1A14", colorScheme: dark ? "dark" : "light", fontFamily: "inherit" }}
                             />
                             <span style={{ color: T.sub, fontSize: 12 }}>a</span>
                             <input 
                               type="time" 
                               value={close || "18:00"} 
                               onChange={e => handleTimeChange(day.key, "close", e.target.value)}
-                              style={{ flex: 1, padding: "8px", border: "1.5px solid #E4E8E4", borderRadius: 8, fontSize: 13, background: "#fff", color: T.text || "#0F1A14", fontFamily: "inherit" }}
+                              style={{ flex: 1, padding: "8px", border: dark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #E4E8E4", borderRadius: 8, fontSize: 13, background: T.white, color: T.text || "#0F1A14", colorScheme: dark ? "dark" : "light", fontFamily: "inherit" }}
                             />
                           </div>
                         )}
                       </div>
 
                       {/* Toggle switch for Open/Closed */}
-                      <div onClick={() => handleScheduleToggle(day.key)} style={{ width: 36, height: 20, borderRadius: 10, background: isClosed ? "#E5E7EB" : T.green, position: "relative", cursor: "pointer", transition: "0.2s", flexShrink: 0 }}>
-                        <div style={{ position: "absolute", top: 2, left: isClosed ? 2 : 18, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "0.2s", boxShadow: "0 1px 2px rgba(0,0,0,0.1)" }} />
+                      <div onClick={() => handleScheduleToggle(day.key)} style={{ width: 36, height: 20, borderRadius: 10, background: isClosed ? (dark ? "rgba(255,255,255,0.2)" : "#E5E7EB") : T.green, position: "relative", cursor: "pointer", transition: "0.2s", flexShrink: 0 }}>
+                        <div style={{ position: "absolute", top: 2, left: isClosed ? 2 : 18, width: 16, height: 16, borderRadius: "50%", background: dark ? "#18181B" : "#fff", transition: "0.2s", boxShadow: "0 1px 2px rgba(0,0,0,0.1)" }} />
                       </div>
                     </div>
                   );
@@ -368,11 +368,11 @@ export default function ScheduleManagerModal({ biz, onClose, onUpdate }) {
         </div>
         </div>
 
-        <div style={{ padding: "16px 24px 24px", borderTop: `1px solid ${T.border}`, background: "#fff", zIndex: 10 }}>
+        <div style={{ padding: "16px 24px 24px", borderTop: `1px solid ${T.border}`, background: T.white, zIndex: 10 }}>
           <button 
             onClick={handleSave} 
             disabled={loading}
-            style={{ width: "100%", padding: 15, background: "#0F1A14", color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: loading ? "default" : "pointer" }}
+            style={{ width: "100%", padding: 15, background: dark ? "#F4F4F5" : "#0F1A14", color: dark ? "#18181B" : "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: loading ? "default" : "pointer" }}
           >
             {loading ? "Guardando..." : "Guardar Agenda"}
           </button>

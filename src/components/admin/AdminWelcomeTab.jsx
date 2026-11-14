@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 export default function AdminWelcomeTab({ setTab, T }) {
+  // Vive sobre la cáscara clara fija del admin: paleta clara local en oscuro.
+  const LT = T.dark ? { text: "#0F1A14", sub: "#5A6872", border: "#E5E7EB", white: "#FFFFFF", bg: "#FFFFFF" } : T;
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -32,8 +34,8 @@ export default function AdminWelcomeTab({ setTab, T }) {
       {/* Header / Saludo */}
       <div style={{ textAlign: "center", marginBottom: 40, animation: "fadeInDown 0.5s ease" }}>
         <div style={{ fontSize: 42, marginBottom: 12 }}>👋</div>
-        <h2 style={{ fontSize: 24, fontWeight: 800, color: T.text, margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>¡Hola, Administrador!</h2>
-        <p style={{ fontSize: 14, color: T.sub, margin: 0, textTransform: "capitalize", fontWeight: 500 }}>{formatTime(time)}</p>
+        <h2 style={{ fontSize: 24, fontWeight: 800, color: LT.text, margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>¡Hola, Administrador!</h2>
+        <p style={{ fontSize: 14, color: LT.sub, margin: 0, textTransform: "capitalize", fontWeight: 500 }}>{formatTime(time)}</p>
       </div>
 
       <style>{`
@@ -61,8 +63,8 @@ export default function AdminWelcomeTab({ setTab, T }) {
             onClick={() => setTab(item.id)}
             className="press"
             style={{
-              background: T.bg,
-              border: `1px solid ${T.border}`,
+              background: LT.bg,
+              border: `1px solid ${LT.border}`,
               borderRadius: 16,
               padding: "20px 10px",
               display: "flex",
@@ -78,7 +80,7 @@ export default function AdminWelcomeTab({ setTab, T }) {
             }}
           >
             <div style={{ fontSize: 32, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))" }}>{item.icon}</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: T.text, textAlign: "center", lineHeight: 1.2 }}>{item.label}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: LT.text, textAlign: "center", lineHeight: 1.2 }}>{item.label}</div>
           </div>
         ))}
       </div>

@@ -177,7 +177,7 @@ export default function AppLoginView({ T, dark, navigate }) {
   // dibujarlo; «Cancelar» siempre está visible dentro de la tarjeta.
   return (
     <div style={{ minHeight: '100dvh', background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ width: '100%', maxWidth: 400, background: dark ? '#1e1e1e' : '#fff', border: `1px solid ${T.border}`, borderRadius: 20, padding: '28px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', textAlign: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 400, background: dark ? T.card : '#fff', border: `1px solid ${T.border}`, borderRadius: 20, padding: '28px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', textAlign: 'center' }}>
         <img
           src="/logo-brand.png"
           alt="CityMap"
@@ -196,7 +196,7 @@ export default function AppLoginView({ T, dark, navigate }) {
           <div style={{ marginBottom: 16 }}>
             <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>{t("modal_sesion_volviendo_app", "Sesión iniciada. Volviendo a la app…")}</p>
             {deepLink && (
-              <a href={deepLink} style={{ display: 'inline-block', padding: '12px 28px', borderRadius: 999, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+              <a href={deepLink} style={{ display: 'inline-block', padding: '12px 28px', borderRadius: 999, background: dark ? '#f1f5f9' : '#111', color: dark ? '#0f172a' : '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
                 {t("modal_volver_app", "Volver a la app")}
               </a>
             )}
@@ -209,18 +209,18 @@ export default function AppLoginView({ T, dark, navigate }) {
 
         {isRecovery ? (
           recoveryDone ? (
-            <div role="status" style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 12, color: '#166534', fontWeight: 600, fontSize: 14, lineHeight: 1.5, textAlign: 'left' }}>
+            <div role="status" style={{ padding: '16px', background: dark ? 'rgba(34,197,94,0.12)' : '#F0FDF4', border: dark ? '1px solid rgba(34,197,94,0.35)' : '1px solid #BBF7D0', borderRadius: 12, color: dark ? '#4ADE80' : '#166534', fontWeight: 600, fontSize: 14, lineHeight: 1.5, textAlign: 'left' }}>
               <div style={{ fontWeight: 800, marginBottom: 4 }}>{t("modal_contrasena_actualizada", "Contraseña actualizada")}</div>
               {t("modal_contrasena_actualizada_texto", "Ya puedes entrar con tu contraseña nueva.")}
-              <button onClick={() => navigate('/')} style={{ display: 'block', width: '100%', marginTop: 16, padding: '13px 16px', borderRadius: 999, background: '#111', color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={() => navigate('/')} style={{ display: 'block', width: '100%', marginTop: 16, padding: '13px 16px', borderRadius: 999, background: dark ? '#f1f5f9' : '#111', color: dark ? '#0f172a' : '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 {t("modal_entrar_citymap", "Entrar a CityMap")}
               </button>
             </div>
           ) : (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left' }}>
-                <input className="inp" aria-label={t("modal_nueva_contrasena", "Crea tu contraseña nueva")} autoComplete="new-password" placeholder={t("modal_nueva_contrasena", "Crea tu contraseña nueva")} type="password" value={newPw} onChange={e => setNewPw(e.target.value)} style={{ padding: '14px 16px', borderRadius: 12, border: `1.5px solid ${T.border}`, fontSize: 16, background: dark ? '#1e1e1e' : '#fff', color: T.text, outline: 'none', width: '100%' }} />
-                <input className="inp" aria-label={t("modal_repite_contrasena", "Repite la contraseña")} autoComplete="new-password" placeholder={t("modal_repite_contrasena", "Repite la contraseña")} type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} style={{ padding: '14px 16px', borderRadius: 12, border: `1.5px solid ${T.border}`, fontSize: 16, background: dark ? '#1e1e1e' : '#fff', color: T.text, outline: 'none', width: '100%' }} />
+                <input className="inp" aria-label={t("modal_nueva_contrasena", "Crea tu contraseña nueva")} autoComplete="new-password" placeholder={t("modal_nueva_contrasena", "Crea tu contraseña nueva")} type="password" value={newPw} onChange={e => setNewPw(e.target.value)} style={{ padding: '14px 16px', borderRadius: 12, border: `1.5px solid ${T.border}`, fontSize: 16, background: dark ? T.white : '#fff', color: T.text, outline: 'none', width: '100%' }} />
+                <input className="inp" aria-label={t("modal_repite_contrasena", "Repite la contraseña")} autoComplete="new-password" placeholder={t("modal_repite_contrasena", "Repite la contraseña")} type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} style={{ padding: '14px 16px', borderRadius: 12, border: `1.5px solid ${T.border}`, fontSize: 16, background: dark ? T.white : '#fff', color: T.text, outline: 'none', width: '100%' }} />
               </div>
               {newPw.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', marginTop: 12, padding: '0 4px', textAlign: 'left' }}>
@@ -233,7 +233,7 @@ export default function AppLoginView({ T, dark, navigate }) {
                 </div>
               )}
               {recoveryError && (
-                <p style={{ color: '#dc2626', fontSize: 14, fontWeight: 600, margin: '16px 0 0', textAlign: 'left' }}>{recoveryError}</p>
+                <p style={{ color: dark ? T.red : '#dc2626', fontSize: 14, fontWeight: 600, margin: '16px 0 0', textAlign: 'left' }}>{recoveryError}</p>
               )}
               <button onClick={handleRecoverySubmit} disabled={recoveryBusy} style={{ width: '100%', marginTop: 16, padding: '13px 16px', borderRadius: 14, background: dark ? '#f1f5f9' : '#0f172a', color: dark ? '#0f172a' : '#fff', fontWeight: 800, fontSize: 15, border: 'none', cursor: 'pointer', opacity: recoveryBusy ? 0.7 : 1, fontFamily: 'inherit' }}>
                 {recoveryBusy ? t("modal_actualizando", "Actualizando…") : t("modal_actualizar_contrasena", "Actualizar contraseña")}
@@ -243,7 +243,11 @@ export default function AppLoginView({ T, dark, navigate }) {
         ) : (
           status !== 'done' && (
           <>
-            <div style={{ width: '100%', display: gisReady ? 'flex' : 'none', justifyContent: 'center', minHeight: 44, marginBottom: 8 }}>
+            {/* Anillo en modo oscuro: el botón oficial de Google usa
+                theme 'filled_black' (negro) y se funde con la tarjeta
+                oscura; el contorno claro delimita la píldora. En claro
+                no se añade nada (el botón 'outline' ya trae su borde). */}
+            <div style={{ width: '100%', display: gisReady ? 'flex' : 'none', justifyContent: 'center', minHeight: 44, marginBottom: 8, ...(dark ? { border: '1px solid rgba(255,255,255,0.35)', borderRadius: 999, boxSizing: 'border-box' } : {}) }}>
               <div ref={googleBtnRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} />
             </div>
             {gisTimedOut && !gisReady && fromApp && (
@@ -265,7 +269,7 @@ export default function AppLoginView({ T, dark, navigate }) {
         )}
 
         {status === 'error' && error && (
-          <p style={{ color: '#dc2626', fontSize: 14, fontWeight: 600, margin: '0 0 16px' }}>{error}</p>
+          <p style={{ color: dark ? T.red : '#dc2626', fontSize: 14, fontWeight: 600, margin: '0 0 16px' }}>{error}</p>
         )}
 
         <button

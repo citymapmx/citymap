@@ -369,8 +369,8 @@ export default function AddBizModal({
                     <input className="cn-input" style={inputStyle} type="tel" value={addBizForm.phone} onChange={e => setAddBizForm(f => ({ ...f, phone: e.target.value }))} placeholder="311 000 0000" autoComplete="off" />
                   </div>
                   <div style={{ marginTop: 6, marginBottom: 22, padding: 16, background: 'linear-gradient(135deg, #C9A84C22, #F59E0B11)', border: '1.5px solid #C9A84C55', borderRadius: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>★ {t('crear_negocio_gratis_titulo', 'Plan gratuito activo')}</div>
-                    <p style={{ fontSize: 12, color: '#92400E', opacity: 0.85, lineHeight: 1.5, margin: 0 }}>{t('crear_negocio_gratis_texto', 'Con el plan gratuito solo puedes actualizar tu teléfono y dirección. Sube de nivel para editar fotos, horarios, WhatsApp, redes sociales y más.')}</p>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: dark ? '#FBBF24' : '#92400E', marginBottom: 6 }}>★ {t('crear_negocio_gratis_titulo', 'Plan gratuito activo')}</div>
+                    <p style={{ fontSize: 12, color: dark ? '#FBBF24' : '#92400E', opacity: 0.85, lineHeight: 1.5, margin: 0 }}>{t('crear_negocio_gratis_texto', 'Con el plan gratuito solo puedes actualizar tu teléfono y dirección. Sube de nivel para editar fotos, horarios, WhatsApp, redes sociales y más.')}</p>
                   </div>
                 </>
               ) : (
@@ -401,7 +401,7 @@ export default function AddBizModal({
                           {WIZARD_DAYS.map(([key, label]) => {
                             const open = isDayOpen(schedule, key);
                             return (
-                              <button key={key} type="button" aria-pressed={open} onClick={() => toggleDay(key)} style={{ flex: '1 1 0', minWidth: 0, padding: '9px 0', border: 'none', borderRadius: 999, background: open ? blue : backBg, color: open ? '#FFFFFF' : T.sub, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                              <button key={key} type="button" aria-pressed={open} onClick={() => toggleDay(key)} style={{ flex: '1 1 0', minWidth: 0, padding: '9px 0', border: 'none', borderRadius: 999, background: open ? blue : backBg, color: open ? (dark ? '#000000' : '#FFFFFF') : T.sub, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                                 {label}
                               </button>
                             );

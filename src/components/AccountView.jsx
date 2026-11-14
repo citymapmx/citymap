@@ -450,7 +450,7 @@ export default function AccountView({
                       {act === "user_notifs" && unreadNotifCount > 0 && (
                         <span style={{ minWidth: 20, height: 20, padding: "0 6px", borderRadius: 999, background: "#FF3B30", color: "#fff", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{badgeText(unreadNotifCount)}</span>
                       )}
-                      <Icon name="chevron" size={16} color={T.border} sw={2} />
+                      <Icon name="chevron" size={16} color={dark ? "#71717A" : T.border} sw={2} />
                     </div>
                   );
                 })}

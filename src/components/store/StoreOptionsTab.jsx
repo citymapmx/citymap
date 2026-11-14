@@ -140,9 +140,9 @@ export default function StoreOptionsTab({
             });
             setView('optForm');
           }}
-          style={{ width: "100%", background: T.green, color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 15, cursor: "pointer", marginBottom: 20, display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}
+          style={{ width: "100%", background: T.green, color: T.dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 15, cursor: "pointer", marginBottom: 20, display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}
         >
-          <Icon name="plus" size={18} color="#fff" /> Agregar Opción
+          <Icon name="plus" size={18} color={T.dark ? "#18181B" : "#FFFFFF"} /> Agregar Opción
         </button>
 
         {(currentProd.store_product_options || []).length === 0 ? (
@@ -192,7 +192,7 @@ export default function StoreOptionsTab({
                       >
                         <Icon name="edit" size={14} color={T.text} />
                       </button>
-                      <button onClick={() => deleteOption(opt.id)} style={{ background: "#FEF2F2", border: "none", width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="trash" size={14} color={T.red} /></button>
+                      <button onClick={() => deleteOption(opt.id)} style={{ background: "#FEF2F2", border: "none", width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="trash" size={14} color={T.dark ? "#DC2626" : T.red} /></button>
                     </div>
                   </div>
                   <div style={{ background: T.bg, borderRadius: 8, padding: "8px 12px" }}>
@@ -218,19 +218,19 @@ export default function StoreOptionsTab({
         <div>
           <label style={{ fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", marginBottom: 8, display: 'block' }}>Tipo de Modificador</label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <div onClick={() => setOptForm({ ...optForm, template: 'toggle_omit' })} style={{ padding: 10, borderRadius: 10, border: `2px solid ${optForm.template === 'toggle_omit' ? T.text : T.border}`, background: optForm.template === 'toggle_omit' ? T.text : T.bg, color: optForm.template === 'toggle_omit' ? '#fff' : T.text, cursor: 'pointer', textAlign: 'center' }}>
+            <div onClick={() => setOptForm({ ...optForm, template: 'toggle_omit' })} style={{ padding: 10, borderRadius: 10, border: `2px solid ${optForm.template === 'toggle_omit' ? T.text : T.border}`, background: optForm.template === 'toggle_omit' ? T.text : T.bg, color: optForm.template === 'toggle_omit' ? (T.dark ? "#18181B" : "#FFFFFF") : T.text, cursor: 'pointer', textAlign: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 700 }}>🍅 Omitir</div>
               <div style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>Ej: Sin Cebolla</div>
             </div>
-            <div onClick={() => setOptForm({ ...optForm, template: 'toggle_add' })} style={{ padding: 10, borderRadius: 10, border: `2px solid ${optForm.template === 'toggle_add' ? T.text : T.border}`, background: optForm.template === 'toggle_add' ? T.text : T.bg, color: optForm.template === 'toggle_add' ? '#fff' : T.text, cursor: 'pointer', textAlign: 'center' }}>
+            <div onClick={() => setOptForm({ ...optForm, template: 'toggle_add' })} style={{ padding: 10, borderRadius: 10, border: `2px solid ${optForm.template === 'toggle_add' ? T.text : T.border}`, background: optForm.template === 'toggle_add' ? T.text : T.bg, color: optForm.template === 'toggle_add' ? (T.dark ? "#18181B" : "#FFFFFF") : T.text, cursor: 'pointer', textAlign: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 700 }}>🥓 Extra Rápido</div>
               <div style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>Ej: Con Queso</div>
             </div>
-            <div onClick={() => setOptForm({ ...optForm, template: 'single', is_required: optForm.is_required ?? true })} style={{ padding: 10, borderRadius: 10, border: `2px solid ${optForm.template === 'single' ? T.text : T.border}`, background: optForm.template === 'single' ? T.text : T.bg, color: optForm.template === 'single' ? '#fff' : T.text, cursor: 'pointer', textAlign: 'center' }}>
+            <div onClick={() => setOptForm({ ...optForm, template: 'single', is_required: optForm.is_required ?? true })} style={{ padding: 10, borderRadius: 10, border: `2px solid ${optForm.template === 'single' ? T.text : T.border}`, background: optForm.template === 'single' ? T.text : T.bg, color: optForm.template === 'single' ? (T.dark ? "#18181B" : "#FFFFFF") : T.text, cursor: 'pointer', textAlign: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 700 }}>📏 Variantes</div>
               <div style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>Elegir 1 (Obligatorio)</div>
             </div>
-            <div onClick={() => setOptForm({ ...optForm, template: 'multiple' })} style={{ padding: 10, borderRadius: 10, border: `2px solid ${optForm.template === 'multiple' ? T.text : T.border}`, background: optForm.template === 'multiple' ? T.text : T.bg, color: optForm.template === 'multiple' ? '#fff' : T.text, cursor: 'pointer', textAlign: 'center' }}>
+            <div onClick={() => setOptForm({ ...optForm, template: 'multiple' })} style={{ padding: 10, borderRadius: 10, border: `2px solid ${optForm.template === 'multiple' ? T.text : T.border}`, background: optForm.template === 'multiple' ? T.text : T.bg, color: optForm.template === 'multiple' ? (T.dark ? "#18181B" : "#FFFFFF") : T.text, cursor: 'pointer', textAlign: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 700 }}>🧀 Complementos</div>
               <div style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>Elegir varios (Con límites)</div>
             </div>
@@ -322,7 +322,7 @@ export default function StoreOptionsTab({
           </>
         )}
 
-        <button onClick={saveOption} style={{ marginTop: 10, background: T.green, color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>Guardar Opción</button>
+        <button onClick={saveOption} style={{ marginTop: 10, background: T.green, color: T.dark ? "#18181B" : "#FFFFFF", border: "none", borderRadius: 12, padding: "14px", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>Guardar Opción</button>
       </div>
     );
   }

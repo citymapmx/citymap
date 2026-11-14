@@ -188,14 +188,18 @@ export default function ScanView({ user, T, dark, setShowAuth }) {
         <h2 style={{ margin: "0 0 4px", color: text, fontSize: 22, fontWeight: 900 }}>{member.name || member.email}</h2>
         <p style={{ margin: 0, color: T?.sub, fontSize: 14 }}>Cliente frecuente de {biz.name}</p>
 
-        <div style={{ margin: "32px 0", padding: "20px", background: isCompleted ? "#FEF3C7" : "#F8FAFC", borderRadius: 16, border: `1px solid ${isCompleted ? "#FDE68A" : "#E2E8F0"}` }}>
-          <div style={{ fontSize: 12, color: isCompleted ? "#D97706" : "#64748B", fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>
+        {/* Caja de progreso (14 Nov 2026, lote lealtad): en oscuro era una
+            isla clara fija; el ámbar #D97706 de «Premio Alcanzado» (12 px)
+            quedaba a 2.86:1. En oscuro la caja usa el tema y el ámbar
+            pasa a #FBBF24 (9.39:1 sobre #232326); en claro igual que antes. */}
+        <div style={{ margin: "32px 0", padding: "20px", background: dark ? (T?.surface || T?.card) : (isCompleted ? "#FEF3C7" : "#F8FAFC"), borderRadius: 16, border: dark ? `1px solid ${T?.border}` : `1px solid ${isCompleted ? "#FDE68A" : "#E2E8F0"}` }}>
+          <div style={{ fontSize: 12, color: isCompleted ? (dark ? "#FBBF24" : "#D97706") : (dark ? T?.sub : "#64748B"), fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>
             {isCompleted ? "Premio Alcanzado" : "Progreso actual"}
           </div>
-          <div style={{ fontSize: 40, fontWeight: 900, color: isCompleted ? "#D97706" : "#0F172A", margin: "8px 0" }}>
+          <div style={{ fontSize: 40, fontWeight: 900, color: isCompleted ? (dark ? "#FBBF24" : "#D97706") : (dark ? T?.text : "#0F172A"), margin: "8px 0" }}>
             {member.stamps} / {stampsRequired}
           </div>
-          <div style={{ fontSize: 14, color: isCompleted ? "#D97706" : "#64748B", fontWeight: 600 }}>
+          <div style={{ fontSize: 14, color: isCompleted ? (dark ? "#FBBF24" : "#D97706") : (dark ? T?.sub : "#64748B"), fontWeight: 600 }}>
             {isCompleted ? "El cliente tiene derecho a canjear su premio." : "Faltan " + (stampsRequired - member.stamps) + " sellos para el premio."}
           </div>
         </div>

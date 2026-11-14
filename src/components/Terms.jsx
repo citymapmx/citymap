@@ -58,7 +58,7 @@ export default function Terms({ T, onBack }) {
 
           <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 10, color: T.text }}>8. Contacto</h3>
           <p style={{ color: T.sub }}>
-            Si tienes dudas sobre estos Términos y Condiciones, por favor contáctanos a través del correo electrónico: <a href="mailto:soporte@citymap.mx" style={{ color: "#1877F2", textDecoration: "none", fontWeight: 600 }}>soporte@citymap.mx</a>.
+            Si tienes dudas sobre estos Términos y Condiciones, por favor contáctanos a través del correo electrónico: <a href="mailto:soporte@citymap.mx" style={{ color: T.dark ? "#60A5FA" : "#1877F2", textDecoration: "none", fontWeight: 600 }}>soporte@citymap.mx</a>.
           </p>
 
         </div>
