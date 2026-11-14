@@ -971,6 +971,7 @@ export const TRANSLATIONS = {
     "detalle_leer_todas_google": "Leer todas en Google Maps",
     "detalle_llamar": "Llamar",
     "detalle_logo_de": "Logo de {nombre}",
+    "detalle_mas_fotos": "+{n} fotos más",
     "detalle_mas_hojas": "{n} hojas",
     "detalle_menu": "Menú",
     "detalle_menu_min": "menú",
