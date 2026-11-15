@@ -14,6 +14,7 @@ import { getEventCalendarUrl } from "../lib/eventCalendar.js";
 import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, isNear, getLocalIsoDate } from "../lib/utils.js";
 import { useTranslation } from "../hooks/useTranslation.js";
+import { safeAreaTop } from "../lib/safeArea.js";
 
 export default function FavsView({ hideHeader }) {
   const { t, lang } = useTranslation();
@@ -36,7 +37,7 @@ export default function FavsView({ hideHeader }) {
     <div style={hideHeader ? { paddingBottom: 20 } : { paddingBottom: 84, ...viewStyle, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <TrofeoLogro show={showTrofeo} mensaje={t("fav_coleccion_completada", "¡Colección completada!")} onDone={() => setShowTrofeo(false)} />
       {!hideHeader && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.white }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${safeAreaTop(16)} 20px 16px`, borderBottom: `1px solid ${T.border}`, background: T.white }}>
           <div style={{ display: "flex", alignItems: "center" }}>
             <button onClick={() => window.history.length > 1 ? window.history.back() : navigate("home")} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <Icon name="arrow_left" size={24} color={T.text} />

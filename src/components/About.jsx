@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import Icon from './ui/Icon.jsx';
+import { safeAreaTop } from '../lib/safeArea.js';
 
 const purpose = [
   {title:'Misión',icon:'star',description:'Conectar a las personas con los mejores negocios y experiencias locales, impulsando la economía de nuestra ciudad a través de una plataforma accesible, moderna y fácil de usar para todos.'},
@@ -15,7 +16,7 @@ const values = [
 export default function About({T,onBack}) {
   useEffect(()=>{window.scrollTo(0,0);},[]);
   return <div style={{paddingBottom:84,background:T.bg,color:T.text,minHeight:'100vh',textAlign:'left'}}>
-    <header style={{position:'sticky',top:0,background:T.bg,zIndex:10,borderBottom:`1px solid ${T.border}`,padding:'12px 16px',display:'flex',alignItems:'center',gap:10}}>
+    <header style={{position:'sticky',top:0,background:T.bg,zIndex:10,borderBottom:`1px solid ${T.border}`,padding:`${safeAreaTop(12)} 16px 12px`,display:'flex',alignItems:'center',gap:10}}>
       <button type="button" aria-label="Volver" onClick={onBack} style={{width:36,height:36,padding:0,background:'transparent',border:0,color:T.text,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><Icon name="chevron" size={22} color="currentColor" style={{transform:'rotate(180deg)'}}/></button>
       <h1 style={{fontSize:16,fontWeight:700,margin:0,color:T.text}}>Acerca de CityMap</h1>
     </header>

@@ -13,6 +13,7 @@ import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon.jsx";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { prefersReducedMotion } from "../lib/smoothScroll.js";
+import { safeAreaTop } from "../lib/safeArea.js";
 
 export default function MapView() {
   const { t } = useTranslation();
@@ -172,7 +173,7 @@ export default function MapView() {
           } : { margin: "16px 16px 8px", aspectRatio: "1 / 1.1", position: "relative", zIndex: 1, borderRadius: 24, overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.12)", border: `1px solid ${T.border}` }}>
             
             {/* Full Screen Toggle */}
-            <button onClick={() => setMapFullScreen(!mapFullScreen)} className="press" style={{ position: "absolute", top: 16, right: 16, zIndex: 10, width: 44, height: 44, borderRadius: "50%", background: dark ? "rgba(35,35,38,0.9)" : "rgba(255,255,255,0.9)", backdropFilter: "blur(10px)", border: dark ? "1px solid rgba(255,255,255,0.15)" : "1px solid rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", cursor: "pointer" }}>
+            <button onClick={() => setMapFullScreen(!mapFullScreen)} className="press" style={{ position: "absolute", top: mapFullScreen ? safeAreaTop(16) : 16, right: 16, zIndex: 10, width: 44, height: 44, borderRadius: "50%", background: dark ? "rgba(35,35,38,0.9)" : "rgba(255,255,255,0.9)", backdropFilter: "blur(10px)", border: dark ? "1px solid rgba(255,255,255,0.15)" : "1px solid rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", cursor: "pointer" }}>
               <Icon name={mapFullScreen ? "minimize-2" : "maximize-2"} size={20} color={dark ? "#F4F4F5" : "#0F172A"} />
             </button>
 

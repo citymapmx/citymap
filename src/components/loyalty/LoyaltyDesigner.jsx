@@ -6,6 +6,7 @@ import LoyaltyWizard from './LoyaltyWizard.jsx';
 import LoyaltyWhatsAppButton from './LoyaltyWhatsAppButton.jsx';
 import LoyaltyMemberDetail from './LoyaltyMemberDetail.jsx';
 import LoyaltyConfirmSheet from './LoyaltyConfirmSheet.jsx';
+import { safeAreaTop } from '../../lib/safeArea.js';
 import {
   loadBizRewardEvents,
   loadMemberStampEvents,
@@ -329,7 +330,7 @@ export default function LoyaltyDesigner({ business, onClose, T }) {
     <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 10000, display: "flex", flexDirection: "column", animation: "fadeUp .3s ease" }}>
 
       {/* HEADER */}
-      <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${T.border}`, background: T.bg, gap: 10, flexShrink: 0 }}>
+      <div style={{ padding: `${safeAreaTop(14)} 16px 14px`, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${T.border}`, background: T.bg, gap: 10, flexShrink: 0 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ margin: 0, fontSize: isMobile ? 15 : 18, fontWeight: 800, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Tarjetas de Lealtad</h2>
           {!isMobile && <p style={{ margin: 0, fontSize: 13, color: T.sub }}>Diseña el pase digital de tu negocio</p>}

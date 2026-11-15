@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Icon from './ui/Icon.jsx';
 import { sb } from '../lib/supabase.js';
+import { safeAreaTop } from '../lib/safeArea.js';
 
 export default function AdminNotifs({ T, onBack }) {
   const [loading, setLoading] = useState(true);
@@ -97,7 +98,7 @@ export default function AdminNotifs({ T, onBack }) {
   return (
     <div style={{ paddingBottom: 84, animation: "fadeUp .4s ease" }}>
       {/* Header */}
-      <div style={{ position: "sticky", top: 0, background: T.bg, zIndex: 10, borderBottom: `1px solid ${T.border}`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ position: "sticky", top: 0, background: T.bg, zIndex: 10, borderBottom: `1px solid ${T.border}`, padding: `${safeAreaTop(16)} 20px 16px`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <button className="press" onClick={onBack} style={{ background: T.white, border: `1.5px solid ${T.border}`, width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}><Icon name="chevron" size={20} color={T.text} style={{ transform: "rotate(180deg)" }} /></button>
           <h2 style={{ fontFamily: "var(--heading)", fontSize: 22, color: T.text, margin: 0 }}>Notificaciones</h2>

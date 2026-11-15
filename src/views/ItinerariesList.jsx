@@ -4,6 +4,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { useDataStore } from "../store/useDataStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import * as dbService from "../services/dbService.js";
+import { safeAreaTop } from "../lib/safeArea.js";
 
 export default function ItinerariesList({ T, dark, navigate }) {
   const { myItineraries } = useDataStore();
@@ -60,7 +61,7 @@ export default function ItinerariesList({ T, dark, navigate }) {
         display: "flex", flexDirection: "column"
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.white }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${safeAreaTop(16)} 20px 16px`, borderBottom: `1px solid ${T.border}`, background: T.white }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <button onClick={() => window.history.length > 1 ? window.history.back() : navigate("home")} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
             <Icon name="arrow_left" size={24} color={T.text} />

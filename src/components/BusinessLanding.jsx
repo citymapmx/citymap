@@ -14,6 +14,7 @@ import { displayRating, businessShowsGoogleRating, formatReviewCount } from "../
 import { useCountUp } from "../hooks/useCountUp.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { Reveal } from "./ui/Reveal.jsx";
+import { safeAreaTop } from "../lib/safeArea.js";
 
 // Cifra con conteo animado: sube de 0 a su valor cuando la sección entra en
 // pantalla (una sola vez). Antes de eso muestra el valor tal cual.
@@ -186,7 +187,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         @media(prefers-reduced-motion:reduce){.business-landing *{scroll-behavior:auto!important;transition:none!important}}
       `}</style>
       <header style={{ position: 'sticky', top: 0, zIndex: 10, background: dark ? 'rgba(22,22,23,.92)' : 'rgba(245,245,247,.92)', backdropFilter: 'blur(20px)', borderBottom: `1px solid ${line}` }}>
-        <div style={{ maxWidth: 1140, margin: 'auto', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 62 }}>
+        <div style={{ maxWidth: 1140, margin: 'auto', padding: `${safeAreaTop(12)} 20px 12px`, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 62 }}>
           <img src="/logo-brand.png" alt="CityMap" width={87} height={26} style={{ height: 26, width: 'auto', objectFit: 'contain', filter: dark ? undefined : 'brightness(0)' }} />
         </div>
       </header>

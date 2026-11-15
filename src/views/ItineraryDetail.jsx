@@ -10,6 +10,7 @@ import { getKm } from "../lib/utils.js";
 import ItinerarySettingsModal from "../components/modals/ItinerarySettingsModal.jsx";
 import SearchPlacesModal from "../components/modals/SearchPlacesModal.jsx";
 import { PageLogo } from "../components/Brand.jsx";
+import { safeAreaTop } from "../lib/safeArea.js";
 
 
 function SortableItemWrapper({ item, isOwner, children }) {
@@ -380,7 +381,7 @@ export default function ItineraryDetail({ T, dark, navigate, token, id, userCoor
         display: "flex", flexDirection: "column"
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.white }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${safeAreaTop(16)} 20px 16px`, borderBottom: `1px solid ${T.border}`, background: T.white }}>
         <div style={{ display: "flex", alignItems: "center", flex: 1, overflow: "hidden" }}>
           <button onClick={() => {
             if (window.history.length > 2) {
