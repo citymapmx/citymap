@@ -615,7 +615,7 @@ ${homeCityLinks}
       status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=86400",
       },
     });
   }
@@ -697,7 +697,7 @@ ${categoryLinks}
       status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=86400",
       },
     });
   }
@@ -810,7 +810,7 @@ ${bodyExtra}
 
     const vistaHeaders = {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=86400",
     };
     // /login se sirve con 200 pero no se indexa (también en la cabecera,
     // porque el middleware construye su propia respuesta y no la hereda).
@@ -851,7 +851,7 @@ ${bodyExtra}
         status: 200,
         headers: {
           "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+          "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=86400",
         },
       });
     }
@@ -885,7 +885,7 @@ ${bodyExtra}
           status: 200,
           headers: {
             "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+            "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=86400",
           },
         });
       }
@@ -1192,7 +1192,7 @@ ${bodyContent}
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=86400",
       "X-Robots-Tag": "index, follow, max-image-preview:large",
     },
   });

@@ -333,7 +333,7 @@ export default async function middleware(request) {
         status: ogRes.status,
         headers: {
           'content-type': 'text/html; charset=utf-8',
-          'cache-control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          'cache-control': 'public, s-maxage=86400, stale-while-revalidate=86400',
           'x-og-served': '1',
           'x-robots-tag': robotsTag
         }
@@ -345,5 +345,19 @@ export default async function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|workbox).*)'],
+  // El middleware solo corre donde hace falta: rutas de página (sin
+  // extensión) más /sitemap.xml y /robots.txt, que sirve él mismo.
+  // Antes corría en CADA request (244.693 invocaciones en 30 días, el
+  // 93,4% del total; 2 h 52 min de CPU, el 77,9%): también en /assets/*,
+  // /api/*, /sw.js, iconos y demás archivos, donde solo pasaba de largo.
+  // Con este matcher Vercel ni lo invoca para esos paths, así que el
+  // gasto de CPU cae en proporción. Las redirecciones de dominio, los
+  // slugs canónicos y el OG de bots solo existen en rutas de página,
+  // así que nada de eso se pierde; /sitemap.xml y /robots.txt van
+  // explícitos porque sí tienen extensión y el middleware los sirve.
+  matcher: [
+    '/sitemap.xml',
+    '/robots.txt',
+    '/((?!api|assets|_next|web-next|.*\\..*).*)',
+  ],
 };
