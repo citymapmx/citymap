@@ -1,13 +1,16 @@
 import {isCatalogBusiness} from '../../lib/storePresentation.js';
 import StorePromotions from './StorePromotions.jsx';
 import SlidingCategoryTrack from '../ui/SlidingCategoryTrack.jsx';
-import { useState, useEffect, useRef, useCallback, useMemo, useContext } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useContext, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
-import ProductModal from './ProductModal.jsx';
-import CartDrawer from './CartDrawer.jsx';
+// Hallazgo #6 (fluidez): el modal de producto y el carrito no viajan en
+// el primer pintado: se cargan solo cuando se abren. Antes eran imports
+// estáticos y pesaban ~15-20 KB del chunk del menú aunque nunca se usaran.
+const ProductModal = lazy(() => import('./ProductModal.jsx'));
+const CartDrawer = lazy(() => import('./CartDrawer.jsx'));
 import NoMenuLanding from './NoMenuLanding.jsx';
 import { useCart } from '../../hooks/useCart.js';
 import { useUIStore } from '../../store/useUIStore.js';
@@ -129,9 +132,16 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
     }
   };
 
-  const { items, setIsOpen, addItem, removeItem, updateQuantity, clearCart } = useCart();
+  const { items, isOpen: cartIsOpen, setIsOpen, addItem, removeItem, updateQuantity, clearCart } = useCart();
   const cartTotal = items.reduce((acc, item) => acc + (item.quantity * item.unitTotal), 0);
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
+  // El carrito solo se monta tras abrirlo una vez (hallazgo #6): con el
+  // lazy() solo no bastaba, porque CartDrawer se renderizaba siempre
+  // (oculto) y su chunk igual se descargaba en el primer pintado. Una
+  // vez abierto queda montado: conserva el nombre, la dirección y las
+  // notas escritos y no se vuelve a cargar al reabrir.
+  const [cartMounted, setCartMounted] = useState(false);
+  useEffect(() => { if (cartIsOpen) setCartMounted(true); }, [cartIsOpen]);
   const categoryRefs = useRef({});
   const tabsRef = useRef(null);
 
@@ -1005,16 +1015,22 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
       )}
 
       {selectedProduct && (
-        <ProductModal 
-          product={selectedProduct} 
-          businessId={business.id}
-          onClose={() => setSelectedProduct(null)} 
-          T={menuT} 
-          menuIntent={menuIntent}
-        />
+        <Suspense fallback={null}>
+          <ProductModal 
+            product={selectedProduct} 
+            businessId={business.id}
+            onClose={() => setSelectedProduct(null)} 
+            T={menuT} 
+            menuIntent={menuIntent}
+          />
+        </Suspense>
       )}
 
-      <CartDrawer business={business} T={menuT} />
+      {cartMounted && (
+        <Suspense fallback={null}>
+          <CartDrawer business={business} T={menuT} />
+        </Suspense>
+      )}
 
       <style>{`
         @keyframes toastIn {
