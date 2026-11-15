@@ -121,15 +121,6 @@ describe.each([['Vite', viteStore, viteDb], ['Next.js', nextStore, nextDb]])('%s
     expect(get.mock.calls[1][1]).not.toContain(',subcategory');
   });
 
-  it('loads map rows by viewport without requesting the entire directory', async () => {
-    get.mockResolvedValueOnce(rows(0, 20)).mockResolvedValueOnce(rows(100, 2));
-    await store.getState().loadMapPins('tepic');
-    await store.getState().loadMapPinsByBounds('tepic', { minLat: 21, maxLat: 22, minLng: -105, maxLng: -104 });
-    expect(get.mock.calls[1][1]).toContain('lat=gte.21');
-    expect(get.mock.calls[1][1]).toContain('limit=200');
-    expect(store.getState().mapPins).toHaveLength(22);
-  });
-
   it('fetches full-city rankings separately without changing the list pagination', async () => {
     get.mockResolvedValueOnce(rows(0, 20)); await store.getState().loadMapPins('tepic');
     store.setState({ globalFavCounts: { 'biz-99': 20, 'biz-98': 5 } });

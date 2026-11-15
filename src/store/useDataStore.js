@@ -45,6 +45,9 @@ const updateCityCache = (key, updates) => {
 
 let businessLoadId = 0;
 let timeBasedLoadId = 0;
+let cityPinsLoadId = 0;
+let cityPinsPromise = null;
+let cityPinsPromiseCity = null;
 const highlightRequests = new Map();
 
 export const useDataStore = create((set, get) => ({
@@ -110,6 +113,11 @@ export const useDataStore = create((set, get) => ({
   dbReady: false, setDbReady: (val) => set(s => ({ dbReady: typeof val === 'function' ? val(s.dbReady) : val })),
   dbError: false, setDbError: (val) => set(s => ({ dbError: typeof val === 'function' ? val(s.dbError) : val })),
   mapPins: [], setMapPins: (val) => set(s => ({ mapPins: typeof val === 'function' ? val(s.mapPins) : val })),
+  // Pines ligeros de TODA la ciudad para el mapa (nov 2026, mapa lento):
+  // la consulta completa con solo las columnas del pin. mapPins sigue
+  // siendo la lista pesada y paginada de la home (primeros 20 + «Ver más»).
+  cityPins: [], setCityPins: (val) => set(s => ({ cityPins: typeof val === 'function' ? val(s.cityPins) : val })),
+  cityPinsCity: null,
   myBizList: [], setMyBizList: (val) => set(s => ({ myBizList: typeof val === 'function' ? val(s.myBizList) : val })),
   globalFavCounts: {}, setGlobalFavCounts: (val) => set(s => ({ globalFavCounts: typeof val === 'function' ? val(s.globalFavCounts) : val })),
   myItineraries: [], setMyItineraries: (val) => set(s => ({ myItineraries: typeof val === 'function' ? val(s.myItineraries) : val })),
@@ -175,6 +183,57 @@ export const useDataStore = create((set, get) => ({
     } catch (e) {
       console.warn("Error fetching map pins", e);
     }
+  },
+
+  // Precarga ligera de TODA la ciudad para el mapa (nov 2026, mapa lento).
+  // Antes el mapa solo traía los primeros 20 (loadMapPins) y el resto
+  // llegaba por viewport con loadMapPinsByBounds (limit=200 sin order):
+  // al mover el mapa «Lo más cerca de ti» pasaba de 80 a 64 lugares y
+  // Guadalajara (330+) nunca se cargaba entera. Ahora se trae la ciudad
+  // completa en una consulta ligera y se pagina con rangos hasta agotar
+  // las filas (PostgREST limita a 1000 por petición). Solo columnas del
+  // pin — id, name, lat, lng, category, emoji, logo_url, plan, slug,
+  // city_slug y status — más schedule, rating y review_count, que son
+  // escalares pequeños y los necesita «Lo más cerca de ti» (el filtro
+  // «Abiertos ahora», el punto de estado y la calificación de la tarjeta),
+  // más booking_config: es un JSONB pequeño y la ficha lo necesita desde
+  // el primer render para el botón «Reservar» (nov 2026, botón
+  // intermitente; el test reservar_boton_siempre lo exige en TODAS las
+  // listas de columnas, pines del mapa incluidos). Sin photos,
+  // social_links, description, tags ni banner_url: eso era lo que pesaba.
+  // Se cachea por ciudad en memoria: no se re-pide para la misma ciudad
+  // en la sesión; al cambiar de ciudad se vuelve a pedir. Llamadas
+  // concurrentes para la misma ciudad comparten la misma promesa.
+  loadCityPins: async (targetCity) => {
+    if (!targetCity) return;
+    if (get().cityPinsCity === targetCity && get().cityPins.length > 0) return;
+    if (cityPinsPromise && cityPinsPromiseCity === targetCity) return cityPinsPromise;
+    const requestId = ++cityPinsLoadId;
+    const request = (async () => {
+      set({ cityPinsCity: targetCity, cityPins: [] });
+      try {
+        const selectCols = "id,name,lat,lng,category,emoji,logo_url,plan,slug,city_slug,status,schedule,rating,review_count,booking_config";
+        const pageSize = 1000;
+        const all = [];
+        let offset = 0;
+        for (;;) {
+          const page = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=id.asc&limit=${pageSize}&offset=${offset}`);
+          if (requestId !== cityPinsLoadId || get().cityPinsCity !== targetCity) return;
+          if (!Array.isArray(page)) throw new Error("Invalid city pins response");
+          all.push(...page);
+          if (page.length < pageSize) break;
+          offset += pageSize;
+        }
+        if (requestId !== cityPinsLoadId || get().cityPinsCity !== targetCity) return;
+        set({ cityPins: all.map(b => ({ ...b, schedule: get().parseJSON(b.schedule) })), cityPinsCity: targetCity });
+      } catch (e) {
+        console.warn("Error fetching city pins", e);
+      }
+    })();
+    cityPinsPromise = request;
+    cityPinsPromiseCity = targetCity;
+    request.finally(() => { if (cityPinsPromise === request) { cityPinsPromise = null; cityPinsPromiseCity = null; } });
+    return request;
   },
 
   timeBasedBiz: [], setTimeBasedBiz: (val) => set(s => ({ timeBasedBiz: typeof val === 'function' ? val(s.timeBasedBiz) : val })),
@@ -321,37 +380,6 @@ export const useDataStore = create((set, get) => ({
     return request;
   },
 
-  loadMapPinsByBounds: async (targetCity, bounds) => {
-    try {
-      if (!bounds || !bounds.minLat || !bounds.maxLat || !bounds.minLng || !bounds.maxLng) return;
-      const selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,banner_url,is_catalog,booking_config";
-      
-      const processBatch = (batch) => Array.isArray(batch) ? batch.map(b => ({
-        ...b,
-        schedule: get().parseJSON(b.schedule),
-        social_links: get().parseJSON(b.social_links),
-        photos: get().parseJSON(b.photos)
-      })) : [];
-
-      // Fetch businesses within bounds using Supabase filters
-      const page = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&lat=gte.${bounds.minLat}&lat=lte.${bounds.maxLat}&lng=gte.${bounds.minLng}&lng=lte.${bounds.maxLng}&limit=200`);
-      if (get().mapPinsCity !== targetCity || !Array.isArray(page) || page.length === 0) return;
-      
-      const processedPage = processBatch(page);
-      
-      // Merge with existing pins avoiding duplicates
-      const currentPins = get().mapPins;
-      const existingIds = new Set(currentPins.map(p => p.id));
-      const newPins = processedPage.filter(p => !existingIds.has(p.id));
-      
-      if (newPins.length > 0) {
-        set({ mapPins: [...currentPins, ...newPins] });
-      }
-    } catch (e) {
-      console.warn("Error fetching map pins by bounds", e);
-    }
-  },
-
   loadData: (cityOverride) => {
     const rawTarget = cityOverride || localStorage.getItem("cg_city_slug") || (get().cities?.[0]?.slug) || "";
     if (inFlightLoadPromise && inFlightCity === rawTarget && rawTarget !== "") {
@@ -449,6 +477,10 @@ export const useDataStore = create((set, get) => ({
         
         const cacheKey = `cg_data_${targetCity}_v5`;
         const pPins = get().loadMapPins(targetCity);
+        // La precarga ligera de la ciudad corre en fondo con la lista
+        // pesada: así el mapa y «Lo más cerca de ti» ya tienen la ciudad
+        // completa cuando el usuario los abre.
+        get().loadCityPins(targetCity);
         // La lista completa para las secciones por horario corre en fondo
         // y se actualiza sola; HomeView usa mapPins mientras tanto.
         get().loadTimeBasedBiz(targetCity);

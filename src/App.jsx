@@ -178,14 +178,14 @@ export default function CityGuide() {
   const data = useDataStore(useShallow(s => ({
     events: s.events, setEvents: s.setEvents, promos: s.promos, setPromos: s.setPromos, coupons: s.coupons, setCoupons: s.setCoupons, banners: s.banners, setBanners: s.setBanners,
     reviews: s.reviews, setReviews: s.setReviews, cats: s.cats, setCats: s.setCats, cityCats: s.cityCats, cities: s.cities, setCities: s.setCities, wallet: s.wallet, setWallet: s.setWallet, claimedCoupons: s.claimedCoupons,
-    dbReady: s.dbReady, setDbReady: s.setDbReady, dbError: s.dbError, setDbError: s.setDbError, mapPins: s.mapPins, setMapPins: s.setMapPins, myBizList: s.myBizList, setMyBizList: s.setMyBizList,
+    dbReady: s.dbReady, setDbReady: s.setDbReady, dbError: s.dbError, setDbError: s.setDbError, mapPins: s.mapPins, setMapPins: s.setMapPins, cityPins: s.cityPins, myBizList: s.myBizList, setMyBizList: s.setMyBizList,
     globalFavCounts: s.globalFavCounts, setGlobalFavCounts: s.setGlobalFavCounts, loadData: s.loadData, loadMapPins: s.loadMapPins, loadMyBiz: s.loadMyBiz, setExperiences: s.setExperiences,
     fetchMoreBiz: s.fetchMoreBiz
   })));
   const {
     events, setEvents, promos, setPromos, coupons, setCoupons, banners, setBanners,
     reviews, setReviews, cats, setCats, cityCats, cities, setCities, wallet, setWallet, claimedCoupons,
-    dbReady, setDbReady, dbError, setDbError, mapPins, setMapPins, myBizList, setMyBizList,
+    dbReady, setDbReady, dbError, setDbError, mapPins, setMapPins, cityPins, myBizList, setMyBizList,
     globalFavCounts, setGlobalFavCounts, loadData, loadMapPins, loadMyBiz, setExperiences, fetchMoreBiz
   } = data;
 
@@ -1194,9 +1194,22 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cities]);
 
+  // «Lo más cerca de ti» sale de la ciudad COMPLETA (pines ligeros), no
+  // del subconjunto paginado: antes el conteo cambiaba al mover el mapa
+  // (80 → 64) porque los pines por viewport iban sumando filas a mapPins.
+  // Mientras la precarga no llega, se usa mapPins como antes. Las filas
+  // pesadas ya cargadas (primera página + «Ver más») se superponen por id
+  // para que la tarjeta conserve foto, horario y calificación.
+  const cityPool = useMemo(() => {
+    if (!cityPins.length) return mapPins;
+    if (!mapPins.length) return cityPins;
+    const heavy = new Map(mapPins.map(b => [b.id, b]));
+    return cityPins.map(pin => heavy.get(pin.id) || pin);
+  }, [cityPins, mapPins]);
+
   const allNearby = useMemo(() => {
-    return userCoords ? mapPins.filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && b.lat && b.lng).map(b => ({ ...b, _km: getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) })).sort((a, b) => a._km - b._km) : [];
-  }, [userCoords, mapPins, getKm, activeCity]);
+    return userCoords ? cityPool.filter(b => isNear(b, userCoords, activeCity) && b.status === "approved" && b.lat && b.lng).map(b => ({ ...b, _km: getKm(userCoords.lat, userCoords.lng, parseFloat(b.lat), parseFloat(b.lng)) })).sort((a, b) => a._km - b._km) : [];
+  }, [userCoords, cityPool, getKm, activeCity]);
 
   const isExcluded = (b) => {
     if (!b.category) return false;
