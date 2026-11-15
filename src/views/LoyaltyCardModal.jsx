@@ -40,6 +40,7 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz, use
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [whatsapp, setWhatsapp] = useState('');
   const [whatsappError, setWhatsappError] = useState('');
+  const [walletLoading, setWalletLoading] = useState(false);
 
   const handleEnroll = async () => {
     if (!user) {
@@ -96,6 +97,45 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz, use
       alert('Error al inscribirte: ' + e.message);
     }
     setEnrollLoading(false);
+  };
+
+  // Pase de Google Wallet: mismo flujo que LoyaltyCardView (POST a
+  // /api/loyalty-wallet con la membresía y abre el enlace del pase).
+  // Usa currentMember para que funcione también justo después de
+  // unirse, sin esperar a que la ficha refresque su consulta.
+  // Apple Wallet NO va aquí: en la página su botón no tiene acción
+  // (no es funcional), así que no se inventa.
+  const handleGoogleWallet = async () => {
+    if (!currentMember || !card || !biz) return;
+    setWalletLoading(true);
+    try {
+      const res = await fetch('/api/loyalty-wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          biz_id: biz.id,
+          biz_name: biz.name,
+          logo_url: card.logo_url,
+          bg_color: card.bg_color,
+          text_color: card.text_color,
+          primary_color: card.primary_color,
+          reward_text: card.reward_text,
+          stamps: currentMember.stamps,
+          stamps_required: card.stamps_required,
+          member_id: currentMember.id,
+          member_name: currentMember.name || currentMember.email || 'Cliente',
+        }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.open(data.url, '_blank');
+      } else {
+        alert('Error al generar el pase: ' + (data.error || 'desconocido'));
+      }
+    } catch (e) {
+      alert('Error de conexión: ' + e.message);
+    }
+    setWalletLoading(false);
   };
 
   if (!card || !biz) {
@@ -266,12 +306,17 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz, use
               <div style={{ fontSize: 11, color: card.text_color, opacity: 0.8, fontWeight: 700, textAlign: "center", padding: "0 10px" }}>
                 {isCompleted ? "Muestra este código en el negocio para canjear tu premio" : "Muestra este código en el negocio para recibir tu sello"}
               </div>
+              {/* Google Wallet: mismo botón que la página, debajo del QR. */}
+              <button onClick={handleGoogleWallet} disabled={walletLoading} style={{ width: "100%", padding: 16, borderRadius: 100, border: "2px solid #E8eaed", background: "#fff", color: "#3c4043", fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 12, cursor: "pointer", opacity: walletLoading ? 0.7 : 1, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+                {walletLoading ? "Generando pase..." : "Añadir a Google Wallet"}
+              </button>
             </div>
             ) : (
             /* Alta al programa — mismo formulario que LoyaltyCardView
-               (sin los botones de Wallet, que quedan solo en la página):
-               pide el WhatsApp, valida con normalizeWhatsApp y crea la
-               membresía; sin sesión abre el login. */
+               (sin botón de Wallet: aparece debajo del QR una vez que
+               ya hay membresía): pide el WhatsApp, valida con
+               normalizeWhatsApp y crea la membresía; sin sesión abre
+               el login. */
             <div style={{ padding: "20px 20px 24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div style={{ padding: 24, background: "rgba(0,0,0,0.05)", borderRadius: 24, textAlign: "center", width: "100%", boxSizing: "border-box" }}>
                 <h3 style={{ margin: "0 0 8px", color: card.text_color, fontSize: 20, fontWeight: 900 }}>Únete al programa</h3>
