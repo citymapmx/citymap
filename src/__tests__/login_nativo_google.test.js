@@ -36,6 +36,7 @@ vi.mock('@capgo/capacitor-social-login', () => ({
 }));
 
 import {
+  GOOGLE_IOS_CLIENT_ID,
   GOOGLE_WEB_CLIENT_ID,
   __resetNativeGoogleAuthForTests,
   extractGoogleIdToken,
@@ -51,6 +52,12 @@ describe('login nativo: constantes y detección', () => {
   it('usa el client ID web de citymap.mx (el de Android NO va aquí)', () => {
     expect(GOOGLE_WEB_CLIENT_ID).toBe(
       '128467245162-fjpgeqiqhr4f0p5f430ti0v41jlmuovm.apps.googleusercontent.com',
+    );
+  });
+
+  it('usa el client ID iOS de citymap.mx (el plugin nativo en iOS ignora webClientId)', () => {
+    expect(GOOGLE_IOS_CLIENT_ID).toBe(
+      '128467245162-b1di6bji2ejd0ior0mv6kr0atv9e6fia.apps.googleusercontent.com',
     );
   });
 
@@ -103,12 +110,13 @@ describe('login nativo: signInWithNativeGoogle', () => {
     }));
   });
 
-  it('inicializa con el client ID web, modo online y sin el paso extra de autorización', async () => {
+  it('inicializa con el client ID web + iOS, modo online y sin el paso extra de autorización', async () => {
     await expect(signInWithNativeGoogle()).resolves.toBe('id-token-de-prueba');
     expect(mocks.initialize).toHaveBeenCalledTimes(1);
     expect(mocks.initialize).toHaveBeenCalledWith({
       google: {
         webClientId: GOOGLE_WEB_CLIENT_ID,
+        iOSClientId: GOOGLE_IOS_CLIENT_ID,
         mode: 'online',
         skipAuthOnlyAuthorizationAfterSignIn: true,
       },

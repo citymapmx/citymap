@@ -23,6 +23,13 @@ import { Capacitor } from '@capacitor/core';
 export const GOOGLE_WEB_CLIENT_ID =
   '128467245162-fjpgeqiqhr4f0p5f430ti0v41jlmuovm.apps.googleusercontent.com';
 
+// Cliente OAuth iOS «CityMap iOS» (bundle mx.citymap.app, mismo proyecto
+// Google Cloud 128467245162). El plugin nativo en iOS IGNORA webClientId:
+// solo lee iOSClientId para configurar GIDSignIn; sin él el proveedor
+// nunca se inicializa y el login tumba la app.
+export const GOOGLE_IOS_CLIENT_ID =
+  '128467245162-b1di6bji2ejd0ior0mv6kr0atv9e6fia.apps.googleusercontent.com';
+
 // El plugin normaliza la cancelación del usuario con code
 // 'USER_CANCELLED' (además de varios mensajes que él mismo detecta).
 const CANCELLED_PATTERNS = [
@@ -72,6 +79,7 @@ export function ensureSocialLoginInitialized(socialLogin) {
     initializePromise = socialLogin.initialize({
       google: {
         webClientId: GOOGLE_WEB_CLIENT_ID,
+        iOSClientId: GOOGLE_IOS_CLIENT_ID,
         mode: 'online',
         // En la BridgeActivity estándar el paso extra de autorización se
         // atora: se salta (el accessToken puede quedar en null) y se usa
