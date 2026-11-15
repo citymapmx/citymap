@@ -44,6 +44,7 @@ import {
   isUserCancelledError,
   signInWithNativeGoogle,
 } from '../lib/nativeGoogleAuth.js';
+import { sha256Hex } from '../lib/authNonce.js';
 
 const readSource = (rel) =>
   fs.readFileSync(new URL(rel, import.meta.url), 'utf8');
@@ -111,7 +112,9 @@ describe('login nativo: signInWithNativeGoogle', () => {
   });
 
   it('inicializa con el client ID web + iOS, modo online y sin el paso extra de autorización', async () => {
-    await expect(signInWithNativeGoogle()).resolves.toBe('id-token-de-prueba');
+    const res = await signInWithNativeGoogle();
+    expect(res.idToken).toBe('id-token-de-prueba');
+    expect(res.nonce).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(mocks.initialize).toHaveBeenCalledTimes(1);
     expect(mocks.initialize).toHaveBeenCalledWith({
       google: {
@@ -142,10 +145,33 @@ describe('login nativo: signInWithNativeGoogle', () => {
     expect(mocks.login).toHaveBeenCalledTimes(2);
   });
 
+  it('pasa al plugin el SHA-256 hex del nonce, y devuelve el nonce raw para Supabase', async () => {
+    // GoTrue comprueba SHA256(raw) == claim `nonce` del id_token. Al IdP
+    // va el hash (así lo devuelve Google como claim); a Supabase va el
+    // raw. Sin esto Supabase rechaza con «Passed nonce and nonce in
+    // id_token should either both exist or not» (logs 14 Nov 22:39).
+    const res = await signInWithNativeGoogle();
+    const options = mocks.login.mock.calls[0][0].options;
+    expect(options.nonce).toMatch(/^[0-9a-f]{64}$/);
+    await expect(sha256Hex(res.nonce)).resolves.toBe(options.nonce);
+  });
+
+  it('genera un nonce distinto en cada intento', async () => {
+    const a = await signInWithNativeGoogle();
+    const b = await signInWithNativeGoogle();
+    expect(a.nonce).not.toBe(b.nonce);
+    expect(mocks.login.mock.calls[0][0].options.nonce).not.toBe(
+      mocks.login.mock.calls[1][0].options.nonce,
+    );
+  });
+
   it('pide login de Google sin scopes (en la BridgeActivity estándar rechazan)', async () => {
     await signInWithNativeGoogle();
     expect(mocks.login).toHaveBeenCalledTimes(1);
-    expect(mocks.login).toHaveBeenCalledWith({ provider: 'google', options: {} });
+    expect(mocks.login).toHaveBeenCalledWith({
+      provider: 'google',
+      options: { nonce: expect.any(String) },
+    });
     const options = mocks.login.mock.calls[0][0].options;
     expect(options).not.toHaveProperty('scopes');
   });
@@ -179,7 +205,7 @@ describe('login nativo: cableado en la app', () => {
     expect(src).toContain('signInWithNativeGoogle');
     expect(src).toContain('isUserCancelledError');
     expect(src).toContain("sb.signInWithOAuth('google')");
-    expect(src).toContain('handleGoogleIdToken(idToken)');
+    expect(src).toContain('handleGoogleIdToken(res.idToken, res.nonce)');
     // El botón nativo vive solo en la rama de app (isNativeApp).
     expect(src).toMatch(/isNativeApp \? \(/);
   });

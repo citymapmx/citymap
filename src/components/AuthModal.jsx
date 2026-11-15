@@ -279,16 +279,16 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
           }}
           onClick={async () => {
             setAuthErr("");
-            let idToken;
+            let res;
             try {
-              idToken = await signInWithNativeGoogle();
+              res = await signInWithNativeGoogle();
             } catch (err) {
               if (isUserCancelledError(err)) return;
               try { await sb.signInWithOAuth('google'); }
               catch (err2) { console.error("Error con Google (respaldo OAuth):", err2); setAuthErr(mapAuthError(err2, 'google')); }
               return;
             }
-            const uid = await handleGoogleIdToken(idToken);
+            const uid = await handleGoogleIdToken(res.idToken, res.nonce);
             if (uid) {
               setShowAuth(false);
               toast$(t("modal_bienvenido", "Bienvenido a CityMap"));
@@ -332,7 +332,7 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
                 setAuthErr(mapAuthError(err, 'apple'));
                 return;
               }
-              const uid = await handleAppleIdToken(res.idToken, res.profile);
+              const uid = await handleAppleIdToken(res.idToken, res.profile, res.nonce);
               if (uid) {
                 setShowAuth(false);
                 toast$(t("modal_bienvenido", "Bienvenido a CityMap"));

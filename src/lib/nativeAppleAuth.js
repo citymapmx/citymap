@@ -19,6 +19,7 @@
 // de la PR de la Fase 1 de iOS.
 import { Capacitor } from '@capacitor/core';
 import { ensureSocialLoginInitialized } from './nativeGoogleAuth.js';
+import { generateNonce, sha256Hex } from './authNonce.js';
 
 // Solo en iOS nativo hay login de Apple: en web (Safari) el flujo web de
 // Apple necesitaría Service ID + redirect, y en Android no se ofrece.
@@ -34,20 +35,27 @@ export function extractAppleIdToken(result) {
 }
 
 // Abre el diálogo nativo de "Iniciar sesión con Apple" y devuelve
-// { idToken, profile }. Lanza si el usuario cancela o si Apple no
-// devuelve token. `socialLogin` solo existe para inyectar el plugin en
-// los tests.
+// { idToken, profile, nonce }. El nonce sigue el mismo contrato que en
+// Google (ver src/lib/authNonce.js): Apple exige que el nonce de la
+// petición sea el SHA-256 del nonce raw, y lo devuelve tal cual como
+// claim `nonce` del id_token; el raw se pasa a Supabase, que comprueba
+// SHA256(raw) == claim. Sin él, Supabase rechazaría el token con el
+// mismo error de nonce que el de Google. Lanza si el usuario cancela o
+// si Apple no devuelve token. `socialLogin` solo existe para inyectar el
+// plugin en los tests.
 export async function signInWithNativeApple({ socialLogin } = {}) {
   const plugin =
     socialLogin || (await import('@capgo/capacitor-social-login')).SocialLogin;
   await ensureSocialLoginInitialized(plugin);
+  const nonce = generateNonce();
+  const hashedNonce = await sha256Hex(nonce);
   const { result } = await plugin.login({
     provider: 'apple',
-    options: { scopes: ['name', 'email'] },
+    options: { scopes: ['name', 'email'], nonce: hashedNonce },
   });
   const idToken = extractAppleIdToken(result);
   if (!idToken) {
     throw new Error('Apple no devolvió un token de identidad');
   }
-  return { idToken, profile: result?.profile || null };
+  return { idToken, profile: result?.profile || null, nonce };
 }
