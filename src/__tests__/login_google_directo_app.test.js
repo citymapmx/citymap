@@ -76,11 +76,18 @@ describe('AppLoginView: auto-lanzamiento solo con from=app', () => {
     expect(VIEW_SRC).toContain('handleFallbackGoogle');
   });
 
-  it('NUNCA redirige al authorize de Supabase: el selector sigue diciendo "Ir a citymap.mx"', () => {
-    expect(VIEW_SRC).not.toContain('authorize?provider');
-    expect(VIEW_SRC).not.toContain('redirect_to');
-    // Con from=app el respaldo es recargar la página, no ir a Supabase.
+  it('Google NUNCA redirige al authorize de Supabase: el selector sigue diciendo "Ir a citymap.mx"', () => {
+    // Google sigue siendo solo GIS (el authorize solo lo usa el fallback
+    // WEB de Apple, que no tiene botón oficial: va por appleWebOAuthUrl).
+    expect(VIEW_SRC).not.toContain('authorize?provider=google');
+    expect(VIEW_SRC).not.toContain("provider=apple&redirect_to");
+    // Con from=app el respaldo de Google es recargar la página, no ir a Supabase.
     expect(VIEW_SRC).toContain("window.location.reload();");
+  });
+
+  it('Apple sí usa el authorize (fallback web): el botón navega por sb.appleWebOAuthUrl()', () => {
+    expect(VIEW_SRC).toContain('sb.appleWebOAuthUrl()');
+    expect(VIEW_SRC).toContain('modal_continuar_apple');
   });
 });
 

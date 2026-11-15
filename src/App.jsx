@@ -515,8 +515,24 @@ useEffect(() => {
         }
       }
 
-      // Parsear token de Google OAuth si viene en la URL
-      sb.parseOAuthHash();
+      // Parsear token de OAuth si viene en la URL (Google web o Apple web)
+      const oauthReturned = sb.parseOAuthHash();
+      // Retorno de la OAuth WEB de Apple (fallback del login nativo): la
+      // Custom Tab vuelve a /login?from=app#access_token=...; pasar la
+      // sesión a la app por deep link, igual que hace el callback de GIS
+      // con Google (AppLoginView). Solo cuando el token acaba de llegar
+      // en esta carga (oauthReturned) y la página es /login?from=app.
+      if (
+        oauthReturned &&
+        window.location.pathname === '/login' &&
+        new URLSearchParams(window.location.search).get('from') === 'app'
+      ) {
+        const at = localStorage.getItem('cg_t');
+        const rt = localStorage.getItem('cg_r');
+        if (at) {
+          window.location.href = `mx.citymap.app://login#access_token=${encodeURIComponent(at)}${rt ? `&refresh_token=${encodeURIComponent(rt)}` : ''}`;
+        }
+      }
       // Cargar sesión y datos en paralelo
       
       const [u] = await Promise.all([
