@@ -45,8 +45,12 @@ function flyToLocation(mapInstance, lat, lng, targetZoom = 15) {
   // Zoom suave directo hacia el objetivo sin "rebotar" hacia atrás
   const smoothZoom = (targetZ, currentZ) => {
     if (currentZ === targetZ) return;
-    const step = currentZ < targetZ ? 1 : -1;
-    const nextZoom = currentZ + step;
+    // Pasos de 2: cada setZoom re-agrupa y re-dibuja los pines; con
+    // pasos de 1 el vuelo hacía el doble de trabajo del clusterer por
+    // el mismo vuelo. El clamp evita pasarse del objetivo (p. ej. de
+    // 14 a 15, no a 16).
+    const dir = currentZ < targetZ ? 1 : -1;
+    const nextZoom = dir > 0 ? Math.min(currentZ + 2, targetZ) : Math.max(currentZ - 2, targetZ);
     mapInstance.setZoom(nextZoom);
     setTimeout(() => smoothZoom(targetZ, nextZoom), 80);
   };
@@ -60,6 +64,13 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
   const map = useRef(); 
   const pins = useRef([]); 
   const markerCache = useRef(new Map());
+  // Caché de los círculos de grupo del clusterer (hallazgo 2): el
+  // renderer creaba un div nuevo por grupo en cada pasada; ahora se
+  // reutiliza el div cuando el grupo (posición + conteo) no cambió.
+  // El HTMLMarker sí se crea nuevo en cada pasada: la librería quita
+  // los marcadores viejos en el siguiente rAF, así que reutilizar el
+  // marcador lo borraría del mapa. El div es solo presentación.
+  const clusterContentCache = useRef(new Map());
   const clusterer = useRef(null);
   const infoWin = useRef(null); 
   const userPin = useRef(null);
@@ -546,23 +557,43 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
             m.lastClusterPosition = cluster.position;
           });
         }
-        
-        const content = document.createElement("div");
-        content.style.width = "30px";
-        content.style.height = "30px";
-        content.style.backgroundColor = "rgba(15, 23, 42, 0.85)"; 
-        content.style.color = "#fff";
-        content.style.borderRadius = "50%";
-        content.style.display = "flex";
-        content.style.alignItems = "center";
-        content.style.justifyContent = "center";
-        content.style.fontSize = "13px";
-        content.style.fontWeight = "800";
-        content.style.border = "none";
-        content.style.backdropFilter = "blur(4px)";
-        content.style.WebkitBackdropFilter = "blur(4px)";
-        content.style.boxShadow = "0 4px 12px rgba(0,0,0,0.25)";
-        content.innerText = String(cluster.count);
+
+        // Reutilizar el círculo del grupo si ya existe uno igual
+        // (misma posición y mismo conteo): evita crear el div y sus
+        // estilos en cada fin de paneo y cada paso de zoom.
+        const clusterKey = `${cluster.position.lat().toFixed(5)}|${cluster.position.lng().toFixed(5)}|${cluster.count}`;
+        const cached = clusterContentCache.current.get(clusterKey);
+        let content;
+        if (cached) {
+          cached.lastUsed = Date.now();
+          content = cached.div;
+        } else {
+          content = document.createElement("div");
+          content.style.width = "30px";
+          content.style.height = "30px";
+          content.style.backgroundColor = "rgba(15, 23, 42, 0.85)"; 
+          content.style.color = "#fff";
+          content.style.borderRadius = "50%";
+          content.style.display = "flex";
+          content.style.alignItems = "center";
+          content.style.justifyContent = "center";
+          content.style.fontSize = "13px";
+          content.style.fontWeight = "800";
+          content.style.border = "none";
+          content.style.backdropFilter = "blur(4px)";
+          content.style.WebkitBackdropFilter = "blur(4px)";
+          content.style.boxShadow = "0 4px 12px rgba(0,0,0,0.25)";
+          content.innerText = String(cluster.count);
+          clusterContentCache.current.set(clusterKey, { div: content, lastUsed: Date.now() });
+          // Acotar la memoria: si hay más de 200 grupos guardados,
+          // soltar los que llevan más tiempo sin usarse.
+          if (clusterContentCache.current.size > 200) {
+            const entries = [...clusterContentCache.current.entries()].sort((a, b) => a[1].lastUsed - b[1].lastUsed);
+            for (const [key] of entries.slice(0, clusterContentCache.current.size - 150)) {
+              clusterContentCache.current.delete(key);
+            }
+          }
+        }
 
         return new HTMLMarker(cluster.position, content, `${cluster.count} lugares`, 100, () => {
           if (cluster.bounds) map.fitBounds(cluster.bounds, { padding: 50 });
