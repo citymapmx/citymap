@@ -19,6 +19,38 @@ const DEEP_LINK_HOSTS = new Set([
 const DEEP_LINK_DEDUPE_MS = 5000;
 const routedDeepLinks = new Map();
 
+// El dedupe en memoria no basta: navigate() recarga la página completa y
+// borra el Map, pero getLaunchUrl() devuelve la misma URL al rearrancar —
+// ese fue el bucle de la #349 (splash → carga → navega → splash...). Por
+// eso la URL ya ruteada también se guarda en sessionStorage, que sobrevive
+// a la recarga. La ventana persistida es más larga (30 s) porque una
+// recarga lenta puede tardar más de 5 s; pasado ese tiempo, escanear el
+// mismo QR vuelve a navegar.
+const DEEP_LINK_PERSISTED_DEDUPE_MS = 30000;
+const DEEP_LINK_STORAGE_KEY = 'citymap_routed_deep_link';
+
+function readRoutedDeepLinkFromStorage() {
+  try {
+    if (typeof sessionStorage === 'undefined') return null;
+    const raw = sessionStorage.getItem(DEEP_LINK_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.url !== 'string' || typeof parsed.at !== 'number') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeRoutedDeepLinkToStorage(url, at) {
+  try {
+    if (typeof sessionStorage === 'undefined') return;
+    sessionStorage.setItem(DEEP_LINK_STORAGE_KEY, JSON.stringify({ url, at }));
+  } catch {
+    // Almacenamiento no disponible: el dedupe en memoria sigue valiendo.
+  }
+}
+
 export function __resetDeepLinkRoutingForTests() {
   routedDeepLinks.clear();
 }
@@ -50,6 +82,16 @@ export async function routeDeepLink(url, deps = {}) {
     setAuthUser = (u) => useAuthStore.setState({ user: u, authChecked: true }),
     reload = () => window.location.reload(),
     navigate = (path) => { window.location.href = path; },
+    // Ruta actual de la WebView (pathname + search). Se inyecta en pruebas.
+    getCurrentPath = () => {
+      try {
+        return typeof window !== 'undefined'
+          ? window.location.pathname + window.location.search
+          : null;
+      } catch {
+        return null;
+      }
+    },
   } = deps;
 
   if (!url || typeof url !== 'string') return false;
@@ -90,14 +132,24 @@ export async function routeDeepLink(url, deps = {}) {
   if (await getPlatform() === 'web') return false;
   const path = parsed.pathname + parsed.search;
   if (path && path !== '/') {
-    // On mobile, just replace location to trigger standard app routing/parsing
-    navigate(path);
+    // Si la WebView ya está en el destino, no navegar: getLaunchUrl()
+    // devuelve la misma URL tras cada recarga, y navegar a la misma ruta
+    // recargaba la página en bucle (splash parpadeando, la app nunca
+    // entraba). El router ya resolvió esa ruta al cargar.
+    const current = getCurrentPath();
+    if (current !== path) {
+      // On mobile, just replace location to trigger standard app routing/parsing
+      navigate(path);
+    }
   }
   return true;
 }
 
 // Igual que routeDeepLink, pero ignora una URL idéntica si ya se enrutó
 // dentro de la ventana de dedupe (llega por dos caminos al arrancar).
+// El dedupe vive también en sessionStorage: la recarga que provoca
+// navigate() borra el Map en memoria, pero no el almacenamiento, así que
+// un rearranque con la misma URL de lanzamiento no vuelve a navegar.
 export async function routeDeepLinkOnce(url, deps) {
   if (!url || typeof url !== 'string') return false;
   const now = Date.now();
@@ -105,7 +157,12 @@ export async function routeDeepLinkOnce(url, deps) {
     if (now - seenAt > DEEP_LINK_DEDUPE_MS) routedDeepLinks.delete(seenUrl);
   }
   if (routedDeepLinks.has(url)) return false;
+  const stored = readRoutedDeepLinkFromStorage();
+  if (stored && stored.url === url && now - stored.at <= DEEP_LINK_PERSISTED_DEDUPE_MS) {
+    return false;
+  }
   routedDeepLinks.set(url, now);
+  writeRoutedDeepLinkToStorage(url, now);
   return routeDeepLink(url, deps);
 }
 
