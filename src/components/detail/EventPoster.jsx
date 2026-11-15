@@ -18,7 +18,15 @@ export default function EventPoster({ src, alt = '', dark = false }) {
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', width: '100%', overflow: 'hidden' }}>
+    // El póster reserva su espacio desde el primer pintado (minHeight +
+    // fondo): sin él el contenedor medía ~0 hasta que cargaba la imagen
+    // y al llegar empujaba todo hacia abajo de golpe — al entrar al
+    // evento primero se veía la información y luego el salto a la
+    // imagen. 360 px es el punto medio medido en 15 pósters próximos
+    // (verticales ~487 px, cuadrados ~390, apaisados ~220-340 en
+    // teléfono): el salto que queda es chico y el área ya se ve como
+    // el espacio de la foto, no como la sección de abajo.
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', width: '100%', overflow: 'hidden', minHeight: 360, background: dark ? '#232326' : '#E5E7EB' }}>
       {hasPreview && (
         <img
           src={previewSrc}

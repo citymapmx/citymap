@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState, lazy, Suspense } from 'react';
+import { useEffect, useLayoutEffect, useRef, useCallback, useState, lazy, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useUIStore } from '../../store/useUIStore';
@@ -143,6 +143,12 @@ export default function EventDetailModal() {
       setDeletingPrivate(false);
     }
   };
+  // El scroll a arriba va en useLayoutEffect (antes de pintar): en
+  // useEffect se veía un cuadro con el scroll viejo al cambiar de evento
+  // desde «Más eventos» y luego el salto brusco a la imagen.
+  useLayoutEffect(() => {
+    dialog.current?.scrollTo(0, 0);
+  }, [selectedEvent?.id]);
   useEffect(() => {
     if (!selectedEvent?.id) return;
     setPrivateTab('chat');
@@ -161,7 +167,6 @@ export default function EventDetailModal() {
         .then(rows => { if (Array.isArray(rows)) setGuestCount(summarizeRsvps(rows).guests); })
         .catch(() => {});
     }
-    dialog.current?.scrollTo(0, 0);
     const previousFocus = document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
