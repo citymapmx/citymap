@@ -147,10 +147,24 @@ describe('tarjeta de lealtad en modal desde la ficha', () => {
     expect(modal).toContain('clearPrefetchedLoyaltyEntries()');
   });
 
-  it('el modal NO porta los botones de Wallet: quedan solo en la página', () => {
+  it('con miembro el modal pinta el botón de Google Wallet debajo del QR', () => {
+    const html = renderModal();
+    expect(html).toContain('Añadir a Google Wallet');
+    // Mismo flujo que la página: POST al endpoint con la membresía
+    // y abre el enlace del pase en una pestaña nueva.
     const modal = read('../views/LoyaltyCardModal.jsx');
-    expect(modal).not.toContain('Google Wallet');
-    expect(modal).not.toContain('Apple Wallet');
-    expect(modal).not.toContain('loyalty-wallet');
+    expect(modal).toContain("fetch('/api/loyalty-wallet'");
+    expect(modal).toContain('member_id: currentMember.id');
+    expect(modal).toContain("window.open(data.url, '_blank')");
+    // El botón de Apple Wallet NO se inventa: en la página no tiene
+    // acción (no es funcional).
+    expect(modal).not.toContain('Añadir a Apple Wallet');
+    expect(html).not.toContain('Añadir a Apple Wallet');
+  });
+
+  it('sin miembro el modal NO pinta el botón de Wallet (aparece al unirse)', () => {
+    const html = renderModal({ member: null });
+    expect(html).not.toContain('Añadir a Google Wallet');
+    expect(html).toContain('Únete al programa');
   });
 });
