@@ -48,6 +48,23 @@ import {
   routeDeepLinkOnce,
 } from '../hooks/useCapacitorHardwareBack.js';
 
+// sessionStorage falso (los tests corren en node): el dedupe persistido
+// sobrevive a la recarga simulada, igual que en la WebView real.
+const fakeStorage = (() => {
+  let store = {};
+  return {
+    getItem: (k) => (k in store ? store[k] : null),
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: (k) => { delete store[k]; },
+    clear: () => { store = {}; },
+  };
+})();
+globalThis.sessionStorage = fakeStorage;
+
+beforeEach(() => {
+  fakeStorage.clear();
+});
+
 const readSource = (rel) =>
   fs.readFileSync(new URL(rel, import.meta.url), 'utf8');
 
@@ -60,6 +77,8 @@ function makeDeps(overrides = {}) {
     setAuthUser: vi.fn(),
     reload: vi.fn(),
     navigate: vi.fn(),
+    // Por defecto la WebView está en home, así que navegar procede.
+    getCurrentPath: vi.fn(() => '/'),
     ...overrides,
   };
 }
@@ -188,13 +207,17 @@ describe('routeDeepLinkOnce: dedupe al arrancar', () => {
     expect(deps.navigate).toHaveBeenCalledTimes(1);
   });
 
-  it('pasada la ventana de dedupe, la misma URL vuelve a navegar', async () => {
+  it('pasada la ventana de dedupe persistida, la misma URL vuelve a navegar', async () => {
     const nowSpy = vi.spyOn(Date, 'now');
     const deps = makeDeps();
     const url = 'https://citymap.mx/scan/abc-123';
     nowSpy.mockReturnValue(1_000_000);
     expect(await routeDeepLinkOnce(url, deps)).toBe(true);
+    // A los 6 s el dedupe en memoria expiró, pero el persistido (30 s)
+    // sigue bloqueando: es el caso de la recarga lenta tras el bucle.
     nowSpy.mockReturnValue(1_000_000 + 6000);
+    expect(await routeDeepLinkOnce(url, deps)).toBe(false);
+    nowSpy.mockReturnValue(1_000_000 + 31000);
     expect(await routeDeepLinkOnce(url, deps)).toBe(true);
     expect(deps.navigate).toHaveBeenCalledTimes(2);
     nowSpy.mockRestore();
@@ -209,6 +232,82 @@ describe('routeDeepLinkOnce: dedupe al arrancar', () => {
       await routeDeepLinkOnce('https://citymap.mx/scan/bbb', deps),
     ).toBe(true);
     expect(deps.navigate).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('bucle de recarga (regresión #349)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    __resetDeepLinkRoutingForTests();
+  });
+
+  it('si la WebView ya está en el destino, no navega (no recarga)', async () => {
+    const deps = makeDeps({
+      getCurrentPath: vi.fn(() => '/scan/abc-123'),
+    });
+    expect(
+      await routeDeepLink('https://citymap.mx/scan/abc-123', deps),
+    ).toBe(true);
+    expect(deps.navigate).not.toHaveBeenCalled();
+  });
+
+  it('con otro query la ruta sí es distinta y navega', async () => {
+    const deps = makeDeps({
+      getCurrentPath: vi.fn(() => '/scan/abc-123'),
+    });
+    await routeDeepLink('https://citymap.mx/scan/abc-123?origen=qr', deps);
+    expect(deps.navigate).toHaveBeenCalledWith('/scan/abc-123?origen=qr');
+  });
+
+  it('segundo arranque en frío con la misma URL y ya en el destino: no navega', async () => {
+    let current = '/';
+    const deps = makeDeps({ getCurrentPath: vi.fn(() => current) });
+    const url = 'https://citymap.mx/scan/abc-123';
+    // Primer arranque: la WebView está en home, navega a /scan/abc-123.
+    expect(await routeDeepLinkOnce(url, deps)).toBe(true);
+    expect(deps.navigate).toHaveBeenCalledTimes(1);
+    // La recarga deja la WebView ya en el destino y getLaunchUrl() vuelve
+    // a devolver la misma URL: no debe navegar otra vez.
+    current = '/scan/abc-123';
+    expect(await routeDeepLinkOnce(url, deps)).toBe(false);
+    expect(deps.navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('simular una recarga (memoria borrada, storage intacto) no vuelve a navegar', async () => {
+    const deps = makeDeps();
+    const url = 'https://citymap.mx/scan/abc-123';
+    expect(await routeDeepLinkOnce(url, deps)).toBe(true);
+    expect(deps.navigate).toHaveBeenCalledTimes(1);
+    // La recarga borra el Map en memoria pero no sessionStorage.
+    __resetDeepLinkRoutingForTests();
+    expect(await routeDeepLinkOnce(url, deps)).toBe(false);
+    expect(deps.navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('tras la recarga, una URL distinta sí navega', async () => {
+    const deps = makeDeps();
+    expect(
+      await routeDeepLinkOnce('https://citymap.mx/scan/aaa', deps),
+    ).toBe(true);
+    __resetDeepLinkRoutingForTests();
+    expect(
+      await routeDeepLinkOnce('https://citymap.mx/scan/bbb', deps),
+    ).toBe(true);
+    expect(deps.navigate).toHaveBeenCalledTimes(2);
+  });
+
+  it('el retorno OAuth no pasa por la guarda de ruta actual', async () => {
+    const deps = makeDeps({
+      getCurrentPath: vi.fn(() => '/login'),
+      setSessionFromUrl: vi.fn(async () => true),
+      getUser: vi.fn(async () => ({ id: 'u1' })),
+    });
+    expect(
+      await routeDeepLink('mx.citymap.app://login#access_token=tok', deps),
+    ).toBe(true);
+    expect(deps.setSessionFromUrl).toHaveBeenCalledTimes(1);
+    expect(deps.reload).toHaveBeenCalledTimes(1);
+    expect(deps.navigate).not.toHaveBeenCalled();
   });
 });
 
@@ -231,5 +330,13 @@ describe('useCapacitorHardwareBack: cableado del deep link', () => {
     const src = readSource('../hooks/useCapacitorHardwareBack.js');
     expect(src).toContain('setSessionFromUrl(url)');
     expect(src).toContain("hash.includes('access_token=')");
+  });
+
+  it('el fix del bucle está cableado: guarda de ruta actual y dedupe en sessionStorage', () => {
+    const src = readSource('../hooks/useCapacitorHardwareBack.js');
+    expect(src).toContain('getCurrentPath()');
+    expect(src).toContain('current !== path');
+    expect(src).toContain('citymap_routed_deep_link');
+    expect(src).toContain('sessionStorage');
   });
 });
