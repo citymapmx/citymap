@@ -379,7 +379,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         const offsetLat = ((hash % 10) - 5) * 0.00004; // ~4 metros max offset
         const offsetLng = (((hash * 3) % 10) - 5) * 0.00004;
 
-        const isPremiumLogo = (biz.plan === "premium" || biz.plan === "destacado" || biz.plan === "pro") && biz.logo_url;
+        const isPremiumLogo = (["premium", "elite", "fideliza", "destacado", "pro"].includes(biz.plan)) && biz.logo_url;
         const size = isPremiumLogo ? (sel ? 38 : 30) : (sel ? 44 : 36);
         const content = document.createElement("div");
         content.style.width = `${size}px`;

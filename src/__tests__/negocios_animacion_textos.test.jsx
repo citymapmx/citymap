@@ -38,10 +38,10 @@ const landingSrc = readFileSync(new URL('../components/BusinessLanding.jsx', imp
 const styleBlock = landingSrc.match(/<style>\{`([\s\S]*?)`\}<\/style>/)[1];
 
 describe('Animación «Aparición al bajar» en /negocios', () => {
-  it('los encabezados de las secciones van envueltos en Reveal (17 en el render: 15 en código, «Así se verá» se repite en 3 tarjetas)', () => {
+  it('los encabezados de las secciones van envueltos en Reveal (20 en el render: 17 en código, «Así se verá» se repite en 4 tarjetas)', () => {
     const html = renderLanding(false);
     const divs = revealDivs(html);
-    expect(divs).toHaveLength(17);
+    expect(divs).toHaveLength(20);
     for (const text of [
       'CityMap para negocios',
       'Haz que más personas encuentren tu negocio.',
@@ -52,6 +52,8 @@ describe('Animación «Aparición al bajar» en /negocios', () => {
       'Esto es solo el tráfico que llega desde Google.',
       'Planes',
       'Precios por negocio.',
+      'Compara los planes',
+      'Todo lo que incluye cada plan.',
       'Así se verá tu negocio',
       'Ya están en CityMap',
       'Negocios reales que ya reciben clientes desde CityMap.',
@@ -66,7 +68,7 @@ describe('Animación «Aparición al bajar» en /negocios', () => {
   it('el escalonado es 0/90/180 ms (título, subtítulo) y solo en los subtítulos', () => {
     const html = renderLanding(false);
     expect(html.split('transition-delay:180ms').length - 1).toBe(1);
-    expect(html.split('transition-delay:90ms').length - 1).toBe(6);
+    expect(html.split('transition-delay:90ms').length - 1).toBe(7);
   });
 
   it('solo se animan textos: ni botones, ni precios, ni tarjetas de planes', () => {
@@ -81,7 +83,7 @@ describe('Animación «Aparición al bajar» en /negocios', () => {
     }
     // Los contadores del #168 siguen intactos (sin Reveal alrededor).
     expect(html).toContain('stat-card');
-    expect(landingSrc.match(/<Reveal/g).length).toBe(15);
+    expect(landingSrc.match(/<Reveal/g).length).toBe(17);
   });
 
   it('con prefers-reduced-motion no se oculta nada', () => {
@@ -89,7 +91,7 @@ describe('Animación «Aparición al bajar» en /negocios', () => {
     try {
       const html = renderLanding(false);
       expect(html).not.toContain('<div class="reveal"');
-      expect(html.split('<div class="reveal is-visible"').length - 1).toBe(17);
+      expect(html.split('<div class="reveal is-visible"').length - 1).toBe(20);
       expect(html).toContain('Haz que más personas encuentren tu negocio.');
     } finally {
       globalThis.window.matchMedia = () => ({ matches: false });
@@ -131,7 +133,7 @@ describe('Animación «Aparición al bajar» en /negocios', () => {
 
   it('se ve en oscuro sin romper el render', () => {
     const html = renderLanding(true);
-    expect(revealDivs(html)).toHaveLength(17);
+    expect(revealDivs(html)).toHaveLength(20);
     expect(html).toContain('Haz que más personas encuentren tu negocio.');
     expect(html).toContain('Ya están en CityMap');
   });

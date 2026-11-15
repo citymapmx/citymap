@@ -444,9 +444,9 @@ export default function HomeView({ isBackground }) {
                     const isInitialBatch = cascadeActive && index < 20;
                     const batchClass = isNewBatch ? 'scale-in-ver-top' : isInitialBatch ? 'cascade-in' : undefined;
                     const batchStyle = { paddingBottom: 14, ...(isInitialBatch ? { animationDelay: `${cascadeDelayS(index)}s` } : {}) };
-                    if (b.plan === "premium") {
+                    if (["premium", "elite", "fideliza"].includes(b.plan)) {
                       return <div key={b.id} className={batchClass} style={batchStyle}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
-                    } else if (b.plan === "destacado") {
+                    } else if (["destacado", "pro"].includes(b.plan)) {
                       return <div key={b.id} className={batchClass} style={batchStyle}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     } else {
                       return <div key={b.id} className={batchClass} style={batchStyle}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
@@ -680,9 +680,9 @@ export default function HomeView({ isBackground }) {
                     const batchClass = isNewBatch ? 'scale-in-ver-top' : isInitialBatch ? 'cascade-in' : undefined;
                     const batchStyle = { paddingBottom: 14, ...(isInitialBatch ? { animationDelay: `${cascadeDelayS(index)}s` } : {}) };
 
-                    if (b.plan === "premium") {
+                    if (["premium", "elite", "fideliza"].includes(b.plan)) {
                       return <div className={batchClass} style={batchStyle}><FeaturedCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
-                    } else if (b.plan === "destacado") {
+                    } else if (["destacado", "pro"].includes(b.plan)) {
                       return <div className={batchClass} style={batchStyle}><DestacadoCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;
                     } else {
                       return <div className={batchClass} style={batchStyle}><CompactCard b={b} T={T} dark={dark} isFav={favIds.includes(b.id)} toggleFav={toggleFav} onTap={handleCardTap} distStr={distStr} realFavs={globalFavCounts[b.id] || 0} /></div>;

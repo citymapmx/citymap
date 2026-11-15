@@ -109,13 +109,16 @@ describe('notificaciones: lógica pura', () => {
   });
 });
 
-describe('prueba de 7 días: solo mensual y solo de pago', () => {
+describe('prueba de 7 días: en mensual y en anual, solo de pago', () => {
   it('hasTrial', () => {
     expect(hasTrial('pro', 'monthly')).toBe(true);
     expect(hasTrial('elite', 'monthly')).toBe(true);
-    expect(hasTrial('pro', 'annual')).toBe(false);
-    expect(hasTrial('elite', 'annual')).toBe(false);
+    expect(hasTrial('fideliza', 'monthly')).toBe(true);
+    expect(hasTrial('pro', 'annual')).toBe(true);
+    expect(hasTrial('elite', 'annual')).toBe(true);
+    expect(hasTrial('fideliza', 'annual')).toBe(true);
     expect(hasTrial('free', 'monthly')).toBe(false);
+    expect(hasTrial('free', 'annual')).toBe(false);
   });
 });
 
@@ -155,7 +158,7 @@ describe('asistente: ajustes del PR #211 (render y fuente)', () => {
     const html = renderWizard();
     // La etiqueta centrada; el cuadrito solo lleva aria-label.
     expect(html.split('>Logotipo<').length - 1).toBe(1);
-    expect(html).toContain('En el mapa, el logotipo es función del plan Premium.');
+    expect(html).toContain('En el mapa, el logotipo es función del plan Ventas.');
   });
 
   it('los cuadros de texto llevan trazo sutil y anulación del autofill amarillo', () => {
@@ -182,7 +185,7 @@ describe('asistente: ajustes del PR #211 (render y fuente)', () => {
     expect(src).not.toContain('crear_negocio_whatsapp_nota');
   });
 
-  it('«7 días gratis» es texto sin píldora, solo en mensual de pago', () => {
+  it('«7 días gratis» es texto sin píldora, en mensual y anual de pago', () => {
     const src = readSrc('../components/AddBizModal.jsx');
     expect(src).toContain('hasTrial(p.key, billing)');
     expect(src).not.toContain('background: blueSoft');

@@ -192,13 +192,22 @@ export default function AccountView({
           const items = [];
           if (b.plan && b.plan !== "free" && b.plan !== "gratis") {
             items.push(
-              { label: t("reservaciones", "Reservaciones"), icon: "calendar", act: `owner_res_${b.id}` },
               { label: t("cuenta_estadisticas", "Estadísticas"), icon: "trending", act: `owner_stats_${b.id}` },
-              { label: t("cuenta_tarjetas_lealtad", "Tarjetas de Lealtad (Wallet)"), icon: "award", act: `owner_loyalty_${b.id}` },
               { label: t("compartir_mi_negocio", "Compartir mi negocio"), icon: "share", act: `owner_share_${b.id}` }
             );
           }
-          if (b.plan === "premium" || b.plan === "elite" || b.plan === "pro") {
+          // Reservaciones y tarjetas de lealtad son de Fideliza (15 nov
+          // 2026): los valores viejos ('premium') y el del webhook
+          // ('elite') cuentan igual que 'fideliza'. Las reservas de los
+          // 14 Destacado eran solo enlaces externos (0 reservas reales),
+          // así que nadie pierde nada con el cambio.
+          if (["premium", "elite", "fideliza"].includes(b.plan)) {
+            items.push(
+              { label: t("reservaciones", "Reservaciones"), icon: "calendar", act: `owner_res_${b.id}` },
+              { label: t("cuenta_tarjetas_lealtad", "Tarjetas de Lealtad (Wallet)"), icon: "award", act: `owner_loyalty_${b.id}` },
+            );
+          }
+          if (["premium", "elite", "fideliza"].includes(b.plan)) {
             items.push({ label: t("editar_menu_cat", "Editar menú o catálogo"), icon: "list", act: `owner_menu_${b.id}` });
           }
           items.push(

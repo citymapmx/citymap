@@ -6,11 +6,12 @@ import { isTrialSelection } from '../lib/plans.js';
 // página de planes (PlansPage) se eliminó el 10 nov 2026: /negocios es ahora
 // LA página de planes y el pago vive en PlanPaymentModal.
 describe('reglas de la prueba gratis de los planes', () => {
-  it('ofrece 7 días gratis solo en Destacado y Premium mensuales, y solo ahí', () => {
-    expect(isTrialSelection('pro', 'monthly')).toBe(true);
-    expect(isTrialSelection('elite', 'monthly')).toBe(true);
-    expect(isTrialSelection('pro', 'annual')).toBe(false);
-    expect(isTrialSelection('elite', 'annual')).toBe(false);
+  it('ofrece 7 días gratis en los tres planes de pago, en mensual y en anual', () => {
+    for (const key of ['pro', 'elite', 'fideliza']) {
+      expect(isTrialSelection(key, 'monthly')).toBe(true);
+      expect(isTrialSelection(key, 'annual')).toBe(true);
+    }
     expect(isTrialSelection('free', 'monthly')).toBe(false);
+    expect(isTrialSelection('free', 'annual')).toBe(false);
   });
 });

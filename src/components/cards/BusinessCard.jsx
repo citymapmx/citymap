@@ -274,7 +274,7 @@ export default memo(function BusinessCard({
           <div style={{ flex: 1, padding: "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4, textAlign: "left" }}>
             <h3 style={{ fontFamily: FONT_BIZ, fontSize: 15, color: T.text, lineHeight: 1.25, fontWeight: 700, letterSpacing: 0, marginBottom: 0, paddingRight: !hideFavs ? 44 : 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", flexShrink: 0, textAlign: "left" }}>
               {b.name}
-              {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
+              {(["destacado", "premium", "elite", "fideliza", "pro"].includes(b.plan)) && (
                 <img src="/verificado.png" alt={t("card_verificado", "Verificado")} width="18" height="18" style={{ marginLeft: 6, flexShrink: 0 }} />
               )}
             </h3>
@@ -375,7 +375,7 @@ export default memo(function BusinessCard({
         <div style={{ padding: "12px 14px", position: "relative" }}>
           <h3 style={{ fontFamily: FONT_BIZ, fontSize: 18, color: T.text, lineHeight: 1.2, fontWeight: 800, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</span>
-            {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
+            {(["destacado", "premium", "elite", "fideliza", "pro"].includes(b.plan)) && (
               <img src="/verificado.png" alt={t("card_verificado", "Verificado")} width="18" height="18" style={{ marginLeft: 6, flexShrink: 0 }} />
             )}
           </h3>
@@ -445,7 +445,7 @@ export default memo(function BusinessCard({
           )}
 
           {/* Premium Logo (Top Left) */}
-          {b.logo_url && (b.plan === "premium" || b.plan === "pro" || b.plan === "destacado") && (
+          {b.logo_url && (["premium", "elite", "fideliza", "pro", "destacado"].includes(b.plan)) && (
             <div style={{ position: "absolute", top: 12, left: rank ? 56 : 12, width: 76, height: 76, borderRadius: "50%", background: dark ? "rgba(15, 23, 42, 0.4)" : "rgba(255, 255, 255, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "2px solid #FFFFFF", zIndex: 10, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", boxSizing: "border-box", overflow: "hidden" }}>
               <OptimizedImage src={b.logo_url} widthRequest={200} heightRequest={200} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%", display: "block", backgroundColor: "transparent" }} alt="logo" />
             </div>
@@ -464,7 +464,7 @@ export default memo(function BusinessCard({
             Punta Mita» se leía «Four Seasons Resor…». */}
             <h3 style={{ fontFamily: FONT_BIZ, fontSize: 22, color: "#fff", lineHeight: 1.15, fontWeight: 800, letterSpacing: 0, marginBottom: 2, textShadow: "0 2px 4px rgba(0,0,0,0.5)", paddingRight: 8, display: "flex", alignItems: "center" }}>
               <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{b.name}</span>
-              {(b.plan === "destacado" || b.plan === "premium" || b.plan === "pro") && (
+              {(["destacado", "premium", "elite", "fideliza", "pro"].includes(b.plan)) && (
                 <img src="/verificado.png" alt={t("card_verificado", "Verificado")} width="18" height="18" style={{ marginLeft: 6, flexShrink: 0, filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.5))" }} />
               )}
             </h3>

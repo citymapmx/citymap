@@ -107,9 +107,9 @@ export function isAdvancedSchedule(schedule) {
 }
 
 // Funciones efectivas de un plan: las suyas + las heredadas de los
-// planes inferiores. La primera línea de Destacado y Premium es el
-// resumen "Todo lo del plan X, más:" (no es una función) y no se hereda
-// como tal: se toma desde el índice 1.
+// planes inferiores. La primera línea de Presencia, Ventas y Fideliza
+// es el resumen "Todo lo del plan X, más:" (no es una función) y no se
+// hereda como tal: se toma desde el índice 1.
 export function effectivePlanFeatures(plans, planKey) {
   const byKey = {};
   for (const p of plans) byKey[p.key] = p.features || [];
@@ -117,22 +117,31 @@ export function effectivePlanFeatures(plans, planKey) {
   if (planKey === 'pro') {
     return [...(byKey.free || []), ...(byKey.pro || []).slice(1)];
   }
+  if (planKey === 'elite') {
+    return [
+      ...(byKey.free || []),
+      ...(byKey.pro || []).slice(1),
+      ...(byKey.elite || []).slice(1),
+    ];
+  }
+  // Fideliza: hereda todo lo de Gratuito, Presencia y Ventas.
   return [
     ...(byKey.free || []),
     ...(byKey.pro || []).slice(1),
     ...(byKey.elite || []).slice(1),
+    ...(byKey.fideliza || []).slice(1),
   ];
 }
 
 // Filas de la tabla "Comparar todos los planes": unión de las funciones
-// efectivas, en orden (gratuito, destacado, premium), sin repetir. La
-// fila de "Reseñas de Google" queda con ✓ solo en Destacado y Premium:
-// desde el 12 nov 2026 es función del Destacado (se hereda a Premium) y
-// ya no del gratuito.
+// efectivas, en orden (gratuito, presencia, ventas, fideliza), sin
+// repetir. La fila de "Reseñas de Google" queda con ✓ solo en Presencia,
+// Ventas y Fideliza: desde el 12 nov 2026 es función de Presencia (se
+// hereda hacia arriba) y ya no del gratuito.
 export function comparePlanFeatures(plans) {
   const seen = new Set();
   const rows = [];
-  for (const key of ['free', 'pro', 'elite']) {
+  for (const key of ['free', 'pro', 'elite', 'fideliza']) {
     for (const f of effectivePlanFeatures(plans, key)) {
       if (!seen.has(f)) {
         seen.add(f);
@@ -148,13 +157,13 @@ export function planHasFeature(plans, planKey, feature) {
 }
 
 export function isPaidPlanKey(key) {
-  return key === 'pro' || key === 'elite';
+  return key === 'pro' || key === 'elite' || key === 'fideliza';
 }
 
-// Prueba de 7 días: solo en planes de pago y solo en mensual. En anual no
-// hay mención de prueba, como en el checkout real de Stripe.
+// Prueba de 7 días: en los tres planes de pago, en mensual Y en anual
+// (15 nov 2026). Antes solo existía en mensual.
 export function hasTrial(planKey, billing) {
-  return isPaidPlanKey(planKey) && billing === 'monthly';
+  return isPaidPlanKey(planKey) && (billing === 'monthly' || billing === 'annual');
 }
 
 // Precio a mostrar de un plan según el periodo elegido.

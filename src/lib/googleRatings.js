@@ -1,13 +1,16 @@
 // Calificaciones de Google en caché (refresco mensual en el servidor).
 // REGLA (decisión 12 nov 2026): las reseñas/calificaciones de Google
-// SOLO se muestran en negocios de plan Destacado o Premium. Los
-// gratuitos NO muestran el dato de Google (ni estrellas ni conteo con
-// la G): usan su conteo propio de CityMap, como cualquier negocio sin
-// dato en caché. Un plan null o distinto se trata como gratuito.
+// SOLO se muestran en negocios de plan de pago. Los gratuitos NO
+// muestran el dato de Google (ni estrellas ni conteo con la G): usan
+// su conteo propio de CityMap, como cualquier negocio sin dato en
+// caché. Un plan null o distinto se trata como gratuito. La lista
+// incluye los valores viejos ('destacado', 'premium') y los actuales
+// ('pro', 'elite', 'fideliza'): la base todavía tiene filas con los
+// valores viejos y el webhook escribe los nuevos.
 // El refresco del servidor tampoco les pide el dato (ver
 // api/actualizar-calificaciones-google.js); si queda una fila vieja en
 // caché para un gratuito, aquí simplemente no se usa (vence a 30 días).
-export const GOOGLE_REVIEWS_PLANS = ['destacado', 'premium'];
+export const GOOGLE_REVIEWS_PLANS = ['destacado', 'premium', 'pro', 'elite', 'fideliza'];
 
 export function businessShowsGoogleRating(biz) {
   return GOOGLE_REVIEWS_PLANS.includes(biz?.plan);
