@@ -124,10 +124,12 @@ describe('mapa lento: precarga ligera de la ciudad', () => {
     expect(mapView).toContain('pinPool');
   });
 
-  it('no queda ninguna transición por pin en el marcador', () => {
+  it('la animación de salida del cluster está de vuelta (decisión de Jonathan, nov 2026)', () => {
     const gmap = readSource('../components/GMap.jsx');
-    expect(gmap).not.toContain('style.transition');
-    expect(gmap).not.toContain('0.4s cubic-bezier');
-    expect(gmap).not.toContain('all 0.2s ease');
+    // El pin sale de la posición del grupo y se acomoda en su lugar en 0.4 s.
+    expect(gmap).toContain('lastClusterPosition');
+    expect(gmap).toContain('transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)');
+    expect(gmap).toContain('_justAdded');
+    expect(gmap).toContain('all 0.2s ease');
   });
 });
