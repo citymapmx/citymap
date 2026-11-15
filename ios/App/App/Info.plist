@@ -18,6 +18,19 @@
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>GoogleSignIn</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.b1di6bji2ejd0ior0mv6kr0atv9e6fia</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
@@ -70,6 +83,8 @@
 	<string>CityMap usa la cámara para que puedas subir fotos de los negocios y eventos.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>CityMap usa tu ubicación para mostrarte los lugares y eventos cerca de ti.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>CityMap usa tu ubicación para mostrarte los negocios y eventos cerca de ti y darte direcciones para llegar.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>CityMap necesita acceso a tus fotos para que puedas subir imágenes de los negocios y eventos.</string>
 	<key>UIBackgroundModes</key>
