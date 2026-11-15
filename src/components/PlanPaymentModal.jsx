@@ -84,7 +84,7 @@ export default function PlanPaymentModal({ myBizList, onStartPaidPlan, pendingPl
                 <span style={{ fontSize: 36, fontWeight: 600, color: ink, letterSpacing: -0.5 }}>{selectedPlan.billing === "monthly" ? selectedPlan.plan.priceMonthly : selectedPlan.plan.priceAnnual}</span>
                 <span style={{ fontSize: 16, color: T.sub, fontWeight: 500 }}>{pricing.currency}/{selectedPlan.billing === "monthly" ? t("cuenta_mes", "mes") : t("cuenta_ano", "año")}</span>
               </div>
-              <p style={{ fontSize: 12, color: T.sub, margin: 0 }}>{isTrialPlan ? t("cuenta_prueba_nota", "Prueba gratis por 7 días. Luego se cobra cada mes.") : selectedPlan.billing === "monthly" ? t("cuenta_cobra_mes", "Se cobra cada mes.") : t("cuenta_cobra_ano", "Se cobra el importe completo del año.")}</p>
+              <p style={{ fontSize: 12, color: T.sub, margin: 0 }}>{isTrialPlan ? (selectedPlan.billing === "annual" ? t("cuenta_prueba_nota_anual", `Prueba gratis por 7 días. Luego se cobra ${selectedPlan.plan.priceAnnual} al año.`, { price: selectedPlan.plan.priceAnnual }) : t("cuenta_prueba_nota", "Prueba gratis por 7 días. Luego se cobra cada mes.")) : selectedPlan.billing === "monthly" ? t("cuenta_cobra_mes", "Se cobra cada mes.") : t("cuenta_cobra_ano", "Se cobra el importe completo del año.")}</p>
             </div>
 
             {bizId ? (
@@ -100,7 +100,7 @@ export default function PlanPaymentModal({ myBizList, onStartPaidPlan, pendingPl
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
                         biz_id: bizId,
-                        plan_id: selectedPlan.plan.key, // 'pro' o 'elite'
+                        plan_id: selectedPlan.plan.key, // 'pro', 'elite' o 'fideliza'
                         interval: selectedPlan.billing === "monthly" ? "month" : "year",
                         host_url: 'https://citymap.mx',
                         currency: pricing.currency
@@ -139,7 +139,7 @@ export default function PlanPaymentModal({ myBizList, onStartPaidPlan, pendingPl
                 <button onClick={() => window.open(`https://wa.me/523223792428?text=Hola, me interesa el Plan ${selectedPlan?.plan?.name || ""} para mi negocio y necesito ayuda para registrarlo.`, "_blank")} style={{ width: "100%", padding: 10, background: "transparent", border: "none", color: accent, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("cuenta_necesitas_ayuda", "¿Necesitas ayuda? Habla con un asesor")}</button>
               </>
             )}
-            <p style={{ fontSize: 11, color: T.sub, textAlign: "center", margin: 0 }}>{isTrialPlan ? t("cuenta_hoy_no_pagas", `Hoy no pagas nada. Después de 7 días se cobra ${selectedPlan.plan.priceMonthly} al mes. Cancela cuando quieras.`, { price: selectedPlan.plan.priceMonthly }) : t("cuenta_pago_seguro", "🔒 Pago 100% seguro y encriptado")}</p>
+            <p style={{ fontSize: 11, color: T.sub, textAlign: "center", margin: 0 }}>{isTrialPlan ? (selectedPlan.billing === "annual" ? t("cuenta_hoy_no_pagas_anual", `Hoy no pagas nada. Después de 7 días se cobra ${selectedPlan.plan.priceAnnual} al año. Cancela cuando quieras.`, { price: selectedPlan.plan.priceAnnual }) : t("cuenta_hoy_no_pagas", `Hoy no pagas nada. Después de 7 días se cobra ${selectedPlan.plan.priceMonthly} al mes. Cancela cuando quieras.`, { price: selectedPlan.plan.priceMonthly })) : t("cuenta_pago_seguro", "🔒 Pago 100% seguro y encriptado")}</p>
           </m.div>
         </m.div>
       )}

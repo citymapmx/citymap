@@ -106,29 +106,35 @@ describe('crear negocio: lógica pura del asistente', () => {
     expect(planPrice(plans[1], 'annual')).toBe('$990');
     expect(planPrice(plans[2], 'monthly')).toBe('$199');
     expect(planPrice(plans[2], 'annual')).toBe('$1,990');
+    expect(planPrice(plans[3], 'monthly')).toBe('$299');
+    expect(planPrice(plans[3], 'annual')).toBe('$2,990');
     expect(isPaidPlanKey('free')).toBe(false);
     expect(isPaidPlanKey('pro')).toBe(true);
     expect(isPaidPlanKey('elite')).toBe(true);
+    expect(isPaidPlanKey('fideliza')).toBe(true);
     expect(parsePriceNumber('$1,990')).toBe(1990);
     expect(parsePriceNumber('$99')).toBe(99);
   });
 });
 
 describe('crear negocio: cambios de funciones de planes', () => {
-  it('el gratuito ya no menciona las reseñas de Google; son beneficio desde Destacado (regla 12 nov 2026)', () => {
+  it('el gratuito ya no menciona las reseñas de Google; son beneficio desde Presencia (regla 12 nov 2026)', () => {
     const plans = buildBusinessPlans((k, f) => f, getBusinessPricing('mx'));
     expect(plans[0].desc).not.toContain('reseñas de Google');
     expect(plans[0].features).not.toContain('Reseñas de Google');
     expect(plans[1].features).toContain('Reseñas de Google');
-    expect(plans[2].features).toContain('Reseñas de Google');
+    // Ventas y Fideliza las heredan de Presencia (no van en su propia
+    // lista): se comprueban con las funciones efectivas.
+    expect(effectivePlanFeatures(plans, 'elite')).toContain('Reseñas de Google');
+    expect(effectivePlanFeatures(plans, 'fideliza')).toContain('Reseñas de Google');
   });
 
-  it('el Destacado dice "Menú digital" y el Premium ya no tiene vídeos (pero sí reseñas de Google)', () => {
+  it('el Presencia dice "Menú digital" y el Ventas ya no tiene vídeos (pero sí reseñas de Google)', () => {
     const plans = buildBusinessPlans((k, f) => f, getBusinessPricing('mx'));
     expect(plans[1].features).toContain('Menú digital');
     expect(plans[1].features.join(' ')).not.toContain('Menú QR');
     expect(plans[2].features.join(' ')).not.toContain('Vídeos');
-    expect(plans[2].features.join(' ')).toContain('Reseñas de Google');
+    expect(effectivePlanFeatures(plans, 'elite')).toContain('Reseñas de Google');
     expect(plans[2].desc).not.toContain('Reseñas de Google');
   });
 });
@@ -155,8 +161,8 @@ describe('crear negocio: asistente de 3 pasos (render)', () => {
     expect(html).not.toContain('Dirección aproximada');
     // La ciudad se muestra por su nombre, no por el slug.
     expect(html).not.toContain('>zapopan<');
-    // El texto del logotipo explica que en el mapa es función del Premium.
-    expect(html).toContain('En el mapa, el logotipo es función del plan Premium.');
+    // El texto del logotipo explica que en el mapa es función del Ventas.
+    expect(html).toContain('En el mapa, el logotipo es función del plan Ventas.');
   });
 
   it('el paso 1 ordena Logotipo, Fotos, Nombre, Categoría, Descripción, Ciudad y Dirección', () => {

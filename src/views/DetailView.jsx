@@ -134,7 +134,7 @@ export default function DetailView() {
       const res = await sb.get("store_categories", `?business_id=eq.${selected.id}&limit=1&select=id`);
       return !!(res && res.length > 0);
     },
-    enabled: !!selected?.id && selected?.plan === "premium"
+    enabled: !!selected?.id && ["premium", "elite", "fideliza"].includes(selected?.plan)
   });
   const now = useTimeStore(s => s.now);
 
@@ -399,13 +399,13 @@ export default function DetailView() {
             {/* White Card Overlapping */}
             <div style={{ background: dBg, borderRadius: (selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) ? (isElite ? "0" : "20px 20px 0 0") : 0, marginTop: (selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) ? (isElite ? -40 : -20) : 0, position: "relative", padding: "16px 16px 0", zIndex: 30 }}>
               
-              {selected.logo_url && (selected.plan === "premium" || selected.plan === "pro" || selected.plan === "destacado") && (
+              {selected.logo_url && (["premium", "elite", "fideliza", "pro", "destacado"].includes(selected.plan)) && (
                 <div style={{ position: "absolute", top: -48, left: 16, width: 96, height: 96, borderRadius: "50%", background: "#fff", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 6px 16px rgba(0,0,0,0.12)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 40, padding: 3, boxSizing: "border-box", overflow: "hidden" }}>
                   <img src={getThumbUrl(selected.logo_url, 300, 300)} width={90} height={90} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "50%" }} alt={t('detalle_logo_de', 'Logo de {nombre}').replace('{nombre}', selected.name)} />
                 </div>
               )}
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, marginTop: selected.logo_url && (selected.plan === "premium" || selected.plan === "pro" || selected.plan === "destacado") ? 38 : 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, marginTop: selected.logo_url && (["premium", "elite", "fideliza", "pro", "destacado"].includes(selected.plan)) ? 38 : 0 }}>
                 <div style={{ flex: 1, textAlign: "left" }}>
                   {selected.badge && (
                     <div style={{ display: 'inline-block', fontSize: 10, fontWeight: 800, color: "#C9A84C", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 6, background: "rgba(201,168,76,0.1)", padding: "4px 8px", borderRadius: 12 }}>
@@ -423,7 +423,7 @@ export default function DetailView() {
                       return null;
                     })()}
 
-                    {(selected.plan === "destacado" || selected.plan === "premium" || selected.plan === "pro") && (
+                    {(["destacado", "premium", "elite", "fideliza", "pro"].includes(selected.plan)) && (
                       <img src="/verificado.png" alt={t('detalle_verificado', 'Verificado')} width="22" height="22" style={{ marginLeft: 6, flexShrink: 0 }} />
                     )}
                   </h1>
@@ -506,7 +506,7 @@ export default function DetailView() {
             </div>
 
 
-            <div style={{ display: (hasLoyalty || bookingBtn.mode !== 'hidden' || (selected.plan === "premium" && hasMenu)) ? "flex" : "none", flexWrap: "wrap", gap: 8, padding: "0 20px", marginTop: 12, opacity: loyaltyLoading ? 0 : 1, transition: "opacity 0.3s ease", pointerEvents: loyaltyLoading ? "none" : "auto" }}>
+            <div style={{ display: (hasLoyalty || bookingBtn.mode !== 'hidden' || (["premium", "elite", "fideliza"].includes(selected.plan) && hasMenu)) ? "flex" : "none", flexWrap: "wrap", gap: 8, padding: "0 20px", marginTop: 12, opacity: loyaltyLoading ? 0 : 1, transition: "opacity 0.3s ease", pointerEvents: loyaltyLoading ? "none" : "auto" }}>
               {/* LOYALTY PILL */}
               {hasLoyalty && (
                 <button 
@@ -561,7 +561,7 @@ export default function DetailView() {
                   <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>↻ {t('detalle_reservar', 'Reservar')}</span>
                 </button>
               )}
-              {selected.plan === "premium" && hasMenu && (
+              {["premium", "elite", "fideliza"].includes(selected.plan) && hasMenu && (
                 <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => {
                     if(isCatalog) {
                       const cleanSlug=ctx.cleanCityPrefix?ctx.cleanCityPrefix(selected.slug||selected.id,selected.city_slug||activeCity):(selected.slug||selected.id);
@@ -690,7 +690,7 @@ export default function DetailView() {
           )}
 
                     {/* Menú/Catálogo Store Module (Sólo Premium) */}
-          {selected.plan === "premium" && <BusinessStore business={selected} T={T} isElite={isElite} />}
+          {["premium", "elite", "fideliza"].includes(selected.plan) && <BusinessStore business={selected} T={T} isElite={isElite} /> }
 
           {/* PRODUCTOS AFILIADOS */}
           {Array.isArray(selected.affiliate_products) && selected.affiliate_products.length > 0 && (

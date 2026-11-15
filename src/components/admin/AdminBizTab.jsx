@@ -487,7 +487,7 @@ export default function AdminBizTab({
           </div>
           <>
             <FI label="Sitio Web" field="website" src={bizForm} set={setBizForm} />
-              {bizForm.plan === "premium" ? (
+              {["destacado", "premium", "pro", "elite", "fideliza"].includes(bizForm.plan) ? (
                 <>
                   <div style={{ marginBottom: 12 }}>
                     <label className="text-xs" style={{ fontWeight: 700, color: "#5A6872", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 4 }}>Logotipo en el Mapa</label>
@@ -635,7 +635,7 @@ export default function AdminBizTab({
       </div>
       
       {/* PDF Menu */}
-      {(bizForm.plan === "destacado" || bizForm.plan === "premium" || bizForm.plan === "menu") && <div style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
+      {["destacado", "premium", "pro", "elite", "fideliza", "menu"].includes(bizForm.plan) && <div style={{ background: "#fff", borderRadius: 14, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
         <div className="text-sm" style={{ fontWeight: 700, color: "#5A6872", marginBottom: 6 }}>Menú Digital (Imágenes o PDF)</div>
         <MenuManager 
           menuPdfUrl={bizForm.menu_pdf_url} 

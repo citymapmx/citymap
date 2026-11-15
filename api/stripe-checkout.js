@@ -1,5 +1,6 @@
 /* global process */
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   // CORS Headers
@@ -23,35 +24,45 @@ export default async function handler(req, res) {
   try {
     const { biz_id, plan_id, interval, user_id, host_url, currency: clientCurrency } = req.body;
     const currency = (clientCurrency || 'mxn').toLowerCase();
-    
-    // Configurar precios
+
+    // Configurar precios (price_data en línea, como siempre: no hay Price
+    // IDs guardados en el Dashboard). Fideliza se suma como una rama más.
     let unit_amount = 0;
     let name = "";
-    
+
     if (currency === 'eur') {
       if (plan_id === 'pro') {
-        name = "Plan Destacado";
+        name = "Plan Presencia";
         unit_amount = interval === 'year' ? 9900 : 999; // €99.00 o €9.99
       } else if (plan_id === 'elite') {
-        name = "Plan Premium";
+        name = "Plan Ventas";
         unit_amount = interval === 'year' ? 19900 : 1999; // €199.00 o €19.99
+      } else if (plan_id === 'fideliza') {
+        name = "Plan Fideliza";
+        unit_amount = interval === 'year' ? 29900 : 2999; // €299.00 o €29.99
       }
     } else if (currency === 'usd') {
       if (plan_id === 'pro') {
-        name = "Plan Destacado";
+        name = "Plan Presencia";
         unit_amount = interval === 'year' ? 9900 : 999; // $99.00 o $9.99
       } else if (plan_id === 'elite') {
-        name = "Plan Premium";
+        name = "Plan Ventas";
         unit_amount = interval === 'year' ? 19900 : 1999; // $199.00 o $19.99
+      } else if (plan_id === 'fideliza') {
+        name = "Plan Fideliza";
+        unit_amount = interval === 'year' ? 29900 : 2999; // $299.00 o $29.99
       }
     } else {
       // Default: MXN
       if (plan_id === 'pro') {
-        name = "Plan Destacado";
+        name = "Plan Presencia";
         unit_amount = interval === 'year' ? 99000 : 9900; // $990 MXN o $99 MXN
       } else if (plan_id === 'elite') {
-        name = "Plan Premium";
+        name = "Plan Ventas";
         unit_amount = interval === 'year' ? 199000 : 19900; // $1,990 MXN o $199 MXN
+      } else if (plan_id === 'fideliza') {
+        name = "Plan Fideliza";
+        unit_amount = interval === 'year' ? 299000 : 29900; // $2,990 MXN o $299 MXN
       }
     }
 
@@ -59,9 +70,32 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Plan o combinación no válidos' });
     }
 
-    // Prueba gratis de 7 días solo en Destacado y Premium mensuales: la
-    // tarjeta se registra hoy y el primer cobro es después de la prueba.
-    const trialDays = ['pro', 'elite'].includes(plan_id) && interval === 'month' ? 7 : 0;
+    // Prueba gratis de 7 días en los tres planes de pago, en mensual Y
+    // en anual (15 nov 2026): la tarjeta se registra hoy y el primer
+    // cobro es después de la prueba.
+    // Anti-repetición: si el negocio YA tuvo una suscripción de Stripe
+    // (tiene stripe_customer_id o stripe_subscription_id en la base),
+    // no se le vuelve a dar prueba. El webhook escribe esos IDs al
+    // completarse el primer checkout, así que la marca ya existe sin
+    // necesidad de una columna nueva. Si la lectura falla o no hay
+    // negocio que leer, se permite la prueba (no bloquear una primera
+    // compra por un error de lectura).
+    let trialDays = ['pro', 'elite', 'fideliza'].includes(plan_id) ? 7 : 0;
+    if (trialDays && biz_id && process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const { data, error } = await supabase
+          .from('businesses')
+          .select('stripe_customer_id,stripe_subscription_id')
+          .eq('id', biz_id)
+          .maybeSingle();
+        if (!error && data && (data.stripe_customer_id || data.stripe_subscription_id)) {
+          trialDays = 0;
+        }
+      } catch (e) {
+        console.error("Stripe Checkout anti-trial check failed, allowing trial:", e?.message || e);
+      }
+    }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

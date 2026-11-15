@@ -36,9 +36,11 @@ const PLACE_IDS_CONCURRENCY = 5;
 const ADMIN_EMAIL = 'admin@cityguide.com';
 
 // Solo los planes de pago muestran reseñas de Google (decisión 12 Nov
-// 2026): 'destacado' y 'premium'. Un plan null, 'free' u otro se trata
-// como gratuito y se salta sin gastar llamadas a Places.
-const isPaidPlan = (plan) => plan === 'destacado' || plan === 'premium';
+// 2026). Valores viejos ('destacado', 'premium') y actuales ('pro',
+// 'elite', 'fideliza'): la base todavía tiene filas con los valores
+// viejos y el webhook escribe los nuevos. Un plan null, 'free' u otro
+// se trata como gratuito y se salta sin gastar llamadas a Places.
+const isPaidPlan = (plan) => ['destacado', 'premium', 'pro', 'elite', 'fideliza'].includes(plan);
 
 const shiftDays = (iso, days) => {
   const d = new Date(iso);
@@ -254,7 +256,7 @@ export default async function handler(req, res) {
     // place_id recortado; los que no empiezan por «ChIJ» no son IDs de
     // Google (hay strings CID y blancos en la base) y se saltan sin gastar
     // llamadas, contándolos como fallidos en la tanda que les toque.
-    // Solo planes de pago (Destacado/Premium): los gratuitos con place_id
+    // Solo planes de pago: los gratuitos con place_id
     // se saltan sin llamar a Google y NO cuentan en withPlaceId,
     // remaining ni processed, para que el loop del botón del admin
     // termine igual. skippedFree = negocios aprobados con place_id

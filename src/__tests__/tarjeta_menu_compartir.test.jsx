@@ -56,7 +56,7 @@ describe('tarjeta para compartir: «Para pedir» y QR solo en el menú (PR #162)
     // El botón «VER MENÚ» de la ficha sigue ahí (ese hasMenu es otro:
     // el de la consulta que decide si se muestra el botón).
     expect(detail).toContain('VER MENÚ');
-    expect(detail).toContain('selected.plan === "premium" && hasMenu');
+    expect(detail).toContain('["premium", "elite", "fideliza"].includes(selected.plan) && hasMenu');
   });
 
   it('la página del menú ya NO tiene botón «Compartir» en píldora; el icono superior se queda', () => {

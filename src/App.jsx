@@ -392,11 +392,12 @@ export default function CityGuide() {
       for (let attempt = 0; attempt < 3; attempt++) {
         const list = await loadMyBiz(user.id);
         plan = list?.[0]?.plan;
-        if (plan === 'pro' || plan === 'elite' || plan === 'destacado' || plan === 'premium') break;
+        if (plan === 'pro' || plan === 'elite' || plan === 'fideliza' || plan === 'destacado' || plan === 'premium') break;
         await new Promise(r => setTimeout(r, 4000));
       }
-      if (plan === 'pro' || plan === 'destacado') setPayStatus({ state: 'active', planName: 'Destacado', trial: ret.trial });
-      else if (plan === 'elite' || plan === 'premium') setPayStatus({ state: 'active', planName: 'Premium', trial: ret.trial });
+      if (plan === 'pro' || plan === 'destacado') setPayStatus({ state: 'active', planName: 'Presencia', trial: ret.trial });
+      else if (plan === 'elite' || plan === 'premium') setPayStatus({ state: 'active', planName: 'Ventas', trial: ret.trial });
+      else if (plan === 'fideliza') setPayStatus({ state: 'active', planName: 'Fideliza', trial: ret.trial });
       else setPayStatus({ state: 'pending', trial: ret.trial });
     })();
   }, [user, loadMyBiz]);
@@ -1272,8 +1273,9 @@ useEffect(() => {
     
     return filtered.sort((a, b) => {
       const getPlanWeight = (plan) => {
-        if (plan === "premium") return 3;
-        if (plan === "destacado") return 2;
+        if (plan === "fideliza") return 4;
+        if (plan === "premium" || plan === "elite") return 3;
+        if (plan === "destacado" || plan === "pro") return 2;
         return 1;
       };
       

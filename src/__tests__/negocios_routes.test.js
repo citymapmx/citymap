@@ -22,9 +22,10 @@ const NEGOCIOS_KEYS = [
   'negocios_paso2_titulo', 'negocios_paso2_texto',
   'negocios_paso3_titulo', 'negocios_paso3_texto',
   'negocios_planes_titulo', 'negocios_planes_sub',
-  'negocios_badge_popular', 'negocios_badge_mejor', 'negocios_prueba_gratis',
-  'negocios_cta_probar', 'negocios_cta_premium',
-  'negocios_plan_free_desc', 'negocios_plan_pro_desc', 'negocios_plan_elite_desc',
+  'negocios_badge_popular', 'negocios_badge_vender', 'negocios_badge_completo', 'negocios_prueba_gratis', 'negocios_prueba_gratis_anual',
+  'negocios_cta_probar',
+  'negocios_plan_free_desc', 'negocios_plan_pro_desc', 'negocios_plan_elite_desc', 'negocios_plan_fideliza_desc',
+  'negocios_compara_titulo', 'negocios_compara_sub', 'negocios_compara_funcion',
   'negocios_faq_titulo',
   'negocios_faq1_q', 'negocios_faq1_a',
   'negocios_faq2_q', 'negocios_faq2_a',
@@ -122,11 +123,11 @@ describe('enlaces de entrada a /negocios', () => {
   });
 });
 
-describe('i18n: las 53 claves negocios_* existen en es y en', () => {
-  it('las 53 claves existen y no están vacías en ambos idiomas', async () => {
+describe('i18n: las 58 claves negocios_* existen en es y en', () => {
+  it('las 58 claves existen y no están vacías en ambos idiomas', async () => {
     // El inglés se carga en diferido (rendimiento teléfono).
     await ensureEnglishTranslations();
-    expect(NEGOCIOS_KEYS).toHaveLength(53);
+    expect(NEGOCIOS_KEYS).toHaveLength(58);
     for (const k of NEGOCIOS_KEYS) {
       expect(TRANSLATIONS.es[k], `es.${k}`).toBeTruthy();
       expect(TRANSLATIONS.en[k], `en.${k}`).toBeTruthy();

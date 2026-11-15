@@ -53,9 +53,9 @@ describe('Ejemplos por plan en /negocios', () => {
 
   it('cada plan lleva su bloque «Así se verá tu negocio» debajo del botón', () => {
     const html = renderLanding(false);
-    // Un bloque por plan: 3 veces el título.
-    expect(html.split('Así se verá tu negocio')).toHaveLength(4);
-    for (const [key, next] of [['free', 'pro'], ['pro', 'elite'], ['elite', null]]) {
+    // Un bloque por plan: 4 veces el título.
+    expect(html.split('Así se verá tu negocio')).toHaveLength(5);
+    for (const [key, next] of [['free', 'pro'], ['pro', 'elite'], ['elite', 'fideliza'], ['fideliza', null]]) {
       const card = planCard(html, key, next);
       // El bloque va después del botón de cada plan (y de sus features).
       expect(card.indexOf('Así se verá tu negocio')).toBeGreaterThan(card.indexOf('plans-action'));
@@ -78,26 +78,39 @@ describe('Ejemplos por plan en /negocios', () => {
     expect(card).not.toContain('Four Seasons');
   });
 
-  it('Premium → Four Seasons Resort Punta Mita, con su foto real y los 3 mockups', () => {
-    const card = planCard(renderLanding(false), 'elite', null);
+  it('Ventas → Four Seasons Resort Punta Mita, con su foto real y solo el mockup del menú', () => {
+    const card = planCard(renderLanding(false), 'elite', 'fideliza');
     expect(card).toContain('Four Seasons Resort Punta Mita');
     expect(card).toContain('1785787099442_qkable.avif');
     expect(card).toContain('/plans/menu-interactivo.png');
-    expect(card).toContain('/plans/estadisticas.png');
-    expect(card).toContain('/plans/reservas.png');
     expect(card).toContain('Menú Interactivo y Carrito');
-    expect(card).toContain('Panel de Estadísticas');
-    expect(card).toContain('Gestión de Reservas');
+    // Las capturas de estadísticas y reservas son de Fideliza, no de Ventas.
+    expect(card).not.toContain('/plans/estadisticas.png');
+    expect(card).not.toContain('/plans/reservas.png');
+    expect(card).not.toContain('Panel de Estadísticas');
+    expect(card).not.toContain('Gestión de Reservas');
     expect(card).not.toContain('Akami Sushi');
     expect(card).not.toContain('Dalila');
   });
 
-  it('los mockups solo van con Premium: Gratuito y Destacado no los tienen', () => {
+  it('Fideliza → Four Seasons, con las capturas de estadísticas y reservas', () => {
+    const card = planCard(renderLanding(false), 'fideliza', null);
+    expect(card).toContain('Four Seasons Resort Punta Mita');
+    expect(card).toContain('/plans/estadisticas.png');
+    expect(card).toContain('/plans/reservas.png');
+    expect(card).toContain('Panel de Estadísticas');
+    expect(card).toContain('Gestión de Reservas');
+    expect(card).not.toContain('/plans/menu-interactivo.png');
+    expect(card).not.toContain('Akami Sushi');
+    expect(card).not.toContain('Dalila');
+  });
+
+  it('los mockups solo van en Ventas y Fideliza: Gratuito y Presencia no los tienen', () => {
     const html = renderLanding(false);
-    expect(planCard(html, 'free', 'pro')).not.toContain('/plans/menu-interactivo.png');
-    expect(planCard(html, 'pro', 'elite')).not.toContain('/plans/menu-interactivo.png');
-    expect(planCard(html, 'free', 'pro')).not.toContain('/plans/estadisticas.png');
-    expect(planCard(html, 'pro', 'elite')).not.toContain('/plans/reservas.png');
+    for (const mockup of ['/plans/menu-interactivo.png', '/plans/estadisticas.png', '/plans/reservas.png']) {
+      expect(planCard(html, 'free', 'pro')).not.toContain(mockup);
+      expect(planCard(html, 'pro', 'elite')).not.toContain(mockup);
+    }
   });
 
   it('sin dato de Google en el store, ningún ejemplo muestra calificación (nada inventado)', () => {
@@ -149,7 +162,7 @@ describe('Ejemplos por plan en /negocios', () => {
   });
 
   it('defecto 2: el ejemplo Premium muestra la fila de calificación (ya no esconde las estrellas)', () => {
-    const card = planCard(renderLanding(false), 'elite', null);
+    const card = planCard(renderLanding(false), 'elite', 'fideliza');
     // Sin dato en el store, la fila cae en sus 5 estrellas vacías: eso
     // prueba que la fila de calificación SÍ se renderiza (showStars ya
     // no es false). Con dato real de Google, esa misma fila muestra
@@ -161,7 +174,7 @@ describe('Ejemplos por plan en /negocios', () => {
   });
 
   it('defecto 2: el nombre de Four Seasons ya no se trunca con elipsis', () => {
-    const card = planCard(renderLanding(false), 'elite', null);
+    const card = planCard(renderLanding(false), 'elite', 'fideliza');
     expect(card).toContain('Four Seasons Resort Punta Mita');
     // El nombre puede tomar 2 líneas (mismo patrón que la variante
     // compacta) en vez de una sola con elipsis («Four Seasons Resor…»).

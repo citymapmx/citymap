@@ -8,6 +8,7 @@ import CompactCard from "./cards/CompactCard.jsx";
 import DestacadoCard from "./cards/DestacadoCard.jsx";
 import FeaturedCard from "./cards/FeaturedCard.jsx";
 import { getBusinessPricing, buildBusinessPlans } from "../lib/businessPlans.js";
+import { comparePlanFeatures, effectivePlanFeatures } from "../lib/crearNegocio.js";
 import { NEGOCIOS_STATS_FALLBACK, fetchNegociosStats } from "../lib/negociosStats.js";
 import { EJEMPLO_POR_PLAN, YA_ESTAN_EN_CITYMAP } from "../lib/negociosEjemplos.js";
 import { displayRating, businessShowsGoogleRating, formatReviewCount } from "../lib/googleRatings.js";
@@ -79,9 +80,11 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
   }, []);
 
   // Map the 'plan' DB field to the plan key used here (igual que la antigua página de planes)
-  // DB values: free, pro, elite, premium (premium = elite)
+  // DB values: free, pro, elite, fideliza, premium (premium = elite),
+  // destacado (destacado = pro). 'fideliza' es clave propia desde
+  // 15 nov 2026: sin este caso caería a 'free'.
   const rawPlan = myBizList?.[0]?.plan || "free";
-  const currentPlanKey = rawPlan === "premium" ? "elite" : ["pro", "destacado"].includes(rawPlan) ? "pro" : rawPlan === "elite" ? "elite" : "free";
+  const currentPlanKey = rawPlan === "premium" ? "elite" : ["pro", "destacado"].includes(rawPlan) ? "pro" : rawPlan === "elite" ? "elite" : rawPlan === "fideliza" ? "fideliza" : "free";
   const isCurrent = p => Boolean(myBizList?.length) && p.key === currentPlanKey;
 
   const scrollToPlans = () => { document.getElementById("planes")?.scrollIntoView({ behavior: "smooth" }); };
@@ -104,12 +107,12 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     ? `${GOOGLE_SEARCH_CONSOLE.impressionsThousands}K`
     : `${GOOGLE_SEARCH_CONSOLE.impressionsThousands} mil`;
   const benefits = [
-    { icon: "pin", title: t("negocios_ben_mapa_titulo", "Te encuentran en el mapa"), text: t("negocios_ben_mapa_texto", "Tu negocio aparece con su pin en el mapa de tu ciudad, junto a los lugares, restaurantes y eventos que la gente ya busca. Con Premium, tu logotipo se ve directo en el mapa.") },
-    { icon: "globe", title: t("negocios_ben_google_titulo", "Te encuentran en Google"), text: t("negocios_ben_google_texto", "Tu página queda indexada y aparece en las búsquedas de Google. Con Destacado, tu posicionamiento mejora; con Premium, hasta tu menú interactivo aparece en Google.") },
+    { icon: "pin", title: t("negocios_ben_mapa_titulo", "Te encuentran en el mapa"), text: t("negocios_ben_mapa_texto", "Tu negocio aparece con su pin en el mapa de tu ciudad, junto a los lugares, restaurantes y eventos que la gente ya busca. Los planes de pago muestran tu logotipo directo en el mapa.") },
+    { icon: "globe", title: t("negocios_ben_google_titulo", "Te encuentran en Google"), text: t("negocios_ben_google_texto", "Tu página queda indexada y aparece en las búsquedas de Google. Con Presencia, tu posicionamiento mejora; con Ventas, hasta tu menú interactivo aparece en Google.") },
     { icon: "whatsapp", title: t("negocios_ben_whatsapp_titulo", "Pedidos por WhatsApp, sin comisiones"), text: t("negocios_ben_whatsapp_texto", "Tus clientes ven tu menú, arman su pedido y te lo mandan por WhatsApp. CityMap no cobra comisión por tus ventas: el pago es directo entre tu cliente y tú.") },
-    { icon: "menu", title: t("negocios_ben_menu_titulo", "Un menú digital que vende solo"), text: t("negocios_ben_menu_texto", "Con Premium, tu menú es interactivo: fotos, precios, opciones y carrito. Tus clientes piden desde el celular sin llamarte. Con Destacado, tienes tu menú en QR para ponerlo en las mesas del local.") },
-    { icon: "calendar", title: t("negocios_ben_eventos_titulo", "Tus eventos y promociones llegan a la gente"), text: t("negocios_ben_eventos_texto", "Con Premium, publicas tus eventos y reservas, lanzas cupones y creas tarjetas de lealtad para que tus clientes regresen.") },
-    { icon: "bar_chart", title: t("negocios_ben_datos_titulo", "Sabes qué está funcionando"), text: t("negocios_ben_datos_texto", "Desde tu panel ves tus visitas y tus pedidos, y con Premium tienes estadísticas y soporte prioritario.") },
+    { icon: "menu", title: t("negocios_ben_menu_titulo", "Un menú digital que vende solo"), text: t("negocios_ben_menu_texto", "Con Ventas, tu menú es interactivo: fotos, precios, opciones y carrito. Tus clientes piden desde el celular sin llamarte. Con Presencia, tienes tu menú en QR para ponerlo en las mesas del local.") },
+    { icon: "calendar", title: t("negocios_ben_eventos_titulo", "Tus eventos y promociones llegan a la gente"), text: t("negocios_ben_eventos_texto", "Con Fideliza, publicas tus eventos y reservas, lanzas cupones y creas tarjetas de lealtad para que tus clientes regresen.") },
+    { icon: "bar_chart", title: t("negocios_ben_datos_titulo", "Sabes qué está funcionando"), text: t("negocios_ben_datos_texto", "Desde tu panel ves tus visitas y tus pedidos, y con Fideliza tienes estadísticas avanzadas y soporte prioritario.") },
   ];
   const steps = [
     { n: "1", title: t("negocios_paso1_titulo", "Crea tu perfil gratis"), text: t("negocios_paso1_texto", "Te registras y publicas tu negocio en minutos: nombre, fotos, horarios y contacto.") },
@@ -117,19 +120,20 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     { n: "3", title: t("negocios_paso3_titulo", "Te encuentran y te escriben"), text: t("negocios_paso3_texto", "Tu negocio aparece en el mapa, en el buscador, en la guía de tu ciudad y en Google. Los clientes te escriben directo por WhatsApp.") },
   ];
   const faqs = [
-    [t("negocios_faq1_q", "¿Cuánto cuesta empezar?"), t("negocios_faq1_a", "Nada. Crear tu perfil y publicar tu negocio es gratis. Solo pagas si quieres Destacado o Premium.")],
+    [t("negocios_faq1_q", "¿Cuánto cuesta empezar?"), t("negocios_faq1_a", "Nada. Crear tu perfil y publicar tu negocio es gratis. Solo pagas si quieres Presencia, Ventas o Fideliza.")],
     [t("negocios_faq2_q", "¿Necesito pagar para aparecer en CityMap?"), t("negocios_faq2_a", "No. Con el plan gratuito tu negocio ya tiene su página pública, con teléfono, dirección, horarios y portada.")],
     [t("negocios_faq3_q", "¿CityMap cobra comisión por mis ventas?"), t("negocios_faq3_a", "No. Los pedidos te llegan por WhatsApp y el pago es directo entre tu cliente y tú.")],
-    [t("negocios_faq4_q", "¿Puedo probar los planes de pago gratis?"), t("negocios_faq4_a", "Sí. Los planes Destacado y Premium mensuales tienen 7 días de prueba gratis, sin compromiso.")],
+    [t("negocios_faq4_q", "¿Puedo probar los planes de pago gratis?"), t("negocios_faq4_a", "Sí. Los tres planes de pago tienen 7 días de prueba gratis, en pago mensual y anual, sin compromiso.")],
     [t("negocios_faq5_q", "¿En qué ciudades está CityMap?"), t("negocios_faq5_a", "En ${count} ciudades, entre ellas Guadalajara, Zapopan, Tlaquepaque, Tepic, Puerto Vallarta, Ciudad de México, Mérida, Monterrey, Cancún y Playa del Carmen.", { count: liveStats.cities })],
     [t("negocios_faq6_q", "¿Qué necesito para registrar mi negocio?"), t("negocios_faq6_a", "Solo tu información básica: nombre, fotos, horarios y un teléfono o WhatsApp para que te contacten.")],
   ];
 
   const priceNote = p => {
     if (p.key === "free") return t("cuenta_sin_costo", "Sin costo de suscripción.");
-    if (billing === "annual") return t("cuenta_cobra_ano", "Se cobra el importe completo del año.");
-    if (p.key === "pro" || p.key === "elite") return t("negocios_prueba_gratis", "Pruébalo 7 días gratis (solo en el pago mensual).");
-    return t("cuenta_fact_mensual", "Facturación mensual.");
+    // La prueba de 7 días existe en mensual Y en anual (15 nov 2026):
+    // en anual, después de la prueba se cobra el año completo.
+    if (billing === "annual") return t("negocios_prueba_gratis_anual", "Pruébalo 7 días gratis. Después se cobra el importe completo del año.");
+    return t("negocios_prueba_gratis", "Pruébalo 7 días gratis.");
   };
   const planButton = p => {
     if (p.key === "free") {
@@ -138,22 +142,14 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     if (isCurrent(p)) {
       return { disabled: true, label: t("cuenta_tu_plan_actual", "Tu plan actual"), onClick: undefined };
     }
-    if (p.key === "pro") {
-      // La prueba de 7 días solo existe en el pago mensual (igual que
-      // Premium/elite): en anual, el CTA normal de pago.
-      if (billing === "monthly") {
-        return { disabled: false, label: t("negocios_cta_probar", "Probar 7 días gratis"), onClick: () => onStartPaidPlan?.({ key: "pro" }, billing) };
-      }
-      return { disabled: false, label: t("cuenta_elegir_plan", `Elegir ${p.name}`, { name: p.name }), onClick: () => onStartPaidPlan?.({ key: "pro" }, billing) };
-    }
-    if (billing === "monthly") {
-      return { disabled: false, label: t("negocios_cta_probar", "Probar 7 días gratis"), onClick: () => onStartPaidPlan?.({ key: "elite" }, billing) };
-    }
-    return { disabled: false, label: t("negocios_cta_premium", "Empezar con Premium"), onClick: () => onStartPaidPlan?.({ key: "elite" }, billing) };
+    // Los tres planes de pago tienen 7 días de prueba gratis en mensual
+    // Y en anual (15 nov 2026): el botón es el mismo en las dos
+    // modalidades y el servidor aplica la prueba en el checkout.
+    return { disabled: false, label: t("negocios_cta_probar", "Probar 7 días gratis"), onClick: () => onStartPaidPlan?.({ key: p.key }, billing) };
   };
 
   return (
-    <div className="business-landing" style={{ minHeight: '100vh', background: pageBg, color: ink, fontFamily: 'inherit', letterSpacing: 0, '--plans-accent': accent, '--plans-line': line, '--plans-surface': surface, '--plans-shadow': dark ? '0 10px 28px rgba(0,0,0,0.40)' : '0 10px 28px rgba(15,26,20,0.08)', '--plans-shadow-pro': dark ? '0 16px 40px rgba(112,173,255,0.25)' : '0 16px 40px rgba(0,102,204,0.18)' }}>
+    <div className="business-landing" style={{ minHeight: '100vh', background: pageBg, color: ink, fontFamily: 'inherit', letterSpacing: 0, '--plans-accent': accent, '--plans-line': line, '--plans-surface': surface, '--plans-shadow': dark ? '0 10px 28px rgba(0,0,0,0.40)' : '0 10px 28px rgba(15,26,20,0.08)', '--plans-shadow-pro': dark ? '0 16px 40px rgba(112,173,255,0.25)' : '0 16px 40px rgba(0,102,204,0.18)', '--plans-accent-fideliza': dark ? '#A78BFA' : '#6D28D9', '--plans-shadow-fideliza': dark ? '0 16px 40px rgba(167,139,250,0.25)' : '0 16px 40px rgba(109,40,217,0.18)' }}>
       <Helmet>
         <title>{`${t("negocios_h1", "Haz que más personas encuentren tu negocio.")} | CityMap`}</title>
         <meta name="description" content={t("negocios_sub", "CityMap ayuda a que más personas descubran negocios, lugares y servicios cuando buscan en internet. Las páginas de nuestra plataforma ya generan visitas desde Google, acercando a nuevos clientes a los negocios publicados.")} />
@@ -168,6 +164,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         .business-landing .plans-card[data-plan="pro"]{order:1;border-color:var(--plans-accent);box-shadow:var(--plans-shadow-pro)}
         .business-landing .plans-card[data-plan="free"]{order:0}
         .business-landing .plans-card[data-plan="elite"]{order:2}
+        .business-landing .plans-card[data-plan="fideliza"]{order:3;border-color:var(--plans-accent-fideliza);box-shadow:var(--plans-shadow-fideliza)}
         .business-landing .plans-action{width:100%;min-height:48px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px}
         .business-landing .plans-action:disabled{cursor:default;opacity:.65}
         .business-landing .plans-feature{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.5}
@@ -183,7 +180,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         .plans-faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px;font-size:15px;font-weight:600;line-height:1.5}
         .plans-faq summary::after{content:'+';font-size:20px;font-weight:400}
         .plans-faq[open] summary::after{content:'−'}
-        @media(min-width:900px){.business-landing .plans-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.business-landing .plans-card[data-plan="free"]{order:0}.business-landing .plans-card[data-plan="pro"]{order:1}.business-landing .plans-card[data-plan="elite"]{order:2}.business-landing .ya-estan-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}}
+        @media(min-width:900px){.business-landing .plans-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}.business-landing .plans-card[data-plan="free"]{order:0}.business-landing .plans-card[data-plan="pro"]{order:1}.business-landing .plans-card[data-plan="elite"]{order:2}.business-landing .plans-card[data-plan="fideliza"]{order:3}.business-landing .ya-estan-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}}
         @media(prefers-reduced-motion:reduce){.business-landing *{scroll-behavior:auto!important;transition:none!important}}
       `}</style>
       <header style={{ position: 'sticky', top: 0, zIndex: 10, background: dark ? 'rgba(22,22,23,.92)' : 'rgba(245,245,247,.92)', backdropFilter: 'blur(20px)', borderBottom: `1px solid ${line}` }}>
@@ -272,18 +269,23 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
           <div className="plans-grid" aria-label={t("negocios_planes_titulo", "Planes")}>
             {plans.map(p => {
               const btn = planButton(p);
+              // Fideliza lleva su acento violeta (borde, etiqueta y botón):
+              // especial pero elegante, sin saturar. Presencia sigue en
+              // azul; Ventas y Gratuito, neutros.
+              const planAccent = p.key === 'fideliza' ? (dark ? '#A78BFA' : '#6D28D9') : accent;
+              const tagline = p.key === 'free' ? t("cuenta_para_empezar", "Para empezar") : p.key === 'pro' ? t("cuenta_para_visibilidad", "Para ganar visibilidad") : p.key === 'elite' ? t("cuenta_para_vender", "Para conectar y vender") : t("cuenta_para_crecer", "Para hacer crecer tu negocio");
               return (
                 <article className="plans-card" data-plan={p.key} key={p.key}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, minHeight: 24, marginBottom: 12 }}>
-                    <span style={{ fontSize: 12, color: muted, fontWeight: 500 }}>{p.key === 'free' ? t("cuenta_para_empezar", "Para empezar") : p.key === 'pro' ? t("cuenta_para_visibilidad", "Para ganar visibilidad") : t("cuenta_para_vender", "Para conectar y vender")}</span>
-                    {p.badge && <span style={{ fontSize: 11, fontWeight: 600, color: accent, background: dark ? '#18304A' : '#EDF5FF', padding: '5px 10px', borderRadius: 999 }}>{p.badge}</span>}
+                    <span style={{ fontSize: 12, color: muted, fontWeight: 500 }}>{tagline}</span>
+                    {p.badge && <span style={{ fontSize: 11, fontWeight: 600, color: planAccent, background: p.key === 'fideliza' ? (dark ? 'rgba(167,139,250,0.18)' : '#F5F0FF') : (dark ? '#18304A' : '#EDF5FF'), padding: '5px 10px', borderRadius: 999 }}>{p.badge}</span>}
                   </div>
                   <h3 style={{ fontFamily: 'inherit', fontSize: 22, fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.2, margin: '0 0 7px' }}>{p.name}</h3>
                   <p style={{ fontSize: 14, lineHeight: 1.5, color: muted, margin: '0 0 20px' }}>{p.desc}</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}><strong style={{ fontSize: 36, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.05em', fontVariantNumeric: 'tabular-nums' }}>{billing === 'annual' ? p.priceAnnual : p.priceMonthly}</strong><span style={{ fontSize: 12, color: muted }}>{pricing.currency} / {billing === 'annual' ? t("cuenta_ano", "año") : t("cuenta_mes", "mes")}</span></div>
                   <p style={{ minHeight: 34, margin: '7px 0 18px', fontSize: 12, lineHeight: 1.5, color: muted }}>{priceNote(p)}</p>
-                  <div className="plans-features">{p.features.map(f => <div className="plans-feature" key={f}><span aria-hidden="true" style={{ color: p.key === 'pro' ? accent : muted, fontSize: 15 }}>✓</span><span>{f}</span></div>)}</div>
-                  <button className="plans-action" disabled={btn.disabled} onClick={btn.onClick} style={{ background: p.key === 'pro' ? accent : 'transparent', border: `1px solid ${p.key === 'pro' ? accent : line}`, color: p.key === 'pro' ? (dark ? '#101827' : '#FFFFFF') : ink }}>{btn.label}</button>
+                  <div className="plans-features">{p.features.map(f => <div className="plans-feature" key={f}><span aria-hidden="true" style={{ color: p.key === 'pro' || p.key === 'fideliza' ? planAccent : muted, fontSize: 15 }}>✓</span><span>{f}</span></div>)}</div>
+                  <button className="plans-action" disabled={btn.disabled} onClick={btn.onClick} style={{ background: p.key === 'pro' ? accent : p.key === 'fideliza' ? planAccent : 'transparent', border: `1px solid ${p.key === 'pro' ? accent : p.key === 'fideliza' ? planAccent : line}`, color: p.key === 'pro' || p.key === 'fideliza' ? (dark ? '#101827' : '#FFFFFF') : ink }}>{btn.label}</button>
                   <section aria-label={t("cuenta_vista_previa_plan", `Vista previa del plan ${p.name}`, { name: p.name })} style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${line}`, color: muted }}>
                     <Reveal><h3 style={{ fontSize: 13, fontWeight: 600, textAlign: "center", margin: "0 0 12px" }}>{t("cuenta_asi_se_vera", "Así se verá tu negocio")}</h3></Reveal>
                     <div style={{ pointerEvents: 'none', borderRadius: 14, overflow: 'hidden', marginTop: 12 }}>
@@ -296,13 +298,49 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
             })}
           </div>
         </section>
+        {/* Tabla comparativa (15 nov 2026, pedida por Jonathan): los cuatro
+        planes con las mismas funciones que las tarjetas. Se genera sola
+        desde el arreglo de planes (comparePlanFeatures + effectivePlanFeatures),
+        igual que la tabla del modal de crear negocio: si un plan hereda
+        una función, la fila lleva ✓. En móvil hace scroll horizontal. */}
+        <section style={{ marginTop: 64 }}>
+          <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_compara_titulo", "Compara los planes")}</h2></Reveal>
+          <Reveal delay={90}><p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_compara_sub", "Todo lo que incluye cada plan. Los planes superiores incluyen todo lo de los inferiores.")}</p></Reveal>
+          <div style={{ overflowX: 'auto', background: surface, border: `1px solid ${line}`, borderRadius: 24, boxShadow: 'var(--plans-shadow)' }}>
+            <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 14 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '16px 16px 12px', fontSize: 12, color: muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>{t("negocios_compara_funcion", "Función")}</th>
+                  {plans.map(p => (
+                    <th key={p.key} style={{ textAlign: 'center', padding: '16px 10px 12px', minWidth: 76 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700 }}>{p.name}</div>
+                      <div style={{ fontSize: 12, color: muted, fontWeight: 500, marginTop: 2 }}>{billing === 'annual' ? p.priceAnnual : p.priceMonthly}{p.key === 'free' ? '' : ` / ${billing === 'annual' ? t("cuenta_ano", "año") : t("cuenta_mes", "mes")}`}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {comparePlanFeatures(plans).map((f, i) => (
+                  <tr key={f} style={{ borderTop: `1px solid ${line}`, background: i % 2 ? (dark ? 'rgba(255,255,255,0.02)' : '#FAFAFC') : 'transparent' }}>
+                    <td style={{ padding: '11px 16px', lineHeight: 1.4 }}>{f}</td>
+                    {plans.map(p => {
+                      const has = effectivePlanFeatures(plans, p.key).includes(f);
+                      const colAccent = p.key === 'fideliza' ? (dark ? '#A78BFA' : '#6D28D9') : p.key === 'pro' ? accent : ink;
+                      return <td key={p.key} style={{ textAlign: 'center', padding: '11px 10px', color: has ? colAccent : muted, fontWeight: has ? 700 : 400 }}>{has ? '✓' : '—'}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
         {/* Ya están en CityMap: prueba social con negocios reales de la base
         (ver YA_ESTAN_EN_CITYMAP en negociosEjemplos.js). Va después de los
         planes y antes de las preguntas frecuentes. La calificación se lee
         en vivo con displayRating (caché de Google vigente cuando lo hay);
-        la «G» se muestra solo en negocios de pago (Destacado/Premium, regla
-        12 nov 2026), incluido el valor verificado que se guarda como
-        reserva en la constante (solo los de pago lo llevan). */}
+        la «G» se muestra solo en negocios de pago (regla 12 nov 2026),
+        incluido el valor verificado que se guarda como reserva en la
+        constante (solo los de pago lo llevan). */}
         <section style={{ marginTop: 64 }}>
           <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_ya_estan_titulo", "Ya están en CityMap")}</h2></Reveal>
           <Reveal delay={90}><p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_ya_estan_sub", "Negocios reales que ya reciben clientes desde CityMap.")}</p></Reveal>

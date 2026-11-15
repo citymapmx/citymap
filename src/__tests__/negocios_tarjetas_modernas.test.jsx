@@ -39,7 +39,7 @@ function headerOf(html) {
 function planCards(html) {
   const cards = html.match(/<article class="plans-card"[^>]*>[\s\S]*?<\/article>/g);
   expect(cards).not.toBeNull();
-  expect(cards).toHaveLength(3);
+  expect(cards).toHaveLength(4);
   return cards;
 }
 
@@ -96,18 +96,22 @@ describe('Tarjetas modernas de /negocios: planes sin hueco y botón al final', (
     expect(src).not.toMatch(/^\s*\.plans-action\{/m);
   });
 
-  it('los textos, precios y puntos de los 3 planes siguen intactos', () => {
+  it('los textos, precios y puntos de los 4 planes siguen intactos', () => {
     const html = renderLanding(false);
     expect(html).toContain('Gratuito');
-    expect(html).toContain('Destacado');
-    expect(html).toContain('Premium');
+    expect(html).toContain('Presencia');
+    expect(html).toContain('Ventas');
+    expect(html).toContain('Fideliza');
     expect(html).toContain('$0');
     expect(html).toContain('$99');
     expect(html).toContain('$199');
-    expect(html).toContain('Página pública del negocio en CityMap');
-    expect(html).toContain('Posicionamiento SEO en Google');
-    expect(html).toContain('Menú interactivo indexado en Google');
-    expect(html).toContain('Próximamente más herramientas...');
+    expect(html).toContain('$299');
+    expect(html).toContain('Página pública');
+    expect(html).toContain('SEO en Google');
+    expect(html).toContain('Menú interactivo');
+    expect(html).toContain('Menú indexado en Google');
+    expect(html).toContain('Tarjetas de lealtad');
+    expect(html).toContain('Acceso a nuevas herramientas conforme estén disponibles');
   });
 });
 

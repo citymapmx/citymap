@@ -78,7 +78,7 @@ export default function AddBizModal({
   // lo trataba como si no fuera del dueño (checkbox, «¿Por qué lo
   // recomiendas?», ciudad en minúscula...).
   const isBizOwner = isEdit && (addBizForm.owner_id === user?.id || addBizForm.user_id === user?.id);
-  const isPremium = addBizForm.plan === "destacado" || addBizForm.plan === "premium" || addBizForm.plan === "pro";
+  const isPremium = ["destacado", "premium", "pro", "elite", "fideliza"].includes(addBizForm.plan);
   const isFreeOwner = isEdit && isBizOwner && !isPremium;
   // Edición limitada (dueño gratuito o no dueño): nombre, fotos y
   // logotipo estáticos; sin WhatsApp ni horario; solo teléfono y
@@ -297,7 +297,7 @@ export default function AddBizModal({
                     <Uploader aspect={1} compact circle label={t('crear_negocio_logotipo', 'Logotipo')} onDone={(url) => setAddBizForm(f => ({ ...f, logo_url: url }))} />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={captionStyle}>{t('crear_negocio_logotipo_texto', 'Se muestra en tu ficha. En el mapa, el logotipo es función del plan Premium.')}</div>
+                    <div style={captionStyle}>{t('crear_negocio_logotipo_texto', 'Se muestra en tu ficha. En el mapa, el logotipo es función del plan Ventas.')}</div>
                   </div>
                 </div>
               </div>
@@ -492,8 +492,8 @@ export default function AddBizModal({
                 </div>
               )}
 
-              {planKey !== 'elite' && (
-                <p style={{ fontSize: 12, color: T.sub, textAlign: 'center', margin: '4px 0 12px' }}>{t('crear_negocio_logo_caption', 'El logotipo en el mapa es función del plan Premium.')}</p>
+              {planKey !== 'elite' && planKey !== 'fideliza' && (
+                <p style={{ fontSize: 12, color: T.sub, textAlign: 'center', margin: '4px 0 12px' }}>{t('crear_negocio_logo_caption', 'El logotipo en el mapa es función del plan Ventas.')}</p>
               )}
 
               {isPaid && (

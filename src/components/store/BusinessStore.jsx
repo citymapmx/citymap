@@ -512,7 +512,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginTop: 10, padding: '0 20px 4px' }}>
                 <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: menuTheme ? menuTheme.text : (dark ? '#FFFFFF' : '#111111'), fontFamily: FONT_BIZ, letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   {business.name}
-                  {(business.plan === "destacado" || business.plan === "premium" || business.plan === "pro") && (
+                  {(["destacado", "premium", "elite", "fideliza", "pro"].includes(business.plan)) && (
                     <img src="/verificado.png" alt="Verificado" width="22" height="22" style={{ flexShrink: 0, marginTop: 2 }} />
                   )}
                 </h1>
