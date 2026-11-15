@@ -32,6 +32,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>GIDClientID</key>
+	<string>128467245162-b1di6bji2ejd0ior0mv6kr0atv9e6fia.apps.googleusercontent.com</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
