@@ -26,6 +26,7 @@ import { resolveMenuTheme, menuHexAlpha, textOnMenuSurface } from '../../lib/men
 import { fetchStoreCategories } from '../../lib/storeCategories.js';
 import { resolveMenuIntent, readSavedMenuIntent } from '../../lib/menuIntent.js';
 import MenuLoadingScreen from './MenuLoadingScreen.jsx';
+import { safeAreaTop } from '../../lib/safeArea.js';
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null, initialCategories = null }) {
   const navigate = useNavigate();
@@ -440,13 +441,13 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                   className="press"
                   aria-label={inline ? "Volver" : "Cerrar menú"}
                   onClick={() => inline ? (onBack && onBack()) : setShowMenuModal(false)}
-                  style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, padding: 12, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#FFF' }}
+                  style={{ position: 'absolute', top: safeAreaTop(12), left: 16, zIndex: 10, padding: 12, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#FFF' }}
                 >
                   <Icon name={inline ? "chevron" : "x"} size={26} color="#fff" style={{ transform: inline ? "rotate(180deg)" : undefined, filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.6))" }} />
                 </button>
 
                 {/* Top Right Actions: Favorite & Share */}
-                <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ position: 'absolute', top: safeAreaTop(12), right: 16, zIndex: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <m.button 
                     whileTap={{ scale: 0.85 }}
                     aria-label={isFav ? "Quitar de favoritos" : "Guardar en favoritos"}

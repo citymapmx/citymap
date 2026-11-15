@@ -28,6 +28,7 @@ import { useShallow } from 'zustand/react/shallow';
 import * as dbService from '../services/dbService';
 import useTimeStore from "../store/useTimeStore.js";
 import Icon from "../components/ui/Icon.jsx";
+import { safeAreaTop } from "../lib/safeArea.js";
 import OptimizedImage from "../components/ui/OptimizedImage.jsx";
 import SaveHeartButton from "../components/ui/SaveHeartButton.jsx";
 import CouponCard from "../components/ui/CouponCard.jsx";
@@ -356,7 +357,7 @@ export default function DetailView() {
             <div style={{ height: (selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) ? (isElite ? "40vh" : 220) : 64, position: "relative", background: dark ? "#232326" : "#E5E7EB", overflow: "hidden", flexShrink: 0 }}>
               {(selected.banner_url || selected.photos?.[0]?.url || selected.logo_url) && <img src={getThumbUrl(selected.photos?.find(photo => photo?.url)?.url || selected.banner_url || selected.logo_url, 1200, 900)} alt={t('detalle_foto_de', 'Foto de {nombre}').replace('{nombre}', selected.name)} style={{ width: "100%", height: "100%", objectFit: "cover", backgroundColor: "transparent" }} />}
               {isElite && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(to top, #111111 0%, rgba(17,17,17,0) 100%)" }} />}
-              <div style={{ position: "absolute", top: "calc(16px + env(safe-area-inset-top, 0px))", left: 16, right: 16, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 20 }}>
+              <div style={{ position: "absolute", top: safeAreaTop(12), left: 16, right: 16, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 20 }}>
                 <button aria-label={t('comun_volver', 'Volver')} className="press" onClick={() => {
                   if (openedFromMap) {
                     setOpenedFromMap(false);
