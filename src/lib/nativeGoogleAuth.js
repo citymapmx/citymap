@@ -17,6 +17,7 @@
 // release) en el mismo proyecto que el cliente web de abajo. Sin ese
 // cliente, el login nativo falla y el modal cae al respaldo (Custom Tab).
 import { Capacitor } from '@capacitor/core';
+import { generateNonce, sha256Hex } from './authNonce.js';
 
 // Cliente OAuth web de citymap.mx (el mismo que usa el botón oficial GIS).
 // Credential Manager exige el ID del cliente WEB aquí, no el de Android.
@@ -104,22 +105,32 @@ function ensureInitialized(socialLogin) {
   return ensureSocialLoginInitialized(socialLogin);
 }
 
-// Abre el selector nativo de cuentas de Google y devuelve el idToken.
-// Lanza si el usuario cancela, si Google no devuelve token, o si el
-// plugin no está configurado (falta el cliente Android en Cloud Console).
-// `socialLogin` solo existe para inyectar el plugin en los tests.
+// Abre el selector nativo de cuentas de Google y devuelve { idToken, nonce }.
+// El nonce es el raw generado para este intento (ver src/lib/authNonce.js):
+// su SHA-256 en hex va en `options.nonce` del plugin — el SDK lo manda a
+// Google y Google lo devuelve como claim `nonce` del id_token — y el raw
+// se pasa a Supabase, que comprueba SHA256(raw) == claim. Sin él, Supabase
+// rechaza el token con «Passed nonce and nonce in id_token should either
+// both exist or not». Pasar un nonce hace además que el plugin siempre
+// haga login interactivo (nunca restaura la sesión anterior, cuyo token
+// no llevaría este nonce). Lanza si el usuario cancela, si Google no
+// devuelve token, o si el plugin no está configurado (falta el cliente
+// Android en Cloud Console). `socialLogin` solo existe para inyectar el
+// plugin en los tests.
 export async function signInWithNativeGoogle({ socialLogin } = {}) {
   const plugin =
     socialLogin || (await import('@capgo/capacitor-social-login')).SocialLogin;
   await ensureInitialized(plugin);
   // Sin scopes: en la BridgeActivity estándar los scopes por defecto ya
   // son email + perfil, y pasarlos explícitos hace que el login rechace.
-  const { result } = await plugin.login({ provider: 'google', options: {} });
+  const nonce = generateNonce();
+  const hashedNonce = await sha256Hex(nonce);
+  const { result } = await plugin.login({ provider: 'google', options: { nonce: hashedNonce } });
   const idToken = extractGoogleIdToken(result);
   if (!idToken) {
     throw new Error('Google no devolvió un token de identidad');
   }
-  return idToken;
+  return { idToken, nonce };
 }
 
 // Solo para tests: reinicia el initialize cacheado.

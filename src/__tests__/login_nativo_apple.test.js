@@ -41,6 +41,7 @@ import {
   signInWithNativeApple,
 } from '../lib/nativeAppleAuth.js';
 import { __resetNativeGoogleAuthForTests } from '../lib/nativeGoogleAuth.js';
+import { sha256Hex } from '../lib/authNonce.js';
 
 const readSource = (rel) =>
   fs.readFileSync(new URL(rel, import.meta.url), 'utf8');
@@ -88,10 +89,21 @@ describe('login nativo con Apple: signInWithNativeApple', () => {
     expect(res).not.toBe(null);
     expect(res.idToken).toBe('id-token-apple-de-prueba');
     expect(res.profile.givenName).toBe('Prueba');
+    expect(res.nonce).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(mocks.login).toHaveBeenCalledWith({
       provider: 'apple',
-      options: { scopes: ['name', 'email'] },
+      options: { scopes: ['name', 'email'], nonce: expect.any(String) },
     });
+  });
+
+  it('pasa al plugin el SHA-256 hex del nonce (Apple lo exige así en la petición)', async () => {
+    // Apple devuelve el hash tal cual como claim `nonce` del id_token y
+    // Supabase comprueba SHA256(raw) == claim. Sin él, el token se
+    // rechazaría con el mismo error de nonce que el de Google.
+    const res = await signInWithNativeApple();
+    const options = mocks.login.mock.calls[0][0].options;
+    expect(options.nonce).toMatch(/^[0-9a-f]{64}$/);
+    await expect(sha256Hex(res.nonce)).resolves.toBe(options.nonce);
   });
 
   it('inicializa el plugin con redirectUrl vacío en iOS', async () => {

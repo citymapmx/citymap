@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { sb } from '../lib/supabase.js';
 import { mapAuthError } from '../lib/authErrorMessage.js';
+import { nonceForIdToken } from '../lib/authNonce.js';
 import { markDeviceHasAccount, deviceHasAccount } from '../lib/hasAccountFlag.js';
 
 export const useAuthStore = create((set, get) => ({
@@ -80,10 +81,14 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  handleGoogleIdToken: async (idToken) => {
+  handleGoogleIdToken: async (idToken, nonce) => {
     set({ authLoading: true, authErr: "" });
     try {
-      const s = await sb.signInWithIdToken({ provider: 'google', token: idToken });
+      // El nonce solo se pasa si el token trae claim `nonce`
+      // (nonceForIdToken): GoTrue exige que ambos existan o ninguno.
+      // El login web (GIS) no pasa nonce y sus tokens no traen claim:
+      // sigue sin pasarse nada, como hasta ahora.
+      const s = await sb.signInWithIdToken({ provider: 'google', token: idToken, nonce: nonceForIdToken(idToken, nonce) });
       const u = s.user || s?.session?.user || await sb.getUser();
       if (!u?.id) throw new Error("No se pudo obtener el usuario");
       get().setUser(u);
@@ -101,10 +106,14 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  handleAppleIdToken: async (idToken, profile) => {
+  handleAppleIdToken: async (idToken, profile, nonce) => {
     set({ authLoading: true, authErr: "" });
     try {
-      const s = await sb.signInWithIdToken({ provider: 'apple', token: idToken });
+      // Igual que en Google: el nonce solo va si el token trae claim
+      // `nonce` (ver nonceForIdToken). El token de Apple aún no se ha
+      // probado (el login falla antes, error 1000), pero el contrato es
+      // el mismo y así queda listo cuando el handshake funcione.
+      const s = await sb.signInWithIdToken({ provider: 'apple', token: idToken, nonce: nonceForIdToken(idToken, nonce) });
       const u = s.user || s?.session?.user || await sb.getUser();
       if (!u?.id) throw new Error("No se pudo obtener el usuario");
       get().setUser(u);
