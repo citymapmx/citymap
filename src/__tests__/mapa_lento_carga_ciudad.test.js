@@ -20,6 +20,7 @@ const rows = (start, count, city = 'tepic') => Array.from({ length: count }, (_,
   category: 'restaurantes', emoji: '🍽️', logo_url: null, plan: 'free',
   slug: `place-${start + i}`, city_slug: city, status: 'approved',
   schedule: '{}', rating: 4.5, review_count: 3,
+  photos: '[{"url":"https://ejemplo/foto.webp"}]',
 }));
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 
@@ -44,7 +45,10 @@ describe('mapa lento: precarga ligera de la ciudad', () => {
     expect(query).toContain('order=id.asc');
     expect(query).toContain('limit=1000');
     expect(query).not.toContain('limit=200');
-    expect(query).not.toContain('photos');
+    // photos SÍ va (nov 2026, Jonathan: sin ella el popup del mapa y las
+    // tarjetas de «Lo más cerca de ti» mostraban solo el emoji; medido
+    // +20% gzip en Tepic y +22% en Guadalajara).
+    expect(query).toContain('photos');
     expect(query).not.toContain('social_links');
     expect(query).not.toContain('description');
     expect(query).not.toContain('banner_url');
@@ -55,6 +59,8 @@ describe('mapa lento: precarga ligera de la ciudad', () => {
     expect(query).toContain('booking_config');
     expect(store.getState().cityPins).toHaveLength(5);
     expect(store.getState().cityPinsCity).toBe('tepic');
+    // photos se parsea: el popup y las tarjetas leen photos[0].url.
+    expect(store.getState().cityPins[0].photos[0].url).toBe('https://ejemplo/foto.webp');
   });
 
   it('pagina con rangos hasta traer todas las filas de la ciudad', async () => {

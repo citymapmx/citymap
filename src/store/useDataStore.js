@@ -199,7 +199,10 @@ export const useDataStore = create((set, get) => ({
   // más booking_config: es un JSONB pequeño y la ficha lo necesita desde
   // el primer render para el botón «Reservar» (nov 2026, botón
   // intermitente; el test reservar_boton_siempre lo exige en TODAS las
-  // listas de columnas, pines del mapa incluidos). Sin photos,
+  // listas de columnas, pines del mapa incluidos). photos SÍ va (nov 2026:
+  // sin ella el popup del mapa y las tarjetas de «Lo más cerca de ti»
+  // mostraban solo el emoji; medido +20% gzip en Tepic y +22% en
+  // Guadalajara, una sola petición por ciudad y sesión). Sin
   // social_links, description, tags ni banner_url: eso era lo que pesaba.
   // Se cachea por ciudad en memoria: no se re-pide para la misma ciudad
   // en la sesión; al cambiar de ciudad se vuelve a pedir. Llamadas
@@ -212,7 +215,7 @@ export const useDataStore = create((set, get) => ({
     const request = (async () => {
       set({ cityPinsCity: targetCity, cityPins: [] });
       try {
-        const selectCols = "id,name,lat,lng,category,emoji,logo_url,plan,slug,city_slug,status,schedule,rating,review_count,booking_config";
+        const selectCols = "id,name,lat,lng,category,emoji,logo_url,plan,slug,city_slug,status,schedule,rating,review_count,booking_config,photos";
         const pageSize = 1000;
         const all = [];
         let offset = 0;
@@ -225,7 +228,7 @@ export const useDataStore = create((set, get) => ({
           offset += pageSize;
         }
         if (requestId !== cityPinsLoadId || get().cityPinsCity !== targetCity) return;
-        set({ cityPins: all.map(b => ({ ...b, schedule: get().parseJSON(b.schedule) })), cityPinsCity: targetCity });
+        set({ cityPins: all.map(b => ({ ...b, schedule: get().parseJSON(b.schedule), photos: get().parseJSON(b.photos) })), cityPinsCity: targetCity });
       } catch (e) {
         console.warn("Error fetching city pins", e);
       }
