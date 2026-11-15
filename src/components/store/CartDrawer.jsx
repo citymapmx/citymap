@@ -5,6 +5,7 @@ import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { useCart } from '../../hooks/useCart.js';
 import { useUIStore } from '../../store/useUIStore.js';
 import { buildWhatsAppMessage } from '../../lib/storeUtils.js';
+import { safeAreaTop } from '../../lib/safeArea.js';
 import { sb } from '../../lib/supabase.js';
 
 export default function CartDrawer({ business, T }) {
@@ -88,8 +89,8 @@ export default function CartDrawer({ business, T }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', animation: 'fadeIn .2s ease-out' }}>
       <div style={{ width: '100%', maxWidth: 600, height: '100%', display: 'flex', flexDirection: 'column', background: dark ? '#18181B' : '#FFFFFF', position: 'relative', boxShadow: '0 0 40px rgba(0,0,0,0.2)', animation: 'slideUp .3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-        {/* Header */}
-        <div style={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', background: dark ? '#18181B' : '#FFFFFF', flexShrink: 0 }}>
+        {/* Header: con safe-area arriba, igual que el detalle de producto (en la app el título chocaba con la hora y la barra de estado del iPhone); en web env(...) = 0 y queda igual que antes. */}
+        <div style={{ height: safeAreaTop(72), display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'env(safe-area-inset-top, 0px) 20px 0', background: dark ? '#18181B' : '#FFFFFF', flexShrink: 0 }}>
           <div style={{ textAlign: 'left' }}>
             <div style={{ fontSize: 24, fontWeight: 900, color: dark ? '#FAFAFA' : '#18181B', letterSpacing: '-0.5px' }}>Tu pedido</div>
             {business?.name && <div style={{ fontSize: 15, color: dark ? '#71717A' : '#71717A', fontWeight: 500 }}>{business.name}</div>}
