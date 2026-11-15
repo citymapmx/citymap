@@ -1,7 +1,9 @@
 
+import { safeAreaTop } from "./lib/safeArea.js";
+
 export default function Privacy({ T, onBack }) {
   return (
-    <div style={{ paddingBottom: 84, minHeight: "100dvh", background: T.bg, padding: "20px 20px 100px", fontFamily: "inherit" }}>
+    <div style={{ paddingBottom: 84, minHeight: "100dvh", background: T.bg, padding: `${safeAreaTop(20)} 20px 100px`, fontFamily: "inherit" }}>
       <button 
         onClick={onBack} 
         style={{ marginBottom: 20, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: T.sub, fontSize: 14, fontWeight: 600, fontFamily: "inherit", padding: 0 }}

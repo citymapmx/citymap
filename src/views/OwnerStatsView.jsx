@@ -5,6 +5,7 @@ import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore";
 import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon";
+import { safeAreaTop } from "../lib/safeArea.js";
 
 const StatCard = ({ children, cols = 2, T }) => (
   <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, background: T.white, borderRadius: 16, padding: "8px", border: `1px solid ${T.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
@@ -77,7 +78,7 @@ export default function OwnerStatsView() {
       </Helmet>
 
       {/* HEADER */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.white }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${safeAreaTop(16)} 20px 16px`, borderBottom: `1px solid ${T.border}`, background: T.white }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <button onClick={() => window.history.length > 1 ? window.history.back() : navigate("home")} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
             <Icon name="arrow_left" size={24} color={T.text} />

@@ -4,6 +4,7 @@ import { sb } from '../lib/supabase.js';
 import { useUIStore } from '../store/useUIStore.js';
 import { useDataStore } from '../store/useDataStore.js';
 import { markAllReadLocal, resolveNotifAction } from '../lib/notifications.js';
+import { safeAreaTop } from '../lib/safeArea.js';
 
 export default function UserNotifs({ T, onBack, user }) {
   const [loading, setLoading] = useState(true);
@@ -124,7 +125,7 @@ export default function UserNotifs({ T, onBack, user }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 8000, display: "flex", flexDirection: "column" }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.white }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${safeAreaTop(16)} 20px 16px`, borderBottom: `1px solid ${T.border}`, background: T.white }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <button onClick={onBack} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
             <Icon name="arrow_left" size={24} color={T.text} />

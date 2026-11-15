@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import Icon from './ui/Icon.jsx';
 import { COUNTRY_NAMES, COUNTRY_FLAGS, citySelectionTarget } from '../lib/domain.js';
+import { safeAreaTop } from '../lib/safeArea.js';
 
 const FLAG_MAP = Object.fromEntries(
   Object.entries(COUNTRY_NAMES).map(([code, name]) => [name, COUNTRY_FLAGS[code] || '🌍'])
@@ -233,7 +234,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
             </div>
           </div>
         ) : (
-          <div onTouchMove={e => e.preventDefault()} style={{ padding: '24px 20px', borderBottom: `1px solid ${dark ? T.border : '#F1F5F9'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0 }}>
+          <div onTouchMove={e => e.preventDefault()} style={{ padding: `${safeAreaTop(24)} 20px 24px`, borderBottom: `1px solid ${dark ? T.border : '#F1F5F9'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0 }}>
             <img src="/citymap.mx.png" alt="CityMap" width={107} height={32} style={{ height: 32, width: 107, filter: dark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
             <button onClick={onClose} style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: dark ? "#f8fafc" : "#0f172a" }}>
               <Icon name="x" size={24} color={dark ? "#f8fafc" : "#0f172a"} />

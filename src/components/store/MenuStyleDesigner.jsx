@@ -15,6 +15,7 @@ import React, { useState, useEffect } from 'react';
 import Icon from '../ui/Icon.jsx';
 import StyleCategoryCarousel from '../ui/StyleCategoryCarousel.jsx';
 import { sb } from '../../lib/supabase.js';
+import { safeAreaTop } from '../../lib/safeArea.js';
 import {
   MENU_BASIC_COLORS,
   findMenuStyleById,
@@ -117,7 +118,7 @@ export default function MenuStyleDesigner({ business, onClose, onSaved, T }) {
     <div style={{ position: 'fixed', inset: 0, background: t.bg, zIndex: 10000, display: 'flex', flexDirection: 'column', animation: 'fadeUp .3s ease' }}>
 
       {/* HEADER */}
-      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${t.border}`, background: t.bg, gap: 10, flexShrink: 0 }}>
+      <div style={{ padding: `${safeAreaTop(14)} 16px 14px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${t.border}`, background: t.bg, gap: 10, flexShrink: 0 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: t.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Diseño de mi menú</h2>
           <p style={{ margin: 0, fontSize: 13, color: t.sub }}>Elige cómo se ve tu menú público</p>

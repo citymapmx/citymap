@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import Icon from './ui/Icon.jsx';
+import { safeAreaTop } from '../lib/safeArea.js';
 
 export default function Terms({ T, onBack }) {
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
     <div className="sh" style={{ background: T.bg, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14, background: T.white, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 10 }}>
+      <div style={{ padding: `${safeAreaTop(16)} 20px 16px`, display: "flex", alignItems: "center", gap: 14, background: T.white, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 10 }}>
         <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: "50%", background: T.bg, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
           <Icon name="chevron" size={20} color={T.text} style={{ transform: "rotate(180deg)" }} />
         </button>

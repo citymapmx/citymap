@@ -7,6 +7,7 @@ import { useDataStore } from "../store/useDataStore.js";
 import { bookingLinkFor, bookingModalApplies } from "../lib/bookingLink.js";
 import { useShallow } from 'zustand/react/shallow';
 import Icon from "../components/ui/Icon";
+import { safeAreaTop } from "../lib/safeArea.js";
 import ReservationsAgenda from "../components/ReservationsAgenda";
 
 export default function OwnerDashboardView() {
@@ -74,7 +75,7 @@ export default function OwnerDashboardView() {
       </Helmet>
 
       {/* HEADER */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.white }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${safeAreaTop(16)} 20px 16px`, borderBottom: `1px solid ${T.border}`, background: T.white }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <button onClick={() => { setOwnerView(null); window.history.length > 1 ? window.history.back() : navigate("home"); }} style={{ background: "transparent", border: "none", color: T.text, padding: "8px 12px 8px 0", cursor: "pointer", display: "flex", alignItems: "center" }}>
             <Icon name="arrow_left" size={24} color={T.text} />

@@ -1537,7 +1537,7 @@ useEffect(() => {
           !location.pathname.includes("/lugar/") && 
           !location.pathname.includes("/evento/") &&
           !isRevistaArticlePath(location.pathname) &&
-          !location.pathname.endsWith("/menu")) && (
+          !location.pathname.endsWith("/menu") && !mapFullScreen) && (
           <div style={{ 
             position: "fixed", 
             top: 0, 
