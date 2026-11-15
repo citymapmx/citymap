@@ -264,6 +264,24 @@ export default function AppLoginView({ T, dark, navigate }) {
                 <span>{t("modal_continuar_google", "Continuar con Google")}</span>
               </button>
             )}
+            {/* Fallback WEB de Apple (solo con from=app, o sea en la Custom
+                Tab de la app nativa): el login nativo falla con error 1000
+                por un fallo de Apple en sus servidores (equipos nuevos).
+                Este botón abre la OAuth web de Supabase, que pasa por
+                appleid.apple.com y vuelve a /login?from=app con el token
+                en el hash; la app lo recoge por deep link (ver App.jsx).
+                En web normal no se ofrece Apple (igual que en AuthModal). */}
+            {fromApp && (
+              <button
+                onClick={() => { window.location.href = sb.appleWebOAuthUrl(); }}
+                style={{ width: '100%', padding: '13px 16px', marginBottom: 8, background: dark ? '#FFFFFF' : '#000000', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 999, fontWeight: 700, fontSize: 15, color: dark ? '#000000' : '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill={dark ? '#000000' : '#FFFFFF'} style={{ flexShrink: 0 }}>
+                  <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.702" />
+                </svg>
+                <span>{t("modal_continuar_apple", "Continuar con Apple")}</span>
+              </button>
+            )}
           </>
           )
         )}

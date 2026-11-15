@@ -145,7 +145,10 @@ describe('modal responsive: botón oficial de Google y rejilla de contraseña', 
 describe('modal responsive: errores mapeados, sin prefijos técnicos', () => {
   it('AuthModal y el store usan mapAuthError; ya no se concatena "Error con Google/Apple: "', () => {
     const modal = read('../components/AuthModal.jsx');
-    expect(modal).toContain("mapAuthError(err, 'apple')");
+    // Apple: el catch ya no muestra el error del nativo directamente —
+    // primero abre el fallback WEB (como Google) y el mensaje amigable
+    // solo se pone si el respaldo también falla (err2).
+    expect(modal).toContain("mapAuthError(err2, 'apple')");
     expect(modal).toContain("mapAuthError(err2, 'google')");
     expect(modal).toContain('mapAuthError(e');
     expect(modal).not.toContain('modal_error_google');

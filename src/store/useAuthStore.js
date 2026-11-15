@@ -139,6 +139,14 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  signInWithAppleWebFallback: async () => {
+    // Fallback WEB de Apple: el login nativo falla con error 1000
+    // («Registro no completado») por un fallo de Apple en sus servidores
+    // con equipos nuevos. La OAuth web pasa por appleid.apple.com y usa
+    // el mismo retorno que Google (deep link mx.citymap.app://login).
+    await sb.signInWithOAuth('apple');
+  },
+
   handleSignOut: async () => { 
     try {
       const fcm = localStorage.getItem('cg_push_token') || localStorage.getItem('cg_web_push_token');

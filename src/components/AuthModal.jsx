@@ -18,7 +18,7 @@ const GOOGLE_CLIENT_ID = "128467245162-fjpgeqiqhr4f0p5f430ti0v41jlmuovm.apps.goo
 const RECAPTCHA_SITE_KEY = "6LdK_PItAAAAAAKJNfLuCzIVHInRQ8HJVi9LK5_-";
 
 export default function AuthModal({ T, dark, cities, doAuth }) {
-  const { showAuth, setShowAuth, authMode, setAuthMode, authForm, setAuthForm, authLoading, authErr, setAuthErr, handleGoogleIdToken, handleAppleIdToken } = useAuthStore(useShallow(s => ({ showAuth: s.showAuth, setShowAuth: s.setShowAuth, authMode: s.authMode, setAuthMode: s.setAuthMode, authForm: s.authForm, setAuthForm: s.setAuthForm, authLoading: s.authLoading, authErr: s.authErr, setAuthErr: s.setAuthErr, handleGoogleIdToken: s.handleGoogleIdToken, handleAppleIdToken: s.handleAppleIdToken })));
+  const { showAuth, setShowAuth, authMode, setAuthMode, authForm, setAuthForm, authLoading, authErr, setAuthErr, handleGoogleIdToken, handleAppleIdToken, signInWithAppleWebFallback } = useAuthStore(useShallow(s => ({ showAuth: s.showAuth, setShowAuth: s.setShowAuth, authMode: s.authMode, setAuthMode: s.setAuthMode, authForm: s.authForm, setAuthForm: s.setAuthForm, authLoading: s.authLoading, authErr: s.authErr, setAuthErr: s.setAuthErr, handleGoogleIdToken: s.handleGoogleIdToken, handleAppleIdToken: s.handleAppleIdToken, signInWithAppleWebFallback: s.signInWithAppleWebFallback })));
   const toast$ = useUIStore(s => s.toast$);
   const { t } = useTranslation();
 
@@ -328,8 +328,19 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
                 res = await signInWithNativeApple();
               } catch (err) {
                 if (isUserCancelledError(err)) return;
+                // Diagnóstico (solo consola): el error crudo de Apple
+                // (código, dominio, userInfo) se pierde al mapear al
+                // mensaje amigable; sirve como evidencia para el caso
+                // con Apple. El usuario sigue viendo solo el mensaje
+                // amigable de mapAuthError si el respaldo también falla.
+                console.error("Error con Apple (crudo):", { code: err?.code, domain: err?.domain, userInfo: err?.userInfo });
                 console.error("Error con Apple:", err);
-                setAuthErr(mapAuthError(err, 'apple'));
+                // Fallback WEB (mismo patrón que Google): el login nativo
+                // falla con error 1000 por un fallo de Apple en sus
+                // servidores (equipos nuevos); la OAuth web pasa por
+                // appleid.apple.com.
+                try { await signInWithAppleWebFallback(); }
+                catch (err2) { console.error("Error con Apple (respaldo web):", err2); setAuthErr(mapAuthError(err2, 'apple')); }
                 return;
               }
               const uid = await handleAppleIdToken(res.idToken, res.profile, res.nonce);

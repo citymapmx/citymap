@@ -225,6 +225,13 @@ const sb = {
     if (d.refresh_token) localStorage.setItem("cg_r", d.refresh_token);
     return d;
   },
+  // URL de la OAuth WEB de Apple (fallback del login nativo, que falla con
+  // error 1000 por un fallo de Apple en sus servidores con equipos nuevos).
+  // El retorno es /login?from=app con el token en el hash; la app lo recoge
+  // por deep link (ver App.jsx). El flujo pasa por appleid.apple.com.
+  appleWebOAuthUrl() {
+    return `${_AUTH}/authorize?provider=apple&redirect_to=${encodeURIComponent('https://citymap.mx/login?from=app')}`;
+  },
   async signInWithOAuth(provider) {
     try {
       if (!navigator.onLine) {
@@ -240,7 +247,11 @@ const sb = {
         // "Ir a citymap.mx" en vez de la dirección larga de Supabase, y al
         // terminar devuelve la sesión a la app por deep link
         // (mx.citymap.app://login#access_token=...).
-        const url = 'https://citymap.mx/login?from=app';
+        // Apple (fallback del login nativo): abrir directamente la OAuth
+        // web de Supabase; el flujo pasa por appleid.apple.com y al
+        // terminar vuelve a /login?from=app con el token en el hash, que
+        // la app recoge por deep link (ver App.jsx).
+        const url = provider === 'apple' ? sb.appleWebOAuthUrl() : 'https://citymap.mx/login?from=app';
         const { Browser } = await import('@capacitor/browser');
         // Listener de fallback por si el deep link no dispara
         Browser.addListener('browserFinished', async () => {
