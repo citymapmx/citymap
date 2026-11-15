@@ -64,6 +64,7 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
   const map = useRef(); 
   const pins = useRef([]); 
   const markerCache = useRef(new Map());
+  const prevCityKey = useRef(cityKey);
   // Caché de los círculos de grupo del clusterer (hallazgo 2): el
   // renderer creaba un div nuevo por grupo en cada pasada; ahora se
   // reutiliza el div cuando el grupo (posición + conteo) no cambió.
@@ -349,6 +350,15 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
       }
       getPosition() { return this.position; }
       getVisible() { return true; }
+    }
+
+    // Al cambiar de ciudad, soltar el caché de marcadores: si no,
+    // crece con cada ciudad visitada (los marcadores viejos quedan en
+    // memoria aunque ya no estén en el mapa). El caché queda solo con
+    // los marcadores de la ciudad activa.
+    if (prevCityKey.current !== cityKey) {
+      markerCache.current.clear();
+      prevCityKey.current = cityKey;
     }
 
     const newPins = [];
