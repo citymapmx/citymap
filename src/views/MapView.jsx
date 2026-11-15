@@ -45,7 +45,8 @@ export default function MapView() {
   
   
   const { viewStyle, T, activeCat, setActiveCat, GMap, navigate, userCoords, requestLocation, allNearby, nearbyRadius, setNearbyRadius, setNearbyFilter, nearbyFilter, city, handleCardTap } = ctx;
-  const isOpen = (b) => isOpenNow(b, city?.timezone || "America/Mexico_City");
+  const tz = city?.timezone || "America/Mexico_City";
+  const isOpen = (b) => isOpenNow(b, tz);
 
 
   const [visibleCount, setVisibleCount] = useState(5);
@@ -77,13 +78,23 @@ export default function MapView() {
   useEffect(() => { if (activeCity) loadCityPins(activeCity); }, [activeCity, loadCityPins]);
 
   const pinPool = cityPinsFull.length ? cityPinsFull : mapPins;
-  const cityPins = mapFullScreen ? pinPool : pinPool.filter(b => isNear(b, userCoords, activeCity, 40));
-  let displayedPins = (activeCat === "todas" || activeCat === "explorar") ? cityPins : cityPins.filter(b => b.category === activeCat);
-  if (nearbyFilter === "open") {
-    displayedPins = displayedPins.filter(b => isOpen(b));
-  }
+  // Memoizados: antes cada render de MapView (y de App) armaba arrays
+  // nuevos y el memo de GMap (que exige businesses por identidad)
+  // siempre fallaba, así que el mapa se re-corría entero por gusto.
+  const cityPins = useMemo(
+    () => (mapFullScreen ? pinPool : pinPool.filter(b => isNear(b, userCoords, activeCity, 40))),
+    [pinPool, mapFullScreen, userCoords, activeCity]
+  );
+  const displayedPins = useMemo(() => {
+    let pins = (activeCat === "todas" || activeCat === "explorar") ? cityPins : cityPins.filter(b => b.category === activeCat);
+    if (nearbyFilter === "open") {
+      pins = pins.filter(b => isOpenNow(b, tz));
+    }
+    return pins;
+  }, [cityPins, activeCat, nearbyFilter, tz]);
   // Radius limitation removed to show all businesses in the city
-  const filteredNearby = allNearby.filter(b => displayedPins.some(dp => dp.id === b.id));
+  const displayedPinIds = useMemo(() => new Set(displayedPins.map(b => b.id)), [displayedPins]);
+  const filteredNearby = allNearby.filter(b => displayedPinIds.has(b.id));
   const renderedNearby = filteredNearby.slice(0, visibleCount);
 
   const [prevFilters, setPrevFilters] = useState([nearbyRadius, nearbyFilter, activeCat]);
