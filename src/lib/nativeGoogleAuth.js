@@ -80,6 +80,12 @@ export function ensureSocialLoginInitialized(socialLogin) {
       google: {
         webClientId: GOOGLE_WEB_CLIENT_ID,
         iOSClientId: GOOGLE_IOS_CLIENT_ID,
+        // El SDK emite el id_token con aud = iOSClientId y Supabase lo
+        // rechaza («Unacceptable audience in id_token») porque solo tiene
+        // configurado el cliente web. Con iOSServerClientId = cliente web,
+        // el token sale con aud = cliente web, que Supabase ya acepta.
+        // No requiere binario nuevo: es solo web.
+        iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
         mode: 'online',
         // En la BridgeActivity estándar el paso extra de autorización se
         // atora: se salta (el accessToken puede quedar en null) y se usa

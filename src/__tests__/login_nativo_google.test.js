@@ -117,10 +117,22 @@ describe('login nativo: signInWithNativeGoogle', () => {
       google: {
         webClientId: GOOGLE_WEB_CLIENT_ID,
         iOSClientId: GOOGLE_IOS_CLIENT_ID,
+        iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
         mode: 'online',
         skipAuthOnlyAuthorizationAfterSignIn: true,
       },
     });
+  });
+
+  it('pasa iOSServerClientId = cliente WEB para que Supabase acepte la audiencia del id_token', async () => {
+    // Sin él, el SDK emite el id_token con aud = cliente iOS y Supabase
+    // rechaza con «Unacceptable audience in id_token». Con él, el token
+    // sale con aud = cliente web, que es el que Supabase tiene configurado.
+    await signInWithNativeGoogle();
+    const googleOpts = mocks.initialize.mock.calls[0][0].google;
+    expect(googleOpts.iOSServerClientId).toBe(GOOGLE_WEB_CLIENT_ID);
+    expect(googleOpts.iOSServerClientId).not.toBe(GOOGLE_IOS_CLIENT_ID);
+    expect(googleOpts.iOSClientId).toBe(GOOGLE_IOS_CLIENT_ID);
   });
 
   it('inicializa una sola vez aunque se llame dos veces', async () => {
