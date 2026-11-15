@@ -88,8 +88,9 @@ export function getEventMusicFallbackQuery(event) {
 }
 
 // Una consulta a iTunes con tiempo límite: sin él, una conexión colgada
-// dejaba el reproductor sin aparecer para siempre en esa visita.
-export async function fetchItunesTracks(query, { fetchFn = fetch, timeoutMs = 8000, signal } = {}) {
+// dejaba el reproductor sin aparecer para siempre en esa visita. El límite
+// es de 12 s: con red móvil lenta, 8 s se quedaban cortos.
+export async function fetchItunesTracks(query, { fetchFn = fetch, timeoutMs = 12000, signal } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const onAbort = () => controller.abort();
@@ -113,17 +114,42 @@ export async function fetchItunesTracks(query, { fetchFn = fetch, timeoutMs = 80
   }
 }
 
+// Caché en memoria de las pistas por artista (solo éxitos): si el artista
+// ya cargó una vez en la sesión, el reproductor aparece aunque la red falle
+// en esa visita. Un fallo nunca queda guardado, así que la próxima apertura
+// vuelve a intentarlo.
+const musicTracksCache = new Map();
+
+export function clearMusicTracksCache() {
+  musicTracksCache.clear();
+}
+
+function musicCacheKey(query) {
+  return String(query).trim().toLowerCase();
+}
+
 // Carga las pistas del reproductor: prueba cada consulta en orden; ante un
-// fallo de red o de la API reintenta una vez tras 1 s, y si una consulta no
-// devuelve nada pasa a la siguiente. Sin caché: un fallo no queda guardado
-// como "sin música", la próxima apertura vuelve a intentarlo.
-export async function loadMusicTracks(queries, { fetchFn = fetch, timeoutMs = 8000, retryDelayMs = 1000, sleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), signal } = {}) {
+// fallo de red o de la API reintenta una vez tras 1 s, y ante 0 resultados
+// también reintenta la misma consulta una vez antes de pasar a la siguiente
+// (la API de Apple a veces devuelve 0 resultados de forma transitoria).
+// Espera hasta 12 s por intento. Sin botón de reintentar visible: todo pasa
+// en silencio, la sección aparece cuando hay pistas y no aparece si no las
+// hay, como antes.
+export async function loadMusicTracks(queries, { fetchFn = fetch, timeoutMs = 12000, retryDelayMs = 1000, sleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), signal } = {}) {
   for (const query of (queries || []).filter(Boolean)) {
+    const key = musicCacheKey(query);
+    const cached = musicTracksCache.get(key);
+    if (cached && cached.length > 0) return cached;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const tracks = await fetchItunesTracks(query, { fetchFn, timeoutMs, signal });
-        if (tracks.length > 0) return tracks;
-        break; // sin resultados: no reintentar la misma consulta
+        if (tracks.length > 0) {
+          musicTracksCache.set(key, tracks);
+          return tracks;
+        }
+        // Sin resultados: reintentar la misma consulta una vez; si vuelve
+        // vacío, pasar a la siguiente consulta.
+        if (attempt === 0) await sleepFn(retryDelayMs);
       } catch {
         if (attempt === 0) await sleepFn(retryDelayMs);
       }

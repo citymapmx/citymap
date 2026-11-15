@@ -186,9 +186,11 @@ export default function EventDetailModal() {
   }, [selectedEvent, todayLocal]);
 
   // Música del artista: adelantos de 30 s desde iTunes (gratis, sin clave ni endpoint).
-  // loadMusicTracks reintenta ante fallos de red/API y prueba la consulta de
-  // respaldo si la del artista no devuelve nada; sin reintento, un fallo
-  // pasajero dejaba el reproductor sin aparecer "en ratos".
+  // loadMusicTracks reintenta ante fallos de red/API y ante 0 resultados,
+  // prueba la consulta de respaldo si la del artista no devuelve nada y
+  // guarda los éxitos en caché por artista; sin reintento, un fallo
+  // pasajero dejaba el reproductor sin aparecer "en ratos". Sin botón de
+  // reintentar visible: todo pasa en silencio.
   const [musicTracks, setMusicTracks] = useState(null);
   const [playingTrackId, setPlayingTrackId] = useState(null);
   const musicAudioRef = useRef(null);

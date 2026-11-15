@@ -1,7 +1,8 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, it, expect } from 'vitest';
-import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, getEventMusicFallbackQuery, buildItunesSearchUrl, fetchItunesTracks, loadMusicTracks } from '../lib/eventDetails.js';
+import { describe, it, expect, beforeEach } from 'vitest';
+import fs from 'node:fs';
+import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, getEventMusicFallbackQuery, buildItunesSearchUrl, fetchItunesTracks, loadMusicTracks, clearMusicTracksCache } from '../lib/eventDetails.js';
 import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation, { EventTicketBar } from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
@@ -208,6 +209,7 @@ describe('reproductor de música del evento', () => {
 });
 
 describe('carga de pistas de iTunes con reintento', () => {
+  beforeEach(() => clearMusicTracksCache());
   const track = (id) => ({ trackId: id, trackName: `Canción ${id}`, artistName: 'Artista', artworkUrl100: 'https://x/100.jpg', previewUrl: `https://x/${id}.m4a`, trackViewUrl: `https://x/${id}` });
   const ok = (results) => ({ ok: true, status: 200, json: async () => ({ resultCount: results.length, results }) });
   const fail = () => ({ ok: false, status: 500, json: async () => ({}) });
@@ -225,12 +227,44 @@ describe('carga de pistas de iTunes con reintento', () => {
     expect(calls).toBe(2);
     expect(tracks.map((t) => t.id)).toEqual([7]);
   });
-  it('si la consulta del artista no devuelve nada, prueba la de respaldo', async () => {
+  it('ante 0 resultados reintenta la misma consulta antes de rendirse', async () => {
+    let calls = 0;
     const seen = [];
-    const fetchFn = async (url) => { seen.push(url); return ok(seen.length === 1 ? [] : [track(9)]); };
+    const fetchFn = async (url) => { calls += 1; seen.push(url); return ok(calls === 1 ? [] : [track(5)]); };
+    const tracks = await loadMusicTracks(['Artista'], { fetchFn, sleepFn: async () => {} });
+    expect(calls).toBe(2);
+    expect(seen[0]).toBe(seen[1]);
+    expect(tracks.map((t) => t.id)).toEqual([5]);
+  });
+  it('si la consulta del artista no devuelve nada, reintenta y luego prueba la de respaldo', async () => {
+    const seen = [];
+    const fetchFn = async (url) => { seen.push(url); return ok(seen.length <= 2 ? [] : [track(9)]); };
     const tracks = await loadMusicTracks(['Artista', 'Artista — Gira'], { fetchFn, sleepFn: async () => {} });
     expect(tracks.map((t) => t.id)).toEqual([9]);
-    expect(seen[1]).toContain(encodeURIComponent('Artista — Gira'));
+    expect(seen).toHaveLength(3);
+    expect(seen[2]).toContain(encodeURIComponent('Artista — Gira'));
+  });
+  it('guarda en caché los éxitos: la segunda apertura no vuelve a pedirlos', async () => {
+    let calls = 0;
+    const fetchFn = async () => { calls += 1; return ok([track(3)]); };
+    const opts = { fetchFn, sleepFn: async () => {} };
+    expect((await loadMusicTracks(['Artista'], opts)).map((t) => t.id)).toEqual([3]);
+    expect((await loadMusicTracks(['Artista'], opts)).map((t) => t.id)).toEqual([3]);
+    expect(calls).toBe(1);
+  });
+  it('un fallo no queda en caché, pero un éxito posterior sí', async () => {
+    let calls = 0;
+    const fetchFn = async () => { calls += 1; if (calls <= 2) throw new Error('red caída'); return ok([track(8)]); };
+    const opts = { fetchFn, sleepFn: async () => {} };
+    expect(await loadMusicTracks(['Artista'], opts)).toEqual([]);
+    expect((await loadMusicTracks(['Artista'], opts)).map((t) => t.id)).toEqual([8]);
+    expect((await loadMusicTracks(['Artista'], opts)).map((t) => t.id)).toEqual([8]);
+    expect(calls).toBe(3);
+  });
+  it('el tiempo límite por defecto es 12 s (antes 8 s, corto con red móvil lenta)', () => {
+    const src = fs.readFileSync(new URL('../lib/eventDetails.js', import.meta.url), 'utf8');
+    expect(src.match(/timeoutMs = 12000/g)).toHaveLength(2);
+    expect(src).not.toContain('timeoutMs = 8000');
   });
   it('si todo falla devuelve vacío (sin guardar el fallo como caché)', async () => {
     let calls = 0;
