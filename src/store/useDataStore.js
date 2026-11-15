@@ -213,7 +213,10 @@ export const useDataStore = create((set, get) => ({
     if (cityPinsPromise && cityPinsPromiseCity === targetCity) return cityPinsPromise;
     const requestId = ++cityPinsLoadId;
     const request = (async () => {
-      set({ cityPinsCity: targetCity, cityPins: [] });
+      // No vaciar los pines al cambiar de ciudad: antes el mapa se
+      // pintaba una vez con 0 pines (el clusterer se vaciaba) y otra
+      // con la ciudad completa. Se ven los pines viejos un instante.
+      set({ cityPinsCity: targetCity });
       try {
         const selectCols = "id,name,lat,lng,category,emoji,logo_url,plan,slug,city_slug,status,schedule,rating,review_count,booking_config,photos";
         const pageSize = 1000;
@@ -231,6 +234,11 @@ export const useDataStore = create((set, get) => ({
         set({ cityPins: all.map(b => ({ ...b, schedule: get().parseJSON(b.schedule), photos: get().parseJSON(b.photos) })), cityPinsCity: targetCity });
       } catch (e) {
         console.warn("Error fetching city pins", e);
+        // Si falló y nadie más pidió otra ciudad, limpiar para no
+        // dejar los pines de la ciudad anterior.
+        if (requestId === cityPinsLoadId && get().cityPinsCity === targetCity) {
+          set({ cityPins: [] });
+        }
       }
     })();
     cityPinsPromise = request;

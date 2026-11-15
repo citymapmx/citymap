@@ -500,7 +500,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            animation: expGradientFlow 4s linear infinite;
+            animation: expGradientFlow 4s linear 2;
             font-weight: 900;
           }
           .exp-subtitle-anim {
