@@ -4,6 +4,7 @@ import Icon from '../ui/Icon.jsx';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
 import { useCart, calculateItemTotal } from '../../hooks/useCart.js';
 import { getProductDisplayPrice, formatMenuAmount, isVariantGroup } from '../../lib/menuPricing.js';
+import { safeAreaTop } from '../../lib/safeArea.js';
 import {
   getCleanOptionName,
   getOptionRules,
@@ -201,8 +202,8 @@ export default function ProductModal({ product, businessId, onClose, T, menuInte
   return ReactDOM.createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', animation: 'fadeIn .2s ease-out' }}>
       <div style={{ width: '100%', maxWidth: 600, height: '100%', display: 'flex', flexDirection: 'column', background: T.bg, position: 'relative', boxShadow: '0 0 40px rgba(0,0,0,0.2)', animation: 'slideUp .3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-        {/* Header */}
-        <div style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', background: T.bg, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
+        {/* Header: con safe-area arriba (en la app el título chocaba con la hora y la barra de estado del iPhone); en web env(...) = 0 y queda igual que antes. */}
+        <div style={{ height: safeAreaTop(52), display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'env(safe-area-inset-top, 0px) 16px 0', background: T.bg, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>Personalizar</div>
           <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: '50%', background: T.border, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="x" size={16} color={T.text} /></button>
         </div>
