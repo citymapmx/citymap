@@ -33,7 +33,8 @@ export default function MapView() {
 
   const cats = useDataStore(s => s.cats);
   const events = useDataStore(s => s.events);
-  const loadMapPinsByBounds = useDataStore(s => s.loadMapPinsByBounds);
+  const cityPinsFull = useDataStore(s => s.cityPins);
+  const loadCityPins = useDataStore(s => s.loadCityPins);
   const cities = useDataStore(s => s.cities);
   const mapPins = useDataStore(s => s.mapPins);
 
@@ -69,7 +70,14 @@ export default function MapView() {
     }
   }, [activeCity]);
 
-  const cityPins = mapFullScreen ? mapPins : mapPins.filter(b => isNear(b, userCoords, activeCity, 40));
+  // Al abrir el mapa, la ciudad completa ya está precargada (pines
+  // ligeros, loadCityPins). El mapa ya no pide al servidor en cada
+  // movimiento: filtra en local los pines cargados. Mientras la precarga
+  // no llega, se usan los pines pesados como antes.
+  useEffect(() => { if (activeCity) loadCityPins(activeCity); }, [activeCity, loadCityPins]);
+
+  const pinPool = cityPinsFull.length ? cityPinsFull : mapPins;
+  const cityPins = mapFullScreen ? pinPool : pinPool.filter(b => isNear(b, userCoords, activeCity, 40));
   let displayedPins = (activeCat === "todas" || activeCat === "explorar") ? cityPins : cityPins.filter(b => b.category === activeCat);
   if (nearbyFilter === "open") {
     displayedPins = displayedPins.filter(b => isOpen(b));
@@ -90,7 +98,7 @@ export default function MapView() {
   const shortCity = cityName.split(",")[0];
 
   // Centro del mapa: coordenadas de la ciudad activa (antes siempre Tepic).
-  const cityCenter = useMemo(() => getCityCenter(cities.find(c => c.slug === activeCity), mapPins), [cities, activeCity, mapPins]);
+  const cityCenter = useMemo(() => getCityCenter(cities.find(c => c.slug === activeCity), cityPins), [cities, activeCity, cityPins]);
 
   const handleScroll = (e) => {
     const { scrollLeft, scrollWidth, clientWidth } = e.target;
@@ -177,7 +185,7 @@ export default function MapView() {
               <Icon name={mapFullScreen ? "minimize-2" : "maximize-2"} size={20} color={dark ? "#F4F4F5" : "#0F172A"} />
             </button>
 
-            <Suspense fallback={null}><GMap events={(events||[]).filter(e => e.city_slug === activeCity || e.city_slug === 'all')} businesses={displayedPins} selected={mapPin} onPin={b => { setMapPin(p => p?.id === b.id ? null : b); }} userLocation={userCoords} onRequestLocation={requestLocation} categories={cats} radiusKm={null} onBoundsChanged={(bounds) => loadMapPinsByBounds(activeCity, bounds)} showRoute={mapFullScreen} cityCenter={cityCenter} cityKey={activeCity} /></Suspense>
+            <Suspense fallback={null}><GMap events={(events||[]).filter(e => e.city_slug === activeCity || e.city_slug === 'all')} businesses={displayedPins} selected={mapPin} onPin={b => { setMapPin(p => p?.id === b.id ? null : b); }} userLocation={userCoords} onRequestLocation={requestLocation} categories={cats} radiusKm={null} showRoute={mapFullScreen} cityCenter={cityCenter} cityKey={activeCity} /></Suspense>
 
             {/* GPS Overlay — se puede cerrar; al ocultarse deja de tapar el mapa y los pines se pueden tocar.
                 La animación scale-in-center va en la tarjeta interior: si fuera
