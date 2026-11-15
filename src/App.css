@@ -12,6 +12,10 @@ input, textarea, button, select { font-family: inherit; outline: none; }
 @keyframes scaleFadeIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
 @keyframes shimmer { 0%   { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
+/* Cinturón de seguridad: nada dentro de la hoja del modal puede desbordar
+   en horizontal por una palabra larga (p. ej. un token de error). */
+.sh * { overflow-wrap: break-word; }
+
 .press { transition: transform .12s ease; cursor: pointer; }
 .press:active { transform: scale(.96); }
 

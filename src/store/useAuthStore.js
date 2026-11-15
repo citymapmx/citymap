@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { sb } from '../lib/supabase.js';
+import { mapAuthError } from '../lib/authErrorMessage.js';
 import { markDeviceHasAccount, deviceHasAccount } from '../lib/hasAccountFlag.js';
 
 export const useAuthStore = create((set, get) => ({
@@ -71,7 +72,8 @@ export const useAuthStore = create((set, get) => ({
       
       return u.id;
     } catch (e) {
-      set({ authErr: e.message });
+      console.error("Error de autenticación (email):", e);
+      set({ authErr: mapAuthError(e) });
       return null;
     } finally {
       set({ authLoading: false });
@@ -91,7 +93,8 @@ export const useAuthStore = create((set, get) => ({
 
       return u.id;
     } catch (e) {
-      set({ authErr: e.message });
+      console.error("Error de autenticación con Google:", e);
+      set({ authErr: mapAuthError(e, 'google') });
       return null;
     } finally {
       set({ authLoading: false });
@@ -119,7 +122,8 @@ export const useAuthStore = create((set, get) => ({
 
       return u.id;
     } catch (e) {
-      set({ authErr: e.message });
+      console.error("Error de autenticación con Apple:", e);
+      set({ authErr: mapAuthError(e, 'apple') });
       return null;
     } finally {
       set({ authLoading: false });
