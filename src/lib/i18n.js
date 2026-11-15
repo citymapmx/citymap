@@ -819,6 +819,7 @@ export const TRANSLATIONS = {
     "modal_eres_nuevo": "¿Eres nuevo por aquí? ",
     "modal_error": "Error: {mensaje}",
     "modal_error_google": "Error con Google: ",
+    "modal_error_apple": "Error con Apple: ",
     "modal_evento_enviado_revision": "Evento enviado para revisión",
     "modal_evento_etiqueta": "EVENTO",
     "modal_evento_generico": "Evento",

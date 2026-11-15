@@ -10,6 +10,7 @@ import { isUserCancelledError, signInWithNativeGoogle } from '../lib/nativeGoogl
 import { isNativeAppleAuthAvailable, signInWithNativeApple } from '../lib/nativeAppleAuth.js';
 import { deviceHasAccount } from '../lib/hasAccountFlag.js';
 import { checkPassword } from '../lib/passwordRules.js';
+import { mapAuthError } from '../lib/authErrorMessage.js';
 import { sendPasswordReset } from '../lib/passwordRecovery.js';
 import { useTranslation } from '../hooks/useTranslation.js';
 
@@ -117,7 +118,8 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
       setForgotSent(true);
       setForgotOpen(false);
     } catch (e) {
-      setAuthErr(e.message || t("modal_error_recuperacion", "No se pudo enviar el correo. Inténtalo de nuevo."));
+      console.error("Error al enviar recuperación:", e);
+      setAuthErr(mapAuthError(e?.message || t("modal_error_recuperacion", "No se pudo enviar el correo. Inténtalo de nuevo.")));
     } finally {
       setForgotBusy(false);
     }
@@ -176,7 +178,7 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
           });
 
           googleBtnRef.current.innerHTML = "";
-          const btnWidth = Math.min(Math.max((googleBtnRef.current.parentElement?.offsetWidth || 340) - 4, 280), 380);
+          const btnWidth = Math.min(Math.max((googleBtnRef.current.parentElement?.offsetWidth || 340) - 4, 200), 380);
 
           window.google.accounts.id.renderButton(googleBtnRef.current, {
             theme,
@@ -240,8 +242,8 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
   if (!showAuth) return null;
 
   return (
-    <div className="ov" onClick={() => setShowAuth(false)} style={{ alignItems:"center", paddingTop:"max(16px, env(safe-area-inset-top))", paddingBottom:"max(16px, env(safe-area-inset-bottom))" }}>
-      <div className="sh" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="auth-dialog-title" onClick={e => e.stopPropagation()} style={{ position:'relative', maxHeight:'calc(100dvh - 32px)', animationTimingFunction:'ease-out', paddingTop:52 }}>
+    <div className="ov" onClick={() => setShowAuth(false)} style={{ overflowY:"auto", paddingTop:"max(16px, env(safe-area-inset-top))", paddingBottom:"max(16px, env(safe-area-inset-bottom))" }}>
+      <div className="sh" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="auth-dialog-title" onClick={e => e.stopPropagation()} style={{ position:'relative', maxHeight:'calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom) + 32px))', margin:'auto', animationTimingFunction:'ease-out', paddingTop:52 }}>
       <button type="button" aria-label={t("modal_cerrar_acceso", "Cerrar acceso")} onClick={() => setShowAuth(false)} style={{ position:'absolute', top:8, right:8, width:44, height:44, display:'grid', placeItems:'center', border:0, borderRadius:'50%', background:'transparent', cursor:'pointer', color:T.text }}><Icon name="x" size={20} color={T.text} /></button>
 
       {/* ── Header ── */}
@@ -283,7 +285,7 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
             } catch (err) {
               if (isUserCancelledError(err)) return;
               try { await sb.signInWithOAuth('google'); }
-              catch (err2) { setAuthErr(t("modal_error_google", "Error con Google: ") + err2.message); }
+              catch (err2) { console.error("Error con Google (respaldo OAuth):", err2); setAuthErr(mapAuthError(err2, 'google')); }
               return;
             }
             const uid = await handleGoogleIdToken(idToken);
@@ -326,7 +328,8 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
                 res = await signInWithNativeApple();
               } catch (err) {
                 if (isUserCancelledError(err)) return;
-                setAuthErr(t("modal_error_apple", "Error con Apple: ") + (err?.message || err));
+                console.error("Error con Apple:", err);
+                setAuthErr(mapAuthError(err, 'apple'));
                 return;
               }
               const uid = await handleAppleIdToken(res.idToken, res.profile);
@@ -349,7 +352,7 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
            (no es un botón); si GIS no carga en 8 s, la entrada de Google
            desaparece y solo queda el formulario de email. */
         (gisRendered || !gisTimedOut) && (
-        <div style={{ width: "100%", height: 48, marginBottom: 20, display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <div style={{ width: "100%", minWidth: 0, overflow: "hidden", height: 48, marginBottom: 20, display: "flex", justifyContent: "center", alignItems: "center" }}>
           {/* Anillo en modo oscuro: el botón oficial de Google usa theme
               'filled_black' (negro) y se funde con la hoja oscura; el
               contorno claro delimita la píldora. Va en el contenedor del
@@ -399,7 +402,7 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
       </div>
 
       {/* ── Error ── */}
-      {authErr && <div role="alert" style={{ padding: "12px 16px", background: dark ? "rgba(220,38,38,0.12)" : "#FEF2F2", border: dark ? "1px solid rgba(248,113,113,0.4)" : "1px solid #FEE2E2", borderRadius: 12, color: dark ? "#FCA5A5" : "#DC2626", marginBottom: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}><Icon name="info" size={16} color={dark ? "#FCA5A5" : "#DC2626"} />{authErr}</div>}
+      {authErr && <div role="alert" style={{ padding: "12px 16px", background: dark ? "rgba(220,38,38,0.12)" : "#FEF2F2", border: dark ? "1px solid rgba(248,113,113,0.4)" : "1px solid #FEE2E2", borderRadius: 12, color: dark ? "#FCA5A5" : "#DC2626", marginBottom: 16, fontWeight: 600, display: "flex", alignItems: "flex-start", gap: 8, fontSize: 14 }}><Icon name="info" size={16} color={dark ? "#FCA5A5" : "#DC2626"} style={{ flexShrink: 0, marginTop: 2 }} /><span style={{ minWidth: 0, flex: 1, overflowWrap: "anywhere", wordBreak: "break-word" }}>{authErr}</span></div>}
 
       {/* ── Inputs ── */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -440,9 +443,9 @@ export default function AuthModal({ T, dark, cities, doAuth }) {
 
         {/* ── Password strength hints ── */}
         {showPwHints && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 16px", marginTop: 4, padding: "0 4px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "4px 16px", marginTop: 4, padding: "0 4px" }}>
             {pwResults.map(r => (
-              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: r.ok ? "#22c55e" : T.sub, transition: "color 0.2s" }}>
+              <div key={r.id} style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: r.ok ? "#22c55e" : T.sub, transition: "color 0.2s" }}>
                 <span style={{ fontSize: 11 }}>{r.ok ? "✓" : "○"}</span>
                 {r.label}
               </div>
