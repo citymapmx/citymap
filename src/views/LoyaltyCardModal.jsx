@@ -103,8 +103,6 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz, use
   // /api/loyalty-wallet con la membresía y abre el enlace del pase).
   // Usa currentMember para que funcione también justo después de
   // unirse, sin esperar a que la ficha refresque su consulta.
-  // Apple Wallet NO va aquí: en la página su botón no tiene acción
-  // (no es funcional), así que no se inventa.
   const handleGoogleWallet = async () => {
     if (!currentMember || !card || !biz) return;
     setWalletLoading(true);
@@ -131,6 +129,49 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz, use
         window.open(data.url, '_blank');
       } else {
         alert('Error al generar el pase: ' + (data.error || 'desconocido'));
+      }
+    } catch (e) {
+      alert('Error de conexión: ' + e.message);
+    }
+    setWalletLoading(false);
+  };
+
+  // Pase de Apple Wallet (.pkpass): mismo flujo que LoyaltyCardView
+  // (GET a /api/loyalty-wallet con format=apple; primero ?check=1 para
+  // avisar en claro si aún no está configurado; luego se abre la URL
+  // del pase con el navegador del sistema en la app nativa, que es
+  // lo que muestra la hoja de Wallet en iOS).
+  const handleAppleWallet = async () => {
+    if (!currentMember || !card || !biz) return;
+    setWalletLoading(true);
+    try {
+      const params = new URLSearchParams({
+        format: 'apple',
+        biz_id: biz.id,
+        biz_slug: biz.slug || biz.id,
+        biz_name: biz.name,
+        logo_url: card.logo_url || '',
+        bg_color: card.bg_color || '',
+        text_color: card.text_color || '',
+        primary_color: card.primary_color || '',
+        reward_text: card.reward_text || '',
+        stamps: String(currentMember.stamps || 0),
+        stamps_required: String(card.stamps_required || 5),
+        member_id: currentMember.id,
+        member_name: currentMember.name || currentMember.email || 'Cliente',
+      });
+      const url = `/api/loyalty-wallet?${params.toString()}`;
+      const check = await fetch(`${url}&check=1`);
+      if (!check.ok) {
+        const data = await check.json().catch(() => ({}));
+        alert(data.error || 'Apple Wallet aún no está configurado');
+        return;
+      }
+      if (window.location.origin.includes('capacitor') || window.location.origin.includes('localhost')) {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.open({ url });
+      } else {
+        window.open(url, '_blank');
       }
     } catch (e) {
       alert('Error de conexión: ' + e.message);
@@ -309,6 +350,11 @@ export default function LoyaltyCardModal({ open, onClose, member, card, biz, use
               {/* Google Wallet: mismo botón que la página, debajo del QR. */}
               <button onClick={handleGoogleWallet} disabled={walletLoading} style={{ width: "100%", padding: 16, borderRadius: 100, border: "2px solid #E8eaed", background: "#fff", color: "#3c4043", fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 12, cursor: "pointer", opacity: walletLoading ? 0.7 : 1, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
                 {walletLoading ? "Generando pase..." : "Añadir a Google Wallet"}
+              </button>
+              {/* Apple Wallet: mismo botón negro que la página, debajo del de Google. */}
+              <button onClick={handleAppleWallet} disabled={walletLoading} style={{ width: "100%", padding: 16, borderRadius: 100, border: "none", background: "#000", color: "#fff", fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 12, cursor: "pointer", opacity: walletLoading ? 0.7 : 1, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+                <Icon name="tag" size={24} color="#fff" />
+                {walletLoading ? "Generando pase..." : "Añadir a Apple Wallet"}
               </button>
             </div>
             ) : (

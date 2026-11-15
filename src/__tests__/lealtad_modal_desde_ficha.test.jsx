@@ -156,10 +156,10 @@ describe('tarjeta de lealtad en modal desde la ficha', () => {
     expect(modal).toContain("fetch('/api/loyalty-wallet'");
     expect(modal).toContain('member_id: currentMember.id');
     expect(modal).toContain("window.open(data.url, '_blank')");
-    // El botón de Apple Wallet NO se inventa: en la página no tiene
-    // acción (no es funcional).
-    expect(modal).not.toContain('Añadir a Apple Wallet');
-    expect(html).not.toContain('Añadir a Apple Wallet');
+    // Apple Wallet también va en el modal (pase .pkpass por GET; el
+    // botón de la página ya tiene acción): se prueba en
+    // apple_wallet.test.jsx.
+    expect(html).toContain('Añadir a Apple Wallet');
   });
 
   it('sin miembro el modal NO pinta el botón de Wallet (aparece al unirse)', () => {

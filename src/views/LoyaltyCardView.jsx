@@ -151,6 +151,50 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
     setWalletLoading(false);
   };
 
+  // Pase de Apple Wallet (.pkpass): GET a /api/loyalty-wallet con
+  // format=apple. Primero se pregunta si está configurado (?check=1)
+  // para avisar en claro; luego se abre la URL del pase: en la app
+  // nativa con el navegador del sistema (Safari muestra la hoja de
+  // Wallet) y en web en pestaña nueva. En WKWebView un blob no dispara
+  // Wallet, por eso el pase se sirve por URL GET directa.
+  const handleAppleWallet = async () => {
+    if (!member || !card || !biz) return;
+    setWalletLoading(true);
+    try {
+      const params = new URLSearchParams({
+        format: 'apple',
+        biz_id: biz.id,
+        biz_slug: biz.slug || biz.id,
+        biz_name: biz.name,
+        logo_url: card.logo_url || '',
+        bg_color: card.bg_color || '',
+        text_color: card.text_color || '',
+        primary_color: card.primary_color || '',
+        reward_text: card.reward_text || '',
+        stamps: String(member.stamps || 0),
+        stamps_required: String(card.stamps_required || 5),
+        member_id: member.id,
+        member_name: member.name || member.email || 'Cliente',
+      });
+      const url = `/api/loyalty-wallet?${params.toString()}`;
+      const check = await fetch(`${url}&check=1`);
+      if (!check.ok) {
+        const data = await check.json().catch(() => ({}));
+        alert(data.error || 'Apple Wallet aún no está configurado');
+        return;
+      }
+      if (window.location.origin.includes('capacitor') || window.location.origin.includes('localhost')) {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.open({ url });
+      } else {
+        window.open(url, '_blank');
+      }
+    } catch (e) {
+      alert('Error de conexión: ' + e.message);
+    }
+    setWalletLoading(false);
+  };
+
   if (loading) {
     return (
       <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -274,9 +318,9 @@ export default function LoyaltyCardView({ T, user, setShowAuth }) {
             {walletLoading ? "Generando pase..." : "Añadir a Google Wallet"}
           </button>
           
-          <button style={{ width: "100%", padding: 16, borderRadius: 100, border: "none", background: "#000", color: "#fff", fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 12, cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+          <button onClick={handleAppleWallet} disabled={walletLoading} style={{ width: "100%", padding: 16, borderRadius: 100, border: "none", background: "#000", color: "#fff", fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 12, cursor: "pointer", opacity: walletLoading ? 0.7 : 1, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
             <Icon name="tag" size={24} color="#fff" />
-            Añadir a Apple Wallet
+            {walletLoading ? "Generando pase..." : "Añadir a Apple Wallet"}
           </button>
         </div>
       ) : (
