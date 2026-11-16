@@ -99,10 +99,15 @@ describe('og vista=negocios: contenido real de la landing', () => {
     expect(html).toContain('Pedidos por WhatsApp, sin comisiones');
     expect(html).toContain('Cómo funciona');
     expect(html).toContain('Gratuito');
-    expect(html).toContain('Destacado');
+    expect(html).toContain('Presencia');
     expect(html).toContain('$99 MXN / mes');
     expect(html).toContain('$990 MXN / año');
-    expect(html).toContain('Premium');
+    expect(html).toContain('Ventas');
+    expect(html).toContain('Fideliza');
+    expect(html).toContain('$299 MXN / mes');
+    expect(html).toContain('$2,990 MXN / año');
+    expect(html).not.toContain('Destacado');
+    expect(html).not.toContain('Premium');
     expect(html).toContain('$199 MXN / mes');
     expect(html).toContain('$1,990 MXN / año');
     expect(html).toContain('Pruébalo 7 días gratis');

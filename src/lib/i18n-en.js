@@ -788,7 +788,6 @@ export const EN_TRANSLATIONS = {
     "crear_negocio_titulo": "Create your business",
     "crear_negocio_ver_beneficios": "See benefits",
     "crear_negocio_whatsapp": "WhatsApp",
-    "crear_negocio_whatsapp_nota": "Your WhatsApp is shown with the Destacado and Premium plans",
 
     // Fase 1 inglés — Menú lateral
     "menu_acceso_duenos": "Owner access",

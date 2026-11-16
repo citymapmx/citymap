@@ -1,6 +1,6 @@
 export function orderBusinessIds(rows, date = new Date()) {
   const seed = date.getFullYear() + date.getMonth() * 31 + date.getDate();
-  const weight = plan => plan === 'premium' ? 3 : plan === 'destacado' ? 2 : 1;
+  const weight = plan => plan === 'fideliza' ? 4 : plan === 'premium' || plan === 'elite' ? 3 : plan === 'destacado' || plan === 'pro' ? 2 : 1;
   const rank = b => { const number = Math.sin(seed + (b.name || '').charCodeAt(0)) * 10000; return number - Math.floor(number); };
   return [...rows].sort((a, b) => weight(b.plan) - weight(a.plan) || rank(a) - rank(b) || String(a.id).localeCompare(String(b.id))).map(b => b.id);
 }

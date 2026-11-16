@@ -173,6 +173,11 @@ describe('cuatro planes: permisos que se mueven con la migración', () => {
     expect(PLAN_META.pro.label).toBe('Presencia');
     expect(PLAN_META.elite.label).toBe('Ventas');
     expect(PLAN_META.fideliza.label).toBe('Fideliza');
+    // Las claves viejas se quitaron con la migración (15 nov 2026: la base
+    // ya no tiene filas con esos planes); el desplegable del admin ya no
+    // las ofrece como planes.
+    expect(PLAN_META.destacado).toBeUndefined();
+    expect(PLAN_META.premium).toBeUndefined();
     expect(PLAN_META.pro.max_photos).toBe(7);
     expect(PLAN_META.elite.max_photos).toBe(15);
     expect(PLAN_META.fideliza.max_photos).toBe(15);

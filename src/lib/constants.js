@@ -1,12 +1,10 @@
 // ─── PLAN CONFIG ──────────────────────────────────────────────────────────────
 const PLAN_META = {
   free: { label: "Gratuito", color: "#6B7280", bg: "#F3F4F6", max_photos: 3 },
-  destacado: { label: "Destacado", color: "#3B82F6", bg: "#EFF6FF", max_photos: 7 },
-  premium: { label: "Premium", color: "#C9A84C", bg: "#FFFBEB", max_photos: 15 },
   // Claves actuales (15 nov 2026): 'pro' = Presencia, 'elite' = Ventas,
-  // 'fideliza' = Fideliza. Los valores viejos se conservan porque la
-  // base todavía tiene filas con ellos. max_photos sigue al plan viejo
-  // equivalente (Presencia 7, Ventas/Fideliza 15). Sin estas claves,
+  // 'fideliza' = Fideliza. Las claves viejas ('destacado', 'premium') se
+  // quitaron: la base ya no tiene filas con esos planes (migración 15 nov
+  // 2026: 109 premium -> fideliza, 14 destacado -> pro). Sin estas claves,
   // PLAN_META[plan].max_photos rompe el formulario del admin.
   pro: { label: "Presencia", color: "#3B82F6", bg: "#EFF6FF", max_photos: 7 },
   elite: { label: "Ventas", color: "#C9A84C", bg: "#FFFBEB", max_photos: 15 },

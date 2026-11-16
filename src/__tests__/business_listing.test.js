@@ -16,6 +16,15 @@ describe('category business loading', () => {
     expect(first).toEqual(['premium', 'featured', 'free']);
     expect(appendBusinessIds(first, ['new-premium', 'premium', 'new-free'])).toEqual(['premium', 'featured', 'free', 'new-premium', 'new-free']);
   });
+  it('orders the four current plans Fideliza > Ventas > Presencia > free', () => {
+    const ordered = orderBusinessIds([
+      { id: 'free', name: 'Cafe', plan: 'free' },
+      { id: 'presencia', name: 'Bistro', plan: 'pro' },
+      { id: 'ventas', name: 'Deli', plan: 'elite' },
+      { id: 'fideliza', name: 'Starbucks', plan: 'fideliza' },
+    ]);
+    expect(ordered).toEqual(['fideliza', 'ventas', 'presencia', 'free']);
+  });
   it('breaks equal name ranks deterministically', () => {
     const rows = [{ id: 'z', name: 'Cafe' }, { id: 'a', name: 'Cafe' }];
     expect(orderBusinessIds(rows)).toEqual(orderBusinessIds([...rows].reverse()));

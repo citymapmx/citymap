@@ -279,7 +279,7 @@ export function useAppSEO({ city }) {
         canonical = `${BASE_URL}/tours`;
       } else if (location.pathname.startsWith("/precios")) {
         title = `Precios y planes para tu negocio | CityMap`;
-        desc = `Planes Destacado y Premium para que tu negocio destaque en CityMap: más visibilidad, más llamadas y más clientes.`;
+        desc = `Planes Presencia, Ventas y Fideliza para que tu negocio destaque en CityMap: más visibilidad, más llamadas y más clientes.`;
 
         canonical = `${BASE_URL}/precios`;
       } else if (location.pathname.startsWith("/negocios")) {
