@@ -115,6 +115,27 @@ describe('Tarjetas modernas de /negocios: planes sin hueco y botón al final', (
   });
 });
 
+describe('Planes de /negocios: ancho bloqueado, una columna como en el celular', () => {
+  it('la cuadrícula de planes es una sola columna en todos los anchos (sin 4 columnas en escritorio)', () => {
+    const src = read('../components/BusinessLanding.jsx');
+    // En escritorio la cuadrícula de 4 columnas dejaba cada tarjeta tan
+    // angosta que los nombres se cortaban («Four Seaso…», «SSAM Comi…»)
+    // y todo se veía deforme (16 nov 2026, Jonathan).
+    expect(src).not.toContain('.plans-grid{grid-template-columns:repeat(4');
+    expect(src).toContain('.business-landing .plans-grid{display:grid;grid-template-columns:minmax(0,1fr)');
+  });
+
+  it('la cuadrícula de planes tiene el ancho bloqueado y centrado (560 px)', () => {
+    const src = read('../components/BusinessLanding.jsx');
+    expect(src).toContain('max-width:560px;margin-left:auto;margin-right:auto');
+  });
+
+  it('la tira «Ya están» sigue en 4 columnas en escritorio (solo los planes se bloquean)', () => {
+    const src = read('../components/BusinessLanding.jsx');
+    expect(src).toContain('.business-landing .ya-estan-grid{grid-template-columns:repeat(4,minmax(0,1fr))');
+  });
+});
+
 describe('Tarjetas modernas de /negocios: cifras y beneficios', () => {
   it('las tarjetas de cifras llevan el número en color de acento y siguen con el conteo', () => {
     const html = renderLanding(false);

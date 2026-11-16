@@ -174,7 +174,15 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         .business-landing * {box-sizing:border-box}
         .business-landing button {font-family:inherit}
         .business-landing button:focus-visible,.business-landing summary:focus-visible {outline:3px solid var(--plans-accent);outline-offset:4px}
-        .business-landing .plans-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+        /* Ancho bloqueado (16 nov 2026, Jonathan): los planes van en UNA
+        sola columna y con el ancho fijo, como en el celular. En escritorio
+        la cuadrícula de 4 columnas dejaba cada tarjeta tan angosta que los
+        nombres se cortaban («Four Seaso…», «SSAM Comi…») y todo se veía
+        deforme. Con una columna las tarjetas quedan a lo ancho del
+        teléfono y los nombres caben enteros; de paso, al no estirarse
+        todas a la altura de Fideliza, ya no quedan los huecos vacíos de
+        Gratuito y Presencia. */
+        .business-landing .plans-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;max-width:560px;margin-left:auto;margin-right:auto}
         .business-landing .plans-card{display:flex;flex-direction:column;padding:28px 24px 24px;border:1px solid var(--plans-line);border-radius:28px;background:var(--plans-surface);min-width:0;box-shadow:var(--plans-shadow)}
         .business-landing .plans-card[data-plan="pro"]{order:1;border-color:var(--plans-accent);box-shadow:var(--plans-shadow-pro)}
         .business-landing .plans-card[data-plan="free"]{order:0}
@@ -195,7 +203,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         .plans-faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px;font-size:15px;font-weight:600;line-height:1.5}
         .plans-faq summary::after{content:'+';font-size:20px;font-weight:400}
         .plans-faq[open] summary::after{content:'−'}
-        @media(min-width:900px){.business-landing .plans-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}.business-landing .plans-card[data-plan="free"]{order:0}.business-landing .plans-card[data-plan="pro"]{order:1}.business-landing .plans-card[data-plan="elite"]{order:2}.business-landing .plans-card[data-plan="fideliza"]{order:3}.business-landing .ya-estan-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}}
+        @media(min-width:900px){.business-landing .plans-card[data-plan="free"]{order:0}.business-landing .plans-card[data-plan="pro"]{order:1}.business-landing .plans-card[data-plan="elite"]{order:2}.business-landing .plans-card[data-plan="fideliza"]{order:3}.business-landing .ya-estan-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}}
         @media(prefers-reduced-motion:reduce){.business-landing *{scroll-behavior:auto!important;transition:none!important}}
       `}</style>
       <header style={{ position: 'sticky', top: 0, zIndex: 10, background: dark ? 'rgba(22,22,23,.92)' : 'rgba(245,245,247,.92)', backdropFilter: 'blur(20px)', borderBottom: `1px solid ${line}` }}>
