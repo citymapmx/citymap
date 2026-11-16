@@ -375,7 +375,10 @@ describe('aviso reserva: cableado (fuente)', () => {
     const apiDir = new URL('../../api', import.meta.url);
     const files = fs.readdirSync(apiDir).filter((f) => f.endsWith('.js'));
     const edge = files.filter((f) => /runtime:\s*['"]edge['"]/.test(fs.readFileSync(new URL(`../../api/${f}`, import.meta.url), 'utf8')));
-    expect(files.length - edge.length).toBe(11);
+    // 12 = límite del plan Hobby: api/delete-account.js (Guideline 2.1 de
+    // Apple, PR eliminar-cuenta) ocupó el último hueco libre. El próximo
+    // endpoint nuevo exige consolidar funciones o subir de plan.
+    expect(files.length - edge.length).toBe(12);
   });
   it('runBookingNotification verifica la reserva en la base y resuelve admins', () => {
     const src = fs.readFileSync(new URL('../../api/send-notification.js', import.meta.url), 'utf8');
