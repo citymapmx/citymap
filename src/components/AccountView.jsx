@@ -83,6 +83,13 @@ export default function AccountView({
   const [loyaltyDesignerBiz, setLoyaltyDesignerBiz] = useState(null);
   const [menuDesignerBiz, setMenuDesignerBiz] = useState(null);
 
+  // Eliminar cuenta (Guideline 2.1 de Apple): la hoja va con createPortal
+  // a document.body — la raíz de Mi Perfil lleva transform y atrapa el
+  // fixed (misma lección que la confirmación de borrar cliente, PR #380).
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState("");
+
   const [myClaims, setMyClaims] = useState([]);
   useEffect(() => {
     if (authChecked && !user) {
@@ -138,6 +145,39 @@ export default function AccountView({
       toast$(t("cuenta_evento_no_eliminado", "No se pudo eliminar el evento, inténtalo de nuevo"));
     } finally {
       setDeletingPrivateId(null);
+    }
+  };
+
+  // Eliminar la cuenta: el servidor borra los datos personales y luego
+  // el usuario de Auth. Si algo falla, el error se muestra en la hoja y
+  // la sesión sigue abierta (la cuenta queda intacta). Si va bien, se
+  // cierra la sesión local y se avisa. Sin doSignOut: ese flujo intenta
+  // desvincular el token push con una sesión que ya no existe.
+  const confirmDeleteAccount = async () => {
+    if (deletingAccount) return;
+    setDeletingAccount(true);
+    setDeleteAccountError("");
+    try {
+      const r = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sb._token || ''}` },
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.deleted) throw new Error(d?.error || t("cuenta_no_eliminada", "No se pudo eliminar tu cuenta, inténtalo de nuevo"));
+      await sb.signOut();
+      setUser(null);
+      try {
+        localStorage.removeItem('cg_saved_ev');
+        localStorage.removeItem('cg_push_token');
+        localStorage.removeItem('cg_web_push_token');
+      } catch { /* la limpieza local es best-effort: la cuenta ya se borró */ }
+      setShowDeleteAccount(false);
+      navigate("home");
+      toast$(t("cuenta_eliminada", "Tu cuenta fue eliminada"));
+    } catch (err) {
+      setDeleteAccountError(err?.message || t("cuenta_no_eliminada", "No se pudo eliminar tu cuenta, inténtalo de nuevo"));
+    } finally {
+      setDeletingAccount(false);
     }
   };
 
@@ -527,6 +567,28 @@ export default function AccountView({
         <button onClick={doSignOut} style={{ width: "calc(100% - 32px)", margin: "16px 16px 0", padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: T.sub, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <Icon name="log-out" size={16} color={T.sub} /> {t("cerrar_sesion", "Cerrar sesión")}
         </button>
+
+        {/* ── ZONA DE PELIGRO: ELIMINAR CUENTA ── */}
+        <button onClick={() => { setDeleteAccountError(""); setShowDeleteAccount(true); }} style={{ width: "calc(100% - 32px)", margin: "12px 16px 0", padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <Icon name="trash" size={16} color="#D94F3D" /> {t("cuenta_eliminar_cuenta", "Eliminar mi cuenta")}
+        </button>
+
+        {/* ── CONFIRMACIÓN DE ELIMINAR CUENTA ── */}
+        {showDeleteAccount && createPortal(
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => { if (!deletingAccount) setShowDeleteAccount(false); }}>
+            <div style={{ width: "100%", maxWidth: 420, background: T.white, borderRadius: 24, padding: "28px 24px", animation: "scaleFadeIn .25s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontWeight: 800, fontSize: 17, color: T.text, marginBottom: 12, textAlign: "center" }}>{t("cuenta_eliminar_cuenta_titulo", "¿Eliminar tu cuenta?")}</div>
+              <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.5, margin: "0 0 20px 0", textAlign: "center" }}>{t("cuenta_eliminar_cuenta_desc", "Se borran para siempre tus favoritos, tus tarjetas de lealtad y tus sellos, tus reservaciones y los eventos que creaste. Tus negocios siguen publicados, pero quedan sin dueño.")}</p>
+              {deleteAccountError && (
+                <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626", borderRadius: 12, padding: "10px 12px", fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{deleteAccountError}</div>
+              )}
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => setShowDeleteAccount(false)} disabled={deletingAccount} style={{ flex: 1, padding: "12px 0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.text, cursor: "pointer", fontFamily: "inherit", opacity: deletingAccount ? 0.6 : 1 }}>{t("cancelar", "Cancelar")}</button>
+                <button onClick={confirmDeleteAccount} disabled={deletingAccount} style={{ flex: 1, padding: "12px 0", background: "#DC2626", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 14, color: "#fff", cursor: "pointer", fontFamily: "inherit", opacity: deletingAccount ? 0.7 : 1 }}>{deletingAccount ? t("cuenta_eliminar_cuenta_eliminando", "Eliminando…") : t("cuenta_eliminar_cuenta_confirmar", "Eliminar mi cuenta")}</button>
+              </div>
+            </div>
+          </div>
+        , document.body)}
 
       </>) : !authChecked ? (
         <div style={{ padding: "88px 26px 0", textAlign: "center", opacity: 0.6 }}>
