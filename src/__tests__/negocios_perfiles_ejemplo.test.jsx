@@ -97,6 +97,10 @@ describe('Ejemplos por plan en /negocios', () => {
     const card = planCard(renderLanding(false), 'fideliza', null);
     expect(card).toContain('SSAM Comida Coreana');
     expect(card).toContain('1791991014199_weowej.jpg');
+    // Los iconos de redes: SSAM sí tiene WhatsApp y redes en la base.
+    expect(card).toContain('/whatsapp.svg');
+    expect(card).toContain('/instagram.svg');
+    expect(card).toContain('Ver Facebook');
     expect(card).toContain('/plans/estadisticas.png');
     expect(card).toContain('/plans/reservas.png');
     expect(card).toContain('Panel de Estadísticas');

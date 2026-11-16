@@ -74,6 +74,12 @@ export const EJEMPLO_POR_PLAN = {
     category: "restaurantes",
     plan: "fideliza",
     open: true,
+    // WhatsApp y redes REALES de la base (verificados por PostgREST el
+    // 15 nov 2026): sin ellos la tarjeta no muestra los iconos de
+    // WhatsApp, Instagram y Facebook (BusinessCard los pinta solo si
+    // existen: b.whatsapp, social_links.instagram/facebook).
+    whatsapp: "33 3615 7478",
+    social_links: { facebook: "RESTAURANTESSAMGDL", instagram: "Restaurantessam" },
     schedule: {
       lun: "01:00 p.m. - 11:00 p.m.", mar: "01:00 p.m. - 11:00 p.m.",
       mie: "01:00 p.m. - 11:00 p.m.", jue: "01:00 p.m. - 11:00 p.m.",
