@@ -1740,6 +1740,7 @@ useEffect(() => {
             viewStyle={viewStyle}
             setUser={setUser}
             setStoreAdminBiz={setStoreAdminBiz}
+            handleCardTap={handleCardTap}
             HomeView={HomeView}
             GlobalHomeView={GlobalHomeView}
             MapView={MapView}
