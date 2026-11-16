@@ -53,3 +53,11 @@ describe.each([['Vite', EventPoster, '1600'], ['Next.js', NextEventPoster, '800'
     expect(html).toContain('opacity:1');
   });
 });
+
+describe('Vite event poster reservado (solo Vite: web-next no reserva alto)', () => {
+  it('reserva 360 px antes de cargar y trae la transición que suelta la reserva', () => {
+    const html = renderToStaticMarkup(<EventPoster src={poster} alt="Festival" />);
+    expect(html).toContain('min-height:360px');
+    expect(html).toContain('transition:min-height 300ms ease');
+  });
+});
