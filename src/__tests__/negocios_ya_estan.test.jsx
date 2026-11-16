@@ -75,7 +75,7 @@ describe('Sección «Ya están en CityMap» en /negocios', () => {
     expect(html).toContain('Negocios reales que ya reciben clientes desde CityMap.');
   });
 
-  it('cada tarjeta muestra nombre, ciudad y enlaza a su ficha; solo las de pago muestran calificación de Google', () => {
+  it('cada tarjeta muestra nombre y ciudad y enlaza a su ficha; ninguna muestra reseñas', () => {
     const html = renderLanding(false);
     const section = yaEstanSection(html);
     for (const b of YA_ESTAN_EN_CITYMAP) {
@@ -83,19 +83,18 @@ describe('Sección «Ya están en CityMap» en /negocios', () => {
       expect(section).toContain(b.cityName);
       expect(section).toContain(`href="/${b.city_slug}/${shortSlug(b)}"`);
     }
-    // Calificación de Google (reserva verificada: displayRating usa el
-    // caché en vivo cuando lo hay; sin caché, el valor guardado). Solo
-    // en los de pago: los gratuitos no muestran calificación.
+    // Sin reseñas (15 nov 2026, Jonathan): ni calificación ni conteo ni
+    // logo de Google en ninguna tarjeta, tampoco en las de pago. Los datos
+    // de Google siguen en negociosEjemplos.js, solo no se muestran.
     for (const b of YA_ESTAN_EN_CITYMAP.filter((x) => x.plan !== 'free')) {
-      expect(section).toContain(b.rating.toFixed(1));
-      expect(section).toContain(`(${new Intl.NumberFormat("es-MX").format(b.review_count)})`);
+      expect(section).not.toContain(b.rating.toFixed(1));
+      expect(section).not.toContain(`(${new Intl.NumberFormat("es-MX").format(b.review_count)})`);
     }
-    // Los conteos de Google que tenían los gratuitos ya no aparecen.
-    for (const count of ['(7,126)', '(963)', '(5,503)']) {
-      expect(section).not.toContain(count);
-    }
-    // El logo de Google acompaña cada calificación de pago: 5, no 8.
-    expect(section.split('/googlelogo.svg').length - 1).toBe(5);
+    // El logo de Google no acompaña ninguna tarjeta.
+    expect(section.split('/googlelogo.svg').length - 1).toBe(0);
+    // Ni estrella de calificación en la tira.
+    const STAR_POINTS = '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2';
+    expect(section.split(STAR_POINTS).length - 1).toBe(0);
   });
 
   it('la foto llena toda la tarjeta, sin área blanca: la información va sobre la imagen con degradado negro', () => {
@@ -105,7 +104,7 @@ describe('Sección «Ya están en CityMap» en /negocios', () => {
     expect(section).toContain('linear-gradient(to top, rgba(0,0,0,0.65)');
     // El bloque de información va absoluto abajo, sobre la imagen.
     expect(section).toContain('position:absolute');
-    // Nombre, ciudad y calificación en blanco (legibles sobre el degradado).
+    // Nombre y ciudad en blanco (legibles sobre el degradado).
     expect(section).toContain('color:#FFFFFF');
     expect(section).toContain('rgba(255,255,255,0.85)');
     // La foto mantiene su proporción 4/3 y llena la tarjeta.
