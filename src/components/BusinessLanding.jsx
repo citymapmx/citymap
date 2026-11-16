@@ -12,7 +12,6 @@ import { getBusinessPricing, buildBusinessPlans } from "../lib/businessPlans.js"
 import { comparePlanFeatures, effectivePlanFeatures } from "../lib/crearNegocio.js";
 import { NEGOCIOS_STATS_FALLBACK, fetchNegociosStats } from "../lib/negociosStats.js";
 import { EJEMPLO_POR_PLAN, YA_ESTAN_EN_CITYMAP } from "../lib/negociosEjemplos.js";
-import { displayRating, businessShowsGoogleRating, formatReviewCount } from "../lib/googleRatings.js";
 import { useCountUp } from "../hooks/useCountUp.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { Reveal } from "./ui/Reveal.jsx";
@@ -63,7 +62,6 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
   const { t, lang } = useTranslation();
   const activeCity = useUIStore(s => s.activeCity);
   const cities = useDataStore(s => s.cities);
-  const googleRatings = useDataStore(s => s.googleRatings);
   const countryCode = getCountryCode(activeCity, cities);
   const pricing = getBusinessPricing(countryCode);
   const plans = buildBusinessPlans(t, pricing, dark);
@@ -330,13 +328,9 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
                       </div>
                     )}
                     {p.screenshots && <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 14 }}>{p.screenshots.map((shot) => <div key={shot.url} style={{ flex: '0 0 100px', color: muted }}>
-                      {/* Cada mockup lleva el negocio del ejemplo (15 nov
-                      2026): la captura es real de la app y el encabezado
-                      dice de qué negocio es la vista previa. */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6, minWidth: 0 }}>
-                        <img src={EJEMPLO_POR_PLAN[p.key].photos[0].url} alt="" style={{ width: 20, height: 20, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
-                        <span style={{ fontSize: 11, fontWeight: 700, color: ink, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{EJEMPLO_POR_PLAN[p.key].name}</span>
-                      </div>
+                      {/* Sin encabezado con el negocio (15 nov 2026, Jonathan):
+                      el nombre se cortaba («SSAM Comida…») y se repetía en
+                      cada captura; la captura y su etiqueta bastan. */}
                       <img src={shot.url} alt={shot.label} style={{ width: '100%', borderRadius: 10 }} /><span style={{ fontSize: 11 }}>{shot.label}</span>
                     </div>)}</div>}
                   </section>
@@ -383,11 +377,8 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         </section>
         {/* Ya están en CityMap: prueba social con negocios reales de la base
         (ver YA_ESTAN_EN_CITYMAP en negociosEjemplos.js). Va después de los
-        planes y antes de las preguntas frecuentes. La calificación se lee
-        en vivo con displayRating (caché de Google vigente cuando lo hay);
-        la «G» se muestra solo en negocios de pago (regla 12 nov 2026),
-        incluido el valor verificado que se guarda como reserva en la
-        constante (solo los de pago lo llevan). */}
+        planes y antes de las preguntas frecuentes. Solo nombre y ciudad
+        sobre la foto (15 nov 2026, Jonathan: sin reseñas en esta tira). */}
         <section style={{ marginTop: 64 }}>
           <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_ya_estan_titulo", "Ya están en CityMap")}</h2></Reveal>
           <Reveal delay={90}><p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_ya_estan_sub", "Negocios reales que ya reciben clientes desde CityMap.")}</p></Reveal>
@@ -395,8 +386,6 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
             {YA_ESTAN_EN_CITYMAP.map((b) => {
               const shortSlug = b.slug.startsWith(`${b.city_slug}-`) ? b.slug.slice(b.city_slug.length + 1) : b.slug;
               const href = `/${b.city_slug}/${shortSlug}`;
-              const disp = displayRating(b, googleRatings);
-              const isGoogle = businessShowsGoogleRating(b) && (disp.source === "google" || b.googleRating);
               return (
                 <a key={b.id} href={href} onClick={(e) => { if (navigate) { e.preventDefault(); navigate(href); } }} className="ya-estan-card" style={{ position: 'relative' }}>
                   <img src={b.photos[0].url} alt={b.name} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', display: 'block' }} />
@@ -406,14 +395,6 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
                   <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '36px 14px 14px', background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0) 100%)' }}>
                     <div className="ya-estan-name" title={b.name} style={{ color: '#FFFFFF' }}>{b.name}</div>
                     <div style={{ fontSize: 13, lineHeight: 1.4, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>{b.cityName}</div>
-                    {disp.rating != null && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 6 }}>
-                        <Icon name="star_f" size={14} color="#FFFFFF" style={{ marginTop: -2 }} />
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#FFFFFF' }}>{disp.rating.toFixed(1)}</span>
-                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 700 }}>({formatReviewCount(disp.count)})</span>
-                        {isGoogle && <img src="/googlelogo.svg" alt="Google" style={{ width: 12, height: 12, objectFit: 'contain' }} />}
-                      </div>
-                    )}
                   </div>
                 </a>
               );

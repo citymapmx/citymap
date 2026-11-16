@@ -231,14 +231,21 @@ describe('Ejemplos por plan en /negocios', () => {
     expect(planCard(html, 'elite', 'fideliza')).not.toContain('linear-gradient(135deg, #1E3A8A, #0891B2)');
   });
 
-  it('los mockups llevan el encabezado con el negocio del ejemplo', () => {
+  it('los mockups ya no llevan el encabezado con el negocio del ejemplo', () => {
     const html = renderLanding(false);
-    // Ventas: el nombre de Four Seasons va justo antes de la captura del menú.
-    expect(planCard(html, 'elite', 'fideliza')).toContain('Four Seasons Resort Punta Mita</span></div><img src="/plans/menu-interactivo.png"');
-    // Fideliza: el nombre de SSAM va justo antes de cada captura.
+    // El nombre ya no va pegado a la captura: se cortaba («SSAM Comida…»,
+    // «Four Seasons Resort Punt…») y se repetía en cada captura (15 nov
+    // 2026, Jonathan: quitarlo).
+    expect(planCard(html, 'elite', 'fideliza')).not.toContain('Four Seasons Resort Punta Mita</span></div><img src="/plans/menu-interactivo.png"');
     const fideliza = planCard(html, 'fideliza', null);
-    expect(fideliza).toContain('SSAM Comida Coreana</span></div><img src="/plans/estadisticas.png"');
-    expect(fideliza).toContain('SSAM Comida Coreana</span></div><img src="/plans/reservas.png"');
+    expect(fideliza).not.toContain('SSAM Comida Coreana</span></div><img src="/plans/estadisticas.png"');
+    expect(fideliza).not.toContain('SSAM Comida Coreana</span></div><img src="/plans/reservas.png"');
+    // Las capturas y sus etiquetas siguen ahí.
+    expect(planCard(html, 'elite', 'fideliza')).toContain('<img src="/plans/menu-interactivo.png"');
+    expect(fideliza).toContain('<img src="/plans/estadisticas.png"');
+    expect(fideliza).toContain('<img src="/plans/reservas.png"');
+    expect(fideliza).toContain('Panel de Estadísticas');
+    expect(fideliza).toContain('Gestión de Reservas');
   });
 
   it('Dalila (ejemplo gratuito) no muestra fila de calificación: ni estrellas vacías ni número inventado', () => {
