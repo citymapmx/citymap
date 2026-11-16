@@ -7,6 +7,7 @@
 // loadStore, que dejaba el menú vacío en vez de romper la página).
 
 import { sb } from './supabase.js';
+import { saveMenuCache, readMenuCache } from './offlineCache.js';
 
 const SELECT_WITH_IMAGE = 'id,name,sort_order,image_url,available_from,available_to,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))';
 const SELECT_FALLBACK = 'id,name,sort_order,store_products(id,name,description,price,image_url,is_available,sort_order,category_id,promotion,store_product_options(id,name,type,is_required,store_option_values(id,label,extra_price)))';
@@ -24,15 +25,19 @@ export async function fetchStoreCategories(businessId) {
     try {
       data = await sb.get('store_categories', `?business_id=eq.${businessId}&select=${SELECT_FALLBACK}&order=sort_order.asc`);
     } catch {
-      return [];
+      // Sin internet (o con la consulta fallida): el último menú visto.
+      // Esta función nunca lanza por diseño: sin copia guardada se
+      // devuelve [] como antes.
+      return readMenuCache(businessId) ?? [];
     }
   }
-  if (!data) return [];
+  if (!data) return readMenuCache(businessId) ?? [];
   // PostgREST no ordena los recursos anidados: se ordenan aquí.
   data.forEach((cat) => {
     if (cat.store_products) {
       cat.store_products = [...cat.store_products].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
     }
   });
+  saveMenuCache(businessId, data);
   return data;
 }

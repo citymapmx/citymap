@@ -1,4 +1,5 @@
 import { sb, cloudDelete } from '../lib/supabase';
+import { saveBizCache, readBizCache } from '../lib/offlineCache.js';
 
 // ── Analytics ─────────────────────────────────────────────────────────────
 export const trackAnalyticsEvent = async (bizId, type, citySlug) => {
@@ -63,7 +64,18 @@ export const updateBusinessStats = async (bizId, updates) => {
 };
 
 export const fetchFullBusiness = async (bizId) => {
-  return await sb.get("businesses", `?id=eq.${bizId}&select=*,reviews(*)`);
+  try {
+    const res = await sb.get("businesses", `?id=eq.${bizId}&select=*,reviews(*)`);
+    if (Array.isArray(res) && res.length > 0) saveBizCache(bizId, res[0]);
+    return res;
+  } catch (err) {
+    // Sin internet (o con la consulta fallida): la última ficha vista.
+    // DetailView usa res[0] y completa los datos; sin copia guardada el
+    // error se relanza como antes.
+    const cached = readBizCache(bizId);
+    if (cached) return [cached];
+    throw err;
+  }
 };
 
 export const getBusinesses = async (query) => {

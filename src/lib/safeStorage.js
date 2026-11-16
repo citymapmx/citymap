@@ -21,7 +21,7 @@ export const isQuotaError = (err) => {
   return /quota/i.test(err.message || '');
 };
 
-const DERIVED_CACHE_PREFIXES = ['cg_mapPins_', 'cg_data_', 'cg_experiences_'];
+const DERIVED_CACHE_PREFIXES = ['cg_mapPins_', 'cg_data_', 'cg_experiences_', 'cg_biz_', 'cg_menu_'];
 
 const storageKeys = () => {
   if (typeof localStorage === 'undefined') return [];
