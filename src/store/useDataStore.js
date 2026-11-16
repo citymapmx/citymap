@@ -110,6 +110,10 @@ export const useDataStore = create((set, get) => ({
   homeCoreError: false,
   homeSecondaryCity: null,
   homeSecondaryError: false,
+  // true cuando la restauración síncrona de loadData encontró alguna
+  // caché guardada para la ciudad (muro o pines): sin internet pero con
+  // caché, el splash sale y se ve lo último cargado.
+  homeCacheAvailable: false,
   dbReady: false, setDbReady: (val) => set(s => ({ dbReady: typeof val === 'function' ? val(s.dbReady) : val })),
   dbError: false, setDbError: (val) => set(s => ({ dbError: typeof val === 'function' ? val(s.dbError) : val })),
   mapPins: [], setMapPins: (val) => set(s => ({ mapPins: typeof val === 'function' ? val(s.mapPins) : val })),
@@ -145,7 +149,12 @@ export const useDataStore = create((set, get) => ({
       if (cached) {
         try {
           const rows = JSON.parse(cached);
-          if (Array.isArray(rows)) set({ mapPins: rows.slice(0, 20) });
+          if (Array.isArray(rows)) {
+            const restored = rows.slice(0, 20);
+            // Sin internet el fetch falla y el conteo quedaba en null:
+            // el splash no salía aunque los pines sí estaban en caché.
+            set({ mapPins: restored, initialBizCount: restored.length });
+          }
         } catch { /* Invalid caches are replaced by the network response. */ }
       }
       // booking_config VA en el select (nov 2026, botón Reservar
@@ -397,12 +406,13 @@ export const useDataStore = create((set, get) => ({
       return inFlightLoadPromise;
     }
     inFlightCity = rawTarget;
-    set({homeCoreCity:null,homeCoreError:false,homeSecondaryCity:null,homeSecondaryError:false});
+    set({homeCoreCity:null,homeCoreError:false,homeSecondaryCity:null,homeSecondaryError:false,homeCacheAvailable:false});
 
     // Instant synchronous cache restoration before any network call
     if (rawTarget) {
       const cacheKey = `cg_data_${rawTarget}_v5`;
       const currentActiveCity = localStorage.getItem("cg_city_slug");
+      let foundCache = false;
 
       if (cityOverride && currentActiveCity && cityOverride !== currentActiveCity) {
         set({ dbReady: false, events: [], experiences: [], banners: [], promos: [], coupons: [], mapPins: [] });
@@ -412,6 +422,7 @@ export const useDataStore = create((set, get) => ({
       if (cached) {
         try {
           const c = JSON.parse(cached);
+          foundCache = true;
           const now = new Date();
           const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
           
@@ -452,10 +463,12 @@ export const useDataStore = create((set, get) => ({
           }
           
           if (localStorage.getItem(`cg_mapPins_${rawTarget}`)) {
+            foundCache = true;
             set({ dbReady: true });
           }
         } catch (e) { console.error(e); }
       }
+      if (foundCache) set({ homeCacheAvailable: true });
     }
 
     inFlightLoadPromise = (async () => {
@@ -609,11 +622,14 @@ export const useDataStore = create((set, get) => ({
 
       let coreError=false;
       const bannerCities = ["all", ...(METRO_ZONES[targetCity] || [targetCity])];
-      const pBanners = sb.get("banners", `?active=eq.true&city_slug=in.(${bannerCities.join(',')})`).catch(() => {coreError=true;return [];});
-      const pCats = sb.get("categories", "?active=eq.true&order=sort_order.asc").catch(() => {coreError=true;return [];});
-      const pCityCats = sb.get("city_categories").catch(() => {coreError=true;return [];});
-      const pCities = currentCities && currentCities.length > 0 ? Promise.resolve(currentCities) : sb.get("cities", "?order=name.asc").catch(() => []);
-      const pFavs = sb.rpc("get_global_favs").catch(() => sb.get("favorites")).catch(() => []);
+      // Un fetch fallido devuelve null, no []: con [] el estado y la caché
+      // guardada se borraban con vacíos (nov 2026, sin internet). Solo se
+      // aplican los fetches que tuvieron éxito (Array).
+      const pBanners = sb.get("banners", `?active=eq.true&city_slug=in.(${bannerCities.join(',')})`).catch(() => {coreError=true;return null;});
+      const pCats = sb.get("categories", "?active=eq.true&order=sort_order.asc").catch(() => {coreError=true;return null;});
+      const pCityCats = sb.get("city_categories").catch(() => {coreError=true;return null;});
+      const pCities = currentCities && currentCities.length > 0 ? Promise.resolve(currentCities) : sb.get("cities", "?order=name.asc").catch(() => null);
+      const pFavs = sb.rpc("get_global_favs").catch(() => sb.get("favorites")).catch(() => null);
 
       // Solo lo que necesita la primera pantalla: banners, categorías,
       // ciudades, favoritos y los primeros 20 negocios. El resto (la lista
@@ -627,11 +643,11 @@ export const useDataStore = create((set, get) => ({
 
       const stateUpdates = {};
 
-      stateUpdates.banners = Array.isArray(bn) ? bn.filter(Boolean) : [];
-      if (cc) {
+      if (Array.isArray(bn)) stateUpdates.banners = bn.filter(Boolean);
+      if (Array.isArray(cc)) {
         stateUpdates.cityCats = cc;
       }
-      if (ca) {
+      if (Array.isArray(ca)) {
         const cityLinks = Array.isArray(cc) ? cc : [];
         const cityLinkedSlugs = cityLinks.map(l => l.category_slug);
         const filteredCa = ca.filter(cat => {
@@ -659,15 +675,19 @@ export const useDataStore = create((set, get) => ({
 
       set(stateUpdates);
 
-      try {
-        updateCityCache(cacheKey, {
-          bn: Array.isArray(bn) ? bn : [],
-          ca: Array.isArray(ca) ? ca : [],
-          cc: Array.isArray(cc) ? cc : [],
-          ci: Array.isArray(ci) ? ci : [],
-          globalFavs: Array.isArray(globalFavs) ? globalFavs : []
-        });
-      } catch (cacheErr) { console.error(cacheErr); }
+      // Solo se guarda lo que llegó bien: un fetch fallido (null) no pisa
+      // la caché guardada con vacíos.
+      const cacheUpdates = {};
+      if (Array.isArray(bn)) cacheUpdates.bn = bn;
+      if (Array.isArray(ca)) cacheUpdates.ca = ca;
+      if (Array.isArray(cc)) cacheUpdates.cc = cc;
+      if (Array.isArray(ci)) cacheUpdates.ci = ci;
+      if (Array.isArray(globalFavs)) cacheUpdates.globalFavs = globalFavs;
+      if (Object.keys(cacheUpdates).length > 0) {
+        try {
+          updateCityCache(cacheKey, cacheUpdates);
+        } catch (cacheErr) { console.error(cacheErr); }
+      }
 
       if(get().mapPinsCity===targetCity)set({ dbReady: true, dbError: coreError, homeCoreCity:targetCity,homeCoreError:coreError });
     } catch (err) {
