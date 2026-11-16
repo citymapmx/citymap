@@ -384,16 +384,19 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
               const disp = displayRating(b, googleRatings);
               const isGoogle = businessShowsGoogleRating(b) && (disp.source === "google" || b.googleRating);
               return (
-                <a key={b.id} href={href} onClick={(e) => { if (navigate) { e.preventDefault(); navigate(href); } }} className="ya-estan-card">
+                <a key={b.id} href={href} onClick={(e) => { if (navigate) { e.preventDefault(); navigate(href); } }} className="ya-estan-card" style={{ position: 'relative' }}>
                   <img src={b.photos[0].url} alt={b.name} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', display: 'block' }} />
-                  <div style={{ padding: '14px 14px 16px' }}>
-                    <div className="ya-estan-name" title={b.name}>{b.name}</div>
-                    <div style={{ fontSize: 13, lineHeight: 1.4, color: muted, marginTop: 2 }}>{b.cityName}</div>
+                  {/* La foto llena toda la tarjeta (15 nov 2026, Jonathan):
+                  sin área blanca abajo; nombre, ciudad y calificación van
+                  sobre la imagen con un degradado negro suave abajo. */}
+                  <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '36px 14px 14px', background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0) 100%)' }}>
+                    <div className="ya-estan-name" title={b.name} style={{ color: '#FFFFFF' }}>{b.name}</div>
+                    <div style={{ fontSize: 13, lineHeight: 1.4, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>{b.cityName}</div>
                     {disp.rating != null && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 6 }}>
-                        <Icon name="star_f" size={14} color={ink} style={{ marginTop: -2 }} />
-                        <span style={{ fontSize: 12, fontWeight: 700 }}>{disp.rating.toFixed(1)}</span>
-                        <span style={{ fontSize: 12, color: muted, fontWeight: 700 }}>({formatReviewCount(disp.count)})</span>
+                        <Icon name="star_f" size={14} color="#FFFFFF" style={{ marginTop: -2 }} />
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#FFFFFF' }}>{disp.rating.toFixed(1)}</span>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 700 }}>({formatReviewCount(disp.count)})</span>
                         {isGoogle && <img src="/googlelogo.svg" alt="Google" style={{ width: 12, height: 12, objectFit: 'contain' }} />}
                       </div>
                     )}
