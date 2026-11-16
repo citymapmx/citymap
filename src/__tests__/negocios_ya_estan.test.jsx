@@ -108,10 +108,10 @@ describe('Sección «Ya están en CityMap» en /negocios', () => {
     expect(faq).toBeGreaterThan(title);
   });
 
-  it('la tira no repite los 3 ejemplos por plan ni a Mochomos', () => {
+  it('la tira no repite los 4 ejemplos por plan ni a Mochomos', () => {
     const html = renderLanding(false);
     const section = yaEstanSection(html);
-    for (const name of ['Dalila Casa Repostera', 'Akami Sushi', 'Four Seasons Resort Punta Mita', 'Mochomos']) {
+    for (const name of ['Dalila Casa Repostera', 'Akami Sushi', 'Four Seasons Resort Punta Mita', 'SSAM Comida Coreana', 'Mochomos']) {
       expect(section).not.toContain(name);
     }
   });
