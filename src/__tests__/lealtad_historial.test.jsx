@@ -181,6 +181,32 @@ describe('lealtad: hoja de confirmación dentro de la app', () => {
   });
 });
 
+describe('lealtad: la confirmación de eliminar va centrada en la pantalla', () => {
+  it('la hoja se pinta con portal a document.body, fuera del árbol con transform', () => {
+    const src = read('../components/loyalty/LoyaltyConfirmSheet.jsx');
+    // Mi Perfil lleva transform (viewStyle) y atrapa los position: fixed
+    // de sus hijos: sin portal la hoja se centraba en la página entera y
+    // se abría abajo, con los botones cortados por la barra inferior
+    // (16 nov 2026, Jonathan). Con el portal, el fixed es el viewport.
+    expect(src).toContain('createPortal');
+    expect(src).toContain('document.body');
+    expect(src).toContain("typeof document !== 'undefined'");
+  });
+
+  it('la hoja es un modal centrado, no una hoja de abajo', () => {
+    const src = read('../components/loyalty/LoyaltyConfirmSheet.jsx');
+    expect(src).toContain("alignItems: 'center'");
+    expect(src).toContain("justifyContent: 'center'");
+    expect(src).not.toContain("alignItems: 'flex-end'");
+    expect(src).not.toContain('bottom: 0');
+  });
+
+  it('la hoja respeta el área segura inferior del celular', () => {
+    const src = read('../components/loyalty/LoyaltyConfirmSheet.jsx');
+    expect(src).toContain('safe-area-inset-bottom');
+  });
+});
+
 describe('lealtad: nada de window.confirm y funciones actuales intactas', () => {
   it('LoyaltyDesigner no usa window.confirm ni la tabla vieja bloqueada', () => {
     const src = read('../components/loyalty/LoyaltyDesigner.jsx');
