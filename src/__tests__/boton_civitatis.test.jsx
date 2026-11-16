@@ -7,7 +7,9 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // captura, 15 nov 2026): el logo era el icono cuadrado de la app y la
 // palabra medía ~4 px, no se leía; además el botón solo decía
 // «Civitatis», sin verbo. Propuestas 1 y 3: logo horizontal oficial en
-// blanco + «Reservar ↗», y microcopy de confianza debajo del botón.
+// blanco + «Reservar en Civitatis», y microcopy de confianza debajo del
+// botón. Ajuste 15 nov ~23:13 (Jonathan): el logo va a la medida de las
+// letras (15 px) y el texto dice «Reservar en Civitatis».
 
 describe('Botón de Civitatis en el detalle del tour', () => {
   const src = read('../components/ExperienceViewer.jsx');
@@ -15,13 +17,22 @@ describe('Botón de Civitatis en el detalle del tour', () => {
   it('usa el logo horizontal blanco, no el icono cuadrado', () => {
     expect(src).toContain('civitatis-logo-blanco.svg');
     expect(src).toContain('isCivitatis');
-    // El logo va a 20 px de alto (la palabra pasa de ~4 px a ~20 px).
-    expect(src).toContain('height: 20');
+    // El logo va a 15 px de alto, a la medida de las letras del texto
+    // (la palabra pasa de ~4 px a ~11 px de alto visible).
+    expect(src).toContain('height: 15');
   });
 
-  it('el texto es «Reservar ↗», no «Civitatis» solo', () => {
-    expect(src).toContain('Reservar ↗');
-    expect(src).toContain('revista_reservar');
+  it('el texto es «Reservar en Civitatis», no «Civitatis» solo', () => {
+    expect(src).toContain('Reservar en Civitatis');
+    expect(src).toContain('revista_reservar_en_civitatis');
+    // Sin flecha: la clave vieja «revista_reservar» se traduce como
+    // «Reservar» sin flecha, por eso la ↗ nunca se vio en vivo.
+    expect(src).not.toContain('Reservar ↗');
+  });
+
+  it('la traducción existe en español e inglés', () => {
+    expect(read('../lib/i18n.js')).toContain('"revista_reservar_en_civitatis": "Reservar en Civitatis"');
+    expect(read('../lib/i18n-en.js')).toContain('"revista_reservar_en_civitatis": "Book on Civitatis"');
   });
 
   it('el fondo es #E60045 (contraste AA) en vez del rosa #FF004F', () => {
