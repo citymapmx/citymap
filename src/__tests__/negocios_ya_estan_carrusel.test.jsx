@@ -73,4 +73,25 @@ describe('Ya están en CityMap: carrusel B y enlaces a la ficha (16 nov 2026)', 
     const src = read('../router/AppRouter.jsx');
     expect(src).toContain('onBusinessTap={handleCardTap}');
   });
+
+  it('App.jsx pasa handleCardTap a AppRouter (16 nov 2026: la #381 lo omitió y onBusinessTap quedaba undefined, así que la tarjeta solo navegaba y la ficha no se abría)', () => {
+    const src = read('../App.jsx');
+    const routerStart = src.indexOf('<AppRouter');
+    expect(routerStart).toBeGreaterThan(-1);
+    const routerEnd = src.indexOf('/>', routerStart);
+    expect(src.slice(routerStart, routerEnd)).toContain('handleCardTap={handleCardTap}');
+  });
+
+  it('el carrusel se pausa al tocarlo y los puntos están dentro de la zona de pausa', () => {
+    const src = read('../components/BusinessLanding.jsx');
+    expect(src).toContain('onPointerDown={yaEstanPause}');
+    expect(src).toContain('onPointerUp={yaEstanScheduleResume}');
+    expect(src).toContain('setTimeout(() => setYaEstanPaused(false), 6000)');
+    // La zona de pausa envuelve el viewport y los puntos
+    const html = renderLanding();
+    expect(html).toContain('ya-estan-pause-zone');
+    const zoneStart = src.indexOf('ya-estan-pause-zone');
+    expect(src.indexOf('ya-estan-viewport', zoneStart)).toBeGreaterThan(zoneStart);
+    expect(src.indexOf('role="tablist"', zoneStart)).toBeGreaterThan(zoneStart);
+  });
 });

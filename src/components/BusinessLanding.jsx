@@ -89,6 +89,19 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
   const [yaEstanInstant, setYaEstanInstant] = useState(false);
   const [yaEstanPaused, setYaEstanPaused] = useState(false);
   const yaEstanTouchX = useRef(0);
+  const yaEstanResumeTimer = useRef(null);
+  // Pausa el avance automático en cuanto el usuario toca el carrusel
+  // (16 nov 2026): sin esto la tarjeta se mueve bajo el dedo y el toque
+  // cae en otro negocio. Se reanuda 6 s después de la última interacción.
+  const yaEstanPause = () => {
+    if (yaEstanResumeTimer.current) { clearTimeout(yaEstanResumeTimer.current); yaEstanResumeTimer.current = null; }
+    setYaEstanPaused(true);
+  };
+  const yaEstanScheduleResume = () => {
+    if (yaEstanResumeTimer.current) clearTimeout(yaEstanResumeTimer.current);
+    yaEstanResumeTimer.current = setTimeout(() => setYaEstanPaused(false), 6000);
+  };
+  useEffect(() => () => { if (yaEstanResumeTimer.current) clearTimeout(yaEstanResumeTimer.current); }, []);
   const yaEstanPages = Math.max(1, Math.ceil(yaEstanOrder.length / yaEstanPerView));
   const yaEstanChunks = [];
   for (let i = 0; i < yaEstanOrder.length; i += yaEstanPerView) yaEstanChunks.push(yaEstanOrder.slice(i, i + yaEstanPerView));
@@ -125,12 +138,16 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     return () => clearInterval(id);
   }, [yaEstanPaused, yaEstanPages, yaEstanPage]);
   const yaEstanGoTo = (pi) => {
+    // Cambio manual (puntos o deslizamiento): pausar el avance automático
+    // y reanudarlo 6 s después, para que no se mueva justo tras el toque.
+    yaEstanPause();
+    yaEstanScheduleResume();
     if (pi >= yaEstanPages) {
       setYaEstanOrder(shuffleList(YA_ESTAN_EN_CITYMAP));
       setYaEstanInstant(true);
       setYaEstanPage(0);
     } else {
-      setYaEstanPage(pi);
+      setYaEstanPage(((pi % yaEstanPages) + yaEstanPages) % yaEstanPages);
     }
   };
 
@@ -469,16 +486,21 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
           aleatorio; avanza solo cada 4 s y al terminar la vuelta revuelve
           el orden. Puntos para cambiar de página y deslizamiento con el
           dedo. Cada tarjeta abre su ficha (onBusinessTap). */}
+          {/* Zona de pausa (16 nov 2026): el cursor o el dedo sobre el
+              carrusel o sobre los puntos pausa el avance automático, para
+              que la tarjeta no se mueva bajo el dedo. Se reanuda 6 s
+              después de la última interacción. */}
+          <div className="ya-estan-pause-zone" onMouseEnter={yaEstanPause} onMouseLeave={yaEstanScheduleResume}>
           <div
             className="ya-estan-viewport"
-            onMouseEnter={() => setYaEstanPaused(true)}
-            onMouseLeave={() => setYaEstanPaused(false)}
+            onPointerDown={yaEstanPause}
+            onPointerUp={yaEstanScheduleResume}
             onTouchStart={(e) => { yaEstanTouchX.current = e.touches[0].clientX; }}
             onTouchEnd={(e) => {
               const dx = e.changedTouches[0].clientX - (yaEstanTouchX.current || 0);
               if (Math.abs(dx) > 40) {
                 if (dx < 0) yaEstanGoTo(yaEstanPage + 1);
-                else setYaEstanPage((yaEstanPage - 1 + yaEstanPages) % yaEstanPages);
+                else yaEstanGoTo(yaEstanPage - 1);
               }
             }}
           >
@@ -512,6 +534,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
               ))}
             </div>
           )}
+          </div>
         </section>
         <section style={{ maxWidth: 720, margin: '64px auto 0' }}>
           <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 22px' }}>{t("negocios_faq_titulo", "Preguntas frecuentes")}</h2></Reveal>
