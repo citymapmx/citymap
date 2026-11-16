@@ -475,10 +475,11 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                   }
 
                   // Civitatis (15 nov 2026): logo horizontal oficial en
-                  // blanco + verbo «Reservar»: el icono cuadrado no se
-                  // leía (las letras medían ~4 px) y el botón no decía
-                  // qué pasa al tocarlo. Fondo #E60045 (contraste 4.72:1,
-                  // pasa AA) en vez del rosa de marca #FF004F (3.91:1).
+                  // blanco + «Reservar en Civitatis»: el icono cuadrado
+                  // no se leía (las letras medían ~4 px) y el botón no
+                  // decía qué pasa al tocarlo. Logo a 15 px, a la medida
+                  // de las letras. Fondo #E60045 (contraste 4.72:1, pasa
+                  // AA) en vez del rosa de marca #FF004F (3.91:1).
                   // El resto de plataformas sigue igual.
                   const isCivitatis = l.platform === 'civitatis' || (l.url || '').toLowerCase().includes('civitatis');
                   const btnBg = isCivitatis ? '#E60045' : s.color;
@@ -490,9 +491,9 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                       style={{ flex: 1, background: btnBg, border: "none", borderRadius: isCivitatis ? 16 : 14, padding: isCivitatis ? "14px 20px" : "12px 16px", color: "#fff", fontSize: isCivitatis ? 15 : 14, fontWeight: isCivitatis ? 800 : 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: `0 4px 12px ${btnBg}66`, transition: "transform 0.1s" }}
                     >
                       {isCivitatis
-                        ? <img src="/civitatis-logo-blanco.svg" alt="Civitatis" style={{ height: 20, width: "auto", display: "block" }} />
+                        ? <img src="/civitatis-logo-blanco.svg" alt="Civitatis" style={{ height: 15, width: "auto", display: "block" }} />
                         : renderIcon(s, 16)}
-                      <span>{isCivitatis ? t("revista_reservar", "Reservar ↗") : (l.label || s.label)}</span>
+                      <span>{isCivitatis ? t("revista_reservar_en_civitatis", "Reservar en Civitatis") : (l.label || s.label)}</span>
                     </button>
                   );
                 })}

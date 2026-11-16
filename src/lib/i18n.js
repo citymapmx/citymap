@@ -443,6 +443,7 @@ export const TRANSLATIONS = {
     "revista_reservaciones": "Reservaciones",
     "revista_reservaciones_citas": "Reservaciones y Citas",
     "revista_reservar": "Reservar",
+    "revista_reservar_en_civitatis": "Reservar en Civitatis",
     "revista_selecciona_fecha_hora": "2. Selecciona Fecha y Hora",
     "revista_selecciona_servicio": "1. Selecciona el servicio",
     "revista_siguiente": "Siguiente",
