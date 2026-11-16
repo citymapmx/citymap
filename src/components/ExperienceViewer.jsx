@@ -474,18 +474,35 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
                     }
                   }
 
+                  // Civitatis (15 nov 2026): logo horizontal oficial en
+                  // blanco + verbo «Reservar»: el icono cuadrado no se
+                  // leía (las letras medían ~4 px) y el botón no decía
+                  // qué pasa al tocarlo. Fondo #E60045 (contraste 4.72:1,
+                  // pasa AA) en vez del rosa de marca #FF004F (3.91:1).
+                  // El resto de plataformas sigue igual.
+                  const isCivitatis = l.platform === 'civitatis' || (l.url || '').toLowerCase().includes('civitatis');
+                  const btnBg = isCivitatis ? '#E60045' : s.color;
+
                   return (
-                    <button 
-                      key={i} 
-                      onClick={() => openLink(l.url)} 
-                      style={{ flex: 1, background: s.color, border: "none", borderRadius: 14, padding: "12px 16px", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: `0 4px 12px ${s.color}66`, transition: "transform 0.1s" }}
+                    <button
+                      key={i}
+                      onClick={() => openLink(l.url)}
+                      style={{ flex: 1, background: btnBg, border: "none", borderRadius: isCivitatis ? 16 : 14, padding: isCivitatis ? "14px 20px" : "12px 16px", color: "#fff", fontSize: isCivitatis ? 15 : 14, fontWeight: isCivitatis ? 800 : 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: `0 4px 12px ${btnBg}66`, transition: "transform 0.1s" }}
                     >
-                      {renderIcon(s, 16)}
-                      <span>{l.label || s.label}</span>
+                      {isCivitatis
+                        ? <img src="/civitatis-logo-blanco.svg" alt="Civitatis" style={{ height: 20, width: "auto", display: "block" }} />
+                        : renderIcon(s, 16)}
+                      <span>{isCivitatis ? t("revista_reservar", "Reservar ↗") : (l.label || s.label)}</span>
                     </button>
                   );
                 })}
               </div>
+              {/* Microcopy de confianza (15 nov 2026): solo cuando hay
+              enlace de Civitatis. Quita la duda del clic sin prometer
+              nada no verificado. */}
+              {externalLinks.some((l) => l.platform === 'civitatis' || (l.url || '').toLowerCase().includes('civitatis')) && (
+                <p style={{ fontSize: 12, color: T.sub, textAlign: 'center', margin: '2px 0 0' }}>{t("revista_redireccion_civitatis", "Serás redirigido a civitatis.com para completar tu reserva")}</p>
+              )}
               {exp.route_url && (() => {
                 const isWikiloc = exp.route_url.toLowerCase().includes('wikiloc');
                 const isAllTrails = exp.route_url.toLowerCase().includes('alltrails');
