@@ -476,7 +476,13 @@ export default memo(function BusinessCard({
               )}
             </h3>
             
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            {/* Fila inferior (15 nov 2026): con envoltura. En tarjetas
+            angostas (4 columnas en escritorio) la calificación + Abierto
+            + los 3 botones de redes + la distancia no cabían en una línea
+            y la foto recortaba los iconos y el «1.6 km» por la derecha.
+            Ahora los botones y la distancia bajan a una segunda línea
+            solo cuando hace falta; en tarjetas anchas no cambia nada. */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", rowGap: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {showStars ? (
                   renderRatingRow(
