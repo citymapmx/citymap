@@ -59,8 +59,15 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
   // piden en cuanto se conoce el negocio, en paralelo al resto, y la
   // MISMA pantalla de carga cubre negocio + categorías (antes eran
   // dos esqueletos en secuencia: el del negocio y «Cargando menú…»).
-  // Sin menú (no elite) no se piden categorías: va directo al landing.
-  const isElite = !!biz && (biz.plan === 'destacado' || biz.plan === 'premium' || biz.plan === 'pro');
+  // Sin menú (plan sin acceso) no se piden categorías: va directo al landing.
+  // 15 nov 2026: la migración de planes (#364) renombró premium→fideliza
+  // y destacado→pro, pero este gate seguía con las claves viejas
+  // (destacado/premium/pro) y dejaba FUERA a elite (Ventas) y fideliza
+  // (Fideliza): Akami Sushi (fideliza, 158 productos) veía «Menú no
+  // disponible» aunque su menú existe. Ventas y Fideliza deben tener el
+  // menú 100% funcional como antes; Presencia conserva el acceso que
+  // ya tenía. Las claves viejas se quedan por compatibilidad.
+  const isElite = !!biz && ['pro', 'elite', 'fideliza', 'destacado', 'premium'].includes(biz.plan);
   const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
     queryKey: ['store-categories', biz?.id],
     queryFn: () => fetchStoreCategories(biz.id),
