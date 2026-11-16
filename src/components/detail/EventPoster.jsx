@@ -10,6 +10,13 @@ export default function EventPoster({ src, alt = '', dark = false }) {
   const detailSrc = useOriginal ? src : optimizedSrc;
   const ready = loadedSrc === detailSrc;
   const hasPreview = previewSrc !== detailSrc;
+  // La imagen ya cargó y su alto natural manda: la reserva de 360 px se
+  // suelta y el contenedor se ciñe al póster. La vista previa (400 px)
+  // tiene las mismas proporciones que el detalle, así que su onLoad ya
+  // alcanza para soltarla; el onLoad del detalle cubre el caso sin vista
+  // previa. Sin soltarla, los pósters apaisados (~220 px de alto en
+  // teléfono) dejaban una banda gris vacía debajo de la imagen.
+  const [sized, setSized] = useState(false);
   const imageStyle = {
     gridArea: '1 / 1', alignSelf: 'start', width: '100%', height: 'auto',
     display: 'block',
@@ -24,9 +31,11 @@ export default function EventPoster({ src, alt = '', dark = false }) {
     // evento primero se veía la información y luego el salto a la
     // imagen. 360 px es el punto medio medido en 15 pósters próximos
     // (verticales ~487 px, cuadrados ~390, apaisados ~220-340 en
-    // teléfono): el salto que queda es chico y el área ya se ve como
-    // el espacio de la foto, no como la sección de abajo.
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', width: '100%', overflow: 'hidden', minHeight: 360, background: dark ? '#232326' : '#E5E7EB' }}>
+    // teléfono). La reserva solo vive mientras carga: en cuanto la
+    // imagen llega, minHeight baja a 0 con una transición suave y el
+    // contenedor se ciñe al alto natural del póster, sin banda gris
+    // debajo y sin salto brusco.
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', width: '100%', overflow: 'hidden', minHeight: sized ? 0 : 360, transition: 'min-height 300ms ease', background: dark ? '#232326' : '#E5E7EB' }}>
       {hasPreview && (
         <img
           src={previewSrc}
@@ -34,6 +43,7 @@ export default function EventPoster({ src, alt = '', dark = false }) {
           aria-hidden="true"
           loading="eager"
           decoding="async"
+          onLoad={() => setSized(true)}
           style={imageStyle}
         />
       )}
@@ -48,6 +58,7 @@ export default function EventPoster({ src, alt = '', dark = false }) {
           // Keep the preview painted until the browser can display the detail.
           try { await image.decode(); } catch { /* Loaded images can still be displayed. */ }
           if (image.isConnected) setLoadedSrc(detailSrc);
+          setSized(true);
         }}
         onError={() => {
           if (detailSrc !== src) setUseOriginal(true);

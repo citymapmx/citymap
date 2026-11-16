@@ -19,9 +19,16 @@ describe('detalle del evento sin salto al abrir', () => {
     expect(src.match(/scrollTo\(0, 0\)/g)).toHaveLength(1);
   });
 
-  it('EventPoster reserva su espacio desde el primer pintado', () => {
+  it('EventPoster reserva su espacio desde el primer pintado y lo suelta al cargar', () => {
     const src = read('../components/detail/EventPoster.jsx');
-    expect(src).toContain('minHeight: 360');
+    expect(src).toContain('minHeight: sized ? 0 : 360');
     expect(src).toContain("background: dark ? '#232326' : '#E5E7EB'");
+    // La reserva se suelta con transición suave, no de golpe: así el
+    // póster apaisado no deja banda gris debajo ni da un salto brusco.
+    expect(src).toContain("transition: 'min-height 300ms ease'");
+    // La vista previa avisa al cargar (mismas proporciones que el
+    // detalle); el detalle cubre el caso sin vista previa.
+    expect(src).toMatch(/onLoad=\{\(\) => setSized\(true\)\}/);
+    expect(src).toContain('setSized(true)');
   });
 });
