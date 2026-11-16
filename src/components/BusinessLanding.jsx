@@ -27,14 +27,14 @@ function StatNumber({ value, active }) {
 
 
 // Visitas desde Google: cifras REALES de Search Console (captura de
-// Jonathan del 10 nov 2026, últimos 28 días) del sitio COMPLETO, no por
+// Jonathan del 15 nov 2026, últimos 28 días) del sitio COMPLETO, no por
 // negocio y no inventadas. Para actualizarlas, cambiar solo los valores
 // de aquí: el texto, las cifras grandes y los ejemplos se arman solos.
-// impressionsThousands es el número en miles: 105 = "105 mil" (es) /
-// "105K" (en). Ejemplos: clics por página en esos 28 días.
+// impressionsThousands es el número en miles: 121 = "121 mil" (es) /
+// "121K" (en). Ejemplos: clics por página en esos 28 días.
 const GOOGLE_SEARCH_CONSOLE = {
-  clicks: 446,
-  impressionsThousands: 105,
+  clicks: 533,
+  impressionsThousands: 121,
   examples: { formentera: 27, campomar: 15, akami: 14 },
 };
 
@@ -102,7 +102,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     { value: liveStats.events, label: t("negocios_stat_eventos", "eventos vigentes") },
     { value: liveStats.tours, label: t("negocios_stat_tours", "tours y guías") },
   ];
-  // "105 mil" en español, "105K" en inglés (ver GOOGLE_SEARCH_CONSOLE).
+  // "121 mil" en español, "121K" en inglés (ver GOOGLE_SEARCH_CONSOLE).
   const impressionsDisplay = lang === "en"
     ? `${GOOGLE_SEARCH_CONSOLE.impressionsThousands}K`
     : `${GOOGLE_SEARCH_CONSOLE.impressionsThousands} mil`;

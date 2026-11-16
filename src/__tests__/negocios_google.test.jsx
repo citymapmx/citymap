@@ -48,10 +48,10 @@ describe('Sección «Tu negocio ya aparece en Google» en /negocios', () => {
     expect(html.indexOf('Tu negocio ya aparece en Google')).toBeLessThan(html.indexOf('id="planes"'));
   });
 
-  it('muestra las cifras exactas de Search Console: 446 clics y 105 mil impresiones', () => {
+  it('muestra las cifras exactas de Search Console: 533 clics y 121 mil impresiones', () => {
     const section = googleSection(renderLanding(false));
-    expect(section).toContain('446');
-    expect(section).toContain('105 mil');
+    expect(section).toContain('533');
+    expect(section).toContain('121 mil');
     expect(section).toContain('clics');
     expect(section).toContain('impresiones');
     // La etiqueta de periodo se ve en la sección, no solo en un comentario.
@@ -118,8 +118,8 @@ describe('Sección «Tu negocio ya aparece en Google» en /negocios', () => {
 
   it('se ve igual en modo oscuro (mismo contenido)', () => {
     const section = googleSection(renderLanding(true));
-    expect(section).toContain('446');
-    expect(section).toContain('105 mil');
+    expect(section).toContain('533');
+    expect(section).toContain('121 mil');
     expect(section).toContain('Formentera');
   });
 });
