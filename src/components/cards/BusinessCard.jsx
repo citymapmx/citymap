@@ -483,7 +483,12 @@ export default memo(function BusinessCard({
             Ahora los botones y la distancia bajan a una segunda línea
             solo cuando hace falta; en tarjetas anchas no cambia nada. */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", rowGap: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {/* La calificación también envuelve (15 nov 2026): en Four
+              Seasons la línea «★ 4.8 (3,766) · 45 · Abierto» se pasaba
+              ~7 px y la «o» quedaba recortada aunque los iconos ya
+              bajaran a la segunda línea. El horario baja con su «·» a
+              la siguiente línea solo cuando hace falta. */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", rowGap: 2 }}>
                 {showStars ? (
                   renderRatingRow(
                     b, 
@@ -509,8 +514,10 @@ export default memo(function BusinessCard({
                   )
                 )}
 
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>·</span>
-                {renderScheduleRow(b, T, t, forceOpen)}
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>·</span>
+                  {renderScheduleRow(b, T, t, forceOpen)}
+                </span>
               </div>
               
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}>

@@ -29,4 +29,11 @@ describe('Fila inferior de la tarjeta destacada', () => {
   it('la distancia sigue en la misma fila (baja con los botones si hace falta)', () => {
     expect(src).toContain('{distStr && (');
   });
+
+  it('la calificación también envuelve: el horario baja con su «·» si la línea no cabe', () => {
+    // Four Seasons: «★ 4.8 (3,766) · 45 · Abierto» se pasaba ~7 px y la
+    // «o» quedaba recortada aunque los iconos ya bajaran de línea.
+    expect(src).toContain('gap: 6, flexWrap: "wrap", rowGap: 2');
+    expect(src).toContain('<span style={{ display: "flex", alignItems: "center", gap: 6 }}>');
+  });
 });
