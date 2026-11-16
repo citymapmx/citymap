@@ -119,8 +119,17 @@ describe('Ejemplos por plan en /negocios', () => {
     }
   });
 
-  it('sin dato de Google en el store, ningún ejemplo muestra calificación (nada inventado)', () => {
+  it('la calificación guardada (caché de Google del 10 nov) se muestra sin dato en vivo, pero sin el logo de Google', () => {
     const html = renderLanding(false);
+    // Sin dato en el store, displayRating usa el valor guardado (reserva
+    // verificada): la tarjeta muestra ★ + número, pero sin la «G», que
+    // solo aparece con el caché vigente en vivo (source google).
+    expect(planCard(html, 'pro', 'elite')).toContain('4.6');
+    expect(planCard(html, 'pro', 'elite')).toContain('(47)');
+    expect(planCard(html, 'elite', 'fideliza')).toContain('4.8');
+    expect(planCard(html, 'elite', 'fideliza')).toContain('(3,766)');
+    expect(planCard(html, 'fideliza', null)).toContain('4.8');
+    expect(planCard(html, 'fideliza', null)).toContain('(8,825)');
     for (const [key, next] of [['free', 'pro'], ['pro', 'elite'], ['elite', null]]) {
       expect(planCard(html, key, next)).not.toContain('googlelogo');
     }
@@ -162,21 +171,72 @@ describe('Ejemplos por plan en /negocios', () => {
     expect(card).toContain('flex-wrap:wrap;overflow:hidden');
     expect(card).not.toContain('flex-wrap:nowrap');
     // El estado sigue presente entero (el horario no se inventó ni se quitó).
-    // Dalila abre a las 09:30, así que antes es «Cerrado» y después «Abierto»:
-    // fijar uno solo haría el test dependiente de la hora del día.
-    expect(card).toMatch(/Cerrado|Abierto/);
+    // forceOpen (15 nov 2026): la vista previa siempre muestra «Abierto»,
+    // nunca «Cerrado», a cualquier hora del día.
+    expect(card).toContain('Abierto');
+    expect(card).not.toContain('Cerrado');
   });
 
-  it('defecto 2: el ejemplo Premium muestra la fila de calificación (ya no esconde las estrellas)', () => {
+  it('defecto 2: el ejemplo Premium muestra la calificación guardada, no 5 estrellas vacías', () => {
     const card = planCard(renderLanding(false), 'elite', 'fideliza');
-    // Sin dato en el store, la fila cae en sus 5 estrellas vacías: eso
-    // prueba que la fila de calificación SÍ se renderiza (showStars ya
-    // no es false). Con dato real de Google, esa misma fila muestra
-    // ★ 4.8 (3,766) con el logo de Google (ver test de displayRating).
+    // Con la calificación guardada (caché de Google del 10 nov, 4.8 /
+    // 3,766), la fila muestra ★ 4.8 (3,766) en vez de las 5 estrellas
+    // vacías que salían sin dato en el store.
+    expect(card).toContain('4.8');
+    expect(card).toContain('(3,766)');
+    // La estrella rellena (star_f) comparte el polígono con la vacía:
+    // ahora hay 1 (la del ★ 4.8), no las 5 vacías de antes.
     const STAR_POINTS = '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2';
-    expect(card.split(STAR_POINTS).length - 1).toBe(5);
+    expect(card.split(STAR_POINTS).length - 1).toBe(1);
     // Y ya no muestra la rama de solo-guardados (corazón + 45) en su lugar.
     expect(card).not.toContain('Sé el primero en apoyar');
+  });
+
+  it('los 4 ejemplos siempre muestran «Abierto», nunca «Cerrado» (forceOpen)', () => {
+    const html = renderLanding(false);
+    for (const [key, next] of [['free', 'pro'], ['pro', 'elite'], ['elite', 'fideliza'], ['fideliza', null]]) {
+      const card = planCard(html, key, next);
+      expect(card).toContain('Abierto');
+      expect(card).not.toContain('Cerrado');
+    }
+  });
+
+  it('cada vista previa lleva la insignia «Ejemplo»', () => {
+    const html = renderLanding(false);
+    for (const [key, next] of [['free', 'pro'], ['pro', 'elite'], ['elite', 'fideliza'], ['fideliza', null]]) {
+      expect(planCard(html, key, next)).toContain('Ejemplo');
+    }
+  });
+
+  it('Fideliza muestra la tarjeta de lealtad de SSAM (muestra con su logo real)', () => {
+    const html = renderLanding(false);
+    const card = planCard(html, 'fideliza', null);
+    expect(card).toContain('Tarjeta de lealtad');
+    expect(card).toContain('9 sellos = 1 premio');
+    expect(card).toContain('1791990555541_jdbn9u.jpg');
+    // Solo Fideliza la lleva: Ventas no.
+    expect(planCard(html, 'elite', 'fideliza')).not.toContain('Tarjeta de lealtad');
+    expect(planCard(html, 'elite', 'fideliza')).not.toContain('9 sellos = 1 premio');
+  });
+
+  it('los mockups llevan el encabezado con el negocio del ejemplo', () => {
+    const html = renderLanding(false);
+    // Ventas: el nombre de Four Seasons va justo antes de la captura del menú.
+    expect(planCard(html, 'elite', 'fideliza')).toContain('Four Seasons Resort Punta Mita</span></div><img src="/plans/menu-interactivo.png"');
+    // Fideliza: el nombre de SSAM va justo antes de cada captura.
+    const fideliza = planCard(html, 'fideliza', null);
+    expect(fideliza).toContain('SSAM Comida Coreana</span></div><img src="/plans/estadisticas.png"');
+    expect(fideliza).toContain('SSAM Comida Coreana</span></div><img src="/plans/reservas.png"');
+  });
+
+  it('Dalila (ejemplo gratuito) no muestra fila de calificación: ni estrellas vacías ni número inventado', () => {
+    const card = planCard(renderLanding(false), 'free', 'pro');
+    // Sin rating guardado (regla 12 nov: Google solo en planes de pago)
+    // y con hideReviews en la vista previa, la fila no se renderiza.
+    expect(card).not.toContain('4.9');
+    expect(card).not.toContain('(762)');
+    const STAR_POINTS = '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2';
+    expect(card.split(STAR_POINTS).length - 1).toBe(0);
   });
 
   it('defecto 2: el nombre de Four Seasons ya no se trunca con elipsis', () => {
