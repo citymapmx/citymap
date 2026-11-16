@@ -480,9 +480,9 @@ export default function GlobalHomeView() {
                reserva el espacio mientras cargan las ciudades para que nada
                brinque cuando aparecen (CLS 0.707 en PageSpeed) */}
             <section style={{ marginTop: 22, marginBottom: 30 }} aria-hidden="true">
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 2, columnGap: 12, marginBottom: 14 }}>
                 <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>{t("home_explora_por_ciudad", "Explora por ciudad")}</h2>
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.sub, whiteSpace: 'nowrap' }}>{t("home_ver_todas_ciudades", "Ver todas las ciudades")} →</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.sub }}>{t("home_ver_todas_ciudades", "Ver todas las ciudades")} →</span>
               </div>
               <div className="scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
                 {[0, 1, 2, 3, 4].map((i) => (
@@ -615,9 +615,9 @@ export default function GlobalHomeView() {
             {/* Explora por ciudad */}
             {allCities.length > 0 && (
               <section style={{ marginTop: 22, marginBottom: 30 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 2, columnGap: 12, marginBottom: 14 }}>
                   <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>{t("home_explora_por_ciudad", "Explora por ciudad")}</h2>
-                  <button onClick={() => setShowAllCities((v) => !v)} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <button onClick={() => setShowAllCities((v) => !v)} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                     {showAllCities ? <>{t("ver_menos", "Ver menos")} ←</> : <>{t("home_ver_todas_ciudades", "Ver todas las ciudades")} →</>}
                   </button>
                 </div>
@@ -676,9 +676,9 @@ export default function GlobalHomeView() {
             {/* Tours por ciudad: solo tipo Tour, con píldoras por ciudad */}
             {tourGroups.length > 0 && (
               <section style={{ marginBottom: 32 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 2, columnGap: 12, marginBottom: 14 }}>
                   <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>{t("home_tours_por_ciudad", "Tours por ciudad")}</h2>
-                  <button onClick={() => navigate('/tours')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <button onClick={() => navigate('/tours')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                     {t("home_ver_todos_tours", "Ver todos los tours")} →
                   </button>
                 </div>
@@ -719,9 +719,9 @@ export default function GlobalHomeView() {
             {/* Guías y artículos */}
             {experiences.length > 0 && (
               <section style={{ marginBottom: 32 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 2, columnGap: 12, marginBottom: 14 }}>
                   <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>{t("home_guias_articulos", "Guías y artículos")}</h2>
-                  <button onClick={() => navigate('/revista')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <button onClick={() => navigate('/revista')} style={{ background: 'none', border: 'none', color: T.text, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                     {t("home_ver_todas_guias", "Ver todas las guías")} →
                   </button>
                 </div>
