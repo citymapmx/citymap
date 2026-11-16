@@ -98,6 +98,22 @@ describe('Sección «Ya están en CityMap» en /negocios', () => {
     expect(section.split('/googlelogo.svg').length - 1).toBe(5);
   });
 
+  it('la foto llena toda la tarjeta, sin área blanca: la información va sobre la imagen con degradado negro', () => {
+    const html = renderLanding(false);
+    const section = yaEstanSection(html);
+    // Degradado negro suave abajo (de transparente a rgba(0,0,0,0.65)).
+    expect(section).toContain('linear-gradient(to top, rgba(0,0,0,0.65)');
+    // El bloque de información va absoluto abajo, sobre la imagen.
+    expect(section).toContain('position:absolute');
+    // Nombre, ciudad y calificación en blanco (legibles sobre el degradado).
+    expect(section).toContain('color:#FFFFFF');
+    expect(section).toContain('rgba(255,255,255,0.85)');
+    // La foto mantiene su proporción 4/3 y llena la tarjeta.
+    expect(section).toContain('aspect-ratio:4 / 3');
+    // Ya no existe el área blanca de abajo.
+    expect(section).not.toContain('padding:14px 14px 16px');
+  });
+
   it('la sección va después de los planes y antes de las preguntas frecuentes', () => {
     const html = renderLanding(false);
     const planes = html.indexOf('id="planes"');
