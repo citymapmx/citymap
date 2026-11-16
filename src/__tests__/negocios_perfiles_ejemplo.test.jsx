@@ -93,9 +93,10 @@ describe('Ejemplos por plan en /negocios', () => {
     expect(card).not.toContain('Dalila');
   });
 
-  it('Fideliza → Four Seasons, con las capturas de estadísticas y reservas', () => {
+  it('Fideliza → SSAM Comida Coreana, con las capturas de estadísticas y reservas', () => {
     const card = planCard(renderLanding(false), 'fideliza', null);
-    expect(card).toContain('Four Seasons Resort Punta Mita');
+    expect(card).toContain('SSAM Comida Coreana');
+    expect(card).toContain('1791991014199_weowej.jpg');
     expect(card).toContain('/plans/estadisticas.png');
     expect(card).toContain('/plans/reservas.png');
     expect(card).toContain('Panel de Estadísticas');
@@ -103,6 +104,7 @@ describe('Ejemplos por plan en /negocios', () => {
     expect(card).not.toContain('/plans/menu-interactivo.png');
     expect(card).not.toContain('Akami Sushi');
     expect(card).not.toContain('Dalila');
+    expect(card).not.toContain('Four Seasons');
   });
 
   it('los mockups solo van en Ventas y Fideliza: Gratuito y Presencia no los tienen', () => {

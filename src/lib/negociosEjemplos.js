@@ -1,21 +1,24 @@
-// Ejemplo por plan: los mismos 3 negocios REALES de la base que ya se
-// mostraban en la sección de ejemplos (aprobados, con foto; verificados
-// por PostgREST el 10 nov 2026; Akami Sushi verificado el 11 nov 2026),
-// ahora debajo de su plan, con la tarjeta que le toca en «ver planes» (la antigua página de planes): Gratuito → CompactCard,
-// Destacado → DestacadoCard, Premium → FeaturedCard. La calificación NO
-// se guarda aquí: BusinessCard la lee en vivo con displayRating y solo la
-// muestra si el caché de Google trae el dato; por eso no se pasan rating
-// ni review_count (los de la base son 5.0 / 1, valores por defecto, no
-// reales). `plan` es el plan REAL del negocio en la base (Akami Sushi y
-// Four Seasons son premium); la variante de la tarjeta es la que muestra
-// cómo se vería con el plan de esta columna. `distStr` y `realFavs` son
-// los valores de muestra de la antigua página de planes (no hay distancia ni guardados
-// reales para un ejemplo).
+// Ejemplo por plan: 4 negocios REALES de la base que ya se mostraban
+// en la sección de ejemplos (aprobados, con foto; verificados por
+// PostgREST el 10 nov 2026; Akami Sushi verificado el 11 nov 2026;
+// SSAM verificado el 15 nov 2026), ahora debajo de su plan, con la
+// tarjeta que le toca en «ver planes» (la antigua página de planes):
+// Gratuito → CompactCard, Destacado → DestacadoCard, Premium →
+// FeaturedCard. Fideliza lleva FeaturedCard con SSAM Comida Coreana,
+// que SÍ es fideliza en la base tras la migración del 15 nov 2026. La
+// calificación NO se guarda aquí: BusinessCard la lee en vivo con
+// displayRating y solo la muestra si el caché de Google trae el dato;
+// por eso no se pasan rating ni review_count (los de la base son 5.0 / 1,
+// valores por defecto, no reales). `plan` es el plan REAL del negocio en
+// la base (Akami Sushi y Four Seasons son premium; SSAM es fideliza).
+// `distStr` y `realFavs` son los valores de muestra de la antigua página
+// de planes (no hay distancia ni guardados reales para un ejemplo).
 //
 // El horario es el REAL de cada negocio en la base (verificado por
-// PostgREST el 10 nov 2026; Akami Sushi el 11 nov 2026): sin `schedule` la tarjeta caía en «Cerrado»
-// por defecto (isOpenNow sin horario devuelve `!!b.open`, y aquí no había
-// `open`), así los 3 ejemplos vendían un negocio cerrado aunque estuviera
+// PostgREST el 10 nov 2026; Akami Sushi el 11 nov 2026; SSAM el 15 nov
+// 2026): sin `schedule` la tarjeta caía en «Cerrado» por defecto
+// (isOpenNow sin horario devuelve `!!b.open`, y aquí no había `open`),
+// así los 3 ejemplos vendían un negocio cerrado aunque estuviera
 // abierto. Si un negocio cambia su horario en la base, hay que actualizar
 // su copia aquí.
 export const EJEMPLO_POR_PLAN = {
@@ -65,17 +68,31 @@ export const EJEMPLO_POR_PLAN = {
     },
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785787099442_qkable.avif" }],
   },
+  fideliza: {
+    id: "268f2923-4a5b-47a3-bf6e-cd39fce8c3b6",
+    name: "SSAM Comida Coreana",
+    category: "restaurantes",
+    plan: "fideliza",
+    open: true,
+    schedule: {
+      lun: "01:00 p.m. - 11:00 p.m.", mar: "01:00 p.m. - 11:00 p.m.",
+      mie: "01:00 p.m. - 11:00 p.m.", jue: "01:00 p.m. - 11:00 p.m.",
+      vie: "01:00 p.m. - 11:00 p.m.", sab: "01:00 p.m. - 11:00 p.m.",
+      dom: "01:00 p.m. - 06:30 p.m.",
+    },
+    photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1791991014199_weowej.jpg" }],
+  },
 };
 
 // «Ya están en CityMap»: tira de prueba social de /negocios con 8 negocios
 // REALES de la base (verificados por PostgREST el 11 nov 2026; planes
-// verificados el 12 nov 2026): status approved, con foto (photo0 con
+// verificados el 12 nov 2026; Alcalde verificado el 15 nov 2026): status approved, con foto (photo0 con
 // HTTP 200 verificado) y, SOLO en los de pago (Destacado/Premium),
 // calificación real en google_ratings_cache. A diferencia de
 // EJEMPLO_POR_PLAN, en los de pago SÍ se guarda rating/review_count: NO
 // son los valores por defecto de la base (5.0 / 1), son el caché de
-// Google tal como estaba el 11 nov 2026, y sirven de reserva si el caché
-// no cargó todavía: en vivo displayRating prefiere el caché vigente y
+// Google tal como estaba el 11 nov 2026 (Alcalde: caché del 10 nov 2026),
+// y sirven de reserva si el caché no cargó todavía: en vivo displayRating prefiere el caché vigente y
 // solo usa estos valores si no hay dato. `googleRating: true` marca que
 // el valor viene del caché de Google (por eso la tarjeta muestra la
 // «G»). Los gratuitos NO llevan rating/review_count/googleRating: desde
@@ -86,19 +103,19 @@ export const EJEMPLO_POR_PLAN = {
 // ficha es /<city_slug>/<slug sin el prefijo>. Si un negocio cambia su
 // foto o su calificación en la base, hay que actualizar su copia aquí.
 // Elegidos por calificación y reseñas, variando ciudades y categorías, y
-// sin repetir los 3 ejemplos por plan (Dalila, Akami Sushi, Four Seasons)
-// ni Mochomos.
+// sin repetir los 4 ejemplos por plan (Dalila, Akami Sushi, Four Seasons,
+// SSAM) ni Mochomos.
 export const YA_ESTAN_EN_CITYMAP = [
   {
-    id: "268f2923-4a5b-47a3-bf6e-cd39fce8c3b6",
-    name: "SSAM Comida Coreana",
-    slug: "guadalajara-ssam-comida-coreana",
+    id: "3431e6e5-fbb0-4840-ab26-099c8d358e81",
+    name: "Restaurante Alcalde",
+    slug: "guadalajara-restaurante-alcalde",
     city_slug: "guadalajara",
     cityName: "Guadalajara",
     category: "restaurantes",
     plan: "premium",
-    photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1791991014199_weowej.jpg" }],
-    rating: 4.8, review_count: 8825, googleRating: true,
+    photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1787557187232_zstnts.avif" }],
+    rating: 4.6, review_count: 1769, googleRating: true,
   },
   {
     id: "16917235-d117-4218-8336-171c58565946",
