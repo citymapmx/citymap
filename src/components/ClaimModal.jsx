@@ -14,7 +14,7 @@ export default function ClaimModal({ biz, user, onClaim, onClose }) {
             <h2 style={{ fontFamily: "var(--heading)", fontSize: 22, color: "#0F1A14", marginBottom: 8 }}>Reclamar este perfil</h2>
             <p style={{ fontSize: 14, color: "#5A6872", lineHeight: 1.6, marginBottom: 20 }}>¿Eres el responsable de <strong>{biz.name}</strong>?</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 32 }}>
-              {[["Gestiona tu información", "Fotos, horarios y descripción"], ["Responde a reseñas", "Interactúa con clientes"], ["Publica eventos y cupones", "Solo planes Destacado y Premium"]].map(([t, s], i, arr) => (
+              {[["Gestiona tu información", "Fotos, horarios y descripción"], ["Responde a reseñas", "Interactúa con clientes"], ["Publica eventos y cupones", "Solo con el plan Fideliza"]].map(([t, s], i, arr) => (
                 <div key={t} style={{ display: "flex", gap: 14, paddingBottom: i === arr.length - 1 ? 0 : 16, borderBottom: i === arr.length - 1 ? "none" : "1px solid #E5E7EB" }}>
                   <div style={{ marginTop: 2 }}><Icon name="check" size={16} color="#000" /></div>
                   <div>

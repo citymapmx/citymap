@@ -368,10 +368,10 @@ async function getEventsListing(city, origin, allowedCities = null) {
 // en BusinessLanding.jsx / i18n). faq5 lleva el número de ciudades en vivo.
 function negociosFaqItems(faq5) {
   return [
-    { q: "¿Cuánto cuesta empezar?", a: "Nada. Crear tu perfil y publicar tu negocio es gratis. Solo pagas si quieres Destacado o Premium." },
+    { q: "¿Cuánto cuesta empezar?", a: "Nada. Crear tu perfil y publicar tu negocio es gratis. Solo pagas si quieres Presencia, Ventas o Fideliza." },
     { q: "¿Necesito pagar para aparecer en CityMap?", a: "No. Con el plan gratuito tu negocio ya tiene su página pública, con teléfono, dirección, horarios y portada." },
     { q: "¿CityMap cobra comisión por mis ventas?", a: "No. Los pedidos te llegan por WhatsApp y el pago es directo entre tu cliente y tú." },
-    { q: "¿Puedo probar los planes de pago gratis?", a: "Sí. Los planes Destacado y Premium mensuales tienen 7 días de prueba gratis, sin compromiso." },
+    { q: "¿Puedo probar los planes de pago gratis?", a: "Sí. Los planes de pago (Presencia, Ventas y Fideliza) tienen 7 días de prueba gratis, en mensual y en anual, sin compromiso." },
     { q: "¿En qué ciudades está CityMap?", a: faq5 },
     { q: "¿Qué necesito para registrar mi negocio?", a: "Solo tu información básica: nombre, fotos, horarios y un teléfono o WhatsApp para que te contacten." },
   ];
@@ -386,12 +386,12 @@ function negociosBody(faq5) {
     + negociosFaqItems(faq5).map(({ q, a }) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")
     + `</dl></section>`;
   return `<section><h2>Por qué CityMap</h2><p>Lo que gana tu negocio</p><ul>`
-    + `<li><h3>Te encuentran en el mapa</h3><p>Tu negocio aparece con su pin en el mapa de tu ciudad, junto a los lugares, restaurantes y eventos que la gente ya busca. Con Premium, tu logotipo se ve directo en el mapa.</p></li>`
-    + `<li><h3>Te encuentran en Google</h3><p>Tu página queda indexada y aparece en las búsquedas de Google. Con Destacado, tu posicionamiento mejora; con Premium, hasta tu menú interactivo aparece en Google.</p></li>`
+    + `<li><h3>Te encuentran en el mapa</h3><p>Tu negocio aparece con su pin en el mapa de tu ciudad, junto a los lugares, restaurantes y eventos que la gente ya busca. Con Ventas, tu logotipo se ve directo en el mapa.</p></li>`
+    + `<li><h3>Te encuentran en Google</h3><p>Tu página queda indexada y aparece en las búsquedas de Google. Con Presencia, tu posicionamiento mejora; con Ventas, hasta tu menú interactivo aparece en Google.</p></li>`
     + `<li><h3>Pedidos por WhatsApp, sin comisiones</h3><p>Tus clientes ven tu menú, arman su pedido y te lo mandan por WhatsApp. CityMap no cobra comisión por tus ventas: el pago es directo entre tu cliente y tú.</p></li>`
-    + `<li><h3>Un menú digital que vende solo</h3><p>Con Premium, tu menú es interactivo: fotos, precios, opciones y carrito. Tus clientes piden desde el celular sin llamarte. Con Destacado, tienes tu menú en QR para ponerlo en las mesas del local.</p></li>`
-    + `<li><h3>Tus eventos y promociones llegan a la gente</h3><p>Con Premium, publicas tus eventos y reservas, lanzas cupones y creas tarjetas de lealtad para que tus clientes regresen.</p></li>`
-    + `<li><h3>Sabes qué está funcionando</h3><p>Desde tu panel ves tus visitas y tus pedidos, y con Premium tienes estadísticas y soporte prioritario.</p></li>`
+    + `<li><h3>Un menú digital que vende solo</h3><p>Con Ventas, tu menú es interactivo: fotos, precios, opciones y carrito. Tus clientes piden desde el celular sin llamarte. Con Presencia, tienes tu menú en QR para ponerlo en las mesas del local.</p></li>`
+    + `<li><h3>Tus eventos y promociones llegan a la gente</h3><p>Con Fideliza, publicas tus eventos y reservas, lanzas cupones y creas tarjetas de lealtad para que tus clientes regresen.</p></li>`
+    + `<li><h3>Sabes qué está funcionando</h3><p>Desde tu panel ves tus visitas y tus pedidos, y con Fideliza tienes estadísticas avanzadas y soporte prioritario.</p></li>`
     + `</ul></section>`
     + `<section><h2>Cómo funciona</h2><ol>`
     + `<li><h3>Crea tu perfil gratis</h3><p>Te registras y publicas tu negocio en minutos: nombre, fotos, horarios y contacto.</p></li>`
@@ -400,8 +400,9 @@ function negociosBody(faq5) {
     + `</ol></section>`
     + `<section><h2>Planes</h2><p>Precios por negocio. Pago mensual o anual (el anual sale 17% menos).</p><ul>`
     + `<li><h3>Gratuito</h3><p>$0 MXN / mes</p><p>Tu negocio en el mapa y en el buscador, con foto, dirección, teléfono y horarios.</p></li>`
-    + `<li><h3>Destacado</h3><p>$99 MXN / mes o $990 MXN / año</p><p>Ideal para negocios que buscan captar clientes y mayor visibilidad.</p><p>Pruébalo 7 días gratis (solo en el pago mensual).</p></li>`
-    + `<li><h3>Premium</h3><p>$199 MXN / mes o $1,990 MXN / año</p><p>Todas las herramientas para dominar tu presencia digital y vender más.</p><p>Pruébalo 7 días gratis (solo en el pago mensual).</p></li>`
+    + `<li><h3>Presencia</h3><p>$99 MXN / mes o $990 MXN / año</p><p>Ideal para negocios que quieren destacar, mostrar sus productos y facilitar el contacto con nuevos clientes.</p><p>Pruébalo 7 días gratis.</p></li>`
+    + `<li><h3>Ventas</h3><p>$199 MXN / mes o $1,990 MXN / año</p><p>Convierte tu menú digital en una herramienta de ventas. Facilita que tus clientes seleccionen productos y realicen pedidos directamente por WhatsApp.</p><p>Pruébalo 7 días gratis.</p></li>`
+    + `<li><h3>Fideliza</h3><p>$299 MXN / mes o $2,990 MXN / año</p><p>Todas las herramientas para vender, administrar clientes y conseguir que regresen.</p><p>Pruébalo 7 días gratis.</p></li>`
     + `</ul></section>`
     + faqHtml
     + `<section><h2>Tu negocio ya lo buscan. Que lo encuentren.</h2><p>Crear perfil gratis en CityMap.</p></section>`;
