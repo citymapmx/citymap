@@ -54,7 +54,7 @@ export default function NoMenuLanding({ business, T, dark, onBack }) {
           .filter(c => (c.store_products || []).length > 0)
           .map(c => c.business_id))];
         if (ids.length === 0) { setNearbyMenus([]); return; }
-        const bizs = await sb.get('businesses', `?select=id,name,slug,city_slug,logo_url,plan&city_slug=eq.${city}&plan=in.(destacado,premium,pro)&id=in.(${ids.join(',')})&limit=8`);
+        const bizs = await sb.get('businesses', `?select=id,name,slug,city_slug,logo_url,plan&city_slug=eq.${city}&plan=in.(pro,elite,fideliza,destacado,premium)&id=in.(${ids.join(',')})&limit=8`);
         if (cancelled) return;
         setNearbyMenus((Array.isArray(bizs) ? bizs : []).filter(b => b.id !== business.id).slice(0, 6));
       } catch {

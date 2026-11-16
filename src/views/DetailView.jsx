@@ -809,7 +809,11 @@ export default function DetailView() {
               </div>;
             })}
           </div>}
-          {selected.plan === 'destacado' && selected.menu_pdf_url && (() => {
+          {/* Menú en PDF/imágenes (15 nov 2026): el gate pedía solo
+          'destacado' y tras la migración (#364) ningún negocio actual
+          lo cumplía; ahora vale para cualquier plan de pago, como el
+          resto de funciones de pago. */}
+          {['pro', 'elite', 'fideliza', 'destacado', 'premium'].includes(selected.plan) && selected.menu_pdf_url && (() => {
             const menuUrls = parseMenuUrls(selected.menu_pdf_url);
             const isSinglePdf = menuUrls.length === 1 && menuUrls[0].toLowerCase().includes(".pdf");
             return (
