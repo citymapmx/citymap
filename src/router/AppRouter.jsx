@@ -107,6 +107,7 @@ export default function AppRouter(props) {
     viewStyle,
     setUser,
     setStoreAdminBiz,
+    handleCardTap,
     HomeView,
     GlobalHomeView,
     MapView,
@@ -199,7 +200,7 @@ export default function AppRouter(props) {
                 página de planes (10 nov 2026). Se mantiene la ruta para no
                 romper enlaces ni marcadores viejos. */}
             <Route path="/precios" element={<Navigate to="/negocios" replace />} />
-            <Route path="/negocios" element={<BusinessLanding T={T} dark={dark} navigate={navigate} user={user} myBizList={myBizList} onAddBiz={() => { if (!user) { setShowAuth(true); return; } const first = myBizList?.[0]; if (first) { setEditBizId(first.id); setAddBizForm(bizToForm(first)); setShowAddBiz(true); return; } setShowAddBiz(true); }} onStartPaidPlan={startPaidPlan} setShowAuth={setShowAuth} />} />
+            <Route path="/negocios" element={<BusinessLanding T={T} dark={dark} navigate={navigate} user={user} myBizList={myBizList} onBusinessTap={handleCardTap} onAddBiz={() => { if (!user) { setShowAuth(true); return; } const first = myBizList?.[0]; if (first) { setEditBizId(first.id); setAddBizForm(bizToForm(first)); setShowAddBiz(true); return; } setShowAddBiz(true); }} onStartPaidPlan={startPaidPlan} setShowAuth={setShowAuth} />} />
             
             <Route path="/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />
             <Route path="/:country/:city/:slug/menu" element={<MenuView T={T} dark={dark} navigate={navigate} />} />

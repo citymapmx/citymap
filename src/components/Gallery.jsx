@@ -10,15 +10,15 @@ import { prefersReducedMotion } from "../lib/smoothScroll.js";
 // se cruzan con un fundido suave cada 3 s, con puntos indicadores.
 // Cualquier toque manual (flecha, miniatura, punto o deslizamiento)
 // reinicia el conteo de 3 s: el automático nunca pelea con el usuario.
-// Sin avance automático con prefers-reduced-motion ni mientras se
-// amplía la foto (zoom) o la pestaña está oculta.
+// Sin avance automático con prefers-reduced-motion ni mientras la
+// pestaña está oculta. El botón «+ Ampliar» se quitó (16 nov 2026,
+// Jonathan): la galería ya no amplía la foto.
 const AUTOPLAY_MS = 3000;
 const CROSSFADE_MS = 600;
 
 export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", initialIndex = 0, autoplay = false }) {
   const [i, setI] = useState(initialIndex);
   const [loadedUrl, setLoadedUrl] = useState(null);
-  const [zoom, setZoom] = useState(false);
   const [paused, setPaused] = useState(false);
   // Foto saliente del fundido: queda debajo mientras la nueva entra.
   const [prevUrl, setPrevUrl] = useState(null);
@@ -39,8 +39,8 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
   const p = typeof raw === 'string' ? { url: raw } : raw;
   const loaded = loadedUrl === p?.url;
   const total = photos?.length || 0;
-  const prev = () => { setZoom(false); setI(x => (x - 1 + total) % total); };
-  const next = () => { setZoom(false); setI(x => (x + 1) % total); };
+  const prev = () => { setI(x => (x - 1 + total) % total); };
+  const next = () => { setI(x => (x + 1) % total); };
 
   // La foto que se va queda de fondo del fundido; se desmonta 650 ms
   // después de que la nueva terminó de cargar (el fundido dura 600 ms).
@@ -67,7 +67,7 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
   // Avance automático cada 3 s. Depende de `i`: cada cambio de foto
   // (manual o automático) reinicia el conteo, así nunca interrumpe
   // al usuario a mitad de mirar una foto.
-  const canAutoplay = autoplay && total > 1 && !zoom && !reduceMotion && !paused;
+  const canAutoplay = autoplay && total > 1 && !reduceMotion && !paused;
   useEffect(() => {
     if (!canAutoplay) return;
     const t = window.setTimeout(() => setI(x => (x + 1) % total), AUTOPLAY_MS);
@@ -96,7 +96,7 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
           </div>
         )}
 
-        <div style={{ width: '100%', height: '100%', overflow: zoom ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch', position: 'relative' }}>
+        <div style={{ width: '100%', height: '100%', overflow: 'hidden', WebkitOverflowScrolling: 'touch', position: 'relative' }}>
         {/* Foto saliente del fundido: queda debajo mientras la nueva
             entra con opacidad 0 → 1 en 0,6 s. */}
         {prevUrl && (
@@ -104,7 +104,7 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
             src={isFullscreen ? prevUrl : getThumbUrl(prevUrl, 1200, 1000, fit)}
             alt=""
             aria-hidden="true"
-            style={{ position: "absolute", inset: 0, width: zoom ? "200%" : "100%", maxWidth: "none", height: zoom ? "200%" : "100%", objectFit: fit, objectPosition: "center", display: "block" }}
+            style={{ position: "absolute", inset: 0, width: "100%", maxWidth: "none", height: "100%", objectFit: fit, objectPosition: "center", display: "block" }}
           />
         )}
         <img
@@ -113,11 +113,10 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
           alt={p.alt || p.label || `Foto ${i + 1} de la galería`}
           loading="eager"
           onLoad={() => setLoadedUrl(p.url)}
-          style={{ width: zoom ? "200%" : "100%", maxWidth: "none", height: zoom ? "200%" : "100%", objectFit: fit, objectPosition: "center", display: "block", position: prevUrl ? "relative" : "static", opacity: loaded ? 1 : 0, transition: "opacity 0.6s ease-out" }}
+          style={{ width: "100%", maxWidth: "none", height: "100%", objectFit: fit, objectPosition: "center", display: "block", position: prevUrl ? "relative" : "static", opacity: loaded ? 1 : 0, transition: "opacity 0.6s ease-out" }}
         />
 
         </div>
-        {isFullscreen && <button type="button" aria-label={zoom ? 'Reducir foto' : 'Ampliar foto'} aria-pressed={zoom} onClick={() => setZoom(value => !value)} style={{ position: 'absolute', top: 100, left: 16, zIndex: 10, border: '1px solid rgba(255,255,255,.25)', borderRadius: 20, background: 'rgba(0,0,0,.6)', color: '#fff', padding: '8px 12px', cursor: 'pointer' }}>{zoom ? '− Reducir' : '+ Ampliar'}</button>}
 
         {/* Counter */}
         {total > 1 && <div style={{ position: "absolute", top: isFullscreen ? 100 : 16, right: 16, background: "rgba(0,0,0,.52)", backdropFilter: "blur(8px)", borderRadius: 20, padding: "4px 12px", fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: .3, zIndex: 10 }}>{i + 1} / {total}</div>}
@@ -131,13 +130,13 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
           </button>
         </>}
         {/* Swipe */}
-        {total > 1 && !zoom && <div style={{ position: "absolute", inset: 0, zIndex: 5 }} onTouchStart={e => e.currentTarget._sx = e.touches[0].clientX} onTouchEnd={e => { const dx = e.changedTouches[0].clientX - (e.currentTarget._sx || 0); if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); } }} />}
+        {total > 1 && <div style={{ position: "absolute", inset: 0, zIndex: 5 }} onTouchStart={e => e.currentTarget._sx = e.touches[0].clientX} onTouchEnd={e => { const dx = e.changedTouches[0].clientX - (e.currentTarget._sx || 0); if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); } }} />}
         {/* Puntos indicadores (demo #13): la foto activa es la píldora
             ancha; tocar un punto salta a esa foto y reinicia el conteo. */}
         {total > 1 && (
           <div role="tablist" aria-label="Fotos de la galería" style={{ position: "absolute", left: "50%", bottom: 12, transform: "translateX(-50%)", display: "flex", gap: 6, zIndex: 10 }}>
             {photos.map((_, j) => (
-              <button key={j} type="button" role="tab" aria-selected={j === i} aria-label={`Foto ${j + 1} de ${total}`} onClick={() => { setZoom(false); setI(j); }} style={{ width: j === i ? 16 : 6, height: 6, borderRadius: 3, border: "none", padding: 0, background: j === i ? "#fff" : "rgba(255,255,255,0.5)", cursor: "pointer", transition: "all 0.3s" }} />
+              <button key={j} type="button" role="tab" aria-selected={j === i} aria-label={`Foto ${j + 1} de ${total}`} onClick={() => { setI(j); }} style={{ width: j === i ? 16 : 6, height: 6, borderRadius: 3, border: "none", padding: 0, background: j === i ? "#fff" : "rgba(255,255,255,0.5)", cursor: "pointer", transition: "all 0.3s" }} />
             ))}
           </div>
         )}
@@ -166,7 +165,7 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
           {photos.map((ph, j) => (
             <div
               key={j}
-              onClick={() => { setZoom(false); setI(j); }}
+              onClick={() => { setI(j); }}
               style={{
                 flexShrink: 0,
                 width: 72,

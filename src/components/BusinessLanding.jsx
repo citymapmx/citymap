@@ -54,11 +54,21 @@ const SSAM_LOYALTY_CARD = {
   logo_url: 'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1791990555541_jdbn9u.jpg',
 };
 
+// Mezcla una lista en orden aleatorio (Fisher-Yates); no muta la original.
+function shuffleList(list) {
+  const arr = [...list];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 // Página /negocios: CityMap para negocios. Mismo lenguaje visual que la
 // antigua página de planes (encabezado sticky con blur, maxWidth 1140,
 // tarjetas con borde y radio grande, claro/oscuro) y los mismos datos de
 // planes del módulo compartido src/lib/businessPlans.js.
-export default function BusinessLanding({ T, dark, navigate, user, myBizList, onAddBiz, onStartPaidPlan, setShowAuth }) {
+export default function BusinessLanding({ T, dark, navigate, user, myBizList, onBusinessTap, onAddBiz, onStartPaidPlan, setShowAuth }) {
   const { t, lang } = useTranslation();
   const activeCity = useUIStore(s => s.activeCity);
   const cities = useDataStore(s => s.cities);
@@ -67,6 +77,62 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
   const plans = buildBusinessPlans(t, pricing, dark);
   const [billing, setBilling] = useState("monthly"); // "monthly" | "annual"
   useEffect(() => { window.scrollTo(0, 0); }, []);
+
+  // Carrusel «Ya están» (16 nov 2026, Jonathan, opción B): 2 negocios a la
+  // vez en el celular y 4 en escritorio, con deslizamiento suave y orden
+  // aleatorio. Al terminar la vuelta se revuelve el orden y empieza de
+  // nuevo. El avance automático se pausa con el cursor encima, con la
+  // pestaña oculta o si el usuario prefiere menos movimiento.
+  const [yaEstanPerView, setYaEstanPerView] = useState(2);
+  const [yaEstanOrder, setYaEstanOrder] = useState(() => shuffleList(YA_ESTAN_EN_CITYMAP));
+  const [yaEstanPage, setYaEstanPage] = useState(0);
+  const [yaEstanInstant, setYaEstanInstant] = useState(false);
+  const [yaEstanPaused, setYaEstanPaused] = useState(false);
+  const yaEstanTouchX = useRef(0);
+  const yaEstanPages = Math.max(1, Math.ceil(yaEstanOrder.length / yaEstanPerView));
+  const yaEstanChunks = [];
+  for (let i = 0; i < yaEstanOrder.length; i += yaEstanPerView) yaEstanChunks.push(yaEstanOrder.slice(i, i + yaEstanPerView));
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
+    const mq = window.matchMedia('(min-width: 900px)');
+    const apply = () => setYaEstanPerView(mq.matches ? 4 : 2);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+  useEffect(() => {
+    setYaEstanPage((p) => Math.min(p, yaEstanPages - 1));
+  }, [yaEstanPages]);
+  useEffect(() => {
+    if (!yaEstanInstant) return undefined;
+    const id = setTimeout(() => setYaEstanInstant(false), 60);
+    return () => clearTimeout(id);
+  }, [yaEstanInstant]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    if (yaEstanPaused) return undefined;
+    const id = setInterval(() => {
+      if (document.hidden) return;
+      if (yaEstanPage + 1 >= yaEstanPages) {
+        setYaEstanOrder(shuffleList(YA_ESTAN_EN_CITYMAP));
+        setYaEstanInstant(true);
+        setYaEstanPage(0);
+      } else {
+        setYaEstanPage(yaEstanPage + 1);
+      }
+    }, 4000);
+    return () => clearInterval(id);
+  }, [yaEstanPaused, yaEstanPages, yaEstanPage]);
+  const yaEstanGoTo = (pi) => {
+    if (pi >= yaEstanPages) {
+      setYaEstanOrder(shuffleList(YA_ESTAN_EN_CITYMAP));
+      setYaEstanInstant(true);
+      setYaEstanPage(0);
+    } else {
+      setYaEstanPage(pi);
+    }
+  };
 
   // Cifras en vivo: se calculan de la base en cada visita (sin caché) y
   // mientras cargan se muestran los valores fijos de antes como reserva.
@@ -195,11 +261,14 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         .business-landing .stat-card{box-shadow:var(--plans-shadow)}
         .business-landing .benefit-card{box-shadow:var(--plans-shadow)}
         .business-landing .ya-estan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+        .business-landing .ya-estan-viewport{overflow:hidden}
+        .business-landing .ya-estan-track{display:flex;transition:transform .5s ease}
         .business-landing .ya-estan-card{display:block;background:var(--plans-surface);border:1px solid var(--plans-line);border-radius:24px;overflow:hidden;text-decoration:none;color:inherit;box-shadow:var(--plans-shadow)}
         .business-landing .ya-estan-name{font-size:15px;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
         .business-landing .reveal{opacity:0;transform:translateY(14px);transition:opacity .55s cubic-bezier(.390,.575,.565,1),transform .55s cubic-bezier(.390,.575,.565,1)}
         .business-landing .reveal.is-visible{opacity:1;transform:translateY(0)}
         @media(prefers-reduced-motion:reduce){.business-landing .reveal{opacity:1;transform:none}}
+        @media(prefers-reduced-motion:reduce){.business-landing .ya-estan-track{transition:none}}
         .plans-faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px;font-size:15px;font-weight:600;line-height:1.5}
         .plans-faq summary::after{content:'+';font-size:20px;font-weight:400}
         .plans-faq[open] summary::after{content:'−'}
@@ -386,28 +455,63 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         {/* Ya están en CityMap: prueba social con negocios reales de la base
         (ver YA_ESTAN_EN_CITYMAP en negociosEjemplos.js). Va después de los
         planes y antes de las preguntas frecuentes. Solo nombre y ciudad
-        sobre la foto (15 nov 2026, Jonathan: sin reseñas en esta tira). */}
+        sobre la foto (15 nov 2026, Jonathan: sin reseñas en esta tira).
+        Las tarjetas abren la ficha con onBusinessTap (16 nov 2026): con
+        solo navigate(href) la ficha no se abría — DetailView depende de
+        que el negocio quede seleccionado y la URL sola dejaba la vista de
+        la ciudad con la categoría activa (Restaurantes). Sin onBusinessTap,
+        el enlace sigue con navigate como antes. */}
         <section style={{ marginTop: 64 }}>
           <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_ya_estan_titulo", "Ya están en CityMap")}</h2></Reveal>
           <Reveal delay={90}><p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_ya_estan_sub", "Negocios reales que ya reciben clientes desde CityMap.")}</p></Reveal>
-          <div className="ya-estan-grid">
-            {YA_ESTAN_EN_CITYMAP.map((b) => {
-              const shortSlug = b.slug.startsWith(`${b.city_slug}-`) ? b.slug.slice(b.city_slug.length + 1) : b.slug;
-              const href = `/${b.city_slug}/${shortSlug}`;
-              return (
-                <a key={b.id} href={href} onClick={(e) => { if (navigate) { e.preventDefault(); navigate(href); } }} className="ya-estan-card" style={{ position: 'relative' }}>
-                  <img src={b.photos[0].url} alt={b.name} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', display: 'block' }} />
-                  {/* La foto llena toda la tarjeta (15 nov 2026, Jonathan):
-                  sin área blanca abajo; nombre, ciudad y calificación van
-                  sobre la imagen con un degradado negro suave abajo. */}
-                  <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '36px 14px 14px', background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0) 100%)' }}>
-                    <div className="ya-estan-name" title={b.name} style={{ color: '#FFFFFF' }}>{b.name}</div>
-                    <div style={{ fontSize: 13, lineHeight: 1.4, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>{b.cityName}</div>
-                  </div>
-                </a>
-              );
-            })}
+          {/* Carrusel (16 nov 2026, Jonathan, opción B): 2 negocios a la vez
+          en el celular y 4 en escritorio, con deslizamiento suave y orden
+          aleatorio; avanza solo cada 4 s y al terminar la vuelta revuelve
+          el orden. Puntos para cambiar de página y deslizamiento con el
+          dedo. Cada tarjeta abre su ficha (onBusinessTap). */}
+          <div
+            className="ya-estan-viewport"
+            onMouseEnter={() => setYaEstanPaused(true)}
+            onMouseLeave={() => setYaEstanPaused(false)}
+            onTouchStart={(e) => { yaEstanTouchX.current = e.touches[0].clientX; }}
+            onTouchEnd={(e) => {
+              const dx = e.changedTouches[0].clientX - (yaEstanTouchX.current || 0);
+              if (Math.abs(dx) > 40) {
+                if (dx < 0) yaEstanGoTo(yaEstanPage + 1);
+                else setYaEstanPage((yaEstanPage - 1 + yaEstanPages) % yaEstanPages);
+              }
+            }}
+          >
+            <div className="ya-estan-track" style={{ transform: `translateX(-${yaEstanPage * 100}%)`, transition: yaEstanInstant ? 'none' : undefined }}>
+              {yaEstanChunks.map((pageItems, pi) => (
+                <div key={pi} className="ya-estan-grid" style={{ flex: '0 0 100%' }}>
+                  {pageItems.map((b) => {
+                    const shortSlug = b.slug.startsWith(`${b.city_slug}-`) ? b.slug.slice(b.city_slug.length + 1) : b.slug;
+                    const href = `/${b.city_slug}/${shortSlug}`;
+                    return (
+                      <a key={b.id} href={href} onClick={(e) => { if (onBusinessTap) { e.preventDefault(); onBusinessTap(b); } else if (navigate) { e.preventDefault(); navigate(href); } }} className="ya-estan-card" style={{ position: 'relative' }}>
+                        <img src={b.photos[0].url} alt={b.name} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', display: 'block' }} />
+                        {/* La foto llena toda la tarjeta (15 nov 2026, Jonathan):
+                        sin área blanca abajo; nombre, ciudad y calificación van
+                        sobre la imagen con un degradado negro suave abajo. */}
+                        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '36px 14px 14px', background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0) 100%)' }}>
+                          <div className="ya-estan-name" title={b.name} style={{ color: '#FFFFFF' }}>{b.name}</div>
+                          <div style={{ fontSize: 13, lineHeight: 1.4, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>{b.cityName}</div>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
+          {yaEstanPages > 1 && (
+            <div role="tablist" aria-label={t("negocios_ya_estan_paginas", "Negocios en CityMap")} style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 14 }}>
+              {yaEstanChunks.map((_, pi) => (
+                <button key={pi} type="button" role="tab" aria-selected={pi === yaEstanPage} aria-label={`Página ${pi + 1} de ${yaEstanPages}`} onClick={() => yaEstanGoTo(pi)} style={{ width: pi === yaEstanPage ? 16 : 6, height: 6, borderRadius: 3, border: 'none', padding: 0, background: pi === yaEstanPage ? accent : muted, cursor: 'pointer', transition: 'all 0.3s' }} />
+              ))}
+            </div>
+          )}
         </section>
         <section style={{ maxWidth: 720, margin: '64px auto 0' }}>
           <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 22px' }}>{t("negocios_faq_titulo", "Preguntas frecuentes")}</h2></Reveal>
