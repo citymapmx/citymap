@@ -7,6 +7,7 @@ import { getCountryCode } from "../lib/domain.js";
 import CompactCard from "./cards/CompactCard.jsx";
 import DestacadoCard from "./cards/DestacadoCard.jsx";
 import FeaturedCard from "./cards/FeaturedCard.jsx";
+import LoyaltyCard from "./loyalty/LoyaltyCard.jsx";
 import { getBusinessPricing, buildBusinessPlans } from "../lib/businessPlans.js";
 import { comparePlanFeatures, effectivePlanFeatures } from "../lib/crearNegocio.js";
 import { NEGOCIOS_STATS_FALLBACK, fetchNegociosStats } from "../lib/negociosStats.js";
@@ -36,6 +37,22 @@ const GOOGLE_SEARCH_CONSOLE = {
   clicks: 533,
   impressionsThousands: 121,
   examples: { formentera: 27, campomar: 15, akami: 14 },
+};
+
+// Tarjeta de lealtad REAL de SSAM (verificada por PostgREST 15 nov 2026,
+// loyalty_cards id 3ad296db-7216-4b45-a058-046c92daf413, activa): 5 sellos,
+// «1 ramén y bebida gratis», degradado azul. Es la que se muestra como
+// ejemplo en la vista previa de Fideliza, con el MISMO componente que
+// ven los clientes (LoyaltyCard), solo la tarjeta y sin fondo/modal/QR/
+// botones de wallet.
+const SSAM_LOYALTY_CARD = {
+  type: 'stamps|star',
+  bg_color: 'linear-gradient(135deg, #1E3A8A, #0891B2)',
+  text_color: '#FFFFFF',
+  primary_color: '#ffffff',
+  stamps_required: 5,
+  reward_text: '1 ramén y bebida gratis',
+  logo_url: 'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1791990555541_jdbn9u.jpg',
 };
 
 // Página /negocios: CityMap para negocios. Mismo lenguaje visual que la
@@ -295,24 +312,21 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
                     <div style={{ pointerEvents: 'none', borderRadius: 14, overflow: 'hidden', marginTop: 12 }}>
                       {p.key === 'free' ? <CompactCard b={EJEMPLO_POR_PLAN.free} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={4} forceOpen hideReviews /> : p.key === 'pro' ? <DestacadoCard b={EJEMPLO_POR_PLAN.pro} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={12} forceOpen /> : p.key === 'fideliza' ? <FeaturedCard b={EJEMPLO_POR_PLAN.fideliza} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={1} forceOpen /> : <FeaturedCard b={EJEMPLO_POR_PLAN.elite} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={45} forceOpen />}
                     </div>
-                    {/* Tarjeta de lealtad en la vista previa de Fideliza
-                    (15 nov 2026): es lo que distingue al plan y no tenía
-                    ninguna imagen. SSAM aún no tiene tarjeta configurada
-                    en la base, así que es una muestra con su logo real:
-                    9 sellos = 1 premio. */}
+                    {/* Tarjeta de lealtad REAL en la vista previa de Fideliza
+                    (15 nov 2026, Jonathan): la tarjeta azul de SSAM, con el
+                    mismo componente que ven los clientes (LoyaltyCard).
+                    Solo la tarjeta, sin fondo/modal/QR/botones de wallet.
+                    El progreso es de muestra: 2 de 5 sellos, como en la
+                    captura de referencia. Antes era un mockup morado con
+                    9 círculos inventados; SSAM sí tiene tarjeta real. */}
                     {p.key === 'fideliza' && (
-                      <div style={{ marginTop: 12, borderRadius: 14, padding: 14, background: 'linear-gradient(135deg, #1F2937 0%, #6D28D9 100%)', color: '#FFFFFF', textAlign: 'left' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <img src="https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1791990555541_jdbn9u.jpg" alt="SSAM Comida Coreana" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', background: '#FFFFFF' }} />
-                          <div>
-                            <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>SSAM Comida Coreana</div>
-                            <div style={{ fontSize: 11, opacity: 0.85 }}>Tarjeta de lealtad</div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 4, marginTop: 12 }}>
-                          {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => <span key={i} style={{ aspectRatio: '1', borderRadius: '50%', background: i < 3 ? '#FFFFFF' : 'transparent', border: '1.5px solid rgba(255,255,255,0.7)' }} />)}
-                        </div>
-                        <div style={{ fontSize: 11, marginTop: 10, opacity: 0.9 }}>9 sellos = 1 premio</div>
+                      <div style={{ marginTop: 12, pointerEvents: 'none' }}>
+                        <LoyaltyCard
+                          member={{ stamps: 2 }}
+                          card={SSAM_LOYALTY_CARD}
+                          biz={EJEMPLO_POR_PLAN.fideliza}
+                          onCardClick={() => {}}
+                        />
                       </div>
                     )}
                     {p.screenshots && <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 14 }}>{p.screenshots.map((shot) => <div key={shot.url} style={{ flex: '0 0 100px', color: muted }}>

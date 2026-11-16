@@ -208,15 +208,27 @@ describe('Ejemplos por plan en /negocios', () => {
     }
   });
 
-  it('Fideliza muestra la tarjeta de lealtad de SSAM (muestra con su logo real)', () => {
+  it('Fideliza muestra la tarjeta de lealtad REAL de SSAM (la azul, no un mockup)', () => {
     const html = renderLanding(false);
     const card = planCard(html, 'fideliza', null);
-    expect(card).toContain('Tarjeta de lealtad');
-    expect(card).toContain('9 sellos = 1 premio');
+    // La tarjeta REAL de SSAM (loyalty_cards, activa): degradado azul,
+    // 5 sellos, premio «1 ramén y bebida gratis», con el MISMO componente
+    // que ven los clientes (LoyaltyCard). Progreso de muestra: 2 de 5.
+    expect(card).toContain('Programa de Lealtad');
+    expect(card).toContain('1 ramén y bebida gratis');
+    expect(card).toContain('de 5');
+    expect(card).toContain('linear-gradient(135deg, #1E3A8A, #0891B2)');
     expect(card).toContain('1791990555541_jdbn9u.jpg');
+    // Solo la tarjeta, sin fondo/modal/QR/botones de wallet.
+    expect(card).not.toContain('Muestra este código');
+    expect(card).not.toContain('Añadir a Google Wallet');
+    expect(card).not.toContain('Añadir a Apple Wallet');
+    // El mockup morado viejo (9 círculos inventados) ya no está.
+    expect(card).not.toContain('9 sellos = 1 premio');
+    expect(html).not.toContain('9 sellos = 1 premio');
     // Solo Fideliza la lleva: Ventas no.
-    expect(planCard(html, 'elite', 'fideliza')).not.toContain('Tarjeta de lealtad');
-    expect(planCard(html, 'elite', 'fideliza')).not.toContain('9 sellos = 1 premio');
+    expect(planCard(html, 'elite', 'fideliza')).not.toContain('1 ramén y bebida gratis');
+    expect(planCard(html, 'elite', 'fideliza')).not.toContain('linear-gradient(135deg, #1E3A8A, #0891B2)');
   });
 
   it('los mockups llevan el encabezado con el negocio del ejemplo', () => {
