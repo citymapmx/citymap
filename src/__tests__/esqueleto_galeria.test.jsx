@@ -73,10 +73,12 @@ describe('esqueleto con brillo (#3) y galeria con fundido (#13)', () => {
     expect(gallery).toContain('}, [canAutoplay, i, total]);');
   });
 
-  it('Gallery: no autoplay with prefers-reduced-motion, zoom or hidden tab', () => {
+  // Sin zoom desde la #381 (16 nov 2026, Jonathan: quitar el botón
+  // «+ Ampliar»): ya no hay nada que pausar por zoom; el avance solo se
+  // detiene con prefers-reduced-motion o con la pestaña oculta.
+  it('Gallery: no autoplay with prefers-reduced-motion or hidden tab', () => {
     expect(gallery).toContain('prefersReducedMotion');
     expect(gallery).toContain('!reduceMotion');
-    expect(gallery).toContain('!zoom');
     expect(gallery).toContain('visibilitychange');
     expect(gallery).toContain('document.hidden');
   });
