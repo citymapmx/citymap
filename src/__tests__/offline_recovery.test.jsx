@@ -30,10 +30,19 @@ describe('offline load recovery',()=>{
     expect(win.caches.keys).not.toHaveBeenCalled();expect(win.caches.delete).not.toHaveBeenCalled();
     expect(nav.serviceWorker.getRegistrations).not.toHaveBeenCalled();expect(win.location.reload).not.toHaveBeenCalled();expect(session.clear).not.toHaveBeenCalled();
   });
-  it('shows an accurate offline message and disables a futile reload',()=>{
+  it('shows a minimal centered offline message with no futile reload button (opción A, 16 nov 2026)',()=>{
     setup(false);
     const html=renderToStaticMarkup(<LoadFailureView error={networkError} fullPage/>);
-    expect(html).toContain('Sin conexión a internet');expect(html).toContain('Esperando conexión');expect(html).toContain('disabled');expect(html).not.toContain('nueva versión');
+    expect(html).toContain('Sin conexión');expect(html).toContain('Vuelve sola cuando tengas internet.');
+    expect(html).not.toContain('Esperando conexión');expect(html).not.toContain('disabled');expect(html).not.toContain('<button');
+    expect(html).toContain('align-items:center');
+    const htmlSection=renderToStaticMarkup(<LoadFailureView error={networkError}/>);
+    expect(htmlSection).toContain('calc(100dvh - 190px)');
+  });
+  it('keeps a subtle text retry link once the connection is back',()=>{
+    setup(true);
+    const html=renderToStaticMarkup(<LoadFailureView error={networkError}/>);
+    expect(html).toContain('Reintentar');expect(html).not.toContain('min-height:44px');expect(html).not.toContain('border-radius:12px');
   });
   it('retries an ordinary load failure without clearing stored data',()=>{
     const {win,nav,session}=setup(true);expect(retryPageLoad(networkError)).toBe(true);
