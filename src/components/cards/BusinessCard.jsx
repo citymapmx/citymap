@@ -88,8 +88,12 @@ const renderRatingRow = (b, realFavs, hideReviews, hideFavs, T, starStyle = {}, 
   );
 };
 
-const renderScheduleRow = (b, T, t) => {
-  const status = getScheduleStatus(b, isOpenNow(b), true);
+// forceOpen: en las vistas previas de /negocios la tarjeta siempre
+// muestra «Abierto» (15 nov 2026): el ejemplo usa el horario real y de
+// noche o en domingo se veía «Cerrado» en rojo en una página de ventas.
+// El dato (schedule) no se toca: solo cambia lo que pinta la vista previa.
+const renderScheduleRow = (b, T, t, forceOpen = false) => {
+  const status = getScheduleStatus(b, forceOpen ? true : isOpenNow(b), true);
   if (status.hidden) return null;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -150,6 +154,9 @@ export default memo(function BusinessCard({
   realFavs = 0,
   hideReviews = false,
   hideSchedule = false,
+  // forceOpen: la tarjeta muestra «Abierto» aunque el horario real diga
+  // que está cerrado (solo para las vistas previas de /negocios).
+  forceOpen = false,
   hideFavs = false,
   showDirections = false,
   note,
@@ -223,7 +230,7 @@ export default memo(function BusinessCard({
 
   // 2. COMPACT LAYOUT (Horizontal list card)
   if (variant === "compact") {
-    const schedHidden = getScheduleStatus(b, isOpenNow(b), true).hidden;
+    const schedHidden = getScheduleStatus(b, forceOpen ? true : isOpenNow(b), true).hidden;
     return (
       <m.div 
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -291,7 +298,7 @@ export default memo(function BusinessCard({
               {!hideSchedule && !schedHidden && (
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   {!hideReviews && <span style={{ fontSize: 10, color: dark ? "#71717A" : T.border, margin: "0 2px", flexShrink: 0 }}>·</span>}
-                  {renderScheduleRow(b, T, t)}
+                  {renderScheduleRow(b, T, t, forceOpen)}
                 </div>
               )}
             </div>
@@ -385,7 +392,7 @@ export default memo(function BusinessCard({
               {renderRatingRow(b, realFavs, hideReviews, hideFavs, T, { width: 16, height: 16 }, { fontSize: 13 }, googleRatings)}
               
               <span style={{ fontSize: 10, color: dark ? "#71717A" : T.border }}>·</span>
-              {renderScheduleRow(b, T, t)}
+              {renderScheduleRow(b, T, t, forceOpen)}
             </div>
             
             {distStr && <div style={{ fontSize: 11, fontWeight: 600, color: T.sub }}>{distStr}</div>}
@@ -497,7 +504,7 @@ export default memo(function BusinessCard({
                 )}
 
                 <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>·</span>
-                {renderScheduleRow(b, T, t)}
+                {renderScheduleRow(b, T, t, forceOpen)}
               </div>
               
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}>

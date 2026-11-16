@@ -287,11 +287,44 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
                   <div className="plans-features">{p.features.map(f => <div className="plans-feature" key={f}><span aria-hidden="true" style={{ color: p.key === 'pro' || p.key === 'fideliza' ? planAccent : muted, fontSize: 15 }}>✓</span><span>{f}</span></div>)}</div>
                   <button className="plans-action" disabled={btn.disabled} onClick={btn.onClick} style={{ background: p.key === 'pro' ? accent : p.key === 'fideliza' ? planAccent : 'transparent', border: `1px solid ${p.key === 'pro' ? accent : p.key === 'fideliza' ? planAccent : line}`, color: p.key === 'pro' || p.key === 'fideliza' ? (dark ? '#101827' : '#FFFFFF') : ink }}>{btn.label}</button>
                   <section aria-label={t("cuenta_vista_previa_plan", `Vista previa del plan ${p.name}`, { name: p.name })} style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${line}`, color: muted }}>
-                    <Reveal><h3 style={{ fontSize: 13, fontWeight: 600, textAlign: "center", margin: "0 0 12px" }}>{t("cuenta_asi_se_vera", "Así se verá tu negocio")}</h3></Reveal>
+                    <Reveal><h3 style={{ fontSize: 13, fontWeight: 600, textAlign: "center", margin: "0 0 8px" }}>{t("cuenta_asi_se_vera", "Así se verá tu negocio")}</h3></Reveal>
+                    {/* Insignia «Ejemplo» (15 nov 2026): la tarjeta y los
+                    números de muestra (distancia, guardados) son de un
+                    negocio real de CityMap, no del visitante. */}
+                    <div style={{ textAlign: 'center', margin: '0 0 12px' }}><span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: dark ? 'rgba(255,255,255,0.08)' : '#EEF2F7', color: muted }}>{t("cuenta_ejemplo", "Ejemplo")}</span></div>
                     <div style={{ pointerEvents: 'none', borderRadius: 14, overflow: 'hidden', marginTop: 12 }}>
-                      {p.key === 'free' ? <CompactCard b={EJEMPLO_POR_PLAN.free} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={4} /> : p.key === 'pro' ? <DestacadoCard b={EJEMPLO_POR_PLAN.pro} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={12} /> : p.key === 'fideliza' ? <FeaturedCard b={EJEMPLO_POR_PLAN.fideliza} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={1} /> : <FeaturedCard b={EJEMPLO_POR_PLAN.elite} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={45} />}
+                      {p.key === 'free' ? <CompactCard b={EJEMPLO_POR_PLAN.free} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={4} forceOpen hideReviews /> : p.key === 'pro' ? <DestacadoCard b={EJEMPLO_POR_PLAN.pro} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={12} forceOpen /> : p.key === 'fideliza' ? <FeaturedCard b={EJEMPLO_POR_PLAN.fideliza} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={1} forceOpen /> : <FeaturedCard b={EJEMPLO_POR_PLAN.elite} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={45} forceOpen />}
                     </div>
-                    {p.screenshots && <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 14 }}>{p.screenshots.map((shot) => <div key={shot.url} style={{ flex: '0 0 100px', color: muted }}><img src={shot.url} alt={shot.label} style={{ width: '100%', borderRadius: 10 }} /><span style={{ fontSize: 11 }}>{shot.label}</span></div>)}</div>}
+                    {/* Tarjeta de lealtad en la vista previa de Fideliza
+                    (15 nov 2026): es lo que distingue al plan y no tenía
+                    ninguna imagen. SSAM aún no tiene tarjeta configurada
+                    en la base, así que es una muestra con su logo real:
+                    9 sellos = 1 premio. */}
+                    {p.key === 'fideliza' && (
+                      <div style={{ marginTop: 12, borderRadius: 14, padding: 14, background: 'linear-gradient(135deg, #1F2937 0%, #6D28D9 100%)', color: '#FFFFFF', textAlign: 'left' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <img src="https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1791990555541_jdbn9u.jpg" alt="SSAM Comida Coreana" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', background: '#FFFFFF' }} />
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>SSAM Comida Coreana</div>
+                            <div style={{ fontSize: 11, opacity: 0.85 }}>Tarjeta de lealtad</div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 4, marginTop: 12 }}>
+                          {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => <span key={i} style={{ aspectRatio: '1', borderRadius: '50%', background: i < 3 ? '#FFFFFF' : 'transparent', border: '1.5px solid rgba(255,255,255,0.7)' }} />)}
+                        </div>
+                        <div style={{ fontSize: 11, marginTop: 10, opacity: 0.9 }}>9 sellos = 1 premio</div>
+                      </div>
+                    )}
+                    {p.screenshots && <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 14 }}>{p.screenshots.map((shot) => <div key={shot.url} style={{ flex: '0 0 100px', color: muted }}>
+                      {/* Cada mockup lleva el negocio del ejemplo (15 nov
+                      2026): la captura es real de la app y el encabezado
+                      dice de qué negocio es la vista previa. */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6, minWidth: 0 }}>
+                        <img src={EJEMPLO_POR_PLAN[p.key].photos[0].url} alt="" style={{ width: 20, height: 20, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: ink, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{EJEMPLO_POR_PLAN[p.key].name}</span>
+                      </div>
+                      <img src={shot.url} alt={shot.label} style={{ width: '100%', borderRadius: 10 }} /><span style={{ fontSize: 11 }}>{shot.label}</span>
+                    </div>)}</div>}
                   </section>
                 </article>
               );

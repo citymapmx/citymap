@@ -5,11 +5,18 @@
 // tarjeta que le toca en «ver planes» (la antigua página de planes):
 // Gratuito → CompactCard, Destacado → DestacadoCard, Premium →
 // FeaturedCard. Fideliza lleva FeaturedCard con SSAM Comida Coreana,
-// que SÍ es fideliza en la base tras la migración del 15 nov 2026. La
-// calificación NO se guarda aquí: BusinessCard la lee en vivo con
-// displayRating y solo la muestra si el caché de Google trae el dato;
-// por eso no se pasan rating ni review_count (los de la base son 5.0 / 1,
-// valores por defecto, no reales). `plan` es el plan REAL del negocio en
+// que SÍ es fideliza en la base tras la migración del 15 nov 2026.
+// La calificación SÍ se guarda en los 3 ejemplos de pago: es el caché
+// de Google tal como estaba el 10 nov 2026 (verificado por PostgREST el
+// 15 nov 2026) y sirve de reserva si el caché no cargó todavía: en vivo
+// displayRating prefiere el caché vigente y solo usa estos valores si no
+// hay dato (mismo patrón que YA_ESTAN_EN_CITYMAP). `googleRating: true`
+// marca que el valor viene del caché de Google. Sin estos valores, la
+// tarjeta caía en 5 estrellas vacías antes de que cargara el caché.
+// El ejemplo gratuito (Dalila) NO lleva rating: las reseñas de Google
+// solo se muestran en planes de pago (regla 12 nov 2026) y la vista previa
+// esconde la fila de calificación (hideReviews) en vez de mostrar
+// estrellas vacías. `plan` es el plan REAL del negocio en
 // la base (Akami Sushi y Four Seasons son premium; SSAM es fideliza).
 // `distStr` y `realFavs` son los valores de muestra de la antigua página
 // de planes (no hay distancia ni guardados reales para un ejemplo).
@@ -53,6 +60,8 @@ export const EJEMPLO_POR_PLAN = {
       { url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1792683841460_o3klkf.webp" },
       { url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1792683841427_v7nhu6.jpg" },
     ],
+    // Caché de Google del 10 nov 2026 (verificado por PostgREST 15 nov).
+    rating: 4.6, review_count: 47, googleRating: true,
   },
   elite: {
     id: "6a49d84a-6feb-4b74-89a8-8f68bab27849",
@@ -67,6 +76,8 @@ export const EJEMPLO_POR_PLAN = {
       dom: "09:00 a.m. - 10:00 p.m.",
     },
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785787099442_qkable.avif" }],
+    // Caché de Google del 10 nov 2026 (verificado por PostgREST 15 nov).
+    rating: 4.8, review_count: 3766, googleRating: true,
   },
   fideliza: {
     id: "268f2923-4a5b-47a3-bf6e-cd39fce8c3b6",
@@ -81,6 +92,8 @@ export const EJEMPLO_POR_PLAN = {
       dom: "01:00 p.m. - 06:30 p.m.",
     },
     photos: [{ url: "https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1791991014199_weowej.jpg" }],
+    // Caché de Google del 10 nov 2026 (verificado por PostgREST 15 nov).
+    rating: 4.8, review_count: 8825, googleRating: true,
   },
 };
 
