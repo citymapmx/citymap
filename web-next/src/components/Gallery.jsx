@@ -5,7 +5,6 @@ import { getThumbUrl } from "../lib/utils.js";
 export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", initialIndex = 0 }) {
   const [i, setI] = useState(initialIndex);
   const [loadedUrl, setLoadedUrl] = useState(null);
-  const [zoom, setZoom] = useState(false);
   const thumbsRef = useRef(null);
   const isFullscreen = h === "100dvh";
 
@@ -21,8 +20,8 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
   const p = typeof raw === 'string' ? { url: raw } : raw;
   const loaded = loadedUrl === p?.url;
   const total = photos?.length || 0;
-  const prev = () => { setZoom(false); setI(x => (x - 1 + total) % total); };
-  const next = () => { setZoom(false); setI(x => (x + 1) % total); };
+  const prev = () => { setI(x => (x - 1 + total) % total); };
+  const next = () => { setI(x => (x + 1) % total); };
 
   if (!p?.url) return (
     <div style={{ height: h, background: bg, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
@@ -45,18 +44,17 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
           </div>
         )}
 
-        <div style={{ width: '100%', height: '100%', overflow: zoom ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ width: '100%', height: '100%', overflow: 'hidden', WebkitOverflowScrolling: 'touch' }}>
         <img
           key={p.url}
           src={isFullscreen ? p.url : getThumbUrl(p.url, 1200, 1000, fit)}
           alt={p.alt || p.label || `Foto ${i + 1} de la galería`}
           loading="eager"
           onLoad={() => setLoadedUrl(p.url)}
-          style={{ width: zoom ? "200%" : "100%", maxWidth: "none", height: zoom ? "200%" : "100%", objectFit: fit, objectPosition: "center", display: "block", opacity: loaded ? 1 : 0, transition: "opacity 0.25s ease-out" }}
+          style={{ width: "100%", maxWidth: "none", height: "100%", objectFit: fit, objectPosition: "center", display: "block", opacity: loaded ? 1 : 0, transition: "opacity 0.25s ease-out" }}
         />
 
         </div>
-        {isFullscreen && <button type="button" aria-label={zoom ? 'Reducir foto' : 'Ampliar foto'} aria-pressed={zoom} onClick={() => setZoom(value => !value)} style={{ position: 'absolute', top: 100, left: 16, zIndex: 10, border: '1px solid rgba(255,255,255,.25)', borderRadius: 20, background: 'rgba(0,0,0,.6)', color: '#fff', padding: '8px 12px', cursor: 'pointer' }}>{zoom ? '− Reducir' : '+ Ampliar'}</button>}
 
         {/* Counter */}
         {total > 1 && <div style={{ position: "absolute", top: isFullscreen ? 100 : 16, right: 16, background: "rgba(0,0,0,.52)", backdropFilter: "blur(8px)", borderRadius: 20, padding: "4px 12px", fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: .3, zIndex: 10 }}>{i + 1} / {total}</div>}
@@ -70,7 +68,7 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
           </button>
         </>}
         {/* Swipe */}
-        {total > 1 && !zoom && <div style={{ position: "absolute", inset: 0, zIndex: 5 }} onTouchStart={e => e.currentTarget._sx = e.touches[0].clientX} onTouchEnd={e => { const dx = e.changedTouches[0].clientX - (e.currentTarget._sx || 0); if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); } }} />}
+        {total > 1 && <div style={{ position: "absolute", inset: 0, zIndex: 5 }} onTouchStart={e => e.currentTarget._sx = e.touches[0].clientX} onTouchEnd={e => { const dx = e.changedTouches[0].clientX - (e.currentTarget._sx || 0); if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); } }} />}
       </div>
 
       {/* ── THUMBNAIL STRIP ── */}
@@ -93,7 +91,7 @@ export default function Gallery({ photos, h = 320, fit = "cover", bg = "#111", i
           {photos.map((ph, j) => (
             <div
               key={j}
-              onClick={() => { setZoom(false); setI(j); }}
+              onClick={() => { setI(j); }}
               style={{
                 flexShrink: 0,
                 width: 72,

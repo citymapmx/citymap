@@ -88,11 +88,12 @@ describe('veil opens the viewer at the first photo', () => {
 });
 
 describe.each([['Vite', Gallery], ['Next', NextGallery]])('%s fullscreen photo viewer', (_name, Viewer) => {
-  it('opens the selected image completely and offers zoom and navigation', () => {
+  it('opens the selected image completely and offers navigation (no zoom button)', () => {
     const html=renderToStaticMarkup(<Viewer photos={photos} initialIndex={2} h="100dvh" fit="contain"/>);
     expect(html).toContain(photos[2].url);
     expect(html).toContain('object-fit:contain');
-    expect(html).toContain('aria-label="Ampliar foto"');
+    expect(html).not.toContain('Ampliar foto');
+    expect(html).not.toContain('Reducir foto');
     expect(html).toContain('aria-label="Foto siguiente"');
     expect(html).toContain('aria-label="Foto anterior"');
   });
