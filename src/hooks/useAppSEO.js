@@ -1,5 +1,5 @@
 import { seoSite, citySlugFromPath } from '../lib/seoRoutes.js';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUIStore } from '../store/useUIStore.js';
 import { useDataStore } from '../store/useDataStore.js';
@@ -18,6 +18,9 @@ export function useAppSEO({ city }) {
   const reviews = useDataStore(s => s.reviews);
   const setReviews = useDataStore(s => s.setReviews);
   const cities = useDataStore(s => s.cities);
+  // Negocio cuya ficha está abierta: solo para limpiar las reseñas al
+  // cambiar de negocio (ver el wipe dentro del efecto).
+  const prevSelectedIdRef = useRef(null);
 
   useEffect(() => {
     const CAT_SEO = {
@@ -68,8 +71,22 @@ export function useAppSEO({ city }) {
     let canonical = isGenericRoot ? BASE_URL + "/" : BASE_URL + buildCityPath(seoCity, cities);
 
 
+    // Sin negocio abierto, olvidar el último visto: al volver a entrar
+    // a una ficha (aunque sea el mismo negocio) las reseñas viejas se
+    // limpian una vez.
+    if (!selected?.id && prevSelectedIdRef.current !== null) {
+      prevSelectedIdRef.current = null;
+    }
+
     if (selected?.id) {
-      if (!selected._fullFetched) {
+      // Limpiar las reseñas SOLO al cambiar de negocio: antes se
+      // borraban en cada ejecución del efecto mientras !_fullFetched
+      // (el efecto depende de selected, mapPins, cities...), y podían
+      // borrar reseñas recién cargadas o dejar la sección en
+      // «Sé el primero» si la consulta fullBusiness fallaba y nada
+      // volvía a cargarlas (nov 2026, Melissa Arana).
+      if (prevSelectedIdRef.current !== selected.id) {
+        prevSelectedIdRef.current = selected.id;
         setReviews([]);
       }
       
