@@ -362,7 +362,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                   style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: menuT.green || '#16A34A' }}
                 >
                   <Icon name="shopping-cart" size={18} color="currentColor" />
-                  <span style={{ fontSize: 13, fontWeight: 700 }}>Tienes productos en tu carrito</span>
+                  <span style={{ fontSize: 15, fontWeight: 700 }}>Tienes productos en tu carrito</span>
                 </div>
                 <div 
                   onClick={clearCart} 
@@ -370,7 +370,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                   style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: '#EF4444' }}
                 >
                   <Icon name="trash" size={16} color="currentColor" />
-                  <span style={{ fontSize: 13, fontWeight: 700 }}>Vaciar</span>
+                  <span style={{ fontSize: 15, fontWeight: 700 }}>Vaciar</span>
                 </div>
               </div>
           </div>
@@ -522,7 +522,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 </h1>
 
                 {menuIntent === 'local' ? (
-                  <div style={{ marginTop: 6, fontSize: 15, fontWeight: 700, color: menuTheme ? menuTheme.text : (dark ? '#FAFAFA' : '#232326'), letterSpacing: -0.2 }}>
+                  <div style={{ marginTop: 6, fontSize: 17, fontWeight: 700, color: menuTheme ? menuTheme.text : (dark ? '#FAFAFA' : '#232326'), letterSpacing: -0.2 }}>
                     ¡Qué bueno tenerte aquí!
                   </div>
                 ) : (
@@ -600,7 +600,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               value={menuSearch}
               onChange={e => setMenuSearch(e.target.value)}
               placeholder={`Buscar en el ${storeLabel}`}
-              style={{ width: '100%', padding: '12px 16px 12px 40px', borderRadius: 12, border: 'none', background: dark ? '#232326' : '#F3F4F6', color: dark ? '#FFFFFF' : '#111111', fontSize: 16, fontWeight: 500, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+              style={{ width: '100%', padding: '12px 16px 12px 40px', borderRadius: 12, border: 'none', background: dark ? '#232326' : '#F3F4F6', color: dark ? '#FFFFFF' : '#111111', fontSize: 18, fontWeight: 500, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
             />
             {menuSearch && <button aria-label="Borrar búsqueda de productos" onClick={() => { setMenuSearch(''); setDebouncedSearch(''); }} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><Icon name="x" size={16} color={dark ? '#A1A1AA' : '#6B7280'} /></button>}
           </div>
@@ -656,7 +656,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                       border: 'none',
                       padding: '6px 14px',
                       borderRadius: 16,
-                      fontSize: 13,
+                      fontSize: 15,
                       fontWeight: 700,
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
@@ -678,7 +678,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
       {filteredCategories.length === 0 && searchLower && (
         <div style={{ padding: '40px 20px', textAlign: 'center' }}>
           <Icon name="search" size={32} color={menuT.border} />
-          <p style={{ marginTop: 12, fontSize: 15, color: menuT.sub, fontWeight: 600 }}>No se encontraron productos para "{debouncedSearch}"</p>
+          <p style={{ marginTop: 12, fontSize: 17, color: menuT.sub, fontWeight: 600 }}>No se encontraron productos para "{debouncedSearch}"</p>
         </div>
       )}
 
@@ -697,9 +697,9 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             transition={{ duration: 0.35, ease: "easeOut" }}
             key={cat.id} data-catid={cat.id} ref={el => categoryRefs.current[cat.id] = el} style={{ marginBottom: 24, scrollMarginTop: '130px' }}>
             <div style={{ margin: '0 16px 12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-              <h3 style={{ fontSize: 19, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#F87171' : '#EF4444'), margin: 0, letterSpacing: '-0.5px', textTransform: 'uppercase' }}>{cat.name}</h3>
+              <h3 style={{ fontSize: 21, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#F87171' : '#EF4444'), margin: 0, letterSpacing: '-0.5px', textTransform: 'uppercase' }}>{cat.name}</h3>
               {offHours && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A'), whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A'), whiteSpace: 'nowrap' }}>
                   Fuera de servicio · {categoryScheduleLabel12h(cat)}
                 </span>
               )}
@@ -771,7 +771,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                       </div>
                       {/* Promo Badge */}
                       {product.badge === 'PROMO' && (
-                        <div style={{ position: 'absolute', top: viewMode === 'grid' ? 8 : 0, left: viewMode === 'grid' ? 8 : 0, background: '#E11D48', color: '#FFF', fontSize: 10, fontWeight: 900, padding: '4px 8px', borderRadius: viewMode === 'grid' ? 8 : '16px 0 16px 0', textTransform: 'uppercase', zIndex: 2 }}>
+                        <div style={{ position: 'absolute', top: viewMode === 'grid' ? 8 : 0, left: viewMode === 'grid' ? 8 : 0, background: '#E11D48', color: '#FFF', fontSize: 12, fontWeight: 900, padding: '4px 8px', borderRadius: viewMode === 'grid' ? 8 : '16px 0 16px 0', textTransform: 'uppercase', zIndex: 2 }}>
                           PROMO
                         </div>
                       )}
@@ -792,12 +792,12 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                       : { flex: 1, display: "flex", flexDirection: "column", padding: "12px", position: 'relative' }
                   }>
                     <div style={{ display: "flex", flexDirection: "column", textAlign: 'left' }}>
-                      <div style={{ fontSize: viewMode === 'grid' ? 14 : 15, fontWeight: 800, color: menuTheme ? menuTheme.text : (dark ? '#FAFAFA' : '#111111'), marginBottom: product.image_url ? 4 : 2, lineHeight: 1.3, wordBreak: 'break-word', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: viewMode === 'grid' ? 16 : 17, fontWeight: 800, color: menuTheme ? menuTheme.text : (dark ? '#FAFAFA' : '#111111'), marginBottom: product.image_url ? 4 : 2, lineHeight: 1.3, wordBreak: 'break-word', textTransform: 'uppercase' }}>
                         {product.name}
                       </div>
                       
                       {product.description && viewMode === 'list' && (
-                        <div style={{ fontSize: 13, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#6B7280'), display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4, marginBottom: product.image_url ? 8 : 4, paddingRight: 8 }}>
+                        <div style={{ fontSize: 15, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#6B7280'), display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4, marginBottom: product.image_url ? 8 : 4, paddingRight: 8 }}>
                           {product.description}
                         </div>
                       )}
@@ -853,7 +853,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                                 style={{ width: 28, height: 28, borderRadius: '50%', background: dark ? '#3F3F46' : '#F4F4F5', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', outline: 'none' }}
                               ><Icon name="minus" size={16} color={dark ? "#FAFAFA" : "#3F3F46"} /></m.button>
                               
-                              <div style={{ fontSize: 14, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', minWidth: 24, textAlign: 'center' }}>{totalInCart}</div>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', minWidth: 24, textAlign: 'center' }}>{totalInCart}</div>
                               
                               <m.button 
                                 whileTap={{ scale: 0.8 }}
@@ -879,19 +879,19 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                       const priceContent = priceInfo.hasPrice ? (
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
                           {product.old_price && !priceInfo.isFrom && (
-                             <span style={{ fontSize: viewMode === 'grid' ? 11 : 13, color: '#9CA3AF', textDecoration: 'line-through', fontWeight: 600 }}>
+                             <span style={{ fontSize: viewMode === 'grid' ? 13 : 15, color: '#9CA3AF', textDecoration: 'line-through', fontWeight: 600 }}>
                                ${Number(product.old_price).toFixed(0)}
                              </span>
                           )}
                           {priceInfo.isFrom ? (
                             <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#6B7280') }}>Desde</span>
-                              <span style={{ fontSize: viewMode === 'grid' ? 13 : 16, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#FAFAFA' : '#111827') }}>
+                              <span style={{ fontSize: 14, fontWeight: 600, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#6B7280') }}>Desde</span>
+                              <span style={{ fontSize: viewMode === 'grid' ? 15 : 18, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#FAFAFA' : '#111827') }}>
                                 ${Number(priceInfo.amount).toFixed(0)}
                               </span>
                             </span>
                           ) : (
-                            <span style={{ fontSize: viewMode === 'grid' ? 13 : 16, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#FAFAFA' : '#111827') }}>
+                            <span style={{ fontSize: viewMode === 'grid' ? 15 : 18, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#FAFAFA' : '#111827') }}>
                               ${Number(priceInfo.amount).toFixed(0)}
                             </span>
                           )}
@@ -925,7 +925,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
       })}
         {filteredCategories.length > 0 && (
           <div style={{ padding: '24px 20px 24px', textAlign: 'center' }}>
-            <p style={{ fontSize: 11, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A'), lineHeight: 1.5, margin: 0, fontWeight: 500 }}>
+            <p style={{ fontSize: 13, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A'), lineHeight: 1.5, margin: 0, fontWeight: 500 }}>
               Aviso legal: Los precios, imágenes y descripciones son administrados por cada negocio y pueden cambiar. CityMap no se responsabiliza por diferencias al momento de la compra.
             </p>
             <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', opacity: 1 }}>
@@ -953,7 +953,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
           color: '#ffffff',
           padding: '8px 16px 8px 12px',
           borderRadius: 30,
-          fontSize: 13,
+          fontSize: 15,
           fontWeight: 600,
           boxShadow: '0 12px 32px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.1)',
           zIndex: 99999,
@@ -984,7 +984,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
           color: '#ffffff',
           padding: '8px 16px 8px 12px',
           borderRadius: 30,
-          fontSize: 13,
+          fontSize: 15,
           fontWeight: 600,
           boxShadow: '0 12px 32px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.1)',
           zIndex: 99999,
@@ -1005,11 +1005,11 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
       {/* Floating Cart Button */}
       {cartCount > 0 && menuIntent !== 'local' && (showMenuModal || inline) && (
         <div style={{ position: 'fixed', bottom: 20, left: 0, right: 0, zIndex: 90000, display: 'flex', justifyContent: 'center', padding: '0 16px', pointerEvents: 'none' }}>
-          <button onClick={() => setIsOpen(true)} style={{ width: '100%', maxWidth: 568, pointerEvents: 'auto', background: '#18181B', color: '#FFFFFF', border: 'none', borderRadius: 16, padding: '14px 20px', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(24, 24, 27, 0.4)' }}>
+          <button onClick={() => setIsOpen(true)} style={{ width: '100%', maxWidth: 568, pointerEvents: 'auto', background: '#18181B', color: '#FFFFFF', border: 'none', borderRadius: 16, padding: '14px 20px', fontSize: 18, fontWeight: 800, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(24, 24, 27, 0.4)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ fontSize: 16, fontWeight: 900, color: '#FFFFFF' }}>{cartCount}</div>
-              <span style={{ fontSize: 16, fontWeight: 600 }}>•</span>
-              <span style={{ fontSize: 16 }}>Ver carrito</span>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#FFFFFF' }}>{cartCount}</div>
+              <span style={{ fontSize: 18, fontWeight: 600 }}>•</span>
+              <span style={{ fontSize: 18 }}>Ver carrito</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span>${cartTotal.toFixed(2)}</span>
