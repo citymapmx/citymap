@@ -508,6 +508,7 @@ export const EN_TRANSLATIONS = {
     "revista_whatsapp_reserva": "Hi! I just made a booking on CityMap.\n*Name:* ${name}\n*Date:* ${date}\n*Time:* ${time}\n*Service:* ${service}\n${notesLine}\n\nCould you confirm you received it? Thank you!",
 
     // Fase 1 inglés — Eventos
+    "evento_cada_semana": "Every week",
     "eventos_acerca": "About the event",
     "eventos_agregar_foto": "Add photo",
     "eventos_agregar_foto_aria": "Add photo to event",

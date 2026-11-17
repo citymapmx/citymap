@@ -184,7 +184,7 @@ export default function EventDetailModal() {
   useEffect(() => {
     if (!selectedEvent?.id) { setUpcoming([]); return; }
     let cancelled = false;
-    sb.get('events', '?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website,visibility,active&status=eq.approved&order=date.asc&limit=40')
+    sb.get('events', '?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,is_recurring,biz_id,price,price_type,website,visibility,active&status=eq.approved&order=date.asc&limit=40')
       .then(rows => { if (!cancelled) setUpcoming(upcomingEvents(Array.isArray(rows) ? rows : [], selectedEvent, todayLocal, 4)); })
       .catch(() => { if (!cancelled) setUpcoming([]); });
     return () => { cancelled = true; };
@@ -374,10 +374,22 @@ export default function EventDetailModal() {
                     ya no va aquí: va en la tarjeta de fecha/lugar,
                     junto a la dirección (EventInformation). */}
                 <div style={{ marginBottom: showTopRow ? 8 : 12 }}>
-                  {!isPast && heroDate && (
-                    <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, letterSpacing: "0.4px", padding: "6px 10px", borderRadius: 9999, marginBottom: 10, background: dark ? "rgba(255,255,255,0.08)" : "rgba(15,26,20,0.06)", color: T.text, border: `1px solid ${T.border}` }}>
-                      {heroDate.dia} {heroDate.num} {heroDate.mes} {heroDate.year}
-                    </span>
+                  {/* Píldoras sobre el título: la de fecha (solo privados
+                      en claro) y, si el evento es recurrente, «Cada semana»
+                      con el MISMO estilo que la de fecha. */}
+                  {((!isPast && heroDate) || ev.is_recurring) && (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+                      {!isPast && heroDate && (
+                        <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, letterSpacing: "0.4px", padding: "6px 10px", borderRadius: 9999, background: dark ? "rgba(255,255,255,0.08)" : "rgba(15,26,20,0.06)", color: T.text, border: `1px solid ${T.border}` }}>
+                          {heroDate.dia} {heroDate.num} {heroDate.mes} {heroDate.year}
+                        </span>
+                      )}
+                      {ev.is_recurring && (
+                        <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, letterSpacing: "0.4px", padding: "6px 10px", borderRadius: 9999, background: dark ? "rgba(255,255,255,0.08)" : "rgba(15,26,20,0.06)", color: T.text, border: `1px solid ${T.border}` }}>
+                          {t("evento_cada_semana", "Cada semana")}
+                        </span>
+                      )}
+                    </div>
                   )}
                   <h1 style={{ fontFamily: FONT_BIZ, fontSize: isPast ? 24 : 30, fontWeight: 900, color: T.text, lineHeight: isPast ? 1.15 : 1.05, marginTop: 0, marginBottom: 0, textAlign: "left", letterSpacing: "-0.5px" }}>{displayTitle}</h1>
                 </div>
