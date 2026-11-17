@@ -95,7 +95,10 @@ describe('póster de evento llena la tarjeta (PR #153)', () => {
   it('la píldora de fecha y el corazón siguen por encima, y sin imagen sigue el fallback', () => {
     const src = read('../views/EventsView.jsx');
     expect(src).toContain('EventPosterFallback');
-    expect(src).toContain("top:8, left:8, zIndex:2");
+    expect(src).toContain("top:8, left:8, right:56, zIndex:2");
+    // La fila termina 56 px antes del borde para no meterse debajo del
+    // corazón (44 px + 6 de margen + 6 de separación).
+    expect(src).toContain("right:56");
     // El corazón está fuera del contenedor de la imagen, con zIndex 2
     // (ahora va en el buttonStyle de SaveHeartButton, con espacios).
     expect(src).toContain("top: 6, right: 6, width: 44, height: 44");

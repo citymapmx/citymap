@@ -22,7 +22,7 @@ describe('event list card: image only', () => {
   it('shows the date as a small pill at the top-left inside the image container', () => {
     // La etiqueta vive dentro del contenedor aspectRatio 5/7, después de la imagen.
     const imageBox = card.slice(card.indexOf("aspectRatio:'5 / 7'"));
-    expect(imageBox).toMatch(/position:'absolute', top:8, left:8, zIndex:2/);
+    expect(imageBox).toMatch(/position:'absolute', top:8, left:8, right:56, zIndex:2, display:'flex', gap:6, flexWrap:'wrap'/);
     expect(imageBox).toMatch(/borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700/);
     expect(imageBox).toMatch(/background:'rgba\(0,0,0,0\.55\)', color:'#FFFFFF'/);
     expect(imageBox).toContain('{fmtCardDate(ev)}');

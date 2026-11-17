@@ -610,10 +610,17 @@ export default function EventsView() {
                               la píldora «Cada semana» con el MISMO estilo
                               (fondo oscuro semitransparente, texto blanco,
                               12 px): una fila arriba a la izquierda sobre
-                              la foto. */}
-                          <div style={{ position:'absolute', top:8, left:8, zIndex:2, display:'flex', gap:6 }}>
-                            <div style={{ borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF' }}>{fmtCardDate(ev)}</div>
-                            {ev.is_recurring && <div style={{ borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF' }}>{t('evento_cada_semana', 'Cada semana')}</div>}
+                              la foto. La fila termina en right:56 para no
+                              meterse debajo del corazón de Guardar (44 px
+                              + 6 de margen + 6 de separación): si las dos
+                              píldoras no caben en una línea, la segunda
+                              baja entera a la siguiente (flexWrap) y
+                              ninguna se parte ni se encoge (nowrap +
+                              flexShrink 0) — antes el corazón tapaba la
+                              píldora y se leía «Cada / semana». */}
+                          <div style={{ position:'absolute', top:8, left:8, right:56, zIndex:2, display:'flex', gap:6, flexWrap:'wrap' }}>
+                            <div style={{ borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF', flexShrink:0, whiteSpace:'nowrap' }}>{fmtCardDate(ev)}</div>
+                            {ev.is_recurring && <div style={{ borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF', flexShrink:0, whiteSpace:'nowrap' }}>{t('evento_cada_semana', 'Cada semana')}</div>}
                           </div>
                         </div>
                       </button>

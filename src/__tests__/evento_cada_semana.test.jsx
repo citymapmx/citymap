@@ -32,11 +32,36 @@ describe('evento recurrente: píldora «Cada semana»', () => {
   it('la píldora de la tarjeta usa el mismo estilo que la de fecha', () => {
     const card = eventsView.slice(eventsView.indexOf('className="event-list-card"'));
     // La fila de píldoras arriba a la izquierda sobre la foto.
-    expect(card).toMatch(/position:'absolute', top:8, left:8, zIndex:2, display:'flex', gap:6/);
+    expect(card).toMatch(/position:'absolute', top:8, left:8, right:56, zIndex:2, display:'flex', gap:6, flexWrap:'wrap'/);
     // La píldora recurrente copia el estilo de la de fecha al dedillo.
     const pill = card.slice(card.indexOf('{ev.is_recurring'));
     expect(pill).toContain("borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700");
     expect(pill).toContain("background:'rgba(0,0,0,0.55)', color:'#FFFFFF'");
+  });
+
+  it('la fila de píldoras reserva el espacio del corazón (sin solape)', () => {
+    // El corazón de Guardar vive en la misma esquina: 44 px de ancho a
+    // 6 px del borde derecho (top:6, right:6). La fila de píldoras
+    // termina 56 px antes del borde (44 del corazón + 6 de su margen +
+    // 6 de separación), así que nunca se mete debajo de él.
+    const card = eventsView.slice(eventsView.indexOf('className="event-list-card"'));
+    expect(card).toMatch(/top: 6, right: 6, width: 44, height: 44/);
+    const row = card.slice(card.indexOf("top:8, left:8"));
+    expect(row).toContain('right:56');
+    // 56 = 44 (ancho del corazón) + 6 (su margen derecho) + 6 (hueco).
+    expect(44 + 6 + 6).toBe(56);
+  });
+
+  it('ninguna píldora se parte en dos líneas ni se encoge', () => {
+    // Antes el corazón apretaba la fila y la píldora se leía
+    // «Cada / semana». Ahora cada píldora es nowrap y no encoge: si las
+    // dos no caben en una línea, la segunda baja ENTERA a la siguiente
+    // (la fila tiene flexWrap), nunca partida ni tapada. Las dos píldoras
+    // de la tarjeta (fecha y «Cada semana») llevan esa protección.
+    const card = eventsView.slice(eventsView.indexOf('className="event-list-card"'));
+    const protected_ = card.split("flexShrink:0, whiteSpace:'nowrap'").length - 1;
+    expect(protected_).toBe(2);
+    expect(card).toContain("flexWrap:'wrap'");
   });
 
   it('la ficha muestra la píldora solo si el evento es recurrente', () => {
