@@ -29,12 +29,36 @@ export const getUnreadNotificationCount = async (userId) => {
 };
 
 // ── Reviews ───────────────────────────────────────────────────────────────
+// La foto del autor vive en profiles.avatar_url; la reseña solo guarda
+// user_name/user_init/user_color. Un solo fetch batch por los user_ids
+// distintos (no una query por reseña); si un perfil no tiene foto o la
+// consulta falla, la reseña queda sin avatar_url y el render usa el
+// círculo de iniciales como hoy.
+export const enrichReviewsWithAvatars = async (reviews) => {
+  if (!Array.isArray(reviews) || reviews.length === 0) return reviews;
+  const userIds = [...new Set(reviews.map(r => r.user_id).filter(Boolean))];
+  if (userIds.length === 0) return reviews;
+  try {
+    const profs = await sb.get("profiles", `?id=in.(${userIds.join(",")})&select=id,avatar_url`);
+    if (!Array.isArray(profs) || profs.length === 0) return reviews;
+    const byId = new Map(profs.map(p => [p.id, p.avatar_url || null]));
+    return reviews.map(r => {
+      const avatar_url = byId.get(r.user_id) || null;
+      return avatar_url ? { ...r, avatar_url } : r;
+    });
+  } catch {
+    return reviews;
+  }
+};
+
 export const getBusinessReviews = async (bizId) => {
-  return await sb.get("reviews", `?biz_id=eq.${bizId}&order=created_at.desc`);
+  const rows = await sb.get("reviews", `?biz_id=eq.${bizId}&order=created_at.desc`);
+  return enrichReviewsWithAvatars(rows);
 };
 
 export const getExperienceReviews = async (expId) => {
-  return await sb.get("reviews", `?experience_id=eq.${expId}&order=created_at.desc`);
+  const rows = await sb.get("reviews", `?experience_id=eq.${expId}&order=created_at.desc`);
+  return enrichReviewsWithAvatars(rows);
 };
 
 export const createReview = async (reviewData) => {

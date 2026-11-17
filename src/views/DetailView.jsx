@@ -9,6 +9,7 @@ import useGMaps from "../components/map/useGMaps.js";
 import { FONT_BIZ } from "../lib/constants.js";
 import { isBookingPath, bookingModalApplies } from "../lib/bookingLink.js";
 import GoogleReviewItem from '../components/detail/GoogleReviewItem.jsx';
+import ReviewAvatar from '../components/ReviewAvatar.jsx';
 import TikTokBlock from '../components/detail/TikTokBlock.jsx';
 import GalleryLayout from '../components/detail/GalleryLayout.jsx';
 import JaguaresGames from '../components/detail/JaguaresGames.jsx';
@@ -1015,7 +1016,7 @@ export default function DetailView() {
             {reviews.slice(0, showAllReviews ? reviews.length : 3).map((r, i) => <div key={i} style={{ padding: "16px 0", borderBottom: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div className="text-sm" style={{ width: 40, height: 40, borderRadius: "50%", background: r.user_color || "#111", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", flexShrink: 0 }}>{r.user_init}</div>
+                  <ReviewAvatar avatarUrl={r.avatar_url} userInit={r.user_init} userColor={r.user_color} />
                   <div>
                     <div className="text-sm" style={{ fontWeight: 800, color: dText }}>{r.user_name}</div>
                     <div className="text-xs" style={{ color: dSub, marginTop: 2 }}>{new Date(r.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', { day: "numeric", month: "long" })}</div>
