@@ -148,6 +148,10 @@ export default function DetailView() {
   const [showLoyalty, setShowLoyalty] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
+  // Mientras se cargan las reseñas de la ficha, el subtítulo no dice
+  // «Sé el primero»: sin esto, al abrir una ficha con reseñas se veía
+  // ese texto hasta que llegaban (nov 2026, Melissa Arana).
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [showIntentModal, setShowIntentModal] = useState(false);
 
   const getEmbedUrl = (url) => {
@@ -264,12 +268,11 @@ export default function DetailView() {
       const res = await dbService.fetchFullBusiness(selected.id);
       if (res && res.length > 0) {
         const fullData = { ...selected, ...res[0], _fullFetched: true };
-        if (fullData.reviews) {
-          const revs = [...fullData.reviews];
-          revs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-          setReviews(revs);
-          delete fullData.reviews;
-        }
+        // Las reseñas ya NO se cargan por esta consulta: la vía directa
+        // (efecto sobre selected.id, abajo) es la única fuente. Si esta
+        // consulta falla, la sección no se queda vacía. Se quitan del
+        // objeto para no colarlas en `selected`.
+        delete fullData.reviews;
         setSelected(fullData);
         return fullData;
       }
@@ -278,6 +281,34 @@ export default function DetailView() {
     enabled: !!selected?.id && !selected?._fullFetched,
     staleTime: 5 * 60 * 1000
   });
+
+  // Reseñas por vía directa al abrir la ficha (única fuente): la
+  // consulta embebida fullBusiness a veces falla, tarda o no se
+  // dispara, y antes nada más volvía a cargarlas — la sección quedaba
+  // en «Sé el primero» hasta refrescar (nov 2026, Melissa Arana).
+  // getBusinessReviews ya trae el avatar del perfil. Un reintento
+  // cubre un fallo transitorio de red. La dependencia es el id (no el
+  // objeto selected) para no recargar cuando fullBusiness reemplaza
+  // el objeto con los mismos datos.
+  const bizId = selected?.id;
+  useEffect(() => {
+    if (!bizId) return;
+    let alive = true;
+    let retryTimer = null;
+    setReviewsLoading(true);
+    const load = (attempt) => {
+      dbService.getBusinessReviews(bizId)
+        .then(r => { if (alive) { setReviews(Array.isArray(r) ? r : []); setReviewsLoading(false); } })
+        .catch(() => {
+          if (!alive) return;
+          if (attempt === 0) retryTimer = setTimeout(() => load(1), 2000);
+          else setReviewsLoading(false);
+        });
+    };
+    load(0);
+    return () => { alive = false; if (retryTimer) clearTimeout(retryTimer); };
+    // setReviews es el setter estable del store; se lista para el linter.
+  }, [bizId, setReviews]);
 
   // Si el usuario tocó «Reservar» cuando la reserva aún era desconocida
   // y la consulta falló, el reintento abre el modal solo cuando la
@@ -985,7 +1016,7 @@ export default function DetailView() {
                   <Icon name="star_f" size={22} color={dText} />
                   <span className="text-base" style={{ fontWeight: 700 }}>{t('detalle_resenas', 'Reseñas')}</span>
                 </div>
-                <div className="text-sm" style={{ color: dSub, lineHeight: 1.5, paddingLeft: 34 }}>{reviews.length > 0 ? t('detalle_comparte_experiencia', 'Comparte tu experiencia') : t('detalle_primero_resena', 'Sé el primero en dejar reseña')}</div>
+                <div className="text-sm" style={{ color: dSub, lineHeight: 1.5, paddingLeft: 34 }}>{reviews.length > 0 || reviewsLoading ? t('detalle_comparte_experiencia', 'Comparte tu experiencia') : t('detalle_primero_resena', 'Sé el primero en dejar reseña')}</div>
               </div>
               <button aria-label={t('detalle_escribir_resena', 'Escribir reseña')} className="press" onClick={() => { if (!user) { setShowAuth(true); return; } setShowReview(v => !v); }} style={{ width: 44, height: 44, borderRadius: "50%", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
                 <Icon name="edit" size={20} color={dText} />

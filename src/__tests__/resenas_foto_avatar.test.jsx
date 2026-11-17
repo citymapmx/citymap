@@ -11,6 +11,14 @@ import { readFileSync } from 'node:fs';
 // iniciales de siempre. Sin cambios de tamaño, nombre, fecha, estrellas
 // ni botón Útil. Las reseñas de experiencias comparten el mismo camino
 // (mismo store `reviews` y mismo componente ReviewAvatar).
+//
+// Carga de reseñas al abrir la ficha (17 Nov 2026, misma rama): antes
+// solo llegaban por la consulta embebida fullBusiness y useAppSEO las
+// borraba en cada render mientras !_fullFetched — si esa consulta
+// fallaba, la sección quedaba en «Sé el primero» hasta refrescar.
+// Ahora la ficha las carga por vía directa (getBusinessReviews) al
+// cambiar de negocio, con un reintento, y el wipe solo limpia al
+// cambiar de negocio.
 
 const { sbGet } = vi.hoisted(() => ({ sbGet: vi.fn() }));
 
@@ -176,6 +184,78 @@ describe('DetailView y ExperienceViewer usan el avatar', () => {
       expect(src).toContain('avatarUrl={r.avatar_url}');
       expect(src).toContain('userInit={r.user_init}');
       expect(src).not.toContain('background: r.user_color || "#111"');
+    }
+  });
+});
+
+describe('DetailView: la ficha carga reseñas por vía directa (bypass 17 Nov 2026)', () => {
+  beforeEach(() => { sbGet.mockReset(); });
+
+  it('la vía directa trae las reseñas enriquecidas aunque fetchFullBusiness falle o venga vacía', async () => {
+    // La ficha ya no depende de la consulta embebida (select=*,reviews(*)):
+    // si esa falla o no trae nada, la vía directa igual trae las reseñas
+    // con su avatar, ordenadas por fecha descendente.
+    sbGet.mockImplementation(async (table) => {
+      if (table === 'businesses') throw new Error('fetchFullBusiness caído');
+      if (table === 'reviews') return [
+        review({ id: 'r-nueva', user_id: 'u2', created_at: '2026-11-16T10:00:00Z' }),
+        review({ id: 'r-vieja', user_id: 'u1', created_at: '2026-11-14T10:00:00Z' }),
+      ];
+      if (table === 'profiles') return [
+        { id: 'u1', avatar_url: GOOGLE_AVATAR },
+        { id: 'u2', avatar_url: SUPABASE_AVATAR },
+      ];
+      return [];
+    });
+    const { fetchFullBusiness, getBusinessReviews } = await import('../services/dbService.js');
+    await expect(fetchFullBusiness('biz-1')).rejects.toThrow('fetchFullBusiness caído');
+    const out = await getBusinessReviews('biz-1');
+    expect(out).toHaveLength(2);
+    expect(out[0].avatar_url).toBe(SUPABASE_AVATAR);
+    expect(out[1].avatar_url).toBe(GOOGLE_AVATAR);
+    const reviewsCall = sbGet.mock.calls.find(c => c[0] === 'reviews');
+    expect(reviewsCall[1]).toContain('order=created_at.desc');
+  });
+
+  it('DetailView carga por vía directa y la consulta embebida ya no pisa las reseñas', () => {
+    const src = read('../views/DetailView.jsx');
+    // Efecto sobre el id del negocio, vía directa enriquecida.
+    expect(src).toContain('dbService.getBusinessReviews(bizId)');
+    expect(src).toContain('}, [bizId, setReviews]);');
+    // La embebida ya no es fuente de reseñas (ni crudas ni enriquecidas).
+    expect(src).not.toContain('setReviews(revs)');
+    expect(src).not.toContain('setReviews(await dbService.enrichReviewsWithAvatars(revs))');
+    // Mientras cargan, el subtítulo no dice «Sé el primero».
+    expect(src).toContain('reviewsLoading');
+    expect(src).toContain('reviews.length > 0 || reviewsLoading');
+    // Un reintento cubre un fallo transitorio de red.
+    expect(src).toContain('setTimeout(() => load(1), 2000)');
+  });
+
+  it('useAppSEO solo limpia al cambiar de negocio, nunca en cada render', () => {
+    const src = read('../hooks/useAppSEO.js');
+    expect(src).toContain('prevSelectedIdRef');
+    expect(src).toContain('prevSelectedIdRef.current !== selected.id');
+    // El wipe viejo: en cada ejecución del efecto mientras !_fullFetched.
+    expect(src).not.toContain('if (!selected._fullFetched) {');
+  });
+
+  it('no queda otro camino que guarde reseñas crudas: cada setReviews del repo es enriquecido, mapeo/filtro sobre la lista ya enriquecida, o vaciado', () => {
+    for (const file of ['../views/DetailView.jsx', '../App.jsx', '../hooks/useAppSEO.js']) {
+      const src = read(file);
+      const calls = [...src.matchAll(/setReviews\(([^;]*)\);?/gs)].map(m => m[1].trim());
+      expect(calls.length).toBeGreaterThan(0);
+      for (const call of calls) {
+        const ok =
+          call.includes('enrichReviewsWithAvatars') ||
+          call.startsWith('prev =>') ||
+          call.startsWith('(rem)') || call === 'rem' ||
+          call === '[]' ||
+          call.includes('getBusinessReviews') ||
+          call.includes('getExperienceReviews') ||
+          call.includes('Array.isArray(r) ? r : []');
+        expect(ok, `${file}: setReviews sin enriquecer: ${call}`).toBe(true);
+      }
     }
   });
 });
