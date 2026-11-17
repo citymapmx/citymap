@@ -16,9 +16,27 @@ export default defineConfig({
     }),
     VitePWA({
       registerType: 'autoUpdate',
-      selfDestroying: true,
+      // SW REVIVIDO (nov 2026, parte B del «sin internet al abrir»):
+      // el SW estuvo muerto a conciencia tras la #229 (hallazgo #5), y
+      // sin él nada sirve el shell en un arranque en frío sin internet:
+      // el WebView falla antes de que arranque la web y no llegan a
+      // actuar ni la caché de localStorage (#382) ni LoadFailureView
+      // (#385). La causa del bucle de la #229 era selfDestroying: el
+      // script se desinstalaba y recargaba la página en cada visita
+      // mientras el cliente lo volvía a registrar. Sin selfDestroying
+      // no hay nada que desinstalar ni recargar: el SW es normal,
+      // autoUpdate + skipWaiting + clientsClaim lo actualizan en
+      // segundo plano y onNeedRefresh NUNCA recarga (main.jsx). La
+      // espiral de caché de sep 2026 (shell viejo con chunks nuevos
+      // que ya no existen) queda cubierta por el guardia de recarga de
+      // loadRecovery.js (solo ante error de chunk obsoleto, solo con
+      // red, una vez cada 15 s) y por cleanupOutdatedCaches.
       includeAssets: ['favicon.png', 'apple-icon.png'],
       workbox: {
+        // navigateFallback: las rutas SPA (/, /tepic, /tepic/<negocio>)
+        // sirven el index.html precacheado cuando no hay red — es lo
+        // que hace posible el arranque en frío sin internet.
+        navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/native-auth\.html/],
         // Only precache static assets, NOT JS chunks (they change every deploy)
         globPatterns: ['**/*.{css,html,ico,png,svg,webp,jpg,jpeg,otf}'],

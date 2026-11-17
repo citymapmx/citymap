@@ -2,16 +2,23 @@ import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import middleware from '../../middleware.js';
 
-// ── Hallazgo #5 (nov 2026): el SW está muerto a conciencia ────────────────
-// Variante chica y segura: NO se revive el SW. Lo que cambia:
-//  1. /sw.js deja de dar 404 (kill switch de la #229) y sirve el script
-//     autodestructivo que genera VitePWA (dist/sw.js): el SW viejo se
-//     actualiza a él, se desinstala y recarga una sola vez.
-//  2. El cliente ya NO registra /sw.js (main.jsx): registrar el
-//     autodestructivo en cada carga recrearía el bucle de recarga de la
-//     #229 (instalar → activar → desinstalar → recargar → registrar…).
-//  3. Se compensa sin SW: staleTime del menú de 5 a 30 min + prefetch de
-//     la ruta del menú al abrir la ficha.
+// ── Revival del SW (nov 2026, parte B del «sin internet al abrir») ─────
+// El SW estuvo muerto a conciencia (hallazgo #5): /sw.js servía el script
+// autodestructivo de VitePWA y el cliente no lo registraba. Sin SW nada
+// sirve el shell en un arranque en frío sin internet: el WebView falla
+// antes de que arranque la web y no llegan a actuar ni la caché de
+// localStorage (#382) ni LoadFailureView (#385). La causa del bucle de la
+// #229 era selfDestroying (instalar → desinstalar → recargar → registrar);
+// sin selfDestroying y con el registro de antes (onNeedRefresh NUNCA
+// recarga), el bucle no puede volver. Lo que cambia:
+//  1. /sw.js vuelve a ser el SW real de VitePWA (workbox + precache):
+//     el SW autodestructivo de quien lo tenga se actualiza a él y el
+//     resto lo instala en la primera visita con internet.
+//  2. El cliente vuelve a registrar /sw.js (main.jsx).
+//  3. navigateFallback: 'index.html' para que las rutas SPA sirvan el
+//     shell precacheado sin red.
+// Se mantienen las compensaciones del hallazgo #5: staleTime del menú de
+// 30 min + prefetch de la ruta del menú al abrir la ficha.
 
 const readSource = (rel) =>
   fs.readFileSync(new URL(rel, import.meta.url), 'utf8');
@@ -21,7 +28,7 @@ const request = (path, host = 'citymap.mx') =>
     headers: { 'user-agent': 'Mozilla/5.0' },
   });
 
-describe('middleware: /sw.js ya no da 404, sirve el autodestructivo', () => {
+describe('middleware: /sw.js sigue pasando de largo (Vercel sirve dist/sw.js)', () => {
   it.each([
     'citymap.mx',
     'www.citymap.mx',
@@ -29,8 +36,8 @@ describe('middleware: /sw.js ya no da 404, sirve el autodestructivo', () => {
     'www.citymap.world',
   ])('pasa de largo (undefined) en %s: Vercel sirve dist/sw.js con 200', async (host) => {
     // El middleware debe pasar de largo para que Vercel sirva el archivo
-    // estático dist/sw.js (como ya hace con assetlinks.json). Antes, el
-    // kill switch devolvía 404 aquí.
+    // estático dist/sw.js (como ya hace con assetlinks.json). Antes del
+    // revival servía el autodestructivo; ahora sirve el SW real.
     expect(await middleware(request('/sw.js', host))).toBeUndefined();
   });
 
@@ -55,34 +62,54 @@ describe('middleware: /sw.js ya no da 404, sirve el autodestructivo', () => {
   });
 });
 
-describe('dist/sw.js: el autodestructivo que genera VitePWA', () => {
-  it('existe y desinstala el SW viejo (skipWaiting + unregister + borra cachés)', () => {
-    // dist/ lo genera el build (VitePWA selfDestroying: true); no se
+describe('dist/sw.js: el SW real de VitePWA (workbox + precache)', () => {
+  it('existe y es un SW de verdad, no el autodestructivo', () => {
+    // dist/ lo genera el build (VitePWA, sin selfDestroying); no se
     // sube al repo, pero el build local lo tiene y la prueba lo verifica.
     const sw = readSource('../../dist/sw.js');
-    expect(sw).toContain('skipWaiting');
-    expect(sw).toContain('registration.unregister()');
-    expect(sw).toContain('caches.delete');
-    expect(sw).not.toContain('workbox');
-    expect(sw).not.toContain('precache');
+    expect(sw).toContain('workbox');
+    expect(sw).toContain('precache');
+    expect(sw).not.toContain('registration.unregister()');
+    expect(sw).not.toContain('caches.delete');
   });
 
-  it('vite.config.js sigue con selfDestroying y NO revive el SW', () => {
+  it('vite.config.js ya NO tiene selfDestroying y define navigateFallback', () => {
     const config = readSource('../../vite.config.js');
-    expect(config).toContain('selfDestroying: true');
+    // La opción autodestructiva está quitada (el comentario la nombra
+    // para explicar por qué, así que se afirma la línea, no la palabra).
+    expect(config).not.toMatch(/selfDestroying:\s*true/);
+    // Las rutas SPA sirven el index.html precacheado sin red: sin esto
+    // el SW no puede atender la navegación inicial en frío.
+    expect(config).toContain("navigateFallback: 'index.html'");
     // registerType no cambia: no se toca la configuración del SW.
     expect(config).toContain("registerType: 'autoUpdate'");
+    // El shell (html) sigue en el precache; los chunks JS se cachean
+    // en runtime (NetworkFirst) en la primera visita con internet.
+    expect(config).toContain("globPatterns: ['**/*.{css,html,ico,png,svg,webp,jpg,jpeg,otf}']");
   });
 });
 
-describe('main.jsx: el cliente ya NO registra /sw.js', () => {
-  it('no importa virtual:pwa-register ni llama a registerSW', () => {
+describe('main.jsx: el cliente vuelve a registrar /sw.js', () => {
+  it('importa virtual:pwa-register y llama a registerSW', () => {
     const src = readSource('../../src/main.jsx');
-    expect(src).not.toContain('virtual:pwa-register');
-    expect(src).not.toContain('registerSW({');
-    // La decisión queda documentada en el propio archivo (por qué no se
-    // registra: el bucle de la #229).
-    expect(src).toContain('Sin registro del Service Worker, a conciencia');
+    expect(src).toContain('virtual:pwa-register');
+    expect(src).toContain('registerSW({');
+    // La decisión queda documentada en el propio archivo (por qué el
+    // bucle de la #229 no puede volver: sin selfDestroying).
+    expect(src).toContain('Service Worker REVIVIDO');
+    expect(src).not.toContain('Sin registro del Service Worker, a conciencia');
+  });
+
+  it('onNeedRefresh NUNCA recarga: la actualización es silenciosa', () => {
+    const src = readSource('../../src/main.jsx');
+    // El cuerpo de onNeedRefresh es solo un log: ni reload() ni
+    // updateSW(true) — forzar una recarga al actualizar causaba el
+    // bucle infinito. (El comentario de arriba nombra «recarga» para
+    // advertirlo, así que se revisa el cuerpo, no todo el archivo.)
+    const body = src.split('onNeedRefresh()')[1].split('onRegistered')[0];
+    expect(body).toContain('Silently accept');
+    expect(body).not.toContain('reload(');
+    expect(body).not.toContain('updateSW');
   });
 
   it('el SW de push sigue intacto (otro registro aparte)', () => {
