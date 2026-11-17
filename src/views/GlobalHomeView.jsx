@@ -9,6 +9,8 @@ import { typeLabel } from '../lib/postTaxonomy.js';
 import { groupToursByCity, tourCardUrl, tourPriceLabel, tourDurationLabel } from '../lib/tours.js';
 import { displayRating } from '../lib/googleRatings.js';
 import OptimizedImage from '../components/ui/OptimizedImage.jsx';
+import LoadFailureView from '../components/LoadFailureView.jsx';
+import { isOnline } from '../lib/loadRecovery.js';
 import SaveHeartButton from '../components/ui/SaveHeartButton.jsx';
 import DebouncedSearchBar from '../components/home/DebouncedSearchBar.jsx';
 import EventWheel3D from '../components/home/EventWheel3D.jsx';
@@ -421,6 +423,13 @@ export default function GlobalHomeView() {
   const shownCities = showAllCities ? sortedCities : sortedCities.slice(0, 5);
   const isSearching = query.trim().length >= 2;
 
+  // Arranque en frío sin internet y sin nada guardado (primera vez): el
+  // muro no tiene nada que mostrar y no se inventa contenido — se ve la
+  // pantalla «Sin conexión» de la #385, que reintenta sola al volver la
+  // red. Con algo guardado no aplica: el muro global siempre pide en
+  // vivo, así que «vacío» aquí significa que no llegó nada de nada.
+  const offlineEmpty = !loading && !error && !isOnline() && allCities.length === 0 && biz.length === 0 && events.length === 0 && experiences.length === 0;
+
   return (
     <div style={{ background: dark ? 'transparent' : '#fff', minHeight: '100vh', paddingBottom: 90 }}>
       {/* Hero igual que en los inicios de ciudad: logo, saludo con gradiente, buscador y categorías en texto */}
@@ -535,6 +544,8 @@ export default function GlobalHomeView() {
           </div>
         )}
 
+        {offlineEmpty && !isSearching && <LoadFailureView />}
+
         {!loading && !error && isSearching && (
           <section style={{ marginTop: 22, marginBottom: 32 }}>
             <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: '0 0 4px' }}>{t("home_resultados_para", "Resultados para")} “{query.trim()}”</h2>
@@ -610,7 +621,7 @@ export default function GlobalHomeView() {
           </section>
         )}
 
-        {!loading && !error && !isSearching && (
+        {!loading && !error && !isSearching && !offlineEmpty && (
           <>
             {/* Explora por ciudad */}
             {allCities.length > 0 && (

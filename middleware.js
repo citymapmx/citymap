@@ -162,17 +162,15 @@ export default async function middleware(request) {
     }
   }
 
-  // ── 0. /sw.js: servir el script autodestructivo (hallazgo #5, nov 2026) ──
-  // El 404 de antes (kill switch de la #229) NO desinstala un SW ya
-  // instalado: los navegadores con el SW viejo quedaban congelados en la
-  // versión vieja. Ahora se pasa de largo (sección 1) y Vercel sirve el
-  // dist/sw.js que genera VitePWA (selfDestroying: skipWaiting +
-  // unregister() + borra cachés): el SW viejo se actualiza a él, se
-  // desinstala y recarga una sola vez. El cliente ya NO registra /sw.js
-  // (main.jsx): registrar el autodestructivo en cada carga haría que se
-  // instalara, se desinstalara y recargara la página en cada visita — el
-  // bucle de recarga de la #229. Solo se limpia lo que ya estaba instalado
-  // (el navegador lo actualiza solo con su chequeo automático de /sw.js).
+  // ── 0. /sw.js: servir el Service Worker real (revivido nov 2026) ──
+  // Antes (hallazgo #5, nov 2026) /sw.js servía el script autodestructivo
+  // de VitePWA (selfDestroying) para desinstalar el SW viejo. Con el SW
+  // revivido se pasa de largo igual que antes (sección 1) y Vercel sirve
+  // el dist/sw.js real: los navegadores con el SW autodestructivo lo
+  // actualizan solos con su chequeo automático de /sw.js y el SW nuevo
+  // toma el control (skipWaiting + clientsClaim); el resto lo instala
+  // en la primera visita con internet. El cliente sí vuelve a registrar
+  // /sw.js (main.jsx): sin selfDestroying ya no hay bucle de recarga.
 
   // ── 1. Archivos estáticos y API: pasar de largo siempre ──────────────────
   if (pathname.startsWith('/api/') || pathname.startsWith('/assets/') ||
