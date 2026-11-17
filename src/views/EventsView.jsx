@@ -606,7 +606,15 @@ export default function EventsView() {
                           {imgSrc ? (
                             <OptimizedImage src={imgSrc} alt={localizedTitle(ev, lang) || 'Evento'} widthRequest={600} priority={index < 2} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 50vw, 300px" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:1 }} />
                           ) : <EventPosterFallback title={localizedTitle(ev, lang) || 'Evento'} radius={0} />}
-                          <div style={{ position:'absolute', top:8, left:8, zIndex:2, borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF' }}>{fmtCardDate(ev)}</div>
+                          {/* Píldora de fecha y, si el evento es recurrente,
+                              la píldora «Cada semana» con el MISMO estilo
+                              (fondo oscuro semitransparente, texto blanco,
+                              12 px): una fila arriba a la izquierda sobre
+                              la foto. */}
+                          <div style={{ position:'absolute', top:8, left:8, zIndex:2, display:'flex', gap:6 }}>
+                            <div style={{ borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF' }}>{fmtCardDate(ev)}</div>
+                            {ev.is_recurring && <div style={{ borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF' }}>{t('evento_cada_semana', 'Cada semana')}</div>}
+                          </div>
                         </div>
                       </button>
                       <SaveHeartButton
