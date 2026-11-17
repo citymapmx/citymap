@@ -339,7 +339,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
   const scheduleInfo = getSmartScheduleInfo(business, business.timezone);
 
   return (
-    <div style={{ marginTop: inline ? 0 : 24, paddingBottom: (cartCount > 0 && (showMenuModal || inline)) ? 80 : 0 }}>
+    <div style={{ marginTop: (!inline && !showMenuModal && cartCount > 0) ? 24 : 0, paddingBottom: (cartCount > 0 && (showMenuModal || inline)) ? 80 : 0 }}>
       {/* El modal de intención ya no tapa el menú (hallazgo
           #2, nov 2026): el menú se muestra con el modo por defecto y
           se cambia desde la píldora de modo, bajo la información del
@@ -347,10 +347,14 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
           la #306 con los logos reales) vive ahora en la pantalla de
           carga única (MenuLoadingScreen) y en el modal de la ficha
           (DetailView), que es el que pregunta antes de entrar. */}
+      {/* Sin productos en el carrito no se renderiza nada aquí: el
+          envoltorio vacío (24 + 16 + 24 px de márgenes) dejaba 64 px
+          de espacio muerto entre el botón «VER MENÚ» y la fila de
+          redes en la ficha (nov 2026, El Tentempié). */}
       {!showMenuModal && !inline ? (
+        cartCount > 0 && (
         <div style={{ margin: '0 16px', marginBottom: 24 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 16, gap: 12 }}>
-            {cartCount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', maxWidth: 400, marginTop: 4, padding: '0 4px' }}>
                 <div 
                   onClick={() => setIsOpen(true)} 
@@ -369,9 +373,9 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                   <span style={{ fontSize: 13, fontWeight: 700 }}>Vaciar</span>
                 </div>
               </div>
-            )}
           </div>
         </div>
+        )
       ) : (
         <AnimatePresence>
           <m.div 
