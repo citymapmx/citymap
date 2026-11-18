@@ -709,7 +709,9 @@ ${categoryLinks}
     let desc = "Descubre tu ciudad.";
     let img = cityBgImage || `${BASE_URL}/og-image.png`;
     const cityName = city ? (city.charAt(0).toUpperCase() + city.slice(1).replace(/-/g, " ")) : "";
-    let canonicalUrl = `${BASE_URL}/?vista=${esc(vista)}`;
+    // Sin caso propio, la canónica es la ruta de la vista (/about, /cuenta…):
+    // nunca una URL con ?vista=, que Google no debe indexar.
+    let canonicalUrl = `${BASE_URL}/${esc(vista)}`;
     let schemaJson = "";
     // Contenido extra del cuerpo para las vistas con lista o landing
     // propia; robotsMeta solo se usa en /login (página de acceso: noindex).
@@ -773,6 +775,82 @@ ${categoryLinks}
       title = `Iniciar sesión — ${SITE_NAME}`;
       desc = `Inicia sesión en ${SITE_NAME} con tu cuenta de Google para guardar favoritos, asistir a eventos y gestionar tu negocio.`;
       robotsMeta = `<meta name="robots" content="noindex"/>`;
+    } else if (vista === "about") {
+      // Soft 404 (nov 2026): sin caso propio, Googlebot recibía el HTML
+      // genérico vacío ("CityMap México" / "Descubre tu ciudad.") con 200.
+      // Títulos y descripción iguales a useAppSEO; el cuerpo lleva el
+      // contenido real de src/components/About.jsx.
+      canonicalUrl = `${BASE_URL}/about`;
+      title = `Acerca de Nosotros — CityMap`;
+      desc = `Conoce más sobre CityMap, la plataforma digital para descubrir restaurantes, cafés, eventos y los mejores negocios locales en tu ciudad.`;
+      bodyExtra = `<p>Tu guía local inteligente para descubrir lo mejor de la ciudad, en un solo lugar.</p>
+<h2>Misión</h2>
+<p>Conectar a las personas con los mejores negocios y experiencias locales, impulsando la economía de nuestra ciudad a través de una plataforma accesible, moderna y fácil de usar para todos.</p>
+<h2>Visión</h2>
+<p>Ser la aplicación líder y el referente número uno para descubrir lugares increíbles, creando una comunidad fuerte donde los usuarios y negocios locales prosperen juntos.</p>
+<h2>Nuestros valores</h2>
+<h3>01. Comunidad Primero</h3>
+<p>Existimos para servir a nuestra gente y fortalecer los lazos locales.</p>
+<h3>02. Innovación Continua</h3>
+<p>Buscamos siempre la mejor tecnología para brindar experiencias únicas.</p>
+<h3>03. Transparencia</h3>
+<p>Reseñas reales y tratos justos para todos nuestros comercios aliados.</p>
+<h3>04. Calidad</h3>
+<p>Nos aseguramos de que cada interacción en CityMap sea excepcional.</p>`;
+    } else if (vista === "privacy") {
+      // Mismo hueco que /about: contenido real de src/Privacy.jsx.
+      canonicalUrl = `${BASE_URL}/privacy`;
+      title = `Política de Privacidad — CityMap`;
+      desc = `Consulta los términos de nuestra política de privacidad, la protección de tus datos personales y el uso de cookies en CityMap.`;
+      bodyExtra = `<p><strong>Última actualización:</strong> 15 de noviembre de 2026</p>
+<p><strong>Responsable:</strong> Jonathan Arana (CityMap). Contacto: <strong>citymap.mx@gmail.com</strong>.</p>
+<p>En CityMap respetamos y protegemos tu privacidad. El presente Aviso de Privacidad describe qué información personal recopilamos cuando usas la app y el sitio web de CityMap, para qué la utilizamos y qué derechos tienes sobre ella.</p>
+<h2>1. Información que recopilamos</h2>
+<p>Al registrarte y utilizar CityMap, podemos recopilar la siguiente información: nombre y dirección de correo electrónico, número de teléfono (WhatsApp) solo si te registras a la tarjeta de lealtad de un negocio, ubicación precisa solo cuando usas el mapa o los lugares cercanos, fotos o videos y otro contenido que publiques, identificadores de tu cuenta y tu dispositivo, y datos de interacción con la app como favoritos, reservaciones y sellos de lealtad.</p>
+<h2>2. Para qué usamos tu información</h2>
+<p>La información recopilada se utiliza únicamente para el funcionamiento de la app: crear y administrar tu cuenta, mostrarte los lugares, negocios y eventos cercanos, permitirte usar favoritos, reservaciones y tarjetas de lealtad, enviarte notificaciones relacionadas con tu cuenta, y garantizar la seguridad y el correcto funcionamiento de la plataforma.</p>
+<h2>3. Rastreo y publicidad</h2>
+<p>CityMap no utiliza tus datos para rastrearte entre aplicaciones o sitios web de otras empresas.</p>
+<p>CityMap no vende, alquila ni comercializa tu información personal con terceros, ni la comparte con fines publicitarios.</p>
+<h2>4. Con quién compartimos tus datos</h2>
+<p>Tu información solo se comparte con los proveedores tecnológicos necesarios para que CityMap funcione: Supabase (base de datos, autenticación y almacenamiento), Google y Apple (inicio de sesión), Firebase (notificaciones push) y Stripe (pagos de los planes de negocios).</p>
+<h2>5. Cookies y almacenamiento local</h2>
+<p>CityMap guarda en tu dispositivo la información necesaria para mantener tu sesión iniciada y recordar tus preferencias. CityMap no utiliza servicios de analítica de terceros que te identifiquen.</p>
+<h2>6. Protección de la información</h2>
+<p>Implementamos medidas técnicas y organizativas razonables para proteger la información personal contra pérdida, acceso no autorizado, alteración o divulgación indebida. Tu dirección de correo electrónico nunca será visible públicamente.</p>
+<h2>7. Derechos del usuario</h2>
+<p>En cualquier momento podrás acceder a la información personal asociada a tu cuenta, solicitar su corrección o actualización, solicitar la eliminación de tu cuenta y la información relacionada, y revocar el consentimiento otorgado para el tratamiento de tus datos. Para ejercer cualquiera de estos derechos, escríbenos a citymap.mx@gmail.com.</p>
+<h2>8. Conservación de los datos</h2>
+<p>La información será conservada mientras exista una cuenta activa o durante el tiempo necesario para cumplir obligaciones legales y de seguridad. Si solicitas la eliminación de tu cuenta, eliminaremos la información personal asociada a ella.</p>
+<h2>9. Menores de edad</h2>
+<p>CityMap está dirigida a personas de 13 años o más (clasificación 13+). No recopilamos intencionalmente datos personales de menores de 13 años. Si eres padre, madre o tutor y crees que un menor de 13 años nos proporcionó sus datos, escríbenos a citymap.mx@gmail.com para que los eliminemos.</p>
+<h2>10. Cambios al presente Aviso de Privacidad</h2>
+<p>CityMap podrá actualizar este Aviso de Privacidad en cualquier momento. Las modificaciones serán publicadas dentro de la plataforma y entrarán en vigor desde su fecha de publicación.</p>
+<h2>11. Contacto</h2>
+<p>Si tienes dudas, comentarios o deseas ejercer cualquiera de tus derechos relacionados con tus datos personales, puedes comunicarte con nosotros en: Correo electrónico: citymap.mx@gmail.com</p>
+<p>Al utilizar CityMap, aceptas los términos establecidos en el presente Aviso de Privacidad.</p>`;
+    } else if (vista === "terms") {
+      // Mismo hueco que /about: contenido real de src/components/Terms.jsx.
+      canonicalUrl = `${BASE_URL}/terms`;
+      title = `Términos y Condiciones — CityMap`;
+      desc = `Lee los términos y condiciones generales de uso que regulan la navegación y servicios de la plataforma CityMap.`;
+      bodyExtra = `<p>Última actualización: 22 de junio de 2026</p>
+<h2>1. Aceptación de los Términos</h2>
+<p>Al acceder y utilizar la aplicación y sitio web de CityMap ("la Plataforma"), aceptas estar sujeto a estos Términos y Condiciones de Uso. Si no estás de acuerdo con alguna parte de estos términos, no podrás utilizar nuestros servicios.</p>
+<h2>2. Descripción del Servicio</h2>
+<p>CityMap es una guía digital que permite a los usuarios descubrir negocios, eventos y lugares de interés locales. Actuamos únicamente como un directorio informativo y no somos parte de las transacciones comerciales entre usuarios y los negocios listados.</p>
+<h2>3. Responsabilidades del Usuario</h2>
+<p>Te comprometes a utilizar CityMap de manera responsable y legal. Queda estrictamente prohibido: proporcionar información falsa al crear una cuenta o registrar un negocio; utilizar la plataforma para fines ilícitos, difamatorios o fraudulentos; intentar vulnerar la seguridad de la aplicación o extraer datos de forma automatizada (scraping).</p>
+<h2>4. Registro de Negocios</h2>
+<p>Los propietarios que registren su negocio en CityMap garantizan que tienen la autoridad legal para hacerlo y que la información proporcionada (horarios, fotos, ubicación) es precisa y veraz. CityMap se reserva el derecho de rechazar, modificar o eliminar listados que incumplan nuestras políticas de calidad o sean reportados como fraudulentos.</p>
+<h2>5. Propiedad Intelectual</h2>
+<p>El diseño, código, logotipos y marca de CityMap son propiedad exclusiva de sus creadores. El contenido subido por los negocios (logotipos, fotos, promociones) sigue siendo propiedad de sus respectivos dueños, otorgando a CityMap una licencia no exclusiva para mostrarlos en nuestra plataforma.</p>
+<h2>6. Limitación de Responsabilidad</h2>
+<p>CityMap se esfuerza por mantener la información actualizada, pero no garantizamos la exactitud de los horarios, precios o disponibilidad de los negocios listados. No nos hacemos responsables por malas experiencias, cancelaciones, cambios de ubicación o cualquier daño derivado de la interacción con los comercios o eventos promocionados en nuestra plataforma.</p>
+<h2>7. Cambios a los Términos</h2>
+<p>Nos reservamos el derecho de modificar estos Términos de Uso en cualquier momento. Los cambios sustanciales serán notificados a través de la aplicación. Tu uso continuo de CityMap después de dichas modificaciones constituye tu aceptación de los nuevos términos.</p>
+<h2>8. Contacto</h2>
+<p>Si tienes dudas sobre estos Términos y Condiciones, por favor contáctanos a través del correo electrónico: soporte@citymap.mx.</p>`;
     }
 
     const html = `<!doctype html>

@@ -302,7 +302,7 @@ export default function CityGuide() {
   const [fade, setFade] = useState(true);
   const [resolvingDeepLink, setResolvingDeepLink] = useState(!!initialParams.current.b || !!initialParams.current.ev);
   const [navbarVisible, setNavbarVisible] = useState(true);
-  const [requireCitySelection, setRequireCitySelection] = useState(() => !initialParams.current.citySlug && !["lealtad", "wallet", "scan"].includes(initialView) && window.location.pathname !== "/");
+  const [requireCitySelection, setRequireCitySelection] = useState(() => !initialParams.current.citySlug && !["lealtad", "wallet", "scan", "about", "privacy", "terms"].includes(initialView) && window.location.pathname !== "/");
   const [hasOnboarded, setHasOnboarded] = useState(() => localStorage.getItem('citymap_onboarded') === 'true');
   const lastScrollY = useRef(0);
   // Sección pendiente tras elegir ciudad en el muro global: cuando se toca
@@ -1172,7 +1172,9 @@ useEffect(() => {
   useEffect(() => {
     const cachedCity = localStorage.getItem("cg_city_slug") || activeCity;
 
-    if (!cachedCity && cities.length > 0 && location.pathname !== '/') {
+    // Las páginas estáticas (/about, /privacy, /terms) no piden ciudad:
+    // un visitante nuevo cae directo en la página (igual que /lealtad).
+    if (!cachedCity && cities.length > 0 && location.pathname !== '/' && !["about", "privacy", "terms"].includes(initialView)) {
        
       setRequireCitySelection(true);
     } else if (cachedCity && cities.length > 0 && navigator.permissions && navigator.geolocation) {
