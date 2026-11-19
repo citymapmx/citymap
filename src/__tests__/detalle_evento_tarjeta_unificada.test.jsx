@@ -95,8 +95,11 @@ describe('tarjeta unificada del detalle del evento', () => {
     expect(html).toContain('border-radius:20px');
   });
 
-  it('el modal pasa unified solo cuando el reproductor existe', () => {
-    expect(modalSrc).toContain('unified={Boolean(musicQuery && musicTracks && musicTracks.length > 0)}');
+  it('el modal pasa unified cuando la sección de música se pinta (con o sin pistas)', () => {
+    // Antes solo cuando había pistas; desde la opción C la sección también
+    // se pinta sin pistas (solo el enlace a Apple Music), así que la
+    // tarjeta de información va unificada en cuanto la búsqueda terminó.
+    expect(modalSrc).toContain('unified={Boolean(musicQuery && musicTracks)}');
     // La pestaña de detalles del evento privado no lleva reproductor.
     expect(modalSrc).toContain("{privateTab === 'detalles' && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={false} hidePriceRow={Boolean(topPriceLabel)} />}");
   });

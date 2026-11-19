@@ -2,7 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs';
-import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, getEventMusicFallbackQuery, buildItunesSearchUrl, fetchItunesTracks, loadMusicTracks, clearMusicTracksCache } from '../lib/eventDetails.js';
+import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, getEventMusicFallbackQuery, buildItunesSearchUrl, buildServerMusicUrl, fetchServerTracks, fetchItunesTracks, loadMusicTracks, clearMusicTracksCache } from '../lib/eventDetails.js';
 import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation, { EventTicketBar } from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
@@ -208,11 +208,51 @@ describe('reproductor de música del evento', () => {
   });
 });
 
-describe('carga de pistas de iTunes con reintento', () => {
+describe('carga de pistas con reintento (opción C: endpoint propio primero, iTunes directo de respaldo)', () => {
   beforeEach(() => clearMusicTracksCache());
   const track = (id) => ({ trackId: id, trackName: `Canción ${id}`, artistName: 'Artista', artworkUrl100: 'https://x/100.jpg', previewUrl: `https://x/${id}.m4a`, trackViewUrl: `https://x/${id}` });
   const ok = (results) => ({ ok: true, status: 200, json: async () => ({ resultCount: results.length, results }) });
   const fail = () => ({ ok: false, status: 500, json: async () => ({}) });
+  // Respuesta del endpoint propio: pistas ya normalizadas ({ tracks }).
+  const normalized = (id) => ({ id, name: `Canción ${id}`, artist: 'Artista', artwork: 'https://x/100.jpg', preview: `https://x/${id}.m4a`, url: `https://x/${id}` });
+  const serverOk = (tracks) => ({ ok: true, status: 200, json: async () => ({ tracks }) });
+  const isServer = (url) => String(url).includes('/api/tiktok-resolve?action=apple-music');
+
+  it('arma la URL del endpoint propio con el artista y límite de canciones', () => {
+    expect(buildServerMusicUrl('Beéle')).toBe('/api/tiktok-resolve?action=apple-music&term=Be%C3%A9le&limit=5');
+    expect(buildServerMusicUrl('Alfredo Olivas', 3)).toContain('limit=3');
+  });
+
+  it('primero pregunta al endpoint propio y no toca iTunes directo si responde', async () => {
+    let directCalls = 0;
+    const fetchFn = async (url) => {
+      if (isServer(url)) return serverOk([normalized(11)]);
+      directCalls += 1;
+      return ok([track(11)]);
+    };
+    const tracks = await loadMusicTracks(['Artista'], { fetchFn, sleepFn: async () => {} });
+    expect(tracks.map((t) => t.id)).toEqual([11]);
+    expect(directCalls).toBe(0);
+  });
+
+  it('fetchServerTracks normaliza la respuesta del servidor y descarta las que no tienen adelanto', async () => {
+    const fetchFn = async () => serverOk([normalized(21), { ...normalized(22), preview: undefined }]);
+    const tracks = await fetchServerTracks('Artista', { fetchFn });
+    expect(tracks.map((t) => t.id)).toEqual([21]);
+    expect(tracks[0]).toEqual(normalized(21));
+  });
+
+  it('si el endpoint propio falla, cae al iTunes directo', async () => {
+    const fetchFn = async (url) => (isServer(url) ? fail() : ok([track(12)]));
+    const tracks = await loadMusicTracks(['Artista'], { fetchFn, sleepFn: async () => {} });
+    expect(tracks.map((t) => t.id)).toEqual([12]);
+  });
+
+  it('si el endpoint propio responde vacío, cae al iTunes directo', async () => {
+    const fetchFn = async (url) => (isServer(url) ? serverOk([]) : ok([track(13)]));
+    const tracks = await loadMusicTracks(['Artista'], { fetchFn, sleepFn: async () => {} });
+    expect(tracks.map((t) => t.id)).toEqual([13]);
+  });
 
   it('devuelve las pistas con adelanto y descarta las que no lo tienen', async () => {
     const fetchFn = async () => ok([track(1), { ...track(2), previewUrl: undefined }, track(3)]);
@@ -227,18 +267,23 @@ describe('carga de pistas de iTunes con reintento', () => {
     expect(calls).toBe(2);
     expect(tracks.map((t) => t.id)).toEqual([7]);
   });
-  it('ante 0 resultados reintenta la misma consulta antes de rendirse', async () => {
+  it('ante 0 resultados del endpoint propio, el reintento es el iTunes directo', async () => {
     let calls = 0;
     const seen = [];
     const fetchFn = async (url) => { calls += 1; seen.push(url); return ok(calls === 1 ? [] : [track(5)]); };
     const tracks = await loadMusicTracks(['Artista'], { fetchFn, sleepFn: async () => {} });
     expect(calls).toBe(2);
-    expect(seen[0]).toBe(seen[1]);
+    expect(isServer(seen[0])).toBe(true);
+    expect(seen[1]).toContain('itunes.apple.com/search');
     expect(tracks.map((t) => t.id)).toEqual([5]);
   });
   it('si la consulta del artista no devuelve nada, reintenta y luego prueba la de respaldo', async () => {
     const seen = [];
-    const fetchFn = async (url) => { seen.push(url); return ok(seen.length <= 2 ? [] : [track(9)]); };
+    const fetchFn = async (url) => {
+      seen.push(url);
+      const empty = seen.length <= 2;
+      return isServer(url) ? serverOk(empty ? [] : [normalized(9)]) : ok(empty ? [] : [track(9)]);
+    };
     const tracks = await loadMusicTracks(['Artista', 'Artista — Gira'], { fetchFn, sleepFn: async () => {} });
     expect(tracks.map((t) => t.id)).toEqual([9]);
     expect(seen).toHaveLength(3);
@@ -246,7 +291,7 @@ describe('carga de pistas de iTunes con reintento', () => {
   });
   it('guarda en caché los éxitos: la segunda apertura no vuelve a pedirlos', async () => {
     let calls = 0;
-    const fetchFn = async () => { calls += 1; return ok([track(3)]); };
+    const fetchFn = async (url) => { calls += 1; return isServer(url) ? serverOk([normalized(3)]) : ok([track(3)]); };
     const opts = { fetchFn, sleepFn: async () => {} };
     expect((await loadMusicTracks(['Artista'], opts)).map((t) => t.id)).toEqual([3]);
     expect((await loadMusicTracks(['Artista'], opts)).map((t) => t.id)).toEqual([3]);
@@ -259,7 +304,7 @@ describe('carga de pistas de iTunes con reintento', () => {
     expect(await loadMusicTracks(['Artista'], opts)).toEqual([]);
     expect((await loadMusicTracks(['Artista'], opts)).map((t) => t.id)).toEqual([8]);
     expect((await loadMusicTracks(['Artista'], opts)).map((t) => t.id)).toEqual([8]);
-    expect(calls).toBe(3);
+    expect(calls).toBe(4);
   });
   it('el tiempo límite por defecto es 12 s (antes 8 s, corto con red móvil lenta)', () => {
     const src = fs.readFileSync(new URL('../lib/eventDetails.js', import.meta.url), 'utf8');
