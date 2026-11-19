@@ -69,6 +69,17 @@ describe('reproductor «Música del artista» con marca Apple Music', () => {
     expect(modalSrc).not.toContain('fetch(buildItunesSearchUrl(musicQuery, 5))');
   });
 
+  it('cuando la búsqueda termina sin pistas, la sección no se esconde: queda el enlace a Apple Music', () => {
+    // Antes: la condición era `musicQuery && musicTracks && musicTracks.length > 0`
+    // y sin pistas no se pintaba nada, ni siquiera el enlace. Ahora la
+    // sección se pinta cuando la búsqueda terminó (musicTracks ya no es
+    // null) y solo la lista de canciones depende de que haya pistas.
+    expect(modalSrc).not.toContain('musicQuery && musicTracks && musicTracks.length > 0 && (');
+    expect(modalSrc).toContain('{musicQuery && musicTracks && (');
+    expect(modalSrc).toMatch(/musicTracks\.length > 0 && \(\s*<>/);
+    expect(modalSrc).toContain('https://music.apple.com/mx/search?term=');
+  });
+
   it('la búsqueda de música se vuelve a hacer al cambiar de evento en el modal', () => {
     // PR #233: abrir otro evento desde «Más eventos» rebusca la música del
     // nuevo artista aunque la consulta coincida — un fallo anterior no se

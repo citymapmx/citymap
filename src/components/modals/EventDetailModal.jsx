@@ -190,12 +190,15 @@ export default function EventDetailModal() {
     return () => { cancelled = true; };
   }, [selectedEvent, todayLocal]);
 
-  // Música del artista: adelantos de 30 s desde iTunes (gratis, sin clave ni endpoint).
+  // Música del artista: adelantos de 30 s (opción C, nov 2026: primero el
+  // endpoint propio con caché en servidor, y si falla el iTunes directo).
   // loadMusicTracks reintenta ante fallos de red/API y ante 0 resultados,
   // prueba la consulta de respaldo si la del artista no devuelve nada y
   // guarda los éxitos en caché por artista; sin reintento, un fallo
   // pasajero dejaba el reproductor sin aparecer "en ratos". Sin botón de
-  // reintentar visible: todo pasa en silencio.
+  // reintentar visible: todo pasa en silencio. Si la búsqueda termina sin
+  // pistas, la tarjeta se muestra solo con el enlace a Apple Music en vez
+  // de esconderse sin avisar.
   const [musicTracks, setMusicTracks] = useState(null);
   const [playingTrackId, setPlayingTrackId] = useState(null);
   const musicAudioRef = useRef(null);
@@ -503,10 +506,12 @@ export default function EventDetailModal() {
                   </>
                 ) : (
                   /* --- Datos del evento: en los pasados ya no se muestran (fecha, lugar y precio vencidos) --- */
-                  !isPast && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={isPast} hidePriceRow={Boolean(topPriceLabel)} unified={Boolean(musicQuery && musicTracks && musicTracks.length > 0)} />
+                  !isPast && <EventInformation event={evLocalized} associatedBiz={associatedBiz} T={T} hideTickets={isPast} hidePriceRow={Boolean(topPriceLabel)} unified={Boolean(musicQuery && musicTracks)} />
                 )}
 
-                {/* --- MÚSICA DEL ARTISTA (adelantos de iTunes; si no hay canciones no se muestra nada) ---
+                {/* --- MÚSICA DEL ARTISTA (adelantos de iTunes; si la búsqueda
+                    termina sin pistas, la tarjeta queda solo con el enlace a
+                    Apple Music en vez de esconderse en silencio) ---
                     Mitad inferior de la tarjeta unificada (PR #228): va
                     pegada bajo la información, sin espacio entre ambas;
                     esquinas superiores cuadradas y solo las dos
@@ -514,7 +519,7 @@ export default function EventDetailModal() {
                     información). Sin borde: uno claro dibujaría una
                     línea en la junta con la parte oscura. El rojo
                     (#FA2D48) y todo el contenido no cambian. */}
-                {musicQuery && musicTracks && musicTracks.length > 0 && (
+                {musicQuery && musicTracks && (
                   <div style={{ margin: '0 0 24px 0', background: APPLE_MUSIC_RED, borderRadius: '0 0 20px 20px', padding: 16, boxShadow: T.shadow }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
                       <div style={{ fontSize: 18, fontWeight: 800, color: '#FFFFFF' }}>{t("eventos_musica_artista", "Música del artista")}</div>
@@ -523,20 +528,24 @@ export default function EventDetailModal() {
                         <img src="/apple-music-logo.svg" alt="Apple Music" style={{ height: 16, width: 'auto', display: 'block' }} />
                       </span>
                     </div>
-                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', marginBottom: 10 }}>{t("eventos_musica_desc", "Escucha un adelanto de sus canciones sin salir de aquí.")}</div>
-                    {musicTracks.map((track, i) => {
-                      const playing = playingTrackId === track.id;
-                      return (
-                        <div key={track.id} onClick={() => toggleMusicTrack(track)} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.25)' : 'none', cursor: 'pointer' }}>
-                          <img src={track.artwork} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', background: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
-                          <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.name}</div>
-                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artist}</div>
-                          </div>
-                          <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: '50%', background: APPLE_MUSIC_BLACK, color: '#FFFFFF', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800 }}>{playing ? '❚❚' : '▶'}</span>
-                        </div>
-                      );
-                    })}
+                    {musicTracks.length > 0 && (
+                      <>
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', marginBottom: 10 }}>{t("eventos_musica_desc", "Escucha un adelanto de sus canciones sin salir de aquí.")}</div>
+                        {musicTracks.map((track, i) => {
+                          const playing = playingTrackId === track.id;
+                          return (
+                            <div key={track.id} onClick={() => toggleMusicTrack(track)} className="press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.25)' : 'none', cursor: 'pointer' }}>
+                              <img src={track.artwork} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', background: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
+                              <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                <div style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.name}</div>
+                                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artist}</div>
+                              </div>
+                              <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: '50%', background: APPLE_MUSIC_BLACK, color: '#FFFFFF', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800 }}>{playing ? '❚❚' : '▶'}</span>
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
                     <a href={`https://music.apple.com/mx/search?term=${encodeURIComponent(musicQuery)}`} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: 10, fontSize: 13, fontWeight: 700, color: '#FFFFFF', textAlign: 'center', textDecoration: 'none' }}>{t("eventos_ver_mas_apple_music", "Ver más en Apple Music ↗")}</a>
                   </div>
                 )}

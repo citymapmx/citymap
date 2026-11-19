@@ -87,6 +87,44 @@ export function getEventMusicFallbackQuery(event) {
   return full && full !== primary ? full : null;
 }
 
+// Opción C (nov 2026): el servidor busca y cachea las pistas, para que
+// la app ya no dependa de iTunes directo (esa búsqueda falla a veces
+// dentro del WebView de iOS y la tarjeta se escondía en silencio).
+// Vive consolidado en /api/tiktok-resolve (límite de funciones de Vercel
+// 12/12: no es un archivo nuevo) como rama `?action=apple-music`.
+export function buildServerMusicUrl(query, limit = 5) {
+  return `/api/tiktok-resolve?action=apple-music&term=${encodeURIComponent(query)}&limit=${limit}`;
+}
+
+// Una consulta al endpoint propio con tiempo límite. Devuelve las pistas
+// ya normalizadas ({ id, name, artist, artwork, preview, url }) o lanza
+// si el servidor falla — el que llama cae entonces al iTunes directo.
+export async function fetchServerTracks(query, { fetchFn = fetch, timeoutMs, signal } = {}) {
+  const effectiveTimeout = timeoutMs ?? 12000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), effectiveTimeout);
+  const onAbort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  else if (signal) signal.addEventListener('abort', onAbort, { once: true });
+  try {
+    const r = await fetchFn(buildServerMusicUrl(query, 5), { signal: controller.signal });
+    if (!r.ok) throw new Error(`El endpoint propio respondió ${r.status}`);
+    const d = await r.json();
+    const tracks = Array.isArray(d.tracks) ? d.tracks : [];
+    return tracks.filter((t) => t && t.preview).map((t) => ({
+      id: t.id,
+      name: t.name,
+      artist: t.artist,
+      artwork: t.artwork,
+      preview: t.preview,
+      url: t.url,
+    }));
+  } finally {
+    clearTimeout(timer);
+    if (signal) signal.removeEventListener('abort', onAbort);
+  }
+}
+
 // Una consulta a iTunes con tiempo límite: sin él, una conexión colgada
 // dejaba el reproductor sin aparecer para siempre en esa visita. El límite
 // es de 12 s: con red móvil lenta, 8 s se quedaban cortos.
@@ -128,13 +166,12 @@ function musicCacheKey(query) {
   return String(query).trim().toLowerCase();
 }
 
-// Carga las pistas del reproductor: prueba cada consulta en orden; ante un
-// fallo de red o de la API reintenta una vez tras 1 s, y ante 0 resultados
-// también reintenta la misma consulta una vez antes de pasar a la siguiente
-// (la API de Apple a veces devuelve 0 resultados de forma transitoria).
-// Espera hasta 12 s por intento. Sin botón de reintentar visible: todo pasa
-// en silencio, la sección aparece cuando hay pistas y no aparece si no las
-// hay, como antes.
+// Carga las pistas del reproductor: prueba cada consulta en orden.
+// Intento 1: el endpoint propio (opción C, con caché en servidor).
+// Intento 2, tras 1 s: el iTunes directo, que es a la vez el reintento
+// ante un fallo del servidor y ante 0 resultados (la API de Apple a
+// veces devuelve 0 resultados de forma transitoria). Espera hasta 12 s
+// por intento. Sin botón de reintentar visible: todo pasa en silencio.
 export async function loadMusicTracks(queries, { fetchFn = fetch, timeoutMs = 12000, retryDelayMs = 1000, sleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), signal } = {}) {
   for (const query of (queries || []).filter(Boolean)) {
     const key = musicCacheKey(query);
@@ -142,7 +179,9 @@ export async function loadMusicTracks(queries, { fetchFn = fetch, timeoutMs = 12
     if (cached && cached.length > 0) return cached;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const tracks = await fetchItunesTracks(query, { fetchFn, timeoutMs, signal });
+        const tracks = attempt === 0
+          ? await fetchServerTracks(query, { fetchFn, timeoutMs, signal })
+          : await fetchItunesTracks(query, { fetchFn, timeoutMs, signal });
         if (tracks.length > 0) {
           musicTracksCache.set(key, tracks);
           return tracks;
