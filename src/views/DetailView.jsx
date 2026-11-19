@@ -1079,7 +1079,7 @@ export default function DetailView() {
               <p className="text-sm" style={{ color: dText, lineHeight: 1.6, marginTop: 10, marginBottom: r.img_url ? 10 : 12 }}>{r.text}</p>
               {r.img_url && (
                 <div style={{ marginBottom: 12, borderRadius: 12, overflow: "hidden", border: `1px solid ${isElite ? "rgba(255,255,255,0.1)" : T.border}`, width: "100%", maxWidth: 300, background: isElite ? "transparent" : "#f5f5f5" }}>
-                  <img src={getThumbUrl(r.img_url, 600, 600)} alt={t('detalle_foto_resena', 'Foto de la reseña')} loading="lazy" style={{ width: "100%", height: "auto", display: "block", maxHeight: 300, objectFit: "cover" }} />
+                  <img src={getThumbUrl(r.img_url, 800, 800)} alt={t('detalle_foto_resena', 'Foto de la reseña')} loading="lazy" style={{ width: "100%", height: "auto", display: "block", maxHeight: 300, objectFit: "cover" }} />
                 </div>
               )}
               <div style={{ display: "flex", gap: 10 }}>

@@ -1,12 +1,13 @@
 import './EventWheel3D.css';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import OptimizedImage from '../ui/OptimizedImage.jsx';
-import { getThumbSrcSet, getThumbUrl, SRCSET_CARD, SRCSET_THUMB } from '../../lib/utils.js';
+import { getThumbSrcSet, getThumbUrl, SRCSET_CARD, SRCSET_THUMB, SRCSET_WHEEL_FRONT } from '../../lib/utils.js';
 import {
   WHEEL_BASE_SIZES,
   WHEEL_BASE_W,
   WHEEL_IMG_W,
   WHEEL_PRELOAD_SIZES,
+  WHEEL_ROW_W,
   prefetchWheelFaces,
   wheelFrontIndex,
   wheelNearFaces,
@@ -408,7 +409,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
           {items.map((item) => (
             <article key={item.key} onClick={() => onSelect?.(item)} style={{ flex: '0 0 min(78%, 300px)', scrollSnapAlign: 'start', borderRadius: 16, overflow: 'hidden', background: '#111', cursor: 'pointer' }}>
               <div style={{ position: 'relative', aspectRatio: '3 / 4' }}>
-                {item.img ? (<><WheelFacePlaceholder title={item.title} dark={T.dark} /><OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_IMG_W} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 78vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative' }} /></>) : <EventPosterFallback title={item.title} radius={0} />}
+                {item.img ? (<><WheelFacePlaceholder title={item.title} dark={T.dark} /><OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_ROW_W} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 78vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative' }} /></>) : <EventPosterFallback title={item.title} radius={0} />}
                 {pill(item)}
               </div>
             </article>
@@ -439,7 +440,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
             // Sin imagen montada hasta que la cara se acerca al frente:
             // la cara muestra el placeholder (shimmer + título), nunca
             // el fondo oscuro vacío. La base es de 400 px y la cara del
-            // frente lleva encima la versión nítida a 800 px, que se
+            // frente lleva encima la versión nítida a 600 px, que se
             // funde al cargar sin tapar nunca la base (si tarda o falla,
             // la base sigue viéndose).
             const faceLoaded = loadedFacesRef.current.has(i) || nearFaces.includes(i);
@@ -462,7 +463,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
                     <WheelFacePlaceholder title={item.title} dark={T.dark} />
                     {faceLoaded ? (<>
                       <OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_BASE_W} priority={i === 0} srcSetWidths={SRCSET_THUMB} sizes={WHEEL_BASE_SIZES} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative' }} />
-                      {isFront ? <img className="event-wheel-front-img" src={getThumbUrl(item.img, WHEEL_IMG_W)} srcSet={getThumbSrcSet(item.img, SRCSET_CARD)} sizes={WHEEL_PRELOAD_SIZES} alt="" aria-hidden="true" loading="eager" fetchPriority="high" decoding="sync" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: 0, transition: 'opacity 0.3s ease-out', pointerEvents: 'none' }} onLoad={(e) => { e.currentTarget.style.opacity = '1'; }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      {isFront ? <img className="event-wheel-front-img" src={getThumbUrl(item.img, WHEEL_IMG_W)} srcSet={getThumbSrcSet(item.img, SRCSET_WHEEL_FRONT)} sizes={WHEEL_PRELOAD_SIZES} alt="" aria-hidden="true" loading="eager" fetchPriority="high" decoding="async" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: 0, transition: 'opacity 0.3s ease-out', pointerEvents: 'none' }} onLoad={(e) => { e.currentTarget.style.opacity = '1'; }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                       : null}
                     </>) : null}
                   </>)
