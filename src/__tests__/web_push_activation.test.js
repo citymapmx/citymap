@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ getToken: vi.fn(), onMessage: vi.fn(), effects: [] }));
-vi.mock('react', () => ({ useRef: value => ({ current: value }), useEffect: fn => { mocks.effects.push(fn); } }));
+vi.mock('react', () => ({ useRef: value => ({ current: value }), useEffect: fn => { mocks.effects.push(fn); }, useCallback: fn => fn }));
 vi.mock('../lib/firebase.js', () => ({ app: {}, getMessaging: () => ({}), getToken: mocks.getToken, onMessage: mocks.onMessage }));
 vi.mock('../lib/supabase.js', () => ({ sb: { _token: 'test-jwt' } }));
 import { useWebPush } from '../hooks/useWebPush.js';

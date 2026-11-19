@@ -18,7 +18,7 @@ describe('lista de eventos: el corazón sincroniza con el servidor', () => {
   // El cuerpo de toggleSaveEvent en App.jsx, para afirmar sobre él y no
   // sobre otra parte del archivo.
   const toggleFn = appSrc.slice(
-    appSrc.indexOf('const toggleSaveEvent = (id, e) => {'),
+    appSrc.indexOf('const toggleSaveEvent = useCallback((id, e) => {'),
     appSrc.indexOf('const homeHighlights'),
   );
 
