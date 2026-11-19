@@ -602,6 +602,7 @@ useEffect(() => {
                   token: localToken, 
                    
                   user_id: u.id,
+                  platform: Capacitor.getPlatform(),
                   city_slug: useUIStore.getState().activeCity // Guardamos la ciudad actual del usuario
                 })
               }).catch(e => console.error("Manual token sync error:", e));
