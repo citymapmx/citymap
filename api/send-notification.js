@@ -5,6 +5,7 @@ import { buildReminderPlan, countReminderPairs, todayInMexicoCity } from '../src
 import { buildChatMessage, chatRecipients, CHAT_MESSAGE_DEDUP_MINUTES } from '../src/lib/chatNotifications.js';
 import { buildBookingMessage, bookingRecipients, isDuplicateBookingNotification, BOOKING_NOTIFICATION_TYPE, BOOKING_NOTIFICATION_FRESH_MINUTES, BOOKING_NOTIFICATION_DEDUP_MINUTES } from '../src/lib/bookingNotifications.js';
 import { PUSH_ALERT_CHANNEL_ID, PUSH_ALERT_SOUND_NAME } from '../src/lib/pushAlertChannel.js';
+import { getApnsConfig, sendApnsTokens } from '../src/lib/apns.js';
 
 // 1. Iniciar Firebase Admin si no está iniciado
 if (!getApps().length) {
@@ -527,10 +528,11 @@ export default async function handler(req, res) {
     const image = safeUrl(imageUrl);
     if (imageUrl && !image) return res.status(400).json({ error: 'La imagen debe usar HTTPS' });
 
-    // 1. Fetch push tokens (con su user_id para la bandeja de notificaciones)
-    let tokens = [];
+    // 1. Fetch push tokens (con su user_id para la bandeja de notificaciones
+    // y su platform para separar el envío: iOS va directo a APNs).
+    let tokenRecords = [];
     let inboxUserIds = new Set();
-    let queryUrl = `${supabaseUrl}/rest/v1/push_tokens?select=token,user_id`;
+    let queryUrl = `${supabaseUrl}/rest/v1/push_tokens?select=token,user_id,platform`;
     if (user_id) {
       // Fetch SOLO los tokens de ese usuario específico
       queryUrl += `&user_id=eq.${user_id}`;
@@ -544,11 +546,21 @@ export default async function handler(req, res) {
       if (!r.ok) throw new Error(`Supabase fetch tokens error: ${r.status}`);
       const data = await r.json();
       if (!Array.isArray(data)) throw new Error('Respuesta de dispositivos inválida');
-      tokens.push(...data.map(t => t.token).filter(token => typeof token === 'string' && token.length));
-      data.forEach(t => { if (typeof t.user_id === 'string' && t.user_id) inboxUserIds.add(t.user_id); });
+      for (const t of data) {
+        if (typeof t?.token === 'string' && t.token.length) tokenRecords.push({ token: t.token, platform: t.platform });
+        if (typeof t?.user_id === 'string' && t.user_id) inboxUserIds.add(t.user_id);
+      }
       if (data.length < 1000) break;
     }
-    tokens = [...new Set(tokens)];
+    // Sin duplicados (mismo token en varias filas): se queda la primera.
+    const seenTokens = new Set();
+    const tokens = tokenRecords.filter((r) => { if (seenTokens.has(r.token)) return false; seenTokens.add(r.token); return true; });
+    // Los tokens iOS son APNs crudos: FCM los rechaza y la limpieza los
+    // borraba. Se separan por plataforma: los ios van directo a APNs y
+    // NUNCA pasan por FCM; el resto (android, web, sin platform) sigue
+    // por FCM como hasta hoy.
+    const iosTokens = tokens.filter((r) => r.platform === 'ios').map((r) => r.token);
+    const fcmTokens = tokens.filter((r) => r.platform !== 'ios').map((r) => r.token);
 
     // 2. Guardar copia en la bandeja de notificaciones (bypass RLS con service role).
     // Envío a un usuario: una fila para él. Envío masivo o por ciudad: una fila por
@@ -574,14 +586,14 @@ export default async function handler(req, res) {
       }
     }
 
-    if (!tokens || tokens.length === 0) {
+    if (tokens.length === 0) {
       return res.status(200).json({ message: 'No hay tokens registrados para enviar push', successCount: 0, failureCount: 0 });
     }
 
-    // 3. Enviar en lotes de 500 (límite de FCM)
+    // 3. Enviar los tokens no-iOS en lotes de 500 (límite de FCM)
     const messages = [];
-    for (let i = 0; i < tokens.length; i += 500) {
-      const chunk = tokens.slice(i, i + 500);
+    for (let i = 0; i < fcmTokens.length; i += 500) {
+      const chunk = fcmTokens.slice(i, i + 500);
       messages.push(
         getMessaging().sendEachForMulticast({
           tokens: chunk,
@@ -598,10 +610,12 @@ export default async function handler(req, res) {
     }
 
     const responses = await Promise.all(messages);
-    const successCount = responses.reduce((acc, r) => acc + r.successCount, 0);
-    const failureCount = responses.reduce((acc, r) => acc + r.failureCount, 0);
+    const fcmSuccessCount = responses.reduce((acc, r) => acc + r.successCount, 0);
+    const fcmFailureCount = responses.reduce((acc, r) => acc + r.failureCount, 0);
 
-    // Limpiar tokens inválidos
+    // Limpiar tokens inválidos de FCM (solo los que se mandaron por FCM:
+    // un token iOS nunca se manda por FCM, así que un rechazo de FCM
+    // nunca puede borrar un token iOS).
     const invalidTokens = [];
     responses.forEach((r, batchIndex) => {
       r.responses.forEach((resp, idx) => {
@@ -609,10 +623,32 @@ export default async function handler(req, res) {
           resp.error?.code === 'messaging/invalid-registration-token' ||
           resp.error?.code === 'messaging/registration-token-not-registered'
         )) {
-          invalidTokens.push(tokens[batchIndex * 500 + idx]);
+          invalidTokens.push(fcmTokens[batchIndex * 500 + idx]);
         }
       });
     });
+
+    // 4. Tokens iOS: envío directo a APNs. Sin la llave .p8 configurada
+    // en Vercel no se intenta nada: los tokens se conservan y el aviso
+    // queda en el log (apnsSkipped), nunca se borran.
+    let apnsSuccessCount = 0;
+    let apnsFailureCount = 0;
+    let apnsSkipped = 0;
+    if (iosTokens.length > 0) {
+      const apnsConfig = getApnsConfig();
+      if (!apnsConfig) {
+        console.warn(`APNs no configurado: se omiten ${iosTokens.length} tokens iOS (faltan APNS_KEY, APNS_KEY_ID o APNS_TEAM_ID en Vercel)`);
+        apnsSkipped = iosTokens.length;
+      } else {
+        const apnsResult = await sendApnsTokens({ tokens: iosTokens, title, body, deepLink: link, config: apnsConfig });
+        apnsSuccessCount = apnsResult.successCount;
+        apnsFailureCount = apnsResult.failureCount;
+        invalidTokens.push(...apnsResult.invalidTokens);
+      }
+    }
+
+    const successCount = fcmSuccessCount + apnsSuccessCount;
+    const failureCount = fcmFailureCount + apnsFailureCount;
 
     // Opcional: borrar invalidTokens de la base de datos (se podría hacer aquí con serviceRoleKey)
     if (invalidTokens.length > 0) {
@@ -630,6 +666,9 @@ export default async function handler(req, res) {
       success: true,
       successCount,
       failureCount,
+      apnsSuccessCount,
+      apnsFailureCount,
+      apnsSkipped,
       invalidTokensCleaned: invalidTokens.length,
       message: `Notificaciones enviadas: ${successCount} exitosas, ${failureCount} fallidas`
     });

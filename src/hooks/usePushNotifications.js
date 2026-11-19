@@ -35,12 +35,22 @@ export function usePushNotifications() {
           body: JSON.stringify({ 
             token: token.value, 
             user_id: u.id,
+            // iOS devuelve un token APNs crudo: sin platform el servidor
+            // lo guarda como 'android' y FCM lo rechaza (y lo borra).
+            platform: Capacitor.getPlatform(),
             city_slug: useUIStore.getState().activeCity // Guardamos la ciudad actual del usuario
           })
         });
       } catch (err) {
         console.error("Error saving token:", err);
       }
+    });
+
+    // Un fallo de registro (p. ej. sin aps-environment en el binario, o
+    // el plugin sin enlazar) no debe ser silencioso: se registra en
+    // consola para diagnosticarlo en vez de no generar nunca un token.
+    const errListener = PushNotifications.addListener('registrationError', (error) => {
+      console.error('Push registration error:', error?.error || error);
     });
 
     const recvListener = PushNotifications.addListener('pushNotificationReceived', (notification) => {
@@ -65,6 +75,7 @@ export function usePushNotifications() {
 
     return () => {
       regListener.then(listener => listener.remove());
+      errListener.then(listener => listener.remove());
       recvListener.then(listener => listener.remove());
       actionListener.then(listener => listener.remove());
     };

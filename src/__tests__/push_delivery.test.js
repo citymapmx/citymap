@@ -24,12 +24,17 @@ describe('notification delivery without real sends',()=>{
  fetch.mockResolvedValue({ok:true,json:async()=>[]});const result=await invoke({});expect(result.data.successCount).toBe(0);expect(mocks.send).not.toHaveBeenCalled();
  });
  it('targets only the verified administrator for a self-test, ignoring a forged recipient',async()=>{
- fetch.mockResolvedValueOnce({ok:true,json:async()=>({id:'self-admin',app_metadata:{isAdmin:true}})}).mockResolvedValueOnce({ok:true}).mockResolvedValueOnce({ok:true,json:async()=>[]});
+ // Orden real del handler: 1. verificar JWT, 2. pedir los tokens,
+ // 3. guardar en la bandeja (antes el test lo tenía al revés: el mock
+ // nº 2 era la bandeja pero el handler pedía ahí los tokens, y su
+ // respuesta sin json() rompía con TypeError → 500).
+ fetch.mockResolvedValueOnce({ok:true,json:async()=>({id:'self-admin',app_metadata:{isAdmin:true}})}).mockResolvedValueOnce({ok:true,json:async()=>[]}).mockResolvedValueOnce({ok:true});
  const res={statusCode:200,setHeader:vi.fn(),status(code){this.statusCode=code;return this;},json(data){this.data=data;return this;}};
  await handler({method:'POST',headers:{authorization:'Bearer admin-jwt'},body:{title:'Prueba',body:'Solo yo',test_self:true,user_id:'victim'}},res);
  expect(res.statusCode).toBe(200);
- expect(JSON.parse(fetch.mock.calls[1][1].body).user_id).toBe('self-admin');
- expect(fetch.mock.calls[2][0]).toContain('user_id=eq.self-admin');
+ expect(fetch.mock.calls[1][0]).toContain('user_id=eq.self-admin');
+ expect(fetch.mock.calls[1][0]).not.toContain('victim');
+ expect(JSON.parse(fetch.mock.calls[2][1].body)[0].user_id).toBe('self-admin');
  expect(mocks.send).not.toHaveBeenCalled();
  });
  it('rejects an unsafe link before accessing recipients',async()=>{expect((await invoke({deepLink:'https://evil.test'})).statusCode).toBe(400);expect(fetch).not.toHaveBeenCalled();});

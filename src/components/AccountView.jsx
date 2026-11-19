@@ -21,6 +21,7 @@ import ProfileLoyaltyCarousel from './loyalty/ProfileLoyaltyCarousel.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { privateEventUrl, isPrivateEventHost, deletePrivateEvent, PRIVATE_EVENT_DELETED_EVENT } from '../lib/privateEvents.js';
 import CheckConfirmacion from './CheckConfirmacion.jsx';
+import NotificationSettings from './NotificationSettings.jsx';
 export default function AccountView({
   user, profile, isAdmin, T, dark, favIds, reviews,
   wallet, coupons, claimedCoupons, biz, myBizList,
@@ -482,6 +483,14 @@ export default function AccountView({
             </div>
           </div>
         )}
+
+        {/* ── NOTIFICACIONES DEL DISPOSITIVO ── */}
+        {/* Botón «Activar notificaciones»: es la única forma de pedir el
+            permiso en iOS (el registro automático solo corre si ya está
+            concedido). Si el permiso ya está concedido no renderiza nada. */}
+        <div style={{ padding: "0 16px" }}>
+          <NotificationSettings T={T} />
+        </div>
 
         {/* ── MENU GROUPS ── */}
         <div style={{ padding: "8px 16px 0", textAlign: "left" }}>
