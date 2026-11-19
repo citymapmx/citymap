@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { sb } from '../lib/supabase.js';
 
 // Public VAPID key (safe to expose — it's a public key by design)
@@ -43,6 +43,12 @@ export function useWebPush({ citySlug, userId, enabled = true } = {}) {
     }
   }, [enabled, citySlug, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // requestAndRegister es lo único que App mete en appContextValue
+  // (memoizado): su identidad debe ser estable salvo cambio de ciudad, o
+  // invalidaría el memo en vano. register se queda como función plana
+  // (como estaba): solo lee citySlug — que sí es dependencia de
+  // requestAndRegister — y refs estables, así que el cierre que captura
+  // requestAndRegister siempre lleva la ciudad vigente.
   async function register() {
     try {
       // Firebase solo se descarga cuando el registro push realmente corre
@@ -70,7 +76,7 @@ export function useWebPush({ citySlug, userId, enabled = true } = {}) {
     } catch { return false; }
   }
 
-  async function requestAndRegister() {
+  const requestAndRegister = useCallback(async () => {
     if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) return 'unsupported';
     if (!sb._token) return 'signin-required';
     try {
@@ -78,7 +84,11 @@ export function useWebPush({ citySlug, userId, enabled = true } = {}) {
       if (permission !== 'granted') return permission;
       return await register() ? 'granted' : 'error';
     } catch { return 'error'; }
-  }
+  // register no va en dependencias a propósito: es una función plana que
+  // solo lee citySlug (ya listado) y refs estables; listarla invalidaría
+  // el memo en cada render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [citySlug]);
 
   return { requestAndRegister };
 }

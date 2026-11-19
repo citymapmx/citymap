@@ -1,6 +1,14 @@
 import CityArrivalSplash from './components/CityArrivalSplash.jsx';
 import { isAdminUser } from './lib/adminAccess.js';
 const AutoSliderEv = ({ children }) => <div className="scroll-fade-x" style={{display:"flex", overflowX:"auto", gap:10}}>{children}</div>;
+// setView es un no-op a propósito en el contexto (DetailView no cambia de
+// vista desde App): se define una sola vez en módulo para que el
+// appContextValue memoizado no se invalide en cada render.
+const noopSetView = () => {};
+// Secciones del menú que dependen de una ciudad (Eventos, Mapa, Revista).
+// Lista estática: vive en módulo para no ser un array nuevo en cada render
+// (invalidaría el useCallback de navigate y el appContextValue memoizado).
+const CITY_SECTIONS = ['map', 'mapa', 'events', 'eventos', 'explorar', 'mis-planes', 'revista', 'experiencias'];
 import { useState, useRef, useEffect, useCallback, lazy as reactLazy, Suspense, useMemo } from "react";
 const lazy = reactLazy;
 import { m } from "framer-motion";
@@ -457,7 +465,9 @@ export default function CityGuide() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coupons, dbReady]);
 
-  const T = getT(dark);
+  // getT(dark) construye un objeto nuevo en cada llamada: sin memo, T
+  // invalidaría el appContextValue memoizado en cada render.
+  const T = useMemo(() => getT(dark), [dark]);
   const cityImg = cities.find(c => c.slug === activeCity)?.bg_image || null;
   // El encabezado de la ciudad tiene la foto de fondo: mientras no se haya
   // hecho scroll, los iconos del encabezado fijo van en blanco para que se vean
@@ -767,8 +777,6 @@ useEffect(() => {
   useAppSEO({ city });
 
   // ── HISTORY API & NAVIGATION ──────────────────────────────────────────────
-  // Secciones del menú que dependen de una ciudad (Eventos, Mapa, Revista).
-  const CITY_SECTIONS = ['map', 'mapa', 'events', 'eventos', 'explorar', 'mis-planes', 'revista', 'experiencias'];
   // Abre una sección (Eventos/Mapa/Revista) en la ciudad indicada: se usa al
   // elegir ciudad en el seleccionador desde el muro global.
   const goToSectionInCity = (v, citySlug) => {
@@ -779,7 +787,7 @@ useEffect(() => {
     setFade(true);
     window.scrollTo(0, 0);
   };
-  const navigate = v => {
+  const navigate = useCallback(v => {
     // En el muro global ("/") no hay ciudad elegida en esta visita: una
     // sección que depende de ciudad pide primero el seleccionador y al
     // elegirla abre esa sección en esa ciudad, en vez de saltar a la
@@ -862,7 +870,14 @@ useEffect(() => {
       setFade(true);
       window.scrollTo(0, 0);
     }
-  };
+  // Los setters y loadData son estables; la identidad solo cambia con la
+  // ruta, la ciudad o el catálogo (lo que la navegación lee). routerNavigate
+  // NO va en dependencias: useNavigate devuelve una función estable por
+  // contrato de react-router, pero el compilador no puede verificarlo y
+  // su presencia en el array impediría preservar el memo (mismo patrón
+  // que handleCardTap/handleEventTap en este archivo).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, activeCity, cities, setShowCountryPicker, setActiveCity, loadData, setFade, setActiveCat, setSearch, setSelected, setSelectedEvent, setMapPin]);
 
   // Restore category selection on reload and browser back/forward.
   useEffect(() => {
@@ -1009,7 +1024,7 @@ useEffect(() => {
 
 
 
-  const postReview = async (bizId) => {
+  const postReview = useCallback(async (bizId) => {
     if (!user) {
       setShowAuth(true);
       return;
@@ -1073,8 +1088,11 @@ useEffect(() => {
     } finally {
       setReviewImgLoading(false);
     }
-  };
-  const postExperienceReview = async expId => {
+  // Lee el estado del formulario y del usuario en vivo: si faltara alguno
+  // (reviewStar, reviewText, reviewImgFile, user, profile, mapPins,
+  // activeCity) el cierre vería valores viejos al publicar.
+  }, [user, profile, reviewStar, reviewImgFile, reviewText, mapPins, activeCity, loadReviews, toast$, setShowAuth, setReviewImgLoading, setMapPins, setMyBizList, setBanners, setSelected, setReviewText, setReviewImgFile, setShowReview]);
+  const postExperienceReview = useCallback(async expId => {
     if (!user) {
       toast$("Inicia sesión para opinar");
       setShowAuth(true);
@@ -1126,9 +1144,9 @@ useEffect(() => {
     } finally {
       setReviewImgLoading(false);
     }
-  };
+  }, [user, profile, reviewStar, reviewImgFile, reviewText, loadExperienceReviews, toast$, setShowAuth, setReviewImgLoading, setExperiences, setSelectedEvent, setReviewText, setReviewImgFile, setShowReview]);
 
-  const toggleLikeReview = async r => {
+  const toggleLikeReview = useCallback(async r => {
     if (!user) return setShowAuth(true);
     const hasLiked = r.liked_by?.includes(user.id);
     const newLikedBy = hasLiked ? (r.liked_by || []).filter(id => id !== user.id) : [...(r.liked_by || []), user.id];
@@ -1138,7 +1156,7 @@ useEffect(() => {
     } catch {
       setReviews(prev => prev.map(rv => rv.id === r.id ? { ...rv, liked_by: r.liked_by, likes: (r.liked_by || []).length } : rv));
     }
-  };
+  }, [user, setReviews, setShowAuth]);
 
   const doClaim = async (bizId, claimForm) => { 
     if (!user) return; 
@@ -1158,7 +1176,7 @@ useEffect(() => {
   };
 
   const isAdmin = isAdminUser(user, profile);
-  const requestLocation = (cb) => { 
+  const requestLocation = useCallback((cb) => { 
     navigator.geolocation?.getCurrentPosition(pos => {
       const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       setUserCoords(coords);
@@ -1169,7 +1187,7 @@ useEffect(() => {
       // para siempre: ahora se avisa y el usuario puede reintentar o cerrar.
       toast$(t("ubicacion_error", "No pudimos obtener tu ubicación"));
     }, { enableHighAccuracy: true, timeout: 10000 }); 
-  };
+  }, [toast$, t, setUserCoords]);
   useEffect(() => {
     const cachedCity = localStorage.getItem("cg_city_slug") || activeCity;
 
@@ -1392,7 +1410,9 @@ useEffect(() => {
   
   // topFavsMemo is computed here without depending on time
 
-  const viewStyle = { opacity: fade ? 1 : 0, transform: fade ? "translateY(0)" : "translateY(12px)", transition: "opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1)" };
+  // Objeto literal nuevo en cada render: sin memo invalidaría el
+  // appContextValue memoizado. Solo depende de fade.
+  const viewStyle = useMemo(() => ({ opacity: fade ? 1 : 0, transform: fade ? "translateY(0)" : "translateY(12px)", transition: "opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1)" }), [fade]);
 
   const css = `
     .card{background:${T.card};border-radius:16px;overflow:hidden;box-shadow:${T.shadow};transition:box-shadow .2s,transform .2s,background .3s;cursor:pointer;}
@@ -1430,7 +1450,7 @@ useEffect(() => {
   // PR #213): el recordatorio del día del evento solo puede avisar si el
   // servidor sabe qué se guardó. Falla en silencio: el guardado local sigue
   // funcionando aunque la tabla aún no exista.
-  const toggleSaveEvent = (id, e) => {
+  const toggleSaveEvent = useCallback((id, e) => {
     if (e) e.stopPropagation();
     if (!user) { setShowAuth(true); return; }
     const isSaved = (savedEventIds || []).includes(id);
@@ -1443,7 +1463,9 @@ useEffect(() => {
       sb.upsert('event_favorites', { user_id: user.id, event_id: id }, 'user_id,event_id').catch(() => {});
     }
     if (toast$) toast$(isSaved ? 'Evento eliminado de guardados' : 'Evento guardado');
-  };
+  // savedEventIds y user se leen en vivo: sin ellos el cierre guardaría
+  // con la lista vieja y el botón de guardar mentiría.
+  }, [user, savedEventIds, toast$, setShowAuth, setSavedEventIds]);
 
   const homeHighlights = useDataStore(s => s.homeHighlights);
   const rankedBusinesses = useMemo(() => Array.from(new Map([...mapPins, ...homeHighlights].map(b => [b.id, b])).values()), [mapPins, homeHighlights]);
@@ -1480,7 +1502,23 @@ useEffect(() => {
     authChecked,
   });
 
-  const appContextValue = {
+  // El contexto es el objeto que consumen HomeView, MapView, DetailView y
+  // el resto de vistas: como objeto literal nuevo en cada render, cada
+  // setState de App (búsqueda, toasts, auth, favoritos) re-renderizaba
+  // todo el árbol aunque nada de lo que usan hubiera cambiado. Se memoiza
+  // con TODOS sus valores reactivos como dependencias (los setters de
+  // useState/zustand son estables y nunca lo invalidan). Lo que NO va en
+  // dependencias son solo constantes de módulo (AutoSlider, CAT_EMOJI,
+  // FONT_BIZ, EVENT_CATS, getEventStatus, createSlug, cleanCityPrefix,
+  // parseMenuUrls, AutoSliderEv, LoaderFallback, GMap, sb, noopSetView),
+  // cuya identidad no cambia nunca. Antes de este cambio, varias entradas
+  // eran funciones/objetos recreados en cada render y habrían invalidado
+  // el memo en vano: navigate, toggleSaveEvent, postReview,
+  // postExperienceReview, toggleLikeReview y requestLocation ahora son
+  // useCallback; T y viewStyle son useMemo; createCollection,
+  // updateCollection y deleteCollection son useCallback en useFavorites, y
+  // requestWebNotifications es useCallback en useWebPush.
+  const appContextValue = useMemo(() => ({
     businessListReady, businessListError, requestWebNotifications, viewStyle, cityImg, locating, detectCity, setShowCountryPicker, city, isAdmin, setShowAdmin, search, setSearch, user, setShowAuth, toast$, setShowAddBiz, dbReady, dark, cats, activeCat, setActiveCat, T, mapPins, activeCity, banners: filteredBanners, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, globalFavCounts, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, coupons, biz: filteredBiz, AutoSlider, CAT_EMOJI, FONT_BIZ, detectedTown, detectedState,
     // From MapView
     mapPin, setMapPin, requestLocation, allNearby,
@@ -1489,10 +1527,10 @@ useEffect(() => {
     // From EventsView
     events: filteredEvents, EVENT_CATS, getEventStatus, savedEventIds, toggleSaveEvent, selectedEvent, setSelectedEvent, AutoSliderEv, setShowCreateEvent, createSlug, setSavedEventIds, cleanCityPrefix, savedExpIds, setSavedExpIds,
     // From DetailView
-    selected, setView: () => {}, setFade, showGallery, setShowGallery, reviews, promos, wallet, setWallet, parseMenuUrls, setShowMenuGallery, goWeb, showReview, setShowReview, reviewStar, setReviewStar, reviewText, setReviewText, reviewImgFile, setReviewImgFile, reviewImgLoading, postReview, postExperienceReview, loadExperienceReviews, sb, setReviews, setBiz: setMapPins, toggleLikeReview, setClaimBiz, callPhone,
+    selected, setView: noopSetView, setFade, showGallery, setShowGallery, reviews, promos, wallet, setWallet, parseMenuUrls, setShowMenuGallery, goWeb, showReview, setShowReview, reviewStar, setReviewStar, reviewText, setReviewText, reviewImgFile, setReviewImgFile, reviewImgLoading, postReview, postExperienceReview, loadExperienceReviews, sb, setReviews, setBiz: setMapPins, toggleLikeReview, setClaimBiz, callPhone,
     // Globals
     LoaderFallback, GMap
-  };
+  }), [businessListReady, businessListError, requestWebNotifications, viewStyle, cityImg, locating, detectCity, setShowCountryPicker, city, isAdmin, setShowAdmin, search, setSearch, user, setShowAuth, toast$, setShowAddBiz, dbReady, dark, cats, activeCat, setActiveCat, T, mapPins, activeCity, filteredBanners, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, globalFavCounts, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, coupons, filteredBiz, detectedTown, detectedState, mapPin, setMapPin, requestLocation, allNearby, collections, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, createCollection, updateCollection, deleteCollection, setMovingBiz, movingBiz, setCollections, filteredEvents, savedEventIds, toggleSaveEvent, selectedEvent, setSelectedEvent, setShowCreateEvent, setSavedEventIds, savedExpIds, setSavedExpIds, selected, setFade, showGallery, setShowGallery, reviews, promos, wallet, setWallet, setShowMenuGallery, goWeb, showReview, setShowReview, reviewStar, setReviewStar, reviewText, setReviewText, reviewImgFile, setReviewImgFile, reviewImgLoading, postReview, postExperienceReview, loadExperienceReviews, setReviews, setMapPins, toggleLikeReview, setClaimBiz, callPhone]);
 
   useThirdPartyScripts(!requireCitySelection && homeCoreCity===activeCity && homeSecondaryCity===activeCity);
   const cityPicker = (

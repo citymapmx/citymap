@@ -86,7 +86,11 @@ export function useFavorites({ sb, user, setShowAuth, toast$ }) {
     });
   }, [user, sb, setShowAuth, toast$]);
 
-  const createCollection = async (name, emoji) => {
+  // Funciones planas = identidad nueva en cada render: App las mete en
+  // appContextValue (memoizado), así que sin useCallback invalidarían el
+  // memo en vano. Dependen de user/toast$ en vivo (si faltaran, crear o
+  // borrar una colección con otro usuario o sin sesión usaría datos viejos).
+  const createCollection = useCallback(async (name, emoji) => {
     if (!user) { setShowAuth(true); return; }
     const newCol = { id: "col_" + Date.now(), user_id: user.id, name, emoji, items: [] };
     setCollections(prev => [newCol, ...prev]);
@@ -95,9 +99,9 @@ export function useFavorites({ sb, user, setShowAuth, toast$ }) {
     } catch (err) {
       if(toast$) toast$("Error al guardar colección en la nube.");
     }
-  };
+  }, [user, sb, setShowAuth, toast$]);
 
-  const updateCollection = async (updatedCol) => {
+  const updateCollection = useCallback(async (updatedCol) => {
     if (!user) { setShowAuth(true); return; }
     setCollections(prev => prev.map(c => c.id === updatedCol.id ? updatedCol : c));
     try {
@@ -105,9 +109,9 @@ export function useFavorites({ sb, user, setShowAuth, toast$ }) {
     } catch (err) {
       if(toast$) toast$("Error al actualizar colección en la nube.");
     }
-  };
+  }, [user, sb, setShowAuth, toast$]);
 
-  const deleteCollection = async (id) => {
+  const deleteCollection = useCallback(async (id) => {
     if (!user) { setShowAuth(true); return; }
     setCollections(prev => prev.filter(c => c.id !== id));
     try {
@@ -115,7 +119,7 @@ export function useFavorites({ sb, user, setShowAuth, toast$ }) {
     } catch (err) {
       if(toast$) toast$("Error al borrar colección en la nube.");
     }
-  };
+  }, [user, sb, setShowAuth, toast$]);
 
   return {
     favIds, setFavIds,
