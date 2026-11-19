@@ -45,6 +45,28 @@ const updateCityCache = (key, updates) => {
 
 let businessLoadId = 0;
 let timeBasedLoadId = 0;
+let deferredTimeBasedHandle = null;
+
+// Diferir una tarea pesada hasta después del primer pintado (nov 2026,
+// arranque lento en la app iOS): requestIdleCallback la corre cuando el
+// hilo principal está inactivo — típicamente tras pintar — con un tope de
+// 3 s para que no se quede esperando si el hilo sigue ocupado. Sin
+// requestIdleCallback (WebView viejo, tests) cae a setTimeout 0: se corre
+// tras la tarea actual, fuera del camino crítico del arranque. Las
+// secciones por horario van abajo del primer pantallazo, así que llegar
+// hasta 3 s después no se nota.
+const deferAfterFirstPaint = (fn) => {
+  if (typeof window !== 'undefined' && window.requestIdleCallback) {
+    return window.requestIdleCallback(fn, { timeout: 3000 });
+  }
+  return setTimeout(fn, 0);
+};
+
+const cancelDeferredAfterFirstPaint = (handle) => {
+  if (handle == null) return;
+  if (typeof window !== 'undefined' && window.cancelIdleCallback) window.cancelIdleCallback(handle);
+  else clearTimeout(handle);
+};
 let cityPinsLoadId = 0;
 let cityPinsPromise = null;
 let cityPinsPromiseCity = null;
@@ -505,9 +527,22 @@ export const useDataStore = create((set, get) => ({
         // pesada: así el mapa y «Lo más cerca de ti» ya tienen la ciudad
         // completa cuando el usuario los abre.
         get().loadCityPins(targetCity);
-        // La lista completa para las secciones por horario corre en fondo
-        // y se actualiza sola; HomeView usa mapPins mientras tanto.
-        get().loadTimeBasedBiz(targetCity);
+        // La lista completa para las secciones por horario (200 filas
+        // pesadas) NO se pide en el arranque: se difiere hasta después
+        // del primer pintado, para que no compita en red ni en parseo
+        // JSON con lo que necesita el muro. HomeView usa mapPins
+        // mientras tanto y la sección se actualiza sola al llegar el
+        // pool. Si el usuario cambia de ciudad antes de que dispare,
+        // el diferido viejo se cancela y no se pide la ciudad anterior.
+        // (Las columnas no se recortan: la ficha usa el objeto de la
+        // lista en su primer render hasta que resuelve fullBusiness, y
+        // booking_config es obligatoria en todas las listas.)
+        cancelDeferredAfterFirstPaint(deferredTimeBasedHandle);
+        deferredTimeBasedHandle = deferAfterFirstPaint(() => {
+          deferredTimeBasedHandle = null;
+          if (get().mapPinsCity !== targetCity) return;
+          get().loadTimeBasedBiz(targetCity);
+        });
       
       
       // Secondary fetches (Non-blocking)
