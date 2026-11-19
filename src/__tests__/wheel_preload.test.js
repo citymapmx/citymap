@@ -70,14 +70,15 @@ describe('wheelPreload: enlace de precarga', () => {
     expect(link.attrs.as).toBe('image');
     expect(link.attrs.fetchpriority).toBe('high');
     expect(link.attrs['data-wheel-preload']).toBe(IMG);
-    // href = candidato mayor (800w, igual que el src del <img>).
+    // href = candidato mayor (600w, igual que el src del <img>).
     expect(link.attrs.href).toContain('/render/image/public/media/cityguide/poster.jpg');
-    expect(link.attrs.href).toContain('width=800');
+    expect(link.attrs.href).toContain('width=600');
     // imagesrcset = los mismos candidatos del srcset de la rueda.
     expect(link.attrs.imagesrcset).toContain('width=400');
-    expect(link.attrs.imagesrcset).toContain('width=800');
+    expect(link.attrs.imagesrcset).toContain('width=600');
     expect(link.attrs.imagesrcset).toContain('400w');
-    expect(link.attrs.imagesrcset).toContain('800w');
+    expect(link.attrs.imagesrcset).toContain('600w');
+    expect(link.attrs.imagesrcset).not.toContain('800w');
     expect(link.attrs.imagesizes).toBe('(max-width: 640px) 50vw, 300px');
   });
 
@@ -163,7 +164,7 @@ describe('loadData: eventos en paralelo con refreshCities', () => {
     // Y la primera imagen quedó precargada antes del re-render.
     expect(doc.links).toHaveLength(1);
     expect(doc.links[0].attrs['data-wheel-preload']).toBe(IMG);
-    expect(doc.links[0].attrs.imagesrcset).toContain('width=800');
+    expect(doc.links[0].attrs.imagesrcset).toContain('width=600');
   });
 
   it('precarga la primera imagen desde el caché, antes de que resuelva ninguna red', async () => {
@@ -241,19 +242,19 @@ describe('wheelPreload: precarga por adelantado de las caras que entran', () => 
     img_url: `https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/poster-${i}.jpg`,
   }));
 
-  it('precarga la nítida (800) de las vecinas y la base (400) de las siguientes', () => {
+  it('precarga la nítida (600) de las vecinas y la base (400) de las siguientes', () => {
     FakeImage.instances = [];
     const seen = new Set();
     const started = prefetchWheelFaces(items, 0, FakeImage, seen);
-    // Vecinas (frente ±1): 800; a distancia radio+1 (4): base 400.
+    // Vecinas (frente ±1): 600; a distancia radio+1 (4): base 400.
     expect(started).toBe(4);
     expect(FakeImage.instances).toHaveLength(4);
     const bySrc = (w) => FakeImage.instances.filter((im) => im.src.includes(`width=${w}`));
-    expect(bySrc(800)).toHaveLength(2);
+    expect(bySrc(600)).toHaveLength(2);
     expect(bySrc(400)).toHaveLength(2);
     // La nítida usa el mismo srcset/sizes que el <img> de frente...
-    const sharp = bySrc(800);
-    expect(sharp.every((im) => im.srcset.includes('800w') && im.sizes === '(max-width: 640px) 50vw, 300px')).toBe(true);
+    const sharp = bySrc(600);
+    expect(sharp.every((im) => im.srcset.includes('600w') && im.sizes === '(max-width: 640px) 50vw, 300px')).toBe(true);
     // ...y la base los mismos que el <img> base de la rueda.
     const base = bySrc(400);
     expect(base.every((im) => im.srcset.includes('400w') && im.sizes === '(max-width: 640px) 140px, 200px')).toBe(true);

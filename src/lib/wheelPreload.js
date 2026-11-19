@@ -1,15 +1,20 @@
 import { CITY_TZ } from './constants.js';
 import { eventDayKey, selectHomeEvents } from './homeEventSelection.js';
-import { getThumbSrcSet, getThumbUrl, isNear, SRCSET_CARD, SRCSET_THUMB } from './utils.js';
+import { getThumbSrcSet, getThumbUrl, isNear, SRCSET_THUMB, SRCSET_WHEEL_FRONT } from './utils.js';
 
 // Tamaño que la rueda muestra en la cara del frente: el mismo srcset y
 // sizes que EventWheel3D usa en la imagen nítida de frente, para que la
 // precarga y el <img> pidan el mismo candidato y el navegador no
 // descargue la imagen dos veces. La cara del frente se ve a ~216 px CSS
 // y en el teléfono a 3x son ~650 px de dispositivo: a 400 px el póster se
-// veía blando, así que el frente se queda en 800 px. Las caras laterales
-// (mucho más chicas por la perspectiva) usan la base de 400 px.
-export const WHEEL_IMG_W = 800;
+// veía blando, así que el frente se queda en 600 px (antes 800 px: el
+// archivo de 600 pesa ~25% menos y a 3x casi no se nota). Las caras
+// laterales (mucho más chicas por la perspectiva) usan la base de 400 px.
+export const WHEEL_IMG_W = 600;
+// La hilera simple (3 o menos eventos) muestra tarjetas de 300 px CSS:
+// a 3x en teléfono son ~900 px de dispositivo, así que ahí el póster sí
+// va a 800 px (a 400 se veía blando, PR #264).
+export const WHEEL_ROW_W = 800;
 // Base que cargan todas las caras montadas: la cara mide 140-162 px CSS
 // (hasta ~178 px magnificada al frente), así que 400 px sobra en
 // teléfono y escritorio. Medido en vivo: 400w WebP 15-25 KB frente a
@@ -50,7 +55,7 @@ export const WHEEL_NEAR_RADIUS = 3;
 
 // Precarga por adelantado las imágenes que van a entrar en la rueda, para
 // que al girar ya estén en caché y no se vean tarjetas vacías:
-// - la versión nítida de frente (800 px) de las dos vecinas inmediatas
+// - la versión nítida de frente (600 px) de las dos vecinas inmediatas
 //   (las próximas en llegar al frente),
 // - la base (400 px) de las caras a distancia WHEEL_NEAR_RADIUS + 1,
 //   que son las siguientes en entrar en la ventana de montaje.
@@ -81,8 +86,8 @@ export function prefetchWheelFaces(items, frontIdx, ImageCtor = typeof Image !==
   };
   const r = WHEEL_NEAR_RADIUS;
   [-1, 1].forEach((d) => {
-    // La próxima cara de frente, en versión nítida (800 px).
-    warm(imgOf(pick(frontIdx + d)), SRCSET_CARD, WHEEL_PRELOAD_SIZES);
+    // La próxima cara de frente, en versión nítida (600 px).
+    warm(imgOf(pick(frontIdx + d)), SRCSET_WHEEL_FRONT, WHEEL_PRELOAD_SIZES);
     // La que entra después en la ventana de montaje, en base (400 px).
     warm(imgOf(pick(frontIdx + d * (r + 1))), SRCSET_THUMB, WHEEL_BASE_SIZES);
   });
@@ -121,7 +126,7 @@ export function preloadWheelFirstImage(events, citySlug, doc = typeof document !
     if (existing.getAttribute('data-wheel-preload') === img) return true;
     existing.remove();
   }
-  const srcSet = getThumbSrcSet(img, SRCSET_CARD);
+  const srcSet = getThumbSrcSet(img, SRCSET_WHEEL_FRONT);
   const link = doc.createElement('link');
   link.setAttribute('rel', 'preload');
   link.setAttribute('as', 'image');

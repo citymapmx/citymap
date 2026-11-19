@@ -208,21 +208,28 @@ describe('event wheel 3D', () => {
     expect(html).toContain('Evento 7');
   });
 
-  it('the front face gets a sharp 800 px image over the 400 px base', () => {
+  it('the front face gets a sharp 600 px image over the 400 px base', () => {
     const sb = (n) => `https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/poster-${n}.jpg`;
     const sbEvents = Array.from({ length: 10 }, (_, i) => ({ ...makeEvent(i), img: sb(i + 1) }));
     const html = renderWheel({ events: sbEvents });
     const imgs = [...html.matchAll(/<img[^>]*>/g)].map((m) => m[0]);
-    // 7 bases (400 px) + 1 nítida de frente (800 px).
+    // 7 bases (400 px) + 1 nítida de frente (600 px).
     expect(imgs).toHaveLength(8);
     const front = imgs.filter((t) => t.includes('event-wheel-front-img'));
     expect(front).toHaveLength(1);
-    expect(front[0]).toContain('width=800');
-    expect(front[0]).toContain('800w');
+    expect(front[0]).toContain('width=600');
+    expect(front[0]).toContain('600w');
+    expect(front[0]).not.toContain('width=800');
+    expect(front[0]).not.toContain('800w');
+    // La nítida decodifica sin bloquear el hilo principal: con
+    // decoding="sync" el navegador decodificaba 800 px en el hilo
+    // principal al pintar la rueda; con "async" no frena la salida.
+    expect(front[0]).toContain('decoding="async"');
     const base = imgs.filter((t) => !t.includes('event-wheel-front-img'));
     expect(base).toHaveLength(7);
-    // La base pide 400 px (src y srcset), nunca 800 px.
+    // La base pide 400 px (src y srcset), nunca 600 ni 800 px.
     expect(base.every((t) => t.includes('width=400'))).toBe(true);
+    expect(base.every((t) => !t.includes('width=600'))).toBe(true);
     expect(base.every((t) => !t.includes('width=800'))).toBe(true);
   });
 

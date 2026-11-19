@@ -16,7 +16,7 @@ const globalLoadedImages = new Set();
  * - className: Clases CSS (opcional)
  * - style: Estilos en línea (opcional)
  * - onClick: Evento de click (opcional)
- * - srcSetWidths: Anchos (de bucket: 200/400/800/1600/2400) para el srcset;
+ * - srcSetWidths: Anchos (de bucket: 200/400/600/800/1600/2400) para el srcset;
  *   el candidato mayor nunca supera widthRequest, así que ningún dispositivo
  *   descarga más que antes y los teléfonos 1x descargan el candidato pequeño.
  *   Pasar un preset estable de utils (SRCSET_THUMB/CARD/BANNER) para no

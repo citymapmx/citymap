@@ -817,7 +817,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
             <p className="text-sm" style={{ color: T.text, lineHeight: 1.6, marginTop: 10, marginBottom: r.img_url ? 10 : 12 }}>{r.text}</p>
             {r.img_url && (
               <div style={{ marginBottom: 12, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}`, width: "100%", maxWidth: 300, background: dark ? "rgba(255,255,255,0.05)" : "#f5f5f5" }}>
-                <img src={getThumbUrl(r.img_url, 600, 600)} alt={t("revista_foto_resena", "Foto de la reseña")} loading="lazy" style={{ width: "100%", height: "auto", display: "block", maxHeight: 300, objectFit: "cover" }} />
+                <img src={getThumbUrl(r.img_url, 800, 800)} alt={t("revista_foto_resena", "Foto de la reseña")} loading="lazy" style={{ width: "100%", height: "auto", display: "block", maxHeight: 300, objectFit: "cover" }} />
               </div>
             )}
             <div style={{ display: "flex", gap: 10 }}>
