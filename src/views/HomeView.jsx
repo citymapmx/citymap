@@ -18,6 +18,7 @@ import { getTimeSlot, spotForSlot, isFoodSpot, seededRand, shuffleBySeed } from 
 import { filterRecomendacionesElegibles, pickRecomendacionesDelDia, localDayNumber } from "../lib/recomendacionesDia.js";
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
+import AppDownloadBadges from "../components/AppDownloadBadges.jsx";
 import { PageLogo } from "../components/Brand.jsx";
 import { Sk, CardSk, DuoSk, EventSk, ImperdiblesSk, TimeListSk } from "../components/ui/Skeleton.jsx";
 import FeaturedCard from "../components/cards/FeaturedCard.jsx";
@@ -793,6 +794,11 @@ export default function HomeView({ isBackground }) {
             </div>
           </div>}
 
+
+          {/* Descarga la app */}
+          <div style={{ padding: "28px 20px 0", display: "flex", justifyContent: "center" }}>
+            <AppDownloadBadges />
+          </div>
 
           {/* Footer */}
           <Footer />

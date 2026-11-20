@@ -6,7 +6,7 @@ import { useDataStore } from '../store/useDataStore.js';
 import { IS_WORLD, buildCityPath, getCountryCode } from '../lib/domain.js';
 import { eventUrl } from '../lib/eventUrls.js';
 import { CITY_TZ } from '../lib/constants.js';
-import { scheduleToOpeningHours, eventStartDate, eventEndDate, eventOffer } from '../lib/structuredData.js';
+import { scheduleToOpeningHours, eventStartDate, eventEndDate, eventOffer, softwareApplicationSchema } from '../lib/structuredData.js';
 
 export function useAppSEO({ city }) {
   const location = useLocation();
@@ -381,7 +381,10 @@ export function useAppSEO({ city }) {
                 "logo": `${BASE_URL}/citymap.mx.png`,
                 "sameAs": ["https://citymap.mx", "https://citymap.world"],
                 "description": "Descubre dónde comer, qué hacer y qué está pasando en múltiples ciudades. Explora experiencias locales y organiza tu próximo plan con CityMap."
-              }
+              },
+              // La app en los datos estructurados: mismo nodo que en
+              // index.html y api/og.js (una sola fuente de verdad).
+              softwareApplicationSchema(BASE_URL)
             ]
           });
         } else {

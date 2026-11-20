@@ -29,6 +29,9 @@
     <!-- Viewport y tema -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
+    <!-- Smart App Banner (iOS Safari): abre la app si está instalada o
+         ofrece descargarla de App Store. app-id 6834972842, CityMap. -->
+    <meta name="apple-itunes-app" content="app-id=6834972842" />
 
     <!-- SEO básico — portada global: todas las ciudades -->
     <title>CityMap — Descubre negocios, lugares y eventos de todas las ciudades</title>
@@ -74,6 +77,16 @@
           "url": "https://citymap.mx/",
           "logo": "https://citymap.mx/citymap.mx.png",
           "description": "Descubre dónde comer, qué hacer y qué está pasando en múltiples ciudades. Explora experiencias locales y organiza tu próximo plan con CityMap."
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "CityMap",
+          "operatingSystem": ["iOS", "Android"],
+          "applicationCategory": "TravelApplication",
+          "inLanguage": "es",
+          "offers": { "@type": "Offer", "price": 0, "priceCurrency": "MXN" },
+          "downloadUrl": ["https://apps.apple.com/app/citymap/id6834972842", "https://play.google.com/store/apps/details?id=mx.citymap.app"],
+          "author": { "@type": "Organization", "name": "CityMap", "url": "https://citymap.mx/" }
         }
       ]
     }
