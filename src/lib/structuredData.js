@@ -242,3 +242,27 @@ export function businessDescriptionFallback(name, cityName) {
     ? `${n} en ${c}: horarios y reseñas en CityMap México.`
     : `${n}: horarios y reseñas en CityMap México.`;
 }
+
+// ── App CityMap (SoftwareApplication) ──────────────────────────────────────
+// Fichas oficiales de la app, verificadas: App Store (pública desde el
+// 18 nov 2026, id 6834972842) y Google Play (paquete mx.citymap.app).
+// La app es gratis (price 0). Sin ratings ni descargas inventadas.
+export const APP_STORE_URL = "https://apps.apple.com/app/citymap/id6834972842";
+export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=mx.citymap.app";
+
+// Nodo SoftwareApplication para el grafo JSON-LD de la home. Se usa en los
+// tres sitios que emiten ese grafo (index.html estático, useAppSEO.js en el
+// cliente y api/og.js para bots) para que no se desincronicen.
+export function softwareApplicationSchema(baseUrl) {
+  const base = String(baseUrl || "https://citymap.mx").replace(/\/$/, "");
+  return {
+    "@type": "SoftwareApplication",
+    name: "CityMap",
+    operatingSystem: ["iOS", "Android"],
+    applicationCategory: "TravelApplication",
+    inLanguage: "es",
+    offers: { "@type": "Offer", price: 0, priceCurrency: "MXN" },
+    downloadUrl: [APP_STORE_URL, PLAY_STORE_URL],
+    author: { "@type": "Organization", name: "CityMap", url: `${base}/` },
+  };
+}

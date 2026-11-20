@@ -150,10 +150,13 @@ describe('og home: eventos próximos + enlaces a ciudades', () => {
     expect(html).not.toContain('Evento Pasado');
     expect(html).not.toContain('Festival Largo Terminado');
     expect(html).not.toContain('Evento Privado');
-    // Título/descripción genéricos y JSON-LD WebSite+Organization intactos.
+    // Título/descripción genéricos y JSON-LD WebSite+Organization+SoftwareApplication.
     expect(html).toContain('CityMap México — Descubre tu ciudad');
     const nodes = ldScripts(html)[0];
-    expect(nodes['@graph'].map(n => n['@type'])).toEqual(['WebSite', 'Organization']);
+    expect(nodes['@graph'].map(n => n['@type'])).toEqual(['WebSite', 'Organization', 'SoftwareApplication']);
+    const app = nodes['@graph'].find((n) => n['@type'] === 'SoftwareApplication');
+    expect(app.downloadUrl).toContain('https://apps.apple.com/app/citymap/id6834972842');
+    expect(app.downloadUrl).toContain('https://play.google.com/store/apps/details?id=mx.citymap.app');
   });
 
   it('enlaza las ciudades mexicanas y no las internacionales', async () => {

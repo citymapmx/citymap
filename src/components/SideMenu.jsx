@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import Icon from './ui/Icon.jsx';
 import ThemeToggle from './ui/ThemeToggle.jsx';
+import AppDownloadBadges from './AppDownloadBadges.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { haptic } from '../lib/utils.js';
 import { safeAreaTop } from '../lib/safeArea.js';
@@ -98,6 +99,12 @@ export default function SideMenu({ isOpen, onClose, T, dark, navigate, routerNav
               <MenuItem icon="info" label={t("acerca_de", "Acerca de")} onClick={() => { routerNavigate('/about'); onClose(); }} T={T} dark={dark} />
               <MenuItem icon="shield" label={t("privacidad", "Privacidad")} onClick={() => { routerNavigate('/privacy'); onClose(); }} T={T} dark={dark} />
               <MenuItem icon="file-text" label={t("terminos", "Términos")} onClick={() => { routerNavigate('/terms'); onClose(); }} T={T} dark={dark} />
+
+              <div style={{ height: 16 }} />
+              <div style={{ padding: '0 20px', fontSize: 12, fontWeight: 700, color: dark ? T.sub : '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>{t("menu_descarga_app", "Descarga la app")}</div>
+              <div style={{ padding: '0 20px 8px' }}>
+                <AppDownloadBadges />
+              </div>
             </div>
 
             <div style={{ padding: '16px 20px', borderTop: `1px solid ${dark ? T.border : '#F1F5F9'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

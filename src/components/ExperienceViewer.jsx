@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { m, AnimatePresence } from "framer-motion";
 import { Helmet } from 'react-helmet-async';
 import Icon from './ui/Icon';
+import AppDownloadBadges from './AppDownloadBadges.jsx';
 import ReviewAvatar from './ReviewAvatar.jsx';
 import StarRow from './ui/StarRow';
 import { useAppContext } from '../context/AppContext';
@@ -841,6 +842,13 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         {/* Disclaimer Legal */}
         <div style={{ marginTop: 20, paddingTop: 20, borderTop: `1px solid ${T.border}`, fontSize: 11, color: T.sub, lineHeight: 1.5, textAlign: "justify" }}>
           {t("revista_disclaimer", "CityMap muestra información proporcionada por nuestros socios. Los precios, itinerarios, horarios y actividades pueden modificarse sin previo aviso. El precio final se mostrará al momento de abrir el enlace de la reserva.")}
+        </div>
+
+        {/* Descarga la app: al pie del artículo, con las mismas
+            insignias oficiales del pie (App Store / Google Play).
+            Abajo del todo, después del disclaimer y de las reseñas. */}
+        <div style={{ padding: '24px 0 8px', display: 'flex', justifyContent: 'center' }}>
+          <AppDownloadBadges />
         </div>
 
       </div>

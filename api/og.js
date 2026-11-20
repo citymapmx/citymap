@@ -5,6 +5,7 @@ import { CITY_TZ } from '../src/lib/constants.js';
 import {
   scheduleToOpeningHours, eventStartDate, eventEndDate, eventStatusUrl,
   eventOffer, breadcrumbList, faqPage, businessDescriptionFallback,
+  softwareApplicationSchema,
 } from '../src/lib/structuredData.js';
 const SUPABASE_URL  = "https://dpkjxhjkzdlkvyotoeai.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwa2p4aGpremRsa3Z5b3RvZWFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzYzNTAsImV4cCI6MjA5NjAxMjM1MH0.R6ZoNQHKP-DDA4F8phgolf82AEOTII-mLUlWc3DWHyE";
@@ -567,11 +568,14 @@ export default async function handler(req) {
     const img = `${BASE_URL}/og-image.png`;
     // Mismo grafo WebSite + Organization que index.html, pero con las
     // URLs del host que sirve la página (en .world no apunta a .mx).
+    // La app va en el mismo grafo (SoftwareApplication, una sola fuente
+    // de verdad en src/lib/structuredData.js).
     const homeSchema = `<script type="application/ld+json">${JSON.stringify({
       "@context": "https://schema.org",
       "@graph": [
         { "@type": "WebSite", "name": "CityMap", "url": `${BASE_URL}/`, "description": desc, "inLanguage": "es" },
         { "@type": "Organization", "name": "CityMap", "url": `${BASE_URL}/`, "logo": `${BASE_URL}/citymap.mx.png` },
+        softwareApplicationSchema(BASE_URL),
       ],
     })}</script>`;
 
