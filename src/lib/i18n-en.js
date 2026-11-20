@@ -804,6 +804,7 @@ export const EN_TRANSLATIONS = {
     "menu_aviso_privacidad": "Privacy notice",
     "menu_cerrar_menu": "Close menu",
     "menu_contactanos": "Contact us",
+    "menu_descarga_app": "Download the app",
     "menu_legal": "Legal",
     "menu_para_negocios": "For Businesses",
     "menu_recompensas": "Rewards",
