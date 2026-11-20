@@ -309,4 +309,29 @@ describe('event wheel 3D', () => {
     expect(html).not.toContain('event-wheel-city');
     expect(html.match(/event-wheel-dot[ "]/g)).toHaveLength(10);
   });
+
+  it('shows the «Hoy» pill on the drum faces whose event is today, and on no other face', () => {
+    // Sin isToday no hay píldora: el tambor sigue siendo solo imagen.
+    expect(renderWheel()).not.toContain('>Hoy<');
+    // Solo el primer evento es hoy: una sola píldora, arriba a la
+    // izquierda de su cara, con el mismo estilo oscuro de la cuadrícula
+    // de Eventos.
+    const oneToday = renderWheel({ isToday: (item) => item.key === 'e-1' });
+    expect(oneToday.match(/>Hoy</g)).toHaveLength(1);
+    expect(oneToday).toContain('rgba(0,0,0,0.55)');
+    // Todos hoy: una por cara.
+    const allToday = renderWheel({ isToday: () => true });
+    expect(allToday.match(/>Hoy</g)).toHaveLength(10);
+    // La píldora de fecha sigue sin pintarse en el tambor aunque el
+    // evento sea hoy: solo «Hoy», nunca el rango ni la fecha.
+    expect(allToday).not.toContain('13 NOV');
+    expect(allToday).not.toContain('event-wheel-city');
+  });
+
+  it('shows the «Hoy» pill in the row too, keeping the foot pill', () => {
+    const html = renderWheel({ events: events.slice(0, 3), isToday: (item) => item.key === 'e-2' });
+    expect(html.match(/>Hoy</g)).toHaveLength(1);
+    // La píldora del pie (ciudad/fecha) sigue en las 3 tarjetas.
+    expect(html.match(/event-wheel-city/g)).toHaveLength(3);
+  });
 });

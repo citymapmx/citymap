@@ -71,7 +71,7 @@ function WheelFacePlaceholder({ title, dark }) {
   );
 }
 
-export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading, T = {} }) {
+export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading, isToday, T = {} }) {
   const { t } = useTranslation();
   // Título por defecto en t(): el llamador puede pasar su propio heading
   // (la página de ciudad pasa el suyo); si no, se traduce aquí. Sin
@@ -391,6 +391,16 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     return <span className="event-wheel-city" aria-hidden="true">{label}</span>;
   };
 
+  // Píldora «Hoy» arriba a la izquierda, con el mismo estilo oscuro de la
+  // cuadrícula de Eventos (EventsView): solo en las tarjetas cuyo evento
+  // ocurre hoy (de un día, o de varios días con hoy dentro del rango).
+  // El llamador decide con isToday; sin esa prop no se pinta nada, así
+  // el tambor sigue siendo solo imagen en los demás usos.
+  const todayPill = (item) => {
+    if (!isToday?.(item)) return null;
+    return <span aria-hidden="true" style={{ position: 'absolute', top: 8, left: 8, zIndex: 2, borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 700, background: 'rgba(0,0,0,0.55)', color: '#FFFFFF', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{t('fav_cd_hoy', 'Hoy')}</span>;
+  };
+
   if (n === 0) return null;
 
   // Con pocos eventos no hay tambor: fila horizontal deslizable con las
@@ -411,6 +421,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
               <div style={{ position: 'relative', aspectRatio: '3 / 4' }}>
                 {item.img ? (<><WheelFacePlaceholder title={item.title} dark={T.dark} /><OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_ROW_W} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 78vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative' }} /></>) : <EventPosterFallback title={item.title} radius={0} />}
                 {pill(item)}
+                {todayPill(item)}
               </div>
             </article>
           ))}
@@ -469,6 +480,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
                   </>)
                   : <EventPosterFallback title={item.title} radius={12} dark={T.dark} />}
                 <span className="event-wheel-shade" aria-hidden="true" style={{ opacity: shadeOpacity }} />
+                {todayPill(item)}
               </div>
             );
           })}

@@ -22,6 +22,7 @@ import AppDownloadBadges from '../components/AppDownloadBadges.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { localizedTitle } from '../lib/i18nContent.js';
 import { IS_WORLD, hostIncludesCity, hostIncludesCityList, currencyForCity, currencyForCountryCode } from '../lib/domain.js';
+import { eventCalendarDay, isEventToday } from '../lib/eventListing.js';
 
 const BIZ_PAGE = 60;
 
@@ -369,6 +370,10 @@ export default function GlobalHomeView() {
   // Secciones del muro (opción A): cada una con sus propios items, sin mezclar.
   // Eventos por fecha (los más cercanos primero); lugares y restaurantes por
   // calificación (los mejores primero).
+  // Día local del dispositivo, igual que el todayStr con el que se
+  // filtran los eventos del muro al cargar: la rueda del inicio global
+  // mezcla varias ciudades, así que «Hoy» se decide con el día local.
+  const todayLocal = useMemo(() => eventCalendarDay(Date.now()), []);
   const upcomingEvents = useMemo(() => feed.filter((it) => it.kind === 'eventos').slice().sort((a, b) => String(a.date || '').localeCompare(String(b.date || ''))), [feed]);
   // El orden sigue el número que se muestra en la tarjeta (Google si hay
   // dato en caché, si no el de CityMap).
@@ -659,6 +664,7 @@ export default function GlobalHomeView() {
                 events={upcomingEvents}
                 onSelect={(item) => openItem(item)}
                 cityName={(slug) => cityBySlug.get(slug)?.name || ''}
+                isToday={(item) => isEventToday(item.raw || item, todayLocal)}
                 T={T}
               />
             )}

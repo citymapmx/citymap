@@ -67,6 +67,15 @@ export function eventCoversDay(event, day) {
   return start <= day && day <= (eventLastDay(event) || start);
 }
 
+// ¿El evento ocurre hoy? (incluye eventos de varios días; sin fecha: no).
+// La cuadrícula de Eventos usa formatEventCardDate para su píldora (rango
+// en varios días); la rueda del inicio usa este predicado para la
+// píldora «Hoy» (Morat 20–21 nov muestra «Hoy» el 20 y el 21).
+export function isEventToday(event, today) {
+  if (!today || !dateOnly(event.date)) return false;
+  return eventCoversDay(event, today);
+}
+
 // ¿El rango del evento se cruza con [from, to]?
 export function eventOverlapsRange(event, from, to) {
   const start = dateOnly(event.date);
