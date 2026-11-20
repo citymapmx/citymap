@@ -36,13 +36,15 @@ export default function NotificationSettings({ T }) {
   const messages = {
     granted: 'Permiso de notificaciones activado en este dispositivo.',
     denied: 'Están bloqueadas. Puedes permitirlas en los ajustes del navegador o del teléfono.',
-    unsupported: 'No están disponibles aquí. En iPhone, agrega CityMap a la pantalla de inicio y ábrela desde su icono.',
     error: 'No se pudo completar la activación. Inténtalo de nuevo.',
     checking: 'Comprobando disponibilidad…',
     'signin-required': 'Inicia sesión para vincular las notificaciones a tu cuenta.',
   };
   const canActivate = !['granted', 'denied', 'unsupported', 'checking'].includes(status);
-  if (status === 'granted') return null;
+  // Sin soporte (p. ej. Safari, o app nativa sin el plugin enlazado): no se
+  // renderiza nada — Mi Perfil nunca muestra un aviso muerto. Cuando la
+  // activación sí es posible, el estado es real y la sección aparece sola.
+  if (status === 'granted' || status === 'unsupported') return null;
   return <section aria-label="Notificaciones del dispositivo" style={{ textAlign: 'left', padding: '16px 0', borderTop: `1px solid ${T.border}` }}>
     <div style={{ fontSize: 16, fontWeight: 750, color: T.text }}>Notificaciones del dispositivo</div>
     <p role="status" style={{ fontSize: 13, color: T.sub, lineHeight: 1.5, margin: '6px 0 12px' }}>{messages[status] || 'Recibe novedades de eventos y avisos de CityMap.'}</p>
