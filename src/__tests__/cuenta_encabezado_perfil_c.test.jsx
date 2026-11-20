@@ -201,4 +201,43 @@ describe('Cuenta: encabezado propuesta C (botones redondos de 44 px, nombre cent
       expect(html).toContain(label);
     }
   });
+
+  it('«Seguridad» encabeza Cerrar sesión y Eliminar mi cuenta, con el estilo de las demás secciones', () => {
+    const html = renderAccount();
+    const segPos = html.indexOf('>Seguridad<');
+    expect(segPos).toBeGreaterThan(0);
+    const signOutPos = html.indexOf('Cerrar sesión');
+    const deletePos = html.indexOf('Eliminar mi cuenta');
+    expect(signOutPos).toBeGreaterThan(segPos);
+    expect(deletePos).toBeGreaterThan(signOutPos);
+    // Mismo estilo de encabezado chico en mayúsculas que «Mis solicitudes» / «Mis eventos privados».
+    const segDiv = html.lastIndexOf('<div', segPos);
+    const segStyle = html.slice(segDiv, segPos);
+    expect(segStyle).toContain('text-transform:uppercase');
+    expect(segStyle).toContain('font-size:13px');
+    expect(segStyle).toContain('font-weight:700');
+    // La clave existe en es y en.
+    const es = read('../lib/i18n.js');
+    const en = read('../lib/i18n-en.js');
+    expect(es).toContain('"cuenta_seguridad": "Seguridad"');
+    expect(en).toContain('"cuenta_seguridad": "Security"');
+    // Los botones y su flujo no cambiaron.
+    const src = read('../components/AccountView.jsx');
+    expect(src).toContain('onClick={doSignOut}');
+    expect(src).toContain('setShowDeleteAccount(true)');
+  });
+
+  it('el encabezado del perfil respeta el área segura: avatar y botones ya no quedan pegados arriba', () => {
+    const html = renderAccount();
+    // El padding superior del encabezado suma el inset de iOS a los 24 px de siempre.
+    expect(html).toContain('calc(env(safe-area-inset-top, 0px) + 24px)');
+    const src = read('../components/AccountView.jsx');
+    expect(src).toContain("import { safeAreaTop } from '../lib/safeArea.js';");
+    expect(src).toContain('padding: `${safeAreaTop(24)} 20px 24px`');
+    // Avatar y botones siguen del mismo tamaño.
+    expect(html).toContain('width:72px');
+    expect(html).toContain('height:72px');
+    expect(html).toContain('width:44px');
+    expect(html).toContain('height:44px');
+  });
 });
