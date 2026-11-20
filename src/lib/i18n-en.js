@@ -640,6 +640,7 @@ export const EN_TRANSLATIONS = {
     "mapa_brujula_no_disponible": "The compass is not available on this device or browser.",
     "mapa_brujula_permiso": "Allow access to your phone's orientation.",
     "mapa_es_hoy": "It's today 🎉",
+    "rueda_es_hoy": "It's today",
     "mapa_faltan_dias": "${diff} days left",
     "mapa_lo_mas_cerca": "Closest to you",
     "mapa_lugares": "Places",
