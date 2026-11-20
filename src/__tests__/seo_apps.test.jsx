@@ -15,6 +15,8 @@ import AppDownloadBadges from '../components/AppDownloadBadges.jsx';
 // cliente y bots) y botones de descarga en el menú lateral, el inicio, el
 // pie de la ficha de evento y el pie de los artículos de Revista/tours.
 // Los .well-known ya existían y se sirven en vivo en los dos dominios.
+// La ficha de evento y los artículos llevan el encabezado «Descarga la
+// app» sobre las insignias (el pie ya tenía el suyo propio).
 
 const readSource = (rel) =>
   fs.readFileSync(new URL(rel, import.meta.url), 'utf8');
@@ -123,6 +125,45 @@ describe('AppDownloadBadges', () => {
     expect(html).toContain('src="/badges/app-store.svg"');
     expect(html).toContain('src="/badges/google-play.svg"');
     expect(html).toContain('target="_blank"');
+  });
+
+  it('sin título no pinta encabezado; con título sí, con el estilo del pie', () => {
+    const sinTitulo = renderToStaticMarkup(<AppDownloadBadges />);
+    expect(sinTitulo).not.toContain('Descarga la app');
+    const conTitulo = renderToStaticMarkup(<AppDownloadBadges title="Descarga la app" titleColor="#71717A" />);
+    expect(conTitulo).toContain('Descarga la app');
+    // Mismo estilo que el título del pie (11 px, 800, mayúsculas, 0.8).
+    expect(conTitulo).toContain('font-size:11px');
+    expect(conTitulo).toContain('font-weight:800');
+    expect(conTitulo).toContain('text-transform:uppercase');
+    expect(conTitulo).toContain('letter-spacing:0.8px');
+    // Las insignias siguen igual con o sin título.
+    expect(conTitulo).toContain('src="/badges/app-store.svg"');
+    expect(conTitulo).toContain('src="/badges/google-play.svg"');
+  });
+
+  it('el encabezado solo va en la ficha de evento y en los artículos, no en el menú ni en los inicios ni en el pie', () => {
+    // Ficha de evento y artículos: pasan el título con la clave i18n
+    // del pie (es «Descarga la app», en «Download the app»).
+    for (const rel of [
+      '../components/modals/EventDetailModal.jsx',
+      '../components/ExperienceViewer.jsx',
+    ]) {
+      const src = readSource(rel);
+      expect(src).toContain('<AppDownloadBadges title={t("menu_descarga_app", "Descarga la app")} titleColor={T.sub} />');
+    }
+    // Menú lateral e inicios: siguen con el componente sin título.
+    for (const rel of [
+      '../components/SideMenu.jsx',
+      '../views/HomeView.jsx',
+      '../views/GlobalHomeView.jsx',
+    ]) {
+      expect(readSource(rel)).toContain('<AppDownloadBadges />');
+    }
+    // El pie sigue sin usar el componente y con su propio título.
+    const footer = readSource('../components/Footer.jsx');
+    expect(footer).not.toContain('AppDownloadBadges');
+    expect(footer).toContain('menu_descarga_app');
   });
 
   it('usa el componente compartido en el menú lateral y en los dos inicios', () => {
