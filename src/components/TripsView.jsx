@@ -403,7 +403,23 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     setNewBatchFrom(null);
   }, [typeFilter, themeFilter, searchQ]);
 
-  const widgetCode = cities.find(c => c.slug === activeCity)?.civitatis_widget_code || '';
+  // El código del widget de Civitatis (38 kB por ciudad) ya NO viene en
+  // la consulta de ciudades del arranque (nov 2026, optimización 1: era
+  // el 79 % del payload de cities): se pide bajo demanda solo al abrir
+  // la revista, para la ciudad activa. Si la ciudad lo trae en el store
+  // (caché vieja), se usa directo sin pedirlo.
+  const [lazyWidget, setLazyWidget] = useState({ city: '', code: '' });
+  useEffect(() => {
+    if (!activeCity) return;
+    const fromStore = cities.find(c => c.slug === activeCity)?.civitatis_widget_code;
+    if (fromStore) { setLazyWidget({ city: activeCity, code: fromStore }); return; }
+    let cancelled = false;
+    sb.get('cities', `?select=civitatis_widget_code&slug=eq.${activeCity}&limit=1`)
+      .then(rows => { if (!cancelled && Array.isArray(rows) && rows[0]?.civitatis_widget_code) setLazyWidget({ city: activeCity, code: rows[0].civitatis_widget_code }); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [activeCity, cities]);
+  const widgetCode = (lazyWidget.city === activeCity ? lazyWidget.code : '') || cities.find(c => c.slug === activeCity)?.civitatis_widget_code || '';
   const hasCivitatisWidget = Boolean(getCivitatisWidgetSrc(widgetCode));
   const showCivitatisWidget = typeFilter === 'Tour' && hasCivitatisWidget;
   const cityName = cities.find(c => c.slug === activeCity)?.name || (activeCity ? activeCity.charAt(0).toUpperCase() + activeCity.slice(1) : t("tu_ciudad", "tu ciudad"));
