@@ -785,6 +785,7 @@ export const TRANSLATIONS = {
     "menu_aviso_privacidad": "Aviso de privacidad",
     "menu_cerrar_menu": "Cerrar menú",
     "menu_contactanos": "Contáctanos",
+    "menu_descarga_app": "Descarga la app",
     "menu_legal": "Legal",
     "menu_para_negocios": "Para Negocios",
     "menu_recompensas": "Recompensas",
