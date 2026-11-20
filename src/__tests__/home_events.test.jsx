@@ -51,13 +51,16 @@ describe('Vite home events (rueda 3D, como el inicio global)', () => {
     expect(html).toContain(`HASTA ${tagDate(longEnd)}`);
     expect(html.match(/event-wheel-city/g)).toHaveLength(2);
   });
-  it('shows the «Hoy» pill on the event that covers today (multi-day included)', () => {
+  it('shows the «ES HOY» pill on the event that covers today (multi-day included)', () => {
     const html = renderToStaticMarkup(
       <HomeEvents events={events} activeCity="guadalajara" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} />,
     );
-    // El largo empieza hoy (dayKey(0)) y dura 8 días: lleva «Hoy».
-    // El corto es dentro de 3 días: no la lleva.
-    expect(html.match(/>Hoy</g)).toHaveLength(1);
+    // El largo empieza hoy (dayKey(0)) y dura 8 días: lleva «Es hoy»
+    // con el estilo del popup del mapa, pero sin emoji. El corto es
+    // dentro de 3 días: no la lleva.
+    expect(html.match(/>Es hoy</g)).toHaveLength(1);
+    expect(html).not.toContain('🎉');
+    expect(html).toContain('background:#111111');
     // La píldora del pie sigue con su fecha/rango en las 2 tarjetas.
     expect(html.match(/event-wheel-city/g)).toHaveLength(2);
   });

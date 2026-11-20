@@ -391,14 +391,21 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     return <span className="event-wheel-city" aria-hidden="true">{label}</span>;
   };
 
-  // Píldora «Hoy» arriba a la izquierda, con el mismo estilo oscuro de la
-  // cuadrícula de Eventos (EventsView): solo en las tarjetas cuyo evento
-  // ocurre hoy (de un día, o de varios días con hoy dentro del rango).
-  // El llamador decide con isToday; sin esa prop no se pinta nada, así
-  // el tambor sigue siendo solo imagen en los demás usos.
+  // Píldora «ES HOY» en la parte superior de la tarjeta, centrada:
+  // MISMO estilo y medidas que la píldora de cuenta atrás del popup de
+  // evento en el mapa (src/views/MapView.jsx): fondo #111111, blanca,
+  // 9 px, 800, mayúsculas, letterSpacing 0.5, padding 4px 10px, radio 10
+  // y sombra 0 2px 8px rgba(0,0,0,0.5); el texto sale en mayúsculas por
+  // el textTransform, igual que en el mapa. Solo cambia la posición (en
+  // el mapa va abajo, bottom: 88, y aquí arriba, top: 8, como pidió
+  // Jonathan) y el texto: aquí SIN emoji («Es hoy», clave rueda_es_hoy),
+  // mientras el mapa se queda con su «Es hoy 🎉». Solo en las tarjetas
+  // cuyo evento ocurre hoy (de un día, o de varios días con hoy dentro
+  // del rango). El llamador decide con isToday; sin esa prop no se
+  // pinta nada, así el tambor sigue siendo solo imagen en los demás usos.
   const todayPill = (item) => {
     if (!isToday?.(item)) return null;
-    return <span aria-hidden="true" style={{ position: 'absolute', top: 8, left: 8, zIndex: 2, borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 700, background: 'rgba(0,0,0,0.55)', color: '#FFFFFF', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{t('fav_cd_hoy', 'Hoy')}</span>;
+    return <span aria-hidden="true" style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#111111', color: '#fff', padding: '4px 10px', borderRadius: 10, fontSize: 9, fontWeight: 800, textTransform: 'uppercase', lineHeight: 1.2, letterSpacing: 0.5, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5)', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{t('rueda_es_hoy', 'Es hoy')}</span>;
   };
 
   if (n === 0) return null;
