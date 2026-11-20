@@ -12,7 +12,8 @@ import AppDownloadBadges from '../components/AppDownloadBadges.jsx';
 
 // SEO de las apps + botones de descarga (nov 2026): Smart App Banner de
 // iOS, nodo SoftwareApplication en el grafo JSON-LD de la home (estático,
-// cliente y bots) y botones de descarga en el menú lateral y el inicio.
+// cliente y bots) y botones de descarga en el menú lateral, el inicio, el
+// pie de la ficha de evento y el pie de los artículos de Revista/tours.
 // Los .well-known ya existían y se sirven en vivo en los dos dominios.
 
 const readSource = (rel) =>
@@ -137,6 +138,33 @@ describe('AppDownloadBadges', () => {
     }
     // El pie lo hace la otra PR: aquí no se toca.
     expect(readSource('../components/Footer.jsx')).not.toContain('AppDownloadBadges');
+  });
+
+  it('usa el mismo componente al pie de la ficha de evento y de los artículos de Revista/tours', () => {
+    // Ficha de evento (EventDetailModal): abajo del todo, después de
+    // «Más eventos» y por encima de la barra fija de boletos.
+    const modal = readSource('../components/modals/EventDetailModal.jsx');
+    expect(modal).toContain("import AppDownloadBadges from '../AppDownloadBadges.jsx';");
+    expect(modal).toContain('<AppDownloadBadges');
+    const masEventos = modal.indexOf('MÁS EVENTOS');
+    const badgesModal = modal.indexOf('<AppDownloadBadges');
+    const barraBoletos = modal.indexOf('Barra fija de boletos');
+    expect(masEventos).toBeGreaterThan(-1);
+    expect(badgesModal).toBeGreaterThan(masEventos);
+    expect(barraBoletos).toBeGreaterThan(badgesModal);
+
+    // Artículos de Revista y tours (ExperienceViewer, un solo lector
+    // para los dos): abajo del todo, después del disclaimer legal y
+    // antes de los modales (galería, hoja de compartir).
+    const viewer = readSource('../components/ExperienceViewer.jsx');
+    expect(viewer).toContain("import AppDownloadBadges from './AppDownloadBadges.jsx';");
+    expect(viewer).toContain('<AppDownloadBadges');
+    const disclaimer = viewer.indexOf('Disclaimer Legal');
+    const badgesViewer = viewer.indexOf('<AppDownloadBadges');
+    const galeria = viewer.indexOf('Fullscreen Gallery Modal');
+    expect(disclaimer).toBeGreaterThan(-1);
+    expect(badgesViewer).toBeGreaterThan(disclaimer);
+    expect(galeria).toBeGreaterThan(badgesViewer);
   });
 });
 

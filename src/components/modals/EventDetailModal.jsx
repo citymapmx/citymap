@@ -9,6 +9,7 @@ import { eventCalendarDay, isPastEvent, upcomingEvents, formatEventCardDate } fr
 import { sb, cloudUpload, cloudDelete } from '../../lib/supabase';
 import { EVENT_IMAGE_OPTIMIZE, resolveOptimizeOptions, shouldOptimizeImage } from '../../lib/imageOptimize.js';
 import Icon from '../ui/Icon';
+import AppDownloadBadges from '../AppDownloadBadges.jsx';
 import SaveHeartButton from '../ui/SaveHeartButton.jsx';
 import EventPoster from '../detail/EventPoster.jsx';
 import EventInformation, { EventTicketBar } from '../detail/EventInformation.jsx';
@@ -614,6 +615,14 @@ export default function EventDetailModal() {
                   </div>
                 )}
 
+                {/* Descarga la app: al pie de la ficha, con las mismas
+                    insignias oficiales del pie (App Store / Google Play).
+                    Va dentro del contenido con scroll, abajo del todo
+                    (después de «Más eventos»), por encima de la barra
+                    fija de boletos. */}
+                <div style={{ padding: '8px 0 24px', display: 'flex', justifyContent: 'center' }}>
+                  <AppDownloadBadges />
+                </div>
               </div>
 
               {/* Barra fija de boletos (11 nov 2026, mejora 3): hija
