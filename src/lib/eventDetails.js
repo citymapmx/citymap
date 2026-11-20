@@ -23,12 +23,38 @@ export function normalizeEventLink(value) {
   } catch { return null; }
 }
 
+// `booking_config` NO es columna de `events`: se deriva de `website`.
+// `website` puede ser el JSON de booking_config que guarda el admin
+// (con `externalLinks`) o una URL plana. Una sola fuente de verdad: la
+// usa el store al poblar la lista y `getEventLinks` al leer cualquier
+// fila cruda (carga directa, deep-link, caché vieja), para que el botón
+// de boletos no dependa de por dónde se entró a la ficha.
+// Devuelve también el website ya limpio: cuando `website` era el JSON
+// de booking_config, queda en null para que la ficha no lo muestre
+// como si fuera un enlace.
+export function deriveEventBooking(event) {
+  const website = event?.website;
+  const existing = event?.booking_config;
+  if (existing && typeof existing === 'object') return { booking_config: existing, website };
+  if (!website || typeof website !== 'string') return { booking_config: null, website };
+  if (website.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(website);
+      if (parsed && typeof parsed === 'object') return { booking_config: parsed, website: null };
+    } catch { /* JSON roto: sin enlaces y website se queda como estaba */ }
+    return { booking_config: null, website };
+  }
+  return { booking_config: { enabled: true, type: 'external', externalLinks: [{ platform: 'otro', url: website, label: 'Sitio Web / Boletos' }] }, website };
+}
+
 export function getEventLinks(event) {
-  const booking = event.booking_config;
+  // Sin booking_config (fila cruda de carga directa o caché vieja), se
+  // deriva de `website` aquí mismo: el botón no depende de la ruta.
+  const booking = event?.booking_config || deriveEventBooking(event).booking_config;
   const configured = booking?.enabled && booking.type === 'external' && Array.isArray(booking.externalLinks) ? booking.externalLinks : [];
   const links = configured.map(link => ({ ...link, url: normalizeEventLink(link.url) })).filter(link => link.url);
   if (!links.length) {
-    const url = normalizeEventLink(event.website);
+    const url = normalizeEventLink(event?.website);
     if (url) links.push({ platform: 'otro', url });
   }
   return links.filter((link, index) => links.findIndex(other => other.url === link.url) === index);
