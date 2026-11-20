@@ -51,3 +51,21 @@ export function selectHomeEvents(events = [], today = eventDayKey()) {
     seasonal: chronological(seasonal),
   };
 }
+
+// ¿El evento sigue vigente "hoy" en la ciudad del evento? (rueda del
+// inicio global: cada evento se juzga en su propia zona horaria, no en
+// la del teléfono — un evento de Tijuana que terminó ayer en hora de
+// Cancún puede seguir siendo hoy en Tijuana.) La primera ciudad de la
+// lista cuando el evento es multi-ciudad; sin zona conocida para esa
+// ciudad, hoy es el del dispositivo (comportamiento de antes). Misma
+// regla que selectHomeEvents: vigente mientras su fin no haya pasado.
+export function isEventUpcoming(event, now = new Date(), timeZoneByCity = {}) {
+  if (!event || !event.date) return false;
+  const start = dayNumber(event.date);
+  if (start === null) return false;
+  const firstSlug = String(event.city_slug || '').split(',')[0].trim();
+  const timeZone = timeZoneByCity?.[firstSlug];
+  const today = eventDayKey(now, timeZone);
+  const end = Math.max(start, dayNumber(event.end_date) ?? start);
+  return end >= dayNumber(today);
+}

@@ -23,6 +23,8 @@ import { useTranslation } from '../hooks/useTranslation.js';
 import { localizedTitle } from '../lib/i18nContent.js';
 import { IS_WORLD, hostIncludesCity, hostIncludesCityList, currencyForCity, currencyForCountryCode } from '../lib/domain.js';
 import { eventCalendarDay, isEventToday } from '../lib/eventListing.js';
+import { isEventUpcoming } from '../lib/homeEventSelection.js';
+import { CITY_TZ } from '../lib/constants.js';
 
 const BIZ_PAGE = 60;
 
@@ -145,7 +147,16 @@ export default function GlobalHomeView() {
     (async () => {
       try {
         const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        // Fecha de corte del servidor: AYER en hora local. El filtro de
+        // fecha va en el servidor para que `limit=60` traiga los 60
+        // PRÓXIMOS (antes traía los 60 más viejos y el filtro de cliente
+        // dejaba solo 4 en el inicio global) — y con un día de margen
+        // para que la zona horaria de cada ciudad no deje fuera un
+        // evento que aún es "hoy" ahí; el filtro exacto por ciudad se
+        // hace abajo, en el cliente, con isEventUpcoming.
+        const cutoffDate = new Date(today.getTime() - 86400000);
+        const cutoffStr = `${cutoffDate.getFullYear()}-${String(cutoffDate.getMonth() + 1).padStart(2, '0')}-${String(cutoffDate.getDate()).padStart(2, '0')}`;
+        const eventsDateFilter = `&or=(date.gte.${cutoffStr},end_date.gte.${cutoffStr})`;
         // Primero las ciudades: el muro es por dominio (citymap.mx solo
         // México, citymap.world solo internacional) y la consulta de
         // negocios, que es paginada, ya viene acotada a las ciudades de
@@ -167,7 +178,7 @@ export default function GlobalHomeView() {
         const bizFilter = hostSlugs.length > 0 ? `&city_slug=in.(${hostSlugs.join(',')})` : '';
         const [bizRes, evRes, exRes, placesRes, toursRes] = await Promise.all([
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=0${bizFilter}`).catch(() => []),
-          sb.get('events', `?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved&order=date.asc&limit=60${IS_WORLD ? likeFilter : ''}`).catch(() => []),
+          sb.get('events', `?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved${eventsDateFilter}&order=date.asc&limit=60${IS_WORLD ? likeFilter : ''}`).catch(() => []),
           sb.get('experiences', `?select=id,title,title_en,description_en,city_slug,activity_type,price,duration,people,gallery,created_at&status=eq.approved&order=created_at.desc&limit=12${IS_WORLD ? likeFilter : ''}`).catch(() => []),
           // Lugares (puntos de interés, unidad deportiva, playas): consulta propia
           // para que el filtro "Lugares" tenga contenido desde el inicio y no
@@ -185,11 +196,14 @@ export default function GlobalHomeView() {
           if (!ev || !ev.date) return false;
           if (ev.visibility === 'private') return false;
           if (!hostIncludesCityList(ev.city_slug, cityList)) return false;
-          if (ev.end_date) return ev.end_date >= todayStr;
-          return ev.date >= todayStr;
+          // Vigente "hoy" en la zona horaria de SU ciudad (no en la del
+          // teléfono): la misma regla que la rueda de cada ciudad.
+          return isEventUpcoming(ev, today, CITY_TZ);
         });
-        // Sin recorte: la hilera "Próximos eventos" carga de 5 en 5, así que
-        // guarda todos los próximos (hasta 60) en vez de solo los primeros 12.
+        // Sin recorte: el filtro de fecha ya viene del servidor, así que
+        // estos son los próximos (hasta 60) y la hilera "Próximos
+        // eventos" carga de 5 en 5; la rueda muestra los 10 más próximos
+        // (MAX_FACES en EventWheel3D, igual que en la ciudad).
         setEvents(evRows);
         setExperiences((Array.isArray(exRes) ? exRes : []).filter((x) => hostIncludesCityList(x.city_slug, cityList)));
         setTours((Array.isArray(toursRes) ? toursRes : []).filter((x) => hostIncludesCityList(x.city_slug, cityList)));
