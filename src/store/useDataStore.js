@@ -1,4 +1,5 @@
 import { searchCandidatePattern } from '../lib/searchPattern.js';
+import { deriveEventBooking } from '../lib/eventDetails.js';
 import { create } from 'zustand';
 import { sb } from '../lib/supabase.js';
 import { preloadWheelFirstImage } from '../lib/wheelPreload.js';
@@ -614,16 +615,10 @@ export const useDataStore = create((set, get) => ({
               if (ev.end_date) return ev.end_date >= todayStr;
               return ev.date >= todayStr;
             }).map(ev => {
-              let booking_config = null;
-              let website = ev.website;
-              if (website && website.startsWith('{')) {
-                try {
-                  booking_config = JSON.parse(website);
-                  website = null;
-                } catch (err) { console.error(err); }
-              } else if (website) {
-                booking_config = { enabled: true, type: "external", externalLinks: [{ platform: "otro", url: website, label: "Sitio Web / Boletos" }] };
-              }
+              // booking_config se deriva de `website` (deriveEventBooking,
+              // lib/eventDetails.js): una sola fuente de verdad, también
+              // usada por getEventLinks para filas crudas (carga directa).
+              const { booking_config, website } = deriveEventBooking(ev);
               return { ...ev, booking_config, website };
             });
             updates.events = validEvents;

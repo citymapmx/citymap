@@ -2,7 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs';
-import { getEventPrice, getEventLinks, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, getEventMusicFallbackQuery, buildItunesSearchUrl, buildServerMusicUrl, fetchServerTracks, fetchItunesTracks, loadMusicTracks, clearMusicTracksCache } from '../lib/eventDetails.js';
+import { getEventPrice, getEventLinks, deriveEventBooking, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, getEventMusicFallbackQuery, buildItunesSearchUrl, buildServerMusicUrl, fetchServerTracks, fetchItunesTracks, loadMusicTracks, clearMusicTracksCache } from '../lib/eventDetails.js';
 import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation, { EventTicketBar } from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
@@ -325,5 +325,54 @@ describe('carga de pistas con reintento (opción C: endpoint propio primero, iTu
     };
     const tracks = await fetchItunesTracks('Artista', { fetchFn, timeoutMs: 5, sleepFn: async () => {} }).catch(() => null);
     expect(tracks).toBeNull();
+  });
+});
+
+describe('Botón de boletos en carga directa (nov 2026)', () => {
+  // La ficha abierta por URL directa o refresh recibía la fila cruda de
+  // la base, sin booking_config (que no es columna: se deriva de
+  // `website`), y el botón COMPRAR BOLETOS no aparecía. La derivación
+  // ahora vive en deriveEventBooking y getEventLinks la aplica a
+  // cualquier fila cruda, no solo a las de la lista del muro.
+  const ticketmasterJson = JSON.stringify({ enabled: true, type: 'external', externalLinks: [{ platform: 'comprar_entradas', url: 'https://www.ticketmaster.com.mx/david-bisbal/event/123' }] });
+  it('deriva los enlaces de un website JSON sin booking_config (caso David Bisbal)', () => {
+    expect(getEventLinks({ website: ticketmasterJson })).toEqual([
+      { platform: 'comprar_entradas', url: 'https://www.ticketmaster.com.mx/david-bisbal/event/123' },
+    ]);
+  });
+  it('deriva un enlace de una URL plana sin booking_config', () => {
+    expect(getEventLinks({ website: 'https://boletos.example.com/evento' })).toEqual([
+      { platform: 'otro', url: 'https://boletos.example.com/evento', label: 'Sitio Web / Boletos' },
+    ]);
+  });
+  it('no ofrece enlaces sin website ni booking_config', () => {
+    expect(getEventLinks({ website: null })).toEqual([]);
+    expect(getEventLinks({})).toEqual([]);
+  });
+  it('respeta un booking_config ya presente y no lo re-deriva del website', () => {
+    expect(getEventLinks({
+      website: 'https://boletos.example.com/evento',
+      booking_config: { enabled: true, type: 'external', externalLinks: [{ platform: 'comprar_entradas', url: 'https://tickets.example.com/event' }] },
+    })).toEqual([{ platform: 'comprar_entradas', url: 'https://tickets.example.com/event' }]);
+  });
+  it('la barra fija muestra Comprar boletos para una fila cruda con website JSON', () => {
+    const html = renderBar({ price: 700, price_type: 'paid', website: ticketmasterJson });
+    expect(html).toContain('Comprar boletos');
+  });
+  it('deriveEventBooking limpia el website cuando era el JSON de booking_config', () => {
+    expect(deriveEventBooking({ website: ticketmasterJson })).toEqual({
+      booking_config: { enabled: true, type: 'external', externalLinks: [{ platform: 'comprar_entradas', url: 'https://www.ticketmaster.com.mx/david-bisbal/event/123' }] },
+      website: null,
+    });
+  });
+  it('deriveEventBooking deja la URL plana como website y arma el enlace', () => {
+    expect(deriveEventBooking({ website: 'https://boletos.example.com/evento' })).toEqual({
+      booking_config: { enabled: true, type: 'external', externalLinks: [{ platform: 'otro', url: 'https://boletos.example.com/evento', label: 'Sitio Web / Boletos' }] },
+      website: 'https://boletos.example.com/evento',
+    });
+  });
+  it('deriveEventBooking no inventa enlaces con un JSON roto ni sin website', () => {
+    expect(deriveEventBooking({ website: '{"enabled":true,' })).toEqual({ booking_config: null, website: '{"enabled":true,' });
+    expect(deriveEventBooking({ website: null })).toEqual({ booking_config: null, website: null });
   });
 });
