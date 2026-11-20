@@ -20,6 +20,7 @@ import BizShareHub from './BizShareHub.jsx';
 import ProfileLoyaltyCarousel from './loyalty/ProfileLoyaltyCarousel.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { privateEventUrl, isPrivateEventHost, deletePrivateEvent, PRIVATE_EVENT_DELETED_EVENT } from '../lib/privateEvents.js';
+import { safeAreaTop } from '../lib/safeArea.js';
 import CheckConfirmacion from './CheckConfirmacion.jsx';
 import NotificationSettings from './NotificationSettings.jsx';
 export default function AccountView({
@@ -399,8 +400,12 @@ export default function AccountView({
             a la izquierda (abre el mismo modal de edición de siempre) y
             tema a la derecha (el mismo ThemeToggle: setDark). La opción
             de horario automático no se pierde: queda como texto/botón
-            pequeño bajo el botón de tema (igual que en ThemeToggle). */}
-        <div style={{ padding: "24px 20px 24px", background: T.white, borderBottom: `1px solid ${T.border}` }}>
+            pequeño bajo el botón de tema (igual que en ThemeToggle).
+            El padding superior respeta el área segura (19 Nov 2026:
+            avatar y botones quedaban pegados a la barra de estado del
+            teléfono): en iOS baja por debajo de ella, en web queda en
+            24 px como antes. */}
+        <div style={{ padding: `${safeAreaTop(24)} 20px 24px`, background: T.white, borderBottom: `1px solid ${T.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {/* Editar perfil — botón redondo */}
             <button type="button" aria-label={t("editar_perfil", "Editar perfil")} title={t("editar_perfil", "Editar perfil")} onClick={startEditProfile}
@@ -572,15 +577,21 @@ export default function AccountView({
         )}
 
 
-        {/* ── CERRAR SESIÓN ── */}
-        <button onClick={doSignOut} style={{ width: "calc(100% - 32px)", margin: "16px 16px 0", padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: T.sub, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-          <Icon name="log-out" size={16} color={T.sub} /> {t("cerrar_sesion", "Cerrar sesión")}
-        </button>
+        {/* ── SEGURIDAD ── */}
+        {/* Encabezado (19 Nov 2026, Jonathan): «Cerrar sesión» y
+            «Eliminar mi cuenta» estaban sueltos al final de Mi Perfil
+            sin ningún encabezado, como sí tienen las demás secciones. */}
+        <div style={{ padding: "16px 16px 0" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("cuenta_seguridad", "Seguridad")}</div>
+          <button onClick={doSignOut} style={{ width: "100%", padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: T.sub, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Icon name="log-out" size={16} color={T.sub} /> {t("cerrar_sesion", "Cerrar sesión")}
+          </button>
 
-        {/* ── ZONA DE PELIGRO: ELIMINAR CUENTA ── */}
-        <button onClick={() => { setDeleteAccountError(""); setShowDeleteAccount(true); }} style={{ width: "calc(100% - 32px)", margin: "12px 16px 0", padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-          <Icon name="trash" size={16} color="#D94F3D" /> {t("cuenta_eliminar_cuenta", "Eliminar mi cuenta")}
-        </button>
+          {/* ── ZONA DE PELIGRO: ELIMINAR CUENTA ── */}
+          <button onClick={() => { setDeleteAccountError(""); setShowDeleteAccount(true); }} style={{ width: "100%", marginTop: 12, padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Icon name="trash" size={16} color="#D94F3D" /> {t("cuenta_eliminar_cuenta", "Eliminar mi cuenta")}
+          </button>
+        </div>
 
         {/* ── CONFIRMACIÓN DE ELIMINAR CUENTA ── */}
         {showDeleteAccount && createPortal(

@@ -721,6 +721,7 @@ export const TRANSLATIONS = {
     "cuenta_prueba_nota_anual": "Prueba gratis por 7 días. Luego se cobra ${price} al año.",
     "cuenta_prueba_nota": "Prueba gratis por 7 días. Luego se cobra cada mes.",
     "cuenta_qr_desc": "Muestra este código al establecimiento para acumular sellos, puntos y canjear tus recompensas.",
+    "cuenta_seguridad": "Seguridad",
     "cuenta_shot_menu": "Menú Interactivo y Carrito",
     "cuenta_shot_reservas": "Gestión de Reservas",
     "cuenta_shot_stats": "Panel de Estadísticas",
