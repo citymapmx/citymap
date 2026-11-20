@@ -26,6 +26,32 @@ const mergeById = (first, second) => {
   return [...first, ...second.filter(row => row && !seen.has(row?.id ?? row?.slug))];
 };
 
+// Selects recortados del arranque (nov 2026, optimización 1): las
+// consultas de eventos/experiencias/ciudades iban con select=* y
+// bajaban columnas que nadie usa en el arranque. La lista es el mínimo
+// que lee TODA la cadena de consumo — no solo la rueda:
+// - Eventos: la ficha lee el objeto de la lista (no hay full fetch:
+//   getEventBySlugOrId está sin usar) — description, website (de ahí
+//   sale booking_config), lat/lng, is_recurring (píldora «Cada semana»),
+//   status (homeEventSelection), visibility, user_id, biz_id, active.
+//   La lista es la misma que ya usaba EventDetailModal para «Más
+//   eventos». Fuera: updated_at, created_at, tag, currency, whatsapp
+//   (medido: nadie los lee; −22,8 kB por arranque).
+// - Experiencias: la ficha (ExperienceViewer) y la búsqueda de TripsView
+//   leen description/description_en/title_en. Fuera: updated_at, status,
+//   active, rating, review_count (nadie los lee).
+// - Ciudades: civitatis_widget_code (38,8 kB, el 79 % de la tabla) solo
+//   lo usa TripsView para el widget — se pide bajo demanda allí (ver
+//   TripsView). Fuera también created_at. La zona metropolitana sale de
+//   `state` (updateMetroZones), que SÍ va.
+// - loadCityPins NO se recorta: schedule/rating/review_count los usa
+//   «Lo más cerca de ti», booking_config es obligatoria en todas las
+//   listas (botón «Reservar», test reservar_boton_siempre) y photos la
+//   usan el popup del mapa y las tarjetas cercanas.
+const EVENTS_SELECT = "id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,is_recurring,biz_id,price,price_type,website,visibility,active";
+const EXPERIENCES_SELECT = "id,slug,title,title_en,description,description_en,city_slug,price,duration,gallery,booking_config,activity_type,theme,meeting_point,meeting_url,route_url,includes,not_includes,languages,faq,people,author_name,affiliate_products,biz_id,created_at";
+const CITIES_SELECT = "id,slug,name,state,country,country_code,lat,lng,bg_image,timezone,active";
+
 let inFlightLoadPromise = null;
 let inFlightCity = null;
 let citiesRefreshPromise = null;
@@ -111,7 +137,7 @@ export const useDataStore = create((set, get) => ({
     if(citiesRefreshPromise) return citiesRefreshPromise;
     citiesRefreshPromise=(async()=>{
       try {
-        const rows=await sb.get('cities','?order=name.asc');
+        const rows=await sb.get('cities',`?select=${CITIES_SELECT}&order=name.asc`);
         if(!Array.isArray(rows)) throw new Error('Invalid cities response');
         const cities=rows.filter(Boolean);
         set({cities});
@@ -509,8 +535,8 @@ export const useDataStore = create((set, get) => ({
         // esa carrera (los 37 eventos de Zapopan faltaban en Guadalajara).
         const earlyZoneReady = earlyCity ? Boolean(METRO_ZONES[earlyCity]) : false;
         const earlySecondary = earlyCity ? Promise.all([
-          sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
-          sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
+          sb.get("events", `?select=${EVENTS_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
+          sb.get("experiences", `?select=${EXPERIENCES_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
         ]) : null;
 
         const currentCities = await get().refreshCities();
@@ -553,8 +579,8 @@ export const useDataStore = create((set, get) => ({
           let [e, ex] = earlySecondary
             ? await earlySecondary
             : await Promise.all([
-              sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
-              sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+              sb.get("events", `?select=${EVENTS_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+              sb.get("experiences", `?select=${EXPERIENCES_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
             ]);
 
           // El early fetch se disparó en paralelo con refreshCities: si
@@ -567,8 +593,8 @@ export const useDataStore = create((set, get) => ({
           // con ciudades en caché la zona ya está y no se repite.
           if (earlySecondary && !earlyZoneReady && METRO_ZONES[targetCity] && METRO_ZONES[targetCity].length > 1) {
             const [e2, ex2] = await Promise.all([
-              sb.get("events", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
-              sb.get("experiences", `?status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+              sb.get("events", `?select=${EVENTS_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+              sb.get("experiences", `?select=${EXPERIENCES_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
             ]);
             e = mergeById(e, e2);
             ex = mergeById(ex, ex2);
@@ -663,7 +689,7 @@ export const useDataStore = create((set, get) => ({
       const pBanners = sb.get("banners", `?active=eq.true&city_slug=in.(${bannerCities.join(',')})`).catch(() => {coreError=true;return null;});
       const pCats = sb.get("categories", "?active=eq.true&order=sort_order.asc").catch(() => {coreError=true;return null;});
       const pCityCats = sb.get("city_categories").catch(() => {coreError=true;return null;});
-      const pCities = currentCities && currentCities.length > 0 ? Promise.resolve(currentCities) : sb.get("cities", "?order=name.asc").catch(() => null);
+      const pCities = currentCities && currentCities.length > 0 ? Promise.resolve(currentCities) : sb.get("cities", `?select=${CITIES_SELECT}&order=name.asc`).catch(() => null);
       const pFavs = sb.rpc("get_global_favs").catch(() => sb.get("favorites")).catch(() => null);
 
       // Solo lo que necesita la primera pantalla: banners, categorías,

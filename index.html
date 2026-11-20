@@ -18,10 +18,13 @@
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Montserrat:wght@800&display=swap" as="style" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Montserrat:wght@800&display=swap" media="print" onload="this.media='all'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Montserrat:wght@800&display=swap" /></noscript>
-    <!-- Favicon optimizado para Google (múltiplo de 48px) -->
+    <!-- Favicon: un solo icono de 192 px (múltiplo de 48) para el
+         navegador y para Apple. El de 512 px vive solo en el manifest
+         (icono de instalación PWA). Antes favicon.png, icon-512.png,
+         apple-icon.png y apple-touch-icon.png eran el mismo archivo de
+         136 KB cuatro veces (nov 2026, optimización 4). -->
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/apple-icon.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
 
     <!-- Viewport y tema -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
