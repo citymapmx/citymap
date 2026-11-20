@@ -15,6 +15,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, createSlug } from '../lib/utils';
 import { typeLabel } from '../lib/postTaxonomy.js';
 import { tourSchemaNodes } from '../lib/tourSchema.js';
+import { currencyForCity } from '../lib/domain.js';
+import { formatPriceAmount } from '../lib/tours.js';
 import { galleryWithoutCover } from '../lib/experienceGallery.js';
 import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
 import { useTranslation } from "../hooks/useTranslation.js";
@@ -193,6 +195,7 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const { setSelected } = useUIStore(useShallow(s => ({ setSelected: s.setSelected })));
   const { user, setShowAuth } = useAuthStore(useShallow(s => ({ user: s.user, setShowAuth: s.setShowAuth })));
   const mapPins = useDataStore(s => s.mapPins);
+  const cities = useDataStore(s => s.cities);
 
 
   useEffect(() => {
@@ -226,9 +229,12 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   // como primera foto de la galería duplicaba la portada. Si no queda
   // ninguna foto, la sección no se muestra.
   const galleryPhotos = galleryWithoutCover(gallery);
-  const curr = (exp.booking_config && exp.booking_config.currency) ? exp.booking_config.currency : 'MXN';
+  // Moneda del precio: la que el admin haya fijado en booking_config si
+  // existe; si no, según la ciudad (USD fuera de México, MXN en México —
+  // regla 19 Nov 2026). USD con centavos, MXN en enteros.
+  const curr = (exp.booking_config && exp.booking_config.currency) ? exp.booking_config.currency : currencyForCity(exp.city_slug, cities);
   const isFree = !(exp.price > 0);
-  const priceFormatted = isFree ? t("gratis", "Gratis") : `${Math.round(exp.price).toLocaleString("en-US")} ${curr}`;
+  const priceFormatted = isFree ? t("gratis", "Gratis") : `${formatPriceAmount(exp.price, curr, 'en')} ${curr}`;
   const isBlog = exp.activity_type && (exp.activity_type.toLowerCase().includes("blog") || exp.activity_type.toLowerCase().includes("guía"));
 
   const PLATFORM_STYLES = {
@@ -285,8 +291,9 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
         { "@type": "ListItem", "position": 3, "name": exp.title, "item": canonicalUrl }
       ]
     },
-    // Tours: TouristTrip + oferta con precio MXN (ver src/lib/tourSchema.js)
-    ...tourSchemaNodes(exp, canonicalUrl, cover)
+    // Tours: TouristTrip + oferta con precio en la moneda de la ciudad
+    // (USD fuera de México, MXN en México — ver src/lib/tourSchema.js)
+    ...tourSchemaNodes(exp, canonicalUrl, cover, curr)
   ]);
 
   const formatCityName = (slug) => {

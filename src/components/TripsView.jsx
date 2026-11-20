@@ -16,6 +16,7 @@ import { localizedTitle } from "../lib/i18nContent.js";
 import { createSlug } from "../lib/utils.js";
 import { POST_TYPES, POST_THEMES, filterPostsByTypeAndTheme, themeBySlug, themeLabel } from "../lib/postTaxonomy.js";
 import { tourDurationLabel } from "../lib/tours.js";
+import { currencyForCity } from "../lib/domain.js";
 import { getThumbUrl, getThumbSrcSet, SRCSET_CARD, SRCSET_THUMB, METRO_ZONES, isNear } from "../lib/utils.js";
 import { shouldShowCityEmptyState } from "../lib/cityEmptyState.js";
 import { cascadeDelayS, CASCADE_WINDOW_MS } from "../lib/cascade.js";
@@ -188,10 +189,10 @@ function TiqetsParisWidget({ T, dark }) {
   );
 }
 
-function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark, priority }) {
+function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark, priority, currency = 'MXN' }) {
   const { t, lang } = useTranslation();
   const photos = Array.isArray(exp.gallery) ? exp.gallery : [];
-  const priceFormatted = exp.price > 0 ? `$${exp.price} MXN` : t("gratis", "Gratis");
+  const priceFormatted = exp.price > 0 ? `$${exp.price} ${currency}` : t("gratis", "Gratis");
   const theme = themeBySlug(exp.theme);
   // Duración real (columna duration o «⏱️ Tiempo:» de quick_facts);
   // si no hay, la tarjeta no la muestra (nunca se inventa).
@@ -643,6 +644,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
                   exp={exp}
                   href={href}
                   priority={idx < 2}
+                  currency={currencyForCity(exp.city_slug, cities)}
                   onClick={() => routerNavigate(href, { state: { articleOrigin: true } })}
                   isSaved={savedExpIds.includes(exp.id)}
                   onToggleSave={() => toggleSaveExp(exp)}

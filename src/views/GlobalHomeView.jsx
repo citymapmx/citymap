@@ -21,7 +21,7 @@ import Footer from '../components/Footer.jsx';
 import AppDownloadBadges from '../components/AppDownloadBadges.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { localizedTitle } from '../lib/i18nContent.js';
-import { IS_WORLD, hostIncludesCity, hostIncludesCityList } from '../lib/domain.js';
+import { IS_WORLD, hostIncludesCity, hostIncludesCityList, currencyForCity, currencyForCountryCode } from '../lib/domain.js';
 
 const BIZ_PAGE = 60;
 
@@ -705,7 +705,7 @@ export default function GlobalHomeView() {
                   {visibleTours.map((tour) => {
                     const gallery = parseGallery(tour);
                     const img = gallery[0]?.url || gallery[0] || null;
-                    const price = tourPriceLabel(tour, lang);
+                    const price = tourPriceLabel(tour, lang, currencyForCity(tour.city_slug, allCities));
                     const duration = tourDurationLabel(tour);
                     return (
                       <article key={`t-${tour.id}`} onClick={() => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } })} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.card, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
@@ -766,7 +766,7 @@ export default function GlobalHomeView() {
                         <div style={{ padding: '12px 14px 16px' }}>
                           <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.3, margin: '0 0 6px' }}>{localizedTitle(exp, lang)}</h3>
                           <p style={{ fontSize: 13, color: T.sub, margin: 0 }}>
-                            {cityBySlug.get(exp.city_slug)?.name || ''}{duration ? ` · ⏱ ${duration}` : ''}{exp.price > 0 ? ` · $${exp.price} MXN` : ` · ${t("home_gratis", "Gratis")}`}
+                            {cityBySlug.get(exp.city_slug)?.name || ''}{duration ? ` · ⏱ ${duration}` : ''}{exp.price > 0 ? ` · $${exp.price} ${currencyForCountryCode(cityBySlug.get(exp.city_slug)?.country_code)}` : ` · ${t("home_gratis", "Gratis")}`}
                           </p>
                         </div>
                       </article>
