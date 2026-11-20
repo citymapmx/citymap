@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { eventCalendarDay, isListedEvent, isPastEvent, eventLastDay, upcomingEvents, formatEventCardDate, eventCoversDay, eventOverlapsRange, matchesDateFilter, matchesEventSearch, monthLabel, groupEventsByMonth } from '../lib/eventListing.js';
+import { eventCalendarDay, isListedEvent, isPastEvent, eventLastDay, upcomingEvents, formatEventCardDate, eventCoversDay, isEventToday, eventOverlapsRange, matchesDateFilter, matchesEventSearch, monthLabel, groupEventsByMonth } from '../lib/eventListing.js';
 describe('event listings', () => {
   const today = '2026-10-18';
   it('removes expired events with database times that contain seconds', () => {
@@ -61,6 +61,24 @@ describe('filtros de la página de Eventos', () => {
     expect(eventCoversDay({ date: '2026-11-07', end_date: '2026-11-10' }, today)).toBe(true);
     expect(eventCoversDay({ date: '2026-11-01', end_date: '2026-11-07' }, today)).toBe(false);
     expect(eventCoversDay({}, today)).toBe(true);
+  });
+  it('dice si el evento es hoy, incluido dentro de un rango de fechas (píldora «Hoy» de la rueda)', () => {
+    // De un día, hoy.
+    expect(isEventToday({ date: '2026-11-08' }, today)).toBe(true);
+    // De un día, otro día.
+    expect(isEventToday({ date: '2026-11-09' }, today)).toBe(false);
+    expect(isEventToday({ date: '2026-11-07' }, today)).toBe(false);
+    // De varios días con hoy dentro (Morat 20–21 nov): «Hoy» el 20 y el 21.
+    expect(isEventToday({ date: '2026-11-07', end_date: '2026-11-10' }, today)).toBe(true);
+    expect(isEventToday({ date: '2026-11-08', end_date: '2026-11-08' }, today)).toBe(true);
+    // De varios días sin hoy dentro.
+    expect(isEventToday({ date: '2026-11-01', end_date: '2026-11-07' }, today)).toBe(false);
+    expect(isEventToday({ date: '2026-11-09', end_date: '2026-11-12' }, today)).toBe(false);
+    // Sin fecha o sin «hoy»: nunca «Hoy» (a diferencia de eventCoversDay,
+    // que no excluye a los sin fecha).
+    expect(isEventToday({}, today)).toBe(false);
+    expect(isEventToday({ date: '2026-11-08' }, '')).toBe(false);
+    expect(isEventToday({ date: '2026-11-08' }, null)).toBe(false);
   });
   it('detecta si un rango se cruza con otro', () => {
     expect(eventOverlapsRange({ date: '2026-11-05', end_date: '2026-11-07' }, '2026-11-06', '2026-11-08')).toBe(true);
