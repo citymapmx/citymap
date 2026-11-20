@@ -2,19 +2,30 @@
 // sección "Tours por ciudad" del inicio global (GlobalHomeView).
 import { createSlug } from './utils.js';
 
-// "desde $1,475 MXN" / "from $1,475 MXN" (con separador de miles; siempre
-// en pesos enteros: los decimales crudos de la conversión EUR→MXN
-// ($919.1, $785.33) se veían descuidados y poco confiables). Sin precio
-// válido devuelve null (el tour se muestra sin precio). lang 'es' por
-// defecto para no romper los llamados existentes; las tarjetas pasan el
-// idioma activo. Solo cambia la presentación: el valor guardado en la
-// base no se toca.
-export function formatTourPrice(price, lang = 'es') {
+// Número de un precio según su moneda: MXN en enteros (los decimales
+// crudos de la conversión EUR→MXN, como $919.1, se veían descuidados);
+// USD con centavos cuando los hay ($25.67), porque los precios en
+// dólares ya vienen con centavos en la base. lang 'es' por defecto.
+export function formatPriceAmount(price, currency = 'MXN', lang = 'es') {
+  const value = Number(price);
+  const locale = lang === 'en' ? 'en-US' : 'es-MX';
+  if (currency === 'USD') {
+    return value.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+  return Math.round(value).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+// "desde $1,475 MXN" / "from $1,475 MXN" (con separador de miles).
+// Sin precio válido devuelve null (el tour se muestra sin precio). lang
+// 'es' por defecto para no romper los llamados existentes; las tarjetas
+// pasan el idioma activo. La moneda la decide quien llama según la
+// ciudad del tour (ver currencyForCity en domain.js); por defecto MXN.
+// Solo cambia la presentación: el valor guardado en la base no se toca.
+export function formatTourPrice(price, lang = 'es', currency = 'MXN') {
   const value = Number(price);
   if (!Number.isFinite(value) || value <= 0) return null;
-  const locale = lang === 'en' ? 'en-US' : 'es-MX';
   const prefix = lang === 'en' ? 'from' : 'desde';
-  return `${prefix} $${Math.round(value).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} MXN`;
+  return `${prefix} $${formatPriceAmount(value, currency, lang)} ${currency}`;
 }
 
 // Duración real del tour para las tarjetas: primero la columna
@@ -47,13 +58,14 @@ export function hasTourBooking(tour) {
   return Array.isArray(links) && links.length > 0;
 }
 
-// Etiqueta de precio de la tarjeta: "desde $X MXN" / "from $X MXN",
+// Etiqueta de precio de la tarjeta: "desde $X MXN" / "from $X MXN" en
+// México y "desde $X USD" / "from $X USD" fuera (regla 19 Nov 2026),
 // "Gratis" / "Free" o null (tiene reserva pero el precio no está publicado;
 // la tarjeta muestra "Precio no publicado"). Precio 0 explícito = verificado
 // gratis (free tour, senderismo); sin precio (null/vacío) y con reserva =
 // no publicado.
-export function tourPriceLabel(tour, lang = 'es') {
-  const priced = formatTourPrice(tour?.price, lang);
+export function tourPriceLabel(tour, lang = 'es', currency = 'MXN') {
+  const priced = formatTourPrice(tour?.price, lang, currency);
   if (priced) return priced;
   const free = lang === 'en' ? 'Free' : 'Gratis';
   if (tour?.price === 0 || tour?.price === '0') return free;

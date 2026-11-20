@@ -47,6 +47,13 @@ describe('tourSchemaNodes', () => {
     expect(product.offers.url).toContain('?aid=114552');
   });
 
+  it('con moneda USD emite priceCurrency USD (regla 19 Nov 2026)', () => {
+    const nodes = tourSchemaNodes({ ...tour, price: 25.67 }, url, tour.gallery[0], 'USD');
+    expect(nodes).toHaveLength(2);
+    expect(nodes[1].offers.price).toBe(25.67);
+    expect(nodes[1].offers.priceCurrency).toBe('USD');
+  });
+
   it('sin precio no emite Product', () => {
     const nodes = tourSchemaNodes({ ...tour, price: 0 }, url, tour.gallery[0]);
     expect(nodes).toHaveLength(1);

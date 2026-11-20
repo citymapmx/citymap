@@ -34,6 +34,7 @@ import {
   experienceShareCardStyleList,
   exportExperienceShareCardPng,
 } from '../lib/experienceShareCard.js';
+import { currencyForCity } from '../lib/domain.js';
 
 const PREVIEW_W = 200;
 
@@ -64,7 +65,9 @@ export default function ExperienceShareCardSheet({ experience, onClose, onShareL
   const cityName =
     cities.find((c) => c.slug === expCitySlug)?.name ||
     expCitySlug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  const data = buildExperienceShareCardData(experience, { cityName });
+  // Moneda del precio según la ciudad (USD fuera de México, MXN en
+  // México — regla 19 Nov 2026).
+  const data = buildExperienceShareCardData(experience, { cityName, currency: currencyForCity(expCitySlug, cities) });
   // Sin foto, la tarjeta sale sin esa parte (nunca rota): el fallo de
   // carga quita el dato y la geometría se recalcula sin él. En el Grid,
   // una foto que falla quita TODAS las fotos del grid (igual que la foto

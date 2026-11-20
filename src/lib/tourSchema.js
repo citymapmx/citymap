@@ -25,8 +25,10 @@ export function bookingUrlOf(exp, canonicalUrl) {
   return canonicalUrl;
 }
 
-// Nodos JSON-LD extra para un Tour. Para otros tipos devuelve [].
-export function tourSchemaNodes(exp, canonicalUrl, coverImage) {
+// Nodos JSON-LD extra para un Tour. Para otros tipos devuelve []. La
+// moneda la pasa quien llama según la ciudad del tour (ver currencyForCity
+// en domain.js): USD fuera de México, MXN en México (regla 19 Nov 2026).
+export function tourSchemaNodes(exp, canonicalUrl, coverImage, currency = 'MXN') {
   if (!exp || exp.activity_type !== 'Tour') return [];
   const desc = exp.description ? exp.description.substring(0, 160) : '';
   const image = coverImage || (Array.isArray(exp.gallery) ? exp.gallery[0] : null);
@@ -53,7 +55,7 @@ export function tourSchemaNodes(exp, canonicalUrl, coverImage) {
       offers: {
         '@type': 'Offer',
         price,
-        priceCurrency: 'MXN',
+        priceCurrency: currency,
         availability: 'https://schema.org/InStock',
         url: bookingUrlOf(exp, canonicalUrl),
       },

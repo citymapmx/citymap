@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatTourPrice, tourCardUrl, groupToursByCity, tourPriceLabel } from '../lib/tours.js';
+import { formatTourPrice, formatPriceAmount, tourCardUrl, groupToursByCity, tourPriceLabel } from '../lib/tours.js';
 
 describe('formatTourPrice', () => {
   it('formatea con separador de miles y "desde", siempre en pesos enteros', () => {
@@ -10,11 +10,26 @@ describe('formatTourPrice', () => {
     expect(formatTourPrice(790)).toBe('desde $790 MXN');
     expect(formatTourPrice('1075')).toBe('desde $1,075 MXN');
   });
+  it('en USD conserva los centavos (los precios en dólares ya vienen con centavos en la base)', () => {
+    expect(formatTourPrice(25.67, 'es', 'USD')).toBe('desde $25.67 USD');
+    expect(formatTourPrice(100.09, 'es', 'USD')).toBe('desde $100.09 USD');
+    expect(formatTourPrice(100, 'es', 'USD')).toBe('desde $100 USD');
+    expect(formatTourPrice(25.67, 'en', 'USD')).toBe('from $25.67 USD');
+  });
   it('devuelve null sin precio válido', () => {
     expect(formatTourPrice(0)).toBeNull();
     expect(formatTourPrice(null)).toBeNull();
     expect(formatTourPrice(undefined)).toBeNull();
     expect(formatTourPrice('')).toBeNull();
+  });
+});
+
+describe('formatPriceAmount', () => {
+  it('MXN en enteros, USD con centavos', () => {
+    expect(formatPriceAmount(1918.75, 'MXN', 'es')).toBe('1,919');
+    expect(formatPriceAmount(25.67, 'USD', 'es')).toBe('25.67');
+    expect(formatPriceAmount(100, 'USD', 'es')).toBe('100');
+    expect(formatPriceAmount(123.11, 'USD', 'en')).toBe('123.11');
   });
 });
 
@@ -197,5 +212,11 @@ describe('tourPriceLabel', () => {
     expect(tourPriceLabel({ price: null }, 'en')).toBe('Free');
     expect(formatTourPrice(1200, 'en')).toBe('from $1,200 MXN');
     expect(formatTourPrice(1200)).toBe('desde $1,200 MXN');
+  });
+
+  it('en USD muestra la moneda y los centavos (regla 19 Nov 2026)', () => {
+    expect(tourPriceLabel({ price: 25.67 }, 'es', 'USD')).toBe('desde $25.67 USD');
+    expect(tourPriceLabel({ price: 25.67 }, 'en', 'USD')).toBe('from $25.67 USD');
+    expect(tourPriceLabel({ price: 1200 }, 'es', 'USD')).toBe('desde $1,200 USD');
   });
 });

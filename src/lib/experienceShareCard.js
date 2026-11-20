@@ -50,6 +50,7 @@
 // /revista/:ciudad/:slug.
 import { createSlug } from './utils.js';
 import { formatReviewCount } from './googleRatings.js';
+import { formatPriceAmount } from './tours.js';
 import {
   SHARE_CARD_FONT_STACK,
   measureShareCardText,
@@ -340,11 +341,14 @@ export const EXPERIENCE_SHARE_CARD_GRID_LAYOUT = {
 };
 
 // ─── Datos que lleva la tarjeta (solo de la fila) ───
-
-export function experienceShareCardPriceText(exp) {
+// La moneda la pasa quien llama según la ciudad de la experiencia (ver
+// currencyForCity en domain.js): USD fuera de México, MXN en México
+// (regla 19 Nov 2026). USD con centavos, MXN en enteros (ver
+// formatPriceAmount en tours.js).
+export function experienceShareCardPriceText(exp, currency = 'MXN') {
   const price = Number(exp?.price);
   if (!Number.isFinite(price) || price <= 0) return 'Gratis';
-  return `$${Math.round(price).toLocaleString('en-US')} MXN`;
+  return `$${formatPriceAmount(price, currency, 'en')} ${currency}`;
 }
 
 export function experienceShareUrl(exp) {
@@ -358,7 +362,7 @@ export function experienceShareUrl(exp) {
   return `https://citymap.mx/revista/${city}/${slug}`;
 }
 
-export function buildExperienceShareCardData(exp, { cityName = '' } = {}) {
+export function buildExperienceShareCardData(exp, { cityName = '', currency = 'MXN' } = {}) {
   const rating = Number(exp?.rating);
   const reviewCount = Number(exp?.review_count);
   // Calificación SOLO si es real: rating y reseñas en la fila. Sin
@@ -416,7 +420,7 @@ export function buildExperienceShareCardData(exp, { cityName = '' } = {}) {
       ? `${rating.toFixed(1)} · ${formatReviewCount(reviewCount)} ${reviewCount === 1 ? 'reseña' : 'reseñas'}`
       : '',
     dataLine: dataParts.join(' · '),
-    priceText: experienceShareCardPriceText(exp),
+    priceText: experienceShareCardPriceText(exp, currency),
     priced: Number.isFinite(price) && price > 0,
     showPrice,
     shareUrl: experienceShareUrl(exp),

@@ -6,7 +6,8 @@ import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
 import { localizedTitle } from '../lib/i18nContent.js';
-import { groupToursByCity, tourCardUrl, tourPriceLabel, tourDurationLabel } from '../lib/tours.js';
+import { groupToursByCity, tourCardUrl, tourPriceLabel, tourDurationLabel, formatTourPrice } from '../lib/tours.js';
+import { currencyForCity } from '../lib/domain.js';
 import OptimizedImage from './ui/OptimizedImage.jsx';
 import LottieAnim from './LottieAnim.jsx';
 import { BOLETO_AVION_SRC } from '../lib/lottieAnimaciones.js';
@@ -26,10 +27,10 @@ function tourImage(tour) {
   return null;
 }
 
-function TourCard({ tour, T, onOpen }) {
+function TourCard({ tour, T, onOpen, cities }) {
   const { t, lang } = useTranslation();
   const img = tourImage(tour);
-  const price = tourPriceLabel(tour, lang);
+  const price = tourPriceLabel(tour, lang, currencyForCity(tour.city_slug, cities || []));
   // Duración real del tour cuando existe en la base; si no hay, la
   // tarjeta simplemente no la muestra (nunca se inventa).
   const duration = tourDurationLabel(tour);
@@ -78,10 +79,15 @@ export default function ToursView({ T, dark, cities, initialTours }) {
 
   const groups = useMemo(() => groupToursByCity(tours, cities || []), [tours, cities]);
   const visibleGroups = selectedCity === 'todas' ? groups : groups.filter((g) => g.slug === selectedCity);
-  const minPrice = useMemo(() => {
-    const prices = tours.map((t) => Number(t.price)).filter((p) => Number.isFinite(p) && p > 0);
-    return prices.length > 0 ? Math.min(...prices) : null;
+  // El tour más barato de todos (para el «desde» del resumen): su moneda
+  // es la de SU ciudad, porque el resumen mezcla ciudades mexicanas y
+  // extranjeras (USD fuera de México, MXN en México — regla 19 Nov 2026).
+  const minPriceTour = useMemo(() => {
+    const priced = tours.filter((t) => Number(t.price) > 0);
+    if (priced.length === 0) return null;
+    return priced.reduce((a, b) => (Number(a.price) <= Number(b.price) ? a : b));
   }, [tours]);
+  const minPriceCurrency = minPriceTour ? currencyForCity(minPriceTour.city_slug, cities || []) : 'MXN';
   const selectedGroup = selectedCity === 'todas' ? null : groups.find((g) => g.slug === selectedCity);
 
   return (
@@ -128,7 +134,7 @@ export default function ToursView({ T, dark, cities, initialTours }) {
         <p style={{ fontSize: 13, fontWeight: 600, color: T.sub, margin: '0 0 20px', textAlign: 'center', lineHeight: 1.4 }}>
           {loading ? t("revista_cargando_tours", "Cargando tours…") : selectedGroup
             ? <>{t("revista_mejores_tours_de", "Los mejores tours y experiencias de ")}<span className="exp-city-anim">{selectedGroup.name}</span></>
-            : t("revista_tours_resumen", `${tours.length} tours en ${groups.length} ciudades${minPrice ? ` · desde $${Math.round(minPrice).toLocaleString('es-MX')} MXN` : ''}`, {tours: tours.length, cities: groups.length, minPriceText: minPrice ? ` · ${lang === 'en' ? 'from' : 'desde'} $${Math.round(minPrice).toLocaleString(lang === 'en' ? 'en-US' : 'es-MX')} MXN` : ''})}
+            : t("revista_tours_resumen", `${tours.length} tours en ${groups.length} ciudades${minPriceTour ? ` · ${formatTourPrice(minPriceTour.price, 'es', minPriceCurrency)}` : ''}`, {tours: tours.length, cities: groups.length, minPriceText: minPriceTour ? ` · ${formatTourPrice(minPriceTour.price, 'en', minPriceCurrency)}` : ''})}
         </p>
 
         {!loading && groups.length > 0 && (
@@ -161,7 +167,7 @@ export default function ToursView({ T, dark, cities, initialTours }) {
             <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 14px' }}>{g.name} · {g.count} {g.count === 1 ? 'tour' : 'tours'}</h2>
             <div className="scroll-fade-x" style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
               {g.tours.map((tour) => (
-                <TourCard key={tour.id || tour.slug} tour={tour} T={T} onOpen={openTour} />
+                <TourCard key={tour.id || tour.slug} tour={tour} T={T} onOpen={openTour} cities={cities} />
               ))}
             </div>
           </section>

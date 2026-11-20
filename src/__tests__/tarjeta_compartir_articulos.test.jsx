@@ -311,6 +311,15 @@ describe('tarjeta para compartir el artículo: datos reales', () => {
     expect(expGratis.priceText).toBe('Gratis');
   });
 
+  it('en USD la pastilla dice dólares con centavos (regla 19 Nov 2026)', () => {
+    const prado = { title: 'Visita guiada por el Museo del Prado', price: 25.67, activity_type: 'Tour' };
+    expect(experienceShareCardPriceText(prado, 'USD')).toBe('$25.67 USD');
+    expect(experienceShareCardPriceText(prado)).toBe('$26 MXN');
+    const d = buildExperienceShareCardData(prado, { cityName: 'Madrid', currency: 'USD' });
+    expect(d.priceText).toBe('$25.67 USD');
+    expect(d.priced).toBe(true);
+  });
+
   it('calificación SOLO si es real: sin reseñas no se muestra nada (nunca el 4.9 de la demo)', () => {
     const sin = buildExperienceShareCardData(TEQUILA, { cityName: 'Guadalajara' });
     expect(TEQUILA.rating).toBe(0);
@@ -940,7 +949,7 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(sheet).toContain('Compartir imagen');
     expect(sheet).toContain('Compartir enlace');
     expect(sheet).toContain("e?.name === 'AbortError'");
-    expect(sheet).toContain('buildExperienceShareCardData(experience, { cityName })');
+    expect(sheet).toContain('buildExperienceShareCardData(experience, { cityName, currency: currencyForCity(expCitySlug, cities) })');
     expect(sheet).toContain('exportExperienceShareCardPng(dataToExport, format, styleId)');
     expect(sheet).toContain('experienceShareCardFileName(experience)');
     expect(sheet).toContain('La foto no se pudo cargar');

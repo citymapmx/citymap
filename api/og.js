@@ -1,4 +1,5 @@
 import { seoSite, normalizeCitySlug, legacyCitySlug, isWorldCitySlug } from '../src/lib/seoRoutes.js';
+import { currencyForCountryCode } from '../src/lib/domain.js';
 import { tourSchemaNodes } from '../src/lib/tourSchema.js';
 import { eventUrl, resolveEventSlug } from '../src/lib/eventUrls.js';
 import { CITY_TZ } from '../src/lib/constants.js';
@@ -1157,9 +1158,13 @@ ${bodyExtra}
     jsonLd = `<script type="application/ld+json">${JSON.stringify(evNodes)}</script>`;
   } else if (expData) {
     const expImage = (Array.isArray(expData.gallery) && expData.gallery[0]) ? expData.gallery[0] : null;
-    const tourNodes = tourSchemaNodes(expData, canonicalUrl, expImage);
+    // Moneda de la oferta según la ciudad del tour (USD fuera de México,
+    // MXN en México — regla 19 Nov 2026).
+    const { country_code: expCityCountry } = await getCityData(expData.city_slug);
+    const expCurrency = currencyForCountryCode(expCityCountry);
+    const tourNodes = tourSchemaNodes(expData, canonicalUrl, expImage, expCurrency);
     const schema = [
-      // Tours: TouristTrip + oferta con precio MXN; resto: TouristAttraction
+      // Tours: TouristTrip + oferta con precio en la moneda de la ciudad; resto: TouristAttraction
       ...(tourNodes.length > 0 ? tourNodes : [{
         "@context": "https://schema.org",
         "@type": "TouristAttraction",
@@ -1221,6 +1226,10 @@ ${bodyExtra}
     if (evData.description) bodyContent += `<p>${esc(evData.description)}</p>`;
     bodyContent += `<a href="${linkHref}">Ver evento en ${SITE_NAME}</a>`;
   } else if (expData) {
+    // Moneda del precio según la ciudad del tour (USD fuera de México,
+    // MXN en México — regla 19 Nov 2026).
+    const { country_code: expBodyCountry } = await getCityData(expData.city_slug);
+    const expBodyCurrency = currencyForCountryCode(expBodyCountry);
     // Si hay galería en la experiencia, incluirlas
     if (expData.gallery && Array.isArray(expData.gallery)) {
       expData.gallery.forEach(urlImg => {
@@ -1231,7 +1240,7 @@ ${bodyExtra}
     }
 
     if (expData.activity_type) bodyContent += `<p><strong>Categoría:</strong> ${esc(expData.activity_type)}</p>`;
-    if (expData.activity_type === 'Tour' && Number(expData.price) > 0) bodyContent += `<p><strong>Precio desde:</strong> $${Number(expData.price).toLocaleString('es-MX')} MXN</p>`;
+    if (expData.activity_type === 'Tour' && Number(expData.price) > 0) bodyContent += `<p><strong>Precio desde:</strong> $${Number(expData.price).toLocaleString('es-MX')} ${expBodyCurrency}</p>`;
     if (expData.activity_type === 'Tour' && expData.duration) bodyContent += `<p><strong>Duración:</strong> ${esc(expData.duration)}</p>`;
     if (expData.description) bodyContent += `<p>${esc(expData.description)}</p>`;
     bodyContent += `<a href="${linkHref}">Ver experiencia en ${SITE_NAME}</a>`;

@@ -25,6 +25,20 @@ export function isWorldCity(citySlug, cities = []) {
   return (getCountryCode(citySlug, cities) || "mx").toLowerCase() !== "mx";
 }
 
+// Moneda en la que se muestran los precios de tours y experiencias de una
+// ciudad: USD fuera de México, MXN en México (regla 19 Nov 2026: todo lo
+// extranjero a México va en dólares). Las ciudades sin country_code se
+// tratan como mexicanas, igual que en el resto del código.
+export function currencyForCity(citySlug, cities = []) {
+  return isWorldCity(citySlug, cities) ? 'USD' : 'MXN';
+}
+
+// Moneda por código de país (para el servidor o cuando solo se tiene el
+// código, sin la lista de ciudades): 'mx' → MXN, cualquier otro → USD.
+export function currencyForCountryCode(countryCode) {
+  return String(countryCode || 'mx').toLowerCase() === 'mx' ? 'MXN' : 'USD';
+}
+
 export function hostIncludesCity(citySlug, cities = []) {
   return IS_WORLD ? isWorldCity(citySlug, cities) : !isWorldCity(citySlug, cities);
 }
