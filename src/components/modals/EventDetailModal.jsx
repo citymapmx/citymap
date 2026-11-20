@@ -619,9 +619,10 @@ export default function EventDetailModal() {
                     insignias oficiales del pie (App Store / Google Play).
                     Va dentro del contenido con scroll, abajo del todo
                     (después de «Más eventos»), por encima de la barra
-                    fija de boletos. */}
+                    fija de boletos. Con encabezado «Descarga la app»
+                    (misma clave i18n y estilo que el título del pie). */}
                 <div style={{ padding: '8px 0 24px', display: 'flex', justifyContent: 'center' }}>
-                  <AppDownloadBadges />
+                  <AppDownloadBadges title={t("menu_descarga_app", "Descarga la app")} titleColor={T.sub} />
                 </div>
               </div>
 

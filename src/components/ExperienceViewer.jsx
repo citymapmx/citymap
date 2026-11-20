@@ -846,9 +846,11 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
 
         {/* Descarga la app: al pie del artículo, con las mismas
             insignias oficiales del pie (App Store / Google Play).
-            Abajo del todo, después del disclaimer y de las reseñas. */}
+            Abajo del todo, después del disclaimer y de las reseñas.
+            Con encabezado «Descarga la app» (misma clave i18n y
+            estilo que el título del pie). */}
         <div style={{ padding: '24px 0 8px', display: 'flex', justifyContent: 'center' }}>
-          <AppDownloadBadges />
+          <AppDownloadBadges title={t("menu_descarga_app", "Descarga la app")} titleColor={T.sub} />
         </div>
 
       </div>
