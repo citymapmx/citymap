@@ -36,16 +36,18 @@ export function seoSite(host = '') {
 
 // Ciudades fuera de México: viven en citymap.world (la versión
 // internacional); citymap.mx es solo México. Verificado por PostgREST:
-// de las 33 ciudades en base, 22 son MX y 11 internacionales (las de
-// esta lista). La base (tabla cities, country_code) es la fuente de
+// de las 40 ciudades en base, 26 son MX y 13 internacionales (las de
+// esta lista; Nueva York es internacional pero vive en .mx a propósito).
+// La base (tabla cities, country_code) es la fuente de
 // verdad; esta lista es la copia que usan el middleware y og.js para
 // decidir el dominio sin consultar la base en cada petición. Al dar de
 // alta una ciudad fuera de México, añadir su slug y su código de país
 // aquí (y quitarla si se da de baja).
 export const WORLD_CITIES = {
-  barcelona: 'es', bogota: 'co', 'buenos-aires': 'ar', londres: 'gb',
-  'los-angeles': 'us', madrid: 'es', medellin: 'co', paris: 'fr',
-  'san-antonio': 'us', 'san-diego': 'us', vancouver: 'ca',
+  barcelona: 'es', bogota: 'co', 'buenos-aires': 'ar', kioto: 'jp',
+  londres: 'gb', 'los-angeles': 'us', madrid: 'es', medellin: 'co',
+  paris: 'fr', 'san-antonio': 'us', 'san-diego': 'us', tokio: 'jp',
+  vancouver: 'ca',
 };
 
 export function isWorldCitySlug(slug = '') {
@@ -58,7 +60,7 @@ export function worldCityCountry(slug = '') {
   return WORLD_CITIES[String(slug || '').toLowerCase()] || null;
 }
 
-export const SEO_COUNTRIES = new Set(['mx', 'us', 'es', 'ca', 'ar', 'co', 'fr', 'gb']);
+export const SEO_COUNTRIES = new Set(['mx', 'us', 'es', 'ca', 'ar', 'co', 'fr', 'gb', 'jp']);
 
 // Categorías de nivel superior de la app (useAppInitialization.js validCats):
 // las que tienen página propia /:ciudad/:categoria y salen en el sitemap.
