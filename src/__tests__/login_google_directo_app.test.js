@@ -97,7 +97,11 @@ describe('index.html: sin splash de arranque con from=app', () => {
     expect(INDEX_SRC).toContain('document.getElementById("boot-splash")');
   });
 
-  it('sin from=app el splash sigue igual (temporizador de respaldo intacto)', () => {
-    expect(INDEX_SRC).toContain('setTimeout(function () { var s = document.getElementById("boot-splash"); if (s) s.remove(); }, 15000);');
+  it('sin from=app el temporizador de respaldo ya no deja la pantalla blanca: si la app no arrancó, muestra reintentar sobre el negro', () => {
+    expect(INDEX_SRC).toContain('}, 15000);');
+    expect(INDEX_SRC).toContain('Toca para reintentar');
+    expect(INDEX_SRC).toContain('root.children.length');
+    expect(INDEX_SRC).toContain('window.location.reload()');
+    expect(INDEX_SRC).not.toContain('setTimeout(function () { var s = document.getElementById("boot-splash"); if (s) s.remove(); }, 15000);');
   });
 });

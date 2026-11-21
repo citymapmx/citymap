@@ -146,7 +146,24 @@
         var s = document.getElementById("boot-splash"); if (s) s.remove();
         document.body.style.background = '#000';
       }
-      setTimeout(function () { var s = document.getElementById("boot-splash"); if (s) s.remove(); }, 15000);
+      // Respaldo por si el JS tarda o falla: a los 15 s, si React ya pintó,
+      // el splash de arranque sobra y se quita (la pantalla React cubre
+      // desde ahí). Pero si la app NO ha arrancado (el bundle sigue
+      // descargando o falló), quitarlo dejaría la pantalla BLANCA y vacía,
+      // que es justo lo que se veía en el iPhone: negro con logo y después
+      // blanco sin nada. En ese caso el splash se queda en negro con el
+      // logo y muestra reintentar: tocar recarga la página.
+      setTimeout(function () {
+        var s = document.getElementById("boot-splash");
+        if (!s) return;
+        var root = document.getElementById("root");
+        if (root && root.children.length > 0) { s.remove(); return; }
+        s.innerHTML = '<img src="/logo-brand.png" alt="CityMap" style="width:200px;max-width:60%;object-fit:contain;display:block" />'
+          + '<div style="height:24px" aria-hidden="true"></div>'
+          + '<div style="color:#fff;font-family:system-ui,sans-serif;font-size:15px;line-height:1.5;text-align:center;padding:0 32px">La conexión está tardando.<br/>Toca para reintentar.</div>';
+        s.style.cursor = "pointer";
+        s.addEventListener("click", function () { window.location.reload(); });
+      }, 15000);
     </script>
     <main id="root"></main>
     <script type="module" src="/src/main.jsx"></script>
