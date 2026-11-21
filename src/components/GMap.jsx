@@ -4,7 +4,7 @@ import MapCompass from "./map/MapCompass.jsx";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { GMAPS_KEY } from "../lib/supabase.js";
 import { CAT_EMOJI, categoryEmoji, getThumbUrl, iconFile } from "../lib/utils.js";
-import { hasCloseNeighbor, selectionZoom } from "../lib/mapCentering.js";
+import { selectionZoom } from "../lib/mapCentering.js";
 import { createOverlayMarker } from "../lib/googleOverlayMarker.js";
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -79,29 +79,6 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
   const utilityPins = useRef([]);
   const ok = useGMaps();
   const [mapReady, setMapReady] = useState(false);
-
-  // Al tocar un pin con otros pegados en pantalla, acercar el mapa en vez de
-  // abrir la tarjeta: los pines se separan y ya se puede tocar el que se quiere.
-  // Si ya está en el zoom máximo (18) o no hay vecinos, se abre la tarjeta normal.
-  const zoomIntoDensePin = (marker) => {
-    const mapInstance = map.current;
-    if (!mapInstance || !marker?.getPosition) return false;
-    const zoom = mapInstance.getZoom() || 13;
-    if (zoom >= 18) return false;
-    const pos = marker.getPosition();
-    const target = { lat: pos.lat(), lng: pos.lng() };
-    const others = (pins.current || [])
-      .filter((other) => other && other !== marker && other.getPosition)
-      .filter((other) => !other.getMap || other.getMap())
-      .map((other) => {
-        const p = other.getPosition();
-        return p ? { lat: p.lat(), lng: p.lng() } : null;
-      })
-      .filter(Boolean);
-    if (!hasCloseNeighbor(target, others, zoom)) return false;
-    flyToLocation(mapInstance, target.lat, target.lng, Math.min(zoom + 2, 18));
-    return true;
-  };
 
   // A new map instance is needed when Google's initial color scheme changes.
   useEffect(()=>()=>{
@@ -472,7 +449,6 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
           biz.name,
           sel ? 999 : 1,
           () => {
-            if (selected?.id !== biz.id && zoomIntoDensePin(m)) return;
             onPin(biz);
           }
         );
@@ -482,7 +458,6 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
         m.div.style.zIndex = sel ? 999 : 1;
         // Solo para estar seguros de llamar a la última función onPin
         m.onMarkerClick = () => {
-          if (selected?.id !== biz.id && zoomIntoDensePin(m)) return;
           onPin(biz);
         };
         m.div.onclick = null; // Clean up old double-firing listener if any
@@ -534,7 +509,6 @@ const GMap = React.memo(function GMap({ events = [], businesses, selected, onPin
 
         content.addEventListener("click", () => {
           if (!onPin) return;
-          if (selected?.id !== ev.id && zoomIntoDensePin(m)) return;
           onPin({ ...ev, _isEvent: true });
         });
 
