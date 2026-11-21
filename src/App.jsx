@@ -1348,6 +1348,7 @@ useEffect(() => {
   const homeCoreError=useDataStore(s=>s.homeCoreError);
   const homeCacheAvailable=useDataStore(s=>s.homeCacheAvailable);
   const homeSecondaryCity=useDataStore(s=>s.homeSecondaryCity);
+  const homeSecondaryError=useDataStore(s=>s.homeSecondaryError);
   const mapPinsCity = useDataStore(s => s.mapPinsCity);
   const paginationKey = JSON.stringify([activeCity, activeCat, search]);
   const isFilteredBusinessQuery = Boolean(search || (activeCat && activeCat !== "todas" && activeCat !== "explorar"));
@@ -1604,7 +1605,7 @@ useEffect(() => {
   return (
     <AppContext.Provider value={appContextValue}>
       <OfflineScreen />
-      <CityArrivalSplash enabled={!requireCitySelection && (((isHomePath(location.pathname) || isSectionCityPath(location.pathname)) && location.pathname !== '/') || bootingToSavedCity)} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && homeCoreCity===activeCity && !bootingToSavedCity} error={(dbError || businessListError || homeCoreError) && !homeCacheAvailable} />
+      <CityArrivalSplash enabled={!requireCitySelection && (((isHomePath(location.pathname) || isSectionCityPath(location.pathname)) && location.pathname !== '/') || bootingToSavedCity)} waitingForCity={requireCitySelection} citySlug={activeCity} cityName={cities.find(c=>c.slug===activeCity)?.name || ''} ready={dbReady && mapPinsCity===activeCity && initialBizCount!==null && homeCoreCity===activeCity && !bootingToSavedCity} error={(dbError || businessListError || homeCoreError || homeSecondaryError) && !homeCacheAvailable} />
 
       <div style={{ fontFamily: "'DM Sans',system-ui,sans-serif", background: dark ? "transparent" : T.bg, minHeight: "100vh", width: "100%", position: "relative", transition: "background .3s" }}>
         {dark && <CosmicBackground />}
