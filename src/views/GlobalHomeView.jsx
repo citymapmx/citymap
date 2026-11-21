@@ -133,6 +133,10 @@ export default function GlobalHomeView() {
   const [tours, setTours] = useState([]);
   const [tourCity, setTourCity] = useState(null);
   const [allCities, setAllCities] = useState([]);
+  // «Explora por ciudad» lista TODAS las ciudades activas en los dos
+  // dominios (21 nov 2026); el muro (allCities) sigue siendo solo del
+  // dominio actual.
+  const [exploreCities, setExploreCities] = useState([]);
   const [popCounts, setPopCounts] = useState({});
   const [searchResults, setSearchResults] = useState(null);
   const [searching, setSearching] = useState(false);
@@ -207,9 +211,12 @@ export default function GlobalHomeView() {
         setExperiences((Array.isArray(exRes) ? exRes : []).filter((x) => hostIncludesCityList(x.city_slug, cityList)));
         setTours((Array.isArray(toursRes) ? toursRes : []).filter((x) => hostIncludesCityList(x.city_slug, cityList)));
         setAllCities(hostCities);
-        // Popularidad por ciudad: negocios + eventos registrados (conteos exactos).
-        if (hostCities.length > 0) {
-          Promise.all(hostCities.map(async (c) => {
+        setExploreCities(cityList);
+        // Popularidad por ciudad: negocios + eventos registrados (conteos
+        // exactos) de TODAS las ciudades, para ordenar «Explora por
+        // ciudad» en los dos dominios.
+        if (cityList.length > 0) {
+          Promise.all(cityList.map(async (c) => {
             const [b, e] = await Promise.all([
               sb.count('businesses', `?status=eq.approved&plan=neq.menu&city_slug=eq.${c.slug}`).catch(() => 0),
               sb.count('events', `?status=eq.approved&city_slug=like.*${c.slug}*`).catch(() => 0),
@@ -242,9 +249,11 @@ export default function GlobalHomeView() {
     : (tourGroups.find((g) => g.slug === 'guadalajara') || tourGroups[0])?.slug;
   const visibleTours = tourGroups.find((g) => g.slug === effectiveTourCity)?.tours || [];
 
-  // Ciudades ordenadas de la más popular a la menos: negocios + eventos registrados.
+  // Ciudades ordenadas de la más popular a la menos: negocios + eventos
+  // registrados. La sección lista las 40 ciudades (exploreCities), no
+  // solo las del dominio.
   const sortedCities = useMemo(() => {
-    const list = [...(allCities || [])];
+    const list = [...(exploreCities || [])];
     list.sort((a, b) => {
       const pa = popCounts[a.slug]?.total ?? 0;
       const pb = popCounts[b.slug]?.total ?? 0;
@@ -252,7 +261,7 @@ export default function GlobalHomeView() {
       return (a.name || '').localeCompare(b.name || '');
     });
     return list;
-  }, [allCities, popCounts]);
+  }, [exploreCities, popCounts]);
 
   // Etapa 2: buscador global en vivo (Supabase, todas las ciudades).
   // DebouncedSearchBar ya espera 300 ms antes de avisar, así que aquí se busca directo.
@@ -643,7 +652,7 @@ export default function GlobalHomeView() {
         {!loading && !error && !isSearching && !offlineEmpty && (
           <>
             {/* Explora por ciudad */}
-            {allCities.length > 0 && (
+            {exploreCities.length > 0 && (
               <section style={{ marginTop: 22, marginBottom: 30 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 2, columnGap: 12, marginBottom: 14 }}>
                   <h2 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>{t("home_explora_por_ciudad", "Explora por ciudad")}</h2>
