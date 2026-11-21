@@ -199,7 +199,6 @@ let mockAdminProfiles;
 let mockAuthUsers;
 let mockDupNotifs;
 let authUser;
-let adminSecret;
 
 const req = ({ jwt = false, body = {} } = {}) => ({
   method: 'POST',
@@ -211,7 +210,6 @@ const req = ({ jwt = false, body = {} } = {}) => ({
 beforeEach(async () => {
   vi.resetModules();
   vi.stubEnv('CRON_SECRET', 'test-cron-secret');
-  vi.stubEnv('ADMIN_SECRET', 'test-admin-secret');
   vi.stubEnv('ADMIN_EMAILS', 'jgarana18@gmail.com, admin@cityguide.com');
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-service-key');
   vi.stubEnv('VITE_SUPABASE_URL', 'https://dpkjxhjkzdlkvyotoeai.supabase.co');
@@ -226,7 +224,6 @@ beforeEach(async () => {
   ];
   mockDupNotifs = [];
   authUser = { id: CLIENT_ID, email: 'ana@example.com', email_confirmed_at: '2025-01-01T00:00:00Z', app_metadata: {} };
-  adminSecret = 'test-admin-secret';
   sendCalls = [];
   vi.stubGlobal('fetch', vi.fn(async (url, opts) => {
     const u = String(url);
@@ -238,7 +235,7 @@ beforeEach(async () => {
       return authUser ? { ok: true, json: async () => authUser } : { ok: false, json: async () => ({}) };
     }
     if (u.includes('/api/send-notification')) {
-      sendCalls.push({ url: u, body: JSON.parse(opts?.body || '{}') });
+      sendCalls.push({ url: u, body: JSON.parse(opts?.body || '{}'), auth: opts?.headers?.Authorization });
       return { ok: true, json: async () => ({ successCount: 1 }) };
     }
     if (u.includes('/rest/v1/reservations')) return { ok: true, json: async () => mockReservation };
@@ -268,8 +265,11 @@ describe('aviso reserva: modo aviso de reserva en api/send-notification.js', () 
         type: 'booking',
         deepLink: DEEP_LINK,
         imageUrl: 'https://cdn.example.com/kava.jpg',
-        secret: 'test-admin-secret',
       });
+      // La llamada interna ya no lleva el secreto en el body: se autentica
+      // con CRON_SECRET por header (solo vive en el servidor).
+      expect(call.body).not.toHaveProperty('secret');
+      expect(call.auth).toBe('Bearer test-cron-secret');
     }
   });
   it('con sesión y reservationId busca por id y verifica que sea quien reservó', async () => {

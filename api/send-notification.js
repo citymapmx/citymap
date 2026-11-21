@@ -6,6 +6,7 @@ import { buildChatMessage, chatRecipients, CHAT_MESSAGE_DEDUP_MINUTES } from '..
 import { buildBookingMessage, bookingRecipients, isDuplicateBookingNotification, BOOKING_NOTIFICATION_TYPE, BOOKING_NOTIFICATION_FRESH_MINUTES, BOOKING_NOTIFICATION_DEDUP_MINUTES } from '../src/lib/bookingNotifications.js';
 import { PUSH_ALERT_CHANNEL_ID, PUSH_ALERT_SOUND_NAME } from '../src/lib/pushAlertChannel.js';
 import { getApnsConfig, sendApnsTokens } from '../src/lib/apns.js';
+import { getAuthUser, isAdminUser } from '../src/lib/requireAdmin.js';
 
 // 1. Iniciar Firebase Admin si no está iniciado
 if (!getApps().length) {
@@ -23,7 +24,7 @@ if (!getApps().length) {
 // permite máx. 12 Serverless Functions y el endpoint aparte era la 13ª, por
 // eso falló el despliegue de producción del #213. El modo recordatorios vive
 // aquí: el cron de Vercel (vercel.json) llama con GET + Authorization:
-// Bearer <CRON_SECRET>; el disparo manual usa ADMIN_SECRET o JWT de admin +
+// Bearer <CRON_SECRET>; el disparo manual usa JWT de admin +
 // bandera explícita (body {recordatorios: true} o query ?recordatorios=1).
 // El escaneo reutiliza la lógica pura de src/lib/recordatoriosEventos.js y
 // manda cada aviso por este mismo endpoint (que guarda la copia en la
@@ -44,7 +45,7 @@ async function runReminders(req, res) {
 
   const dry = query.dry === '1' || reqBody.dry === true;
   const today = todayInMexicoCity();
-  const adminSecret = process.env.ADMIN_SECRET;
+  const cronSecret = process.env.CRON_SECRET;
 
   try {
     // 1. Eventos de hoy aprobados.
@@ -88,18 +89,19 @@ async function runReminders(req, res) {
     if (dry) {
       return res.status(200).json({ ok: true, dry: true, today, events: events.length, reminders: plan.length, plan, sent: [], failed: [], skipped });
     }
-    if (!adminSecret) return res.status(500).json({ error: 'ADMIN_SECRET no configurado' });
+    if (!cronSecret) return res.status(500).json({ error: 'CRON_SECRET no configurado' });
 
     // 4. Mandar cada aviso por este mismo endpoint (que guarda la copia en la
-    // bandeja y envía el push). Un fallo no frena los demás.
+    // bandeja y envía el push). Un fallo no frena los demás. La llamada
+    // interna se autentica con CRON_SECRET (solo vive en el servidor).
     const sent = [];
     const failed = [];
     for (const item of plan) {
       try {
         const r = await fetch(SEND_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: item.title, body: item.body, type: 'reminder', user_id: item.userId, deepLink: item.deepLink, ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}), secret: adminSecret }),
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cronSecret}` },
+          body: JSON.stringify({ title: item.title, body: item.body, type: 'reminder', user_id: item.userId, deepLink: item.deepLink, ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}) }),
         });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
@@ -141,7 +143,7 @@ async function runChatMessage(req, res, senderId) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || SUPABASE_URL_FALLBACK;
   if (!serviceRoleKey) return res.status(500).json({ error: 'Supabase env vars missing' });
   const headers = { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` };
-  const adminSecret = process.env.ADMIN_SECRET;
+  const cronSecret = process.env.CRON_SECRET;
 
   try {
     // 1. Evento (título, enlace e imagen del aviso; anfitrión).
@@ -188,7 +190,7 @@ async function runChatMessage(req, res, senderId) {
     if (recipientIds.length === 0) {
       return res.status(200).json({ ok: true, sent: [], failed: [], skipped: 0 });
     }
-    if (!adminSecret) return res.status(500).json({ error: 'ADMIN_SECRET no configurado' });
+    if (!cronSecret) return res.status(500).json({ error: 'CRON_SECRET no configurado' });
 
     // 4. Anti-duplicados: el mismo aviso en los últimos 5 minutos no se
     // vuelve a mandar a ese participante (reenvío o doble toque).
@@ -205,7 +207,8 @@ async function runChatMessage(req, res, senderId) {
     }
 
     // 5. Mandar cada aviso por este mismo endpoint (que guarda la copia en
-    // la bandeja y envía el push). Un fallo no frena los demás.
+    // la bandeja y envía el push). Un fallo no frena los demás. La llamada
+    // interna se autentica con CRON_SECRET (solo vive en el servidor).
     const sent = [];
     const failed = [];
     let skipped = 0;
@@ -214,8 +217,8 @@ async function runChatMessage(req, res, senderId) {
       try {
         const r = await fetch(SEND_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: built.title, body: built.body, type: 'chat', user_id: userId, deepLink: built.deepLink, ...(built.imageUrl ? { imageUrl: built.imageUrl } : {}), secret: adminSecret }),
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cronSecret}` },
+          body: JSON.stringify({ title: built.title, body: built.body, type: 'chat', user_id: userId, deepLink: built.deepLink, ...(built.imageUrl ? { imageUrl: built.imageUrl } : {}) }),
         });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
@@ -303,7 +306,7 @@ async function runBookingNotification(req, res, callerId) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || SUPABASE_URL_FALLBACK;
   if (!serviceRoleKey) return res.status(500).json({ error: 'Supabase env vars missing' });
   const headers = { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` };
-  const adminSecret = process.env.ADMIN_SECRET;
+  const cronSecret = process.env.CRON_SECRET;
 
   try {
     // 1. La reserva exacta, de la base. Por id si el cliente lo trae (el
@@ -364,7 +367,7 @@ async function runBookingNotification(req, res, callerId) {
     if (recipientIds.length === 0) {
       return res.status(200).json({ ok: true, sent: [], failed: [], skipped: 0 });
     }
-    if (!adminSecret) return res.status(500).json({ error: 'ADMIN_SECRET no configurado' });
+    if (!cronSecret) return res.status(500).json({ error: 'CRON_SECRET no configurado' });
 
     // 6. Anti-duplicados: el mismo aviso en los últimos 30 minutos no se
     // vuelve a mandar a ese destinatario (reenvío o doble toque).
@@ -377,7 +380,8 @@ async function runBookingNotification(req, res, callerId) {
     const dupRows = dupRes.ok ? (await dupRes.json()) || [] : [];
 
     // 7. Mandar cada aviso por este mismo endpoint (que guarda la copia
-    // en la bandeja y envía el push). Un fallo no frena los demás.
+    // en la bandeja y envía el push). Un fallo no frena los demás. La
+    // llamada interna se autentica con CRON_SECRET (solo vive en el servidor).
     const sent = [];
     const failed = [];
     let skipped = 0;
@@ -386,8 +390,8 @@ async function runBookingNotification(req, res, callerId) {
       try {
         const r = await fetch(SEND_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: built.title, body: built.body, type: BOOKING_NOTIFICATION_TYPE, user_id: userId, deepLink: built.deepLink, ...(built.imageUrl ? { imageUrl: built.imageUrl } : {}), secret: adminSecret }),
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cronSecret}` },
+          body: JSON.stringify({ title: built.title, body: built.body, type: BOOKING_NOTIFICATION_TYPE, user_id: userId, deepLink: built.deepLink, ...(built.imageUrl ? { imageUrl: built.imageUrl } : {}) }),
         });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
@@ -433,44 +437,39 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Proteger el endpoint — acepta ADMIN_SECRET o JWT de usuario autenticado
+    // Proteger el endpoint: el secreto compartido (ADMIN_SECRET) ya NO
+    // autoriza — vivía en el bundle del cliente y cualquiera podía usarlo
+    // para mandar push masivos. Autorizan (1) el JWT de sesión de un admin
+    // (verificado contra Supabase Auth, ver src/lib/requireAdmin.js) y
+    // (2) CRON_SECRET, que solo vive en el servidor: es como se autentican
+    // el cron de Vercel y las llamadas internas que este mismo endpoint se
+    // hace a sí mismo (recordatorios, chat, reserva).
     let isAuthorized = false;
     let authenticatedUserId = null;
     // Cualquier JWT válido identifica al remitente (no solo admins): el modo
     // de aviso de chat lo usa para verificar pertenencia al evento.
     let verifiedUserId = null;
 
-    if (bodySecret && bodySecret === process.env.ADMIN_SECRET) {
-      // Autenticación clásica con secret (retro-compatible)
+    if (isCron) {
       isAuthorized = true;
     } else if (jwtToken && jwtToken !== cronSecret) {
-      // Autenticación moderna: verificar JWT con Supabase
-      try {
-        const supabaseUrl = process.env.VITE_SUPABASE_URL;
-        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-          headers: { 'apikey': serviceRoleKey, 'Authorization': `Bearer ${jwtToken}` }
-        });
-        const userData = await userRes.json();
-        // Solo administradores autorizados por el servidor
-        // Only server-managed metadata or a verified allowlisted email can grant access.
-        // user_metadata is editable by the user and must never authorize an admin.
-        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-        const isListedAdmin = Boolean(userData?.email_confirmed_at && userData?.email && adminEmails.includes(userData.email.toLowerCase()));
-        const isManagedAdmin = userData?.app_metadata?.isAdmin === true;
-        if (userRes.ok && userData?.id) {
-          verifiedUserId = userData.id;
-          if (isListedAdmin || isManagedAdmin) {
-            isAuthorized = true;
-            authenticatedUserId = userData.id;
-          }
+      const userData = await getAuthUser(req);
+      if (userData) {
+        verifiedUserId = userData.id;
+        if (isAdminUser(userData)) {
+          isAuthorized = true;
+          authenticatedUserId = userData.id;
         }
-      } catch { /* JWT inválido */ }
+      }
     }
 
-    // Modo recordatorios: el cron lo distingue por CRON_SECRET; el disparo
-    // manual, por ADMIN_SECRET o JWT de admin + bandera explícita.
-    if (isCron || (isAuthorized && wantsReminders)) {
+    // Modo recordatorios: entra por el GET del cron (vercel.json llama sin
+    // bandera) o por disparo manual con JWT de admin + bandera explícita.
+    // Un POST con CRON_SECRET y sin bandera NO es modo recordatorios: es el
+    // envío normal, que es como se autentican las llamadas internas que
+    // este mismo endpoint se hace a sí mismo (si entraran aquí, el aviso
+    // volvería a escanear recordatorios en vez de mandarse).
+    if ((isCron && req.method === 'GET') || (isAuthorized && wantsReminders)) {
       return runReminders(req, res);
     }
 

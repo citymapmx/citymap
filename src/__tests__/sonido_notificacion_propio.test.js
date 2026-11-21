@@ -88,15 +88,15 @@ async function invoke(body) {
   };
   await handler({
     method: 'POST',
-    headers: {},
-    body: { secret: 'server-secret', title: 'Prueba', body: 'Mensaje', ...body },
+    headers: { authorization: 'Bearer test-cron-secret' },
+    body: { title: 'Prueba', body: 'Mensaje', ...body },
   }, res);
   return res;
 }
 
 describe('sonido propio: payload FCM', () => {
   beforeEach(() => {
-    vi.stubEnv('ADMIN_SECRET', 'server-secret');
+    vi.stubEnv('CRON_SECRET', 'test-cron-secret');
     vi.stubEnv('VITE_SUPABASE_URL', 'https://db.test');
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'server');
     vi.stubGlobal('fetch', vi.fn());

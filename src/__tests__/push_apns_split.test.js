@@ -10,12 +10,12 @@ import handler from '../../api/send-notification.js';
 
 async function invoke(body) {
   const res = { statusCode: 200, setHeader: vi.fn(), status(code) { this.statusCode = code; return this; }, json(data) { this.data = data; return this; } };
-  await handler({ method: 'POST', headers: {}, body: { secret: 'server-secret', title: 'Prueba', body: 'Mensaje', ...body } }, res);
+  await handler({ method: 'POST', headers: { authorization: 'Bearer test-cron-secret' }, body: { title: 'Prueba', body: 'Mensaje', ...body } }, res);
   return res;
 }
 
 beforeEach(() => {
-  vi.stubEnv('ADMIN_SECRET', 'server-secret');
+  vi.stubEnv('CRON_SECRET', 'test-cron-secret');
   vi.stubEnv('VITE_SUPABASE_URL', 'https://db.test');
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'server');
   vi.stubGlobal('fetch', vi.fn());

@@ -123,7 +123,6 @@ export default function StoreCategoriesTab({
             <AiMenuImporter 
               onImport={handleAiImport} 
               bizType={isCatalog ? "catálogo" : "menú"} 
-              adminSecret={import.meta.env.VITE_ADMIN_SECRET} 
             />
           </div>
         )}

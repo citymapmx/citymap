@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react';
 import Icon from './ui/Icon.jsx';
+import { sb } from '../lib/supabase.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
 };
 
-export default function AiMenuImporter({ onImport, bizType, adminSecret }) {
+export default function AiMenuImporter({ onImport, bizType }) {
   const [step, setStep] = useState('idle'); // idle | uploading | analyzing | preview | done
   const [preview, setPreview] = useState(null); // { categories: [...] }
   const [error, setError] = useState('');
@@ -59,7 +60,9 @@ export default function AiMenuImporter({ onImport, bizType, adminSecret }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminSecret}`,
+          // El endpoint verifica al admin por su JWT de sesión; el secreto
+          // compartido ya no se usa (vivía en el bundle del cliente).
+          'Authorization': `Bearer ${sb._token || ''}`,
         },
         body: JSON.stringify({
           imageBase64: base64,
