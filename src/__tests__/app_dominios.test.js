@@ -162,3 +162,34 @@ describe('middleware: /<cc>/<ciudad> en .mx no deja ciudad fantasma', () => {
     expect(await middleware(request('/es', 'citymap.mx'))).toBeUndefined();
   });
 });
+
+describe('middleware: Nueva York vive en .world (C2)', () => {
+  // 21 nov 2026: Nueva York no estaba en WORLD_CITIES, así que el
+  // selector (por country_code) la mandaba a .world/us/new-york pero el
+  // salto en cliente la devolvía a .mx/new-york: doble salto y muro
+  // vacío. Ahora es ciudad world como las demás internacionales.
+  it.each([
+    ['/new-york', 'https://www.citymap.world/us/new-york'],
+    ['/us/new-york', 'https://www.citymap.world/us/new-york'],
+    ['/new-york/restaurantes', 'https://www.citymap.world/us/new-york/restaurantes'],
+    ['/evento/new-york/new-york-911-memorial', 'https://www.citymap.world/evento/new-york/new-york-911-memorial'],
+  ])('redirige %s en .mx a %s', async (path, location) => {
+    const res = await middleware(request(path, 'citymap.mx'));
+    expect(res.status).toBe(308);
+    expect(res.headers.get('location')).toBe(location);
+  });
+
+  it('en .world /us/new-york ya es su canónica: no redirige', async () => {
+    expect(await middleware(request('/us/new-york', 'www.citymap.world'))).toBeUndefined();
+  });
+
+  it('en .world /new-york sin prefijo canonicaliza a /us/new-york', async () => {
+    const res = await middleware(request('/new-york', 'www.citymap.world'));
+    expect(res.status).toBe(308);
+    expect(res.headers.get('location')).toBe('https://www.citymap.world/us/new-york');
+  });
+
+  it('en .world la ruta plana /evento/new-york/... ya no se devuelve a .mx', async () => {
+    expect(await middleware(request('/evento/new-york/new-york-911-memorial', 'www.citymap.world'))).toBeUndefined();
+  });
+});

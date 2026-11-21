@@ -73,7 +73,8 @@ describe('toque en la tarjeta: salto de dominio (PR #423)', () => {
     expect(crossDomainCityUrl('/jp/tokio', true)).toBeNull();
   });
 
-  it('Nueva York no está en WORLD_CITIES: en .world salta a .mx', () => {
-    expect(crossDomainCityUrl('/new-york', true)).toBe('https://citymap.mx/new-york');
+  it('Nueva York es ciudad world: en .mx salta a .world y en .world se queda', () => {
+    expect(crossDomainCityUrl('/new-york', false)).toBe('https://www.citymap.world/us/new-york');
+    expect(crossDomainCityUrl('/new-york', true)).toBeNull();
   });
 });

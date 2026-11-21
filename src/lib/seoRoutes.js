@@ -36,18 +36,20 @@ export function seoSite(host = '') {
 
 // Ciudades fuera de México: viven en citymap.world (la versión
 // internacional); citymap.mx es solo México. Verificado por PostgREST:
-// de las 40 ciudades en base, 26 son MX y 13 internacionales (las de
-// esta lista; Nueva York es internacional pero vive en .mx a propósito).
-// La base (tabla cities, country_code) es la fuente de
+// de las 40 ciudades en base, 26 son MX y 14 internacionales (las de
+// esta lista). La base (tabla cities, country_code) es la fuente de
 // verdad; esta lista es la copia que usan el middleware y og.js para
 // decidir el dominio sin consultar la base en cada petición. Al dar de
 // alta una ciudad fuera de México, añadir su slug y su código de país
-// aquí (y quitarla si se da de baja).
+// aquí (y quitarla si se da de baja). Nueva York vivió en .mx por
+// omisión hasta nov 2026 (C2): el selector la mandaba a .world por
+// country_code pero crossDomainCityUrl la devolvía a .mx — doble salto
+// y muro vacío. Ahora está aquí, como las demás internacionales.
 export const WORLD_CITIES = {
   barcelona: 'es', bogota: 'co', 'buenos-aires': 'ar', kioto: 'jp',
   londres: 'gb', 'los-angeles': 'us', madrid: 'es', medellin: 'co',
-  paris: 'fr', 'san-antonio': 'us', 'san-diego': 'us', tokio: 'jp',
-  vancouver: 'ca',
+  'new-york': 'us', paris: 'fr', 'san-antonio': 'us', 'san-diego': 'us',
+  tokio: 'jp', vancouver: 'ca',
 };
 
 export function isWorldCitySlug(slug = '') {
@@ -133,9 +135,7 @@ export function cityHomeSlugFromPath(pathname, isWorld = false) {
 // petición nunca llega a la red, así que el 308 del servidor no dispara
 // para quien ya tiene la app instalada. La app misma debe saltar.
 // Solo rutas de ciudad (/:ciudad[/...]); los enlaces profundos (evento,
-// revista, mapa…) los resuelve la SPA y no se tocan. new-york no está en
-// WORLD_CITIES (vive en .mx por omisión): se deja como está, igual que el
-// middleware.
+// revista, mapa…) los resuelve la SPA y no se tocan.
 export function crossDomainCityUrl(pathname, isWorld, search = '') {
   const parts = seoSegments(pathname || '', isWorld);
   if (parts.length === 0) return null;
