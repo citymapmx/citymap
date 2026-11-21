@@ -70,7 +70,7 @@ describe('tarjeta unificada del detalle del evento', () => {
     expect(html).toContain('Av. 16 de Septiembre 710, Guadalajara');
     expect(html).toContain('Añadir a mi calendario');
     expect(html).toContain('Cómo llegar');
-    expect(html).toContain('Entrada: $500');
+    expect(html).toContain('Entrada: $500 MXN');
     // La descripción va DENTRO de la tarjeta negra, arriba del
     // todo (PR #231): después del degradado y antes de la fecha,
     // con el título en blanco.

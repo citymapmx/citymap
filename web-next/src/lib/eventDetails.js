@@ -1,3 +1,14 @@
+// Código ISO de la moneda del evento (columna `currency` de events):
+// por defecto MXN cuando falta (filas viejas o fetches sin la columna).
+// Solo se acepta un código de 3 letras; cualquier otro valor se ignora
+// para no pintar basura en el precio. Espejo de src/lib/eventDetails.js
+// (el test de paridad de event_details.test.jsx exige que ambos devuelvan
+// el mismo texto).
+export function eventCurrencyCode(event) {
+  const code = String(event?.currency || '').trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(code) ? code : 'MXN';
+}
+
 export function getEventPrice(event) {
   if (['gratis', 'free'].includes(event.price_type)) return { text: 'Entrada gratuita', free: true };
   if (event.price === null || event.price === undefined || typeof event.price === 'boolean') return null;
@@ -5,12 +16,17 @@ export function getEventPrice(event) {
   if (!raw || !/\d/.test(raw)) return null;
   const value = raw.replace(/^desde\s*/i, '').trim();
   if (!value || !/\d/.test(value) || /^-\d/.test(value)) return null;
-  if (/^(?:[$€£]\s*)?0+(?:[.,]0+)?(?:\s*(?:MXN|USD|EUR))?$/i.test(value)) return { text: 'Entrada gratuita', free: true };
-  const range = value.match(/^([$€£]?\s*\d[\d.,]*(?:\s*(?:MXN|USD|EUR))?)\s*(?:[-–—]|\ba\b)\s*[$€£]?\s*\d/i);
+  if (/^(?:[$€£]\s*)?0+(?:[.,]0+)?(?:\s*[A-Z]{3})?$/i.test(value)) return { text: 'Entrada gratuita', free: true };
+  const range = value.match(/^([$€£]?\s*\d[\d.,]*(?:\s*[A-Z]{3})?)\s*(?:[-–—]|\ba\b)\s*[$€£]?\s*\d/i);
   const amount = range ? range[1].trim() : value;
   const formatted = /^\d[\d.,]*$/.test(amount) ? `$${amount}` : amount;
+  // La moneda va tras el monto (misma convención que los tours, PR #408):
+  // «Boletos desde: $65.00 EUR». Sin duplicar cuando el precio guardado
+  // ya trae el código («$65 EUR») o un símbolo propio (€, £).
+  const hasCurrency = /(?:^|\s)[A-Z]{3}$/.test(formatted) || /[€£]/.test(formatted);
+  const withCurrency = hasCurrency ? formatted : `${formatted} ${eventCurrencyCode(event)}`;
   const from = Boolean(range) || /^desde\b/i.test(raw) || ['desde', 'from', 'range'].includes(event.price_type);
-  return { text: `${from ? 'Desde' : 'Entrada:'} ${formatted}`, free: false };
+  return { text: `${from ? 'Desde' : 'Entrada:'} ${withCurrency}`, free: false };
 }
 
 export function normalizeEventLink(value) {

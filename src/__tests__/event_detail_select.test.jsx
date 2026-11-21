@@ -8,7 +8,7 @@ const landingSrc = fs.readFileSync(new URL('../components/store/NoMenuLanding.js
 // Columnas que el detalle de evento lee del objeto que recibe: sin ellas el
 // detalle abierto desde una lista queda degradado (sin reproductor de
 // música, sin precio ni descripción, sin enlace de boletos y sin mapa).
-const DETAIL_COLUMNS = ['event_category', 'description', 'price', 'price_type', 'website', 'lat', 'lng', 'biz_id', 'end_time', 'visibility'];
+const DETAIL_COLUMNS = ['event_category', 'description', 'price', 'price_type', 'currency', 'website', 'lat', 'lng', 'biz_id', 'end_time', 'visibility'];
 
 function eventSelectColumns(src, fileLabel) {
   const m = src.match(/sb\.get\('events', [`']?\?select=([A-Za-z0-9_,]+)/);

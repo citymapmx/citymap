@@ -167,7 +167,7 @@ describe('tarjeta para compartir el evento: datos reales', () => {
     expect(d.style).toBe('festival');
     expect(d.title).toBe('CARLOS RIVERA - FIESTAS DE OCTUBRE');
     expect(d.photoUrl).toContain('carlos-rivera.jpg');
-    expect(d.priceText).toBe('Boletos desde $1200');
+    expect(d.priceText).toBe('Boletos desde $1200 MXN');
     expect(d.priceKind).toBe('paid');
     expect(d.dateText).toBe('Lun, 2 Nov');
     expect(d.timeText).toBe('8:00 p. m.');
@@ -182,6 +182,22 @@ describe('tarjeta para compartir el evento: datos reales', () => {
     expect(eventShareCardFileName(CONCIERTO)).toBe(
       'citymap-evento-carlos-rivera-fiestas-de-octubre.png',
     );
+  });
+
+  it('evento en euros (TAEMIN en Madrid, 21 nov 2026): la tarjeta dice EUR', () => {
+    const d = buildEventShareCardData(
+      {
+        ...CONCIERTO,
+        title: 'TAEMIN – WORLD TOUR [LIMINAL]',
+        price: '65.00',
+        price_type: 'desde',
+        currency: 'EUR',
+        city_slug: 'madrid',
+      },
+      { cityName: 'Madrid' },
+    );
+    expect(d.priceText).toBe('Boletos desde $65.00 EUR');
+    expect(d.priceKind).toBe('paid');
   });
 
   it('gratis → «Entrada gratuita»; sin precio publicado → sin mención de precio (PR #153)', () => {
@@ -213,7 +229,7 @@ describe('tarjeta para compartir el evento: datos reales', () => {
     const d = buildEventShareCardData(FERIA, { cityName: 'Guadalajara' });
     expect(d.style).toBe('boleto');
     expect(d.dateRangeText).toBe('28 Nov – 6 Dic');
-    expect(d.priceText).toBe('Boletos desde $30');
+    expect(d.priceText).toBe('Boletos desde $30 MXN');
     expect(eventShareCardDateShort('2026-11-28')).toBe('Sáb, 28 Nov');
     expect(eventShareCardDateRange(FERIA)).toBe('28 Nov – 6 Dic');
     expect(eventShareCardDateRange(CONCIERTO)).toBe('Lun, 2 Nov');
@@ -283,7 +299,7 @@ describe('tarjeta para compartir el evento: geometría (vista previa = PNG)', ()
       buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' }),
       SHARE_CARD_FORMATS.story,
     );
-    expect(fest.pill?.text).toBe('Boletos desde $1200');
+    expect(fest.pill?.text).toBe('Boletos desde $1200 MXN');
     const edit = computeEventShareCardLayout(
       buildEventShareCardData(EXPOSICION, { cityName: 'Puerto Vallarta' }),
       SHARE_CARD_FORMATS.story,
@@ -368,7 +384,7 @@ describe('tarjeta para compartir el evento: la plantilla se renderiza (vista pre
     // las dos partes.
     expect(html).toContain('CARLOS RIVERA -');
     expect(html).toContain('FIESTAS DE OCTUBRE');
-    expect(html).toContain('Boletos desde $1200');
+    expect(html).toContain('Boletos desde $1200 MXN');
     expect(html).toContain('Lun, 2 Nov');
     expect(html).toContain('Fiestas de octubre');
     expect(html).toContain('/logo-brand.png');
@@ -416,7 +432,7 @@ describe('tarjeta para compartir el evento: sin precio no se menciona (PR #153)'
       buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' }),
       SHARE_CARD_FORMATS.story,
     );
-    expect(paid.pill?.text).toBe('Boletos desde $1200');
+    expect(paid.pill?.text).toBe('Boletos desde $1200 MXN');
     const free = computeEventShareCardLayout(
       buildEventShareCardData(
         { ...CONCIERTO, price: '0', price_type: 'gratis' },
@@ -764,7 +780,7 @@ describe('tarjeta para compartir el evento: versión Clara', () => {
     expect(html).toContain('www.citymap.mx');
     // Título, precio y fecha siguen ahí.
     expect(html).toContain('CARLOS RIVERA -');
-    expect(html).toContain('Boletos desde $1200');
+    expect(html).toContain('Boletos desde $1200 MXN');
     expect(html).toContain('Lun, 2 Nov');
   });
 

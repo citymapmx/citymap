@@ -25,11 +25,14 @@ describe('optimización 1: selects recortados en el arranque', () => {
     // está sin usar), así que description, website (de ahí sale
     // booking_config), lat/lng, is_recurring, status y visibility VAN.
     // La lista es la misma que ya usaba EventDetailModal para «Más eventos».
-    for (const col of ['id', 'title', 'title_en', 'description_en', 'slug', 'date', 'end_date', 'time', 'end_time', 'venue_name', 'venue_address', 'lat', 'lng', 'city_slug', 'img_url', 'img', 'status', 'description', 'event_category', 'is_recurring', 'biz_id', 'price', 'price_type', 'website', 'visibility', 'active']) {
+    // `currency` VA desde nov 2026: el precio se muestra con su código
+    // (TAEMIN en Madrid: «$65.00 EUR»), así que la ficha y la tarjeta de
+    // compartir la leen del objeto de la lista.
+    for (const col of ['id', 'title', 'title_en', 'description_en', 'slug', 'date', 'end_date', 'time', 'end_time', 'venue_name', 'venue_address', 'lat', 'lng', 'city_slug', 'img_url', 'img', 'status', 'description', 'event_category', 'is_recurring', 'biz_id', 'price', 'price_type', 'currency', 'website', 'visibility', 'active']) {
       expect(cols).toContain(col);
     }
     // Muertas en el arranque (medido: nadie las lee): fuera.
-    for (const col of ['updated_at', 'created_at', 'tag', 'currency', 'whatsapp']) {
+    for (const col of ['updated_at', 'created_at', 'tag', 'whatsapp']) {
       expect(cols).not.toContain(col);
     }
   });

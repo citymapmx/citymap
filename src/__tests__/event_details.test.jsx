@@ -2,8 +2,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs';
-import { getEventPrice, getEventLinks, deriveEventBooking, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, getEventMusicFallbackQuery, buildItunesSearchUrl, buildServerMusicUrl, fetchServerTracks, fetchItunesTracks, loadMusicTracks, clearMusicTracksCache } from '../lib/eventDetails.js';
-import { getEventPrice as getNextPrice } from '../../web-next/src/lib/eventDetails.js';
+import { getEventPrice, getEventLinks, deriveEventBooking, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, getEventMusicFallbackQuery, buildItunesSearchUrl, buildServerMusicUrl, fetchServerTracks, fetchItunesTracks, loadMusicTracks, clearMusicTracksCache, eventCurrencyCode } from '../lib/eventDetails.js';
+import { getEventPrice as getNextPrice, eventCurrencyCode as getNextCurrencyCode } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation, { EventTicketBar } from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
 const render=(event,hideTickets)=>renderToStaticMarkup(<EventInformation event={event} T={T} hideTickets={hideTickets}/>);
@@ -17,7 +17,7 @@ describe('Event entry information',()=>{
     expect(render(event)).not.toContain('Entradas');
     expect(render(event)).not.toContain('Desde');
   });
-  it.each([[150,'Entrada: $150'],['$150','Entrada: $150'],['Desde $150','Desde $150'],['$150 - $300','Desde $150']])('formats an actual amount %s', (price,expected)=>{
+  it.each([[150,'Entrada: $150 MXN'],['$150','Entrada: $150 MXN'],['Desde $150','Desde $150 MXN'],['$150 - $300','Desde $150 MXN']])('formats an actual amount %s', (price,expected)=>{
     expect(getEventPrice({price_type:'paid',price})?.text).toBe(expected);
     expect(getNextPrice({price_type:'paid',price})?.text).toBe(expected);
   });
@@ -46,6 +46,54 @@ describe('Event entry information',()=>{
     expect(renderBar(event)).toContain('Comprar boletos');
   });
 });
+describe('precio del evento: la moneda va tras el monto (nov 2026)', () => {
+  // TAEMIN en Madrid (captura de Jonathan, 21 nov 2026): la ficha decía
+  // «BOLETOS DESDE: $65.00» sin decir si eran euros o dólares. El dato
+  // en base estaba bien (price 65.00, currency EUR): solo faltaba
+  // pintarlo. Misma convención que los tours (PR #408): código ISO
+  // tras el monto, «$65.00 EUR» / «$1,200 MXN».
+  it('TAEMIN: $65.00 EUR (fila real de la base: price "65.00", currency EUR)', () => {
+    const event = { price_type: 'paid', price: '65.00', currency: 'EUR' };
+    expect(getEventPrice(event)?.text).toBe('Entrada: $65.00 EUR');
+    expect(getNextPrice(event)?.text).toBe('Entrada: $65.00 EUR');
+    expect(getEventPriceAmount(event)).toBe('$65.00 EUR');
+  });
+  it('USD y JPY salen de la columna currency (también en minúsculas)', () => {
+    expect(getEventPrice({ price_type: 'paid', price: 40.88, currency: 'USD' })?.text).toBe('Entrada: $40.88 USD');
+    expect(getEventPrice({ price_type: 'paid', price: 5000, currency: 'jpy' })?.text).toBe('Entrada: $5000 JPY');
+    expect(getNextPrice({ price_type: 'paid', price: 5000, currency: 'jpy' })?.text).toBe('Entrada: $5000 JPY');
+  });
+  it('sin currency (filas viejas o fetch sin la columna) es MXN', () => {
+    expect(getEventPrice({ price_type: 'paid', price: 1200 })?.text).toBe('Entrada: $1200 MXN');
+    expect(getEventPrice({ price_type: 'paid', price: 1200, currency: null })?.text).toBe('Entrada: $1200 MXN');
+    expect(getEventPrice({ price_type: 'paid', price: 1200, currency: '' })?.text).toBe('Entrada: $1200 MXN');
+    expect(eventCurrencyCode({})).toBe('MXN');
+    expect(getNextCurrencyCode({})).toBe('MXN');
+  });
+  it('un valor de currency que no es un código de 3 letras se ignora', () => {
+    expect(getEventPrice({ price_type: 'paid', price: 1200, currency: 'pesos' })?.text).toBe('Entrada: $1200 MXN');
+    expect(getEventPrice({ price_type: 'paid', price: 1200, currency: 'MX' })?.text).toBe('Entrada: $1200 MXN');
+    expect(eventCurrencyCode({ currency: '123' })).toBe('MXN');
+  });
+  it('no duplica la moneda cuando el precio guardado ya la trae', () => {
+    expect(getEventPrice({ price_type: 'paid', price: '$65 EUR', currency: 'EUR' })?.text).toBe('Entrada: $65 EUR');
+    expect(getEventPrice({ price_type: 'paid', price: '$65 USD', currency: 'USD' })?.text).toBe('Entrada: $65 USD');
+    expect(getEventPrice({ price_type: 'paid', price: '$150 - $300', currency: 'EUR' })?.text).toBe('Desde $150 EUR');
+    expect(getNextPrice({ price_type: 'paid', price: '$65 EUR', currency: 'EUR' })?.text).toBe('Entrada: $65 EUR');
+  });
+  it('un símbolo propio (€, £) ya dice la moneda: no se agrega el código', () => {
+    expect(getEventPrice({ price_type: 'paid', price: '€65', currency: 'EUR' })?.text).toBe('Entrada: €65');
+    expect(getEventPrice({ price_type: 'paid', price: '£40', currency: 'GBP' })?.text).toBe('Entrada: £40');
+  });
+  it('precio 0 con otra moneda sigue siendo entrada gratuita', () => {
+    expect(getEventPrice({ price_type: 'paid', price: '0 JPY', currency: 'JPY' })?.text).toBe('Entrada gratuita');
+    expect(getEventPrice({ price_type: 'paid', price: '0.00 EUR', currency: 'EUR' })?.text).toBe('Entrada gratuita');
+  });
+  it('el orden por precio sigue siendo numérico con la moneda puesta', () => {
+    expect(priceSortValue({ price: 65, currency: 'EUR' })).toBe(65);
+    expect(priceSortValue({ price: '$1,200', currency: 'MXN' })).toBe(1200);
+  });
+});
 describe('Event links and schedule',()=>{
   it.each(['javascript:alert(1)','data:text/html,test','not-a-url',''])('does not offer invalid destination %s',url=>{
     expect(normalizeEventLink(url)).toBeNull();
@@ -71,7 +119,7 @@ describe('Event links and schedule',()=>{
     expect(html).not.toContain('Entradas');
     expect(html).toContain('29 de noviembre de 2026');
     expect(html).toContain('Titanes');
-    expect(html).toContain('Entrada: $1208');
+    expect(html).toContain('Entrada: $1208 MXN');
   });
   it('shows the venue name in the row now that the header no longer shows it',()=>{
     const event={venue_name:'Titanes',venue_address:'Zapopan, Jal.'};
@@ -105,7 +153,7 @@ describe('Event links and schedule',()=>{
     const html=render({description:'Una noche de música en vivo bajo las estrellas.'});
     expect(html).not.toContain('Leer más');
   });
-  it.each([[150,'$150'],['$150','$150'],['Desde $150','$150'],['$150 - $300','$150']])('returns only the amount %s', (price,expected)=>{
+  it.each([[150,'$150 MXN'],['$150','$150 MXN'],['Desde $150','$150 MXN'],['$150 - $300','$150 MXN']])('returns only the amount %s', (price,expected)=>{
     expect(getEventPriceAmount({price_type:'paid',price})).toBe(expected);
   });
   it('returns no amount for free or missing prices',()=>{
@@ -114,8 +162,8 @@ describe('Event links and schedule',()=>{
   });
   it('hides the price row when the modal already shows it on top',()=>{
     const event={price:1208,price_type:'paid'};
-    expect(render(event)).toContain('Entrada: $1208');
-    expect(renderToStaticMarkup(<EventInformation event={event} T={T} hidePriceRow />)).not.toContain('Entrada: $1208');
+    expect(render(event)).toContain('Entrada: $1208 MXN');
+    expect(renderToStaticMarkup(<EventInformation event={event} T={T} hidePriceRow />)).not.toContain('Entrada: $1208 MXN');
   });
   it('shows plain bigger icons without the tinted circle',()=>{
     const html=render({date:'2026-11-29',time:'20:00',venue_address:'Zapopan, Jal.'});
