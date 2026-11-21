@@ -1,3 +1,5 @@
+import { CITY_TZ } from './constants.js';
+
 export function eventCalendarDay(now = Date.now(), timeZone) {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(new Date(now));
   const part = type => parts.find(p => p.type === type).value;
@@ -59,29 +61,91 @@ export function formatEventCardDate(event, { today, tomorrow, lang = 'es' } = {}
 
 // ── Filtros de la página de Eventos ──
 
+// Día de la semana (0 dom … 6 sáb) de un 'YYYY-MM-DD', en UTC para no
+// depender de la zona horaria del dispositivo. null si no es fecha válida.
+const weekdayOfDay = value => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
+  if (!m) return null;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  if (d.toISOString().slice(0, 10) !== value) return null;
+  return d.getUTCDay();
+};
+
+// 'YYYY-MM-DD' + n días (en UTC, sin hora de verano de por medio).
+const addDays = (value, n) => {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + n)).toISOString().slice(0, 10);
+};
+
+// Zona horaria de una ciudad: la de la base (cities.timezone) cuando
+// tiene valor; si no, el mapa estático CITY_TZ; si tampoco, Ciudad de
+// México (la mayoría de las ciudades y de los visitantes). `cities` puede
+// ser la lista del store o un Map por slug (como cityBySlug del inicio
+// global). Una zona inválida en base no rompe nada: cae al fallback.
+const FALLBACK_TZ = 'America/Mexico_City';
+const isValidTimeZone = tz => {
+  try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; }
+  catch { return false; }
+};
+export function cityTimeZone(slug, cities) {
+  const key = String(slug || '').toLowerCase();
+  const list = Array.isArray(cities) ? cities : (cities instanceof Map ? [...cities.values()] : []);
+  const found = list.find(c => c && String(c.slug || '').toLowerCase() === key);
+  const fromDb = found?.timezone;
+  if (fromDb && isValidTimeZone(fromDb)) return fromDb;
+  const fromMap = CITY_TZ[key];
+  if (fromMap && isValidTimeZone(fromMap)) return fromMap;
+  return FALLBACK_TZ;
+}
+
+// Zona horaria de la ciudad del evento (la primera, si es multi-ciudad).
+export function eventCityTimeZone(event, cities) {
+  const firstSlug = String(event?.city_slug || '').split(',')[0].trim();
+  return cityTimeZone(firstSlug, cities);
+}
+
 // ¿El evento ocurre en este día? (incluye eventos de varios días).
+// Recurrente semanal (is_recurring): solo ocurre el día de la semana de
+// su fecha de inicio — p. ej. Martes de Glamour (17 nov 2026–12 ene
+// 2027) solo los martes. Antes, todo el rango marcaba «Hoy» y la rueda
+// mostraba «ES HOY» en sus tarjetas cualquier día (bug A8, 21 nov 2026).
 export function eventCoversDay(event, day) {
   if (!day) return false;
   const start = dateOnly(event.date);
   if (!start) return true; // sin fecha: no se excluye por fecha
-  return start <= day && day <= (eventLastDay(event) || start);
+  const last = eventLastDay(event) || start;
+  if (day < start || day > last) return false;
+  if (!event.is_recurring) return true;
+  const dow = weekdayOfDay(day);
+  return dow !== null && dow === weekdayOfDay(start);
 }
 
 // ¿El evento ocurre hoy? (incluye eventos de varios días; sin fecha: no).
 // La cuadrícula de Eventos usa formatEventCardDate para su píldora (rango
 // en varios días); la rueda del inicio usa este predicado para la
-// píldora «Hoy» (Morat 20–21 nov muestra «Hoy» el 20 y el 21).
+// píldora «Hoy» (Morat 20–21 nov muestra «Hoy» el 20 y el 21; un
+// recurrente semanal solo en su día — ver eventCoversDay).
 export function isEventToday(event, today) {
   if (!today || !dateOnly(event.date)) return false;
   return eventCoversDay(event, today);
 }
 
-// ¿El rango del evento se cruza con [from, to]?
+// ¿El rango del evento se cruza con [from, to]? Para un recurrente
+// semanal, solo si alguna ocurrencia (mismo día de semana que el inicio)
+// cae dentro de la ventana: un Martes de Glamour no es «de fin de
+// semana» aunque su rango cubra el fin de semana.
 export function eventOverlapsRange(event, from, to) {
   const start = dateOnly(event.date);
   if (!start) return true;
   const last = eventLastDay(event) || start;
-  return start <= to && last >= from;
+  if (!event.is_recurring) return start <= to && last >= from;
+  const windowStart = start > from ? start : from;
+  const windowEnd = last < to ? last : to;
+  if (windowStart > windowEnd) return false;
+  const target = weekdayOfDay(start);
+  const first = weekdayOfDay(windowStart);
+  if (target === null || first === null) return false;
+  return addDays(windowStart, (target - first + 7) % 7) <= windowEnd;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;

@@ -35,6 +35,33 @@ const CITY_TZ = {
   "xalisco": "America/Mazatlan",
   "compostela": "America/Mazatlan",
   "magdalena": "America/Mazatlan",
+  // Las 18 que faltaban para cubrir las 40 ciudades (hallazgo A8, 21 nov
+  // 2026): sin entrada, el «hoy» de la rueda caía en la fecha del
+  // dispositivo en vez de la de la ciudad.
+  "bahia-de-banderas": "America/Mazatlan",
+  "riviera-nayarit": "America/Mazatlan",
+  "sayulita": "America/Mazatlan",
+  "colima": "America/Mexico_City",
+  "manzanillo": "America/Mexico_City",
+  "puebla": "America/Mexico_City",
+  "queretaro": "America/Mexico_City",
+  "san-miguel-de-allende": "America/Mexico_City",
+  "san-pedro-garza-garcia": "America/Monterrey",
+  // Colombia
+  "bogota": "America/Bogota",
+  "medellin": "America/Bogota",
+  // Argentina
+  "buenos-aires": "America/Argentina/Buenos_Aires",
+  // Japón
+  "tokio": "Asia/Tokyo",
+  "kioto": "Asia/Tokyo",
+  // Reino Unido
+  "londres": "Europe/London",
+  // EE.UU.
+  "san-antonio": "America/Chicago",
+  "san-diego": "America/Los_Angeles",
+  // Canadá
+  "vancouver": "America/Vancouver",
   // España
   "madrid": "Europe/Madrid",
   "barcelona": "Europe/Madrid",

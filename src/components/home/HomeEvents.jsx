@@ -1,8 +1,7 @@
 import React, {memo, useEffect, useState} from 'react';
 import {isNear} from '../../lib/utils.js';
-import {CITY_TZ} from '../../lib/constants.js';
 import {eventDayKey, selectHomeEvents} from '../../lib/homeEventSelection.js';
-import {isEventToday} from '../../lib/eventListing.js';
+import {isEventToday, cityTimeZone} from '../../lib/eventListing.js';
 import { localizedTitle } from '../../lib/i18nContent.js';
 import {EventSk, CoverflowSk} from '../ui/Skeleton.jsx';
 import EventWheel3D from './EventWheel3D.jsx';
@@ -13,8 +12,12 @@ import EventWheel3D from './EventWheel3D.jsx';
 // de inicio y su píldora muestra el rango ("28 NOV — 6 DIC", o "HASTA
 // 6 DIC" si ya empezó) en vez de solo el día de inicio. La rueda muestra
 // los 10 más próximos; la lista completa sigue en la pestaña Eventos.
-export default memo(function HomeEvents({events = [], activeCity, userCoords, dbReady, secondaryReady = true, dark, handleEventTap, T, t = (k, f) => (f !== undefined ? f : k), lang = 'es'}) {
-  const timeZone = CITY_TZ[activeCity];
+export default memo(function HomeEvents({events = [], activeCity, cities = [], userCoords, dbReady, secondaryReady = true, dark, handleEventTap, T, t = (k, f) => (f !== undefined ? f : k), lang = 'es'}) {
+  // «Hoy» es el día en la zona horaria de la ciudad (la de la base cuando
+  // tiene valor, si no el mapa estático, si no Ciudad de México): con la
+  // fecha del dispositivo, un evento de Tijuana se juzgaba con la hora
+  // de quien lo miraba (hallazgo A8, 21 nov 2026).
+  const timeZone = cityTimeZone(activeCity, cities);
   const [today, setToday] = useState(() => eventDayKey(new Date(), timeZone));
   useEffect(() => {
     const update = () => setToday(eventDayKey(new Date(), timeZone));
