@@ -2,11 +2,17 @@ import { CITY_TZ } from '../lib/constants.js';
 import { create } from 'zustand';
 import { saveThemePreference, saveThemeMode, isScheduledDark } from '../lib/theme.js';
 
+// Slugs que nunca pueden ser la ciudad activa: rutas del sistema y
+// códigos de país (mx, us, es, ca, ar, co, fr, gb). Un código de país
+// guardado o navegado como ciudad dejaba la ciudad fantasma «us»/«es»
+// (20 nov 2026): el saludo decía «¡Linda noche! Us» y el muro salía
+// vacío. Aquí se bloquea en el arranque y en cada cambio de ciudad.
 const INVALID_CITY_SLUGS = new Set([
   "explorar", "explorer", "favoritos", "mapa", "admin", "mis-planes", "revista", "planes", "cuenta", 
   "eventos", "admin_notifs", "user_notifs", "about", "privacy", "terms", 
   "itinerarios", "experiencias", "manage", "stats", "itinerario", "plan", 
-  "evento", "precios", "lealtad", "wallet", "scan", "menu", "reservar", "tours", "negocios"
+  "evento", "precios", "lealtad", "wallet", "scan", "menu", "reservar", "tours", "negocios",
+  "mx", "us", "es", "ca", "ar", "co", "fr", "gb"
 ]);
 
 export const useUIStore = create((set) => ({

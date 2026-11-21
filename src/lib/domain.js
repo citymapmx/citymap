@@ -86,10 +86,13 @@ export function buildBizUrl(citySlug, bizSlug, cities = []) {
 }
 
 export function parseSegments(rawSegments) {
-  if (!IS_WORLD) return { countryCode: "mx", segments: rawSegments };
+  // El prefijo de país (/us/los-angeles, /es/barcelona) nunca es una
+  // ciudad: se quita en los dos dominios, no solo en .world. Sin esto,
+  // en .mx /us/los-angeles resolvía la ciudad fantasma «us» (20 nov 2026).
   const known = Object.keys(COUNTRY_NAMES);
-  if (rawSegments.length > 0 && known.includes(rawSegments[0])) {
-    return { countryCode: rawSegments[0], segments: rawSegments.slice(1) };
+  let segments = rawSegments;
+  while (segments.length > 0 && known.includes(segments[0])) {
+    segments = segments.slice(1);
   }
-  return { countryCode: "mx", segments: rawSegments };
+  return { countryCode: rawSegments.length > 0 && known.includes(rawSegments[0]) ? rawSegments[0] : 'mx', segments };
 }

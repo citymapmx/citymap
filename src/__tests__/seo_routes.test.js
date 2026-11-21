@@ -5,6 +5,7 @@ import robots from '../../api/robots.txt.js';
 import middleware from '../../middleware.js';
 import og from '../../api/og.js';
 import { citySlugFromPath } from '../lib/seoRoutes.js';
+import { parseSegments } from '../lib/domain.js';
 
 const cities = [
   { id: 'mx-city', slug: 'tepic', name: 'Tepic', country_code: 'mx', bg_image: 'https://images.test/tepic.webp' },
@@ -183,5 +184,25 @@ describe('citySlugFromPath', () => {
   it('en citymap.world quita el prefijo de país', () => {
     expect(citySlugFromPath('/mx/tepic', true)).toBe('tepic');
     expect(citySlugFromPath('/mx/tours', true)).toBe('');
+  });
+
+  it('en .mx también quita el prefijo de país: nunca sale una ciudad fantasma', () => {
+    // 20 nov 2026: /us/los-angeles en .mx resolvía la ciudad «us».
+    expect(citySlugFromPath('/us/los-angeles')).toBe('los-angeles');
+    expect(citySlugFromPath('/es/barcelona')).toBe('barcelona');
+    expect(citySlugFromPath('/mx/guadalajara')).toBe('guadalajara');
+    expect(citySlugFromPath('/us')).toBe('');
+    expect(citySlugFromPath('/es')).toBe('');
+  });
+});
+
+describe('parseSegments', () => {
+  it('quita el prefijo de país en los dos dominios', () => {
+    expect(parseSegments(['us', 'los-angeles']).segments).toEqual(['los-angeles']);
+    expect(parseSegments(['es', 'barcelona']).segments).toEqual(['barcelona']);
+    expect(parseSegments(['mx', 'guadalajara']).segments).toEqual(['guadalajara']);
+    expect(parseSegments(['us']).segments).toEqual([]);
+    expect(parseSegments(['tepic']).segments).toEqual(['tepic']);
+    expect(parseSegments([]).segments).toEqual([]);
   });
 });

@@ -103,6 +103,15 @@ export default async function middleware(request) {
     } else if (flatCitySeg && !flatCityIsCountry && isWorldCitySlug(flatCitySeg)) {
       // Ruta plana de una ciudad internacional: misma ruta en .world.
       return to('https://www.citymap.world', withCity(1, normCity(seg2)));
+    } else if (SEO_COUNTRIES.has(lower1) && seg2 && !SEO_COUNTRIES.has(lower2)) {
+      // /<cc>/<ciudad>[/...] en .mx (20 nov 2026, ciudades fantasma «us»/«es»):
+      // el prefijo de país no pertenece a este dominio y la SPA lo tomaba
+      // como ciudad (/us/los-angeles → ciudad «us», vacía). Ciudad
+      // internacional → su canónica en .world con su prefijo; mexicana →
+      // misma ruta sin prefijo en .mx.
+      const rest = [normCity(seg2), ...rawParts.slice(2)].join('/');
+      if (isWorldCitySlug(normCity(seg2))) return to('https://www.citymap.world', `/${lower1}/${rest}`);
+      return to('https://citymap.mx', `/${rest}`);
     } else if (seg1 && !SYSTEM_FIRST_SEGMENTS.has(lower1) && isWorldCitySlug(seg1)) {
       // /<ciudad>[/...] internacional: a .world con su prefijo de país.
       return to('https://www.citymap.world', `/${worldCityCountry(normCity(seg1))}${withCity(0, normCity(seg1))}`);
