@@ -105,6 +105,27 @@ export function citySlugFromPath(pathname, isWorld = false) {
   return normalizeCitySlug(first);
 }
 
+// Slug de la ciudad cuando la ruta ES la página principal de una
+// ciudad (/:ciudad o /:cc/:ciudad), o null en cualquier otro caso.
+// Solo usa listas estáticas, sin depender de la tienda de datos (que
+// carga después): navigate() resolvía la ciudad con
+// cities.find(c => buildCityPath(c.slug) === v), y en citymap.world
+// buildCityPath('madrid') devuelve '/es/madrid', que nunca es igual a
+// '/madrid' — la URL cambiaba pero el contenido se quedaba en la ciudad
+// anterior (21 nov 2026: «Madrid me abría París», y con la lista del
+// store vacía todas las ciudades dejaban la ciudad guardada).
+export function cityHomeSlugFromPath(pathname, isWorld = false) {
+  const slug = citySlugFromPath(pathname, isWorld);
+  if (!slug) return null;
+  const bare = `/${slug}`;
+  if (pathname === bare) return slug;
+  if (isWorld) {
+    if (isWorldCitySlug(slug) && pathname === `/${worldCityCountry(slug)}${bare}`) return slug;
+    if (!isWorldCitySlug(slug) && pathname === `/mx${bare}`) return slug;
+  }
+  return null;
+}
+
 // URL canónica de la ciudad de esta ruta cuando vive en el OTRO dominio,
 // o null si ya está en su dominio. Es el espejo en el cliente de la
 // redirección del middleware (21 nov 2026, PR #418): el Service Worker
