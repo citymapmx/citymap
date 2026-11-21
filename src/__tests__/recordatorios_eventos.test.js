@@ -243,7 +243,7 @@ beforeEach(async () => {
       return authUser ? { ok: true, json: async () => authUser } : { ok: false, json: async () => ({}) };
     }
     if (u.includes('/api/send-notification')) {
-      sendCalls.push({ url: u, body: JSON.parse(opts?.body || '{}') });
+      sendCalls.push({ url: u, body: JSON.parse(opts?.body || '{}'), auth: opts?.headers?.Authorization });
       return { ok: true, json: async () => ({ successCount: 1 }) };
     }
     if (u.includes('/rest/v1/events')) return { ok: true, json: async () => mockEvents };
@@ -274,7 +274,7 @@ describe('recordatorios: modo recordatorios en api/send-notification.js', () => 
   });
   it('ejecución real: manda el aviso por send-notification con type reminder', async () => {
     const res = makeRes();
-    await handler(req({ method: 'POST', auth: true }), res);
+    await handler(req({ method: 'POST', auth: true, reminders: true }), res);
     expect(res.statusCode).toBe(200);
     expect(res.body.sent).toHaveLength(1);
     expect(res.body.sent[0].userId).toBe(USER_A);
@@ -285,20 +285,23 @@ describe('recordatorios: modo recordatorios en api/send-notification.js', () => 
       type: 'reminder',
       user_id: USER_A,
       deepLink: '/evento/guadalajara/andres-calamaro',
-      secret: 'test-admin-secret',
     });
+    // La llamada interna ya no lleva el secreto en el body: se autentica
+    // con CRON_SECRET por header (solo vive en el servidor).
+    expect(sendCalls[0].body).not.toHaveProperty('secret');
+    expect(sendCalls[0].auth).toBe('Bearer test-cron-secret');
   });
   it('ejecución real: el POST interno incluye imageUrl con el póster del evento', async () => {
     mockEvents = [{ ...CALAMARO, img_url: 'https://cdn.example.com/poster.jpg' }];
     const res = makeRes();
-    await handler(req({ method: 'POST', auth: true }), res);
+    await handler(req({ method: 'POST', auth: true, reminders: true }), res);
     expect(res.statusCode).toBe(200);
     expect(sendCalls).toHaveLength(1);
     expect(sendCalls[0].body.imageUrl).toBe('https://cdn.example.com/poster.jpg');
   });
   it('ejecución real: sin imagen del evento el POST no lleva imageUrl', async () => {
     const res = makeRes();
-    await handler(req({ method: 'POST', auth: true }), res);
+    await handler(req({ method: 'POST', auth: true, reminders: true }), res);
     expect(res.statusCode).toBe(200);
     expect(sendCalls).toHaveLength(1);
     expect(sendCalls[0].body).not.toHaveProperty('imageUrl');
@@ -319,7 +322,7 @@ describe('recordatorios: modo recordatorios en api/send-notification.js', () => 
       created_at: new Date().toISOString(),
     }];
     const res = makeRes();
-    await handler(req({ method: 'POST', auth: true }), res);
+    await handler(req({ method: 'POST', auth: true, reminders: true }), res);
     expect(res.statusCode).toBe(200);
     expect(res.body.reminders).toBe(0);
     expect(res.body.skipped).toBe(1);
@@ -347,12 +350,14 @@ describe('recordatorios: modo recordatorios en api/send-notification.js', () => 
     expect(res.body.sent).toHaveLength(1);
     expect(sendCalls).toHaveLength(1);
   });
-  it('disparo manual con ADMIN_SECRET + bandera (sin secreto del cron)', async () => {
+  it('disparo manual con el secreto de admin en el body ya NO autoriza (401)', async () => {
+    // El secreto compartido vivía en el bundle del cliente; ni siquiera el
+    // valor correcto dispara ya los recordatorios. El disparo manual es con
+    // JWT de admin + bandera (ver el test siguiente).
     const res = makeRes();
     await handler(req({ method: 'POST', dry: true, body: { secret: 'test-admin-secret', recordatorios: true } }), res);
-    expect(res.statusCode).toBe(200);
-    expect(res.body.dry).toBe(true);
-    expect(res.body.reminders).toBe(1);
+    expect(res.statusCode).toBe(401);
+    expect(sendCalls).toHaveLength(0);
   });
   it('disparo manual con JWT de admin + bandera en query', async () => {
     const res = makeRes();
@@ -378,7 +383,7 @@ describe('recordatorios: modo recordatorios en api/send-notification.js', () => 
   });
   it('el envío normal sigue igual sin la bandera', async () => {
     const res = makeRes();
-    await handler(req({ method: 'POST', body: { secret: 'test-admin-secret', title: 'Hola', body: 'Mundo' } }), res);
+    await handler(req({ method: 'POST', jwt: true, body: { title: 'Hola', body: 'Mundo' } }), res);
     expect(res.statusCode).toBe(200);
     expect(res.body.successCount).toBe(0);
     expect(res.body.message).toContain('No hay tokens registrados');

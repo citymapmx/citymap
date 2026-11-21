@@ -1,5 +1,6 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
+import { getAuthUser, isAdminUser } from '../../../lib/requireAdmin.js';
 
 if (!getApps().length) {
   try {
@@ -24,32 +25,14 @@ export async function OPTIONS() {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { title, body: msgBody, deepLink, imageUrl, secret, user_id, type = 'system', target_city } = body;
+    const { title, body: msgBody, deepLink, imageUrl, user_id, type = 'system', target_city } = body;
 
-    const authHeader = req.headers.get('authorization');
-    const jwtToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-    let isAuthorized = false;
-    if (secret && secret === process.env.ADMIN_SECRET) {
-      isAuthorized = true;
-    } else if (jwtToken) {
-      try {
-        const supabaseUrl = process.env.VITE_SUPABASE_URL;
-        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-          headers: { apikey: serviceRoleKey, Authorization: `Bearer ${jwtToken}` },
-        });
-        const userData = await userRes.json();
-        // Only server-managed metadata or a verified allowlisted email can grant access.
-        // user_metadata is editable by the user and must never authorize an admin.
-        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-        const isListedAdmin = Boolean(userData?.email_confirmed_at && userData?.email && adminEmails.includes(userData.email.toLowerCase()));
-        const isManagedAdmin = userData?.app_metadata?.isAdmin === true;
-        if (userRes.ok && userData?.id && (isListedAdmin || isManagedAdmin)) {
-          isAuthorized = true;
-        }
-      } catch { /* JWT inválido */ }
-    }
+    // Auth de admin por JWT de sesión. El secreto compartido (ADMIN_SECRET)
+    // ya NO autoriza: vivía incrustado en el bundle del cliente y cualquier
+    // visitante podía leerlo y mandar push masivos. Ver
+    // web-next/src/lib/requireAdmin.js.
+    const userData = await getAuthUser(req);
+    const isAuthorized = isAdminUser(userData);
 
     if (!isAuthorized) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: CORS });
     if (!title || !msgBody) return Response.json({ error: 'Faltan campos: title y body' }, { status: 400, headers: CORS });

@@ -552,13 +552,12 @@ function PushTab({ T, onToast }) {
 
       const res = await fetch("https://citymap.mx/api/send-notification", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sb._token || ""}` },
         body: JSON.stringify({ 
           title, 
           body, 
           deepLink, 
-          target_city: targetCity || null,
-          secret: import.meta.env.VITE_ADMIN_SECRET 
+          target_city: targetCity || null
         })
       });
       const data = await res.json();

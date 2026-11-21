@@ -85,10 +85,50 @@ describe.each(endpoints)('%s notification authorization', (_name, invoke) => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('preserves the existing server secret authentication path', async () => {
-    expect((await invoke({}, { secret: 'test-server-secret' })).status).toBe(400);
+  it('rejects the admin secret in the body: it no longer authorizes', async () => {
+    // El secreto compartido vivía en el bundle del cliente; ni siquiera el
+    // valor correcto autoriza ya (401), en los dos endpoints.
+    expect((await invoke({}, { secret: 'test-server-secret' })).status).toBe(401);
     expect(fetch).not.toHaveBeenCalled();
   });
 
   afterEach(() => { expect(getMessaging).not.toHaveBeenCalled(); });
+});
+
+// Solo el endpoint de Vercel: las llamadas internas del servidor
+// (recordatorios, chat, reserva) se autentican con CRON_SECRET, que solo
+// vive en el servidor. La ruta Next no tiene ese modo.
+describe('Vercel notification authorization (server-to-server)', () => {
+  const invoke = async (headers, body) => {
+    const res = { statusCode: 200, setHeader: vi.fn(), status(code) { this.statusCode = code; return this; }, json(data) { this.data = data; return this; } };
+    await handler({ method: 'POST', headers, body }, res);
+    return { status: res.statusCode, body: res.data };
+  };
+
+  beforeEach(() => {
+    vi.stubEnv('CRON_SECRET', 'test-cron-secret');
+    vi.stubEnv('ADMIN_SECRET', 'test-server-secret');
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://auth.example.test');
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-service-key');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ token: 'device' }) }));
+    vi.clearAllMocks();
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+
+  it('accepts the cron secret as a Bearer token for server-to-server sends', async () => {
+    const result = await invoke({ authorization: 'Bearer test-cron-secret' }, {});
+    expect(result.status).toBe(400);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('accepts the cron secret in the body (existing cron pattern)', async () => {
+    const result = await invoke({}, { secret: 'test-cron-secret' });
+    expect(result.status).toBe(400);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects a wrong cron secret', async () => {
+    expect((await invoke({ authorization: 'Bearer wrong' }, {})).status).toBe(401);
+    expect((await invoke({}, { secret: 'wrong' })).status).toBe(401);
+  });
 });

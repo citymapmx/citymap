@@ -170,10 +170,13 @@ export default function AdminExperiencesTab({
                   if(!expForm.title) return onToast("Primero escribe un título");
                   setExpForm(f => ({ ...f, _generating: true }));
                   try {
-                    const res = await fetch("https://hook.us1.make.com/w8q3945v43u05z2eox54t1953255p8n1", {
+                    // La descripción se genera en el servidor (api/ai-menu):
+                    // la URL del webhook de Make y su secreto solo viven en
+                    // variables de entorno del servidor, nunca en el cliente.
+                    const res = await fetch("https://citymap.mx/api/ai-menu", {
                       method: "POST",
-                      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${import.meta.env.VITE_ADMIN_SECRET}` },
-                      body: JSON.stringify({ title: expForm.title, planType: expForm.activity_type || "experiencia" })
+                      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sb?._token || ""}` },
+                      body: JSON.stringify({ action: "generar-descripcion", title: expForm.title, planType: expForm.activity_type || "experiencia" })
                     });
                     if (!res.ok) throw new Error("Error en la IA");
                     const d = await res.json();

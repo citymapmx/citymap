@@ -210,7 +210,6 @@ const req = ({ jwt = false, body = {} } = {}) => ({
 beforeEach(async () => {
   vi.resetModules();
   vi.stubEnv('CRON_SECRET', 'test-cron-secret');
-  vi.stubEnv('ADMIN_SECRET', 'test-admin-secret');
   vi.stubEnv('ADMIN_EMAILS', 'admin@cityguide.com');
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-service-key');
   vi.stubEnv('VITE_SUPABASE_URL', 'https://dpkjxhjkzdlkvyotoeai.supabase.co');
@@ -228,7 +227,7 @@ beforeEach(async () => {
       return authUser ? { ok: true, json: async () => authUser } : { ok: false, json: async () => ({}) };
     }
     if (u.includes('/api/send-notification')) {
-      sendCalls.push({ url: u, body: JSON.parse(opts?.body || '{}') });
+      sendCalls.push({ url: u, body: JSON.parse(opts?.body || '{}'), auth: opts?.headers?.Authorization });
       return { ok: true, json: async () => ({ successCount: 1 }) };
     }
     if (u.includes('/rest/v1/events')) return { ok: true, json: async () => mockEvents };
@@ -269,8 +268,11 @@ describe('aviso chat: modo aviso de chat en api/send-notification.js', () => {
         type: 'chat',
         deepLink: DEEP_LINK,
         imageUrl: 'https://cdn.example.com/posada.jpg',
-        secret: 'test-admin-secret',
       });
+      // La llamada interna ya no lleva el secreto en el body: se autentica
+      // con CRON_SECRET por header (solo vive en el servidor).
+      expect(call.body).not.toHaveProperty('secret');
+      expect(call.auth).toBe('Bearer test-cron-secret');
     }
   });
   it('si el remitente es el anfitrión, solo van los demás autores', async () => {
