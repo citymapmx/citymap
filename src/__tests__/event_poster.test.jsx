@@ -6,7 +6,7 @@ import NextEventPoster from '../../web-next/src/components/detail/EventPoster.js
 
 const poster = 'https://example.supabase.co/storage/v1/object/public/media/event.jpeg';
 
-describe.each([['Vite', EventPoster, '1200'], ['Next.js', NextEventPoster, '800']])('%s event poster', (_name, Poster, detailWidth) => {
+describe.each([['Vite', EventPoster, '1600'], ['Next.js', NextEventPoster, '800']])('%s event poster', (_name, Poster, detailWidth) => {
   it('requests uncropped preview and detail images with matching proportions', () => {
     const html = renderToStaticMarkup(<Poster src={poster} alt="Festival" />);
     const urls = [...html.matchAll(/<img[^>]+src="([^"]+)"/g)].map(m => m[1].replaceAll('&amp;', '&'));

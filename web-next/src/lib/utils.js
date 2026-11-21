@@ -399,8 +399,6 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
     if (width <= 200) return 200;
     if (width <= 400) return 400;
     if (width <= 800) return 800;
-    if (width <= 1000) return 1000;
-    if (width <= 1200) return 1200;
     if (width <= 1600) return 1600;
     return 2400;
   };

@@ -39,7 +39,7 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
   // el corte y los anchos son idénticos en ambos.
   const layout = computeEventShareCardLayout(data, format);
   const palette = layout.palette;
-  // La foto se pide ancha (1200w por el bucket de getThumbUrl) para que
+  // La foto se pide ancha (1600w por el bucket de getThumbUrl) para que
   // salga nítida en la exportación a 1080 px.
   const photoSrc = data?.photoUrl ? getThumbUrl(data.photoUrl, 1080) : null;
   const initial = (data?.title || 'C').trim().charAt(0).toUpperCase() || 'C';

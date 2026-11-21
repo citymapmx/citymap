@@ -139,11 +139,10 @@ describe('banner del menú a 800×600 con prioridad (hallazgo #3)', () => {
     expect(tag).toContain('aspect-ratio');
   });
 
-  it('getThumbUrl: 800×600 cae en el bucket de 800 y 1200×900 ya no sube a 1600', () => {
+  it('getThumbUrl: 800×600 cae en el bucket de 800 y 1200×900 subía a 1600', () => {
     expect(getThumbUrl(FOTO_REAL, 800, 600)).toContain('width=800');
     expect(getThumbUrl(FOTO_REAL, 800, 600)).toContain('height=600');
-    expect(getThumbUrl(FOTO_REAL, 1200, 900)).toContain('width=1200');
-    expect(getThumbUrl(FOTO_REAL, 1200, 900)).toContain('height=900');
+    expect(getThumbUrl(FOTO_REAL, 1200, 900)).toContain('width=1600');
   });
 
   it('en el código, el banner del menú usa OptimizedImage con prioridad a 800×600', () => {

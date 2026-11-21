@@ -82,7 +82,7 @@ describe('detalle de evento: póster completo y título debajo', () => {
 });
 
 describe('detalle de evento: nitidez del póster en retina', () => {
-  it('la imagen de detalle se pide a 1200 (1200 efectiva) para 460 px a 2x/3x', () => {
+  it('la imagen de detalle se pide a 1200 (1600 efectiva) para 460 px a 2x/3x', () => {
     expect(posterSrc).toContain('getThumbUrl(src, 1200)');
     // La vista previa progresiva sigue siendo chica (400).
     expect(posterSrc).toContain('getThumbUrl(src, 400)');

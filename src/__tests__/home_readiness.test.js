@@ -9,8 +9,8 @@ describe('home reveal readiness',()=>{
  it('does not wait for lazy images below the first screen',()=>{const below=image({complete:false},{top:1000,bottom:1100,left:0,right:200,width:200,height:100});expect(getHomeVisualState(documentWith([image(),below]),'tepic',viewport)).toBe('ready');});
  it('does not wait for images outside a horizontal carousel viewport',()=>{const outside=image({complete:false},{top:10,bottom:100,left:800,right:1000,width:200,height:90});expect(getHomeVisualState(documentWith([image(),outside]),'tepic',viewport)).toBe('ready');});
  it('does not wait for hidden carousel slides',()=>{expect(getHomeVisualState(documentWith([image({complete:false,closest:()=>({})})]),'tepic',viewport)).toBe('ready');});
- it('does not wait for fonts: the home never loads Geist, so a missing typeface must not hold the splash',()=>{expect(getHomeVisualState(documentWith([],'tepic',{status:'loading',check:()=>false}),'tepic',viewport)).toBe('ready');});
- it('does not wait for fonts even while they are still loading',()=>{expect(getHomeVisualState(documentWith([],'tepic',{status:'loading',check:()=>true}),'tepic',viewport)).toBe('ready');});
+ it('does not wait for unrelated fonts after the splash font is ready',()=>{expect(getHomeVisualState(documentWith([],'tepic',{status:'loading',check:()=>true}),'tepic',viewport)).toBe('ready');});
+ it('waits for the real typeface' ,()=>{expect(getHomeVisualState(documentWith([],'tepic',{status:'loading',check:()=>false}),'tepic',viewport)).toBe('loading');});
  it('reports an image failure instead of treating a broken image as ready',()=>{expect(getHomeVisualState(documentWith([image({naturalWidth:0})]),'tepic',viewport)).toBe('error');});
  it('reveals a loaded empty city without requiring nonexistent cards',()=>{expect(getHomeVisualState(documentWith([]),'tepic',viewport)).toBe('ready');});
 });
@@ -47,8 +47,5 @@ describe('city arrival splash exit cap',()=>{
  it('exits at the cap when an image is broken instead of blocking',()=>{expect(shouldExitSplash({ready:true,error:false,visual:'error',elapsedMs:3000})).toBe(true);});
  it('waits for the cap when an image is broken instead of exiting early',()=>{expect(shouldExitSplash({ready:true,error:false,visual:'error',elapsedMs:1000})).toBe(false);});
  it('never exits while the city data is not ready, even past the cap',()=>{expect(shouldExitSplash({ready:false,error:false,visual:'loading',elapsedMs:30000})).toBe(false);});
- it('exits at the cap on a data error instead of blocking forever',()=>{expect(shouldExitSplash({ready:true,error:true,visual:'ready',elapsedMs:30000})).toBe(true);});
- it('exits at the cap on a data error even when images are still loading',()=>{expect(shouldExitSplash({ready:true,error:true,visual:'loading',elapsedMs:3000})).toBe(true);});
- it('does not exit before the cap on a data error',()=>{expect(shouldExitSplash({ready:true,error:true,visual:'ready',elapsedMs:1000})).toBe(false);});
- it('never exits on a data error while the city data is not ready, even past the cap',()=>{expect(shouldExitSplash({ready:false,error:true,visual:'ready',elapsedMs:30000})).toBe(false);});
+ it('never exits on a real data error, even past the cap',()=>{expect(shouldExitSplash({ready:true,error:true,visual:'ready',elapsedMs:30000})).toBe(false);});
 });

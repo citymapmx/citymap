@@ -448,8 +448,6 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
     if (width <= 400) return 400;
     if (width <= 600) return 600;
     if (width <= 800) return 800;
-    if (width <= 1000) return 1000;
-    if (width <= 1200) return 1200;
     if (width <= 1600) return 1600;
     return 2400;
   };
@@ -502,7 +500,7 @@ export function getThumbUrl(url, w = 400, h = null, fit = "cover") {
   return url;
 }
 
-// Anchos de bucket de getThumbUrl (200/400/600/800/1000/1200/1600/2400): pasar solo
+// Anchos de bucket de getThumbUrl (200/400/600/800/1600/2400): pasar solo
 // estos valores para que el descriptor "Nw" del srcset sea exacto.
 export const SRCSET_THUMB = Object.freeze([200, 400]);
 export const SRCSET_CARD = Object.freeze([400, 800]);
@@ -511,7 +509,7 @@ export const SRCSET_CARD = Object.freeze([400, 800]);
 // que se vea blando (a 400 sí se veía, PR #264) y sin pagar los 800 px
 // de antes (43-57 KB por póster).
 export const SRCSET_WHEEL_FRONT = Object.freeze([400, 600]);
-export const SRCSET_BANNER = Object.freeze([400, 800, 1200]);
+export const SRCSET_BANNER = Object.freeze([400, 800, 1400]);
 
 // srcset para una misma imagen en varios anchos, sin bajar la calidad
 // visible: el navegador elige el candidato según el ancho en pantalla

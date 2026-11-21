@@ -173,7 +173,7 @@ export default function BannerSlider({ activeBanners, loading = false }) {
             ) : (
               <OptimizedImage
                 src={bn.img_url}
-                widthRequest={1200}
+                widthRequest={1400}
                 priority
                 srcSetWidths={SRCSET_BANNER}
                 sizes="100vw"
