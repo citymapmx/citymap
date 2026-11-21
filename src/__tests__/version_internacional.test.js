@@ -49,10 +49,11 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('WORLD_CITIES (seoRoutes)', () => {
-  it('las 11 ciudades internacionales con su código de país', () => {
+  it('las 13 ciudades internacionales con su código de país', () => {
     expect(Object.keys(WORLD_CITIES).sort()).toEqual([
-      'barcelona', 'bogota', 'buenos-aires', 'londres', 'los-angeles',
-      'madrid', 'medellin', 'paris', 'san-antonio', 'san-diego', 'vancouver',
+      'barcelona', 'bogota', 'buenos-aires', 'kioto', 'londres',
+      'los-angeles', 'madrid', 'medellin', 'paris', 'san-antonio',
+      'san-diego', 'tokio', 'vancouver',
     ]);
     expect(isWorldCitySlug('paris')).toBe(true);
     expect(isWorldCitySlug('Paris')).toBe(true);
@@ -65,6 +66,10 @@ describe('WORLD_CITIES (seoRoutes)', () => {
     expect(worldCityCountry('bogota')).toBe('co');
     expect(isWorldCitySlug('londres')).toBe(true);
     expect(worldCityCountry('londres')).toBe('gb');
+    expect(isWorldCitySlug('tokio')).toBe(true);
+    expect(worldCityCountry('tokio')).toBe('jp');
+    expect(isWorldCitySlug('kioto')).toBe(true);
+    expect(worldCityCountry('kioto')).toBe('jp');
   });
   it('las ciudades mexicanas no son internacionales', () => {
     expect(isWorldCitySlug('tepic')).toBe(false);

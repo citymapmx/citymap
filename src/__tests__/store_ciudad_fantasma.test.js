@@ -11,7 +11,7 @@ describe('useUIStore: un código de país nunca es ciudad activa', () => {
     vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn(), removeItem: vi.fn() });
     const { useUIStore } = await import('../store/useUIStore.js');
     const store = useUIStore.getState();
-    for (const code of ['mx', 'us', 'es', 'ca', 'ar', 'co', 'fr', 'gb']) {
+    for (const code of ['mx', 'us', 'es', 'ca', 'ar', 'co', 'fr', 'gb', 'jp']) {
       store.setActiveCity(code);
       expect(useUIStore.getState().activeCity).not.toBe(code);
     }

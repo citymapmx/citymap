@@ -47,7 +47,7 @@ describe('currencyForCountryCode', () => {
   it('mx → MXN, resto → USD (sin importar mayúsculas)', () => {
     expect(currencyForCountryCode('mx')).toBe('MXN');
     expect(currencyForCountryCode('MX')).toBe('MXN');
-    for (const cc of ['fr', 'es', 'us', 'co', 'ar', 'gb', 'ca']) {
+    for (const cc of ['fr', 'es', 'us', 'co', 'ar', 'gb', 'ca', 'jp']) {
       expect(currencyForCountryCode(cc)).toBe('USD');
     }
     expect(currencyForCountryCode(null)).toBe('MXN');
