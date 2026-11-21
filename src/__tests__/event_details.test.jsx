@@ -376,3 +376,48 @@ describe('Botón de boletos en carga directa (nov 2026)', () => {
     expect(deriveEventBooking({ website: null })).toEqual({ booking_config: null, website: null });
   });
 });
+
+describe('ficha de evento recurrente: «Todos los jueves» en vez del rango', () => {
+  // Art & Market Marina Vallarta (captura de Jonathan, 20 nov 2026):
+  // evento semanal los jueves 6:00–10:00 p. m. con date 2026-11-19 y
+  // end_date 2027-05-13. Antes la ficha mostraba el rango completo
+  // («19 de noviembre de 2026 al 13 de mayo de 2027»), como si fuera
+  // un evento corrido; ahora dice el día que se repite.
+  const weekly = { date: '2026-11-19', end_date: '2027-05-13', time: '18:00', end_time: '22:00', is_recurring: true, venue_name: 'Malecón de Marina Vallarta' };
+  it('muestra «Todos los jueves» y no el rango', () => {
+    const html = render(weekly);
+    expect(html).toContain('Todos los jueves');
+    expect(html).not.toContain('19 de noviembre de 2026');
+    expect(html).not.toContain('al 13 de mayo');
+    expect(html).not.toContain('13 de mayo de 2027');
+  });
+  it('el horario se queda como está', () => {
+    const html = render(weekly);
+    expect(html).toContain('6:00 p. m. – 10:00 p. m.');
+  });
+  it('el día sale del día real del evento, no de un texto fijo', () => {
+    // Martes de Glamour CMLL: 17 nov 2026 es martes.
+    expect(render({ ...weekly, date: '2026-11-17', end_date: '2027-01-12' })).toContain('Todos los martes');
+    // Tianguis Cultural GDL: 21 nov 2026 es sábado.
+    expect(render({ ...weekly, date: '2026-11-21', end_date: '2027-05-01' })).toContain('Todos los sábados');
+    // Vía RecreActiva GDL: 22 nov 2026 es domingo.
+    expect(render({ ...weekly, date: '2026-11-22', end_date: '2027-05-02' })).toContain('Todos los domingos');
+  });
+  it('un evento NO recurrente de varias fechas sigue mostrando su rango', () => {
+    const html = render({ date: '2026-11-20', end_date: '2026-11-21', time: '21:00', is_recurring: false });
+    expect(html).toContain('20 de noviembre de 2026');
+    expect(html).toContain('al 21 de noviembre');
+    expect(html).not.toContain('Todos los');
+  });
+  it('sin is_recurring tampoco cambia nada', () => {
+    const html = render({ date: '2026-11-20', end_date: '2026-11-21', time: '21:00' });
+    expect(html).toContain('al 21 de noviembre');
+    expect(html).not.toContain('Todos los');
+  });
+  it('la clave i18n existe en español y en inglés', () => {
+    const es = fs.readFileSync(new URL('../lib/i18n.js', import.meta.url), 'utf8');
+    const en = fs.readFileSync(new URL('../lib/i18n-en.js', import.meta.url), 'utf8');
+    expect(es).toContain('"eventos_todos_los_dias": "Todos los ${dia}"');
+    expect(en).toContain('"eventos_todos_los_dias": "Every ${dia}"');
+  });
+});

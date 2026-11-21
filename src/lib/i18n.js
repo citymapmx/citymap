@@ -490,6 +490,7 @@ export const TRANSLATIONS = {
 
     // Fase 1 inglés — Eventos
     "evento_cada_semana": "Cada semana",
+    "eventos_todos_los_dias": "Todos los ${dia}",
     "eventos_acerca": "Acerca del evento",
     "eventos_agregar_foto": "Agregar foto",
     "eventos_agregar_foto_aria": "Agregar foto al evento",

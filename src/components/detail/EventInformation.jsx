@@ -95,6 +95,22 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
   const startYear = event.date ? new Date(`${event.date}T12:00:00Z`).getUTCFullYear() : null;
   const end = event.end_date > event.date ? dateLabel(event.end_date, { day: 'numeric', month: 'long', ...(endYear !== startYear ? { year: 'numeric' } : {}) }, locale) : '';
   const times = [timeLabel(event.time, lang), timeLabel(event.end_time, lang)].filter(Boolean).join(' – ');
+  // Evento recurrente semanal (is_recurring, píldora «Cada semana»):
+  // en vez del rango date–end_date («19 de noviembre de 2026 al 13 de
+  // mayo de 2027») la ficha dice el día que se repite («Todos los
+  // jueves»). El día sale de la fecha del evento: es un día de
+  // calendario, el mismo en cualquier zona horaria, calculado con el
+  // mismo dateLabel UTC de la línea para que nunca discrepe de la
+  // fecha que se muestra. Sin fecha válida no hay etiqueta y la línea
+  // cae al rango de siempre. En español «Todos los» pide el día en
+  // plural: sábado→sábados, domingo→domingos (lunes–viernes ya son
+  // invariables); en inglés el día va en singular («Every Saturday»).
+  // El placeholder se llama igual en los dos diccionarios (${dia}):
+  // la paridad de placeholders de i18n.test.js lo exige.
+  const weekday = event.is_recurring ? dateLabel(event.date, { weekday: 'long' }, locale) : '';
+  const weekdayShown = lang === 'es' ? ({ 'sábado': 'sábados', 'domingo': 'domingos' }[weekday] || weekday) : weekday;
+  const recurringLabel = weekdayShown ? t("eventos_todos_los_dias", "Todos los ${dia}", { dia: weekdayShown }) : '';
+  const dateText = recurringLabel || (start ? `${start}${end ? (lang === 'en' ? ` to ${end}` : ` al ${end}`) : ''}` : '');
   const venue = event.venue_name || associatedBiz?.name;
   const address = event.venue_address || associatedBiz?.address;
   const coordinates = event.lat !== null && event.lat !== undefined && event.lat !== '' && event.lng !== null && event.lng !== undefined && event.lng !== '' && Number.isFinite(Number(event.lat)) && Number.isFinite(Number(event.lng));
@@ -137,8 +153,8 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
       {(start || times) && <div style={rowStyle}>
         <Icon name="calendar" size={26} color="#FFFFFF" style={iconStyle} />
         <div style={{ minWidth: 0 }}>
-          {start && <p style={{ margin: 0, color: '#FFFFFF', fontSize: 15, lineHeight: 1.5, fontWeight: 650, textWrap: 'balance' }}>{start}{end ? (lang === 'en' ? ` to ${end}` : ` al ${end}`) : ''}</p>}
-          {times && <p style={{ margin: start ? '3px 0 0' : 0, color: 'rgba(255,255,255,0.75)', fontSize: 14, lineHeight: 1.5 }}>{times}</p>}
+          {dateText && <p style={{ margin: 0, color: '#FFFFFF', fontSize: 15, lineHeight: 1.5, fontWeight: 650, textWrap: 'balance' }}>{dateText}</p>}
+          {times && <p style={{ margin: dateText ? '3px 0 0' : 0, color: 'rgba(255,255,255,0.75)', fontSize: 14, lineHeight: 1.5 }}>{times}</p>}
           {calendarUrl && <a href={calendarUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 36, marginTop: 2, color: '#FFFFFF', fontSize: 13, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}><Icon name="calendar" size={14} color="#FFFFFF" />{t("eventos_anadir_calendario", "Añadir a mi calendario")}</a>}
         </div>
       </div>}
