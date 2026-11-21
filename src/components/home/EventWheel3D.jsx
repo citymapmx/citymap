@@ -418,13 +418,20 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   // ~900 px de dispositivo, así que el póster va a 800 px (SRCSET_CARD),
   // no a 400 px: a 400 se veía blando, igual que le pasaba a la cara del
   // frente de la rueda (PR #264).
+  //
+  // Con UN solo evento la tarjeta quedaba pegada a la izquierda con todo
+  // el hueco vacío a la derecha (captura de Jonathan, 21 Nov 2026): se
+  // centra la fila y el snap pasa a 'center'. Solo con n === 1: con 2 o
+  // 3 el centrado rompería el scroll (el contenido que rebasa se corta
+  // por la izquierda y no se alcanza).
   if (n <= WHEEL_ROW_MAX_EVENTS) {
+    const single = n === 1;
     return (
       <section style={{ marginBottom: 32 }}>
         {header}
-        <div className="event-wheel-row scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', margin: '0 -20px', padding: '0 20px 16px' }}>
+        <div className="event-wheel-row scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', margin: '0 -20px', padding: '0 20px 16px', justifyContent: single ? 'center' : undefined }}>
           {items.map((item) => (
-            <article key={item.key} onClick={() => onSelect?.(item)} style={{ flex: '0 0 min(78%, 300px)', scrollSnapAlign: 'start', borderRadius: 16, overflow: 'hidden', background: '#111', cursor: 'pointer' }}>
+            <article key={item.key} onClick={() => onSelect?.(item)} style={{ flex: '0 0 min(78%, 300px)', scrollSnapAlign: single ? 'center' : 'start', borderRadius: 16, overflow: 'hidden', background: '#111', cursor: 'pointer' }}>
               <div style={{ position: 'relative', aspectRatio: '3 / 4' }}>
                 {item.img ? (<><WheelFacePlaceholder title={item.title} dark={T.dark} /><OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_ROW_W} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 78vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative' }} /></>) : <EventPosterFallback title={item.title} radius={0} />}
                 {pill(item)}

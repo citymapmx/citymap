@@ -263,6 +263,30 @@ describe('event wheel 3D', () => {
     expect(html).not.toContain('Evento 2');
   });
 
+  it('with 1 event the card is centered, not stuck to the left', () => {
+    // El estilo de la fila (no todo el HTML: los placeholders de las
+    // tarjetas también llevan justify-content:center y ensuciarían la
+    // aserción).
+    const rowStyle = (html) => {
+      const m = html.match(/event-wheel-row[^>]*style="([^"]*)"/);
+      return m ? m[1] : '';
+    };
+    const html = renderWheel({ events: events.slice(0, 1) });
+    // Captura de Jonathan (21 Nov 2026): con un solo evento la tarjeta
+    // quedaba pegada a la izquierda con todo el hueco vacío a la derecha.
+    expect(rowStyle(html)).toContain('justify-content:center');
+    expect(html).toContain('scroll-snap-align:center');
+    // Con 2 eventos la fila sigue alineada a la izquierda: centrar con
+    // overflow cortaría el contenido por la izquierda y no se alcanzaría.
+    const two = renderWheel({ events: events.slice(0, 2) });
+    expect(rowStyle(two)).not.toContain('justify-content');
+    expect(two).toContain('scroll-snap-align:start');
+    // Con 3 tampoco se centra.
+    const three = renderWheel({ events: events.slice(0, 3) });
+    expect(rowStyle(three)).not.toContain('justify-content');
+    expect(three).toContain('scroll-snap-align:start');
+  });
+
   it('with 2 events renders the row, not the drum', () => {
     const html = renderWheel({ events: events.slice(0, 2) });
     expect(html).not.toContain('event-wheel-drum');
