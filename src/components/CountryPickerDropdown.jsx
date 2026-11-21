@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import Icon from './ui/Icon.jsx';
 import { COUNTRY_NAMES, COUNTRY_FLAGS, citySelectionTarget } from '../lib/domain.js';
+import { fuzzyMatch } from '../lib/utils.js';
 import { safeAreaTop } from '../lib/safeArea.js';
 
 const FLAG_MAP = Object.fromEntries(
@@ -78,8 +79,10 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
   // 2026, Jonathan): las 33, agrupadas por país, sin filtro por host
   // (la lista que llega por props es la completa de la tienda).
   // Sort all cities by business count
+  // La búsqueda ignora acentos (20 nov 2026: «Los Angeles» no encontraba
+  // «Los Ángeles» porque el filtro comparaba el texto tal cual).
   const sortedCities = [...(cities || [])]
-    .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(c => !searchQuery.trim() || fuzzyMatch(searchQuery, c.name))
     .map(city => ({
       ...city,
       country: COUNTRY_NAMES[city.country_code] || "México",

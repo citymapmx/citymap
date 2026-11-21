@@ -133,3 +133,32 @@ describe('assetlinks.json: cubre a la app en los dos dominios', () => {
     expect(entry.target.sha256_cert_fingerprints.length).toBeGreaterThan(0);
   });
 });
+
+describe('middleware: /<cc>/<ciudad> en .mx no deja ciudad fantasma', () => {
+  // 20 nov 2026: al cambiar de ciudad a una extranjera, la app caía en la
+  // ciudad fantasma del código de país («us», «es»): saludo «¡Linda noche!
+  // Us» y muro vacío. La URL /us/los-angeles en .mx no redirigía a ningún
+  // lado y la SPA tomaba «us» como ciudad. Ahora el middleware la manda a
+  // su canónica en .world (o le quita el prefijo si la ciudad es mexicana).
+  it.each([
+    ['/us/los-angeles', 'https://www.citymap.world/us/los-angeles'],
+    ['/es/barcelona', 'https://www.citymap.world/es/barcelona'],
+    ['/es/madrid', 'https://www.citymap.world/es/madrid'],
+    ['/fr/paris', 'https://www.citymap.world/fr/paris'],
+    ['/ca/vancouver', 'https://www.citymap.world/ca/vancouver'],
+    ['/ar/buenos-aires', 'https://www.citymap.world/ar/buenos-aires'],
+    ['/co/bogota', 'https://www.citymap.world/co/bogota'],
+    ['/gb/londres', 'https://www.citymap.world/gb/londres'],
+    ['/us/los-angeles/restaurantes', 'https://www.citymap.world/us/los-angeles/restaurantes'],
+    ['/mx/guadalajara', 'https://citymap.mx/guadalajara'],
+  ])('redirige %s en .mx a %s', async (path, location) => {
+    const res = await middleware(request(path, 'citymap.mx'));
+    expect(res.status).toBe(308);
+    expect(res.headers.get('location')).toBe(location);
+  });
+
+  it('un código de país solo (/us) no redirige: la SPA ya no lo toma como ciudad', async () => {
+    expect(await middleware(request('/us', 'citymap.mx'))).toBeUndefined();
+    expect(await middleware(request('/es', 'citymap.mx'))).toBeUndefined();
+  });
+});

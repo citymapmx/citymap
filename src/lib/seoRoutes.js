@@ -70,7 +70,10 @@ export const CATEGORY_SLUGS = [
 
 export function seoSegments(pathname, isWorld) {
   const parts = pathname.split('/').filter(Boolean);
-  if (isWorld && SEO_COUNTRIES.has(parts[0])) parts.shift();
+  // El prefijo de país nunca es una ciudad, en ningún dominio: en .mx
+  // /us/los-angeles dejaba «us» como primer segmento y la ciudad salía
+  // fantasma (20 nov 2026). Se quita aquí igual que en .world.
+  while (parts.length > 0 && SEO_COUNTRIES.has(parts[0])) parts.shift();
   return parts;
 }
 
