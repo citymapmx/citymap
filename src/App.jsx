@@ -34,7 +34,7 @@ import { searchMatches } from './lib/utils.js';
 import { prefetchLoyaltyEntries, clearPrefetchedLoyaltyEntries } from './lib/loyaltyMemberships.js';
 import { SPRING_UI } from './lib/spring.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
-import { crossDomainCityUrl } from './lib/seoRoutes.js';
+import { crossDomainCityUrl, cityHomeSlugFromPath } from './lib/seoRoutes.js';
 import { sectionPathForCity, isSectionCityPath } from './lib/sectionRouting.js';
 import { isRevistaArticlePath } from './lib/revistaRoute.js';
 import { eventUrl, resolveEventSlug } from './lib/eventUrls.js';
@@ -839,11 +839,15 @@ useEffect(() => {
         return;
       }
       path = v;
-      // Si la ruta es la página principal de una ciudad conocida, cambiar
-      // también la ciudad activa: sin esto la URL cambia pero HomeView sigue
+      // Si la ruta es la página principal de una ciudad, cambiar también
+      // la ciudad activa: sin esto la URL cambia pero HomeView sigue
       // mostrando la ciudad guardada del dispositivo (por eso todas las
-      // tarjetas del muro abrían la misma ciudad).
-      const citySlug = cities.find((c) => buildCityPath(c.slug, cities) === v)?.slug;
+      // tarjetas del muro abrían la misma ciudad). Se resuelve desde la
+      // ruta con listas estáticas (cityHomeSlugFromPath), no con la lista
+      // del store: en citymap.world buildCityPath('madrid') es
+      // '/es/madrid' y nunca igualaba a '/madrid', y con el store vacío
+      // el find fallaba para todas las ciudades.
+      const citySlug = cityHomeSlugFromPath(v, IS_WORLD);
       if (citySlug && citySlug !== activeCity) {
         setActiveCity(citySlug);
         loadData(citySlug);
