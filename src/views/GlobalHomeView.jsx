@@ -181,7 +181,7 @@ export default function GlobalHomeView() {
         const bizFilter = hostSlugs.length > 0 ? `&city_slug=in.(${hostSlugs.join(',')})` : '';
         const [bizRes, evRes, exRes, placesRes, toursRes] = await Promise.all([
           sb.get('businesses', `?select=id,name,slug,category,emoji,logo_url,banner_url,photos,rating,review_count,city_slug,status,address,is_place,type,tagline,plan,created_at&status=eq.approved&plan=neq.menu&order=plan.desc,rating.desc.nullslast,id.desc&limit=${BIZ_PAGE}&offset=0${bizFilter}`).catch(() => []),
-          sb.get('events', `?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved${eventsDateFilter}&order=date.asc&limit=60${IS_WORLD ? likeFilter : ''}`).catch(() => []),
+          sb.get('events', `?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,currency,website&status=eq.approved${eventsDateFilter}&order=date.asc&limit=60${IS_WORLD ? likeFilter : ''}`).catch(() => []),
           sb.get('experiences', `?select=id,title,title_en,description_en,city_slug,activity_type,price,duration,people,gallery,created_at&status=eq.approved&order=created_at.desc&limit=12${IS_WORLD ? likeFilter : ''}`).catch(() => []),
           // Lugares (puntos de interés, unidad deportiva, playas): consulta propia
           // para que el filtro "Lugares" tenga contenido desde el inicio y no
@@ -277,7 +277,7 @@ export default function GlobalHomeView() {
       try {
         const [b, e, x] = await Promise.all([
           sb.get('businesses', `?select=id,name,slug,category,city_slug,photos,logo_url,banner_url,is_place,created_at&status=eq.approved&plan=neq.menu&or=(name.ilike.*${enc}*,category.ilike.*${enc}*,tagline.ilike.*${enc}*)&order=plan.desc,rating.desc.nullslast&limit=15`).catch(() => []),
-          sb.get('events', `?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,website&status=eq.approved&title=ilike.*${enc}*&order=date.asc&limit=10`).catch(() => []),
+          sb.get('events', `?select=id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,biz_id,price,price_type,currency,website&status=eq.approved&title=ilike.*${enc}*&order=date.asc&limit=10`).catch(() => []),
           sb.get('experiences', `?select=id,title,title_en,description_en,city_slug,gallery,created_at&status=eq.approved&title=ilike.*${enc}*&order=created_at.desc&limit=10`).catch(() => []),
         ]);
         if (cancelled) return;

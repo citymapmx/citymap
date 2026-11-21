@@ -49,7 +49,7 @@ const mergeById = (first, second) => {
 //   «Lo más cerca de ti», booking_config es obligatoria en todas las
 //   listas (botón «Reservar», test reservar_boton_siempre) y photos la
 //   usan el popup del mapa y las tarjetas cercanas.
-const EVENTS_SELECT = "id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,is_recurring,biz_id,price,price_type,website,visibility,active";
+const EVENTS_SELECT = "id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,is_recurring,biz_id,price,price_type,currency,website,visibility,active";
 const EXPERIENCES_SELECT = "id,slug,title,title_en,description,description_en,city_slug,price,duration,gallery,booking_config,activity_type,theme,meeting_point,meeting_url,route_url,includes,not_includes,languages,faq,people,author_name,affiliate_products,biz_id,created_at";
 const CITIES_SELECT = "id,slug,name,state,country,country_code,lat,lng,bg_image,timezone,active";
 
