@@ -3,13 +3,13 @@ export const IS_WORLD = typeof window !== "undefined" && window.location.hostnam
 export const COUNTRY_NAMES = {
   mx: "México", us: "Estados Unidos", es: "España",
   ca: "Canadá", ar: "Argentina", co: "Colombia",
-  fr: "Francia", gb: "Inglaterra",
+  fr: "Francia", gb: "Inglaterra", jp: "Japón",
 };
 
 export const COUNTRY_FLAGS = {
   mx: "🇲🇽", us: "🇺🇸", es: "🇪🇸",
   ca: "🇨🇦", ar: "🇦🇷", co: "🇨🇴",
-  fr: "🇫🇷", gb: "🇬🇧",
+  fr: "🇫🇷", gb: "🇬🇧", jp: "🇯🇵",
 };
 
 export function getCountryCode(citySlug, cities = []) {
