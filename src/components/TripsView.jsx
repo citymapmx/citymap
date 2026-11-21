@@ -14,6 +14,7 @@ import { Helmet } from "react-helmet-async";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle } from "../lib/i18nContent.js";
 import { createSlug } from "../lib/utils.js";
+import { buildExperienceLookupQuery, buildExperienceFallbackQuery } from "../lib/experienceLookup.js";
 import { POST_TYPES, POST_THEMES, filterPostsByTypeAndTheme, themeBySlug, themeLabel } from "../lib/postTaxonomy.js";
 import { tourDurationLabel } from "../lib/tours.js";
 import { currencyForCity } from "../lib/domain.js";
@@ -336,19 +337,17 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     }
 
     // Direct fetch from Supabase if refreshed or experiences array not populated yet
+    // (consultas acotadas: select recortado, solo aprobadas, con limit —
+    // antes era `select=*` sin limit y el fallback descargaba toda la tabla).
     let cancelled = false;
-    const isUUID = routeSlug.length === 36 && routeSlug.split('-').length === 5;
-    const query = isUUID 
-      ? `?id=eq.${routeSlug}` 
-      : `?or=(slug.eq.${routeSlug},title.ilike.*${encodeURIComponent(routeSlug.replace(/-/g, ' '))}*)`;
 
-    sb.get("experiences", query).then(res => {
+    sb.get("experiences", buildExperienceLookupQuery(routeSlug)).then(res => {
       if (cancelled) return;
       if (Array.isArray(res) && res.length > 0) {
         const exact = res.find(e => e.id === routeSlug || e.slug === routeSlug || createSlug(e.title) === routeSlug) || res[0];
         setFetchedPlan({ slug: routeSlug, exp: exact });
       } else {
-        sb.get("experiences", "?select=*").then(allRes => {
+        sb.get("experiences", buildExperienceFallbackQuery()).then(allRes => {
           if (cancelled) return;
           if (Array.isArray(allRes)) {
             const found = allRes.find(e => e.id === routeSlug || e.slug === routeSlug || createSlug(e.title) === routeSlug);

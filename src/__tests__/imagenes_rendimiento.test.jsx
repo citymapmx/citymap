@@ -60,10 +60,10 @@ describe('imagenes: entrega más rápida sin bajar la calidad', () => {
     expect(hero).toContain('widthRequest={800} priority');
   });
 
-  it('Banner: srcset 100vw con tope 1400w (ya no baja fijo a 1400w en móvil)', () => {
+  it('Banner: srcset 100vw con tope 1200w (ya no baja fijo a 1400w en móvil)', () => {
     expect(banner).toContain('srcSetWidths={SRCSET_BANNER}');
     expect(banner).toContain('sizes="100vw"');
-    expect(banner).toContain('widthRequest={1400}');
+    expect(banner).toContain('widthRequest={1200}');
   });
 
   it('Pósters de eventos: srcset + objectFit cover (la foto llena la tarjeta)', () => {

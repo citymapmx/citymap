@@ -53,7 +53,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
   // Las líneas del nombre se calculan con la misma función que usa el
   // exportador de canvas: el corte a 2 líneas es idéntico en ambos.
   const layout = computeShareCardLayout(data, format, true, style.id);
-  // La foto se pide ancha (1600w por el bucket de getThumbUrl) para que
+  // La foto se pide ancha (1200w por el bucket de getThumbUrl) para que
   // salga nítida en la exportación a 1080 px.
   const photoSrc = data?.photoUrl ? getThumbUrl(data.photoUrl, 1080) : null;
   const gSize = Math.round(L.pillSize * 0.85);
