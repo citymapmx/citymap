@@ -2,6 +2,45 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://dpkjxhjkzdlkvyotoeai.supabase.co';
+const ADMIN_EMAIL = 'admin@cityguide.com';
+// Tras el pago solo se regresa a estos orígenes. Cualquier otro
+// host_url del cliente cae a citymap.mx (sin open redirect).
+const ALLOWED_HOSTS = ['https://citymap.mx', 'https://citymap.world'];
+
+// Regla de admin (misma que la PR #425): app_metadata.isAdmin, o correo
+// en ADMIN_EMAILS (env, separado por comas), o admin@cityguide.com.
+// user_metadata NUNCA autoriza: la edita el propio usuario.
+function isAdminUser(user) {
+  if (user?.app_metadata?.isAdmin === true) return true;
+  if (typeof user?.email !== 'string') return false;
+  const email = user.email.toLowerCase();
+  if (email === ADMIN_EMAIL) return true;
+  const adminEmails = (process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return adminEmails.includes(email);
+}
+
+// Verifica el JWT del llamador contra Supabase Auth.
+// Devuelve { ok: true, user } o { ok: false, status }.
+async function verifyCaller(req) {
+  const auth = req.headers?.authorization || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (!token) return { ok: false, status: 401 };
+  const apiKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  if (!apiKey) return { ok: false, status: 500 };
+  try {
+    const supabase = createClient(SUPABASE_URL, apiKey);
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user?.id) return { ok: false, status: 401 };
+    return { ok: true, user: data.user };
+  } catch {
+    return { ok: false, status: 401 };
+  }
+}
+
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -21,9 +60,53 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  // Auth: solo el dueño del negocio (o un admin) puede crear el checkout.
+  // Sin JWT válido no hay pago: antes cualquiera podía crear un checkout
+  // para cualquier negocio con cualquier user_id.
+  const caller = await verifyCaller(req);
+  if (!caller.ok) {
+    return res.status(caller.status).json({
+      error: caller.status === 500
+        ? 'Falta configurar la llave de Supabase en Vercel'
+        : 'Unauthorized',
+    });
+  }
+  const user = caller.user;
+
   try {
-    const { biz_id, plan_id, interval, user_id, host_url, currency: clientCurrency } = req.body;
+    const { biz_id, plan_id, interval, host_url, currency: clientCurrency } = req.body;
     const currency = (clientCurrency || 'mxn').toLowerCase();
+
+    if (!biz_id) {
+      return res.status(400).json({ error: 'Falta biz_id' });
+    }
+
+    // El regreso tras el pago solo acepta orígenes conocidos.
+    const host = ALLOWED_HOSTS.includes(host_url) ? host_url : 'https://citymap.mx';
+
+    // Propiedad del negocio (fallo cerrado: sin service key o sin poder
+    // leer el negocio, no se crea el checkout). La misma lectura sirve
+    // para el chequeo anti-trial de abajo.
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) {
+      return res.status(500).json({ error: 'Falta configurar SUPABASE_SERVICE_ROLE_KEY en Vercel' });
+    }
+    const supabase = createClient(SUPABASE_URL, serviceRoleKey);
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('owner_id,stripe_customer_id,stripe_subscription_id')
+      .eq('id', biz_id)
+      .maybeSingle();
+    if (businessError) {
+      console.error('Stripe Checkout business lookup failed:', businessError.message);
+      return res.status(500).json({ error: 'No se pudo verificar el negocio' });
+    }
+    if (!business) {
+      return res.status(404).json({ error: 'Negocio no encontrado' });
+    }
+    if (business.owner_id !== user.id && !isAdminUser(user)) {
+      return res.status(403).json({ error: 'Forbidden: solo el dueño del negocio puede pagar su plan' });
+    }
 
     // Configurar precios (price_data en línea, como siempre: no hay Price
     // IDs guardados en el Dashboard). Fideliza se suma como una rama más.
@@ -77,24 +160,10 @@ export default async function handler(req, res) {
     // (tiene stripe_customer_id o stripe_subscription_id en la base),
     // no se le vuelve a dar prueba. El webhook escribe esos IDs al
     // completarse el primer checkout, así que la marca ya existe sin
-    // necesidad de una columna nueva. Si la lectura falla o no hay
-    // negocio que leer, se permite la prueba (no bloquear una primera
-    // compra por un error de lectura).
+    // necesidad de una columna nueva.
     let trialDays = ['pro', 'elite', 'fideliza'].includes(plan_id) ? 7 : 0;
-    if (trialDays && biz_id && process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-        const { data, error } = await supabase
-          .from('businesses')
-          .select('stripe_customer_id,stripe_subscription_id')
-          .eq('id', biz_id)
-          .maybeSingle();
-        if (!error && data && (data.stripe_customer_id || data.stripe_subscription_id)) {
-          trialDays = 0;
-        }
-      } catch (e) {
-        console.error("Stripe Checkout anti-trial check failed, allowing trial:", e?.message || e);
-      }
+    if (trialDays && (business.stripe_customer_id || business.stripe_subscription_id)) {
+      trialDays = 0;
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -118,11 +187,13 @@ export default async function handler(req, res) {
       ],
       mode: 'subscription',
       ...(trialDays ? { subscription_data: { trial_period_days: trialDays } } : {}),
-      success_url: `${host_url}/cuenta?success=true&session_id={CHECKOUT_SESSION_ID}${trialDays ? '&trial=1' : ''}`,
-      cancel_url: `${host_url}/precios?canceled=true`,
+      success_url: `${host}/cuenta?success=true&session_id={CHECKOUT_SESSION_ID}${trialDays ? '&trial=1' : ''}`,
+      cancel_url: `${host}/precios?canceled=true`,
       client_reference_id: biz_id, // Para saber a qué negocio aplicar el plan
       metadata: {
-        user_id: user_id,
+        // El user_id verificado, no el del cuerpo: es lo que lee el
+        // webhook para aplicar el plan, y ahora es confiable.
+        user_id: user.id,
         plan_tier: plan_id
       },
     });

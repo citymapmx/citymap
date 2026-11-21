@@ -7,6 +7,7 @@ import { getCountryCode } from "../lib/domain.js";
 import { isTrialSelection } from "../lib/plans.js";
 import { getBusinessPricing, buildBusinessPlans } from "../lib/businessPlans.js";
 import { useTranslation } from "../hooks/useTranslation.js";
+import { sb } from "../lib/supabase.js";
 
 // Modal de pago de un plan (Stripe): era el modal de PlansPage («ver
 // planes»). Al eliminar PlansPage (10 nov 2026: /negocios pasa a ser LA
@@ -97,12 +98,17 @@ export default function PlanPaymentModal({ myBizList, onStartPaidPlan, pendingPl
 
                     const res = await fetch(apiUrl, {
                       method: "POST",
-                      headers: { "Content-Type": "application/json" },
+                      headers: {
+                        "Content-Type": "application/json",
+                        // El checkout exige JWT: solo el dueño del negocio
+                        // (o un admin) puede crear el pago.
+                        Authorization: `Bearer ${sb._token || localStorage.getItem("cg_t") || ""}`,
+                      },
                       body: JSON.stringify({
                         biz_id: bizId,
                         plan_id: selectedPlan.plan.key, // 'pro', 'elite' o 'fideliza'
                         interval: selectedPlan.billing === "monthly" ? "month" : "year",
-                        host_url: 'https://citymap.mx',
+                        host_url: window.location.origin,
                         currency: pricing.currency
                       })
                     });

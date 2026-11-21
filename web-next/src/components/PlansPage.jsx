@@ -7,6 +7,7 @@ import FeaturedCard from "./cards/FeaturedCard.jsx";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
 import { getCountryCode } from "../lib/domain.js";
+import { sb } from "../lib/supabase.js";
 
 export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
   const activeCity = useUIStore(s => s.activeCity);
@@ -317,12 +318,17 @@ export default function PlansPage({ myBizList, onAddBiz, T, dark, onClose }) {
 
                     const res = await fetch(apiUrl, {
                       method: "POST",
-                      headers: { "Content-Type": "application/json" },
+                      headers: {
+                        "Content-Type": "application/json",
+                        // El checkout exige JWT: solo el dueño del negocio
+                        // (o un admin) puede crear el pago.
+                        Authorization: `Bearer ${sb._token || localStorage.getItem("cg_t") || ""}`,
+                      },
                       body: JSON.stringify({
                         biz_id: biz_id,
                         plan_id: selectedPlan.plan.key, // 'pro' o 'elite'
                         interval: selectedPlan.billing === "monthly" ? "month" : "year",
-                        host_url: 'https://citymap.mx',
+                        host_url: window.location.origin,
                         currency: pricing.currency
                       })
                     });
