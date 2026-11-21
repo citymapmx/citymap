@@ -34,6 +34,7 @@ import { searchMatches } from './lib/utils.js';
 import { prefetchLoyaltyEntries, clearPrefetchedLoyaltyEntries } from './lib/loyaltyMemberships.js';
 import { SPRING_UI } from './lib/spring.js';
 import { IS_WORLD, buildCityPath, buildBizUrl } from './lib/domain.js';
+import { crossDomainCityUrl } from './lib/seoRoutes.js';
 import { sectionPathForCity, isSectionCityPath } from './lib/sectionRouting.js';
 import { isRevistaArticlePath } from './lib/revistaRoute.js';
 import { eventUrl, resolveEventSlug } from './lib/eventUrls.js';
@@ -244,6 +245,17 @@ export default function CityGuide() {
 
 
   useEffect(() => {
+    // La ciudad de la URL vive en el otro dominio: saltar a su canónica.
+    // El middleware ya redirige, pero el Service Worker sirve la
+    // navegación desde caché y el 308 no llega a dispararse (21 nov 2026:
+    // /us/los-angeles se quedaba en .mx con el muro vacío). El salto es a
+    // otro origen, así que el SW no lo intercepta. Va primero, antes de
+    // cargar datos de la ciudad equivocada.
+    const canonical = crossDomainCityUrl(window.location.pathname, IS_WORLD, window.location.search);
+    if (canonical) {
+      window.location.href = canonical;
+      return;
+    }
     if (initialParams.current.citySlug && initialParams.current.citySlug !== activeCity) {
       // La ciudad por defecto no se persiste: si se guardara como
       // "guadalajara", la entrada rápida y la "Segunda entrada" del
@@ -818,6 +830,14 @@ useEffect(() => {
     else if (v.startsWith("plan_")) path = `/plan/${v.replace("plan_", "")}`;
     else if (v.startsWith("manage/")) path = `/${v}`;
     else if (v.startsWith("/")) {
+      // La ruta es la página de una ciudad de otro dominio: salto completo
+      // a su canónica (el SW no intercepta el cambio de origen). Sin esto,
+      // navegar a /los-angeles en .mx dejaba la ciudad extranjera en .mx.
+      const canonical = crossDomainCityUrl(v, IS_WORLD);
+      if (canonical) {
+        window.location.href = canonical;
+        return;
+      }
       path = v;
       // Si la ruta es la página principal de una ciudad conocida, cambiar
       // también la ciudad activa: sin esto la URL cambia pero HomeView sigue

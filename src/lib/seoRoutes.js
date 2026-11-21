@@ -102,3 +102,27 @@ export function citySlugFromPath(pathname, isWorld = false) {
   if (SYSTEM_FIRST_SEGMENTS.has(first)) return '';
   return normalizeCitySlug(first);
 }
+
+// URL canónica de la ciudad de esta ruta cuando vive en el OTRO dominio,
+// o null si ya está en su dominio. Es el espejo en el cliente de la
+// redirección del middleware (21 nov 2026, PR #418): el Service Worker
+// sirve las navegaciones desde caché (navigateFallback a index.html) y la
+// petición nunca llega a la red, así que el 308 del servidor no dispara
+// para quien ya tiene la app instalada. La app misma debe saltar.
+// Solo rutas de ciudad (/:ciudad[/...]); los enlaces profundos (evento,
+// revista, mapa…) los resuelve la SPA y no se tocan. new-york no está en
+// WORLD_CITIES (vive en .mx por omisión): se deja como está, igual que el
+// middleware.
+export function crossDomainCityUrl(pathname, isWorld, search = '') {
+  const parts = seoSegments(pathname || '', isWorld);
+  if (parts.length === 0) return null;
+  const city = normalizeCitySlug(parts[0]);
+  if (SYSTEM_FIRST_SEGMENTS.has(city)) return null;
+  const rest = [city, ...parts.slice(1)].join('/');
+  if (isWorldCitySlug(city)) {
+    if (isWorld) return null;
+    return `https://www.citymap.world/${worldCityCountry(city)}/${rest}${search || ''}`;
+  }
+  if (isWorld) return `https://citymap.mx/${rest}${search || ''}`;
+  return null;
+}

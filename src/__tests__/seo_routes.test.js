@@ -4,7 +4,7 @@ import sitemap from '../../api/sitemap.xml.js';
 import robots from '../../api/robots.txt.js';
 import middleware from '../../middleware.js';
 import og from '../../api/og.js';
-import { citySlugFromPath } from '../lib/seoRoutes.js';
+import { citySlugFromPath, crossDomainCityUrl } from '../lib/seoRoutes.js';
 import { parseSegments } from '../lib/domain.js';
 
 const cities = [
@@ -204,5 +204,38 @@ describe('parseSegments', () => {
     expect(parseSegments(['us']).segments).toEqual([]);
     expect(parseSegments(['tepic']).segments).toEqual(['tepic']);
     expect(parseSegments([]).segments).toEqual([]);
+  });
+});
+
+describe('crossDomainCityUrl', () => {
+  // 21 nov 2026 (PR #418): el Service Worker sirve las navegaciones desde
+  // caché y el 308 del middleware no dispara; la app misma debe saltar a la
+  // canónica. Espejo en el cliente de la redirección del middleware.
+  it('en .mx salta a .world con la ciudad internacional', () => {
+    expect(crossDomainCityUrl('/us/los-angeles', false)).toBe('https://www.citymap.world/us/los-angeles');
+    expect(crossDomainCityUrl('/es/barcelona', false)).toBe('https://www.citymap.world/es/barcelona');
+    expect(crossDomainCityUrl('/los-angeles', false)).toBe('https://www.citymap.world/us/los-angeles');
+    expect(crossDomainCityUrl('/fr/paris/restaurantes', false)).toBe('https://www.citymap.world/fr/paris/restaurantes');
+  });
+
+  it('en .world salta a .mx con la ciudad mexicana', () => {
+    expect(crossDomainCityUrl('/guadalajara', true)).toBe('https://citymap.mx/guadalajara');
+    expect(crossDomainCityUrl('/mx/guadalajara', true)).toBe('https://citymap.mx/guadalajara');
+  });
+
+  it('no salta cuando la ciudad ya está en su dominio ni en rutas del sistema', () => {
+    expect(crossDomainCityUrl('/guadalajara', false)).toBeNull();
+    expect(crossDomainCityUrl('/us/los-angeles', true)).toBeNull();
+    expect(crossDomainCityUrl('/es/barcelona', true)).toBeNull();
+    expect(crossDomainCityUrl('/', false)).toBeNull();
+    expect(crossDomainCityUrl('/us', false)).toBeNull();
+    expect(crossDomainCityUrl('/tours', false)).toBeNull();
+    expect(crossDomainCityUrl('/evento/guadalajara/zz-top', false)).toBeNull();
+    expect(crossDomainCityUrl('/mapa/los-angeles', false)).toBeNull();
+    expect(crossDomainCityUrl('/revista/tepic', false)).toBeNull();
+  });
+
+  it('conserva el query string', () => {
+    expect(crossDomainCityUrl('/us/los-angeles', false, '?categoria=restaurantes')).toBe('https://www.citymap.world/us/los-angeles?categoria=restaurantes');
   });
 });
