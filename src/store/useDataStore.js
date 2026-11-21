@@ -455,17 +455,36 @@ export const useDataStore = create((set, get) => ({
       return inFlightLoadPromise;
     }
     inFlightCity = rawTarget;
+    // Ciudad en memoria: la de los datos que se ven ahora. NO leerla de
+    // localStorage: setActiveCity ya persistió la nueva antes de llamar a
+    // loadData, así que ahí siempre es igual al destino y la limpieza
+    // nunca corría (código muerto; hallazgo 3 de fluidez, nov 2026).
+    const prevCity = get().mapPinsCity || get().homeCoreCity || null;
     set({homeCoreCity:null,homeCoreError:false,homeSecondaryCity:null,homeSecondaryError:false,homeCacheAvailable:false});
+
+    // Al cambiar de ciudad, vaciar en memoria los datos de la anterior
+    // ANTES de restaurar la caché de la nueva: si no, la rueda y las
+    // secciones muestran los eventos de la ciudad anterior hasta que
+    // resuelve la red (~15 s). Con los arreglos vacíos y dbReady en
+    // false, las secciones muestran su esqueleto (decisión de Jonathan,
+    // 21 nov 2026: esqueleto vacío mientras carga). La caché de
+    // localStorage NO se toca: si la ciudad nueva tiene caché, la
+    // restauración de abajo la hidrata enseguida. También se invalidan
+    // los loaders en vuelo de la ciudad anterior (sus completados ven el
+    // contador cambiado y no publican nada) y se resetea mapPinsCity
+    // para que ni fetchSecondary ni los highlights viejos puedan
+    // publicar después de la limpieza.
+    if (rawTarget && prevCity && rawTarget !== prevCity) {
+      businessLoadId++;
+      cityPinsLoadId++;
+      timeBasedLoadId++;
+      set({ dbReady: false, events: [], experiences: [], banners: [], promos: [], coupons: [], mapPins: [], cityPins: [], cityPinsCity: null, mapPinsCity: null, timeBasedBiz: [], timeBasedBizCity: null, homeHighlights: [], highlightsCity: null, initialBizCount: null });
+    }
 
     // Instant synchronous cache restoration before any network call
     if (rawTarget) {
       const cacheKey = `cg_data_${rawTarget}_v5`;
-      const currentActiveCity = localStorage.getItem("cg_city_slug");
       let foundCache = false;
-
-      if (cityOverride && currentActiveCity && cityOverride !== currentActiveCity) {
-        set({ dbReady: false, events: [], experiences: [], banners: [], promos: [], coupons: [], mapPins: [] });
-      }
 
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
@@ -729,6 +748,11 @@ export const useDataStore = create((set, get) => ({
         updateMetroZones(ci);
       }
 
+      // Una carga anterior (otra ciudad) que resuelva tarde no pisa lo
+      // de la ciudad actual: sus banners y categorías son de la ciudad
+      // vieja. mapPinsCity lo fija loadMapPins al arrancar la carga
+      // vigente, así que si ya no coincide, esta carga quedó obsoleta.
+      if (get().mapPinsCity !== targetCity) return;
       set(stateUpdates);
 
       // Solo se guarda lo que llegó bien: un fetch fallido (null) no pisa
