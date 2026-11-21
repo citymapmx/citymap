@@ -18,7 +18,6 @@ import { CoverflowSk } from '../components/ui/Skeleton.jsx';
 import StoryStrip from '../components/home/StoryStrip.jsx';
 import TravelAffiliateRow from '../components/home/TravelAffiliateRow.jsx';
 import Footer from '../components/Footer.jsx';
-import AppDownloadBadges from '../components/AppDownloadBadges.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { localizedTitle } from '../lib/i18nContent.js';
 import { IS_WORLD, hostIncludesCity, hostIncludesCityList, currencyForCity, currencyForCountryCode } from '../lib/domain.js';
@@ -797,10 +796,6 @@ export default function GlobalHomeView() {
             )}
           </>
         )}
-      </div>
-      {/* Descarga la app */}
-      <div style={{ padding: '28px 20px 0', display: 'flex', justifyContent: 'center' }}>
-        <AppDownloadBadges />
       </div>
       <Footer />
     </div>
