@@ -70,6 +70,14 @@ if (isAdminRoute) {
             console.log('[SW] Update available, will activate on next visit.');
           },
           onRegistered(r) {
+            // Revisar si hay versión nueva en cuanto arranca (no solo cada
+            // hora): después de un despliegue, el teléfono trae la versión
+            // nueva en la siguiente apertura en vez de seguir hasta una
+            // hora con el JS viejo. Solo comprueba, no recarga: la
+            // actualización se aplica sola en la siguiente visita
+            // (skipWaiting + clientsClaim) y forzar una recarga aquí
+            // causaría el bucle de la #229.
+            r && r.update().catch(() => {});
             r && setInterval(() => { r.update(); }, 60 * 60 * 1000);
           },
           onRegisterError(error) { console.error('SW registration error', error); }
