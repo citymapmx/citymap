@@ -429,7 +429,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   if (n <= WHEEL_ROW_MAX_EVENTS) {
     const single = n === 1;
     return (
-      <section style={{ marginBottom: 32 }}>
+      <section style={{ marginBottom: 16 }}>
         {header}
         <div className="event-wheel-row scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', margin: '0 -20px', padding: '0 20px 16px', justifyContent: single ? 'center' : undefined }}>
           {items.map((item) => (

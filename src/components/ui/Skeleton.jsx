@@ -117,13 +117,13 @@ export function EventSk({ dark }) {
 // de dos líneas y pie con subtítulo): al llegar los eventos la sección se
 // encogía 77 px y todo lo de abajo saltaba (CLS 0.129 + 0.076 en Lighthouse).
 export function CoverflowSk({ dark }) {
-  // Misma geometría que EventWheel3D (encabezado + tambor + pie + 32 px
+  // Misma geometría que EventWheel3D (encabezado + tambor + pie + 16 px
   // abajo): si el esqueleto mide distinto que la rueda, la página salta al
   // llegar los eventos. El tambor cambia con el mismo punto de corte que
   // EventWheel3D.css (max-width:640px): 306 px en escritorio, 262 px en
   // el teléfono.
   return (
-    <div style={{ margin: '0 0 32px' }}>
+    <div style={{ margin: '0 0 16px' }}>
       <style>{`
         .coverflow-sk-drum { height: 306px; }
         @media (max-width: 640px) {

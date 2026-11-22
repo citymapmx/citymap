@@ -6,7 +6,7 @@ export default memo(function SquareCarousel({ title, list, handleCardTap, getThu
   const isSingle = list.length === 1;
 
   return (
-    <div style={{ padding: "24px 0 0" }}>
+    <div style={{ padding: "12px 0 0" }}>
       <div style={{ padding: "0 20px", marginBottom: 12 }}>
         <h2 style={{ fontFamily: "var(--heading)", fontWeight: 900, fontSize: 22, color: T.text, letterSpacing: "-0.5px", textAlign: "center", margin: 0, textTransform: "uppercase" }}>{title}</h2>
       </div>
