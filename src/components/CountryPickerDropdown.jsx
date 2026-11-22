@@ -1,8 +1,9 @@
 import {useDataStore} from '../store/useDataStore.js';
 import {getT} from '../lib/constants.js';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import Icon from './ui/Icon.jsx';
+import { useTypewriter, TYPEWRITER_CARET_STYLE } from '../lib/useTypewriter.js';
 import { COUNTRY_NAMES, COUNTRY_FLAGS, citySelectionTarget } from '../lib/domain.js';
 import { fuzzyMatch } from '../lib/utils.js';
 import { safeAreaTop } from '../lib/safeArea.js';
@@ -14,10 +15,24 @@ const FLAG_MAP = Object.fromEntries(
 export default function CountryPickerDropdown({ show, cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark, isWelcome, onGoToWall }) {
   const T = getT(dark);
   const [searchQuery, setSearchQuery] = useState('');
+  const [focusedPlaceholder, setFocusedPlaceholder] = useState(null);
   const [expandedCountry, setExpandedCountry] = useState(null);
   const [expandedStates, setExpandedStates] = useState({});
   const [cityCounts, setCityCounts] = useState({});
   const ref = useRef(null);
+
+  // Máquina de escribir (22 nov 2026): el buscador de ciudad escribe los
+  // nombres de TODAS las ciudades registradas, en el mismo orden en que
+  // se muestran (por cantidad de negocios), con el mismo efecto del
+  // buscador del inicio. Si aún no hay ciudades, la frase fija de siempre.
+  const cityPhrases = useMemo(() => {
+    const ordered = [...(cities || [])]
+      .map(c => ({ ...c, count: cityCounts[c.slug] || 0 }))
+      .sort((a, b) => b.count - a.count);
+    const phrases = ordered.map(c => `Buscar ${c.name}...`);
+    return phrases.length ? phrases : ['Buscar ciudad...'];
+  }, [cities, cityCounts]);
+  const animatedHint = useTypewriter(cityPhrases);
 
   useEffect(()=>{
     if(show) void useDataStore.getState().refreshCities();
@@ -247,19 +262,30 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
 
         <div style={{ flex: isWelcome ? "0 0 auto" : 1, minHeight: 0, overflowY: isWelcome ? "visible" : "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", padding: isWelcome ? 0 : "16px 0" }}>
 
-          {/* Search */}
+          {/* Search: la frase animada es un texto encima del input (mismo
+          patrón que el buscador del inicio): el placeholder nativo queda
+          vacío para que no se duplique el texto, y al escribir se esconde
+          la animación. Al enfocar, la frase se congela. */}
           <div style={{ padding: "0 16px 12px 16px" }}>
-            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-              <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", display: "flex", alignItems: "center" }}>
+            <style>{TYPEWRITER_CARET_STYLE}</style>
+            <div style={{ position: "relative", display: "grid" }}>
+              <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", display: "flex", alignItems: "center", zIndex: 5 }}>
                 <Icon name="search" size={15} color={dark ? "#A1A1AA" : "#64748b"} />
               </span>
               <input
                 type="text"
-                placeholder="Buscar ciudad..."
+                placeholder=""
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10, border: "none", background: dark ? "#2D2D31" : "#F1F5F9", color: T.text, fontSize: 14, outline: "none", fontFamily: "inherit", caretColor: T.text }}
+                onFocus={() => setFocusedPlaceholder(animatedHint)}
+                onBlur={() => setFocusedPlaceholder(null)}
+                style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10, border: "none", background: dark ? "#2D2D31" : "#F1F5F9", color: T.text, fontSize: 14, outline: "none", fontFamily: "inherit", caretColor: T.text, gridArea: "1 / 1" }}
               />
+              {!searchQuery && (
+                <span aria-hidden="true" style={{ gridArea: "1 / 1", alignSelf: "center", minWidth: 0, maxWidth: "100%", padding: "10px 12px 10px 34px", zIndex: 4, pointerEvents: "none", fontSize: 14, fontWeight: 400, lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textAlign: "left", color: dark ? "#A1A1AA" : "#64748b" }}>
+                  {focusedPlaceholder ?? animatedHint}<span className="typewriter-caret" aria-hidden="true">▏</span>
+                </span>
+              )}
             </div>
           </div>
 
