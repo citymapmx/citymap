@@ -53,14 +53,6 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/",
-      "destination": "/web-next/"
-    },
-    {
-      "source": "/evento/:slug",
-      "destination": "/web-next/evento/:slug"
-    },
-    {
       "source": "/revista/:city/:slug",
       "destination": "/index.html"
     },
@@ -84,35 +76,7 @@
       "source": "/:vite_route(favoritos|cuenta|lealtad|wallet|mis-planes|revista|experiencias|explorar|eventos|mapa|precios|admin|manage|stats|itinerarios|about|privacy|terms|lugar|evento|login)/(.*)",
       "destination": "/index.html"
     },
-    {
-      "source": "/:city",
-      "destination": "/web-next/:city"
-    },
-    {
-      "source": "/:country([a-z]{2})/:city",
-      "destination": "/web-next/:city"
-    },
-    {
-      "source": "/:city/c/:category(restaurantes|cafeterias|cafe|cafeteria|salud|belleza|fitness|gimnasios|compras|tiendas|tech|ocio|hoteles|hospedaje|educacion|servicios|bares|antros-y-bares)",
-      "destination": "/web-next/:city/c/:category"
-    },
-    {
-      "source": "/:city/:slug",
-      "destination": "/web-next/:city/:slug"
-    },
-    {
-      "source": "/:country([a-z]{2})/:city/:slug",
-      "destination": "/web-next/:city/:slug"
-    },
-    {
-      "source": "/:city/:slug/menu",
-      "destination": "/web-next/:city/:slug/menu"
-    },
-    {
-      "source": "/:country([a-z]{2})/:city/:slug/menu",
-      "destination": "/web-next/:city/:slug/menu"
-    },
-    {
+{
       "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }

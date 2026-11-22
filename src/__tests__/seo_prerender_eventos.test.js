@@ -151,7 +151,8 @@ describe('og home: eventos próximos + enlaces a ciudades', () => {
     expect(html).not.toContain('Festival Largo Terminado');
     expect(html).not.toContain('Evento Privado');
     // Título/descripción genéricos y JSON-LD WebSite+Organization+SoftwareApplication.
-    expect(html).toContain('CityMap México — Descubre tu ciudad');
+    // El título es el del módulo único (seoRoutes.js): el mismo que la SPA.
+    expect(html).toContain('CityMap — Descubre negocios, lugares y eventos de todas las ciudades');
     const nodes = ldScripts(html)[0];
     expect(nodes['@graph'].map(n => n['@type'])).toEqual(['WebSite', 'Organization', 'SoftwareApplication']);
     const app = nodes['@graph'].find((n) => n['@type'] === 'SoftwareApplication');

@@ -46,8 +46,12 @@ export function tourDurationLabel(tour) {
 }
 
 // URL del artículo del tour en la Revista (igual que las tarjetas del muro).
+// UNA sola URL por tour (C4, 21 nov 2026): el slug DE BASE, el mismo que
+// emiten el sitemap, og.js y ExperienceViewer. Si el tour no trae slug
+// (objeto parcial), se cae al slug del título como antes.
 export function tourCardUrl(tour) {
-  return `/revista/${tour?.city_slug || ''}/${createSlug(tour?.title || '')}`;
+  const slug = tour?.slug || createSlug(tour?.title || '');
+  return `/revista/${tour?.city_slug || ''}/${slug}`;
 }
 
 // ¿El tour tiene enlace de reserva externo (Civitatis, Viator, GetYourGuide…)?

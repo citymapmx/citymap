@@ -1,4 +1,4 @@
-import { seoSite, normalizeCitySlug, legacyCitySlug, isWorldCitySlug } from '../src/lib/seoRoutes.js';
+import { seoSite, normalizeCitySlug, legacyCitySlug, isWorldCitySlug, cityPageTitle, cityPageDescription, homePageTitle, homePageDescription } from '../src/lib/seoRoutes.js';
 import { currencyForCountryCode } from '../src/lib/domain.js';
 import { tourSchemaNodes } from '../src/lib/tourSchema.js';
 import { eventUrl, resolveEventSlug } from '../src/lib/eventUrls.js';
@@ -125,7 +125,7 @@ async function getCityData(citySlug) {
     const normalized = normalizeCitySlug(citySlug);
     const variants = [...new Set([citySlug, normalized, legacyCitySlug(normalized)].filter(Boolean))];
     const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/cities?slug=in.(${variants.join(',')})&select=country_code,bg_image`,
+      `${SUPABASE_URL}/rest/v1/cities?slug=in.(${variants.join(',')})&select=country_code,bg_image,name`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
     );
     if (!r.ok) return { country_code: "mx", bg_image: null };
@@ -133,6 +133,7 @@ async function getCityData(citySlug) {
     return {
       country_code: d?.[0]?.country_code || "mx",
       bg_image: d?.[0]?.bg_image || null,
+      name: d?.[0]?.name || null,
       exists: Boolean(d?.[0])
     };
   } catch {
@@ -493,7 +494,7 @@ async function getExp(id, city) {
     
     if (isUUID) {
       const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/experiences?id=eq.${id}&select=id,title,description,gallery,city_slug,activity_type,price,duration,booking_config`,
+        `${SUPABASE_URL}/rest/v1/experiences?id=eq.${id}&select=id,slug,title,description,gallery,city_slug,activity_type,price,duration,booking_config`,
         { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
       );
       if (!r.ok) return null;
@@ -502,7 +503,7 @@ async function getExp(id, city) {
     }
     
     let r = await fetch(
-      `${SUPABASE_URL}/rest/v1/experiences?slug=ilike.*${encodeURIComponent(id)}*&select=id,title,description,gallery,city_slug,activity_type,price,duration,booking_config&limit=1`,
+      `${SUPABASE_URL}/rest/v1/experiences?slug=ilike.*${encodeURIComponent(id)}*&select=id,slug,title,description,gallery,city_slug,activity_type,price,duration,booking_config&limit=1`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
     );
     if (r.ok) {
@@ -512,7 +513,7 @@ async function getExp(id, city) {
     
     const searchName = id.replace(/-/g, '%25');
     r = await fetch(
-      `${SUPABASE_URL}/rest/v1/experiences?title=ilike.*${searchName}*&select=id,title,description,gallery,city_slug,activity_type,price,duration,booking_config&limit=1`,
+      `${SUPABASE_URL}/rest/v1/experiences?title=ilike.*${searchName}*&select=id,slug,title,description,gallery,city_slug,activity_type,price,duration,booking_config&limit=1`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
     );
     if (r.ok) {
@@ -543,7 +544,7 @@ export default async function handler(req) {
   
   // Dynamic country extraction to set appropriate locales and paths
   const targetCitySlug = city || "";
-  const { country_code: countryCode, bg_image: cityBgImage, exists: cityExists } = await getCityData(targetCitySlug);
+  const { country_code: countryCode, bg_image: cityBgImage, exists: cityExists, name: cityDisplayName } = await getCityData(targetCitySlug);
   if (city && cityExists === false && !id && !evId && !expId && !vista) {
     return new Response('<!doctype html><html lang="es"><title>Ciudad no encontrada | CityMap</title><h1>Ciudad no encontrada</h1></html>', {
       status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex' }
@@ -564,8 +565,8 @@ export default async function handler(req) {
 
   // No ID and no other parameters -> Serve Home page HTML to bots
   if (!id && !evId && !expId && !vista && !city) {
-    const title = `${SITE_NAME} — Descubre tu ciudad`;
-    const desc = "Explora negocios locales, lugares de interés y eventos exclusivos. Encuentra lo mejor cerca de ti en un solo lugar.";
+    const title = homePageTitle();
+    const desc = homePageDescription(isWorld);
     const img = `${BASE_URL}/og-image.png`;
     // Mismo grafo WebSite + Organization que index.html, pero con las
     // URLs del host que sirve la página (en .world no apunta a .mx).
@@ -652,9 +653,13 @@ ${homeCityLinks}
 
   // --- RESPUESTA PARA CIUDAD ---
   if (city && !id && !evId && !expId && !vista) {
-    const cityName = city.charAt(0).toUpperCase() + city.slice(1).replace("-", " ");
-    const title = `${SITE_NAME} ${cityName} — La guía de tu ciudad`;
-    const desc = `Encuentra los mejores restaurantes, servicios y eventos en ${cityName}. Explora lugares increíbles cerca de ti.`;
+    // Nombre real de la base cuando existe (p. ej. «San Pedro Garza
+    // García»); si no, el slug con guiones como espacios. El título y la
+    // descripción son los del módulo único (seoRoutes.js): los mismos
+    // que ve el usuario en la SPA.
+    const cityName = cityDisplayName || (city.charAt(0).toUpperCase() + city.slice(1).replace(/-/g, " "));
+    const title = cityPageTitle(cityName);
+    const desc = cityPageDescription(cityName);
     const img = cityBgImage || `${BASE_URL}/og-image.png`;
     const listing = await getListing(city, null, BASE_URL, cityPath);
     const eventsListing = await getEventsListing(city, BASE_URL);
@@ -1045,7 +1050,10 @@ ${bodyExtra}
     category = esc(exp.activity_type || "Revista");
     
     fullDesc = desc;
-    canonicalUrl = `${BASE_URL}/revista/${esc(city || 'todas')}/${esc(expId)}`;
+    // Canónica del tour con el slug DE BASE (el mismo que emiten el
+    // sitemap, ExperienceViewer y tourCardUrl): si se llegó por el slug
+    // del título o por UUID, la canónica es la del slug de base (C4).
+    canonicalUrl = `${BASE_URL}/revista/${esc(city || 'todas')}/${esc(exp.slug || expId)}`;
     url = canonicalUrl;
     linkHref = canonicalUrl;
   }
