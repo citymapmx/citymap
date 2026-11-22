@@ -39,6 +39,7 @@ import { sectionPathForCity, isSectionCityPath } from './lib/sectionRouting.js';
 import { isRevistaArticlePath } from './lib/revistaRoute.js';
 import { eventUrl, resolveEventSlug } from './lib/eventUrls.js';
 import { isStayOnInitialPath, resolveHomePath } from './lib/initialRoute.js';
+import { shouldReloadOnResume, claimResumeReload } from './lib/loadRecovery.js';
 import Icon from './components/ui/Icon.jsx';
 import BrandSplash from './components/ui/BrandSplash.jsx';
 
@@ -992,6 +993,29 @@ useEffect(() => {
     return () => window.removeEventListener('popstate', handlePopState);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Recuperación al reanudar tras horas en segundo plano (nov 2026,
+  // pantalla blanca en ficha): la ficha depende de `selected` /
+  // `selectedEvent` en memoria; si al volver la ruta es de detalle pero
+  // el seleccionado ya no está, la vista queda en blanco y nada la
+  // restaura (el resolver del arranque solo corre una vez). Recargar una
+  // vez, con guardia, vuelve a correr el arranque: la ficha se restaura
+  // desde la URL o cae en la lista. Invisible: sin botón ni mensaje, y
+  // solo dispara cuando la app ya está rota.
+  const resumeHiddenAtRef = useRef(null);
+  useEffect(() => {
+    const onVis = () => {
+      if (document.hidden) { resumeHiddenAtRef.current = Date.now(); return; }
+      if (resumeHiddenAtRef.current == null) return;
+      const hiddenMs = Date.now() - resumeHiddenAtRef.current;
+      resumeHiddenAtRef.current = null;
+      if (shouldReloadOnResume({ hiddenMs, pathname: window.location.pathname, hasSelected: !!selected, hasSelectedEvent: !!selectedEvent, isWorld: IS_WORLD })) {
+        if (claimResumeReload()) window.location.reload();
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [selected, selectedEvent]);
 
   // Nudge scroll to fix Virtuoso blank screen bug on iOS Safari when returning from detail view
   useEffect(() => {
