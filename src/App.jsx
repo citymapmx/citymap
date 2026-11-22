@@ -155,6 +155,7 @@ const isEventsRoute = (pathname) => {
 import { categoryFromUrl } from './lib/categoryRouting.js';
 import { rankTopRated } from './lib/googleRatings.js';
 import { shouldHoldSplashForSavedCity } from './lib/savedCityBoot.js';
+import { shouldSkipCityLoadOnRoot } from './lib/arranque.js';
 const NON_HOME_PREFIXES = ['/mapa', '/eventos', '/explorar', '/explorer', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login', '/reservar'];
 
 function isHomePath(pathname) {
@@ -262,7 +263,17 @@ export default function CityGuide() {
       // arranque leerían cg_city_slug y sacarían de "/" a esa ciudad en
       // la primera visita. En memoria sigue valiendo para cargar datos.
       setActiveCity(initialParams.current.citySlug, { persist: !initialParams.current.citySlugIsDefault });
-      loadData(initialParams.current.citySlug);
+      // A9 (21 nov 2026): en "/" sin ciudad guardada (ciudad por
+      // defecto) no se carga la ciudad entera: el muro global hace sus
+      // propias consultas y solo necesita `cities` del store, que ya
+      // cargó el efecto de arranque con refreshCities. Al elegir ciudad
+      // desde el muro, handleCitySelect llama a loadData. La excepción
+      // son los enlaces profundos, que sí necesitan los datos.
+      const p = initialParams.current;
+      const hasDeepLink = Boolean(p.b || p.ev || p.vista || p.cat || p.manage || p.planId || p.joinToken || p.expSlug);
+      if (!shouldSkipCityLoadOnRoot({ citySlugIsDefault: p.citySlugIsDefault, pathname: window.location.pathname, hasDeepLink })) {
+        loadData(initialParams.current.citySlug);
+      }
     }
     
     if (initialParams.current.cat && initialParams.current.cat !== activeCat) {

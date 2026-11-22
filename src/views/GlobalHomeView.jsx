@@ -24,6 +24,7 @@ import { IS_WORLD, hostIncludesCity, hostIncludesCityList, currencyForCity, curr
 import { eventCalendarDay, isEventToday, eventCityTimeZone } from '../lib/eventListing.js';
 import { isEventUpcoming } from '../lib/homeEventSelection.js';
 import { CITY_TZ } from '../lib/constants.js';
+import { readCachedPopCounts, savePopCounts, isPlainRootWithSavedCity } from '../lib/arranque.js';
 
 const BIZ_PAGE = 60;
 
@@ -215,16 +216,29 @@ export default function GlobalHomeView() {
         // Popularidad por ciudad: negocios + eventos registrados (conteos
         // exactos) de TODAS las ciudades, para ordenar «Explora por
         // ciudad» en los dos dominios.
+        // A11 (21 nov 2026): antes eran 80 HEAD en cada montaje del muro,
+        // sin caché. Ahora se guardan 6 h en localStorage (solo ordenan
+        // la lista) y ni se piden si la visita va a redirigir a la ciudad
+        // guardada: el muro se desmonta en milisegundos o queda tapado
+        // por el splash. Sin caché, se ordena por nombre.
         if (cityList.length > 0) {
-          Promise.all(cityList.map(async (c) => {
-            const [b, e] = await Promise.all([
-              sb.count('businesses', `?status=eq.approved&plan=neq.menu&city_slug=eq.${c.slug}`).catch(() => 0),
-              sb.count('events', `?status=eq.approved&city_slug=like.*${c.slug}*`).catch(() => 0),
-            ]);
-            return [c.slug, { biz: b, ev: e, total: b + e }];
-          })).then((entries) => {
-            if (!cancelled) setPopCounts(Object.fromEntries(entries));
-          });
+          const cachedCounts = readCachedPopCounts();
+          if (cachedCounts) {
+            if (!cancelled) setPopCounts(cachedCounts);
+          } else if (!isPlainRootWithSavedCity(window.location.pathname, window.location.search, window.location.hash, typeof localStorage !== 'undefined' ? localStorage.getItem('cg_city_slug') : null)) {
+            Promise.all(cityList.map(async (c) => {
+              const [b, e] = await Promise.all([
+                sb.count('businesses', `?status=eq.approved&plan=neq.menu&city_slug=eq.${c.slug}`).catch(() => 0),
+                sb.count('events', `?status=eq.approved&city_slug=like.*${c.slug}*`).catch(() => 0),
+              ]);
+              return [c.slug, { biz: b, ev: e, total: b + e }];
+            })).then((entries) => {
+              if (cancelled) return;
+              const counts = Object.fromEntries(entries);
+              setPopCounts(counts);
+              savePopCounts(counts);
+            });
+          }
         }
       } catch (e) {
         console.warn('Error cargando muro global', e);

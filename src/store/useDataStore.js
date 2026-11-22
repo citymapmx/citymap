@@ -71,29 +71,6 @@ const updateCityCache = (key, updates) => {
 };
 
 let businessLoadId = 0;
-let timeBasedLoadId = 0;
-let deferredTimeBasedHandle = null;
-
-// Diferir una tarea pesada hasta después del primer pintado (nov 2026,
-// arranque lento en la app iOS): requestIdleCallback la corre cuando el
-// hilo principal está inactivo — típicamente tras pintar — con un tope de
-// 3 s para que no se quede esperando si el hilo sigue ocupado. Sin
-// requestIdleCallback (WebView viejo, tests) cae a setTimeout 0: se corre
-// tras la tarea actual, fuera del camino crítico del arranque. Las
-// secciones por horario van abajo del primer pantallazo, así que llegar
-// hasta 3 s después no se nota.
-const deferAfterFirstPaint = (fn) => {
-  if (typeof window !== 'undefined' && window.requestIdleCallback) {
-    return window.requestIdleCallback(fn, { timeout: 3000 });
-  }
-  return setTimeout(fn, 0);
-};
-
-const cancelDeferredAfterFirstPaint = (handle) => {
-  if (handle == null) return;
-  if (typeof window !== 'undefined' && window.cancelIdleCallback) window.cancelIdleCallback(handle);
-  else clearTimeout(handle);
-};
 let cityPinsLoadId = 0;
 let cityPinsPromise = null;
 let cityPinsPromiseCity = null;
@@ -289,7 +266,12 @@ export const useDataStore = create((set, get) => ({
           offset += pageSize;
         }
         if (requestId !== cityPinsLoadId || get().cityPinsCity !== targetCity) return;
-        set({ cityPins: all.map(b => ({ ...b, schedule: get().parseJSON(b.schedule), photos: get().parseJSON(b.photos) })), cityPinsCity: targetCity });
+        const pins = all.map(b => ({ ...b, schedule: get().parseJSON(b.schedule), photos: get().parseJSON(b.photos) }));
+        // A12 (21 nov 2026): el pool por horario se deriva de aquí. Son
+        // las mismas filas (schedule, rating, review_count, plan, photos)
+        // que usaban las secciones; la tercera descarga (200 filas
+        // pesadas, que además truncaba Guadalajara) ya no existe.
+        set({ cityPins: pins, cityPinsCity: targetCity, timeBasedBiz: pins, timeBasedBizCity: targetCity });
       } catch (e) {
         console.warn("Error fetching city pins", e);
         // Si falló y nadie más pidió otra ciudad, limpiar para no
@@ -310,38 +292,22 @@ export const useDataStore = create((set, get) => ({
 
   // Pool para las listas por horario de la home ("Para iniciar el día",
   // "Hora de comer", "Para cerrar el día"): TODOS los negocios aprobados
-  // de la ciudad (límite 200; la ciudad más grande, Tepic, tiene ~118),
-  // sin ordenar por plan, para que restaurantes y cafeterías free,
-  // destacados y premium compitan en igualdad. loadMapPins solo trae los
-  // primeros 20 ordenados por plan, por eso antes solo salían premium.
+  // de la ciudad, sin ordenar por plan, para que restaurantes y cafeterías
+  // free, destacados y premium compitan en igualdad. loadMapPins solo
+  // trae los primeros 20 ordenados por plan, por eso antes solo salían
+  // premium.
+  // A12 (21 nov 2026): el pool ya NO se descarga aparte: se deriva de
+  // cityPins (la ciudad completa ligera que ya trae el mapa), que trae
+  // schedule, rating, review_count, plan y photos — lo que usan las
+  // secciones y el primer render de la ficha. Antes era una tercera
+  // descarga de los mismos negocios (200 filas pesadas con limit=200,
+  // que además truncaba Guadalajara). Si los pines aún no llegaron, se
+  // piden (loadCityPins) y el pool se deriva de ellos al resolver.
   loadTimeBasedBiz: async (targetCity) => {
     if (!targetCity) return;
-    const requestId = ++timeBasedLoadId;
-    set({ timeBasedBizCity: targetCity, timeBasedBiz: [] });
-    try {
-      let selectCols = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,facebook,instagram,social_links,hide_location,tags,badge,mercado_libre_url,mercado_libre_nickname,banner_url,is_catalog,booking_config";
-      const processBatch = (batch) => Array.isArray(batch) ? batch.map(b => ({
-        ...b,
-        schedule: get().parseJSON(b.schedule),
-        social_links: get().parseJSON(b.social_links),
-        photos: get().parseJSON(b.photos)
-      })) : [];
-
-      let rows;
-      try {
-        rows = await sb.get("businesses", `?select=${selectCols},subcategory&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=id.asc&limit=200`);
-      } catch (err) {
-        if (err?.message?.includes("subcategory") || err?.message?.includes("column")) {
-          rows = await sb.get("businesses", `?select=${selectCols}&status=eq.approved&plan=neq.menu&${getCityFilterEq(targetCity)}&order=id.asc&limit=200`);
-        } else {
-          throw err;
-        }
-      }
-      if (requestId !== timeBasedLoadId) return;
-      if (get().timeBasedBizCity !== targetCity) return;
-      set({ timeBasedBiz: processBatch(rows) });
-    } catch (e) {
-      console.warn("Error fetching time-based businesses", e);
+    await get().loadCityPins(targetCity);
+    if (get().cityPinsCity === targetCity) {
+      set({ timeBasedBiz: get().cityPins, timeBasedBizCity: targetCity });
     }
   },
 
@@ -477,7 +443,6 @@ export const useDataStore = create((set, get) => ({
     if (rawTarget && prevCity && rawTarget !== prevCity) {
       businessLoadId++;
       cityPinsLoadId++;
-      timeBasedLoadId++;
       set({ dbReady: false, events: [], experiences: [], banners: [], promos: [], coupons: [], mapPins: [], cityPins: [], cityPinsCity: null, mapPinsCity: null, timeBasedBiz: [], timeBasedBizCity: null, homeHighlights: [], highlightsCity: null, initialBizCount: null });
     }
 
@@ -554,7 +519,19 @@ export const useDataStore = create((set, get) => ({
         // vuelve a pedir con la zona ya poblada: el PR #166 introdujo
         // esa carrera (los 37 eventos de Zapopan faltaban en Guadalajara).
         const earlyZoneReady = earlyCity ? Boolean(METRO_ZONES[earlyCity]) : false;
-        const earlySecondary = earlyCity ? Promise.all([
+        // A10 (21 nov 2026): en arranque en frío las ciudades aún no se
+        // conocen y la zona tampoco; disparar el early fetch en paralelo
+        // sale estrecho y luego se repite con la zona (2 consultas de
+        // más: eventos y experiencias). En frío no se dispara en
+        // paralelo: fetchSecondary pide una sola vez, ya con la zona
+        // poblada por refreshCities. En caliente las ciudades vienen de
+        // la caché y el paralelo se mantiene (LCP de la rueda).
+        // `cities` no vacío = la restauración de caché ya corrió
+        // updateMetroZones, así que la zona es conocida (una ciudad sin
+        // zona simplemente no tiene entrada y el filtro estrecho es
+        // igual al ancho: no hay nada que repetir).
+        const citiesKnown = (get().cities?.length || 0) > 0;
+        const earlySecondary = (earlyCity && citiesKnown) ? Promise.all([
           sb.get("events", `?select=${EVENTS_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
           sb.get("experiences", `?select=${EXPERIENCES_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
         ]) : null;
@@ -573,22 +550,11 @@ export const useDataStore = create((set, get) => ({
         // pesada: así el mapa y «Lo más cerca de ti» ya tienen la ciudad
         // completa cuando el usuario los abre.
         get().loadCityPins(targetCity);
-        // La lista completa para las secciones por horario (200 filas
-        // pesadas) NO se pide en el arranque: se difiere hasta después
-        // del primer pintado, para que no compita en red ni en parseo
-        // JSON con lo que necesita el muro. HomeView usa mapPins
-        // mientras tanto y la sección se actualiza sola al llegar el
-        // pool. Si el usuario cambia de ciudad antes de que dispare,
-        // el diferido viejo se cancela y no se pide la ciudad anterior.
-        // (Las columnas no se recortan: la ficha usa el objeto de la
-        // lista en su primer render hasta que resuelve fullBusiness, y
-        // booking_config es obligatoria en todas las listas.)
-        cancelDeferredAfterFirstPaint(deferredTimeBasedHandle);
-        deferredTimeBasedHandle = deferAfterFirstPaint(() => {
-          deferredTimeBasedHandle = null;
-          if (get().mapPinsCity !== targetCity) return;
-          get().loadTimeBasedBiz(targetCity);
-        });
+        // El pool por horario ya no se pide aparte: se deriva de
+        // loadCityPins (arriba), que trae la ciudad completa ligera
+        // (A12). La ficha usa el objeto de la lista en su primer render
+        // hasta que resuelve fullBusiness, y booking_config es
+        // obligatoria en todas las listas (también va en cityPins).
       
       
       // Secondary fetches (Non-blocking)
