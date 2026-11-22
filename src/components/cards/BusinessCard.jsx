@@ -404,6 +404,7 @@ export default memo(function BusinessCard({
 
   // 4. FEATURED LAYOUT (Promotional dark style with social and rank overlays)
   if (variant === "featured") {
+    const scheduleRow = renderScheduleRow(b, T, t, forceOpen);
     return (
       <m.div 
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -476,12 +477,13 @@ export default memo(function BusinessCard({
               )}
             </h3>
             
-            {/* Fila inferior (15 nov 2026): con envoltura. En tarjetas
-            angostas (4 columnas en escritorio) la calificación + Abierto
-            + los 3 botones de redes + la distancia no cabían en una línea
-            y la foto recortaba los iconos y el «1.6 km» por la derecha.
-            Ahora los botones y la distancia bajan a una segunda línea
-            solo cuando hace falta; en tarjetas anchas no cambia nada. */}
+            {/* Fila inferior (15 nov 2026, distancia 22 nov 2026): con
+            envoltura. En tarjetas angostas (4 columnas en escritorio) la
+            calificación + Abierto + los 3 botones de redes + la distancia
+            no cabían en una línea y la foto recortaba los iconos y el
+            «1.6 km» por la derecha. Los botones bajan a una segunda línea
+            solo cuando hace falta; la distancia va pegada al horario
+            («Abierto · 11.0km») y baja con él, nunca sola (SSAM). */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", rowGap: 6 }}>
               {/* La calificación también envuelve (15 nov 2026): en Four
               Seasons la línea «★ 4.8 (3,766) · 45 · Abierto» se pasaba
@@ -514,10 +516,27 @@ export default memo(function BusinessCard({
                   )
                 )}
 
-                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>·</span>
-                  {renderScheduleRow(b, T, t, forceOpen)}
-                </span>
+                {/* Distancia pegada al horario: «Abierto · 11.0km» nunca
+                se separa — antes la distancia era el último hijo de la
+                fila y con 3 botones de redes caía sola a la segunda línea
+                (SSAM). El bloque baja entero si la línea no cabe; si no
+                hay horario, la distancia queda sola con su «·». */}
+                {(scheduleRow || distStr) && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0 }}>
+                    {scheduleRow && (
+                      <>
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>·</span>
+                        {scheduleRow}
+                      </>
+                    )}
+                    {distStr && (
+                      <>
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>·</span>
+                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>{distStr}</span>
+                      </>
+                    )}
+                  </span>
+                )}
               </div>
               
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}>
@@ -557,12 +576,6 @@ export default memo(function BusinessCard({
                   </button>
                 )}
               </div>
-              
-              {distStr && (
-                <div style={{ display: "flex", alignItems: "center", marginLeft: 6 }}>
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>{distStr}</span>
-                </div>
-              )}
             </div>
           </div>
         </div>
