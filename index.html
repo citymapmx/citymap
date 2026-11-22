@@ -15,6 +15,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://dpkjxhjkzdlkvyotoeai.supabase.co" crossorigin="anonymous" />
     <link rel="preconnect" href="https://accounts.google.com" crossorigin="anonymous" />
+    <!-- M18 (21 nov 2026): el mapa se precarga en segundo plano tras el
+         primer pintado (useGoogleMapsPreload); estos preconnects adelantan
+         la conexión con Google Maps para que esa descarga no pague el
+         apretón de manos. -->
+    <link rel="preconnect" href="https://maps.googleapis.com" />
+    <link rel="preconnect" href="https://maps.gstatic.com" crossorigin />
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Montserrat:wght@800&display=swap" as="style" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Montserrat:wght@800&display=swap" media="print" onload="this.media='all'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Montserrat:wght@800&display=swap" /></noscript>

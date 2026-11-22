@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { GMAPS_KEY } from "../../lib/supabase.js";
+import { ensureGoogleMapsScript } from "../../lib/googleMapsPreload.js";
 
  
 export default function useGMaps() {
@@ -9,14 +9,9 @@ export default function useGMaps() {
       setOk(true);
       return; 
     }
-    const s = document.getElementById("gms") || (() => { 
-      const el = document.createElement("script"); 
-      el.id = "gms"; 
-      el.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GMAPS_KEY}&libraries=places,marker&v=weekly`; 
-      el.async = true; 
-      document.head.appendChild(el); 
-      return el; 
-    })(); 
+    // El script es el mismo de la precarga (M18): si ya se creó en
+    // segundo plano, se reutiliza; si no, se crea aquí.
+    const s = ensureGoogleMapsScript();
     
     const onLoad = () => setOk(true);
     s.addEventListener("load", onLoad);

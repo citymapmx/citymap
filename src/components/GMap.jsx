@@ -2,7 +2,7 @@ import {useUIStore} from '../store/useUIStore.js';
 import React, { useState, useEffect, useRef } from "react";
 import MapCompass from "./map/MapCompass.jsx";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
-import { GMAPS_KEY } from "../lib/supabase.js";
+import { ensureGoogleMapsScript } from "../lib/googleMapsPreload.js";
 import { CAT_EMOJI, categoryEmoji, getThumbUrl, iconFile } from "../lib/utils.js";
 import { selectionZoom } from "../lib/mapCentering.js";
 import { createOverlayMarker } from "../lib/googleOverlayMarker.js";
@@ -15,14 +15,11 @@ export function useGMaps() {
       setOk(true);
       return; 
     }
-    const s = document.getElementById("gms") || (() => { 
-      const el = document.createElement("script"); 
-      el.id = "gms"; 
-      el.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&libraries=places`; 
-      el.async = true; 
-      document.head.appendChild(el); 
-      return el; 
-    })(); 
+    // El script es el mismo de la precarga (M18): si ya se creó en
+    // segundo plano, se reutiliza; si no, se crea aquí. La URL lleva
+    // `marker` y `v=weekly` (las necesita el mapa principal); la copia
+    // del admin solo pedía `places`, que va incluida.
+    const s = ensureGoogleMapsScript();
     
     const onLoad = () => setOk(true);
     s.addEventListener("load", onLoad);
