@@ -19,7 +19,7 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // - El popup del evento pedía getThumbUrl(img, 800) sin alto: el render
 //   servía 800×1000 px (75,3 KB medidos) para una caja de 280×373 CSS
 //   (~1:1 en DPR 3) → nítido. Por eso los eventos se ven bien.
-// - La ficha (DetailView) ya pedía 1200×900 → bucket 1600×1200; el render
+// - La ficha (DetailView) ya pedía 1200×900 → bucket 1200×900; el render
 //   la limitó a la fuente (1254×1200 medidos), suficiente para su banner
 //   de 390×220 CSS. No era la culpable en este negocio.
 //
