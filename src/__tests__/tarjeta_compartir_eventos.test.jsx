@@ -11,6 +11,7 @@ import {
 import {
   eventShareCardStyle,
   buildEventShareCardData,
+  formatEventShareCardPriceAmount,
   eventShareCardFileName,
   eventShareCardDateShort,
   eventShareCardDateRange,
@@ -173,7 +174,7 @@ describe('tarjeta para compartir el evento: datos reales', () => {
     expect(d.timeText).toBe('8:00 p. m.');
     expect(d.infoLines).toEqual([
       '📅 Lun, 2 Nov · 8:00 p. m.',
-      '📍 Fiestas de octubre',
+      '📍 Fiestas de octubre · Guadalajara',
     ]);
     // La URL que se comparte es la del detalle, /evento/:ciudad/:slug-corto.
     expect(d.shareUrl).toBe(
@@ -221,8 +222,42 @@ describe('tarjeta para compartir el evento: datos reales', () => {
     expect(d.photoUrl).toBeNull();
     expect(d.dateText).toBe('Sáb, 21 Nov');
     expect(d.timeText).toBe('');
-    expect(d.infoLines).toEqual(['📅 Sáb, 21 Nov', '📍 Auditorio SNTSS']);
+    expect(d.infoLines).toEqual(['📅 Sáb, 21 Nov', '📍 Auditorio SNTSS · Puerto Vallarta']);
     expect(d.subtitle).toContain('Exposición de tatuajes');
+  });
+
+  it('la línea de lugar muestra la ciudad junto al recinto, como las tarjetas de tours (22 nov 2026)', () => {
+    // Recinto + ciudad: los dos.
+    const conRecinto = buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' });
+    expect(conRecinto.infoLines).toContain('📍 Fiestas de octubre · Guadalajara');
+    // Sin recinto: solo la ciudad.
+    const sinRecinto = buildEventShareCardData(
+      { ...CONCIERTO, venue_name: '' },
+      { cityName: 'Guadalajara' },
+    );
+    expect(sinRecinto.infoLines).toContain('📍 Guadalajara');
+    // Sin ciudad: solo el recinto.
+    const sinCiudad = buildEventShareCardData(CONCIERTO, { cityName: '' });
+    expect(sinCiudad.infoLines).toContain('📍 Fiestas de octubre');
+    // Sin ninguno: no hay línea de lugar.
+    const sinLugar = buildEventShareCardData(
+      { ...CONCIERTO, venue_name: '' },
+      { cityName: '' },
+    );
+    expect(sinLugar.infoLines).toEqual(['📅 Lun, 2 Nov · 8:00 p. m.']);
+  });
+
+  it('precio con un solo decimal se completa a dos ($73.1 → $73.10); el resto tal cual (22 nov 2026)', () => {
+    expect(formatEventShareCardPriceAmount('$73.1 USD')).toBe('$73.10 USD');
+    expect(formatEventShareCardPriceAmount('$1,091.5 MXN')).toBe('$1,091.50 MXN');
+    expect(formatEventShareCardPriceAmount('$1,091 MXN')).toBe('$1,091 MXN');
+    expect(formatEventShareCardPriceAmount('$65.00 EUR')).toBe('$65.00 EUR');
+    expect(formatEventShareCardPriceAmount(null)).toBe('');
+    const d = buildEventShareCardData(
+      { ...CONCIERTO, price: '1091.5', price_type: 'paid' },
+      { cityName: 'Guadalajara' },
+    );
+    expect(d.priceText).toBe('Boletos desde $1091.50 MXN');
   });
 
   it('feria: rango de fechas «28 Nov – 6 Dic» y precio desde $30', () => {
@@ -388,8 +423,10 @@ describe('tarjeta para compartir el evento: la plantilla se renderiza (vista pre
     expect(html).toContain('Lun, 2 Nov');
     expect(html).toContain('Fiestas de octubre');
     expect(html).toContain('/logo-brand.png');
-    expect(html).toContain('Descubre más eventos en');
-    expect(html).toContain('www.citymap.mx');
+    // Pie con las 3 opciones en una fila (22 nov 2026).
+    expect(html).toContain('🌐 www.citymap.mx');
+    expect(html).toContain('/badges/app-store.svg');
+    expect(html).toContain('/badges/google-play.svg');
   });
 
   it('boleto: la tira del código de barras se renderiza con sus barras', () => {
@@ -606,10 +643,10 @@ describe('tarjeta para compartir el evento: cableado', () => {
     // En Oscura el logo va en blanco (brightness(0) invert(1)); en
     // Clara va en negro (brightness(0)) — ver el bloque de Clara abajo.
     expect(template).toContain('brightness(0) invert(1)');
-    // El pie nuevo «Descubre más eventos en www.citymap.mx» (el JSX lo
-    // parte en dos tramos: el texto y la URL en negrita).
-    expect(template).toContain('Descubre más eventos en');
-    expect(template).toContain('>www.citymap.mx</span>');
+    // El pie con las 3 opciones en una fila (22 nov 2026): la píldora
+    // web + los badges de App Store y Google Play.
+    expect(template).toContain('ShareCardFooterRow');
+    expect(template).toContain('layout.footerRow');
     expect(template).not.toContain('Descúbrelo en');
     expect(template).toContain('crossOrigin="anonymous"');
     expect(template).toContain('{photoSrc ? (');
@@ -640,22 +677,20 @@ describe('tarjeta para compartir el evento: cableado', () => {
   });
 });
 
-describe('tarjeta para compartir el evento: pie nuevo (10 nov 2026)', () => {
+describe('tarjeta para compartir el evento: pie con las 3 opciones (22 nov 2026)', () => {
   const lib = read('../lib/eventShareCard.js');
   const template = read('../components/EventShareCardTemplate.jsx');
   const bizLib = read('../lib/shareCard.js');
   const bizTemplate = read('../components/ShareCardTemplate.jsx');
 
-  it('el pie de eventos es «Descubre más eventos en www.citymap.mx» en canvas y vista previa', () => {
-    expect(lib).toContain("const run1 = 'Descubre más eventos en ';");
-    expect(lib).toContain("const run2 = 'www.citymap.mx';");
-    // El pie viejo ya no se dibuja (solo queda mencionado en el
-    // comentario que explica el cambio).
-    expect(lib).not.toContain("const run1 = 'Descúbrelo en ';");
-    expect(lib).not.toContain("run2 = 'CityMap'");
-    expect(template).toContain('Descubre más eventos en');
-    expect(template).toContain('>www.citymap.mx</span>');
-    expect(template).not.toContain('Descúbrelo en');
+  it('el pie de eventos es la fila con web + App Store + Google Play, en canvas y vista previa', () => {
+    expect(lib).toContain('drawShareCardFooterRow');
+    expect(lib).toContain('loadShareCardFooterBadges');
+    expect(lib).toContain('computeShareCardFooterRow');
+    expect(lib).not.toContain("const run1 = 'Descubre más eventos en ';");
+    expect(template).toContain('ShareCardFooterRow');
+    expect(template).toContain('layout.footerRow');
+    expect(template).not.toContain('Descubre más eventos en');
     // La plantilla pinta el pie nuevo en los dos temas (ver Clara abajo).
     for (const theme of [undefined, 'clara']) {
       const d = buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' });
@@ -665,17 +700,18 @@ describe('tarjeta para compartir el evento: pie nuevo (10 nov 2026)', () => {
           format={SHARE_CARD_FORMATS.story}
         />,
       );
-      expect(html).toContain('Descubre más eventos en');
-      expect(html).toContain('www.citymap.mx');
+      expect(html).toContain('🌐 www.citymap.mx');
+      expect(html).toContain('/badges/app-store.svg');
+      expect(html).toContain('/badges/google-play.svg');
     }
   });
 
-  it('el pie de negocios NO cambia: sigue «Descúbrelo en www.citymap.mx»', () => {
-    expect(bizLib).toContain("const run1 = 'Descúbrelo en ';");
-    expect(bizLib).toContain("const run2 = 'www.citymap.mx';");
-    expect(bizLib).not.toContain('Descubre más eventos en');
-    expect(bizTemplate).toContain('Descúbrelo en');
-    expect(bizTemplate).not.toContain('Descubre más eventos en');
+  it('el pie de negocios TAMBIÉN cambia: la misma fila de 3 opciones (22 nov 2026)', () => {
+    expect(bizLib).toContain('drawShareCardFooterRow');
+    expect(bizLib).toContain('loadShareCardFooterBadges');
+    expect(bizLib).not.toContain("const run1 = 'Descúbrelo en ';");
+    expect(bizTemplate).toContain('ShareCardFooterRow');
+    expect(bizTemplate).toContain('layout.footerRow');
   });
 });
 
@@ -763,7 +799,7 @@ describe('tarjeta para compartir el evento: versión Clara', () => {
     expect(light.footer).toEqual(dark.footer);
   });
 
-  it('la plantilla Clara: fondo blanco, texto oscuro, logo en negro y pie nuevo', () => {
+  it('la plantilla Clara: fondo blanco, texto oscuro, logo en negro y pie con las 3 opciones', () => {
     const d = buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' });
     const html = renderToStaticMarkup(
       <EventShareCardTemplate
@@ -776,8 +812,10 @@ describe('tarjeta para compartir el evento: versión Clara', () => {
     // El logo va en negro (brightness(0) sin invert) sobre fondo claro.
     expect(html).toContain('filter:brightness(0)');
     expect(html).not.toContain('brightness(0) invert(1)');
-    expect(html).toContain('Descubre más eventos en');
-    expect(html).toContain('www.citymap.mx');
+    // Pie con las 3 opciones en una fila (22 nov 2026).
+    expect(html).toContain('🌐 www.citymap.mx');
+    expect(html).toContain('/badges/app-store.svg');
+    expect(html).toContain('/badges/google-play.svg');
     // Título, precio y fecha siguen ahí.
     expect(html).toContain('CARLOS RIVERA -');
     expect(html).toContain('Boletos desde $1200 MXN');
@@ -791,7 +829,10 @@ describe('tarjeta para compartir el evento: versión Clara', () => {
     );
     expect(html).toContain('linear-gradient(180deg, #1B1B1B 0%, #0B0B0B 100%)');
     expect(html).toContain('filter:brightness(0) invert(1)');
-    expect(html).toContain('Descubre más eventos en');
+    // Pie con las 3 opciones en una fila (22 nov 2026).
+    expect(html).toContain('🌐 www.citymap.mx');
+    expect(html).toContain('/badges/app-store.svg');
+    expect(html).toContain('/badges/google-play.svg');
   });
 
   it('boleto en Clara: la tira del código de barras es negra con barras blancas', () => {

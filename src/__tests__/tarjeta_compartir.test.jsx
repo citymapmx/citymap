@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import {
+  SHARE_CARD_FORMATS,
+  SHARE_CARD_FOOTER_WEB_TEXT,
+  buildShareCardData,
+  computeShareCardFooterRow,
+  computeShareCardLayout,
+} from '../lib/shareCard.js';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
@@ -54,9 +61,11 @@ describe('tarjeta para compartir el negocio', () => {
     // El exportador de canvas también lo dibuja, en blanco.
     expect(lib).toContain("'/logo-brand.png'");
     expect(lib).toContain('source-in');
-    // El pie con la marca sigue, ahora con la URL.
-    expect(template).toContain('Descúbrelo en www.citymap.mx');
-    expect(lib).toContain("const run2 = 'www.citymap.mx';");
+    // El pie con la marca es la fila con las 3 opciones (22 nov 2026).
+    expect(template).toContain('ShareCardFooterRow');
+    expect(template).toContain('layout.footerRow');
+    expect(lib).toContain('drawShareCardFooterRow');
+    expect(lib).toContain('loadShareCardFooterBadges');
   });
 
   it('compartir con el menú del sistema y fallback a descarga', () => {
@@ -253,5 +262,65 @@ describe('tarjeta para compartir el negocio', () => {
     expect(css).toContain('scale-in-center 0.5s');
     expect(css).toContain('transform: scale(0)');
     expect(css).toContain('transform: scale(1)');
+  });
+});
+
+describe('tarjeta para compartir: pie con las 3 opciones en una fila (22 nov 2026)', () => {
+  const pill = { bg: 'rgba(255,255,255,0.12)', border: 'rgba(255,255,255,0.35)', text: '#FFFFFF' };
+
+  it('la fila lleva la web + App Store + Google Play, centrada, sin salirse', () => {
+    const row = computeShareCardFooterRow({
+      centerX: 540,
+      maxW: 984,
+      y: 1000,
+      height: 40,
+      pill,
+    });
+    expect(row.h).toBe(40);
+    expect(row.web.text).toBe(SHARE_CARD_FOOTER_WEB_TEXT);
+    expect(row.web.text).toContain('www.citymap.mx');
+    // Los 3 botones en orden, pegados con el hueco diseñado.
+    expect(row.appStore.x).toBe(row.web.x + row.web.w + row.gap);
+    expect(row.googlePlay.x).toBe(row.appStore.x + row.appStore.w + row.gap);
+    // Centrada en la región y dentro de ella (el redondeo a enteros
+    // puede dejarla a medio píxel del centro exacto).
+    expect(Math.abs(row.x + row.w / 2 - 540)).toBeLessThanOrEqual(1);
+    expect(row.x).toBeGreaterThanOrEqual(540 - 984 / 2);
+    expect(row.x + row.w).toBeLessThanOrEqual(540 + 984 / 2);
+    // Los badges conservan su proporción (App Store ~2.99:1,
+    // Google Play ~3.38:1).
+    expect(row.appStore.w / row.appStore.h).toBeCloseTo(119.66407 / 40, 1);
+    expect(row.googlePlay.w / row.googlePlay.h).toBeCloseTo(180 / 53.333, 1);
+    expect(row.pill).toEqual(pill);
+  });
+
+  it('si no cabe (columna estrecha del Grid horizontal), toda la fila se achica en proporción', () => {
+    const row = computeShareCardFooterRow({
+      centerX: 800,
+      maxW: 396,
+      y: 500,
+      height: 36,
+      pill,
+    });
+    expect(row.h).toBeLessThan(36);
+    expect(row.w).toBeLessThanOrEqual(396);
+    expect(Math.abs(row.x + row.w / 2 - 800)).toBeLessThanOrEqual(1);
+    expect(row.appStore.w / row.appStore.h).toBeCloseTo(119.66407 / 40, 1);
+  });
+
+  it('la geometría de la tarjeta de negocio ya lleva la fila del pie', () => {
+    const data = buildShareCardData(
+      { name: 'Xokol', photos: [{ url: 'https://example.com/foto.jpg' }] },
+      { cityName: 'Guadalajara' },
+    );
+    for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
+      const layout = computeShareCardLayout(data, format, false, 'glass');
+      expect(layout.footerRow).toBeDefined();
+      expect(layout.footerRow.web.text).toContain('www.citymap.mx');
+      expect(layout.footerRow.h).toBe(layout.L.footSize);
+      expect(layout.footerRow.y + layout.footerRow.h).toBeLessThanOrEqual(
+        layout.height - layout.L.pad,
+      );
+    }
   });
 });

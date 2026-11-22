@@ -15,6 +15,8 @@ describe('formatTourPrice', () => {
     expect(formatTourPrice(100.09, 'es', 'USD')).toBe('desde $100.09 USD');
     expect(formatTourPrice(100, 'es', 'USD')).toBe('desde $100 USD');
     expect(formatTourPrice(25.67, 'en', 'USD')).toBe('from $25.67 USD');
+    // 22 nov 2026 (Jonathan): con centavos, siempre los dos decimales.
+    expect(formatTourPrice(73.1, 'es', 'USD')).toBe('desde $73.10 USD');
   });
   it('devuelve null sin precio válido', () => {
     expect(formatTourPrice(0)).toBeNull();
@@ -30,6 +32,9 @@ describe('formatPriceAmount', () => {
     expect(formatPriceAmount(25.67, 'USD', 'es')).toBe('25.67');
     expect(formatPriceAmount(100, 'USD', 'es')).toBe('100');
     expect(formatPriceAmount(123.11, 'USD', 'en')).toBe('123.11');
+    // 22 nov 2026 (Jonathan): $73.10, no $73.1.
+    expect(formatPriceAmount(73.1, 'USD', 'en')).toBe('73.10');
+    expect(formatPriceAmount(73.10, 'USD', 'es')).toBe('73.10');
   });
 });
 

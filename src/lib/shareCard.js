@@ -100,7 +100,7 @@ export const SHARE_CARD_LAYOUT = {
     pillGap: 16,
     pillRowGap: 14,
     pillsGap: 52,
-    footSize: 34,
+    footSize: 44,
     footGap: 60,
   },
   post: {
@@ -124,7 +124,7 @@ export const SHARE_CARD_LAYOUT = {
     pillGap: 14,
     pillRowGap: 12,
     pillsGap: 36,
-    footSize: 30,
+    footSize: 40,
     footGap: 44,
   },
 };
@@ -351,7 +351,7 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     pillGap: 14,
     pillRowGap: 12,
     pillsGap: 52,
-    footSize: 32,
+    footSize: 44,
     footGap: 60,
   },
   post: {
@@ -376,7 +376,7 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     pillGap: 12,
     pillRowGap: 10,
     pillsGap: 36,
-    footSize: 28,
+    footSize: 40,
     footGap: 44,
   },
 };
@@ -387,7 +387,8 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
 // círculo del logo del negocio MÁS GRANDE (Ø 292 Historia / 232 Post, 27cqw
 // de la demo, frente a 240/190 de Oscura/Clara) a caballo sobre el borde
 // inferior del grid, nombre, píldoras (calificación Google + ciudad) y la
-// categoría bajo las píldoras, pie «Descúbrelo en www.citymap.mx». El
+// categoría bajo las píldoras, pie con las 3 opciones en una fila
+// (web + App Store + Google Play, 22 nov 2026). El
 // área del grid es el bloque flexible (como la foto en los demás
 // estilos): crece hasta comerse el espacio libre, así nunca queda
 // franja vacía entre las píldoras y el pie.
@@ -423,7 +424,7 @@ export const GRID_SHARE_CARD_LAYOUT = {
     pillsGap: 28,
     catSize: 45,
     catGap: 20,
-    footSize: 42,
+    footSize: 44,
     footGap: 24,
   },
   post: {
@@ -453,7 +454,7 @@ export const GRID_SHARE_CARD_LAYOUT = {
     pillsGap: 20,
     catSize: 34,
     catGap: 16,
-    footSize: 34,
+    footSize: 40,
     footGap: 20,
   },
 };
@@ -514,7 +515,7 @@ export const COLLAGE_SHARE_CARD_LAYOUT = {
     duoGap: 22,
     duoRadius: 24,
     duoAspect: 1.55,
-    footSize: 42,
+    footSize: 44,
     footGap: 24,
   },
   post: {
@@ -540,7 +541,7 @@ export const COLLAGE_SHARE_CARD_LAYOUT = {
     duoGap: 18,
     duoRadius: 20,
     duoAspect: 2.2,
-    footSize: 34,
+    footSize: 40,
     footGap: 20,
   },
 };
@@ -575,7 +576,7 @@ export const PEDIDO_SHARE_CARD_LAYOUT = {
     buttonSize: 40,
     buttonGap: 32,
     buttonRadius: 52,
-    footSize: 32,
+    footSize: 44,
     footGap: 48,
   },
   post: {
@@ -599,7 +600,7 @@ export const PEDIDO_SHARE_CARD_LAYOUT = {
     buttonSize: 30,
     buttonGap: 24,
     buttonRadius: 39,
-    footSize: 28,
+    footSize: 40,
     footGap: 36,
   },
 };
@@ -624,7 +625,7 @@ export const QR_SHARE_CARD_LAYOUT = {
     qrRadius: 40,
     ctaSize: 40,
     ctaGap: 28,
-    footSize: 32,
+    footSize: 44,
     footGap: 48,
   },
   post: {
@@ -640,7 +641,7 @@ export const QR_SHARE_CARD_LAYOUT = {
     qrRadius: 28,
     ctaSize: 30,
     ctaGap: 20,
-    footSize: 28,
+    footSize: 40,
     footGap: 36,
   },
 };
@@ -1127,6 +1128,19 @@ function computeCollageShareCardLayout(data, format, L) {
     : null;
 
   const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
+  // Pie con las 3 opciones en una fila (22 nov 2026): la píldora web
+  // con los colores de la paleta del collage (fondo blanco).
+  const footerRow = computeShareCardFooterRow({
+    centerX: W / 2,
+    maxW,
+    y: footer.y,
+    height: L.footSize,
+    pill: {
+      bg: GRID_SHARE_CARD_COLORS.pillBg,
+      border: GRID_SHARE_CARD_COLORS.pillBorder || null,
+      text: GRID_SHARE_CARD_COLORS.pillText,
+    },
+  });
 
   let y = heroBottom + (hasBizLogo ? circleD / 2 : 0) + L.bandPad;
   let kicker = null;
@@ -1193,7 +1207,106 @@ function computeCollageShareCardLayout(data, format, L) {
     orderButton: null,
     qr: null,
     footer,
+    footerRow,
   };
+}
+
+// ─── Pie con las 3 opciones en una fila (22 nov 2026, Jonathan) ───
+//
+// El pie de las tarjetas ya no es una línea de texto («Descúbrelo en
+// www.citymap.mx»): abajo quedan las 3 opciones en una fila, en
+// botones compactos — el enlace a la web + el badge de App Store +
+// el badge de Google Play. Los badges son los oficiales del sitio
+// (public/badges/, los mismos de AppDownloadBadges, PR #406), así que
+// no se añade ningún asset nuevo. La geometría
+// (computeShareCardFooterRow) la comparten la vista previa y el canvas
+// de los 3 tipos de tarjeta (negocios, eventos y tours), y el dibujo
+// (drawShareCardFooterRow) es el mismo para todos: lo que se ve es lo
+// que se descarga. `footSize` de las tablas ya es la ALTURA de esta
+// fila (44 en Historia, 40 en Post), no el tamaño de un texto.
+export const SHARE_CARD_FOOTER_BADGE_ASPECTS = {
+  appStore: 119.66407 / 40,
+  googlePlay: 180 / 53.333,
+};
+export const SHARE_CARD_FOOTER_ROW_GAP = 16;
+export const SHARE_CARD_FOOTER_WEB_TEXT = '🌐 www.citymap.mx';
+
+// Geometría de la fila del pie: los 3 botones centrados en la región
+// (centerX, maxW), con altura `height` (los badges miden lo mismo de
+// alto que la píldora web). Si no caben en maxW, todo se achica en
+// proporción (la columna de información del Grid horizontal es
+// estrecha). `pill` son los colores de la píldora web (los de la
+// paleta de cada tarjeta). La `y` es el CENTRO vertical de la fila.
+export function computeShareCardFooterRow({ centerX, maxW, y, height, pill }) {
+  const gap = SHARE_CARD_FOOTER_ROW_GAP;
+  const textSize = Math.round(height * 0.55);
+  const webPadX = Math.round(height * 0.55);
+  const webTextW = measureShareCardText(SHARE_CARD_FOOTER_WEB_TEXT, textSize, 800);
+  const webW = Math.round(webTextW + webPadX * 2);
+  const appW = Math.round(height * SHARE_CARD_FOOTER_BADGE_ASPECTS.appStore);
+  const playW = Math.round(height * SHARE_CARD_FOOTER_BADGE_ASPECTS.googlePlay);
+  const total = webW + gap + appW + gap + playW;
+  const scale = total > maxW ? maxW / total : 1;
+  const h = Math.max(16, Math.round(height * scale));
+  const wWeb = Math.round(webW * scale);
+  const wApp = Math.round(appW * scale);
+  const wPlay = Math.round(playW * scale);
+  const size = Math.max(10, Math.round(textSize * scale));
+  const padX = Math.round(webPadX * scale);
+  const g = Math.round(gap * scale);
+  const totalW = wWeb + g + wApp + g + wPlay;
+  const x0 = Math.round(centerX - totalW / 2);
+  const top = Math.round(y - h / 2);
+  return {
+    x: x0,
+    y: top,
+    w: totalW,
+    h,
+    gap: g,
+    pill,
+    web: { x: x0, y: top, w: wWeb, h, text: SHARE_CARD_FOOTER_WEB_TEXT, size, padX },
+    appStore: { x: x0 + wWeb + g, y: top, w: wApp, h },
+    googlePlay: { x: x0 + wWeb + g + wApp + g, y: top, w: wPlay, h },
+  };
+}
+
+// Dibuja la fila del pie en canvas: la píldora web (colores de la
+// paleta de la tarjeta) y los 2 badges. Sin badge (no cargó), la
+// píldora oscura con el nombre de la tienda: nunca queda un hueco
+// vacío ni roto.
+export function drawShareCardFooterRow(ctx, row, assets) {
+  if (!row) return;
+  const web = row.web;
+  ctx.fillStyle = row.pill?.bg || 'rgba(255,255,255,0.12)';
+  roundRectPath(ctx, web.x, web.y, web.w, web.h, web.h / 2);
+  ctx.fill();
+  if (row.pill?.border) {
+    ctx.strokeStyle = row.pill.border;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  ctx.font = `800 ${web.size}px ${SHARE_CARD_FONT_STACK}`;
+  ctx.fillStyle = row.pill?.text || '#FFFFFF';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(web.text, web.x + web.w / 2, web.y + web.h / 2);
+  drawShareCardFooterBadge(ctx, row.appStore, assets?.appStore, 'App Store');
+  drawShareCardFooterBadge(ctx, row.googlePlay, assets?.googlePlay, 'Google Play');
+}
+
+function drawShareCardFooterBadge(ctx, box, img, label) {
+  if (img) {
+    ctx.drawImage(img, box.x, box.y, box.w, box.h);
+    return;
+  }
+  ctx.fillStyle = '#111111';
+  roundRectPath(ctx, box.x, box.y, box.w, box.h, Math.round(box.h * 0.22));
+  ctx.fill();
+  ctx.font = `700 ${Math.round(box.h * 0.32)}px ${SHARE_CARD_FONT_STACK}`;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, box.x + box.w / 2, box.y + box.h / 2);
 }
 
 // Geometría completa de la tarjeta. La foto es el único bloque flexible:
@@ -1444,6 +1557,20 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   }
 
   const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
+  // Pie con las 3 opciones en una fila (22 nov 2026): la píldora web
+  // con los colores de la paleta del estilo.
+  const palette = SHARE_CARD_STYLE_COLORS[style.id] || SHARE_CARD_STYLE_COLORS.glass;
+  const footerRow = computeShareCardFooterRow({
+    centerX: W / 2,
+    maxW,
+    y: footer.y,
+    height: L.footSize,
+    pill: {
+      bg: palette.pillBg,
+      border: palette.pillBorder || null,
+      text: palette.pillText,
+    },
+  });
 
   // PR #159 — «Para pedir»: los platillos van tras el nombre, cada
   // uno en su renglón (nombre a la izquierda, precio a la derecha),
@@ -1531,6 +1658,7 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     orderButton: orderButtonBox,
     qr: qrBox,
     footer,
+    footerRow,
   };
 }
 
@@ -1621,6 +1749,19 @@ async function loadGoogleMark() {
   } catch {
     return null;
   }
+}
+
+// Los badges oficiales de descarga (public/badges/, los mismos de
+// AppDownloadBadges, PR #406): App Store y Google Play. Mismo origen,
+// así que el canvas los dibuja sin CORS. Si uno no carga, el dibujo
+// usa la píldora con el nombre de la tienda (ver
+// drawShareCardFooterRow), nunca rota.
+export async function loadShareCardFooterBadges() {
+  const [appStore, googlePlay] = await Promise.all([
+    loadImage('/badges/app-store.svg').catch(() => null),
+    loadImage('/badges/google-play.svg').catch(() => null),
+  ]);
+  return { appStore, googlePlay };
 }
 
 // El logo circular del negocio (misma miniatura 300×300 que usa la
@@ -1980,24 +2121,10 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     );
   }
 
-  // Pie: «Descúbrelo en www.citymap.mx».
-  const f = geo.footer;
-  const run1 = 'Descúbrelo en ';
-  const run2 = 'www.citymap.mx';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  const w1 = spacedWidth(ctx, run1, 2);
-  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  const w2 = spacedWidth(ctx, run2, 2);
-  const total = w1 + 2 + w2;
-  let fx = geo.width / 2 - total / 2;
-  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = palette.sub;
-  drawSpacedText(ctx, run1, fx, f.y, 2);
-  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = palette.text;
-  drawSpacedText(ctx, run2, fx + w1 + 2, f.y, 2);
+  // Pie con las 3 opciones en una fila (22 nov 2026): enlace web +
+  // badges de App Store y Google Play (misma geometría que la vista
+  // previa, geo.footerRow). Sin badges, la píldora con el nombre.
+  drawShareCardFooterRow(ctx, geo.footerRow, assets);
 
   // PR #159 — «Para pedir»: platillos (nombre a la izquierda, precio
   // a la derecha, renglón punteado entre ellos), línea de horario y
@@ -2067,7 +2194,7 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
 }
 
 export async function renderShareCardCanvas(data, format, styleId = 'glass') {
-  const [photo, photos, logoWhite, logoDark, googleMark, bizLogo, qr] = await Promise.all([
+  const [photo, photos, logoWhite, logoDark, googleMark, bizLogo, qr, badges] = await Promise.all([
     loadShareCardPhoto(data?.photoUrl),
     // Las fotos del grid (hasta 4, en orden): si una no se puede leer,
     // null en su posición y la celda sale con el bloque de la inicial.
@@ -2080,6 +2207,8 @@ export async function renderShareCardCanvas(data, format, styleId = 'glass') {
     // si no se pudo generar, la tarjeta sale con el bloque blanco
     // vacío, nunca rota.
     loadShareCardQr(data?.qrDataUrl),
+    // Pie (22 nov 2026): los badges de App Store y Google Play.
+    loadShareCardFooterBadges(),
   ]);
   // Si el logo no cargó, la geometría es la de sin círculo: sin hueco
   // vacío y sin círculo a medias.
@@ -2088,7 +2217,7 @@ export async function renderShareCardCanvas(data, format, styleId = 'glass') {
   return drawShareCardCanvas(
     layoutData,
     format,
-    { photo, photos, logoWhite, logoDark, googleMark, bizLogo, qr },
+    { photo, photos, logoWhite, logoDark, googleMark, bizLogo, qr, appStore: badges?.appStore || null, googlePlay: badges?.googlePlay || null },
     layout,
     styleId,
   );

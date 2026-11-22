@@ -23,6 +23,7 @@
 // data.theme), igual que el canvas.
 import { getThumbUrl } from '../lib/utils.js';
 import { coverObjectPosition } from '../lib/shareCard.js';
+import ShareCardFooterRow from './ShareCardFooterRow.jsx';
 import {
   SHARE_CARD_FORMATS,
   EVENT_SHARE_CARD_LAYOUT,
@@ -282,18 +283,14 @@ export default function EventShareCardTemplate({ data, format, onPhotoError }) {
         </div>
       ) : null}
 
+      {/* Pie con las 3 opciones en una fila (22 nov 2026) */}
       <div
         style={{
           marginTop: firstBlock === 'foot' ? layout.firstGap : L.footGap,
-          fontSize: L.footSize,
-          lineHeight: 1,
-          letterSpacing: 2,
-          color: palette.footMuted,
           flexShrink: 0,
         }}
       >
-        Descubre más eventos en{' '}
-        <span style={{ color: palette.footBold, fontWeight: 800 }}>www.citymap.mx</span>
+        <ShareCardFooterRow row={layout.footerRow} />
       </div>
     </div>
   );

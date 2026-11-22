@@ -160,7 +160,12 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
       const pillsEnd = lastRow[0].y + lastRow[0].h;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
       expect(pillsEnd).toBeLessThanOrEqual(footTop);
-      expect(footTop - pillsEnd).toBeCloseTo(geo.L.footGap, 6);
+      // El hueco entre las píldoras y el pie es el diseñado (footGap),
+      // salvo en el peor caso, donde la foto ya está en su mínimo y el
+      // hueco se comprime unos píxeles (22 nov 2026: el pie es 10 px
+      // más alto por la fila con web + App Store + Google Play).
+      expect(footTop - pillsEnd).toBeGreaterThanOrEqual(geo.L.footGap - 10);
+      expect(footTop - pillsEnd).toBeLessThanOrEqual(geo.L.footGap + 1);
       expect(nameTop(geo) - circleBottom(geo)).toBeCloseTo(geo.L.bizLogoGap, 0);
     }
   });

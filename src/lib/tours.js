@@ -5,12 +5,15 @@ import { createSlug } from './utils.js';
 // Número de un precio según su moneda: MXN en enteros (los decimales
 // crudos de la conversión EUR→MXN, como $919.1, se veían descuidados);
 // USD con centavos cuando los hay ($25.67), porque los precios en
-// dólares ya vienen con centavos en la base. lang 'es' por defecto.
+// dólares ya vienen con centavos en la base. Regla 22 nov 2026
+// (Jonathan): con centavos, SIEMPRE los dos decimales ($73.10, no
+// $73.1); entero, sin decimales ($100). lang 'es' por defecto.
 export function formatPriceAmount(price, currency = 'MXN', lang = 'es') {
   const value = Number(price);
   const locale = lang === 'en' ? 'en-US' : 'es-MX';
   if (currency === 'USD') {
-    return value.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const digits = Number.isInteger(value) ? 0 : 2;
+    return value.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
   return Math.round(value).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
