@@ -258,6 +258,21 @@ describe('Ejemplos por plan en /negocios', () => {
     expect(card.split(STAR_POINTS).length - 1).toBe(0);
   });
 
+  it('las tarjetas de ejemplo van a medida real: salen del relleno del plan para igualar el ancho de las categorías', () => {
+    const html = renderLanding(false);
+    // Cada vista previa rompe el padding lateral de la tarjeta del plan
+    // (24px): 4 tarjetas de ejemplo + la tarjeta de lealtad de Fideliza.
+    // Así quedan del mismo ancho que las tarjetas de las categorías
+    // (350px en el teléfono) y el nombre cabe en una línea como ahí
+    // (22 nov 2026, Jonathan: «SSAM Comida Coreana» se partía en dos).
+    expect(html.split('margin:12px -24px 0').length - 1).toBe(5);
+    for (const [key, next] of [['free', 'pro'], ['pro', 'elite'], ['elite', 'fideliza'], ['fideliza', null]]) {
+      expect(planCard(html, key, next)).toContain('margin:12px -24px 0');
+    }
+    // Fideliza lleva el margen dos veces: ejemplo + lealtad.
+    expect(planCard(html, 'fideliza', null).split('margin:12px -24px 0').length - 1).toBe(2);
+  });
+
   it('defecto 2: el nombre de Four Seasons ya no se trunca con elipsis', () => {
     const card = planCard(renderLanding(false), 'elite', 'fideliza');
     expect(card).toContain('Four Seasons Resort Punta Mita');
