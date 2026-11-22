@@ -401,7 +401,16 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
                     números de muestra (distancia, guardados) son de un
                     negocio real de CityMap, no del visitante. */}
                     <div style={{ textAlign: 'center', margin: '0 0 12px' }}><span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: dark ? 'rgba(255,255,255,0.08)' : '#EEF2F7', color: muted }}>{t("cuenta_ejemplo", "Ejemplo")}</span></div>
-                    <div style={{ pointerEvents: 'none', borderRadius: 14, overflow: 'hidden', marginTop: 12 }}>
+                    {/* Medida real (22 nov 2026, Jonathan): la tarjeta de
+                    ejemplo sale del relleno lateral de la tarjeta del plan
+                    (márgenes -24px = el padding lateral del plan) para
+                    quedar del mismo ancho que las tarjetas de las
+                    categorías (350px en el teléfono: la vista 390px menos
+                    los 20px de cada lado); así el nombre cabe en una línea
+                    como ahí. Sin radio en el envoltorio: la tarjeta muestra
+                    sus propias esquinas (18px la destacada, 16px las
+                    demás), como en las categorías. */}
+                    <div style={{ pointerEvents: 'none', overflow: 'hidden', margin: '12px -24px 0' }}>
                       {p.key === 'free' ? <CompactCard b={EJEMPLO_POR_PLAN.free} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={4} forceOpen hideReviews /> : p.key === 'pro' ? <DestacadoCard b={EJEMPLO_POR_PLAN.pro} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={12} forceOpen /> : p.key === 'fideliza' ? <FeaturedCard b={EJEMPLO_POR_PLAN.fideliza} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={1} forceOpen /> : <FeaturedCard b={EJEMPLO_POR_PLAN.elite} T={T} favIds={[]} toggleFav={() => {}} distStr="1.6 km" realFavs={45} forceOpen />}
                     </div>
                     {/* Tarjeta de lealtad REAL en la vista previa de Fideliza
@@ -412,7 +421,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
                     captura de referencia. Antes era un mockup morado con
                     9 círculos inventados; SSAM sí tiene tarjeta real. */}
                     {p.key === 'fideliza' && (
-                      <div style={{ marginTop: 12, pointerEvents: 'none' }}>
+                      <div style={{ margin: '12px -24px 0', pointerEvents: 'none' }}>
                         <LoyaltyCard
                           member={{ stamps: 2 }}
                           card={SSAM_LOYALTY_CARD}
