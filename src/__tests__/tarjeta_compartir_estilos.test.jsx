@@ -76,8 +76,8 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     expect(resolveShareCardStyle(undefined).id).toBe('glass');
     // Sin estilo, la geometría es la de siempre.
     const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
-    const def = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true);
-    const glass = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true, 'glass');
+    const def = computeShareCardLayout(d, SHARE_CARD_FORMATS.story);
+    const glass = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, 'glass');
     expect(def.style).toBe('glass');
     expect(def.photo.h).toBe(glass.photo.h);
     expect(def.name.lines).toEqual(glass.name.lines);
@@ -114,7 +114,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     expect(d.whatsapp).toBeUndefined();
   });
 
-  it('la categoría va bajo las píldoras en las dos versiones (propuesta A corregida, 22 nov 2026)', () => {
+  it('la categoría va bajo la línea de reseñas+ciudad en las dos versiones (definición final, 22 nov 2026)', () => {
     const lib = read('../lib/shareCard.js');
     const template = read('../components/ShareCardTemplate.jsx');
     // Los datos SÍ llevan la categoría (para los estilos con grid, que
@@ -124,14 +124,15 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     // La geometría tiene bloque de categoría en los dos estilos.
     for (const styleId of ['glass', 'editorial']) {
       for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
-        const geo = computeShareCardLayout(d, format, true, styleId);
+        const geo = computeShareCardLayout(d, format, styleId);
         expect(geo.category).not.toBeNull();
         expect(geo.category.text).toBe('Restaurantes');
         expect(geo.name.lines.length).toBeGreaterThan(0);
-        // La categoría va debajo de las píldoras.
-        const lastRow = geo.pillRows[geo.pillRows.length - 1];
-        const pillsEnd = lastRow[0].y + lastRow[0].h;
-        expect(geo.category.y - (geo.L.catSize * 1.2) / 2).toBeGreaterThan(pillsEnd);
+        // La categoría va debajo de la línea de reseñas+ciudad.
+        const rcEnd =
+          geo.ratingCity.y +
+          (geo.ratingCity.lines.length * geo.L.rcSize * 1.2) / 2;
+        expect(geo.category.y - (geo.L.catSize * 1.2) / 2).toBeGreaterThan(rcEnd);
       }
     }
     // La plantilla y el canvas pintan la categoría desde la geometría
@@ -150,12 +151,13 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     const template = read('../components/ShareCardTemplate.jsx');
     expect(lib).not.toContain("style.id === 'editorial'");
     expect(lib).not.toContain('geo.width / 2 - 36');
-    // PR #159: la única mención a 'editorial' en la plantilla es la
-    // puerta de las píldoras («Para pedir» y el QR no llevan píldoras);
-    // la línea negra sobre el título sigue sin existir.
-    expect(template.match(/style\.id === 'editorial'/g)).toHaveLength(1);
-    // Los estilos con grid también llevan píldoras (Grid 2×2 y tira);
-    // el Collage editorial no (su calificación va como texto plano).
+    // La plantilla ya no menciona 'editorial' (la puerta de las
+    // píldoras salió con ellas); la línea negra sobre el título
+    // sigue sin existir.
+    expect(template).not.toContain("style.id === 'editorial'");
+    // Los estilos con grid llevan la línea de reseñas+ciudad
+    // (Grid 2×2 y tira); el Collage editorial no (su calificación va
+    // como texto plano).
     expect(template).toContain("style.id === 'grid'");
     expect(template).toContain("style.id === 'tira'");
     expect(template).not.toContain('geo.width / 2 - 36');
@@ -190,7 +192,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     for (const styleId of ['glass', 'editorial']) {
       for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
         const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
-        const geo = computeShareCardLayout(d, format, true, styleId);
+        const geo = computeShareCardLayout(d, format, styleId);
         expect(geo.logo.h).toBeGreaterThan(44);
         expect(geo.logo.y + geo.logo.h).toBeLessThanOrEqual(geo.photo.y);
         expect(geo.logo.w).toBeLessThan(geo.width);
@@ -199,31 +201,31 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
   });
 
   it('la foto es más corta y la información gana presencia (PR #155)', () => {
-    // Nombre y píldoras más grandes que antes (76→88 y 34→40 en
-    // Oscura Historia; 68→80 y 32→38 en Editorial Historia) y
-    // categoría bajo las píldoras (propuesta A corregida, 22 nov 2026:
-    // 45 en Oscura Historia, 40 en Editorial Historia).
+    // Nombre y línea de reseñas+ciudad más grandes que antes (76→88
+    // y 34→40 en Oscura Historia; 68→80 y 32→38 en Editorial Historia)
+    // y categoría bajo la línea (definición final, 22 nov 2026: 45 en
+    // Oscura Historia, 40 en Editorial Historia).
     expect(SHARE_CARD_LAYOUT.story.nameSize).toBe(88);
-    expect(SHARE_CARD_LAYOUT.story.pillSize).toBe(40);
+    expect(SHARE_CARD_LAYOUT.story.rcSize).toBe(40);
     expect(SHARE_CARD_LAYOUT.story.catSize).toBe(45);
     expect(EDITORIAL_SHARE_CARD_LAYOUT.story.nameSize).toBe(80);
-    expect(EDITORIAL_SHARE_CARD_LAYOUT.story.pillSize).toBe(38);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.story.rcSize).toBe(38);
     expect(EDITORIAL_SHARE_CARD_LAYOUT.story.catSize).toBe(40);
     // La foto de un negocio típico es más baja que antes (Historia
     // ~1439 → ~1123; Post ~697 → ~438) y sigue llenando su franja.
     for (const styleId of ['glass', 'editorial']) {
       const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
-      const geoStory = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true, styleId);
-      const geoPost = computeShareCardLayout(d, SHARE_CARD_FORMATS.post, true, styleId);
+      const geoStory = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, styleId);
+      const geoPost = computeShareCardLayout(d, SHARE_CARD_FORMATS.post, styleId);
       expect(geoStory.photo.h).toBeLessThan(1400);
       expect(geoStory.photo.h).toBeGreaterThanOrEqual(geoStory.L.photoMinH);
       expect(geoPost.photo.h).toBeLessThan(700);
       expect(geoPost.photo.h).toBeGreaterThanOrEqual(geoPost.L.photoMinH);
-      // Sin franja vacía entre categoría y pie.
+      // Sin franja vacía entre categoría y la línea de la web.
       for (const geo of [geoStory, geoPost]) {
         const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
-        const footTop = geo.height - geo.L.pad - geo.L.footSize;
-        expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
+        const webTop = geo.web.y - (geo.L.webSize * 1.2) / 2;
+        expect(webTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
       }
     }
   });
@@ -241,7 +243,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     for (const styleId of ['glass', 'editorial']) {
       for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
         const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
-        const geo = computeShareCardLayout(d, format, true, styleId);
+        const geo = computeShareCardLayout(d, format, styleId);
         // El logo va arriba, dentro de la tarjeta, y la foto empieza
         // después de él: no se tapa ni se sale.
         expect(geo.logo.h).toBe(76);
@@ -347,7 +349,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
         disp: googleDispBarbarella,
         cityName: 'Guadalajara',
       });
-      const geo = computeShareCardLayout(d, format, true, 'editorial');
+      const geo = computeShareCardLayout(d, format, 'editorial');
       expect(geo.style).toBe('editorial');
       // Con logo y plan de pago, Clara SÍ lleva círculo (antes no, por
       // diseño del #154; Jonathan lo pidió con Vulcanos Chapalita).
@@ -361,8 +363,8 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
       expect(nameTop - circleBottom).toBeCloseTo(geo.L.bizLogoGap, 0);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
-      const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
+      const webTop = geo.web.y - (geo.L.webSize * 1.2) / 2;
+      expect(webTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
       // Vista previa: el círculo se pinta a la y calculada, con el
       // anillo solo blanco, y el nombre no se reparte.
       const markup = renderToStaticMarkup(
@@ -386,7 +388,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
           disp: googleDispBarbarella,
           cityName: 'Guadalajara',
         });
-        const geo = computeShareCardLayout(d, format, true, 'editorial');
+        const geo = computeShareCardLayout(d, format, 'editorial');
         expect(geo.bizLogo).toBeNull();
       }
     }
@@ -395,7 +397,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
         { ...bizLogo, plan: 'free' },
         { disp: googleDispBarbarella, cityName: 'Guadalajara' },
       );
-      const geo = computeShareCardLayout(d, format, true, 'editorial');
+      const geo = computeShareCardLayout(d, format, 'editorial');
       expect(geo.bizLogo).not.toBeNull();
     }
     // Peor caso (nombre largo, ciudad larga): tampoco se desborda.
@@ -408,12 +410,12 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
         disp: googleDisp,
         cityName: 'San Pedro Garza García',
       });
-      const geo = computeShareCardLayout(d, format, true, 'editorial');
+      const geo = computeShareCardLayout(d, format, 'editorial');
       expect(geo.name.lines.length).toBeLessThanOrEqual(3);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
-      const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
+      const webTop = geo.web.y - (geo.L.webSize * 1.2) / 2;
+      expect(webTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
     }
   });
 
@@ -480,13 +482,13 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
         disp: googleDispBarbarella,
         cityName: 'San Pedro Garza García',
       });
-      const geo = computeShareCardLayout(d, format, true, 'glass');
+      const geo = computeShareCardLayout(d, format, 'glass');
       expect(geo.bizLogo).not.toBeNull();
       expect(geo.name.lines.length).toBeLessThanOrEqual(3);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
-      const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
+      const webTop = geo.web.y - (geo.L.webSize * 1.2) / 2;
+      expect(webTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
     }
   });
 

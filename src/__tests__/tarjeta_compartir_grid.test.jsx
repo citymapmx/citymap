@@ -120,9 +120,7 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
   it('el anillo del círculo es solo blanco en los 3 estilos con grid', () => {
     for (const styleId of ['grid', 'tira', 'collage']) {
       expect(SHARE_CARD_STYLE_COLORS[styleId].bizLogoRing).toBe('#FFFFFF');
-      expect(SHARE_CARD_STYLE_COLORS[styleId].starAmber).toBe(true);
       expect(SHARE_CARD_STYLE_COLORS[styleId].bg).toEqual(['#FFFFFF', '#FFFFFF']);
-      expect(SHARE_CARD_STYLE_COLORS[styleId].pillBg).toBe('#F4F4F6');
       expect(SHARE_CARD_STYLE_COLORS[styleId].logoWhite).toBe(false);
     }
     // El círculo es más grande que en Oscura/Clara (Ø 292/232, 27cqw
@@ -136,7 +134,7 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
   it('Grid 2×2: 4 celdas que llenan el área, círculo centrado a caballo, categoría y pie', () => {
     for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       const d = dataFor(DONATELLA);
-      const geo = computeShareCardLayout(d, format, true, 'grid');
+      const geo = computeShareCardLayout(d, format, 'grid');
       expect(geo.style).toBe('grid');
       expect(geo.gridCells).toHaveLength(4);
       // Las celdas llenan el área del grid (con el hueco entre ellas):
@@ -163,15 +161,16 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
       // (su centro queda en ese borde, con el redondeo de Math.round).
       expect(geo.bizLogo.x).toBe(Math.round((geo.width - geo.bizLogo.d) / 2));
       expect(geo.bizLogo.y + geo.bizLogo.d / 2).toBeCloseTo(p.y + p.h, 0);
-      // Categoría bajo las píldoras y pie al final, sin desbordar.
+      // Categoría bajo la línea de reseñas+ciudad y pie al final, sin desbordar.
       expect(geo.category.text).toBe('Restaurantes');
-      expect(geo.category.y).toBeGreaterThan(
-        geo.pillRows[geo.pillRows.length - 1][0].y,
-      );
+      expect(geo.category.y).toBeGreaterThan(geo.ratingCity.y);
       expect(geo.footer.y + geo.footer.size / 2).toBeLessThanOrEqual(
         geo.height - geo.L.pad,
       );
       expect(geo.category.y).toBeLessThan(geo.footer.y);
+      // Web en texto limpio sobre los badges.
+      expect(geo.web.text).toBe('🌐 www.citymap.mx');
+      expect(geo.web.y).toBeLessThan(geo.footer.y);
       // Instagram bajo la categoría.
       expect(geo.instagram.text).toBe('@donatella');
       expect(geo.instagram.y).toBeGreaterThan(geo.category.y);
@@ -181,7 +180,7 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
   it('tira: 1 foto grande + tira de miniaturas (las que haya)', () => {
     // Con 4 fotos: 1 grande + 3 miniaturas.
     const d4 = dataFor(DONATELLA);
-    const geo4 = computeShareCardLayout(d4, SHARE_CARD_FORMATS.story, true, 'tira');
+    const geo4 = computeShareCardLayout(d4, SHARE_CARD_FORMATS.story, 'tira');
     expect(geo4.gridCells).toHaveLength(4);
     const [big, ...strip] = geo4.gridCells;
     expect(big.w).toBe(geo4.photo.w);
@@ -193,12 +192,12 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     expect(geo4.gridCells.map((c) => c.photoIndex)).toEqual([0, 1, 2, 3]);
     // Con 2 fotos: 1 grande + 1 miniatura.
     const d2 = dataFor(withPhotos(2));
-    const geo2 = computeShareCardLayout(d2, SHARE_CARD_FORMATS.story, true, 'tira');
+    const geo2 = computeShareCardLayout(d2, SHARE_CARD_FORMATS.story, 'tira');
     expect(geo2.gridCells).toHaveLength(2);
     expect(geo2.gridCells.map((c) => c.photoIndex)).toEqual([0, 1]);
     // Con 3 fotos: 1 grande + 2 miniaturas.
     const d3 = dataFor(withPhotos(3));
-    const geo3 = computeShareCardLayout(d3, SHARE_CARD_FORMATS.story, true, 'tira');
+    const geo3 = computeShareCardLayout(d3, SHARE_CARD_FORMATS.story, 'tira');
     expect(geo3.gridCells).toHaveLength(3);
     // La tira también lleva categoría y el círculo a caballo.
     expect(geo4.category.text).toBe('Restaurantes');
@@ -207,14 +206,14 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
       0,
     );
     // En Post la foto grande no se vuelve una franja delgada.
-    const geoPost = computeShareCardLayout(d4, SHARE_CARD_FORMATS.post, true, 'tira');
+    const geoPost = computeShareCardLayout(d4, SHARE_CARD_FORMATS.post, 'tira');
     expect(geoPost.gridCells[0].h).toBeGreaterThanOrEqual(geoPost.L.bigMinH);
   });
 
   it('collage: hero a sangre, círculo a la izquierda, kicker, nombre en serif, calificación en texto y dúo', () => {
     for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       const d = dataFor(DONATELLA);
-      const geo = computeShareCardLayout(d, format, true, 'collage');
+      const geo = computeShareCardLayout(d, format, 'collage');
       expect(geo.style).toBe('collage');
       // Hero a sangre (sin márgenes, sin radio).
       expect(geo.hero.x).toBe(0);
@@ -244,7 +243,6 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
       // Calificación como texto plano (no pastilla).
       expect(geo.ratingLine.rating).toBe(4.3);
       expect(geo.ratingLine.reviewCount).toBe(1853);
-      expect(geo.pillRows).toEqual([]);
       // Dúo: 2 fotos chicas (la 2ª y la 3ª), sin solapar el pie.
       expect(geo.duo).toHaveLength(2);
       expect(geo.duo.map((c) => c.photoIndex)).toEqual([1, 2]);
@@ -255,24 +253,23 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
       expect(geo.footer.y + geo.footer.size / 2).toBeLessThanOrEqual(
         geo.height - geo.L.pad,
       );
+      // Web en texto limpio sobre los badges.
+      expect(geo.web.text).toBe('🌐 www.citymap.mx');
+      expect(geo.web.y).toBeLessThan(geo.footer.y);
     }
   });
 
-  it('sin dato de Google no hay píldora de calificación ni línea de calificación', () => {
+  it('sin dato de Google no hay línea de reseñas+ciudad ni línea de calificación', () => {
     const d = dataFor(DONATELLA, null);
-    const geoGrid = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true, 'grid');
-    expect(geoGrid.pillRows).toHaveLength(1);
-    expect(geoGrid.pillRows[0].map((p) => p.text)).toEqual(['Zapopan']);
+    const geoGrid = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, 'grid');
+    expect(geoGrid.ratingCity.lines).toEqual(['Zapopan']);
     const geoCollage = computeShareCardLayout(
-      d,
-      SHARE_CARD_FORMATS.story,
-      true,
-      'collage',
+      d, SHARE_CARD_FORMATS.story, 'collage',
     );
     expect(geoCollage.ratingLine).toBeNull();
     // El hero crece para comerse el hueco de la calificación.
     expect(geoCollage.hero.h).toBeGreaterThan(
-      computeShareCardLayout(dataFor(DONATELLA), SHARE_CARD_FORMATS.story, true, 'collage')
+      computeShareCardLayout(dataFor(DONATELLA), SHARE_CARD_FORMATS.story, 'collage')
         .hero.h,
     );
   });
@@ -280,11 +277,12 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
   it('Oscura y Clara no heredan nada de los estilos con grid', () => {
     const d = dataFor(DONATELLA);
     for (const styleId of ['glass', 'editorial']) {
-      const geo = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true, styleId);
+      const geo = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, styleId);
       expect(geo.gridCells).toBeNull();
       // Propuesta A corregida (22 nov 2026): la categoría SÍ va en
-      // Oscura y Clara, bajo las píldoras; lo que no heredan es el
-      // grid, el hero, el kicker, la calificación en texto y el dúo.
+      // Oscura y Clara, bajo la línea de reseñas+ciudad; lo que no
+      // heredan es el grid, el hero, el kicker, la calificación en
+      // texto y el dúo.
       expect(geo.category).not.toBeNull();
       expect(geo.category.text).toBe('Restaurantes');
       expect(geo.hero).toBeNull();
@@ -306,12 +304,13 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     expect(htmlGrid).toContain('Zapopan');
     expect(htmlGrid).toContain('4.3');
     expect(htmlGrid).toContain('@donatella');
-    // Pie solo con los 2 badges (propuesta A corregida, 22 nov 2026).
-    expect(htmlGrid).not.toContain('🌐 www.citymap.mx');
+    // Pie solo con los 2 badges + web en texto limpio sobre ellos
+    // (definición final, 22 nov 2026).
+    expect(htmlGrid).toContain('🌐 www.citymap.mx');
     expect(htmlGrid).toContain('/badges/app-store.svg');
     expect(htmlGrid).toContain('/badges/google-play.svg');
-    // Grid 2×2: 4 fotos + logo oficial + círculo + G de Google + 2 badges.
-    expect(htmlGrid.match(/<img/g)).toHaveLength(9);
+    // Grid 2×2: 4 fotos + logo oficial + círculo + 2 badges (sin G).
+    expect(htmlGrid.match(/<img/g)).toHaveLength(8);
     // Tira: 1 grande + 3 miniaturas (mismas 4 fotos).
     const htmlTira = renderToStaticMarkup(
       <ShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} styleId="tira" />,
@@ -319,9 +318,9 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     expect(htmlTira).toContain('Donatella');
     expect(htmlTira).toContain('Restaurantes');
     expect(htmlTira).toContain('@donatella');
-    expect(htmlTira).not.toContain('www.citymap.mx');
-    // Tira: 1 grande + 3 miniaturas + logo + círculo + G + 2 badges.
-    expect(htmlTira.match(/<img/g)).toHaveLength(9);
+    expect(htmlTira).toContain('🌐 www.citymap.mx');
+    // Tira: 1 grande + 3 miniaturas + logo + círculo + 2 badges (sin G).
+    expect(htmlTira.match(/<img/g)).toHaveLength(8);
     // Collage: hero + dúo (3 fotos) + logo oficial + círculo, sin G.
     const htmlCollage = renderToStaticMarkup(
       <ShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} styleId="collage" />,
@@ -331,11 +330,12 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     expect(htmlCollage).toContain('4.3');
     expect(htmlCollage).toContain('1,853 reseñas en Google');
     expect(htmlCollage).toContain('@donatella');
-    expect(htmlCollage).not.toContain('www.citymap.mx');
+    expect(htmlCollage).toContain('🌐 www.citymap.mx');
     // Collage: hero + dúo (3 fotos) + logo oficial + círculo + 2 badges, sin G.
     expect(htmlCollage.match(/<img/g)).toHaveLength(7);
-    // La estrella de la píldora es ámbar en los estilos con grid.
-    expect(htmlGrid).toContain('#F59E0B');
+    // La estrella del collage sigue ámbar; la línea de
+    // reseñas+ciudad del grid es toda en gris (sin ámbar).
+    expect(htmlGrid).not.toContain('#F59E0B');
     expect(htmlCollage).toContain('#F59E0B');
   });
 

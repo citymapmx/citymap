@@ -89,12 +89,15 @@ describe('tarjeta para compartir el negocio', () => {
     expect(lib).toContain("disp?.source === 'google'");
     expect(lib).toContain('reviewCount');
     expect(lib).toContain('formatReviewCount');
-    // La píldora de calificación lleva la G de Google (como en las
-    // tarjetas de negocio) y el conteo de reseñas; el Collage la lleva
-    // como texto plano («★ 4.3 (1,853 reseñas en Google)»).
-    expect(template).toContain('data.rating.toFixed(1)');
-    expect(template).toContain('src="/googlelogo.svg"');
-    expect(lib).toContain("'/googlelogo.svg'");
+    // La calificación va en UNA línea de texto limpio con la ciudad
+    // («★ 4.2 (2,561) · París», sin fondo gris y sin G); el Collage
+    // la lleva como texto plano («★ 4.3 (1,853 reseñas en Google)»).
+    expect(lib).toContain('data.rating.toFixed(1)');
+    expect(template).not.toContain('data.rating.toFixed(1)');
+    expect(lib).toContain('ratingCity');
+    expect(template).toContain('layout.ratingCity');
+    expect(template).not.toContain('src="/googlelogo.svg"');
+    expect(lib).not.toContain("'/googlelogo.svg'");
     expect(template).toContain('reseñas en Google');
   });
 
@@ -319,7 +322,7 @@ describe('tarjeta para compartir: pie con las 3 opciones en una fila (22 nov 202
       { cityName: 'Guadalajara' },
     );
     for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
-      const layout = computeShareCardLayout(data, format, false, 'glass');
+      const layout = computeShareCardLayout(data, format, 'glass');
       expect(layout.footerRow).toBeDefined();
       // Propuesta A (22 nov 2026): en negocios el pie lleva solo los
       // 2 badges, sin píldora web.

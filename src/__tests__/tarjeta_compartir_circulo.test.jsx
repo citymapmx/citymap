@@ -64,7 +64,7 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
     ]) {
       for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
         const d = buildShareCardData(biz, { disp, cityName });
-        const geo = computeShareCardLayout(d, format, true, 'glass');
+        const geo = computeShareCardLayout(d, format, 'glass');
         expect(geo.bizLogo).not.toBeNull();
         // El hueco entre el círculo y el primer texto es el diseñado.
         expect(nameTop(geo) - circleBottom(geo)).toBeCloseTo(geo.L.bizLogoGap, 0);
@@ -120,7 +120,7 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
           disp: { rating: 4.5, count: 1000, source: 'google' },
           cityName: 'Guadalajara',
         });
-        const geo = computeShareCardLayout(d, format, true, 'glass');
+        const geo = computeShareCardLayout(d, format, 'glass');
         expect(geo.name.lines).toEqual([name]);
         // El mínimo de foto no se aplica: la foto conserva su alto
         // calculado, así que la tarjeta no cambia de posición.
@@ -152,23 +152,28 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
         disp: tangenteDisp,
         cityName: 'San Pedro Garza García, Nuevo León',
       });
-      const geo = computeShareCardLayout(d, format, true, 'glass');
+      const geo = computeShareCardLayout(d, format, 'glass');
       expect(geo.bizLogo).not.toBeNull();
       expect(geo.name.lines.length).toBe(3);
       expect(geo.name.lines.join(' ')).not.toContain('…');
-      expect(geo.pillRows.length).toBe(2);
-      expect(geo.pillRows.flat().map((p) => p.text)).toEqual([
-        '★ 4.7 (4,125)',
-        'San Pedro Garza García, Nuevo León',
-      ]);
+      // La línea de reseñas+ciudad: en Historia la ciudad larga no
+      // cabe en una línea (2 líneas); en Post, más chica, sí.
+      expect(geo.ratingCity.lines.length).toBe(format.id === 'story' ? 2 : 1);
+      expect(geo.ratingCity.lines.join(' ')).toBe(
+        '★ 4.7 (4,125) · San Pedro Garza García, Nuevo León',
+      );
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       // Ni la categoría ni el nombre se comen el pie.
       const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
+      const webTop = geo.web.y - (geo.L.webSize * 1.2) / 2;
+      expect(catEnd).toBeLessThanOrEqual(webTop);
+      // El hueco entre la categoría y la línea de la web es el
+      // diseñado (footGap): photoMinH deja hueco para este peor caso
+      // sin comerse el pie; y entre la web y los badges va webGap.
+      expect(webTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
+      const webEnd = geo.web.y + (geo.L.webSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(catEnd).toBeLessThanOrEqual(footTop);
-      // El hueco entre la categoría y el pie es el diseñado (footGap):
-      // photoMinH deja hueco para este peor caso sin comerse el pie.
-      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
+      expect(footTop - webEnd).toBeCloseTo(geo.L.webGap, 6);
       expect(nameTop(geo) - circleBottom(geo)).toBeCloseTo(geo.L.bizLogoGap, 0);
     }
   });
@@ -185,7 +190,7 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
     ]) {
       for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
         const d = buildShareCardData(biz, { disp, cityName });
-        const geo = computeShareCardLayout(d, format, true, 'editorial');
+        const geo = computeShareCardLayout(d, format, 'editorial');
         expect(geo.bizLogo).not.toBeNull();
         expect(geo.bizLogo.d).toBe(geo.L.bizLogoD);
         expect(nameTop(geo) - circleBottom(geo)).toBeCloseTo(geo.L.bizLogoGap, 0);
@@ -224,22 +229,24 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
         disp: tangenteDisp,
         cityName: 'San Pedro Garza García, Nuevo León',
       });
-      const geo = computeShareCardLayout(d, format, true, 'editorial');
+      const geo = computeShareCardLayout(d, format, 'editorial');
       expect(geo.bizLogo).not.toBeNull();
       expect(geo.name.lines.length).toBe(3);
       expect(geo.name.lines.join(' ')).not.toContain('…');
-      // En Clara Historia las 2 píldoras no caben en una fila (la
-      // ciudad larga baja a la segunda); en Post, más chicas, sí.
-      expect(geo.pillRows.length).toBe(format.id === 'story' ? 2 : 1);
-      expect(geo.pillRows.flat().map((p) => p.text)).toEqual([
-        '★ 4.7 (4,125)',
-        'San Pedro Garza García, Nuevo León',
-      ]);
+      // En Clara Historia la línea de reseñas+ciudad no cabe en una
+      // (la ciudad larga baja a la segunda); en Post, más chica, sí.
+      expect(geo.ratingCity.lines.length).toBe(format.id === 'story' ? 2 : 1);
+      expect(geo.ratingCity.lines.join(' ')).toBe(
+        '★ 4.7 (4,125) · San Pedro Garza García, Nuevo León',
+      );
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
+      const webTop = geo.web.y - (geo.L.webSize * 1.2) / 2;
+      expect(catEnd).toBeLessThanOrEqual(webTop);
+      expect(webTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
+      const webEnd = geo.web.y + (geo.L.webSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(catEnd).toBeLessThanOrEqual(footTop);
-      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
+      expect(footTop - webEnd).toBeCloseTo(geo.L.webGap, 6);
       expect(nameTop(geo) - circleBottom(geo)).toBeCloseTo(geo.L.bizLogoGap, 0);
     }
   });
