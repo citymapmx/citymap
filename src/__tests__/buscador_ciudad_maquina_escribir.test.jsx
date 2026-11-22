@@ -41,7 +41,7 @@ describe('buscador de ciudad con máquina de escribir', () => {
   const hookSrc = read('../lib/useTypewriter.js');
 
   it('el hook vive en lib y los dos buscadores lo importan (una sola implementación)', () => {
-    expect(hookSrc).toContain('export function useTypewriter(phrases)');
+    expect(hookSrc).toContain('export function useTypewriter(phrases, options = {})');
     expect(pickerSrc).toContain("from '../lib/useTypewriter.js'");
     expect(homeSrc).toContain("from \"../../lib/useTypewriter.js\"");
     expect(homeSrc).not.toContain('function useTypewriter(phrases)');
@@ -49,10 +49,14 @@ describe('buscador de ciudad con máquina de escribir', () => {
     expect(pickerSrc).not.toContain('hero-caret');
   });
 
-  it('las frases son los nombres de todas las ciudades registradas', () => {
+  it('las frases son los nombres de todas las ciudades registradas, en orden aleatorio y más rápido', () => {
     expect(pickerSrc).toContain('`Buscar ${c.name}...`');
     // Sin ciudades, la frase fija de siempre.
     expect(pickerSrc).toContain("['Buscar ciudad...']");
+    // Baraja (Fisher-Yates) en vez del orden fijo por negocios.
+    expect(pickerSrc).toContain('Math.floor(Math.random() * (i + 1))');
+    // Más rápido que el inicio (75/3500/30/400/600 por defecto).
+    expect(pickerSrc).toContain('useTypewriter(cityPhrases, { typeMs: 40, pauseMs: 1800, deleteMs: 15, gapMs: 250, startMs: 300 })');
   });
 
   it('el placeholder nativo queda vacío y la frase animada va encima del input', () => {
@@ -62,6 +66,14 @@ describe('buscador de ciudad con máquina de escribir', () => {
     // Al escribir se esconde la animación; al enfocar se congela.
     expect(pickerSrc).toContain('{!searchQuery && (');
     expect(pickerSrc).toContain('onFocus={() => setFocusedPlaceholder(animatedHint)}');
+    // El nombre de la ciudad va en azul para que resalte: «Buscar » en
+    // gris y el resto (la ciudad) en azul.
+    expect(pickerSrc).toContain('hintText.slice(0, 7)');
+    expect(pickerSrc).toContain('hintText.slice(7)');
+    expect(pickerSrc).toContain('"#2563EB"');
+    // El buscador es igual al del inicio: píldora redondeada y fondo blanco.
+    expect(pickerSrc).toContain('borderRadius: 100');
+    expect(pickerSrc).toContain('"#FFFFFF"');
   });
 
   it('en el render se ve el cursor de la máquina de escribir', () => {

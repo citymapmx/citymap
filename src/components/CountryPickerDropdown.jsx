@@ -22,17 +22,19 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
   const ref = useRef(null);
 
   // Máquina de escribir (22 nov 2026): el buscador de ciudad escribe los
-  // nombres de TODAS las ciudades registradas, en el mismo orden en que
-  // se muestran (por cantidad de negocios), con el mismo efecto del
-  // buscador del inicio. Si aún no hay ciudades, la frase fija de siempre.
+  // nombres de TODAS las ciudades registradas, con el mismo efecto del
+  // buscador del inicio. Orden ALEATORIO (se baraja una vez por lista) y
+  // más rápido que el inicio. Si aún no hay ciudades, la frase fija.
   const cityPhrases = useMemo(() => {
-    const ordered = [...(cities || [])]
-      .map(c => ({ ...c, count: cityCounts[c.slug] || 0 }))
-      .sort((a, b) => b.count - a.count);
-    const phrases = ordered.map(c => `Buscar ${c.name}...`);
+    const shuffled = [...(cities || [])];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const phrases = shuffled.map(c => `Buscar ${c.name}...`);
     return phrases.length ? phrases : ['Buscar ciudad...'];
-  }, [cities, cityCounts]);
-  const animatedHint = useTypewriter(cityPhrases);
+  }, [cities]);
+  const animatedHint = useTypewriter(cityPhrases, { typeMs: 40, pauseMs: 1800, deleteMs: 15, gapMs: 250, startMs: 300 });
 
   useEffect(()=>{
     if(show) void useDataStore.getState().refreshCities();
@@ -127,6 +129,10 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
   const currentCountry = currentCityObj ? currentCityObj.country : null;
 
   const isSearching = searchQuery.trim().length > 0;
+
+  // La frase animada se parte en dos: «Buscar » en gris y el nombre de la
+  // ciudad en azul, para que resalte (22 nov 2026).
+  const hintText = focusedPlaceholder ?? animatedHint;
 
   const CityRow = ({ city, selected }) => (
     <button
@@ -279,11 +285,11 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
                 onChange={e => setSearchQuery(e.target.value)}
                 onFocus={() => setFocusedPlaceholder(animatedHint)}
                 onBlur={() => setFocusedPlaceholder(null)}
-                style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10, border: "none", background: dark ? "#2D2D31" : "#F1F5F9", color: T.text, fontSize: 14, outline: "none", fontFamily: "inherit", caretColor: T.text, gridArea: "1 / 1" }}
+                style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 100, border: "none", background: dark ? "#2D2D31" : "#FFFFFF", color: T.text, fontSize: 14, outline: "none", fontFamily: "inherit", caretColor: T.text, gridArea: "1 / 1" }}
               />
               {!searchQuery && (
                 <span aria-hidden="true" style={{ gridArea: "1 / 1", alignSelf: "center", minWidth: 0, maxWidth: "100%", padding: "10px 12px 10px 34px", zIndex: 4, pointerEvents: "none", fontSize: 14, fontWeight: 400, lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textAlign: "left", color: dark ? "#A1A1AA" : "#64748b" }}>
-                  {focusedPlaceholder ?? animatedHint}<span className="typewriter-caret" aria-hidden="true">▏</span>
+                  {hintText.slice(0, 7)}<span style={{ color: dark ? "#60A5FA" : "#2563EB" }}>{hintText.slice(7)}</span><span className="typewriter-caret" aria-hidden="true">▏</span>
                 </span>
               )}
             </div>

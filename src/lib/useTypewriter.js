@@ -5,7 +5,16 @@ import React from "react";
 // la borra y sigue con la siguiente. Los "..." del final son solo
 // visuales: la frase animada nunca se convierte en la búsqueda,
 // así que no afectan a los resultados.
-export function useTypewriter(phrases) {
+// Tiempos por defecto = los del inicio. El selector de ciudad
+// pasa los suyos (más rápido, 22 nov 2026).
+export function useTypewriter(phrases, options = {}) {
+  const {
+    typeMs = 75,
+    pauseMs = 3500,
+    deleteMs = 30,
+    gapMs = 400,
+    startMs = 600,
+  } = options;
   const [text, setText] = React.useState('');
   React.useEffect(() => {
     let phraseIdx = 0;
@@ -19,18 +28,18 @@ export function useTypewriter(phrases) {
       if (!deleting) {
         charIdx += 1;
         setText(phrase.slice(0, charIdx));
-        if (charIdx >= phrase.length) { deleting = true; timer = setTimeout(step, 3500); }
-        else timer = setTimeout(step, 75);
+        if (charIdx >= phrase.length) { deleting = true; timer = setTimeout(step, pauseMs); }
+        else timer = setTimeout(step, typeMs);
       } else {
         charIdx -= 1;
         setText(charIdx > 0 ? phrase.slice(0, charIdx) : '');
-        if (charIdx <= 0) { deleting = false; phraseIdx = (phraseIdx + 1) % phrases.length; timer = setTimeout(step, 400); }
-        else timer = setTimeout(step, 30);
+        if (charIdx <= 0) { deleting = false; phraseIdx = (phraseIdx + 1) % phrases.length; timer = setTimeout(step, gapMs); }
+        else timer = setTimeout(step, deleteMs);
       }
     };
-    timer = setTimeout(step, 600);
+    timer = setTimeout(step, startMs);
     return () => { alive = false; clearTimeout(timer); };
-  }, [phrases]);
+  }, [phrases, typeMs, pauseMs, deleteMs, gapMs, startMs]);
   return text;
 }
 
