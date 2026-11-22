@@ -24,8 +24,9 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // `propuestas-de-tarjetas-con-grid`, 10 nov 2026; Jonathan: «Haz las
 // 4»): Grid 2×2, Foto grande + tira de miniaturas y Collage editorial.
 // Fondo blanco, círculo de logo más grande (Ø 292 Historia / 232 Post),
-// categoría bajo las píldoras (o en el kicker del collage), pie
-// «Descúbrelo en www.citymap.mx», anillo del círculo SOLO blanco.
+// categoría bajo el nombre (o en el kicker del collage), pie solo con
+// los 2 badges (propuesta A, 22 nov 2026), anillo del círculo SOLO
+// blanco.
 //
 // Negocio real de la demo: Donatella, Zapopan, Restaurantes, ★ 4.3
 // (1,853) en Google, plan premium con logo.
@@ -118,9 +119,7 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
   it('el anillo del círculo es solo blanco en los 3 estilos con grid', () => {
     for (const styleId of ['grid', 'tira', 'collage']) {
       expect(SHARE_CARD_STYLE_COLORS[styleId].bizLogoRing).toBe('#FFFFFF');
-      expect(SHARE_CARD_STYLE_COLORS[styleId].starAmber).toBe(true);
       expect(SHARE_CARD_STYLE_COLORS[styleId].bg).toEqual(['#FFFFFF', '#FFFFFF']);
-      expect(SHARE_CARD_STYLE_COLORS[styleId].pillBg).toBe('#F4F4F6');
       expect(SHARE_CARD_STYLE_COLORS[styleId].logoWhite).toBe(false);
     }
     // El círculo es más grande que en Oscura/Clara (Ø 292/232, 27cqw
@@ -161,11 +160,9 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
       // (su centro queda en ese borde, con el redondeo de Math.round).
       expect(geo.bizLogo.x).toBe(Math.round((geo.width - geo.bizLogo.d) / 2));
       expect(geo.bizLogo.y + geo.bizLogo.d / 2).toBeCloseTo(p.y + p.h, 0);
-      // Categoría bajo las píldoras y pie al final, sin desbordar.
+      // Categoría bajo el nombre y pie al final, sin desbordar.
       expect(geo.category.text).toBe('Restaurantes');
-      expect(geo.category.y).toBeGreaterThan(
-        geo.pillRows[geo.pillRows.length - 1][0].y,
-      );
+      expect(geo.category.y).toBeGreaterThan(geo.name.y);
       expect(geo.footer.y + geo.footer.size / 2).toBeLessThanOrEqual(
         geo.height - geo.L.pad,
       );
@@ -253,11 +250,13 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     }
   });
 
-  it('sin dato de Google no hay píldora de calificación ni línea de calificación', () => {
+  it('sin dato de Google no hay píldoras ni línea de calificación', () => {
     const d = dataFor(DONATELLA, null);
     const geoGrid = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true, 'grid');
-    expect(geoGrid.pillRows).toHaveLength(1);
-    expect(geoGrid.pillRows[0].map((p) => p.text)).toEqual(['Zapopan']);
+    // Propuesta A (22 nov 2026): la tarjeta ya no lleva píldoras en
+    // ningún caso; la categoría sigue bajo el nombre.
+    expect(geoGrid.pillRows).toEqual([]);
+    expect(geoGrid.category.text).toBe('Restaurantes');
     const geoCollage = computeShareCardLayout(
       d,
       SHARE_CARD_FORMATS.story,
@@ -277,7 +276,11 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     for (const styleId of ['glass', 'editorial']) {
       const geo = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true, styleId);
       expect(geo.gridCells).toBeNull();
-      expect(geo.category).toBeNull();
+      // Propuesta A (22 nov 2026): la categoría SÍ va en Oscura y
+      // Clara, bajo el nombre; lo que no heredan es el grid, el hero,
+      // el kicker, la calificación en texto y el dúo.
+      expect(geo.category).not.toBeNull();
+      expect(geo.category.text).toBe('Restaurantes');
       expect(geo.hero).toBeNull();
       expect(geo.kicker).toBeNull();
       expect(geo.ratingLine).toBeNull();
@@ -288,29 +291,30 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
 
   it('la vista previa pinta el grid, la tira y el collage con sus fotos reales', () => {
     const d = dataFor(DONATELLA);
-    // Grid 2×2: 4 fotos + logo oficial + círculo + G de Google.
+    // Grid 2×2: 4 fotos + logo oficial + círculo + 2 badges (sin
+    // píldoras ni G de Google, propuesta A, 22 nov 2026).
     const htmlGrid = renderToStaticMarkup(
       <ShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} styleId="grid" />,
     );
     expect(htmlGrid).toContain('Donatella');
     expect(htmlGrid).toContain('Restaurantes');
-    expect(htmlGrid).toContain('Zapopan');
-    expect(htmlGrid).toContain('4.3');
-    // Pie con las 3 opciones en una fila (22 nov 2026).
-    expect(htmlGrid).toContain('🌐 www.citymap.mx');
+    expect(htmlGrid).not.toContain('Zapopan');
+    expect(htmlGrid).not.toContain('4.3');
+    // Pie solo con los 2 badges (22 nov 2026).
+    expect(htmlGrid).not.toContain('🌐 www.citymap.mx');
     expect(htmlGrid).toContain('/badges/app-store.svg');
     expect(htmlGrid).toContain('/badges/google-play.svg');
-    // Grid 2×2: 4 fotos + logo oficial + círculo + G de Google + 2 badges.
-    expect(htmlGrid.match(/<img/g)).toHaveLength(9);
+    // Grid 2×2: 4 fotos + logo oficial + círculo + 2 badges.
+    expect(htmlGrid.match(/<img/g)).toHaveLength(8);
     // Tira: 1 grande + 3 miniaturas (mismas 4 fotos).
     const htmlTira = renderToStaticMarkup(
       <ShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} styleId="tira" />,
     );
     expect(htmlTira).toContain('Donatella');
     expect(htmlTira).toContain('Restaurantes');
-    expect(htmlTira).toContain('www.citymap.mx');
-    // Tira: 1 grande + 3 miniaturas + logo + círculo + G + 2 badges.
-    expect(htmlTira.match(/<img/g)).toHaveLength(9);
+    expect(htmlTira).not.toContain('www.citymap.mx');
+    // Tira: 1 grande + 3 miniaturas + logo + círculo + 2 badges.
+    expect(htmlTira.match(/<img/g)).toHaveLength(8);
     // Collage: hero + dúo (3 fotos) + logo oficial + círculo, sin G.
     const htmlCollage = renderToStaticMarkup(
       <ShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} styleId="collage" />,
@@ -319,11 +323,10 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     expect(htmlCollage).toContain('RESTAURANTES · ZAPOPAN');
     expect(htmlCollage).toContain('4.3');
     expect(htmlCollage).toContain('1,853 reseñas en Google');
-    expect(htmlCollage).toContain('www.citymap.mx');
+    expect(htmlCollage).not.toContain('www.citymap.mx');
     // Collage: hero + dúo (3 fotos) + logo oficial + círculo + 2 badges, sin G.
     expect(htmlCollage.match(/<img/g)).toHaveLength(7);
-    // La estrella de la píldora es ámbar en los estilos con grid.
-    expect(htmlGrid).toContain('#F59E0B');
+    // La estrella de la calificación en texto plano del collage es ámbar.
     expect(htmlCollage).toContain('#F59E0B');
   });
 

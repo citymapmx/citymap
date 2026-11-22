@@ -84,16 +84,18 @@ describe('tarjeta para compartir el negocio', () => {
     // tarjetas de negocio: google_ratings_cache).
     expect(sheet).toContain('displayRating(biz, googleRatings)');
     expect(sheet).toContain('buildShareCardData(biz, { disp, cityName })');
-    // Solo con dato vigente de Google hay píldora: la interna de
+    // Solo con dato vigente de Google hay calificación: la interna de
     // CityMap no se muestra en la tarjeta.
     expect(lib).toContain("disp?.source === 'google'");
     expect(lib).toContain('reviewCount');
     expect(lib).toContain('formatReviewCount');
-    // La píldora muestra calificación + conteo, con la G de Google.
-    expect(template).toContain('data.rating.toFixed(1)');
-    expect(template).toContain('formatReviewCount(data.reviewCount');
-    expect(template).toContain('src="/googlelogo.svg"');
-    expect(lib).toContain("'/googlelogo.svg'");
+    // Propuesta A (22 nov 2026): la calificación ya no va en píldora
+    // en la tarjeta de flujo; solo sobrevive como texto plano en el
+    // Collage editorial («★ 4.3 (1,853 reseñas en Google)»).
+    expect(template).not.toContain('data.rating.toFixed(1)');
+    expect(template).not.toContain('src="/googlelogo.svg"');
+    expect(lib).not.toContain("'/googlelogo.svg'");
+    expect(template).toContain('reseñas en Google');
   });
 
   it('el precio ya no se muestra en la tarjeta', () => {
@@ -157,14 +159,15 @@ describe('tarjeta para compartir el negocio', () => {
     expect(detail).toContain('onShareLink={(b) => doShare(b)}');
   });
 
-  it('el logo circular del negocio (PR #144): mismo que la ficha, solo si lo tiene', () => {
-    // La ficha (DetailView) solo muestra el círculo a los planes de
-    // pago con logo_url; la tarjeta replica esa regla.
-    expect(lib).toContain('bizShowsLogoCircle');
+  it('el logo circular del negocio (PR #144, propuesta A 22 nov 2026)', () => {
+    // Propuesta A: el círculo ya no exige plan de pago — logo_url del
+    // negocio, o su primera foto de la galería recortada en círculo
+    // (bizLogoCover) si no tiene logo; sin fotos, sin círculo.
+    expect(lib).not.toContain('bizShowsLogoCircle');
     expect(lib).toContain('logo_url');
-    expect(lib).toContain("'premium'");
-    expect(lib).toContain("'destacado'");
     expect(lib).toContain('bizLogoUrl');
+    expect(lib).toContain('bizLogoCover');
+    expect(lib).toContain('photoUrls[0]');
     // Geometría compartida: diámetro y hueco en el layout, círculo
     // centrado sobre el borde inferior de la foto.
     expect(lib).toContain('bizLogoD');
@@ -185,10 +188,12 @@ describe('tarjeta para compartir el negocio', () => {
     expect(lib).toContain('bizLogoRing: 6');
     expect(lib).toContain('bizLogoShadowY: 8');
     expect(lib).toContain('bizLogoShadowBlur: 20');
-    // El exportador de canvas también lo dibuja (círculo + contain) y
-    // si no carga, la tarjeta sale sin círculo.
+    // El exportador de canvas también lo dibuja (círculo + contain
+    // para el logo, cover para la foto) y si no carga, la tarjeta
+    // sale sin círculo.
     expect(lib).toContain('loadShareCardBizLogo');
     expect(lib).toContain('drawContainImage');
+    expect(lib).toContain('drawCoverImage');
     expect(lib).toContain('ctx.arc');
     expect(sheet).toContain('onBizLogoError');
     expect(sheet).toContain('bizLogoFailed');
@@ -308,7 +313,7 @@ describe('tarjeta para compartir: pie con las 3 opciones en una fila (22 nov 202
     expect(row.appStore.w / row.appStore.h).toBeCloseTo(119.66407 / 40, 1);
   });
 
-  it('la geometría de la tarjeta de negocio ya lleva la fila del pie', () => {
+  it('la geometría de la tarjeta de negocio ya lleva la fila del pie (solo badges)', () => {
     const data = buildShareCardData(
       { name: 'Xokol', photos: [{ url: 'https://example.com/foto.jpg' }] },
       { cityName: 'Guadalajara' },
@@ -316,11 +321,18 @@ describe('tarjeta para compartir: pie con las 3 opciones en una fila (22 nov 202
     for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       const layout = computeShareCardLayout(data, format, false, 'glass');
       expect(layout.footerRow).toBeDefined();
-      expect(layout.footerRow.web.text).toContain('www.citymap.mx');
+      // Propuesta A (22 nov 2026): en negocios el pie lleva solo los
+      // 2 badges, sin píldora web.
+      expect(layout.footerRow.web).toBeNull();
       expect(layout.footerRow.h).toBe(layout.L.footSize);
       expect(layout.footerRow.y + layout.footerRow.h).toBeLessThanOrEqual(
         layout.height - layout.L.pad,
       );
+      // Los 2 badges, pegados con el hueco diseñado y centrados.
+      expect(layout.footerRow.googlePlay.x).toBe(
+        layout.footerRow.appStore.x + layout.footerRow.appStore.w + layout.footerRow.gap,
+      );
+      expect(Math.abs(layout.footerRow.x + layout.footerRow.w / 2 - layout.width / 2)).toBeLessThanOrEqual(1);
     }
   });
 });

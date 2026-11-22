@@ -130,10 +130,12 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
     }
   });
 
-  it('el peor caso (nombre de 3 líneas + píldoras en 2 filas) no desborda el pie', () => {
+  it('el peor caso (nombre de 3 líneas + categoría) no desborda el pie', () => {
     // Historia: Tangente da 3 líneas con la medición de este entorno.
     // Post: las líneas son más anchas, así que el peor caso usa un
     // nombre más largo que sí da 3 líneas ahí.
+    // Propuesta A (22 nov 2026): las píldoras ya no existen; el peor
+    // caso es el nombre de 3 líneas con la categoría debajo.
     const cases = [
       [SHARE_CARD_FORMATS.story, 'Tangente Restaurante Tlaquepaque'],
       [SHARE_CARD_FORMATS.post, 'Restaurante Cafetería Tlaquepaque Zapotlanejo Guadalajara'],
@@ -152,20 +154,18 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
       expect(geo.bizLogo).not.toBeNull();
       expect(geo.name.lines.length).toBe(3);
       expect(geo.name.lines.join(' ')).not.toContain('…');
-      // Las píldoras sí se parten en 2 filas con la ciudad larga.
-      expect(geo.pillRows.length).toBe(2);
+      expect(geo.pillRows).toEqual([]);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
-      // Ni las píldoras ni el nombre se comen el pie.
-      const lastRow = geo.pillRows[geo.pillRows.length - 1];
-      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      // Ni la categoría ni el nombre se comen el pie.
+      const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(pillsEnd).toBeLessThanOrEqual(footTop);
-      // El hueco entre las píldoras y el pie es el diseñado (footGap),
+      expect(catEnd).toBeLessThanOrEqual(footTop);
+      // El hueco entre la categoría y el pie es el diseñado (footGap),
       // salvo en el peor caso, donde la foto ya está en su mínimo y el
       // hueco se comprime unos píxeles (22 nov 2026: el pie es 10 px
       // más alto por la fila con web + App Store + Google Play).
-      expect(footTop - pillsEnd).toBeGreaterThanOrEqual(geo.L.footGap - 10);
-      expect(footTop - pillsEnd).toBeLessThanOrEqual(geo.L.footGap + 1);
+      expect(footTop - catEnd).toBeGreaterThanOrEqual(geo.L.footGap - 10);
+      expect(footTop - catEnd).toBeLessThanOrEqual(geo.L.footGap + 1);
       expect(nameTop(geo) - circleBottom(geo)).toBeCloseTo(geo.L.bizLogoGap, 0);
     }
   });
@@ -225,12 +225,12 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
       expect(geo.bizLogo).not.toBeNull();
       expect(geo.name.lines.length).toBe(3);
       expect(geo.name.lines.join(' ')).not.toContain('…');
+      expect(geo.pillRows).toEqual([]);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
-      const lastRow = geo.pillRows[geo.pillRows.length - 1];
-      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(pillsEnd).toBeLessThanOrEqual(footTop);
-      expect(footTop - pillsEnd).toBeCloseTo(geo.L.footGap, 6);
+      expect(catEnd).toBeLessThanOrEqual(footTop);
+      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
       expect(nameTop(geo) - circleBottom(geo)).toBeCloseTo(geo.L.bizLogoGap, 0);
     }
   });
