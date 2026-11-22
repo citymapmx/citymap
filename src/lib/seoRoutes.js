@@ -128,6 +128,33 @@ export function cityHomeSlugFromPath(pathname, isWorld = false) {
   return null;
 }
 
+// ── Títulos y descripciones en UN solo módulo (C3, 21 nov 2026) ──
+// Antes había TRES títulos distintos para la misma página de ciudad:
+// web-next («Qué hacer en X… — CityMap»), og.js para bots («CityMap
+// México X — La guía de tu ciudad») y useAppSEO.js para la SPA
+// («Qué hacer en X… | CityMap»). web-next ya no sirve nada (sus rewrites
+// en vercel.json están muertos y se quitaron); og.js y la SPA usan estas
+// funciones, así que bots y usuarios ven el mismo título y la misma
+// descripción. Reciben el NOMBRE REAL de la ciudad (p. ej. «San Pedro
+// Garza García»), no el slug.
+export function cityPageTitle(cityName) {
+  return `Qué hacer en ${cityName}: Dónde comer, eventos y lugares | CityMap`;
+}
+
+export function cityPageDescription(cityName) {
+  return `Descubre dónde comer, qué hacer y qué está pasando en ${cityName}. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.`;
+}
+
+export function homePageTitle() {
+  return 'CityMap — Descubre negocios, lugares y eventos de todas las ciudades';
+}
+
+export function homePageDescription(isWorld = false) {
+  return isWorld
+    ? 'Descubre negocios, lugares, artículos y eventos de París y todas nuestras ciudades internacionales. Encuentra dónde comer, qué hacer y qué está pasando con CityMap.'
+    : 'Descubre negocios, lugares, artículos y eventos de todas nuestras ciudades: Guadalajara, Tepic, Puerto Vallarta, Zapopan, Ciudad de México y más. Encuentra dónde comer, qué hacer y qué está pasando con CityMap.';
+}
+
 // URL canónica de la ciudad de esta ruta cuando vive en el OTRO dominio,
 // o null si ya está en su dominio. Es el espejo en el cliente de la
 // redirección del middleware (21 nov 2026, PR #418): el Service Worker

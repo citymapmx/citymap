@@ -1,4 +1,4 @@
-import { seoSite, citySlugFromPath } from '../lib/seoRoutes.js';
+import { seoSite, citySlugFromPath, cityPageTitle, cityPageDescription, homePageTitle, homePageDescription } from '../lib/seoRoutes.js';
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUIStore } from '../store/useUIStore.js';
@@ -55,14 +55,14 @@ export function useAppSEO({ city }) {
 
     let title, desc;
     if (isGenericRoot) {
-      // Portada global — representa todas las ciudades, no solo la actual
-      title = `CityMap — Descubre negocios, lugares y eventos de todas las ciudades`;
-      desc = IS_WORLD
-        ? `Descubre negocios, lugares, artículos y eventos de París y todas nuestras ciudades internacionales. Encuentra dónde comer, qué hacer y qué está pasando con CityMap.`
-        : `Descubre negocios, lugares, artículos y eventos de todas nuestras ciudades: Guadalajara, Tepic, Puerto Vallarta, Zapopan, Ciudad de México y más. Encuentra dónde comer, qué hacer y qué está pasando con CityMap.`;
+      // Portada global — representa todas las ciudades, no solo la actual.
+      // Título y descripción del módulo único (seoRoutes.js): los mismos
+      // que sirve og.js a los bots.
+      title = homePageTitle();
+      desc = homePageDescription(IS_WORLD);
     } else {
-      title = `Qué hacer en ${cityCapitalized}: Dónde comer, eventos y lugares | CityMap`;
-      desc = `Descubre dónde comer, qué hacer y qué está pasando en ${cityCapitalized}. Encuentra lugares, explora experiencias y organiza tu próximo plan con CityMap.`;
+      title = cityPageTitle(cityCapitalized);
+      desc = cityPageDescription(cityCapitalized);
     }
     const activeCityData = cities.find(c => c.slug === activeCity);
     let image = activeCityData?.bg_image || `${BASE_URL}/og-image.png`;
@@ -313,7 +313,16 @@ export function useAppSEO({ city }) {
           ? `Historias, recomendaciones y notas locales de ${cityCapitalized}. Descubre guías exclusivas, eventos, lugares imperdibles y artículos en la Revista CityMap.`
           : `Historias, recomendaciones y notas locales de tu ciudad. Guías exclusivas, reportajes y artículos en la Revista CityMap.`;
          
-        canonical = `${BASE_URL}/revista/${activeCity || ""}`;
+        // Artículo de la Revista (/revista/:ciudad/:slug): su canónica es
+        // el artículo, no la sección (og.js y el sitemap usan la misma
+        // URL con el slug de base). El JSON-LD del artículo lo pone
+        // ExperienceViewer; aquí no se emite el de CollectionPage.
+        const revistaParts = location.pathname.split('/').filter(Boolean);
+        const isArticle = location.pathname.startsWith("/revista") && revistaParts.length >= 3;
+        canonical = isArticle
+          ? `${BASE_URL}/${revistaParts.join('/')}`
+          : `${BASE_URL}/revista/${activeCity || ""}`;
+        if (!isArticle) {
         schemaJson = JSON.stringify({
           "@context": "https://schema.org",
           "@graph": [
@@ -339,6 +348,7 @@ export function useAppSEO({ city }) {
             }
           ]
         });
+        }
       } else if (location.pathname.startsWith("/cuenta")) {
         title = `Mi Cuenta — CityMap`;
         desc = `Gestiona tu perfil, favoritos y reseñas en CityMap.`;

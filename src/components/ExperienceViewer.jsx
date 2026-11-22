@@ -16,6 +16,7 @@ import { getThumbUrl, createSlug } from '../lib/utils';
 import { typeLabel } from '../lib/postTaxonomy.js';
 import { tourSchemaNodes } from '../lib/tourSchema.js';
 import { currencyForCity } from '../lib/domain.js';
+import { seoSite } from '../lib/seoRoutes.js';
 import { formatPriceAmount } from '../lib/tours.js';
 import { galleryWithoutCover } from '../lib/experienceGallery.js';
 import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
@@ -266,7 +267,11 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
   const bookingConfig = exp.booking_config || {};
   const externalLinks = bookingConfig.type === "external" ? (bookingConfig.externalLinks || []) : [];
 
-  const canonicalUrl = `https://citymap.mx/revista/${exp.city_slug || 'todas'}/${exp.slug || exp.id}`;
+  // Origen del dominio actual (C3, 21 nov 2026): en citymap.world el
+  // artículo vive en .world, no en .mx. Antes estaba hardcodeado a
+  // https://citymap.mx y contradecía a og.js y al sitemap.
+  const viewerOrigin = seoSite(typeof window !== 'undefined' ? window.location.hostname : 'citymap.mx').origin;
+  const canonicalUrl = `${viewerOrigin}/revista/${exp.city_slug || 'todas'}/${exp.slug || exp.id}`;
   const schemaJson = JSON.stringify([
     {
       "@context": "https://schema.org",
@@ -278,16 +283,16 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
       "publisher": {
         "@type": "Organization",
         "name": "CityMap",
-        "url": "https://citymap.mx",
-        "logo": { "@type": "ImageObject", "url": "https://citymap.mx/citymap.mx.png" }
+        "url": viewerOrigin,
+        "logo": { "@type": "ImageObject", "url": `${viewerOrigin}/citymap.mx.png` }
       }
     },
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://citymap.mx" },
-        { "@type": "ListItem", "position": 2, "name": "Revista", "item": `https://citymap.mx/revista/${exp.city_slug || ''}` },
+        { "@type": "ListItem", "position": 1, "name": "Inicio", "item": viewerOrigin },
+        { "@type": "ListItem", "position": 2, "name": "Revista", "item": `${viewerOrigin}/revista/${exp.city_slug || ''}` },
         { "@type": "ListItem", "position": 3, "name": exp.title, "item": canonicalUrl }
       ]
     },
