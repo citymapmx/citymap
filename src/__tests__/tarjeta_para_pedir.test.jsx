@@ -191,10 +191,10 @@ describe('tarjeta para compartir: «Para pedir» y QR del menú (PR #159)', () =
     expect(plain.hoursLine).toBeUndefined();
   });
 
-  it('geometría «Para pedir»: 3 platillos con precio, sin píldoras ni círculo, botón al pie', () => {
+  it('geometría «Para pedir»: 3 platillos con precio, sin línea de reseñas+ciudad ni círculo, botón al pie', () => {
     for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       const d = menuData();
-      const geo = computeShareCardLayout(d, format, true, 'pedido');
+      const geo = computeShareCardLayout(d, format, 'pedido');
       // Los 3 platillos con su precio real del menú.
       expect(geo.dishes).toHaveLength(3);
       expect(geo.dishes.map((x) => x.name)).toEqual([
@@ -203,8 +203,10 @@ describe('tarjeta para compartir: «Para pedir» y QR del menú (PR #159)', () =
         'Tostada Acapulco',
       ]);
       expect(geo.dishes.map((x) => x.price)).toEqual(['$70', '$70', '$60']);
-      // SIN etiqueta de ciudad: no hay píldoras en esta tarjeta.
-      expect(geo.pillRows).toEqual([]);
+      // SIN etiqueta de ciudad: no hay línea de reseñas+ciudad en
+      // esta tarjeta; la web sí va, en texto limpio sobre los badges.
+      expect(geo.ratingCity).toBeNull();
+      expect(geo.web.text).toBe('🌐 www.citymap.mx');
       // SIN círculo de logo: el nombre va en su propio bloque y nada
       // lo tapa (la queja de Tangente del PR #158 no se repite).
       expect(geo.bizLogo).toBeNull();
@@ -215,10 +217,14 @@ describe('tarjeta para compartir: «Para pedir» y QR del menú (PR #159)', () =
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       // La línea de horario es el rango completo, no «abre a las 11».
       expect(geo.hours.text).toBe('Hoy 11:00 a. m. – 10:00 p. m.');
-      // El botón verde «Hacer pedido» queda a su hueco del pie.
+      // El botón verde «Hacer pedido» queda a su hueco de la línea
+      // de la web, y entre la web y los badges va webGap.
       expect(geo.orderButton.label).toBe('Hacer pedido');
+      const webTop = geo.web.y - (geo.L.webSize * 1.2) / 2;
+      expect(webTop - (geo.orderButton.y + geo.orderButton.h)).toBe(geo.L.footGap);
+      const webEnd = geo.web.y + (geo.L.webSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - (geo.orderButton.y + geo.orderButton.h)).toBe(geo.L.footGap);
+      expect(footTop - webEnd).toBeCloseTo(geo.L.webGap, 6);
     }
   });
 
@@ -234,24 +240,29 @@ describe('tarjeta para compartir: «Para pedir» y QR del menú (PR #159)', () =
       qrDataUrl,
     });
     for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
-      const geo = computeShareCardLayout(d, format, true, 'pedido');
+      const geo = computeShareCardLayout(d, format, 'pedido');
       expect(geo.dishes).toHaveLength(1);
       expect(geo.hours).toBeNull();
       expect(geo.orderButton).not.toBeNull();
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
+      const webTop = geo.web.y - (geo.L.webSize * 1.2) / 2;
+      expect(webTop - (geo.orderButton.y + geo.orderButton.h)).toBe(geo.L.footGap);
+      const webEnd = geo.web.y + (geo.L.webSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - (geo.orderButton.y + geo.orderButton.h)).toBe(geo.L.footGap);
+      expect(footTop - webEnd).toBeCloseTo(geo.L.webGap, 6);
     }
   });
 
-  it('geometría QR: cuadrado blanco centrado, sin foto ni píldoras, con su CTA', () => {
+  it('geometría QR: cuadrado blanco centrado, sin foto ni línea de reseñas+ciudad, con su CTA', () => {
     for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       const d = menuData();
-      const geo = computeShareCardLayout(d, format, true, 'qr');
-      // Sin foto ni píldoras en la tarjeta del QR.
+      const geo = computeShareCardLayout(d, format, 'qr');
+      // Sin foto ni línea de reseñas+ciudad en la tarjeta del QR.
       expect(geo.photo).toBeNull();
-      expect(geo.pillRows).toEqual([]);
+      expect(geo.ratingCity).toBeNull();
       expect(geo.bizLogo).toBeNull();
+      // La web sí va, en texto limpio sobre los badges.
+      expect(geo.web.text).toBe('🌐 www.citymap.mx');
       // El cuadrado blanco va centrado en su área, con el QR dentro
       // (zona de silencio qrPad por todos lados) y lado grande para
       // que se escanee bien. El centro puede quedar a medio píxel por

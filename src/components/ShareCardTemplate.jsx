@@ -1,9 +1,10 @@
 // Plantilla de la tarjeta para compartir (PR #142 v1, PR #143): UN estilo
 // oscuro tipo «Glass» — logotipo oficial arriba, foto, nombre grande,
-// píldoras con la calificación de Google (con su conteo de reseñas) y
-// la ciudad, categoría, Instagram del negocio y al pie solo los badges
-// de App Store y Google Play (propuesta A corregida, 22 nov 2026: las
-// píldoras se quedan; solo sale la píldora web del pie).
+// reseñas+ciudad en UNA línea de texto limpio («★ 4.2 (2,561) · París»,
+// sin fondo gris), categoría, Instagram del negocio, web en texto
+// limpio sobre los badges y al pie solo los badges de App Store y
+// Google Play (definición final, 22 nov 2026: ningún rectángulo gris
+// en toda la tarjeta).
 // PR #144: el logo circular del negocio (mismo que la ficha, solo para
 // planes de pago con logo_url) va centrado a caballo sobre el borde
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
@@ -31,12 +32,12 @@
 // La vista previa y el PNG exportado comparten la misma geometría:
 // SHARE_CARD_LAYOUT + computeShareCardLayout en lib/shareCard.js, así que
 // lo que se ve es lo que se descarga. La foto crece (flex: 1, con altura
-// mínima) y se come el espacio libre: nunca queda franja vacía entre las
-// píldoras y el pie. El logotipo es /logo-brand.png, el mismo del
+// mínima) y se come el espacio libre: nunca queda franja vacía entre el
+// último texto y el pie. El logotipo es /logo-brand.png, el mismo del
 // encabezado y del splash: en blanco sobre el fondo oscuro, en negro
 // (brightness(0), como Brand.jsx en modo claro) sobre fondo claro. Sin
 // foto no hay imagen rota: sale un bloque oscuro con la inicial del
-// nombre. Sin dato de Google no hay píldora de calificación: nunca se
+// nombre. Sin dato de Google no hay línea de reseñas: nunca se
 // inventa. El precio ya no se muestra.
 import { getThumbUrl } from '../lib/utils.js';
 import { formatReviewCount } from '../lib/googleRatings.js';
@@ -59,37 +60,27 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
   const photoW = width - L.pad * 2;
   // Las líneas del nombre se calculan con la misma función que usa el
   // exportador de canvas: el corte a 2 líneas es idéntico en ambos.
-  const layout = computeShareCardLayout(data, format, true, style.id);
+  const layout = computeShareCardLayout(data, format, style.id);
   // La foto se pide ancha (1200w por el bucket de getThumbUrl) para que
   // salga nítida en la exportación a 1080 px.
   const photoSrc = data?.photoUrl ? getThumbUrl(data.photoUrl, 1080) : null;
-  const gSize = Math.round(L.pillSize * 0.85);
   const initial = (data?.name || 'C').trim().charAt(0).toUpperCase() || 'C';
-  const hasRating = typeof data?.rating === 'number' && data.rating > 0;
   // El primer bloque tras la foto usa el hueco del círculo
   // (layout.firstGap) cuando hay logo; los demás conservan sus
   // márgenes normales, igual que en el canvas.
   const firstBlock = layout.name && layout.name.lines.length
     ? 'name'
-    : layout.pillRows?.length
-      ? 'pills'
+    : layout.ratingCity && layout.ratingCity.lines.length
+      ? 'ratingCity'
       : layout.category
         ? 'category'
         : layout.instagram
           ? 'instagram'
-          : 'foot';
+          : layout.web
+            ? 'web'
+            : 'foot';
   // El logo circular se pide en 300×300, igual que la ficha.
   const logoSrc = data?.bizLogoUrl ? getThumbUrl(data.bizLogoUrl, 300, 300) : null;
-  // PR #159: «Para pedir» y el QR no llevan píldoras (nada de
-  // etiqueta de ciudad en la carta); el QR tampoco lleva foto.
-  // Los estilos con grid SÍ llevan píldoras (calificación Google +
-  // ciudad, como la demo); el Collage editorial no (su calificación va
-  // como texto plano en la banda).
-  const showPills =
-    style.id === 'glass' ||
-    style.id === 'editorial' ||
-    style.id === 'grid' ||
-    style.id === 'tira';
   const isPedido = style.id === 'pedido';
   const isQr = style.id === 'qr';
   const isGrid = style.id === 'grid' || style.id === 'tira';
@@ -368,7 +359,28 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           );
         })}
 
-        {/* Pie solo con los 2 badges (propuesta A, 22 nov 2026) */}
+        {/* Web como texto limpio, centrada sobre los badges
+            (definición final, 22 nov 2026) */}
+        {layout.web ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: layout.web.y - (layout.web.size * 1.2) / 2,
+              width: '100%',
+              textAlign: 'center',
+              fontSize: layout.web.size,
+              fontWeight: 600,
+              lineHeight: 1.2,
+              color: palette.sub,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {layout.web.text}
+          </div>
+        ) : null}
+
+        {/* Pie solo con los 2 badges (definición final, 22 nov 2026) */}
         <div
           style={{
             position: 'absolute',
@@ -600,67 +612,38 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
         </div>
       ) : null}
 
-      {showPills && (hasRating || data?.cityName) ? (
+      {layout.ratingCity && layout.ratingCity.lines.length ? (
         <div
           style={{
-            marginTop: firstBlock === 'pills' ? layout.firstGap : L.pillsGap,
+            marginTop: firstBlock === 'ratingCity' ? layout.firstGap : L.rcGap,
             width: photoW,
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: L.pillGap,
             flexShrink: 0,
           }}
         >
-          {hasRating ? (
-            <span
+          {/* Reseñas + ciudad como texto limpio (definición final,
+              22 nov 2026): «★ 4.2 (2,561) · París», sin fondo gris y
+              sin logo G, en el color secundario de la paleta. Cada
+              línea va en UNA línea visual (whiteSpace: nowrap, como
+              el nombre, PR #158). */}
+          {layout.ratingCity.lines.map((line, i) => (
+            <div
+              key={i}
               style={{
-                background: palette.pillBg,
-                border: palette.pillBorder ? `1.5px solid ${palette.pillBorder}` : 'none',
-                borderRadius: 999,
-                padding: `${L.pillPadY}px ${L.pillPadX}px`,
-                fontSize: L.pillSize,
+                fontSize: L.rcSize,
                 fontWeight: 700,
-                lineHeight: 1,
-                color: palette.pillText,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
+                lineHeight: 1.2,
+                color: palette.sub,
+                whiteSpace: 'nowrap',
               }}
             >
-              {/* En los estilos con grid la estrella es ámbar (como la
-                  demo), no del color del texto. */}
-              <span style={{ color: palette.starAmber ? '#F59E0B' : palette.pillText }}>★</span>
-              {' '}
-              {data.rating.toFixed(1)} ({formatReviewCount(data.reviewCount || 0)})
-              <img
-                src="/googlelogo.svg"
-                alt="Google"
-                style={{ width: gSize, height: gSize, objectFit: 'contain', display: 'block' }}
-              />
-            </span>
-          ) : null}
-          {data?.cityName ? (
-            <span
-              style={{
-                background: palette.pillBg,
-                border: palette.pillBorder ? `1.5px solid ${palette.pillBorder}` : 'none',
-                borderRadius: 999,
-                padding: `${L.pillPadY}px ${L.pillPadX}px`,
-                fontSize: L.pillSize,
-                fontWeight: 700,
-                lineHeight: 1,
-                color: palette.pillText,
-              }}
-            >
-              {data.cityName}
-            </span>
-          ) : null}
+              {line}
+            </div>
+          ))}
         </div>
       ) : null}
 
-      {/* Categoría: línea centrada bajo las píldoras (propuesta A
-          corregida, 22 nov 2026), en el color secundario de la paleta. */}
+      {/* Categoría: línea centrada bajo la línea de reseñas+ciudad
+          (definición final, 22 nov 2026), en el color secundario de la paleta. */}
       {layout.category ? (
         <div
           style={{
@@ -698,7 +681,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
       {/* Platillos, horario y botón de «Para pedir» (PR #159): los
           renglones van tras el nombre, con el precio a la derecha y
           un renglón punteado entre ellos; el botón es verde WhatsApp.
-          Sin píldoras: nada de etiqueta de ciudad en esta tarjeta. */}
+          Sin línea de reseñas+ciudad: nada de etiqueta de ciudad en esta tarjeta. */}
       {isPedido && layout.dishes?.length ? (
         <div style={{ marginTop: L.dishGap, width: photoW, flexShrink: 0 }}>
           {layout.dishes.map((d, i) => (
@@ -801,10 +784,28 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
         </div>
       ) : null}
 
-      {/* Pie solo con los 2 badges (propuesta A, 22 nov 2026) */}
+      {/* Web como texto limpio sobre los badges (definición final,
+          22 nov 2026): «🌐 www.citymap.mx» centrada, sin fondo gris. */}
+      {layout.web ? (
+        <div
+          style={{
+            marginTop: firstBlock === 'web' ? layout.firstGap : L.footGap,
+            width: photoW,
+            fontSize: L.webSize,
+            fontWeight: 600,
+            lineHeight: 1.2,
+            color: palette.sub,
+            flexShrink: 0,
+          }}
+        >
+          {layout.web.text}
+        </div>
+      ) : null}
+
+      {/* Pie solo con los 2 badges (definición final, 22 nov 2026) */}
       <div
         style={{
-          marginTop: firstBlock === 'foot' ? layout.firstGap : L.footGap,
+          marginTop: layout.web ? L.webGap : firstBlock === 'foot' ? layout.firstGap : L.footGap,
           flexShrink: 0,
         }}
       >

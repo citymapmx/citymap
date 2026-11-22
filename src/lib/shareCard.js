@@ -18,8 +18,8 @@
 // pintada 10.000 px a la izquierda del área visible del SVG y el canvas
 // capturaba solo píxeles vacíos — con el tamaño correcto, sin error y con
 // el aviso «Imagen descargada». Ahora la imagen se dibuja directo en un
-// canvas 2D (sin foreignObject, sin clonar el DOM): fondo, foto, logo,
-// textos y píldoras se pintan píxel a píxel, y antes de devolver el blob
+// canvas 2D (sin foreignObject, sin clonar el DOM): fondo, foto, logo y
+// textos se pintan píxel a píxel, y antes de devolver el blob
 // se comprueba que el canvas no esté en blanco (si lo estuviera, se lanza
 // error en vez de descargar un PNG vacío).
 //
@@ -71,18 +71,18 @@ export const SHARE_CARD_SERIF_STACK = "Georgia, 'Times New Roman', serif";
 // (flex: 1) se acortaba, su borde real subía y el círculo, absoluto
 // sobre el borde calculado, tapaba la primera línea (Tangente
 // Restaurante Tlaquepaque, Carrito La Paz Tostadas de Atún). photoMinH
-// deja hueco para el peor caso (nombre de 3 líneas + píldoras en 2
-// filas) sin comerse el hueco del pie.
+// deja hueco para el peor caso (nombre de 3 líneas + línea de
+// reseñas+ciudad en 2 líneas) sin comerse el hueco del pie.
 export const SHARE_CARD_LAYOUT = {
   story: {
     pad: 64,
     logoH: 76,
     logoGap: 40,
     // photoMinH deja hueco para el peor caso (nombre de 3 líneas +
-    // píldoras en 2 filas + categoría, con círculo): con la categoría
-    // y el Instagram de la propuesta A corregida (22 nov 2026) el
-    // peor caso necesita 844 px de foto, así que el mínimo baja de
-    // 900 a 840.
+    // línea de reseñas+ciudad en 2 líneas + categoría, con círculo):
+    // con la categoría y el Instagram de la propuesta A corregida
+    // (22 nov 2026) el peor caso necesita 844 px de foto, así que el
+    // mínimo baja de 900 a 840.
     photoMinH: 840,
     photoRadius: 40,
     // Círculo del logo del negocio (PR #144; PR #145: más grande, Ø 240
@@ -99,18 +99,23 @@ export const SHARE_CARD_LAYOUT = {
     nameGap: 32,
     nameLineH: 1.12,
     nameMaxLines: 3,
-    pillSize: 40,
-    pillPadX: 28,
-    pillPadY: 14,
-    pillGap: 16,
-    pillRowGap: 14,
-    pillsGap: 52,
-    // Categoría bajo las píldoras (propuesta A corregida, 22 nov 2026).
+    // Reseñas + ciudad como UNA línea de texto limpio, sin fondo
+    // (definición final, 22 nov 2026): «★ 4.2 (2,561) · París», en el
+    // color secundario de la paleta. rcGap es el hueco antes de la
+    // línea (el mismo que llevaban las píldoras).
+    rcSize: 40,
+    rcGap: 52,
+    // Categoría bajo la línea de reseñas+ciudad (definición final,
+    // 22 nov 2026).
     catSize: 45,
     catGap: 28,
     // Instagram del negocio (@handle) bajo la categoría.
     igSize: 30,
     igGap: 18,
+    // Web como texto limpio sobre los badges: «🌐 www.citymap.mx»
+    // centrada, sin fondo gris (definición final, 22 nov 2026).
+    webSize: 30,
+    webGap: 16,
     footSize: 44,
     footGap: 60,
   },
@@ -131,16 +136,14 @@ export const SHARE_CARD_LAYOUT = {
     nameGap: 20,
     nameLineH: 1.12,
     nameMaxLines: 3,
-    pillSize: 34,
-    pillPadX: 26,
-    pillPadY: 13,
-    pillGap: 14,
-    pillRowGap: 12,
-    pillsGap: 36,
+    rcSize: 34,
+    rcGap: 36,
     catSize: 34,
     catGap: 20,
     igSize: 24,
     igGap: 14,
+    webSize: 24,
+    webGap: 12,
     footSize: 40,
     footGap: 44,
   },
@@ -247,26 +250,20 @@ export const GRID_SHARE_CARD_COLORS = {
   bg: ['#FFFFFF', '#FFFFFF'],
   text: '#141419',
   sub: '#6D6D78',
-  pillBg: '#F4F4F6',
-  pillBorder: null,
-  pillText: '#141419',
   logoWhite: false,
   photoBg: '#F0EFEA',
   initial: 'rgba(0,0,0,0.30)',
   // Anillo del círculo del logo del negocio: solo blanco (como en
-  // Clara tras el #176); la estrella de la píldora de calificación es
-  // ámbar (como la demo), no del color del texto.
+  // Clara tras el #176). Sin rectángulos grises en la tarjeta
+  // (definición final, 22 nov 2026): la línea de reseñas+ciudad es
+  // texto limpio en el color secundario.
   bizLogoRing: '#FFFFFF',
-  starAmber: true,
 };
 export const SHARE_CARD_STYLE_COLORS = {
   glass: {
     bg: ['#1B1B1B', '#0B0B0B'],
     text: '#FFFFFF',
     sub: '#A3A3A3',
-    pillBg: 'rgba(255,255,255,0.12)',
-    pillBorder: null,
-    pillText: '#FFFFFF',
     logoWhite: true,
     photoBg: '#262626',
     initial: 'rgba(255,255,255,0.35)',
@@ -278,9 +275,6 @@ export const SHARE_CARD_STYLE_COLORS = {
     bg: ['#FFFFFF', '#FAF9F6'],
     text: '#111111',
     sub: '#6B7280',
-    pillBg: 'transparent',
-    pillBorder: '#E5E7EB',
-    pillText: '#111111',
     logoWhite: false,
     photoBg: '#F0EFEA',
     initial: 'rgba(0,0,0,0.30)',
@@ -291,10 +285,9 @@ export const SHARE_CARD_STYLE_COLORS = {
     bizLogoRing: '#FFFFFF',
   },
   // Paleta de los 3 estilos con grid (demo `propuestas-de-tarjetas-con-grid`):
-  // fondo blanco, tinta oscura, píldoras gris claro y estrella ámbar
-  // (como la demo); el anillo del círculo es SOLO blanco, sin trazo
-  // gris (como en Clara tras el #176). La comparten los 3: la diferencia
-  // entre ellos es la geometría, no los colores.
+  // fondo blanco, tinta oscura, anillo del círculo SOLO blanco, sin
+  // trazo gris (como en Clara tras el #176). La comparten los 3: la
+  // diferencia entre ellos es la geometría, no los colores.
   grid: GRID_SHARE_CARD_COLORS,
   tira: GRID_SHARE_CARD_COLORS,
   collage: GRID_SHARE_CARD_COLORS,
@@ -305,9 +298,6 @@ export const SHARE_CARD_STYLE_COLORS = {
     bg: ['#1B1B1B', '#0B0B0B'],
     text: '#FFFFFF',
     sub: '#A3A3A3',
-    pillBg: 'rgba(255,255,255,0.12)',
-    pillBorder: null,
-    pillText: '#FFFFFF',
     logoWhite: true,
     photoBg: '#262626',
     initial: 'rgba(255,255,255,0.35)',
@@ -319,9 +309,6 @@ export const SHARE_CARD_STYLE_COLORS = {
     bg: ['#1B1B1B', '#0B0B0B'],
     text: '#FFFFFF',
     sub: '#A3A3A3',
-    pillBg: 'rgba(255,255,255,0.12)',
-    pillBorder: null,
-    pillText: '#FFFFFF',
     logoWhite: true,
     photoBg: '#262626',
     initial: 'rgba(255,255,255,0.35)',
@@ -343,10 +330,13 @@ export const SHARE_CARD_STYLE_COLORS = {
 // presencia; logo más grande (logoH 76/60). PR #156: el logo de Post
 // sube a 76 (era 60 y en la vista previa de 200 px no se apreciaba).
 // PR #160: photoMinH de Post baja a 300 (era 360) para que el peor
-// caso (nombre de 3 líneas + píldoras en 2 filas + círculo) no se
-// coma el hueco del pie. Propuesta A corregida (22 nov 2026): las
-// píldoras se quedan, la categoría va bajo las píldoras y el Instagram
-// bajo la categoría en ambas versiones.
+// caso (nombre de 3 líneas + línea de reseñas+ciudad en 2 líneas +
+// círculo) no se coma el hueco del pie. Propuesta A corregida
+// (22 nov 2026): las píldoras se quedan, la categoría va bajo las
+// píldoras y el Instagram bajo la categoría en ambas versiones.
+// Definición final (22 nov 2026): las píldoras salen — reseñas+ciudad
+// van en una línea de texto limpio, sin fondo gris, y la web vuelve
+// en texto limpio sobre los badges.
 export const EDITORIAL_SHARE_CARD_LAYOUT = {
   story: {
     pad: 64,
@@ -366,16 +356,14 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     nameGap: 32,
     nameLineH: 1.15,
     nameMaxLines: 3,
-    pillSize: 38,
-    pillPadX: 26,
-    pillPadY: 13,
-    pillGap: 14,
-    pillRowGap: 12,
-    pillsGap: 52,
+    rcSize: 38,
+    rcGap: 52,
     catSize: 40,
     catGap: 28,
     igSize: 28,
     igGap: 18,
+    webSize: 28,
+    webGap: 16,
     footSize: 44,
     footGap: 60,
   },
@@ -397,16 +385,14 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     nameGap: 20,
     nameLineH: 1.15,
     nameMaxLines: 3,
-    pillSize: 32,
-    pillPadX: 24,
-    pillPadY: 12,
-    pillGap: 12,
-    pillRowGap: 10,
-    pillsGap: 36,
+    rcSize: 32,
+    rcGap: 36,
     catSize: 30,
     catGap: 20,
     igSize: 22,
     igGap: 14,
+    webSize: 22,
+    webGap: 12,
     footSize: 40,
     footGap: 44,
   },
@@ -417,9 +403,9 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
 // fondo blanco, logotipo oficial arriba en negro, las fotos en grid, el
 // círculo del logo del negocio MÁS GRANDE (Ø 292 Historia / 232 Post, 27cqw
 // de la demo, frente a 240/190 de Oscura/Clara) a caballo sobre el borde
-// inferior del grid, nombre, píldoras (calificación Google + ciudad) y
-// la categoría bajo las píldoras, pie solo con los 2 badges (propuesta
-// A corregida, 22 nov 2026). El
+// inferior del grid, nombre, línea de reseñas+ciudad en texto limpio y
+// la categoría bajo ella, pie solo con los 2 badges y la web en texto
+// sobre ellos (definición final, 22 nov 2026). El
 // área del grid es el bloque flexible (como la foto en los demás
 // estilos): crece hasta comerse el espacio libre, así nunca queda
 // franja vacía entre el último texto y el pie.
@@ -447,16 +433,14 @@ export const GRID_SHARE_CARD_LAYOUT = {
     nameGap: 38,
     nameLineH: 1.1,
     nameMaxLines: 3,
-    pillSize: 44,
-    pillPadX: 40,
-    pillPadY: 20,
-    pillGap: 16,
-    pillRowGap: 14,
-    pillsGap: 28,
+    rcSize: 44,
+    rcGap: 28,
     catSize: 45,
     catGap: 20,
     igSize: 30,
     igGap: 16,
+    webSize: 30,
+    webGap: 16,
     footSize: 44,
     footGap: 24,
   },
@@ -481,16 +465,14 @@ export const GRID_SHARE_CARD_LAYOUT = {
     nameGap: 28,
     nameLineH: 1.1,
     nameMaxLines: 3,
-    pillSize: 36,
-    pillPadX: 32,
-    pillPadY: 16,
-    pillGap: 14,
-    pillRowGap: 12,
-    pillsGap: 20,
+    rcSize: 36,
+    rcGap: 20,
     catSize: 34,
     catGap: 16,
     igSize: 24,
     igGap: 12,
+    webSize: 24,
+    webGap: 12,
     footSize: 40,
     footGap: 20,
   },
@@ -555,6 +537,9 @@ export const COLLAGE_SHARE_CARD_LAYOUT = {
     // Instagram del negocio (@handle) bajo la calificación, antes del dúo.
     igSize: 34,
     igGap: 20,
+    // Web como texto limpio sobre los badges (definición final, 22 nov 2026).
+    webSize: 34,
+    webGap: 16,
     footSize: 44,
     footGap: 24,
   },
@@ -583,6 +568,8 @@ export const COLLAGE_SHARE_CARD_LAYOUT = {
     duoAspect: 2.2,
     igSize: 28,
     igGap: 16,
+    webSize: 28,
+    webGap: 12,
     footSize: 40,
     footGap: 20,
   },
@@ -618,6 +605,9 @@ export const PEDIDO_SHARE_CARD_LAYOUT = {
     buttonSize: 40,
     buttonGap: 32,
     buttonRadius: 52,
+    // Web como texto limpio sobre los badges (definición final, 22 nov 2026).
+    webSize: 30,
+    webGap: 16,
     footSize: 44,
     footGap: 48,
   },
@@ -642,6 +632,8 @@ export const PEDIDO_SHARE_CARD_LAYOUT = {
     buttonSize: 30,
     buttonGap: 24,
     buttonRadius: 39,
+    webSize: 24,
+    webGap: 12,
     footSize: 40,
     footGap: 36,
   },
@@ -667,6 +659,9 @@ export const QR_SHARE_CARD_LAYOUT = {
     qrRadius: 40,
     ctaSize: 40,
     ctaGap: 28,
+    // Web como texto limpio sobre los badges (definición final, 22 nov 2026).
+    webSize: 30,
+    webGap: 16,
     footSize: 44,
     footGap: 48,
   },
@@ -683,6 +678,8 @@ export const QR_SHARE_CARD_LAYOUT = {
     qrRadius: 28,
     ctaSize: 30,
     ctaGap: 20,
+    webSize: 24,
+    webGap: 12,
     footSize: 40,
     footGap: 36,
   },
@@ -740,15 +737,16 @@ export function formatShareCardInstagram(raw) {
 }
 
 // displayRating no trae dato vigente de google_ratings_cache (source
-// 'google'), no hay píldora de calificación — la interna de CityMap no
+// 'google'), no hay línea de calificación — la interna de CityMap no
 // se muestra en la tarjeta y ningún número se inventa. El precio se
 // conserva como dato pero la tarjeta ya no lo muestra (PR #143).
 // PR #155: sin categoría (sale de ambas versiones) y sin los datos de
 // la Ficha (horario, dirección, WhatsApp), que se fue con ese estilo.
-// Propuesta A corregida (22 nov 2026): las píldoras SE QUEDAN bajo el
-// nombre (calificación de Google + ciudad), la categoría va bajo las
-// píldoras y el Instagram bajo la categoría; el collage lleva la
-// categoría en el kicker y la calificación como texto plano.
+// Definición final (22 nov 2026): reseñas+ciudad van en UNA línea de
+// texto limpio bajo el nombre («★ 4.2 (2,561) · París», sin fondo
+// gris), la categoría bajo ella y el Instagram bajo la categoría; el
+// collage lleva la categoría en el kicker y la calificación como
+// texto plano.
 export function buildShareCardData(biz, { disp = null, cityName = '' } = {}) {
   const photoUrl =
     biz?.photos?.find((p) => p?.url)?.url || biz?.banner_url || biz?.logo_url || null;
@@ -1063,44 +1061,20 @@ export function wrapShareCardName(name, maxW, L) {
 
 // ─── Geometría (vista previa y canvas dibujan lo mismo) ───
 
-function shareCardPills(data, hasGoogleMark, L) {
-  const pills = [];
+// Reseñas + ciudad como UNA línea de texto limpio, sin fondo
+// (definición final, 22 nov 2026): «★ 4.2 (2,561) · París», en el
+// color secundario de la paleta. Sin rating, solo la ciudad; sin
+// ciudad, solo la calificación; sin ninguno, no hay línea. Se corta
+// a 2 líneas como máximo: una ciudad larga cabe en 2, y con 1 línea
+// se cortaría con «…» (San Pedro Garza García, Nuevo León).
+function shareCardRatingCityLines(data, maxW, L) {
+  const parts = [];
   if (typeof data?.rating === 'number' && data.rating > 0) {
-    pills.push({
-      text: `★ ${data.rating.toFixed(1)} (${formatReviewCount(data.reviewCount || 0)})`,
-      google: hasGoogleMark,
-      gSize: Math.round(L.pillSize * 0.85),
-    });
+    parts.push(`★ ${data.rating.toFixed(1)} (${formatReviewCount(data.reviewCount || 0)})`);
   }
-  if (data?.cityName) {
-    pills.push({ text: data.cityName, google: false, gSize: 0 });
-  }
-  return pills;
-}
-
-function pillWidth(pill, L) {
-  const textW = measureShareCardText(pill.text, L.pillSize, 700);
-  const contentW = textW + (pill.google ? 8 + pill.gSize : 0);
-  return contentW + L.pillPadX * 2;
-}
-
-function layoutPillRows(pills, maxW, L) {
-  const rows = [];
-  let row = [];
-  let rowW = 0;
-  for (const pill of pills) {
-    const w = pillWidth(pill, L);
-    if (row.length && rowW + L.pillGap + w > maxW) {
-      rows.push(row);
-      row = [];
-      rowW = 0;
-    }
-    if (row.length) rowW += L.pillGap;
-    row.push({ ...pill, w });
-    rowW += w;
-  }
-  if (row.length) rows.push(row);
-  return rows;
+  if (data?.cityName) parts.push(data.cityName);
+  if (!parts.length) return [];
+  return wrapShareCardText(parts.join(' · '), maxW, L.rcSize, 2, 700);
 }
 
 // Texto recortado a una línea con puntos suspensivos (el nombre del
@@ -1174,7 +1148,9 @@ function computeCollageShareCardLayout(data, format, L) {
   if (nameLines.length) bandH += nameBlockH + L.ratingGap;
   if (hasRating) bandH += ratingH + (hasInstagram ? L.igGap : L.duoGap);
   if (hasInstagram) bandH += igH + L.duoGap;
-  bandH += duoH + L.footGap + L.footSize + L.pad;
+  // Web como texto limpio sobre los badges (definición final, 22 nov
+  // 2026): tras el dúo, con el hueco del pie antes y webGap después.
+  bandH += duoH + L.footGap + L.webSize * 1.2 + L.webGap + L.footSize + L.pad;
   const heroH = Math.max(L.heroMinH, H - bandH);
   const hero = { x: 0, y: 0, w: W, h: heroH, radius: 0 };
   const heroBottom = heroH;
@@ -1192,8 +1168,9 @@ function computeCollageShareCardLayout(data, format, L) {
     : null;
 
   const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
-  // Pie solo con los 2 badges (propuesta A, 22 nov 2026: en negocios
-  // ya no va la píldora web).
+  // Pie solo con los 2 badges: en negocios la web ya no va como
+  // píldora en la fila, sino como línea de texto limpio sobre los
+  // badges (definición final, 22 nov 2026).
   const footerRow = computeShareCardFooterRow({
     centerX: W / 2,
     maxW,
@@ -1253,6 +1230,17 @@ function computeCollageShareCardLayout(data, format, L) {
     photoUrl: urls[photoIndex] || null,
   }));
 
+  // Web como texto limpio, centrada sobre los badges (definición
+  // final, 22 nov 2026).
+  y += duoH + L.footGap;
+  const webBox = {
+    text: SHARE_CARD_FOOTER_WEB_TEXT,
+    x: W / 2,
+    y: y + (L.webSize * 1.2) / 2,
+    size: L.webSize,
+  };
+  y += L.webSize * 1.2 + L.webGap;
+
   return {
     style: 'collage',
     format: f,
@@ -1272,7 +1260,7 @@ function computeCollageShareCardLayout(data, format, L) {
     gridCells: null,
     category: null,
     instagram: instagramBox,
-    pillRows: [],
+    web: webBox,
     dishes: [],
     hours: null,
     orderButton: null,
@@ -1308,9 +1296,10 @@ export const SHARE_CARD_FOOTER_WEB_TEXT = '🌐 www.citymap.mx';
 // proporción (la columna de información del Grid horizontal es
 // estrecha). `pill` son los colores de la píldora web (los de la
 // paleta de cada tarjeta). La `y` es el CENTRO vertical de la fila.
-// Propuesta A (22 nov 2026): las tarjetas de NEGOCIOS llevan solo
-// los 2 badges (`includeWeb: false`, sin píldora web); eventos y
-// tours siguen con las 3 opciones.
+// Las tarjetas de NEGOCIOS llevan solo los 2 badges
+// (`includeWeb: false`); la web va como línea de texto limpio sobre
+// los badges, no en la fila (definición final, 22 nov 2026). Eventos
+// y tours siguen con las 3 opciones.
 export function computeShareCardFooterRow({ centerX, maxW, y, height, pill, includeWeb = true }) {
   const gap = SHARE_CARD_FOOTER_ROW_GAP;
   const textSize = Math.round(height * 0.55);
@@ -1349,8 +1338,9 @@ export function computeShareCardFooterRow({ centerX, maxW, y, height, pill, incl
 }
 
 // Dibuja la fila del pie en canvas: la píldora web (colores de la
-// paleta de la tarjeta) y los 2 badges. Sin píldora web (negocios,
-// propuesta A), solo los badges. Sin badge (no cargó), la píldora
+// paleta de la tarjeta) y los 2 badges. Sin píldora web (negocios),
+// solo los badges: la web va como línea de texto limpio sobre ellos
+// (definición final, 22 nov 2026). Sin badge (no cargó), la píldora
 // oscura con el nombre de la tienda: nunca queda un hueco vacío ni roto.
 export function drawShareCardFooterRow(ctx, row, assets) {
   if (!row) return;
@@ -1397,15 +1387,15 @@ function drawShareCardFooterBadge(ctx, box, img, label) {
 // PR #154: el estilo (4º parámetro, 'glass' por defecto) elige la tabla
 // de medidas. Sin estilo, la geometría es la de siempre.
 // PR #155: sin categoría y sin panel de ficha; la foto es más corta y
-// el nombre y las píldoras más grandes, para que la información tenga
-// más presencia. Propuesta A corregida (22 nov 2026): las píldoras SE
-// QUEDAN bajo el nombre, la categoría va bajo las píldoras y el
-// Instagram bajo la categoría; el pie lleva solo los 2 badges (sin
-// píldora web).
+// Definición final (22 nov 2026, Jonathan): la tarjeta de negocios
+// lleva el nombre, la línea de reseñas+ciudad en texto limpio («★ 4.2
+// (2,561) · París», sin fondo gris), la categoría, el Instagram y la
+// web en texto limpio sobre los 2 badges; ningún rectángulo gris en
+// toda la tarjeta. Solo negocios: eventos y tours no pasan por aquí.
 // PR #159: «Para pedir» lleva platillos, horario y botón verde en
 // vez del bloque de información; el QR cambia la foto por el área
 // flexible del QR.
-export function computeShareCardLayout(data, format, hasGoogleMark = true, styleId = 'glass') {
+export function computeShareCardLayout(data, format, styleId = 'glass') {
   const f = format || SHARE_CARD_FORMATS.story;
   const style = resolveShareCardStyle(styleId);
   const L = shareCardLayoutTable(style.id, f.id);
@@ -1421,7 +1411,8 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
 
   // Grid 2×2 y tira: la foto del flujo es el ÁREA del grid (flexible,
   // como la foto en los demás estilos); las celdas se calculan de ella
-  // más abajo, y la categoría va en su propio bloque tras las píldoras.
+  // más abajo, y la categoría va en su propio bloque tras la línea de
+  // reseñas+ciudad.
   const isGrid = style.id === 'grid' || style.id === 'tira';
 
   // PR #159: «Para pedir» y el QR del menú tienen sus propios bloques
@@ -1456,20 +1447,21 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   const nameGapU = nameLines.length ? gapAfterPhoto(L.nameGap) : L.nameGap;
   const nameBlock = nameLines.length ? nameGapU + nameBlockH : 0;
 
-  const pills = isPedido || isQr ? [] : shareCardPills(data, hasGoogleMark, L);
-  const pillRows = layoutPillRows(pills, maxW, L);
-  const pillH = L.pillSize + L.pillPadY * 2;
-  const pillsBlockH = pillRows.length
-    ? pillRows.length * pillH + (pillRows.length - 1) * L.pillRowGap
-    : 0;
-  const pillsGapU = pillRows.length ? gapAfterPhoto(L.pillsGap) : L.pillsGap;
-  const pillsBlock = pillRows.length ? pillsGapU + pillsBlockH : 0;
+  // Reseñas + ciudad como UNA línea de texto limpio bajo el nombre
+  // (definición final, 22 nov 2026): «★ 4.2 (2,561) · París», sin
+  // fondo gris y sin logo G. «Para pedir» y el QR no la llevan (su
+  // bloque es el menú).
+  const rcLines = isPedido || isQr ? [] : shareCardRatingCityLines(data, maxW, L);
+  const rcLineH = L.rcSize * 1.2;
+  const rcBlockH = rcLines.length * rcLineH;
+  const rcGapU = rcLines.length ? gapAfterPhoto(L.rcGap) : L.rcGap;
+  const rcBlock = rcLines.length ? rcGapU + rcBlockH : 0;
 
-  // Categoría: línea bajo las píldoras (propuesta A corregida, 22 nov
-  // 2026). En Oscura/Clara vuelve (la PR #155 la había quitado); Grid
-  // y tira ya la llevaban, bajo las píldoras. «Para pedir» y el QR no
-  // la llevan (su bloque es el menú). El collage la lleva en el
-  // kicker, no aquí.
+  // Categoría: línea bajo la línea de reseñas+ciudad (definición
+  // final, 22 nov 2026). En Oscura/Clara vuelve (la PR #155 la había
+  // quitado); Grid y tira ya la llevaban, bajo las píldoras. «Para
+  // pedir» y el QR no la llevan (su bloque es el menú). El collage
+  // la lleva en el kicker, no aquí.
   const hasCategory =
     !isPedido && !isQr && String(data?.category || '').trim() !== '';
   const catGapU = hasCategory ? gapAfterPhoto(L.catGap) : L.catGap;
@@ -1512,8 +1504,12 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   // QR (la CTA va debajo, con su hueco).
   const ctaBlock = isQr ? L.ctaGap + L.ctaSize * 1.2 : 0;
 
+  // Pie: el hueco del pie va ANTES de la línea de la web («🌐
+  // www.citymap.mx» en texto limpio sobre los badges, definición
+  // final, 22 nov 2026); entre la web y los badges va webGap.
   const footGapU = gapAfterPhoto(L.footGap);
-  const footBlock = footGapU + L.footSize;
+  const webH = L.webSize * 1.2;
+  const footBlock = footGapU + webH + L.webGap + L.footSize;
 
   const photoH = isQr
     ? Math.max(
@@ -1526,7 +1522,7 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
           L.pad * 2 -
           (L.logoH + L.logoGap) -
           nameBlock -
-          pillsBlock -
+          rcBlock -
           catBlock -
           igBlock -
           dishesBlock -
@@ -1617,29 +1613,24 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     y += nameBlockH;
   }
 
-  const pillRowsOut = [];
-  if (pillRows.length) {
-    y += pillsGapU;
-    for (const row of pillRows) {
-      const rowW =
-        row.reduce((acc, p) => acc + p.w, 0) + L.pillGap * (row.length - 1);
-      let x = Math.round((W - rowW) / 2);
-      pillRowsOut.push(
-        row.map((p) => {
-          const out = { ...p, x, y, h: pillH };
-          x += p.w + L.pillGap;
-          return out;
-        }),
-      );
-      y += pillH + L.pillRowGap;
-    }
-    // El bucle suma pillRowGap también tras la última fila; se quita
-    // para que el pie quede a su hueco diseñado y no 14 px más abajo.
-    y -= L.pillRowGap;
+  // Reseñas + ciudad como texto limpio centrado, hasta 2 líneas
+  // (definición final, 22 nov 2026). La `y` es el CENTRO vertical de
+  // la primera línea (el canvas dibuja con textBaseline 'middle').
+  let ratingCityBox = null;
+  if (rcLines.length) {
+    y += rcGapU;
+    ratingCityBox = {
+      lines: rcLines,
+      x: W / 2,
+      y: y + rcLineH / 2,
+      size: L.rcSize,
+      lineH: rcLineH,
+    };
+    y += rcBlockH;
   }
 
-  // Categoría: línea centrada bajo las píldoras, en el color
-  // secundario de la paleta (propuesta A corregida, 22 nov 2026).
+  // Categoría: línea centrada bajo la línea de reseñas+ciudad
+  // (definición final, 22 nov 2026).
   let categoryBox = null;
   if (hasCategory) {
     y += catGapU;
@@ -1667,8 +1658,9 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   }
 
   const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
-  // Pie solo con los 2 badges (propuesta A, 22 nov 2026: en negocios
-  // ya no va la píldora web).
+  // Pie solo con los 2 badges: en negocios la web ya no va como
+  // píldora en la fila, sino como línea de texto limpio sobre los
+  // badges (definición final, 22 nov 2026).
   const footerRow = computeShareCardFooterRow({
     centerX: W / 2,
     maxW,
@@ -1739,6 +1731,20 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     y += L.ctaSize * 1.2;
   }
 
+  // Web como texto limpio, centrada sobre los badges (definición
+  // final, 22 nov 2026): tras el último bloque de contenido, con el
+  // hueco del pie antes y webGap después. La `y` es el CENTRO
+  // vertical de la línea.
+  let webBox = null;
+  y += footGapU;
+  webBox = {
+    text: SHARE_CARD_FOOTER_WEB_TEXT,
+    x: W / 2,
+    y: y + webH / 2,
+    size: L.webSize,
+  };
+  y += webH + L.webGap;
+
   return {
     style: style.id,
     format: f,
@@ -1758,7 +1764,8 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     gridCells,
     category: categoryBox,
     instagram: instagramBox,
-    pillRows: pillRowsOut,
+    ratingCity: ratingCityBox,
+    web: webBox,
     dishes: dishesOut,
     hours: hoursBox,
     orderButton: orderButtonBox,
@@ -1978,7 +1985,7 @@ function drawContainImage(ctx, img, dx, dy, dw, dh) {
 }
 
 export function drawShareCardCanvas(data, format, assets, layout, styleId = 'glass') {
-  const geo = layout || computeShareCardLayout(data, format, !!assets?.googleMark, styleId);
+  const geo = layout || computeShareCardLayout(data, format, styleId);
   const { L } = geo;
   const style = resolveShareCardStyle(geo.style || styleId);
   const palette = SHARE_CARD_STYLE_COLORS[style.id] || SHARE_CARD_STYLE_COLORS.glass;
@@ -2133,50 +2140,22 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     });
   }
 
-  // Píldoras: calificación de Google (con su conteo y la G) y ciudad.
-  // En Editorial van con borde y fondo transparente, en vez de rellenas.
-  for (const row of geo.pillRows) {
-    for (const pill of row) {
-      ctx.fillStyle = palette.pillBg;
-      roundRectPath(ctx, pill.x, pill.y, pill.w, pill.h, pill.h / 2);
-      ctx.fill();
-      if (palette.pillBorder) {
-        ctx.strokeStyle = palette.pillBorder;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-      ctx.font = `700 ${L.pillSize}px ${SHARE_CARD_FONT_STACK}`;
-      ctx.fillStyle = palette.pillText;
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      const textW = ctx.measureText(pill.text).width;
-      const contentW = textW + (pill.google ? 8 + pill.gSize : 0);
-      const tx = pill.x + (pill.w - contentW) / 2;
-      // En los estilos con grid la estrella es ámbar (como la demo),
-      // no del color del texto.
-      if (palette.starAmber && pill.text.startsWith('★ ')) {
-        ctx.fillStyle = '#F59E0B';
-        ctx.fillText('★ ', tx, pill.y + pill.h / 2);
-        const starW = ctx.measureText('★ ').width;
-        ctx.fillStyle = palette.pillText;
-        ctx.fillText(pill.text.slice(2), tx + starW, pill.y + pill.h / 2);
-      } else {
-        ctx.fillText(pill.text, tx, pill.y + pill.h / 2);
-      }
-      if (pill.google && assets?.googleMark) {
-        ctx.drawImage(
-          assets.googleMark,
-          tx + textW + 8,
-          pill.y + (pill.h - pill.gSize) / 2,
-          pill.gSize,
-          pill.gSize,
-        );
-      }
-    }
+  // Reseñas + ciudad como texto limpio centrado, hasta 2 líneas
+  // (definición final, 22 nov 2026): «★ 4.2 (2,561) · París», sin
+  // fondo gris y sin logo G, en el color secundario de la paleta.
+  if (geo.ratingCity) {
+    const r = geo.ratingCity;
+    ctx.font = `700 ${r.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = palette.sub;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    r.lines.forEach((line, i) => {
+      ctx.fillText(line, r.x, r.y + i * r.lineH);
+    });
   }
 
-  // Categoría: línea centrada bajo las píldoras (propuesta A corregida,
-  // 22 nov 2026).
+  // Categoría: línea centrada bajo la línea de reseñas+ciudad
+  // (definición final, 22 nov 2026).
   if (geo.category) {
     const c = geo.category;
     ctx.font = `600 ${c.size}px ${SHARE_CARD_FONT_STACK}`;
@@ -2236,9 +2215,21 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     );
   }
 
-  // Pie solo con los 2 badges (propuesta A, 22 nov 2026): badges de
-  // App Store y Google Play (misma geometría que la vista previa,
-  // geo.footerRow). Sin badges, la píldora con el nombre.
+  // Web como texto limpio, centrada sobre los badges (definición
+  // final, 22 nov 2026): «🌐 www.citymap.mx», sin fondo gris, en el
+  // color secundario de la paleta.
+  if (geo.web) {
+    const w = geo.web;
+    ctx.font = `600 ${w.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = palette.sub;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(w.text, w.x, w.y);
+  }
+
+  // Pie solo con los 2 badges: badges de App Store y Google Play
+  // (misma geometría que la vista previa, geo.footerRow). Sin badges,
+  // la píldora con el nombre.
   drawShareCardFooterRow(ctx, geo.footerRow, assets);
 
   // PR #159 — «Para pedir»: platillos (nombre a la izquierda, precio
@@ -2309,14 +2300,13 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
 }
 
 export async function renderShareCardCanvas(data, format, styleId = 'glass') {
-  const [photo, photos, logoWhite, logoDark, googleMark, bizLogo, qr, badges] = await Promise.all([
+  const [photo, photos, logoWhite, logoDark, bizLogo, qr, badges] = await Promise.all([
     loadShareCardPhoto(data?.photoUrl),
     // Las fotos del grid (hasta 4, en orden): si una no se puede leer,
     // null en su posición y la celda sale con el bloque de la inicial.
     Promise.all((data?.photoUrls || []).slice(0, 4).map((u) => loadShareCardPhoto(u))),
     loadShareCardLogoWhite(),
     loadShareCardLogoDark(),
-    loadGoogleMark(),
     loadShareCardBizLogo(data?.bizLogoUrl),
     // PR #159: el QR es una data URL generada en el cliente (sin red):
     // si no se pudo generar, la tarjeta sale con el bloque blanco
@@ -2328,24 +2318,14 @@ export async function renderShareCardCanvas(data, format, styleId = 'glass') {
   // Si el logo no cargó, la geometría es la de sin círculo: sin hueco
   // vacío y sin círculo a medias.
   const layoutData = bizLogo ? data : { ...data, bizLogoUrl: null };
-  const layout = computeShareCardLayout(layoutData, format, !!googleMark, styleId);
+  const layout = computeShareCardLayout(layoutData, format, styleId);
   return drawShareCardCanvas(
     layoutData,
     format,
-    { photo, photos, logoWhite, logoDark, googleMark, bizLogo, qr, appStore: badges?.appStore || null, googlePlay: badges?.googlePlay || null },
+    { photo, photos, logoWhite, logoDark, bizLogo, qr, appStore: badges?.appStore || null, googlePlay: badges?.googlePlay || null },
     layout,
     styleId,
   );
-}
-
-// La «G» de Google que acompaña a la calificación (igual que en las
-// tarjetas de negocio). Si no carga, la píldora sale solo con el texto.
-async function loadGoogleMark() {
-  try {
-    return await loadImage('/googlelogo.svg');
-  } catch {
-    return null;
-  }
 }
 
 // El QR del menú como imagen para el canvas: la data URL se genera en
