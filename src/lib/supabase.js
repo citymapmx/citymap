@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { normalizeStoreOptionsInData } from './modifierRules.js';
+import { fetchWithTimeout } from './fetchWithTimeout.js';
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 // Credenciales leídas desde variables de entorno (.env.local / Vercel)
@@ -46,7 +47,7 @@ const sb = {
   },
 
   async get(table, params = "") {
-    const r = await fetch(`${_REST}/${table}${params}`, { headers: sb.restHeaders() });
+    const r = await fetchWithTimeout(`${_REST}/${table}${params}`, { headers: sb.restHeaders() });
     const d = await sb._json(r);
     if (!r.ok) throw new Error(d?.message || d?.hint || d?.error || `HTTP ${r.status}`);
     return d ?? [];
@@ -58,7 +59,7 @@ const sb = {
       "Content-Type": "application/json",
     };
     if (_KEY_IS_JWT) headers["Authorization"] = `Bearer ${SUPABASE_ANON}`;
-    const r = await fetch(`${_REST}/${table}${params}`, { headers });
+    const r = await fetchWithTimeout(`${_REST}/${table}${params}`, { headers });
     const d = await sb._json(r);
     if (!r.ok) throw new Error(d?.message || d?.hint || d?.error || `HTTP ${r.status}`);
     return d ?? [];
@@ -66,14 +67,14 @@ const sb = {
   async count(table, params = "") {
     const headers = sb.restHeaders();
     headers["Prefer"] = "count=exact";
-    const r = await fetch(`${_REST}/${table}${params}&limit=1`, { method: "HEAD", headers });
+    const r = await fetchWithTimeout(`${_REST}/${table}${params}&limit=1`, { method: "HEAD", headers });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const range = r.headers.get("Content-Range");
     if (!range) return 0;
     return parseInt(range.split("/")[1], 10) || 0;
   },
   async post(table, body) {
-    const r = await fetch(`${_REST}/${table}`, {
+    const r = await fetchWithTimeout(`${_REST}/${table}`, {
       method: "POST", headers: sb.restHeaders(), body: JSON.stringify(body),
     });
     const d = await sb._json(r);
@@ -82,7 +83,7 @@ const sb = {
   },
   async upsert(table, body, onConflict = 'id') {
     const headers = { ...sb.restHeaders(), 'Prefer': `resolution=merge-duplicates,return=representation` };
-    const r = await fetch(`${_REST}/${table}?on_conflict=${onConflict}`, {
+    const r = await fetchWithTimeout(`${_REST}/${table}?on_conflict=${onConflict}`, {
       method: 'POST', headers, body: JSON.stringify(body),
     });
     const d = await sb._json(r);
@@ -90,7 +91,7 @@ const sb = {
     return d ?? [];
   },
   async rpc(func, body = {}, params = "") {
-    const r = await fetch(`${_REST}/rpc/${func}${params}`, {
+    const r = await fetchWithTimeout(`${_REST}/rpc/${func}${params}`, {
       method: "POST", headers: sb.restHeaders(), body: JSON.stringify(body),
     });
     const d = await sb._json(r);
@@ -98,7 +99,7 @@ const sb = {
     return d ?? [];
   },
   async patch(table, id, body) {
-    const r = await fetch(`${_REST}/${table}?id=eq.${id}`, {
+    const r = await fetchWithTimeout(`${_REST}/${table}?id=eq.${id}`, {
       method: "PATCH", headers: sb.restHeaders(), body: JSON.stringify(body),
     });
     const d = await sb._json(r);
@@ -106,20 +107,20 @@ const sb = {
     return d ?? [];
   },
   async del(table, id) {
-    const r = await fetch(`${_REST}/${table}?id=eq.${id}`, {
+    const r = await fetchWithTimeout(`${_REST}/${table}?id=eq.${id}`, {
       method: "DELETE", headers: sb.restHeaders(),
     });
     if (!r.ok) { const d = await sb._json(r); throw new Error(d?.message || `HTTP ${r.status}`); }
     return true;
   },
   async delWhere(table, col, val) {
-    const r = await fetch(`${_REST}/${table}?${col}=eq.${val}`, {
+    const r = await fetchWithTimeout(`${_REST}/${table}?${col}=eq.${val}`, {
       method: "DELETE", headers: sb.restHeaders(),
     });
     return r.ok;
   },
   async delWhere2(table, col1, val1, col2, val2) {
-    const r = await fetch(`${_REST}/${table}?${col1}=eq.${val1}&${col2}=eq.${val2}`, {
+    const r = await fetchWithTimeout(`${_REST}/${table}?${col1}=eq.${val1}&${col2}=eq.${val2}`, {
       method: "DELETE", headers: sb.restHeaders(),
     });
     return r.ok;
@@ -130,7 +131,7 @@ const sb = {
       // Usa el JWT de sesión del admin como autenticación — no expone secretos en el frontend
       const headers = { 'Content-Type': 'application/json' };
       if (sb._token) headers['Authorization'] = `Bearer ${sb._token}`;
-      await fetch('https://citymap.mx/api/send-notification', {
+      await fetchWithTimeout('https://citymap.mx/api/send-notification', {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -150,7 +151,7 @@ const sb = {
 
   // ── Auth ──
   async signUp(email, password, name) {
-    const r = await fetch(`${_AUTH}/signup`, {
+    const r = await fetchWithTimeout(`${_AUTH}/signup`, {
       method: "POST", headers: sb.authHeaders(),
       body: JSON.stringify({ email, password, data: { name } }),
     });
@@ -168,7 +169,7 @@ const sb = {
     return d;
   },
   async signIn(email, password) {
-    const r = await fetch(`${_AUTH}/token?grant_type=password`, {
+    const r = await fetchWithTimeout(`${_AUTH}/token?grant_type=password`, {
       method: "POST", headers: sb.authHeaders(),
       body: JSON.stringify({ email, password }),
     });
@@ -186,7 +187,7 @@ const sb = {
     return d;
   },
   async signOut() {
-    try { await fetch(`${_AUTH}/logout`, { method: "POST", headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${sb._token}` } }); } catch (e) { console.error(e); }
+    try { await fetchWithTimeout(`${_AUTH}/logout`, { method: "POST", headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${sb._token}` } }); } catch (e) { console.error(e); }
     sb._token = null;
     localStorage.removeItem("cg_t");
     localStorage.removeItem("cg_r");
@@ -199,7 +200,7 @@ const sb = {
   // URL Configuration → Redirect URLs): si el correo llega pero el enlace
   // da error, ahí falta agregar https://citymap.mx/login?recovery=1.
   async resetPasswordForEmail(email, redirectTo) {
-    const r = await fetch(`${_AUTH}/recover`, {
+    const r = await fetchWithTimeout(`${_AUTH}/recover`, {
       method: "POST", headers: sb.authHeaders(),
       body: JSON.stringify({ email, redirect_to: redirectTo }),
     });
@@ -210,7 +211,7 @@ const sb = {
   async signInWithIdToken({ provider = 'google', token, nonce }) {
     const body = { provider, id_token: token };
     if (nonce) body.nonce = nonce;
-    const r = await fetch(`${_AUTH}/token?grant_type=id_token`, {
+    const r = await fetchWithTimeout(`${_AUTH}/token?grant_type=id_token`, {
       method: "POST",
       headers: sb.authHeaders(),
       body: JSON.stringify(body),
@@ -343,7 +344,7 @@ const sb = {
     const rt = localStorage.getItem("cg_r");
     if (!rt) return null;
     try {
-      const r = await fetch(`${_AUTH}/token?grant_type=refresh_token`, {
+      const r = await fetchWithTimeout(`${_AUTH}/token?grant_type=refresh_token`, {
         method: "POST", headers: sb.authHeaders(), body: JSON.stringify({ refresh_token: rt }),
       });
       const d = await sb._json(r);
@@ -360,7 +361,7 @@ const sb = {
   async updateUser(data) {
     const tok = sb._token || localStorage.getItem("cg_t");
     if (!tok) throw new Error("No hay sesión activa");
-    const r = await fetch(`${_AUTH}/user`, {
+    const r = await fetchWithTimeout(`${_AUTH}/user`, {
       method: "PUT", headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${tok}`, "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
@@ -396,7 +397,7 @@ const sb = {
 
     sb._token = tok;
     try {
-      const r = await fetch(`${_AUTH}/user`, { headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${tok}` } });
+      const r = await fetchWithTimeout(`${_AUTH}/user`, { headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${tok}` } });
       if (r.status === 401) return await sb.refresh().then(d => d?.user || null);
       if (!r.ok) return null;
       return sb._json(r);

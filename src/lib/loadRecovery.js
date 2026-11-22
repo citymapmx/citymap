@@ -66,3 +66,60 @@ export function retryPageLoad(error) {
   window.location.reload();
   return true;
 }
+
+// ── Pantalla blanca al reanudar en una ficha (nov 2026) ───────────────
+// La ficha depende de `selected` / `selectedEvent` en memoria. Al
+// reanudar tras horas en segundo plano, si la ruta es de detalle pero
+// el seleccionado ya no está, la vista queda en blanco para siempre:
+// DetailView devuelve null sin `selected` y el modal de evento solo se
+// monta con `selectedEvent`; para /evento/ ni siquiera se renderiza el
+// inicio detrás. Nada lo vuelve a resolver: el resolver del arranque
+// solo corre una vez y un cuelgue no tira ningún error (por eso no
+// salta el ErrorBoundary ni el aviso de «Sin conexión»).
+// La recuperación es recargar una vez, con guardia: el arranque vuelve
+// a correr, la ficha se restaura desde la URL o cae en la lista. Es
+// invisible (sin botón ni mensaje) y solo dispara cuando la app ya está
+// rota: ruta de detalle + seleccionado ausente + suspensión real.
+
+// Prefijos de sistema (espejo de NON_HOME_PREFIXES en AppRouter.jsx):
+// una ruta que empieza por uno de ellos nunca es una ficha.
+const DETAIL_SYSTEM_PREFIXES = ['/mapa', '/eventos', '/explorar', '/mis-planes', '/revista', '/experiencias', '/tours', '/negocios', '/planes', '/favoritos', '/cuenta', '/itinerarios', '/itinerario', '/plan', '/about', '/privacy', '/terms', '/admin_notifs', '/user_notifs', '/manage', '/stats', '/precios', '/lealtad', '/wallet', '/scan', '/login', '/reservar'];
+
+// 'event' | 'business' | null: qué ficha (si alguna) representa la ruta.
+export function detailKindForPath(pathname, isWorld = false) {
+  if (!pathname || pathname === '/') return null;
+  if (pathname.startsWith('/evento/')) return 'event';
+  const segments = pathname.split('/').filter(Boolean);
+  if (isWorld) {
+    if (segments.length === 3) return 'business';
+    if (segments.length === 4 && segments[3] === 'reservar') return 'business';
+    return null;
+  }
+  if (segments.length === 2) {
+    if (DETAIL_SYSTEM_PREFIXES.some(p => pathname.startsWith(p))) return null;
+    return 'business';
+  }
+  if (segments.length === 3 && segments[2] === 'reservar') return 'business';
+  return null;
+}
+
+export const RESUME_MIN_HIDDEN_MS = 60000;
+const RESUME_RELOAD_GUARD_KEY = 'resume_reload_guard';
+const RESUME_RELOAD_MIN_INTERVAL_MS = 60000;
+
+export function shouldReloadOnResume({ hiddenMs, pathname, hasSelected, hasSelectedEvent, isWorld = false, now = Date.now() } = {}) {
+  if (!Number.isFinite(hiddenMs) || hiddenMs < RESUME_MIN_HIDDEN_MS) return false;
+  const kind = detailKindForPath(pathname, isWorld);
+  if (!kind) return false;
+  if (kind === 'event' && hasSelectedEvent) return false;
+  if (kind === 'business' && hasSelected) return false;
+  try {
+    const last = Number(sessionStorage.getItem(RESUME_RELOAD_GUARD_KEY) || '0');
+    if (!Number.isFinite(last) || now - last <= RESUME_RELOAD_MIN_INTERVAL_MS) return false;
+  } catch { return false; }
+  return true;
+}
+
+export function claimResumeReload(now = Date.now()) {
+  try { sessionStorage.setItem(RESUME_RELOAD_GUARD_KEY, String(now)); return true; } catch { return false; }
+}
