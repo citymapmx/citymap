@@ -167,6 +167,7 @@ function isHomePath(pathname) {
 }
 
 import useThirdPartyScripts from './hooks/useThirdPartyScripts.js';
+import useGoogleMapsPreload from './hooks/useGoogleMapsPreload.js';
 
 export default function CityGuide() {
   const location = useLocation();
@@ -1568,6 +1569,10 @@ useEffect(() => {
   }), [businessListReady, businessListError, requestWebNotifications, viewStyle, cityImg, locating, detectCity, setShowCountryPicker, city, isAdmin, setShowAdmin, search, setSearch, user, setShowAuth, toast$, setShowAddBiz, dbReady, dark, cats, activeCat, setActiveCat, T, mapPins, activeCity, filteredBanners, displayList, userCoords, getKm, favIds, toggleFav, setSelected, navigate, trackEvent, goWhatsApp, goDir, doShare, handleCardTap, handleEventTap, loadPaginatedBiz, hasMore, loadingMore, nearbyRadius, setNearbyRadius, nearbyFilter, setNearbyFilter, isOpen, topFavsMemo, showMoreTopFavs, setShowMoreTopFavs, globalFavCounts, topRatedMemo, showMoreTopRated, setShowMoreTopRated, newBizMemo, coupons, filteredBiz, detectedTown, detectedState, mapPin, setMapPin, requestLocation, allNearby, collections, activeCollection, setActiveCollection, newColModal, setNewColModal, newColForm, setNewColForm, createCollection, updateCollection, deleteCollection, setMovingBiz, movingBiz, setCollections, filteredEvents, savedEventIds, toggleSaveEvent, selectedEvent, setSelectedEvent, setShowCreateEvent, setSavedEventIds, savedExpIds, setSavedExpIds, selected, setFade, showGallery, setShowGallery, reviews, promos, wallet, setWallet, setShowMenuGallery, goWeb, showReview, setShowReview, reviewStar, setReviewStar, reviewText, setReviewText, reviewImgFile, setReviewImgFile, reviewImgLoading, postReview, postExperienceReview, loadExperienceReviews, setReviews, setMapPins, toggleLikeReview, setClaimBiz, callPhone]);
 
   useThirdPartyScripts(!requireCitySelection && homeCoreCity===activeCity && homeSecondaryCity===activeCity);
+  // M18: precarga de Google Maps en segundo plano, con la misma condición
+  // que los scripts de terceros (ciudad cargada, nunca durante la
+  // selección de ciudad).
+  useGoogleMapsPreload(!requireCitySelection && homeCoreCity===activeCity && homeSecondaryCity===activeCity);
   const cityPicker = (
 <Suspense fallback={null}>
           <CountryPickerDropdown 
