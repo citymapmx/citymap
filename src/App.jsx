@@ -1606,7 +1606,6 @@ useEffect(() => {
             onDetectCity={() => { if (!locating) detectCity({ showToast: true, onDone: (slug) => { const found = cities.find(c => c.slug === slug); if (found) handleCitySelect(found); setRequireCitySelection(false); const pending = pendingSectionRef.current; pendingSectionRef.current = null; if (pending && slug) goToSectionInCity(pending, slug); } }); setShowCountryPicker(false); }}
             locating={locating}
             onClose={() => { if(!requireCitySelection) { pendingSectionRef.current = null; setShowCountryPicker(false); } }} 
-            onGoToWall={() => { setShowCountryPicker(false); routerNavigate("/", { viewTransition: true }); setFade(true); window.scrollTo(0, 0); }}
             dark={dark}
             isWelcome={requireCitySelection} 
           />
