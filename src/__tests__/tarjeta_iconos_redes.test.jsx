@@ -10,8 +10,13 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // botones de 36 px + distancia) es más ancha que la tarjeta en el grid
 // de 4 columnas, y la foto (overflow hidden) recortaba la derecha —
 // tampoco se veía el «1.6 km» y la línea de calificación se veía
-// cortada. La fila ahora envuelve: los botones y la distancia bajan a
-// una segunda línea solo cuando hace falta.
+// cortada. La fila ahora envuelve: los botones bajan a una segunda línea
+// solo cuando hace falta.
+//
+// Distancia (22 nov 2026): la distancia era el último hijo de la fila y
+// en el teléfono, con 3 botones de redes, caía sola a la segunda línea
+// («11.0km» huérfano en SSAM). Ahora va pegada al horario dentro del
+// mismo bloque sin corte («Abierto · 11.0km») y baja con él, nunca sola.
 
 describe('Fila inferior de la tarjeta destacada', () => {
   const src = read('../components/cards/BusinessCard.jsx');
@@ -26,14 +31,18 @@ describe('Fila inferior de la tarjeta destacada', () => {
     expect(src).toContain("(b.facebook || b.social_links?.facebook) && (");
   });
 
-  it('la distancia sigue en la misma fila (baja con los botones si hace falta)', () => {
+  it('la distancia va pegada al horario y nunca queda sola en una línea', () => {
+    // «Abierto · 11.0km» es un solo bloque sin corte; la distancia ya no
+    // es el último hijo suelto de la fila.
     expect(src).toContain('{distStr && (');
+    expect(src).toContain('whiteSpace: "nowrap", flexShrink: 0');
+    expect(src).not.toContain('display: "flex", alignItems: "center", marginLeft: 6');
   });
 
   it('la calificación también envuelve: el horario baja con su «·» si la línea no cabe', () => {
     // Four Seasons: «★ 4.8 (3,766) · 45 · Abierto» se pasaba ~7 px y la
     // «o» quedaba recortada aunque los iconos ya bajaran de línea.
     expect(src).toContain('gap: 6, flexWrap: "wrap", rowGap: 2');
-    expect(src).toContain('<span style={{ display: "flex", alignItems: "center", gap: 6 }}>');
+    expect(src).toContain('<span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0 }}>');
   });
 });
