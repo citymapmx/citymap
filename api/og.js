@@ -1,4 +1,4 @@
-import { seoSite, normalizeCitySlug, legacyCitySlug, isWorldCitySlug, cityPageTitle, cityPageDescription, homePageTitle, homePageDescription } from '../src/lib/seoRoutes.js';
+import { seoSite, normalizeCitySlug, legacyCitySlug, isWorldCitySlug, cityDisplayName, cityPageTitle, cityPageDescription, homePageTitle, homePageDescription } from '../src/lib/seoRoutes.js';
 import { currencyForCountryCode } from '../src/lib/domain.js';
 import { tourSchemaNodes } from '../src/lib/tourSchema.js';
 import { eventUrl, resolveEventSlug } from '../src/lib/eventUrls.js';
@@ -125,7 +125,7 @@ async function getCityData(citySlug) {
     const normalized = normalizeCitySlug(citySlug);
     const variants = [...new Set([citySlug, normalized, legacyCitySlug(normalized)].filter(Boolean))];
     const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/cities?slug=in.(${variants.join(',')})&select=country_code,bg_image,name`,
+      `${SUPABASE_URL}/rest/v1/cities?slug=in.(${variants.join(',')})&select=country_code,bg_image,name,state`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
     );
     if (!r.ok) return { country_code: "mx", bg_image: null };
@@ -134,6 +134,7 @@ async function getCityData(citySlug) {
       country_code: d?.[0]?.country_code || "mx",
       bg_image: d?.[0]?.bg_image || null,
       name: d?.[0]?.name || null,
+      state: d?.[0]?.state || null,
       exists: Boolean(d?.[0])
     };
   } catch {
@@ -544,7 +545,7 @@ export default async function handler(req) {
   
   // Dynamic country extraction to set appropriate locales and paths
   const targetCitySlug = city || "";
-  const { country_code: countryCode, bg_image: cityBgImage, exists: cityExists, name: cityDisplayName } = await getCityData(targetCitySlug);
+  const { country_code: countryCode, bg_image: cityBgImage, exists: cityExists, name: cityDbName, state: cityState } = await getCityData(targetCitySlug);
   if (city && cityExists === false && !id && !evId && !expId && !vista) {
     return new Response('<!doctype html><html lang="es"><title>Ciudad no encontrada | CityMap</title><h1>Ciudad no encontrada</h1></html>', {
       status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex' }
@@ -653,11 +654,12 @@ ${homeCityLinks}
 
   // --- RESPUESTA PARA CIUDAD ---
   if (city && !id && !evId && !expId && !vista) {
-    // Nombre real de la base cuando existe (p. ej. «San Pedro Garza
-    // García»); si no, el slug con guiones como espacios. El título y la
-    // descripción son los del módulo único (seoRoutes.js): los mismos
-    // que ve el usuario en la SPA.
-    const cityName = cityDisplayName || (city.charAt(0).toUpperCase() + city.slice(1).replace(/-/g, " "));
+    // Nombre de exhibición (p. ej. «Guadalajara, Jalisco», «Tepic,
+    // Nayarit», «Madrid»): el mismo que ve el usuario en la SPA
+    // (useGeolocation). Si la base no trae el nombre, el slug con
+    // guiones como espacios. El título y la descripción son los del
+    // módulo único (seoRoutes.js): los mismos que ve el usuario.
+    const cityName = cityDisplayName(cityDbName || (city.charAt(0).toUpperCase() + city.slice(1).replace(/-/g, " ")), cityState);
     const title = cityPageTitle(cityName);
     const desc = cityPageDescription(cityName);
     const img = cityBgImage || `${BASE_URL}/og-image.png`;

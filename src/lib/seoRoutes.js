@@ -137,6 +137,16 @@ export function cityHomeSlugFromPath(pathname, isWorld = false) {
 // funciones, así que bots y usuarios ven el mismo título y la misma
 // descripción. Reciben el NOMBRE REAL de la ciudad (p. ej. «San Pedro
 // Garza García»), no el slug.
+// Nombre de exhibición de una ciudad: «Guadalajara, Jalisco»,
+// «Tepic, Nayarit», «Madrid». Es la misma regla que usa useGeolocation
+// (el nombre que ve el usuario en la app): el estado es la primera
+// parte antes del «;» (Tepic guarda «Nayarit;Xalisco»); sin estado, solo
+// el nombre. og.js la usa para que el título del bot sea el mismo que
+// el de la SPA.
+export function cityDisplayName(name, state) {
+  const realState = state ? String(state).split(';')[0].trim() : '';
+  return realState ? `${name}, ${realState}` : name;
+}
 export function cityPageTitle(cityName) {
   return `Qué hacer en ${cityName}: Dónde comer, eventos y lugares | CityMap`;
 }

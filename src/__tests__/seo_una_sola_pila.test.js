@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
+  cityDisplayName,
   cityPageTitle,
   cityPageDescription,
   homePageTitle,
@@ -36,6 +37,13 @@ describe('seo una sola pila: vercel.json sin web-next', () => {
 });
 
 describe('seo una sola pila: un solo título y descripción por ciudad', () => {
+  it('el nombre de exhibición es el mismo que ve el usuario en la app', () => {
+    expect(cityDisplayName('Guadalajara', 'Jalisco')).toBe('Guadalajara, Jalisco');
+    expect(cityDisplayName('Tepic', 'Nayarit;Xalisco')).toBe('Tepic, Nayarit');
+    expect(cityDisplayName('Madrid', '')).toBe('Madrid');
+    expect(cityDisplayName('Madrid', null)).toBe('Madrid');
+  });
+
   it('la página de ciudad usa el formato «Qué hacer en X…»', () => {
     expect(cityPageTitle('Madrid')).toBe(
       'Qué hacer en Madrid: Dónde comer, eventos y lugares | CityMap',
