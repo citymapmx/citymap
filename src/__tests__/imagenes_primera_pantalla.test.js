@@ -12,7 +12,7 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // ve a ~216 px CSS, a 3x son ~650 px de dispositivo: 600 cubre sin que
 // se vea blando, a 400 sí se veía, PR #264) y decoding="async".
 //
-// Ojo: getThumbUrl redondea a buckets (200/400/800/1600/2400), así que
+// Ojo: getThumbUrl redondea a buckets (200/400/600/800/1000/1200/1600/2400), así que
 // pedir 600 devolvía el archivo de 800. El bucket de 600 es lo que hace
 // real el cambio; sin él, WHEEL_IMG_W = 600 sería un no-op.
 const POSTER_SB = 'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/poster.jpg';

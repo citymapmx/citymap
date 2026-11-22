@@ -1562,7 +1562,7 @@ async function bitmapFromBlob(blob) {
   }
 }
 
-// La foto se pide ancha (1600w por el bucket de getThumbUrl) para que
+// La foto se pide ancha (1200w por el bucket de getThumbUrl) para que
 // salga nítida a 1080 px. Si no se puede leer con CORS, null: la tarjeta
 // sale con el bloque de la inicial, nunca rota.
 export async function loadShareCardPhoto(photoUrl) {
