@@ -20,6 +20,7 @@ const records = {
   experiences: [
     { id: 'tour-1', slug: 'tour-laguna', city_slug: 'tepic', title: 'Tour a la Laguna de Santa María del Oro', price: 1500, duration: '6 horas', gallery: JSON.stringify(['https://images.test/tour.webp']) },
     { id: 'tour-2', slug: 'tour-cerro', city_slug: 'tepic', title: 'Sendero gratis al cerro', price: 0, duration: '', gallery: [] },
+    { id: 'tour-3', slug: 'tour-kioto', city_slug: 'kioto', title: 'Free tour por Kioto', price: 45, duration: '2 horas 30 minutos', gallery: [] },
   ],
 };
 const request = (path, host = 'citymap.mx', agent = 'Googlebot') => new Request(`https://${host}${path}`, { headers: { 'user-agent': agent } });
@@ -76,7 +77,7 @@ describe('og vista=tours: contenido real de tours', () => {
     expect(response.status).toBe(200);
     const html = await response.text();
     expect(html).toContain('<link rel="canonical" href="https://citymap.mx/tours"/>');
-    expect(html).toContain('<title>Tours en Guadalajara, Tepic, Puerto Vallarta y más | CityMap México</title>');
+    expect(html).toContain('<title>Tours en Tokio, Kioto, París, Madrid, Nueva York, Guadalajara y más | CityMap México</title>');
     expect(html).toContain('Tour a la Laguna de Santa María del Oro');
     expect(html).toContain('href="https://citymap.mx/revista/tepic/tour-a-la-laguna-de-santa-maria-del-oro"');
     expect(html).toContain('desde $1,500 MXN');
@@ -84,6 +85,12 @@ describe('og vista=tours: contenido real de tours', () => {
     expect(html).toContain('src="https://images.test/tour.webp"');
     expect(html).toContain('Sendero gratis al cerro');
     expect(html).toContain('Gratis');
+    // La lista del bot es la misma que ve el usuario: también los tours
+    // internacionales, con su moneda (USD fuera de México).
+    expect(html).toContain('Free tour por Kioto');
+    expect(html).toContain('href="https://citymap.mx/revista/kioto/free-tour-por-kioto"');
+    expect(html).toContain('desde $45 USD');
+    expect(html).toContain('2 horas 30 minutos');
   });
 });
 

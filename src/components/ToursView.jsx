@@ -124,10 +124,13 @@ export default function ToursView({ T, dark, cities, initialTours }) {
           </div>
         </div>
       </div>
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px 40px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '8px 16px 40px' }}>
         {/* Boleto animado: encabezado de /tours (formato ancho, bucle
-            lento y discreto). Si el archivo no carga, no pinta nada. */}
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '0 0 4px' }}>
+            lento y discreto). Si el archivo no carga, no pinta nada.
+            El lienzo de la animación (700x290) lleva ~40% transparente
+            arriba de los boletos, así que el bloque sube 16 px con
+            margen negativo para que no se vea ese hueco. */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '-16px 0 4px' }}>
           <LottieAnim src={BOLETO_AVION_SRC} loop speed={0.7} width={220} height={91} ariaLabel="Tours y viajes" />
         </div>
         {/* Subtítulo como el de Revista: bajo el logo, sin título grande ni "← Inicio" */}
