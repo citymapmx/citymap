@@ -11,7 +11,7 @@
    (.event-wheel-shade), nunca `filter`: el filtro cambiaba en cada
    fotograma y hacía parpadear la sección en blanco y negro al hacer scroll
    en el teléfono (PR #194). */
-.event-wheel{margin:0 0 32px;color:inherit}
+.event-wheel{margin:0 0 16px;color:inherit}
 .event-wheel-viewport{position:relative;height:306px;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
 .event-wheel-dragging{cursor:grabbing}
 .event-wheel-drum{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}

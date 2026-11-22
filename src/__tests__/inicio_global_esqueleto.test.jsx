@@ -38,18 +38,18 @@ describe('inicio global: la rueda tiene su esqueleto mientras carga', () => {
     expect(wallSk).toBeGreaterThan(wheelSk);
   });
 
-  it('CoverflowSk mide como la rueda real (355 px en el teléfono, 399 px en escritorio, +32 px)', () => {
+  it('CoverflowSk mide como la rueda real (355 px en el teléfono, 399 px en escritorio, +16 px)', () => {
     const html = renderToStaticMarkup(<CoverflowSk dark={false} />);
     // Encabezado de una línea (26 px) + tambor (262 px teléfono / 306 px
     // escritorio) + pie (puntos 8 px + nombre 21 px) = 355 px en el
     // teléfono; la rueda real mide 355 px (medido en vivo en / y /tepic
-    // a 412 px) con margin 0 0 32px (.event-wheel).
+    // a 412 px) con margin 0 0 16px (.event-wheel).
     expect(html).toContain('height:26px');
     expect(html).toContain('height: 262px');
     expect(html).toContain('height: 306px');
     expect(html).toContain('height:8px');
     expect(html).toContain('height:21px');
-    expect(html).toContain('margin:0 0 32px');
+    expect(html).toContain('margin:0 0 16px');
   });
 
   it('sin eventos próximos no hay rueda (el hueco solo existe mientras carga)', () => {

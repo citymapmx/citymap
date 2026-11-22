@@ -12,7 +12,7 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // 467 KiB). Cada cambio con su número medido está en su prueba.
 
 describe('rendimiento teléfono: el esqueleto de la rueda mide como la rueda (CLS)', () => {
-  it('CoverflowSk tiene la geometría de EventWheel3D (encabezado + tambor + pie + 32 px)', () => {
+  it('CoverflowSk tiene la geometría de EventWheel3D (encabezado + tambor + pie + 16 px)', () => {
     const html = renderToStaticMarkup(<CoverflowSk dark={false} />);
     // Tambor con la misma altura que .event-wheel-viewport: 306 px en
     // escritorio y 262 px en el teléfono (mismo punto de corte, 640 px).
@@ -22,7 +22,7 @@ describe('rendimiento teléfono: el esqueleto de la rueda mide como la rueda (CL
     expect(html).toContain('.coverflow-sk-drum');
     expect(html).toContain('height: 306px');
     expect(html).toContain('height: 262px');
-    expect(html).toContain('margin:0 0 32px');
+    expect(html).toContain('margin:0 0 16px');
     // El pie de la rueda (puntos + nombre del evento) también va en el
     // esqueleto, con su misma altura, para que no salte al llegar.
     expect(html).toContain('width:80px');
