@@ -33,7 +33,6 @@ const baseProps = {
   onClose: () => {},
   dark: false,
   isWelcome: false,
-  onGoToWall: () => {},
 };
 
 const renderPicker = (props = {}) => renderToStaticMarkup(
@@ -107,11 +106,8 @@ describe('selector: lista todas las ciudades en los dos dominios', () => {
     expect(src).not.toContain('hostIncludesCity');
     expect(src).not.toContain('hostCities');
   });
-  it('«Todas las ciudades» sigue siendo navegación interna en este dominio (no salta)', () => {
+  it('el salto de dominio vive solo en handleSelectCity: hay una sola asignación a window.location.href en todo el archivo', () => {
     const src = read('../components/CountryPickerDropdown.jsx');
-    expect(src).toContain('onGoToWall(); onClose();');
-    // El salto de dominio vive solo en handleSelectCity: hay una sola
-    // asignación a window.location.href en todo el archivo.
     expect(src.split('window.location.href').length - 1).toBe(1);
     const handler = src.slice(src.indexOf('const handleSelectCity'), src.indexOf('const sortedCities'));
     expect(handler).toContain('window.location.href = target.url');

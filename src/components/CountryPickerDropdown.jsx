@@ -12,7 +12,7 @@ const FLAG_MAP = Object.fromEntries(
   Object.entries(COUNTRY_NAMES).map(([code, name]) => [name, COUNTRY_FLAGS[code] || '🌍'])
 );
 
-export default function CountryPickerDropdown({ show, cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark, isWelcome, onGoToWall }) {
+export default function CountryPickerDropdown({ show, cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark, isWelcome }) {
   const T = getT(dark);
   const [searchQuery, setSearchQuery] = useState('');
   const [focusedPlaceholder, setFocusedPlaceholder] = useState(null);
@@ -181,6 +181,12 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
     marginBottom: 8
   };
 
+  // Trazo visible del buscador y de la fila «Cerca de mí» (22 nov 2026,
+  // Jonathan): el mismo borde de las tarjetas del panel en claro
+  // (#e2e8f0); en oscuro un poco más marcado que el de las tarjetas
+  // para que se vea sobre el fondo oscuro.
+  const fieldBorder = `1px solid ${dark ? "rgba(255,255,255,0.14)" : "#e2e8f0"}`;
+
   return (
     <AnimatePresence>
       {show && (
@@ -285,7 +291,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
                 onChange={e => setSearchQuery(e.target.value)}
                 onFocus={() => setFocusedPlaceholder(animatedHint)}
                 onBlur={() => setFocusedPlaceholder(null)}
-                style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 100, border: "none", background: dark ? "#2D2D31" : "#FFFFFF", color: T.text, fontSize: 14, outline: "none", fontFamily: "inherit", caretColor: T.text, gridArea: "1 / 1" }}
+                style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 100, border: fieldBorder, background: dark ? "#2D2D31" : "#FFFFFF", color: T.text, fontSize: 14, outline: "none", fontFamily: "inherit", caretColor: T.text, gridArea: "1 / 1" }}
               />
               {!searchQuery && (
                 <span aria-hidden="true" style={{ gridArea: "1 / 1", alignSelf: "center", minWidth: 0, maxWidth: "100%", padding: "10px 12px 10px 34px", zIndex: 4, pointerEvents: "none", fontSize: 14, fontWeight: 400, lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textAlign: "left", color: dark ? "#A1A1AA" : "#64748b" }}>
@@ -297,16 +303,18 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
 
           <div style={{ padding: "0 8px", display: "flex", flexDirection: "column" }}>
 
-            {/* Filas discretas (propuesta A, nov 2026, elegida por Jonathan):
-                ubicación e inicio global como filas planas con icono,
-                título, subtítulo y flecha, separadas por una línea fina
-                en vez de cajas de botón. El cableado (onDetectCity /
-                onGoToWall) queda intacto. */}
+            {/* Fila de ubicación con trazo visible (22 nov 2026, Jonathan):
+                «Cerca de mí» con borde como el buscador, título igual y
+                subtítulo «Descubre cosas increíbles». La fila «Todas las
+                ciudades» (inicio global) se quitó el 22 nov 2026 a
+                petición de Jonathan: el muro global se alcanza desde el
+                inicio. El cableado de ubicación (onDetectCity) queda
+                intacto. */}
             <div style={{ marginBottom: 12 }}>
               <button
                 onClick={onDetectCity}
                 disabled={locating}
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "transparent", border: "none", borderBottom: `1px solid ${dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`, borderRadius: 0, cursor: locating ? "wait" : "pointer", color: dark ? "#f8fafc" : "#0f172a", fontSize: 15, fontWeight: 600, textAlign: "left", transition: "background 0.2s", width: "100%", opacity: locating ? 0.7 : 1 }}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "transparent", border: fieldBorder, borderRadius: 12, cursor: locating ? "wait" : "pointer", color: dark ? "#f8fafc" : "#0f172a", fontSize: 15, fontWeight: 600, textAlign: "left", transition: "background 0.2s", width: "100%", opacity: locating ? 0.7 : 1 }}
                 onMouseOver={e => { if (!locating) e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"; }}
                 onMouseOut={e => { if (!locating) e.currentTarget.style.background = "transparent"; }}
               >
@@ -317,27 +325,10 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
                 )}
                 <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
                   <span>{locating ? "Buscando..." : "Cerca de mí"}</span>
-                  <span style={{ fontSize: 12, fontWeight: 400, color: T.sub }}>usa tu ubicación</span>
+                  <span style={{ fontSize: 12, fontWeight: 400, color: T.sub }}>Descubre cosas increíbles</span>
                 </span>
                 <Icon name="chevron" size={14} color={T.sub} />
               </button>
-
-              {/* Inicio global: el muro de todas las ciudades (solo fuera de la bienvenida) */}
-              {!isWelcome && onGoToWall && (
-                <button
-                  onClick={() => { onGoToWall(); onClose(); }}
-                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "transparent", border: "none", borderRadius: 0, cursor: "pointer", color: dark ? "#f8fafc" : "#0f172a", fontSize: 15, fontWeight: 600, textAlign: "left", transition: "background 0.2s", width: "100%" }}
-                  onMouseOver={e => { e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"; }}
-                  onMouseOut={e => { e.currentTarget.style.background = "transparent"; }}
-                >
-                  <span style={{ fontSize: 18 }}>🌐</span>
-                  <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-                    <span>Todas las ciudades</span>
-                    <span style={{ fontSize: 12, fontWeight: 400, color: T.sub }}>sin filtro de ciudad</span>
-                  </span>
-                  <Icon name="chevron" size={14} color={T.sub} />
-                </button>
-              )}
             </div>
 
             {/* Popular cities */}
