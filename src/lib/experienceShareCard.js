@@ -53,6 +53,9 @@ import { formatReviewCount } from './googleRatings.js';
 import { formatPriceAmount } from './tours.js';
 import {
   SHARE_CARD_FONT_STACK,
+  computeShareCardFooterRow,
+  drawShareCardFooterRow,
+  loadShareCardFooterBadges,
   measureShareCardText,
   wrapShareCardName,
   wrapShareCardText,
@@ -83,8 +86,9 @@ export const EXPERIENCE_SHARE_CARD_FORMAT_LIST = [
 // foto a sangre) y «Grid» (demo `propuestas-de-tarjetas-con-grid`,
 // 10 nov 2026; Jonathan: «Haz las 4»): 1 foto grande arriba y 2
 // chicas abajo, sobre fondo blanco, con logotipo oficial, pastilla de
-// ubicación, título y precio en texto (sin pastilla azul), y pie
-// «Descúbrelo en www.citymap.mx». El Grid solo se ofrece cuando el
+// ubicación, título y precio en texto (sin pastilla azul), y pie con
+// las 3 opciones en una fila (web + App Store + Google Play, 22 nov
+// 2026). El Grid solo se ofrece cuando el
 // tour tiene 2 o más fotos en su galería (ver
 // EXPERIENCE_SHARE_CARD_GRID_MIN_PHOTOS).
 export const EXPERIENCE_SHARE_CARD_STYLES = {
@@ -170,6 +174,10 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
     priceBeside: false,
     gradTopH: 0.22,
     gradBottomH: 0.6,
+    // Pie con las 3 opciones en una fila (22 nov 2026): el bloque de
+    // texto termina antes del pie, como en las demás tarjetas.
+    footSize: 44,
+    footGap: 28,
     // Solo Historia: foto en bloque centrado como en eventos
     // (PR #177). Post y Horizontal siguen a sangre completa.
     centeredPhoto: true,
@@ -207,6 +215,8 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
     priceBeside: false,
     gradTopH: 0.22,
     gradBottomH: 0.6,
+    footSize: 40,
+    footGap: 24,
   },
   horizontal: {
     pad: 48,
@@ -238,6 +248,8 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
     colGap: 28,
     gradTopH: 0.3,
     gradBottomH: 0.78,
+    footSize: 36,
+    footGap: 16,
   },
 };
 
@@ -248,7 +260,8 @@ export const EXPERIENCE_SHARE_CARD_LAYOUT = {
 // ubicación GRIS (como las píldoras de los estilos con grid de negocios,
 // no glass: sobre fondo blanco el glass no se ve), título centrado y
 // precio en texto plano («DESDE $1,941 MXN por persona», sin pastilla
-// azul), pie «Descúbrelo en www.citymap.mx». En Horizontal la tarjeta
+// azul), pie con las 3 opciones en una fila (web + App Store +
+// Google Play, 22 nov 2026). En Horizontal la tarjeta
 // es de dos columnas (fotos a la izquierda, información a la derecha);
 // en Historia y Post, pila vertical. `duoAspect` es la proporción
 // ancho/alto de las 2 fotos chicas; `bigMinH`, la altura mínima de la
@@ -277,7 +290,7 @@ export const EXPERIENCE_SHARE_CARD_GRID_LAYOUT = {
     porSize: 50,
     porGap: 8,
     priceGap: 24,
-    footSize: 42,
+    footSize: 44,
     footGap: 24,
     infoGap: 41,
   },
@@ -304,7 +317,7 @@ export const EXPERIENCE_SHARE_CARD_GRID_LAYOUT = {
     porSize: 36,
     porGap: 6,
     priceGap: 18,
-    footSize: 34,
+    footSize: 40,
     footGap: 20,
     infoGap: 28,
   },
@@ -331,7 +344,7 @@ export const EXPERIENCE_SHARE_CARD_GRID_LAYOUT = {
     porSize: 30,
     porGap: 6,
     priceGap: 14,
-    footSize: 30,
+    footSize: 36,
     footGap: 16,
     infoGap: 0,
     cols: true,
@@ -556,27 +569,11 @@ function fitExperienceGridPrice(data, maxW, L) {
   };
 }
 
-// El pie «Descúbrelo en www.citymap.mx» se achica (pasos de 2) hasta
-// caber en la columna; en Horizontal a 30 px mide ~518 px y la columna
-// tiene 396 px, así que se salía por el borde derecho (visto en el PNG
-// horizontal, 10 nov 2026).
-function fitExperienceGridFooterSize(maxW, L) {
-  const run1 = 'Descúbrelo en ';
-  const run2 = 'www.citymap.mx';
-  for (let size = L.footSize; size >= 16; size -= 2) {
-    const w1 =
-      measureShareCardText(run1, size, 400) + 2 * (Array.from(run1).length - 1);
-    const w2 =
-      measureShareCardText(run2, size, 800) + 2 * (Array.from(run2).length - 1);
-    if (w1 + 2 + w2 <= maxW) return size;
-  }
-  return 16;
-}
-
 // Geometría del estilo «Grid»: fondo blanco, 1 foto grande arriba
 // (flexible, con el logotipo oficial superpuesto) y 2 chicas abajo,
 // pastilla de ubicación gris, título centrado y precio en texto plano,
-// pie «Descúbrelo en www.citymap.mx». En Horizontal, dos columnas
+// pie con las 3 opciones en una fila (web + App Store + Google Play,
+// 22 nov 2026). En Horizontal, dos columnas
 // (fotos a la izquierda, información a la derecha); en Historia y Post,
 // pila vertical. Las `y` de título y precio son el CENTRO vertical de
 // la primera línea (el canvas dibuja con textBaseline 'middle'), igual
@@ -621,7 +618,7 @@ function computeExperienceGridShareCardLayout(data, format, L) {
     ? fitExperienceGridPrice(data, contentW, L)
     : { desdeSize: L.desdeSize, priceSize: L.priceSize, porSize: L.porSize };
   const priceH = showPrice ? gridPriceBlockHeight(data, { ...L, ...priceSizes }) : 0;
-  const footSize = fitExperienceGridFooterSize(contentW, L);
+  const footSize = L.footSize;
 
   // Bloque de información (píldora, título, precio, pie) en orden,
   // con sus huecos; solo los presentes cuentan.
@@ -738,6 +735,17 @@ function computeExperienceGridShareCardLayout(data, format, L) {
   }
   step(L.footGap);
   const footer = { y: y + footSize / 2, size: footSize, x: infoCenterX };
+  // Pie con las 3 opciones en una fila (22 nov 2026): centrado en la
+  // columna de información (en Horizontal), con la píldora web en gris
+  // claro como las demás píldoras del Grid. Si no cabe en la columna,
+  // la fila se achica en proporción (ver computeShareCardFooterRow).
+  const footerRow = computeShareCardFooterRow({
+    centerX: infoCenterX,
+    maxW: contentW,
+    y: footer.y,
+    height: footSize,
+    pill: { bg: '#F4F4F6', border: null, text: '#141419' },
+  });
 
   return {
     style: 'grid',
@@ -753,6 +761,7 @@ function computeExperienceGridShareCardLayout(data, format, L) {
     title,
     price,
     footer,
+    footerRow,
     cols: !!L.cols,
   };
 }
@@ -856,7 +865,11 @@ export function computeExperienceShareCardLayout(data, format) {
   }
   if (showPrice && !L.priceBeside) items.push({ kind: 'price', h: price.h, gap: L.priceGap });
   const blockH = items.reduce((sum, it, i) => sum + it.h + (i > 0 ? it.gap : 0), 0);
-  const blockBottom = H - pad;
+  // Pie con las 3 opciones en una fila (22 nov 2026): el bloque de
+  // texto termina antes del pie, como en las demás tarjetas.
+  const footH = L.footSize || 0;
+  const footGap = L.footGap || 0;
+  const blockBottom = H - pad - footH - footGap;
   const blockTop = blockBottom - blockH;
 
   // Foto: en Historia (PR #177) es un bloque centrado con márgenes,
@@ -934,6 +947,24 @@ export function computeExperienceShareCardLayout(data, format) {
     }
   }
 
+  // Pie con las 3 opciones en una fila (22 nov 2026): enlace web +
+  // badges de App Store y Google Play, con la píldora web en glass
+  // (como la de ciudad) para que se lea sobre la foto.
+  const footer = footH ? { y: H - pad - footH / 2, size: footH } : null;
+  const footerRow = footH
+    ? computeShareCardFooterRow({
+        centerX: W / 2,
+        maxW: W - pad * 2,
+        y: H - pad - footH / 2,
+        height: footH,
+        pill: {
+          bg: EXPERIENCE_SHARE_CARD_GLASS_BG,
+          border: EXPERIENCE_SHARE_CARD_GLASS_BORDER,
+          text: '#FFFFFF',
+        },
+      })
+    : null;
+
   return {
     style: 'foto',
     format: f,
@@ -947,6 +978,8 @@ export function computeExperienceShareCardLayout(data, format) {
     dataRows,
     pricePill,
     photo,
+    footer,
+    footerRow,
   };
 }
 
@@ -1186,11 +1219,16 @@ export function drawExperienceShareCardCanvas(data, format, assets, layout) {
     }
   }
 
+  // Pie con las 3 opciones en una fila (22 nov 2026): enlace web +
+  // badges de App Store y Google Play (misma geometría que la vista
+  // previa, geo.footerRow). Sin badges, la píldora con el nombre.
+  drawShareCardFooterRow(ctx, geo.footerRow, assets);
+
   return canvas;
 }
 
 // Dibujo del estilo «Grid» (fondo blanco, foto grande + dúo, precio en
-// texto plano, pie «Descúbrelo en www.citymap.mx»). Sin degradados ni
+// texto plano, pie con las 3 opciones en una fila, 22 nov 2026). Sin degradados ni
 // pastilla azul: la pastilla de ubicación es GRIS (como las píldoras de
 // los estilos con grid de negocios) y el precio es texto, no pastilla.
 // Lienzo en blanco para el estilo «Grid» (el de «Foto completa» crea
@@ -1302,39 +1340,27 @@ function drawExperienceGridShareCardCanvas(data, geo, assets) {
     }
   }
 
-  // Pie: «Descúbrelo en www.citymap.mx» (URL en negrita), centrado.
-  const f = geo.footer;
-  const run1 = 'Descúbrelo en ';
-  const run2 = 'www.citymap.mx';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  const w1 = spacedWidth(ctx, run1, 2);
-  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  const w2 = spacedWidth(ctx, run2, 2);
-  const total = w1 + 2 + w2;
-  let fx = f.x - total / 2;
-  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = '#6D6D78';
-  drawSpacedText(ctx, run1, fx, f.y, 2);
-  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = '#141419';
-  drawSpacedText(ctx, run2, fx + w1 + 2, f.y, 2);
+  // Pie con las 3 opciones en una fila (22 nov 2026): enlace web +
+  // badges de App Store y Google Play (misma geometría que la vista
+  // previa, geo.footerRow). Sin badges, la píldora con el nombre.
+  drawShareCardFooterRow(ctx, geo.footerRow, assets);
 
   return canvas;
 }
 
 
 export async function renderExperienceShareCardCanvas(data, format, styleId = 'foto') {
-  const [photo, photos, logo] = await Promise.all([
+  const [photo, photos, logo, badges] = await Promise.all([
     loadShareCardPhoto(data?.photoUrl),
     // Las fotos del Grid (hasta 3, en orden): si una no se puede leer,
     // null en su posición y la celda sale con el bloque de la inicial.
     Promise.all((data?.photoUrls || []).slice(0, 3).map((u) => loadShareCardPhoto(u))),
     loadShareCardLogoWhite(),
+    // Pie (22 nov 2026): los badges de App Store y Google Play.
+    loadShareCardFooterBadges(),
   ]);
   const layout = computeExperienceShareCardLayoutStyled(data, format, styleId);
-  return drawExperienceShareCardCanvas(data, format, { photo, photos, logo }, layout);
+  return drawExperienceShareCardCanvas(data, format, { photo, photos, logo, appStore: badges?.appStore || null, googlePlay: badges?.googlePlay || null }, layout);
 }
 
 // Genera el PNG de la tarjeta del artículo dibujando en canvas (nada de

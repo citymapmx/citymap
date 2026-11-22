@@ -22,7 +22,8 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // «Haz las 4»): 1 foto grande arriba y 2 chicas abajo, sobre fondo
 // blanco, con logotipo oficial, pastilla de ubicación GRIS, título
 // centrado y precio en texto plano («DESDE $1,941 MXN por persona»,
-// sin pastilla azul), pie «Descúbrelo en www.citymap.mx».
+// sin pastilla azul), pie con las 3 opciones en una fila (web + App
+// Store + Google Play, 22 nov 2026).
 //
 // Tour real de la demo: Tour del fútbol por Guadalajara, Zapopan ·
 // Tour, DESDE $1,941 MXN por persona, 3 fotos en su galería.
@@ -186,18 +187,12 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
         geo.infoW,
       );
     }
-    // El pie se achica hasta caber en la columna (a 30 px mide ~518 px
-    // y también se salía por el borde derecho).
-    expect(geo.footer.size).toBeLessThan(geo.L.footSize);
-    const footW =
-      measureShareCardText('Descúbrelo en ', geo.footer.size, 400) +
-      2 * ('Descúbrelo en '.length - 1) +
-      2 +
-      measureShareCardText('www.citymap.mx', geo.footer.size, 800) +
-      2 * ('www.citymap.mx'.length - 1);
-    expect(footW).toBeLessThanOrEqual(geo.infoW);
-    expect(geo.footer.x - footW / 2).toBeGreaterThanOrEqual(colX);
-    expect(geo.footer.x + footW / 2).toBeLessThanOrEqual(geo.width - geo.L.pad);
+    // La fila del pie se achica hasta caber en la columna (a 36 px
+    // mide ~462 px y la columna tiene 396 px — 22 nov 2026).
+    expect(geo.footerRow.h).toBeLessThan(geo.L.footSize);
+    expect(geo.footerRow.w).toBeLessThanOrEqual(geo.infoW);
+    expect(geo.footerRow.x).toBeGreaterThanOrEqual(colX);
+    expect(geo.footerRow.x + geo.footerRow.w).toBeLessThanOrEqual(geo.width - geo.L.pad);
     // El precio cabe en la columna sin achicarse (con este precio).
     expect(geo.price.priceSize).toBe(geo.L.priceSize);
     expect(
@@ -276,7 +271,10 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
       );
       expect(html).not.toContain('Gratis');
       expect(html).not.toContain('DESDE');
-      expect(html).toContain('Descúbrelo en');
+      // Pie con las 3 opciones en una fila (22 nov 2026).
+      expect(html).toContain('🌐 www.citymap.mx');
+      expect(html).toContain('/badges/app-store.svg');
+      expect(html).toContain('/badges/google-play.svg');
       expect(html).not.toContain('túneles secretos');
     }
   });
@@ -333,10 +331,12 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
       expect(html).toContain('por persona');
       expect(html).toContain('Zapopan');
       expect(html).toContain('Tour');
-      expect(html).toContain('Descúbrelo en');
-      expect(html).toContain('www.citymap.mx');
-      // 3 fotos + logotipo oficial.
-      expect(html.match(/<img/g)).toHaveLength(4);
+      // Pie con las 3 opciones en una fila (22 nov 2026).
+      expect(html).toContain('🌐 www.citymap.mx');
+      expect(html).toContain('/badges/app-store.svg');
+      expect(html).toContain('/badges/google-play.svg');
+      // 3 fotos + logotipo oficial + 2 badges del pie.
+      expect(html.match(/<img/g)).toHaveLength(6);
       expect(html).toContain('/logo-brand.png');
       // Fondo blanco, pastilla gris (no azul sólida ni glass).
       expect(html).toContain('#F4F4F6');
@@ -345,7 +345,7 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
       expect(html).not.toContain('forofos');
       expect(html).not.toContain('5 horas');
     }
-    // «Foto completa» sigue sin pie en el render.
+    // «Foto completa» también lleva el pie nuevo (22 nov 2026).
     const htmlFoto = renderToStaticMarkup(
       <ExperienceShareCardTemplate
         data={d}
@@ -353,7 +353,9 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
         styleId="foto"
       />,
     );
-    expect(htmlFoto).not.toContain('Descúbrelo en');
+    expect(htmlFoto).toContain('🌐 www.citymap.mx');
+    expect(htmlFoto).toContain('/badges/app-store.svg');
+    expect(htmlFoto).toContain('/badges/google-play.svg');
     expect(htmlFoto).toContain('#2563EB');
   });
 
@@ -381,6 +383,8 @@ describe('tarjeta para compartir el artículo: estilo «Grid» (demo 10 nov 2026
     expect(L.duoRadius).toBe(24);
     expect(L.titleSize).toBe(93);
     expect(L.priceSize).toBe(108);
-    expect(L.footSize).toBe(42);
+    // 22 nov 2026: footSize es la altura de la fila del pie (web +
+    // App Store + Google Play), no el tamaño de un texto.
+    expect(L.footSize).toBe(44);
   });
 });

@@ -296,9 +296,12 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     expect(htmlGrid).toContain('Restaurantes');
     expect(htmlGrid).toContain('Zapopan');
     expect(htmlGrid).toContain('4.3');
-    expect(htmlGrid).toContain('Descúbrelo en');
-    expect(htmlGrid).toContain('www.citymap.mx');
-    expect(htmlGrid.match(/<img/g)).toHaveLength(7);
+    // Pie con las 3 opciones en una fila (22 nov 2026).
+    expect(htmlGrid).toContain('🌐 www.citymap.mx');
+    expect(htmlGrid).toContain('/badges/app-store.svg');
+    expect(htmlGrid).toContain('/badges/google-play.svg');
+    // Grid 2×2: 4 fotos + logo oficial + círculo + G de Google + 2 badges.
+    expect(htmlGrid.match(/<img/g)).toHaveLength(9);
     // Tira: 1 grande + 3 miniaturas (mismas 4 fotos).
     const htmlTira = renderToStaticMarkup(
       <ShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} styleId="tira" />,
@@ -306,7 +309,8 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     expect(htmlTira).toContain('Donatella');
     expect(htmlTira).toContain('Restaurantes');
     expect(htmlTira).toContain('www.citymap.mx');
-    expect(htmlTira.match(/<img/g)).toHaveLength(7);
+    // Tira: 1 grande + 3 miniaturas + logo + círculo + G + 2 badges.
+    expect(htmlTira.match(/<img/g)).toHaveLength(9);
     // Collage: hero + dúo (3 fotos) + logo oficial + círculo, sin G.
     const htmlCollage = renderToStaticMarkup(
       <ShareCardTemplate data={d} format={SHARE_CARD_FORMATS.story} styleId="collage" />,
@@ -316,7 +320,8 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     expect(htmlCollage).toContain('4.3');
     expect(htmlCollage).toContain('1,853 reseñas en Google');
     expect(htmlCollage).toContain('www.citymap.mx');
-    expect(htmlCollage.match(/<img/g)).toHaveLength(5);
+    // Collage: hero + dúo (3 fotos) + logo oficial + círculo + 2 badges, sin G.
+    expect(htmlCollage.match(/<img/g)).toHaveLength(7);
     // La estrella de la píldora es ámbar en los estilos con grid.
     expect(htmlGrid).toContain('#F59E0B');
     expect(htmlCollage).toContain('#F59E0B');

@@ -485,12 +485,16 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
           });
         }
         // El bloque de texto (o la pastilla, que va debajo en
-        // Historia/Post) termina exactamente en el margen inferior.
+        // Historia/Post) termina justo antes del pie (22 nov 2026:
+        // la fila con web + App Store + Google Play ocupa el fondo).
         const lastEnd = Math.max(
           textBlockEnd(geo),
           geo.pricePill ? geo.pricePill.y + geo.pricePill.h : 0,
         );
-        expect(lastEnd).toBeCloseTo(geo.height - geo.L.pad, 9);
+        expect(lastEnd).toBeCloseTo(
+          geo.height - geo.L.pad - geo.L.footSize - geo.L.footGap,
+          9,
+        );
         // Nada se sale de la tarjeta.
         expect(geo.brandLogo.x).toBeGreaterThanOrEqual(0);
         expect(geo.brandLogo.y).toBeGreaterThanOrEqual(0);
@@ -598,10 +602,11 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
     ]) {
       const geo = computeExperienceShareCardLayout(tequila, format);
       // Debajo: la pastilla empieza después de los datos y ocupa todo
-      // el ancho disponible a la derecha.
+      // el ancho disponible a la derecha; su base es el fondo del
+      // bloque de texto, justo antes del pie (22 nov 2026).
       expect(geo.pricePill.y).toBeGreaterThan(textBlockEnd(geo) - geo.pricePill.h);
       expect(geo.pricePill.y + geo.pricePill.h).toBeCloseTo(
-        geo.height - geo.L.pad,
+        geo.height - geo.L.pad - geo.L.footSize - geo.L.footGap,
         9,
       );
     }
@@ -693,7 +698,7 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
     expect(html).toContain('#2563EB');
   });
 
-  it('Blog: sin pastilla de precio ni descripción, el bloque termina justo en el margen inferior (sin hueco vacío)', () => {
+  it('Blog: sin pastilla de precio ni descripción, el bloque termina justo antes del pie (sin hueco vacío)', () => {
     for (const format of ALL_FORMATS) {
       const geo = computeExperienceShareCardLayout(
         buildExperienceShareCardData(BLOG_CATEDRAL, { cityName: 'Tepic' }),
@@ -705,9 +710,12 @@ describe('tarjeta para compartir el artículo: geometría «Foto completa» (vis
       // La calificación real sí se muestra (5.0 · 1 reseña).
       expect(geo.ratingPill.text).toBe('5.0 · 1 reseña');
       // El último bloque (el título: el blog no tiene duración ni
-      // idiomas) termina exactamente en el margen inferior: al quitar
+      // idiomas) termina justo antes del pie (22 nov 2026): al quitar
       // la descripción y el precio no queda un hueco vacío.
-      expect(textBlockEnd(geo)).toBeCloseTo(geo.height - geo.L.pad, 9);
+      expect(textBlockEnd(geo)).toBeCloseTo(
+        geo.height - geo.L.pad - geo.L.footSize - geo.L.footGap,
+        9,
+      );
       if (format.id === 'story') {
         // Y la foto en Historia crece hasta el contenido.
         expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
@@ -795,8 +803,11 @@ describe('tarjeta para compartir el artículo: la plantilla se renderiza (vista 
     expect(html).not.toContain('Excursión de día completo');
     // La pastilla de precio es AZUL, como la demo (no blanca).
     expect(html).toContain('#2563EB');
-    // La marca es el logotipo oficial arriba a la izquierda (sin pie).
-    expect(html).not.toContain('citymap');
+    // El pie con las 3 opciones en una fila (22 nov 2026): la marca
+    // ya no es solo el logotipo arriba a la izquierda.
+    expect(html).toContain('🌐 www.citymap.mx');
+    expect(html).toContain('/badges/app-store.svg');
+    expect(html).toContain('/badges/google-play.svg');
     expect(html).not.toContain('Descúbrelo en');
     // La demo mostraba «4.9 · 13,275 reseñas»: ilustrativo, no real.
     expect(html).not.toContain('13,275');
@@ -978,7 +989,7 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(sheet).not.toContain('trackPos');
   });
 
-  it('la plantilla lleva la foto en el bloque de la geometría (centrada en Historia, a sangre en Post/Horizontal), el logotipo oficial, la pastilla glass y el precio azul; sin pie', () => {
+  it('la plantilla lleva la foto en el bloque de la geometría (centrada en Historia, a sangre en Post/Horizontal), el logotipo oficial, la pastilla glass, el precio azul y el pie con las 3 opciones', () => {
     expect(template).toContain('/logo-brand.png');
     expect(template).not.toContain('Pastilla citymap.mx');
     expect(template).not.toContain('#60A5FA');
@@ -996,10 +1007,12 @@ describe('tarjeta para compartir el artículo: cableado', () => {
     expect(template).toContain('photo.radius');
     expect(template).toContain('objectFit:');
     expect(template).toContain("'cover'");
-    // El pie «Descúbrelo en www.citymap.mx» es SOLO del estilo «Grid»
-    // (la demo lo lleva); «Foto completa» sigue sin pie (el render de
-    // arriba lo confirma: sin 'Descúbrelo en' en el HTML).
-    expect(template).toContain('Descúbrelo en');
+    // El pie con las 3 opciones en una fila (22 nov 2026) es de los
+    // dos estilos: «Foto completa» también lo lleva (antes no tenía
+    // pie); el Grid lo lleva centrado en su columna.
+    expect(template).toContain('ShareCardFooterRow');
+    expect(template).toContain('layout.footerRow');
+    expect(template).toContain('gridLayout.footerRow');
     expect(template).toContain('if (gridLayout)');
     expect(template).toContain('styleId');
     expect(template).not.toContain('dividida');

@@ -1,7 +1,8 @@
 // Plantilla de la tarjeta para compartir (PR #142 v1, PR #143): UN estilo
 // oscuro tipo «Glass» — logotipo oficial arriba, foto, nombre grande,
 // píldoras con la calificación de Google (con su conteo de reseñas) y
-// la ciudad, y «Descúbrelo en www.citymap.mx» al pie.
+// la ciudad, y al pie la fila con el enlace web y los badges de
+// App Store y Google Play (22 nov 2026).
 // PR #144: el logo circular del negocio (mismo que la ficha, solo para
 // planes de pago con logo_url) va centrado a caballo sobre el borde
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
@@ -34,6 +35,7 @@
 // inventa. El precio ya no se muestra.
 import { getThumbUrl } from '../lib/utils.js';
 import { formatReviewCount } from '../lib/googleRatings.js';
+import ShareCardFooterRow from './ShareCardFooterRow.jsx';
 import {
   SHARE_CARD_FORMATS,
   SHARE_CARD_SERIF_STACK,
@@ -339,21 +341,17 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           );
         })}
 
-        {/* Pie: «Descúbrelo en www.citymap.mx» */}
+        {/* Pie con las 3 opciones en una fila (22 nov 2026) */}
         <div
           style={{
             position: 'absolute',
-            left: 0,
-            width,
-            top: layout.footer.y - L.footSize / 2,
-            fontSize: L.footSize,
-            lineHeight: 1,
-            letterSpacing: 2,
-            color: palette.sub,
-            textAlign: 'center',
+            left: layout.footerRow.x,
+            top: layout.footerRow.y,
+            width: layout.footerRow.w,
+            height: layout.footerRow.h,
           }}
         >
-          Descúbrelo en <span style={{ color: palette.text, fontWeight: 800 }}>www.citymap.mx</span>
+          <ShareCardFooterRow row={layout.footerRow} />
         </div>
       </div>
     );
@@ -758,17 +756,14 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
         </div>
       ) : null}
 
+      {/* Pie con las 3 opciones en una fila (22 nov 2026) */}
       <div
         style={{
           marginTop: firstBlock === 'foot' ? layout.firstGap : L.footGap,
-          fontSize: L.footSize,
-          lineHeight: 1,
-          letterSpacing: 2,
-          color: palette.sub,
           flexShrink: 0,
         }}
       >
-        Descúbrelo en <span style={{ color: palette.text, fontWeight: 800 }}>www.citymap.mx</span>
+        <ShareCardFooterRow row={layout.footerRow} />
       </div>
     </div>
   );

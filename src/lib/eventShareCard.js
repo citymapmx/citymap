@@ -39,6 +39,9 @@ import { eventUrl, eventShortSlug } from './eventUrls.js';
 import {
   SHARE_CARD_FORMATS,
   SHARE_CARD_FONT_STACK,
+  computeShareCardFooterRow,
+  drawShareCardFooterRow,
+  loadShareCardFooterBadges,
   measureShareCardText,
   wrapShareCardName,
   loadShareCardPhoto,
@@ -148,7 +151,7 @@ export const EVENT_SHARE_CARD_LAYOUT = {
     pillPadX: 26,
     pillPadY: 12,
     pillGap: 16,
-    footSize: 30,
+    footSize: 44,
     footGap: 44,
     // La tarjeta de evento lleva más bloques que la de negocios
     // (subtítulo + 2 filas de información), así que el mínimo de la
@@ -197,7 +200,7 @@ export const EVENT_SHARE_CARD_LAYOUT = {
     pillPadX: 24,
     pillPadY: 11,
     pillGap: 14,
-    footSize: 26,
+    footSize: 40,
     footGap: 36,
     photoMinH: 300,
     titleSize: 60,
@@ -733,6 +736,15 @@ export function computeEventShareCardLayout(data, format) {
   }
 
   const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
+  // Pie con las 3 opciones en una fila (22 nov 2026): la píldora web
+  // con los colores del tema (oscura: glass; clara: gris claro).
+  const footerRow = computeShareCardFooterRow({
+    centerX: W / 2,
+    maxW,
+    y: footer.y,
+    height: L.footSize,
+    pill: { bg: palette.pillBg, border: null, text: palette.pillText },
+  });
   return {
     format: f,
     L,
@@ -752,6 +764,7 @@ export function computeEventShareCardLayout(data, format) {
     pill,
     barcode,
     footer,
+    footerRow,
   };
 }
 
@@ -879,38 +892,24 @@ export function drawEventShareCardCanvas(data, format, assets, layout) {
     }
   }
 
-  // Pie: «Descubre más eventos en www.citymap.mx» (10 nov 2026; antes
-  // «Descúbrelo en CityMap»). La URL va en negrita, como el pie de las
-  // tarjetas de negocios («Descúbrelo en www.citymap.mx», que NO cambia).
-  const f = geo.footer;
-  const run1 = 'Descubre más eventos en ';
-  const run2 = 'www.citymap.mx';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  const w1 = spacedWidth(ctx, run1, 2);
-  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  const w2 = spacedWidth(ctx, run2, 2);
-  const total = w1 + 2 + w2;
-  const fx = geo.width / 2 - total / 2;
-  ctx.font = `400 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = palette.footMuted;
-  drawSpacedText(ctx, run1, fx, f.y, 2);
-  ctx.font = `800 ${f.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = palette.footBold;
-  drawSpacedText(ctx, run2, fx + w1 + 2, f.y, 2);
+  // Pie con las 3 opciones en una fila (22 nov 2026): enlace web +
+  // badges de App Store y Google Play (misma geometría que la vista
+  // previa, geo.footerRow). Sin badges, la píldora con el nombre.
+  drawShareCardFooterRow(ctx, geo.footerRow, assets);
 
   return canvas;
 }
 
 export async function renderEventShareCardCanvas(data, format) {
-  const [photo, logoWhite, logoDark] = await Promise.all([
+  const [photo, logoWhite, logoDark, badges] = await Promise.all([
     loadShareCardPhoto(data?.photoUrl),
     loadShareCardLogoWhite(),
     loadShareCardLogoDark(),
+    // Pie (22 nov 2026): los badges de App Store y Google Play.
+    loadShareCardFooterBadges(),
   ]);
   const layout = computeEventShareCardLayout(data, format);
-  return drawEventShareCardCanvas(data, format, { photo, logoWhite, logoDark }, layout);
+  return drawEventShareCardCanvas(data, format, { photo, logoWhite, logoDark, appStore: badges?.appStore || null, googlePlay: badges?.googlePlay || null }, layout);
 }
 
 // Genera el PNG de la tarjeta del evento dibujando en canvas (nada de

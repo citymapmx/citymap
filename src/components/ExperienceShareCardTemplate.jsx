@@ -21,6 +21,7 @@
 // EXPERIENCE_SHARE_CARD_LAYOUT + computeExperienceShareCardLayout en
 // lib/experienceShareCard.js, así que lo que se ve es lo que se descarga.
 import { getThumbUrl } from '../lib/utils.js';
+import ShareCardFooterRow from './ShareCardFooterRow.jsx';
 import {
   EXPERIENCE_SHARE_CARD_FORMATS,
   EXPERIENCE_SHARE_CARD_BLUE,
@@ -75,7 +76,8 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
   // Estilo «Grid» (demo `propuestas-de-tarjetas-con-grid`, diseño 4):
   // fondo blanco, 1 foto grande arriba (con el logotipo oficial
   // superpuesto) y 2 chicas abajo, pastilla de ubicación GRIS, título
-  // centrado y precio en texto plano, pie «Descúbrelo en www.citymap.mx».
+  // centrado y precio en texto plano, pie con las 3 opciones en una
+  // fila (web + App Store + Google Play, 22 nov 2026).
   // Todo en posiciones absolutas de la geometría, igual que el canvas,
   // así vista previa y PNG coinciden.
   if (gridLayout) {
@@ -233,22 +235,18 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
           </div>
         ) : null}
 
-        {/* Pie: «Descúbrelo en www.citymap.mx», centrado en la columna
-            (en Horizontal) con el tamaño ajustado de la geometría */}
+        {/* Pie con las 3 opciones en una fila (22 nov 2026), centrado
+            en la columna de información (en Horizontal) */}
         <div
           style={{
             position: 'absolute',
-            left: gridLayout.footer.x - gridLayout.infoW / 2,
-            width: gridLayout.infoW,
-            top: gridLayout.footer.y - gridLayout.footer.size / 2,
-            fontSize: gridLayout.footer.size,
-            lineHeight: 1,
-            letterSpacing: 2,
-            color: '#6D6D78',
-            textAlign: 'center',
+            left: gridLayout.footerRow.x,
+            top: gridLayout.footerRow.y,
+            width: gridLayout.footerRow.w,
+            height: gridLayout.footerRow.h,
           }}
         >
-          Descúbrelo en <span style={{ color: '#141419', fontWeight: 800 }}>www.citymap.mx</span>
+          <ShareCardFooterRow row={gridLayout.footerRow} />
         </div>
       </div>
     );
@@ -497,6 +495,22 @@ export default function ExperienceShareCardTemplate({ data, format, styleId = 'f
           </span>
         ),
         { background: EXPERIENCE_SHARE_CARD_BLUE },
+      ) : null}
+
+      {/* Pie con las 3 opciones en una fila (22 nov 2026): enlace web +
+          badges de App Store y Google Play, sobre la foto o el fondo */}
+      {layout.footerRow ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: layout.footerRow.x,
+            top: layout.footerRow.y,
+            width: layout.footerRow.w,
+            height: layout.footerRow.h,
+          }}
+        >
+          <ShareCardFooterRow row={layout.footerRow} />
+        </div>
       ) : null}
     </div>
   );
