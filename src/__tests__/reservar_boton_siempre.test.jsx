@@ -39,7 +39,9 @@ describe('causa raíz: la lista trae booking_config desde el primer render', () 
     // columna: sin ella la ficha no sabe si hay reserva hasta que
     // resuelve fullBusiness.
     const lists = src.match(/"(id,name,lat,lng[^"]*)"/g) || [];
-    expect(lists.length).toBeGreaterThanOrEqual(5);
+    // Eran 5: la del pool por horario ya no existe (A12, 21 nov 2026:
+    // el pool se deriva de cityPins, que trae booking_config).
+    expect(lists.length).toBeGreaterThanOrEqual(4);
     for (const list of lists) {
       expect(list).toContain('booking_config');
     }

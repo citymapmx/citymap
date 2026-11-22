@@ -34,8 +34,12 @@ describe('zona metropolitana de eventos (carrera del early fetch)', () => {
   });
 
   it('en la primera carga en frío, Guadalajara trae también los eventos de Zapopan', async () => {
-    // La primera consulta (filtro estrecho, sin zona) solo trae
-    // Guadalajara; la segunda (filtro de zona) trae también Zapopan.
+    // A10 (21 nov 2026): en frío ya no hay refetch. Antes el early fetch
+    // salía estrecho (solo Guadalajara) y se repetía con la zona (2
+    // consultas); ahora, sin ciudades conocidas, no se dispara en
+    // paralelo y fetchSecondary pide UNA sola vez, ya con la zona
+    // poblada por refreshCities. El arreglo del bug de Maná sigue:
+    // la única consulta trae también Zapopan.
     const getSpy = vi.spyOn(sb, 'get').mockImplementation(async (table, query = '') => {
       if (table === 'cities') return CITIES;
       if (table === 'events') return String(query).includes('zapopan') ? [gdlEvent, zapopanEvent] : [gdlEvent];
@@ -48,8 +52,10 @@ describe('zona metropolitana de eventos (carrera del early fetch)', () => {
       const ids = useDataStore.getState().events.map(e => e.id);
       expect(ids).toContain('gdl-1');
       expect(ids).toContain('zap-1');
-      // El refetch con la zona: la consulta de eventos salió dos veces.
-      expect(getSpy.mock.calls.filter(([t]) => t === 'events')).toHaveLength(2);
+      // Una sola consulta de eventos, con el filtro ancho (zona).
+      const eventCalls = getSpy.mock.calls.filter(([t]) => t === 'events');
+      expect(eventCalls).toHaveLength(1);
+      expect(eventCalls[0][1]).toContain('zapopan');
     } finally {
       getSpy.mockRestore();
       rpc.mockRestore();
