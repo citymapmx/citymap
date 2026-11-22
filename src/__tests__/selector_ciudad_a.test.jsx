@@ -64,9 +64,13 @@ describe('selector de ciudad, propuesta A: filas discretas sin cajas', () => {
     expect(html).toContain('Todas las ciudades');
   });
 
-  it('el buscador y la lista de ciudades siguen como antes', () => {
+  it('el buscador y la lista de ciudades siguen como antes (ahora con máquina de escribir)', () => {
     const html = renderPicker();
-    expect(html).toContain('Buscar ciudad...');
+    // El placeholder fijo «Buscar ciudad...» ya no existe: la frase
+    // animada es un texto encima del input (22 nov 2026) — en el
+    // render estático se ve el cursor, la animación corre en el efecto.
+    expect(html).toContain('▏');
+    expect(html).not.toContain('placeholder="Buscar ciudad..."');
     expect(html).toContain('Guadalajara');
     expect(html).toContain('Zapopan');
     expect(html).toContain('Tepic');
