@@ -200,16 +200,17 @@ async function getToursListing(origin) {
     if (!response.ok) return '';
     const rows = await response.json();
     if (!Array.isArray(rows) || !rows.length) return '';
-    // /tours es de México: los tours de ciudades internacionales no se
-    // listan aquí (viven en .world).
-    const mxRows = rows.filter(tour => !isWorldCitySlug(String(tour.city_slug || '').split(',')[0]));
-    if (!mxRows.length) return '';
-    return `<section><h2>Tours destacados</h2><ul>${mxRows.map(tour => {
+    // La lista es la misma que ve el usuario en /tours (la SPA no filtra
+    // por dominio): tours mexicanos y del resto del mundo mezclados, con
+    // la moneda de cada ciudad (USD fuera de México, MXN en México).
+    if (!rows.length) return '';
+    return `<section><h2>Tours destacados</h2><ul>${rows.map(tour => {
       const cityName = String(tour.city_slug || '').replace(/-/g, ' ');
       const url = `${origin}/revista/${tour.city_slug || ''}/${tourSlug(tour.title)}`;
       const price = Number(tour.price);
+      const currency = isWorldCitySlug(String(tour.city_slug || '').split(',')[0]) ? 'USD' : 'MXN';
       const priceText = Number.isFinite(price) && price > 0
-        ? `desde $${Math.round(price).toLocaleString('es-MX')} MXN`
+        ? `desde $${Math.round(price).toLocaleString('es-MX')} ${currency}`
         : (tour.price === 0 || tour.price === '0' ? 'Gratis' : '');
       let duration = String(tour?.duration || '').trim();
       if (!duration && Array.isArray(tour?.booking_config?.quick_facts)) {
@@ -768,8 +769,8 @@ ${categoryLinks}
       canonicalUrl = `${BASE_URL}/cuenta`;
     } else if (vista === "tours") {
       canonicalUrl = `${BASE_URL}/tours`;
-      title = `Tours en Guadalajara, Tepic, Puerto Vallarta y más | ${SITE_NAME}`;
-      desc = `Tours guiados y excursiones en Guadalajara, Tepic, Puerto Vallarta, Ciudad de México y más, con precio desde y reserva en línea. Encuentra tu próximo tour en ${SITE_NAME}.`;
+      title = `Tours en Tokio, Kioto, París, Madrid, Nueva York, Guadalajara y más | ${SITE_NAME}`;
+      desc = `Tours guiados y excursiones en Tokio, Kioto, París, Madrid, Nueva York, Guadalajara y más de 30 ciudades del mundo, con precio desde y reserva en línea. Encuentra tu próximo tour en ${SITE_NAME}.`;
       bodyExtra = await getToursListing(BASE_URL);
     } else if (vista === "negocios") {
       canonicalUrl = `${BASE_URL}/negocios`;
