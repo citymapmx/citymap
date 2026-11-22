@@ -11,9 +11,10 @@ import {
 // la geometría de la tarjeta. En este entorno no hay DOM, así que la
 // medición de texto usa la aproximación de shareCard.js; lo que se
 // comprueba aquí es el algoritmo, no el ancho exacto de cada letra.
-// Propuesta A (22 nov 2026): las píldoras SALEN (calificación y
-// ciudad ya no van) y la categoría VUELVE bajo el nombre; el círculo
-// del logo ya no exige plan de pago.
+// Propuesta A corregida (22 nov 2026): las píldoras SE QUEDAN bajo el
+// nombre (calificación de Google + ciudad), la categoría va bajo las
+// píldoras y el Instagram bajo la categoría; el círculo del logo ya no
+// exige plan de pago.
 describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
   const biz = {
     name: 'Xokol',
@@ -50,22 +51,61 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
     expect(d2.rating).toBeNull();
   });
 
-  it('el precio se conserva como dato pero la tarjeta ya no lleva píldoras', () => {
+  it('el precio se conserva como dato pero la tarjeta no lo muestra (las píldoras son calificación y ciudad)', () => {
     const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
     expect(d.price).toBe('$$');
     const geo = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true);
-    // Propuesta A (22 nov 2026): ni calificación ni ciudad ni precio
-    // van en la tarjeta; no hay bloque de píldoras que los muestre.
-    expect(geo.pillRows).toEqual([]);
+    // Con dato de Google y ciudad: una fila con las 2 píldoras.
+    expect(geo.pillRows).toHaveLength(1);
+    expect(geo.pillRows[0].map((p) => p.text)).toEqual([
+      '★ 4.5 (1,234)',
+      'Guadalajara',
+    ]);
   });
 
-  it('sin dato de Google no hay píldoras en ningún caso', () => {
-    const d = buildShareCardData(biz, { disp: internalDisp, cityName: 'Guadalajara' });
-    const geo = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true);
-    expect(geo.pillRows).toEqual([]);
+  it('sin dato de Google solo queda la píldora de ciudad', () => {
+    const d1 = buildShareCardData(biz, { disp: internalDisp, cityName: 'Guadalajara' });
+    const geo = computeShareCardLayout(d1, SHARE_CARD_FORMATS.story, true);
+    expect(geo.pillRows).toHaveLength(1);
+    expect(geo.pillRows[0].map((p) => p.text)).toEqual(['Guadalajara']);
     const d2 = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
     const geo2 = computeShareCardLayout(d2, SHARE_CARD_FORMATS.story, true);
-    expect(geo2.pillRows).toEqual([]);
+    expect(geo2.pillRows).toHaveLength(1);
+    expect(geo2.pillRows[0]).toHaveLength(2);
+  });
+
+  it('el Instagram sale de social_links.instagram, normalizado, y va bajo la categoría', () => {
+    // Café Belloy: el handle vive en social_links.instagram
+    // («Cafebelloy»), no en la columna instagram (NULL).
+    const bizIg = { ...biz, social_links: { instagram: 'Cafebelloy' } };
+    const d = buildShareCardData(bizIg, { disp: googleDisp, cityName: 'Guadalajara' });
+    expect(d.instagram).toBe('cafebelloy');
+    const geo = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true);
+    expect(geo.instagram.text).toBe('@cafebelloy');
+    // La línea va bajo la categoría y el pie queda a su hueco.
+    expect(geo.instagram.y).toBeGreaterThan(geo.category.y);
+    const igEnd = geo.instagram.y + (geo.L.igSize * 1.2) / 2;
+    const footTop = geo.height - geo.L.pad - geo.L.footSize;
+    expect(footTop - igEnd).toBeCloseTo(geo.L.footGap, 6);
+    // Variantes: con @, con URL, vacío.
+    expect(
+      buildShareCardData({ ...biz, instagram: '@Xokol' }, { disp: googleDisp }).instagram,
+    ).toBe('xokol');
+    expect(
+      buildShareCardData(
+        { ...biz, social_links: { instagram: 'https://instagram.com/Xokol/' } },
+        { disp: googleDisp },
+      ).instagram,
+    ).toBe('xokol');
+    expect(buildShareCardData(biz, { disp: googleDisp }).instagram).toBeNull();
+    // Sin Instagram, no hay línea (y la categoría sigue siendo el
+    // último texto antes del pie).
+    const geoSinIg = computeShareCardLayout(
+      buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' }),
+      SHARE_CARD_FORMATS.story,
+      true,
+    );
+    expect(geoSinIg.instagram).toBeNull();
   });
 
   it('la foto crece y no queda franja vacía entre categoría y pie', () => {
@@ -185,6 +225,7 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
         geo.L.pad * 2 -
         (geo.L.logoH + geo.L.logoGap) -
         (geo.L.nameGap + geo.L.nameSize * geo.L.nameLineH) -
+        (geo.L.pillsGap + geo.L.pillSize + geo.L.pillPadY * 2) -
         (geo.L.catGap + geo.L.catSize * 1.2) -
         (geo.L.footGap + geo.L.footSize);
       expect(geo.photo.h).toBeCloseTo(expectedPhotoH, 6);

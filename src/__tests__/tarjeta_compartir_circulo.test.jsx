@@ -130,12 +130,14 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
     }
   });
 
-  it('el peor caso (nombre de 3 líneas + categoría) no desborda el pie', () => {
+  it('el peor caso (nombre de 3 líneas + píldoras en 2 filas + categoría) no desborda el pie', () => {
     // Historia: Tangente da 3 líneas con la medición de este entorno.
     // Post: las líneas son más anchas, así que el peor caso usa un
     // nombre más largo que sí da 3 líneas ahí.
-    // Propuesta A (22 nov 2026): las píldoras ya no existen; el peor
-    // caso es el nombre de 3 líneas con la categoría debajo.
+    // Propuesta A corregida (22 nov 2026): las píldoras se quedan y
+    // la categoría va bajo ellas; el peor caso es el nombre de 3
+    // líneas con las píldoras en 2 filas (la ciudad larga no cabe
+    // junto a la calificación) y la categoría debajo.
     const cases = [
       [SHARE_CARD_FORMATS.story, 'Tangente Restaurante Tlaquepaque'],
       [SHARE_CARD_FORMATS.post, 'Restaurante Cafetería Tlaquepaque Zapotlanejo Guadalajara'],
@@ -154,18 +156,19 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
       expect(geo.bizLogo).not.toBeNull();
       expect(geo.name.lines.length).toBe(3);
       expect(geo.name.lines.join(' ')).not.toContain('…');
-      expect(geo.pillRows).toEqual([]);
+      expect(geo.pillRows.length).toBe(2);
+      expect(geo.pillRows.flat().map((p) => p.text)).toEqual([
+        '★ 4.7 (4,125)',
+        'San Pedro Garza García, Nuevo León',
+      ]);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       // Ni la categoría ni el nombre se comen el pie.
       const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
       expect(catEnd).toBeLessThanOrEqual(footTop);
-      // El hueco entre la categoría y el pie es el diseñado (footGap),
-      // salvo en el peor caso, donde la foto ya está en su mínimo y el
-      // hueco se comprime unos píxeles (22 nov 2026: el pie es 10 px
-      // más alto por la fila con web + App Store + Google Play).
-      expect(footTop - catEnd).toBeGreaterThanOrEqual(geo.L.footGap - 10);
-      expect(footTop - catEnd).toBeLessThanOrEqual(geo.L.footGap + 1);
+      // El hueco entre la categoría y el pie es el diseñado (footGap):
+      // photoMinH deja hueco para este peor caso sin comerse el pie.
+      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
       expect(nameTop(geo) - circleBottom(geo)).toBeCloseTo(geo.L.bizLogoGap, 0);
     }
   });
@@ -225,7 +228,13 @@ describe('tarjeta para compartir: el círculo nunca tapa el nombre', () => {
       expect(geo.bizLogo).not.toBeNull();
       expect(geo.name.lines.length).toBe(3);
       expect(geo.name.lines.join(' ')).not.toContain('…');
-      expect(geo.pillRows).toEqual([]);
+      // En Clara Historia las 2 píldoras no caben en una fila (la
+      // ciudad larga baja a la segunda); en Post, más chicas, sí.
+      expect(geo.pillRows.length).toBe(format.id === 'story' ? 2 : 1);
+      expect(geo.pillRows.flat().map((p) => p.text)).toEqual([
+        '★ 4.7 (4,125)',
+        'San Pedro Garza García, Nuevo León',
+      ]);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
       const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;

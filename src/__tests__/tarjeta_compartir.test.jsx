@@ -89,12 +89,12 @@ describe('tarjeta para compartir el negocio', () => {
     expect(lib).toContain("disp?.source === 'google'");
     expect(lib).toContain('reviewCount');
     expect(lib).toContain('formatReviewCount');
-    // Propuesta A (22 nov 2026): la calificación ya no va en píldora
-    // en la tarjeta de flujo; solo sobrevive como texto plano en el
-    // Collage editorial («★ 4.3 (1,853 reseñas en Google)»).
-    expect(template).not.toContain('data.rating.toFixed(1)');
-    expect(template).not.toContain('src="/googlelogo.svg"');
-    expect(lib).not.toContain("'/googlelogo.svg'");
+    // La píldora de calificación lleva la G de Google (como en las
+    // tarjetas de negocio) y el conteo de reseñas; el Collage la lleva
+    // como texto plano («★ 4.3 (1,853 reseñas en Google)»).
+    expect(template).toContain('data.rating.toFixed(1)');
+    expect(template).toContain('src="/googlelogo.svg"');
+    expect(lib).toContain("'/googlelogo.svg'");
     expect(template).toContain('reseñas en Google');
   });
 

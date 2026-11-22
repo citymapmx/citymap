@@ -1,16 +1,18 @@
 // Plantilla de la tarjeta para compartir (PR #142 v1, PR #143): UN estilo
 // oscuro tipo «Glass» — logotipo oficial arriba, foto, nombre grande,
-// categoría bajo el nombre y al pie solo los badges de App Store y
-// Google Play (propuesta A, 22 nov 2026: sin píldoras de calificación
-// ni ciudad, sin píldora web).
+// píldoras con la calificación de Google (con su conteo de reseñas) y
+// la ciudad, categoría, Instagram del negocio y al pie solo los badges
+// de App Store y Google Play (propuesta A corregida, 22 nov 2026: las
+// píldoras se quedan; solo sale la píldora web del pie).
 // PR #144: el logo circular del negocio (mismo que la ficha, solo para
 // planes de pago con logo_url) va centrado a caballo sobre el borde
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
 // tarjeta queda igual que en el #143. PR #145: el círculo es más grande
 // (Ø 240 Historia / 190 Post) con anillo y sombra proporcionales.
-// Propuesta A (22 nov 2026): el círculo ya no exige plan de pago —
-// logo_url del negocio, o su primera foto de la galería recortada en
-// círculo (objectFit cover) si no tiene logo; sin fotos, sin círculo.
+// Propuesta A corregida (22 nov 2026): el círculo ya no exige plan de
+// pago — logo_url del negocio, o su primera foto de la galería
+// recortada en círculo (objectFit cover) si no tiene logo; sin fotos,
+// sin círculo.
 // PR #154: dos estilos (Oscura y Clara): la plantilla pinta el
 // estilo elegido con su paleta y su geometría (SHARE_CARD_STYLE_COLORS
 // + shareCardLayoutTable en lib/shareCard.js). La versión clara es tipo
@@ -61,17 +63,33 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
   // La foto se pide ancha (1200w por el bucket de getThumbUrl) para que
   // salga nítida en la exportación a 1080 px.
   const photoSrc = data?.photoUrl ? getThumbUrl(data.photoUrl, 1080) : null;
+  const gSize = Math.round(L.pillSize * 0.85);
   const initial = (data?.name || 'C').trim().charAt(0).toUpperCase() || 'C';
+  const hasRating = typeof data?.rating === 'number' && data.rating > 0;
   // El primer bloque tras la foto usa el hueco del círculo
   // (layout.firstGap) cuando hay logo; los demás conservan sus
   // márgenes normales, igual que en el canvas.
   const firstBlock = layout.name && layout.name.lines.length
     ? 'name'
-    : layout.category
-      ? 'category'
-      : 'foot';
+    : layout.pillRows?.length
+      ? 'pills'
+      : layout.category
+        ? 'category'
+        : layout.instagram
+          ? 'instagram'
+          : 'foot';
   // El logo circular se pide en 300×300, igual que la ficha.
   const logoSrc = data?.bizLogoUrl ? getThumbUrl(data.bizLogoUrl, 300, 300) : null;
+  // PR #159: «Para pedir» y el QR no llevan píldoras (nada de
+  // etiqueta de ciudad en la carta); el QR tampoco lleva foto.
+  // Los estilos con grid SÍ llevan píldoras (calificación Google +
+  // ciudad, como la demo); el Collage editorial no (su calificación va
+  // como texto plano en la banda).
+  const showPills =
+    style.id === 'glass' ||
+    style.id === 'editorial' ||
+    style.id === 'grid' ||
+    style.id === 'tira';
   const isPedido = style.id === 'pedido';
   const isQr = style.id === 'qr';
   const isGrid = style.id === 'grid' || style.id === 'tira';
@@ -280,6 +298,24 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
             <span style={{ fontSize: layout.ratingLine.size, fontWeight: 600, lineHeight: 1, color: palette.sub }}>
               ({formatReviewCount(layout.ratingLine.reviewCount)} reseñas en Google)
             </span>
+          </div>
+        ) : null}
+
+        {/* Instagram del negocio (@handle) bajo la calificación */}
+        {layout.instagram ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: layout.instagram.x,
+              top: layout.instagram.y - (layout.instagram.size * 1.2) / 2,
+              fontSize: layout.instagram.size,
+              fontWeight: 600,
+              lineHeight: 1.2,
+              color: palette.sub,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {layout.instagram.text}
           </div>
         ) : null}
 
@@ -564,8 +600,67 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
         </div>
       ) : null}
 
-      {/* Categoría: línea centrada bajo el nombre (propuesta A,
-          22 nov 2026), en el color secundario de la paleta. */}
+      {showPills && (hasRating || data?.cityName) ? (
+        <div
+          style={{
+            marginTop: firstBlock === 'pills' ? layout.firstGap : L.pillsGap,
+            width: photoW,
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: L.pillGap,
+            flexShrink: 0,
+          }}
+        >
+          {hasRating ? (
+            <span
+              style={{
+                background: palette.pillBg,
+                border: palette.pillBorder ? `1.5px solid ${palette.pillBorder}` : 'none',
+                borderRadius: 999,
+                padding: `${L.pillPadY}px ${L.pillPadX}px`,
+                fontSize: L.pillSize,
+                fontWeight: 700,
+                lineHeight: 1,
+                color: palette.pillText,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              {/* En los estilos con grid la estrella es ámbar (como la
+                  demo), no del color del texto. */}
+              <span style={{ color: palette.starAmber ? '#F59E0B' : palette.pillText }}>★</span>
+              {' '}
+              {data.rating.toFixed(1)} ({formatReviewCount(data.reviewCount || 0)})
+              <img
+                src="/googlelogo.svg"
+                alt="Google"
+                style={{ width: gSize, height: gSize, objectFit: 'contain', display: 'block' }}
+              />
+            </span>
+          ) : null}
+          {data?.cityName ? (
+            <span
+              style={{
+                background: palette.pillBg,
+                border: palette.pillBorder ? `1.5px solid ${palette.pillBorder}` : 'none',
+                borderRadius: 999,
+                padding: `${L.pillPadY}px ${L.pillPadX}px`,
+                fontSize: L.pillSize,
+                fontWeight: 700,
+                lineHeight: 1,
+                color: palette.pillText,
+              }}
+            >
+              {data.cityName}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Categoría: línea centrada bajo las píldoras (propuesta A
+          corregida, 22 nov 2026), en el color secundario de la paleta. */}
       {layout.category ? (
         <div
           style={{
@@ -579,6 +674,24 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           }}
         >
           {layout.category.text}
+        </div>
+      ) : null}
+
+      {/* Instagram del negocio (@handle) bajo la categoría (propuesta A
+          corregida, 22 nov 2026). */}
+      {layout.instagram ? (
+        <div
+          style={{
+            marginTop: firstBlock === 'instagram' ? layout.firstGap : L.igGap,
+            width: photoW,
+            fontSize: L.igSize,
+            fontWeight: 600,
+            lineHeight: 1.2,
+            color: palette.sub,
+            flexShrink: 0,
+          }}
+        >
+          {layout.instagram.text}
         </div>
       ) : null}
 

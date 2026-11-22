@@ -35,9 +35,10 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // foto es más corta y el nombre y las píldoras más grandes (la
 // información gana presencia), el logo oficial crece y en Clara va
 // en oscuro (el PNG es blanco y no se veía sobre blanco).
-// Propuesta A (22 nov 2026): las píldoras salen y la categoría
-// VUELVE bajo el nombre en ambas versiones; el círculo del logo ya
-// no exige plan de pago (logo_url, o la primera foto de la galería).
+// Propuesta A corregida (22 nov 2026): las píldoras SE QUEDAN bajo el
+// nombre en ambas versiones, la categoría va bajo las píldoras y el
+// Instagram bajo la categoría; el círculo del logo ya no exige plan
+// de pago (logo_url, o la primera foto de la galería).
 // La vista previa y el PNG comparten UNA geometría por estilo, como la
 // tarjeta actual.
 describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #155, PR #156)', () => {
@@ -113,7 +114,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     expect(d.whatsapp).toBeUndefined();
   });
 
-  it('la categoría VUELVE en las dos versiones, bajo el nombre (propuesta A, 22 nov 2026)', () => {
+  it('la categoría va bajo las píldoras en las dos versiones (propuesta A corregida, 22 nov 2026)', () => {
     const lib = read('../lib/shareCard.js');
     const template = read('../components/ShareCardTemplate.jsx');
     // Los datos SÍ llevan la categoría (para los estilos con grid, que
@@ -127,9 +128,10 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
         expect(geo.category).not.toBeNull();
         expect(geo.category.text).toBe('Restaurantes');
         expect(geo.name.lines.length).toBeGreaterThan(0);
-        // La categoría va debajo del nombre.
-        const nameEnd = geo.name.y + (geo.L.nameSize * geo.L.nameLineH) / 2;
-        expect(geo.category.y - (geo.L.catSize * 1.2) / 2).toBeGreaterThan(nameEnd);
+        // La categoría va debajo de las píldoras.
+        const lastRow = geo.pillRows[geo.pillRows.length - 1];
+        const pillsEnd = lastRow[0].y + lastRow[0].h;
+        expect(geo.category.y - (geo.L.catSize * 1.2) / 2).toBeGreaterThan(pillsEnd);
       }
     }
     // La plantilla y el canvas pintan la categoría desde la geometría
@@ -148,10 +150,14 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     const template = read('../components/ShareCardTemplate.jsx');
     expect(lib).not.toContain("style.id === 'editorial'");
     expect(lib).not.toContain('geo.width / 2 - 36');
-    // Propuesta A (22 nov 2026): la puerta de las píldoras ya no
-    // existe — la plantilla no tiene ninguna rama 'editorial'; la
-    // línea negra sobre el título sigue sin existir.
-    expect(template).not.toContain("style.id === 'editorial'");
+    // PR #159: la única mención a 'editorial' en la plantilla es la
+    // puerta de las píldoras («Para pedir» y el QR no llevan píldoras);
+    // la línea negra sobre el título sigue sin existir.
+    expect(template.match(/style\.id === 'editorial'/g)).toHaveLength(1);
+    // Los estilos con grid también llevan píldoras (Grid 2×2 y tira);
+    // el Collage editorial no (su calificación va como texto plano).
+    expect(template).toContain("style.id === 'grid'");
+    expect(template).toContain("style.id === 'tira'");
     expect(template).not.toContain('geo.width / 2 - 36');
   });
 
@@ -193,15 +199,18 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
   });
 
   it('la foto es más corta y la información gana presencia (PR #155)', () => {
-    // Nombre más grande que antes (76→88 en Oscura Historia; 68→80
-    // en Editorial Historia) y categoría bajo el nombre (propuesta A,
-    // 22 nov 2026: 45 en Oscura Historia, 40 en Editorial Historia).
+    // Nombre y píldoras más grandes que antes (76→88 y 34→40 en
+    // Oscura Historia; 68→80 y 32→38 en Editorial Historia) y
+    // categoría bajo las píldoras (propuesta A corregida, 22 nov 2026:
+    // 45 en Oscura Historia, 40 en Editorial Historia).
     expect(SHARE_CARD_LAYOUT.story.nameSize).toBe(88);
+    expect(SHARE_CARD_LAYOUT.story.pillSize).toBe(40);
     expect(SHARE_CARD_LAYOUT.story.catSize).toBe(45);
     expect(EDITORIAL_SHARE_CARD_LAYOUT.story.nameSize).toBe(80);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.story.pillSize).toBe(38);
     expect(EDITORIAL_SHARE_CARD_LAYOUT.story.catSize).toBe(40);
     // La foto de un negocio típico es más baja que antes (Historia
-    // ~1439 → ~1243; Post ~697 → ~534) y sigue llenando su franja.
+    // ~1439 → ~1123; Post ~697 → ~438) y sigue llenando su franja.
     for (const styleId of ['glass', 'editorial']) {
       const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
       const geoStory = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true, styleId);
