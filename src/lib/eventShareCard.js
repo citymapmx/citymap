@@ -336,10 +336,21 @@ function eventSubtitle(description, maxChars = 110) {
 
 // ─── Datos que lleva la tarjeta ───
 
+// Un solo decimal («$73.1») se completa a dos («$73.10»): la misma
+// regla que los tours (22 nov 2026). El precio de eventos es texto
+// guardado en la base, así que solo se toca el caso del decimal único;
+// el resto se deja tal cual (la tarjeta muestra lo mismo que el
+// detalle, sin añadir separadores ni quitar decimales).
+export function formatEventShareCardPriceAmount(amount) {
+  return String(amount || '')
+    .trim()
+    .replace(/(\.\d)(?!\d)/, '$10');
+}
+
 export function buildEventShareCardData(event, { cityName = '' } = {}) {
   const style = eventShareCardStyle(event);
   const price = getEventPrice(event);
-  const amount = getEventPriceAmount(event);
+  const amount = formatEventShareCardPriceAmount(getEventPriceAmount(event));
   let priceText;
   let priceKind;
   if (price?.free) {
@@ -367,7 +378,11 @@ export function buildEventShareCardData(event, { cityName = '' } = {}) {
   // La feria lleva el rango de fechas; los demás, fecha + hora.
   const dateLine = style === 'boleto' ? dateRangeText : dateText;
   const infoLines = [timeText ? `📅 ${dateLine} · ${timeText}` : `📅 ${dateLine}`];
-  const place = venue || city;
+  // La ciudad SIEMPRE se muestra, junto al recinto cuando lo hay
+  // (22 nov 2026, como las tarjetas de tours: «📍 Auditorio Nacional ·
+  // Ciudad de México»). Sin recinto, solo la ciudad; sin ciudad, solo
+  // el recinto; sin ninguno, no hay línea de lugar.
+  const place = [venue, city].filter(Boolean).join(' · ');
   if (place) infoLines.push(`📍 ${place}`);
   return {
     style,

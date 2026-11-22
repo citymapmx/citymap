@@ -11,6 +11,7 @@ import {
 import {
   eventShareCardStyle,
   buildEventShareCardData,
+  formatEventShareCardPriceAmount,
   eventShareCardFileName,
   eventShareCardDateShort,
   eventShareCardDateRange,
@@ -173,7 +174,7 @@ describe('tarjeta para compartir el evento: datos reales', () => {
     expect(d.timeText).toBe('8:00 p. m.');
     expect(d.infoLines).toEqual([
       '📅 Lun, 2 Nov · 8:00 p. m.',
-      '📍 Fiestas de octubre',
+      '📍 Fiestas de octubre · Guadalajara',
     ]);
     // La URL que se comparte es la del detalle, /evento/:ciudad/:slug-corto.
     expect(d.shareUrl).toBe(
@@ -221,8 +222,42 @@ describe('tarjeta para compartir el evento: datos reales', () => {
     expect(d.photoUrl).toBeNull();
     expect(d.dateText).toBe('Sáb, 21 Nov');
     expect(d.timeText).toBe('');
-    expect(d.infoLines).toEqual(['📅 Sáb, 21 Nov', '📍 Auditorio SNTSS']);
+    expect(d.infoLines).toEqual(['📅 Sáb, 21 Nov', '📍 Auditorio SNTSS · Puerto Vallarta']);
     expect(d.subtitle).toContain('Exposición de tatuajes');
+  });
+
+  it('la línea de lugar muestra la ciudad junto al recinto, como las tarjetas de tours (22 nov 2026)', () => {
+    // Recinto + ciudad: los dos.
+    const conRecinto = buildEventShareCardData(CONCIERTO, { cityName: 'Guadalajara' });
+    expect(conRecinto.infoLines).toContain('📍 Fiestas de octubre · Guadalajara');
+    // Sin recinto: solo la ciudad.
+    const sinRecinto = buildEventShareCardData(
+      { ...CONCIERTO, venue_name: '' },
+      { cityName: 'Guadalajara' },
+    );
+    expect(sinRecinto.infoLines).toContain('📍 Guadalajara');
+    // Sin ciudad: solo el recinto.
+    const sinCiudad = buildEventShareCardData(CONCIERTO, { cityName: '' });
+    expect(sinCiudad.infoLines).toContain('📍 Fiestas de octubre');
+    // Sin ninguno: no hay línea de lugar.
+    const sinLugar = buildEventShareCardData(
+      { ...CONCIERTO, venue_name: '' },
+      { cityName: '' },
+    );
+    expect(sinLugar.infoLines).toEqual(['📅 Lun, 2 Nov · 8:00 p. m.']);
+  });
+
+  it('precio con un solo decimal se completa a dos ($73.1 → $73.10); el resto tal cual (22 nov 2026)', () => {
+    expect(formatEventShareCardPriceAmount('$73.1 USD')).toBe('$73.10 USD');
+    expect(formatEventShareCardPriceAmount('$1,091.5 MXN')).toBe('$1,091.50 MXN');
+    expect(formatEventShareCardPriceAmount('$1,091 MXN')).toBe('$1,091 MXN');
+    expect(formatEventShareCardPriceAmount('$65.00 EUR')).toBe('$65.00 EUR');
+    expect(formatEventShareCardPriceAmount(null)).toBe('');
+    const d = buildEventShareCardData(
+      { ...CONCIERTO, price: '1091.5', price_type: 'paid' },
+      { cityName: 'Guadalajara' },
+    );
+    expect(d.priceText).toBe('Boletos desde $1091.50 MXN');
   });
 
   it('feria: rango de fechas «28 Nov – 6 Dic» y precio desde $30', () => {
