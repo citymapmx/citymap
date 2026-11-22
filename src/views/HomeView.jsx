@@ -15,7 +15,6 @@ import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenN
 import { shouldShowCityEmptyState, shouldShowCategoryEmptyState } from "../lib/cityEmptyState.js";
 import { getAvailableSubcats } from "../lib/businessSubcats.js";
 import { getTimeSlot, spotForSlot, isFoodSpot, seededRand, shuffleBySeed } from "../lib/timeBasedLists.js";
-import { filterRecomendacionesElegibles, pickRecomendacionesDelDia, localDayNumber } from "../lib/recomendacionesDia.js";
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
 import { PageLogo } from "../components/Brand.jsx";
@@ -47,7 +46,6 @@ const CURRENT_SEED = (() => {
 import DebouncedSearchBar from "../components/home/DebouncedSearchBar.jsx";
 
 import TopImperdibles from "../components/home/TopImperdibles.jsx";
-import RecomendacionesDia from "../components/home/RecomendacionesDia.jsx";
 import SquareCarousel from "../components/home/SquareCarousel.jsx";
 import BannerSlider from "../components/home/BannerSlider.jsx";
 import { getDailyScore, getKm, createSlug, cleanCityPrefix, CAT_EMOJI } from '../lib/utils.js';
@@ -308,17 +306,6 @@ export default function HomeView({ isBackground }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapPins, timeBasedBiz, activeCity]);
 
-  // «Los 4 de hoy» (PR #238): 4 negocios distintos cada día, con turno
-  // justo — ver la regla exacta en src/lib/recomendacionesDia.js. Cualquier
-  // negocio aprobado de la ciudad puede salir, con foto o sin ella.
-  const recomendacionesDia = React.useMemo(() => {
-    if (!mapPins || mapPins.length === 0) return [];
-
-    const allowedCities = METRO_ZONES[activeCity] || [activeCity];
-    const eligible = filterRecomendacionesElegibles(mapPins, allowedCities);
-    return pickRecomendacionesDelDia(eligible, activeCity, localDayNumber());
-  }, [mapPins, activeCity]);
-
   const activeBannersMemo = React.useMemo(() => {
     const today = now.toISOString().split("T")[0];
     const todayMD = today.slice(5);
@@ -512,23 +499,6 @@ export default function HomeView({ isBackground }) {
 
           {/* ── EVENTOS ── */}
           {!search && activeCat === "explorar" && <HomeEvents events={events} activeCity={activeCity} userCoords={userCoords} dbReady={dbReady} secondaryReady={homeSecondaryCity === activeCity} dark={dark} t={t} lang={lang} handleEventTap={handleEventTap} T={T} city={city} cities={cities} />}
-
-          {/* ── RECOMENDACIONES DEL DÍA («Los 4 de hoy») ── */}
-          {/* Esqueleto de la cuadrícula mientras cargan los negocios: mismo
-              tamaño que las tarjetas (título + 4 huecos de 180 px) para que
-              nada de abajo se mueva cuando aparecen. */}
-          {!search && activeCat === "explorar" && recomendacionesDia.length === 0 && (pinsLoading || !dbReady) && (
-            <div style={{ padding: "16px 20px 0 20px" }}>
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><Sk w="70%" h={26} r={6} dark={dark} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                {[1, 2, 3, 4].map(i => <Sk key={i} w="100%" h={180} r={20} dark={dark} />)}
-              </div>
-            </div>
-          )}
-
-          {!search && activeCat === "explorar" && recomendacionesDia.length > 0 && (
-            <RecomendacionesDia list={recomendacionesDia} T={T} cityImg={cityImg} handleCardTap={handleCardTap} />
-          )}
 
           {/* ── EXPLORAR SECTION ── */}
           {!search && activeCat === "explorar" && <div id="explorar-section">
