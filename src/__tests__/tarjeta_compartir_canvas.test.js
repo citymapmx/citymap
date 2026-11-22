@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildShareCardData,
-  bizShowsLogoCircle,
   computeShareCardLayout,
   wrapShareCardName,
   SHARE_CARD_FORMATS,
@@ -12,6 +11,10 @@ import {
 // la geometría de la tarjeta. En este entorno no hay DOM, así que la
 // medición de texto usa la aproximación de shareCard.js; lo que se
 // comprueba aquí es el algoritmo, no el ancho exacto de cada letra.
+// Propuesta A corregida (22 nov 2026): las píldoras SE QUEDAN bajo el
+// nombre (calificación de Google + ciudad), la categoría va bajo las
+// píldoras y el Instagram bajo la categoría; el círculo del logo ya no
+// exige plan de pago.
 describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
   const biz = {
     name: 'Xokol',
@@ -20,6 +23,8 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
     price: '$$',
     photos: [{ url: 'https://example.supabase.co/object/public/media/cityguide/xokol.jpg' }],
   };
+  // Sin fotos y sin logo: el único caso sin círculo.
+  const bizSinFotos = { ...biz, photos: [] };
   const googleDisp = { rating: 4.5, count: 1234, source: 'google' };
   const internalDisp = { rating: 5.0, count: 2, source: 'citymap' };
   // Barbarella: plan de pago con logo, como en la captura de Jonathan.
@@ -46,39 +51,78 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
     expect(d2.rating).toBeNull();
   });
 
-  it('el precio se conserva como dato pero no sale en las píldoras', () => {
+  it('el precio se conserva como dato pero la tarjeta no lo muestra (las píldoras son calificación y ciudad)', () => {
     const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
     expect(d.price).toBe('$$');
     const geo = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true);
-    const texts = geo.pillRows.flat().map((p) => p.text);
-    expect(texts).toContain('★ 4.5 (1,234)');
-    expect(texts).toContain('Guadalajara');
-    expect(texts.join(' ')).not.toContain('$');
+    // Con dato de Google y ciudad: una fila con las 2 píldoras.
+    expect(geo.pillRows).toHaveLength(1);
+    expect(geo.pillRows[0].map((p) => p.text)).toEqual([
+      '★ 4.5 (1,234)',
+      'Guadalajara',
+    ]);
   });
 
-  it('sin dato de Google la píldora de calificación no existe', () => {
-    const d = buildShareCardData(biz, { disp: internalDisp, cityName: 'Guadalajara' });
+  it('sin dato de Google solo queda la píldora de ciudad', () => {
+    const d1 = buildShareCardData(biz, { disp: internalDisp, cityName: 'Guadalajara' });
+    const geo = computeShareCardLayout(d1, SHARE_CARD_FORMATS.story, true);
+    expect(geo.pillRows).toHaveLength(1);
+    expect(geo.pillRows[0].map((p) => p.text)).toEqual(['Guadalajara']);
+    const d2 = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+    const geo2 = computeShareCardLayout(d2, SHARE_CARD_FORMATS.story, true);
+    expect(geo2.pillRows).toHaveLength(1);
+    expect(geo2.pillRows[0]).toHaveLength(2);
+  });
+
+  it('el Instagram sale de social_links.instagram, normalizado, y va bajo la categoría', () => {
+    // Café Belloy: el handle vive en social_links.instagram
+    // («Cafebelloy»), no en la columna instagram (NULL).
+    const bizIg = { ...biz, social_links: { instagram: 'Cafebelloy' } };
+    const d = buildShareCardData(bizIg, { disp: googleDisp, cityName: 'Guadalajara' });
+    expect(d.instagram).toBe('cafebelloy');
     const geo = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true);
-    const texts = geo.pillRows.flat().map((p) => p.text);
-    expect(texts).toEqual(['Guadalajara']);
+    expect(geo.instagram.text).toBe('@cafebelloy');
+    // La línea va bajo la categoría y el pie queda a su hueco.
+    expect(geo.instagram.y).toBeGreaterThan(geo.category.y);
+    const igEnd = geo.instagram.y + (geo.L.igSize * 1.2) / 2;
+    const footTop = geo.height - geo.L.pad - geo.L.footSize;
+    expect(footTop - igEnd).toBeCloseTo(geo.L.footGap, 6);
+    // Variantes: con @, con URL, vacío.
+    expect(
+      buildShareCardData({ ...biz, instagram: '@Xokol' }, { disp: googleDisp }).instagram,
+    ).toBe('xokol');
+    expect(
+      buildShareCardData(
+        { ...biz, social_links: { instagram: 'https://instagram.com/Xokol/' } },
+        { disp: googleDisp },
+      ).instagram,
+    ).toBe('xokol');
+    expect(buildShareCardData(biz, { disp: googleDisp }).instagram).toBeNull();
+    // Sin Instagram, no hay línea (y la categoría sigue siendo el
+    // último texto antes del pie).
+    const geoSinIg = computeShareCardLayout(
+      buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' }),
+      SHARE_CARD_FORMATS.story,
+      true,
+    );
+    expect(geoSinIg.instagram).toBeNull();
   });
 
-  it('la foto crece y no queda franja vacía entre píldoras y pie', () => {
+  it('la foto crece y no queda franja vacía entre categoría y pie', () => {
     for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
       const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
       const geo = computeShareCardLayout(d, format, true);
       // La foto es más alta que su mínimo: se comió el espacio libre.
       expect(geo.photo.h).toBeGreaterThan(geo.L.photoMinH);
-      // Entre el fin de las píldoras y el pie hay exactamente el hueco
+      // Entre el fin de la categoría y el pie hay exactamente el hueco
       // diseñado (footGap), no un tercio de tarjeta vacía.
-      const lastRow = geo.pillRows[geo.pillRows.length - 1];
-      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - pillsEnd).toBe(geo.L.footGap);
+      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
     }
   });
 
-  it('el peor caso (nombre largo, 3 líneas, ciudad larga) tampoco deja hueco ni se desborda', () => {
+  it('el peor caso (nombre largo, 3 líneas) tampoco deja hueco ni se desborda', () => {
     const longBiz = {
       ...biz,
       name: 'Restaurante El Gran Buffet Internacional de la Abuela María',
@@ -92,10 +136,9 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
       const geo = computeShareCardLayout(d, format, true);
       expect(geo.name.lines.length).toBeLessThanOrEqual(3);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
-      const lastRow = geo.pillRows[geo.pillRows.length - 1];
-      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - pillsEnd).toBe(geo.L.footGap);
+      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
     }
   });
 
@@ -113,30 +156,32 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
     expect(wrapShareCardName('', 952, L)).toEqual([]);
   });
 
-  it('el círculo del logo es solo para planes de pago con logo_url (como la ficha)', () => {
-    // Misma regla que DetailView: logo + plan premium/pro/destacado.
-    expect(bizShowsLogoCircle(bizLogo)).toBe(true);
-    expect(bizShowsLogoCircle({ ...bizLogo, plan: 'pro' })).toBe(true);
-    expect(bizShowsLogoCircle({ ...bizLogo, plan: 'destacado' })).toBe(true);
-    // Plan gratuito con logo: la ficha tampoco lo muestra.
-    expect(bizShowsLogoCircle({ ...bizLogo, plan: 'free' })).toBe(false);
-    expect(bizShowsLogoCircle({ ...bizLogo, plan: '' })).toBe(false);
-    expect(bizShowsLogoCircle({ ...bizLogo, plan: undefined })).toBe(false);
-    // Sin logo no hay círculo en ningún plan.
-    expect(bizShowsLogoCircle({ ...bizLogo, logo_url: '' })).toBe(false);
-    expect(bizShowsLogoCircle({ ...bizLogo, logo_url: null })).toBe(false);
-    expect(bizShowsLogoCircle(biz)).toBe(false);
+  it('el círculo del logo ya no exige plan de pago (propuesta A, 22 nov 2026)', () => {
+    // Con logo_url hay círculo en cualquier plan, incluido el gratuito.
+    const dLogo = buildShareCardData(bizLogo, { disp: googleDispBarbarella, cityName: 'Guadalajara' });
+    expect(dLogo.bizLogoUrl).toBe(bizLogo.logo_url);
+    expect(dLogo.bizLogoCover).toBe(false);
+    const dFree = buildShareCardData({ ...bizLogo, plan: 'free' }, { disp: googleDispBarbarella, cityName: 'Guadalajara' });
+    expect(dFree.bizLogoUrl).toBe(bizLogo.logo_url);
+    expect(dFree.bizLogoCover).toBe(false);
+    // Sin logo_url, el círculo lleva la primera foto de la galería
+    // recortada (cover), no el logo completo (contain).
+    const dFoto = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+    expect(dFoto.bizLogoUrl).toBe(biz.photos[0].url);
+    expect(dFoto.bizLogoCover).toBe(true);
+    // Sin logo ni fotos, no hay círculo.
+    const dNada = buildShareCardData(bizSinFotos, { disp: googleDisp, cityName: 'Guadalajara' });
+    expect(dNada.bizLogoUrl).toBeNull();
+    expect(dNada.bizLogoCover).toBe(false);
   });
 
-  it('buildShareCardData pasa el logo solo cuando hay círculo; la foto sigue prefiriendo la galería', () => {
+  it('buildShareCardData pasa el logo; la foto sigue prefiriendo la galería', () => {
     const d = buildShareCardData(bizLogo, { disp: googleDispBarbarella, cityName: 'Guadalajara' });
     expect(d.bizLogoUrl).toBe(bizLogo.logo_url);
     // La foto sigue siendo la de la galería, no el logo.
     expect(d.photoUrl).toBe(biz.photos[0].url);
-    const dFree = buildShareCardData({ ...bizLogo, plan: 'free' }, { disp: googleDispBarbarella, cityName: 'Guadalajara' });
-    expect(dFree.bizLogoUrl).toBeNull();
     const dNoLogo = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
-    expect(dNoLogo.bizLogoUrl).toBeNull();
+    expect(dNoLogo.bizLogoUrl).toBe(biz.photos[0].url);
   });
 
   it('con logo, el círculo queda centrado a caballo sobre el borde inferior de la foto', () => {
@@ -154,41 +199,41 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
       // La foto se acorta exactamente lo que sobresale el círculo más
       // el hueco, menos el margen que había antes (nameGap, el del
       // nombre, primer bloque tras la foto desde el PR #155).
-      const dNoLogo = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+      const dNoLogo = buildShareCardData(bizSinFotos, { disp: googleDisp, cityName: 'Guadalajara' });
       const geoNoLogo = computeShareCardLayout(dNoLogo, format, true);
       const expectedDiff = geo.L.bizLogoD / 2 + geo.L.bizLogoGap - geo.L.nameGap;
       expect(geoNoLogo.photo.h - geo.photo.h).toBeCloseTo(expectedDiff, 6);
       // El primer hueco tras la foto es el del círculo.
       expect(geo.firstGap).toBe(geo.L.bizLogoD / 2 + geo.L.bizLogoGap);
-      // Sigue sin franja vacía entre píldoras y pie (toBeCloseTo: el
+      // Sigue sin franja vacía entre categoría y pie (toBeCloseTo: el
       // 88 × 1,12 del nombre deja polvo de coma flotante, 44,000…114).
-      const lastRow = geo.pillRows[geo.pillRows.length - 1];
-      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - pillsEnd).toBeCloseTo(geo.L.footGap, 9);
+      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 9);
     }
   });
 
-  it('sin logo, la tarjeta es idéntica a la del #143 (sin círculo, sin hueco)', () => {
+  it('sin logo ni fotos, la tarjeta es idéntica a la del #143 (sin círculo, sin hueco)', () => {
     for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {
-      const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+      const d = buildShareCardData(bizSinFotos, { disp: googleDisp, cityName: 'Guadalajara' });
       const geo = computeShareCardLayout(d, format, true);
       expect(geo.bizLogo).toBeNull();
-      // La foto conserva su alto calculado (Xokol, Historia: 1331,44;
-      // Post: 629,84) y el primer hueco es el margen normal del nombre.
+      // La foto conserva su alto calculado y el primer hueco es el
+      // margen normal del nombre.
       const expectedPhotoH =
         format.height -
         geo.L.pad * 2 -
         (geo.L.logoH + geo.L.logoGap) -
         (geo.L.nameGap + geo.L.nameSize * geo.L.nameLineH) -
         (geo.L.pillsGap + geo.L.pillSize + geo.L.pillPadY * 2) -
+        (geo.L.catGap + geo.L.catSize * 1.2) -
         (geo.L.footGap + geo.L.footSize);
       expect(geo.photo.h).toBeCloseTo(expectedPhotoH, 6);
       expect(geo.firstGap).toBe(geo.L.nameGap);
     }
   });
 
-  it('el peor caso con logo (nombre largo, 3 líneas, ciudad larga) tampoco deja hueco ni se desborda', () => {
+  it('el peor caso con logo (nombre largo, 3 líneas) tampoco deja hueco ni se desborda', () => {
     const longBizLogo = {
       ...bizLogo,
       name: 'Restaurante El Gran Buffet Internacional de la Abuela María',
@@ -203,10 +248,9 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
       expect(geo.bizLogo).not.toBeNull();
       expect(geo.name.lines.length).toBeLessThanOrEqual(3);
       expect(geo.photo.h).toBeGreaterThanOrEqual(geo.L.photoMinH);
-      const lastRow = geo.pillRows[geo.pillRows.length - 1];
-      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - pillsEnd).toBe(geo.L.footGap);
+      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
     }
   });
 
@@ -241,15 +285,14 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
       expect(geo.photo.h).toBeGreaterThan(geo.L.photoMinH);
       // Entre el círculo y el primer texto queda el hueco diseñado
       // (la y del círculo se redondea a píxel entero, ±0,5 px). El
-      // primer texto es el nombre (la categoría salió en el PR #155).
+      // primer texto es el nombre (la categoría va debajo de él).
       const circleBottom = geo.bizLogo.y + geo.bizLogo.d;
       const firstTextTop = geo.name.y - (geo.L.nameSize * geo.L.nameLineH) / 2;
       expect(firstTextTop - circleBottom).toBeCloseTo(geo.L.bizLogoGap, 0);
-      // Y entre las píldoras y el pie queda exactamente footGap.
-      const lastRow = geo.pillRows[geo.pillRows.length - 1];
-      const pillsEnd = lastRow[0].y + lastRow[0].h;
+      // Y entre la categoría y el pie queda exactamente footGap.
+      const catEnd = geo.category.y + (geo.L.catSize * 1.2) / 2;
       const footTop = geo.height - geo.L.pad - geo.L.footSize;
-      expect(footTop - pillsEnd).toBe(geo.L.footGap);
+      expect(footTop - catEnd).toBeCloseTo(geo.L.footGap, 6);
     }
   });
 });

@@ -24,8 +24,9 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // `propuestas-de-tarjetas-con-grid`, 10 nov 2026; Jonathan: «Haz las
 // 4»): Grid 2×2, Foto grande + tira de miniaturas y Collage editorial.
 // Fondo blanco, círculo de logo más grande (Ø 292 Historia / 232 Post),
-// categoría bajo las píldoras (o en el kicker del collage), pie
-// «Descúbrelo en www.citymap.mx», anillo del círculo SOLO blanco.
+// categoría bajo las píldoras (o en el kicker del collage), Instagram
+// del negocio bajo la categoría, pie solo con los 2 badges (propuesta
+// A corregida, 22 nov 2026), anillo del círculo SOLO blanco.
 //
 // Negocio real de la demo: Donatella, Zapopan, Restaurantes, ★ 4.3
 // (1,853) en Google, plan premium con logo.
@@ -37,6 +38,7 @@ const DONATELLA = {
   logo_url:
     'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785468838123_5fhonb.jpg',
   plan: 'premium',
+  social_links: { instagram: 'Donatella' },
   photos: [
     {
       url: 'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/1785468851763_7fi5y7.jpg',
@@ -170,6 +172,9 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
         geo.height - geo.L.pad,
       );
       expect(geo.category.y).toBeLessThan(geo.footer.y);
+      // Instagram bajo la categoría.
+      expect(geo.instagram.text).toBe('@donatella');
+      expect(geo.instagram.y).toBeGreaterThan(geo.category.y);
     }
   });
 
@@ -277,7 +282,11 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     for (const styleId of ['glass', 'editorial']) {
       const geo = computeShareCardLayout(d, SHARE_CARD_FORMATS.story, true, styleId);
       expect(geo.gridCells).toBeNull();
-      expect(geo.category).toBeNull();
+      // Propuesta A corregida (22 nov 2026): la categoría SÍ va en
+      // Oscura y Clara, bajo las píldoras; lo que no heredan es el
+      // grid, el hero, el kicker, la calificación en texto y el dúo.
+      expect(geo.category).not.toBeNull();
+      expect(geo.category.text).toBe('Restaurantes');
       expect(geo.hero).toBeNull();
       expect(geo.kicker).toBeNull();
       expect(geo.ratingLine).toBeNull();
@@ -296,8 +305,9 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     expect(htmlGrid).toContain('Restaurantes');
     expect(htmlGrid).toContain('Zapopan');
     expect(htmlGrid).toContain('4.3');
-    // Pie con las 3 opciones en una fila (22 nov 2026).
-    expect(htmlGrid).toContain('🌐 www.citymap.mx');
+    expect(htmlGrid).toContain('@donatella');
+    // Pie solo con los 2 badges (propuesta A corregida, 22 nov 2026).
+    expect(htmlGrid).not.toContain('🌐 www.citymap.mx');
     expect(htmlGrid).toContain('/badges/app-store.svg');
     expect(htmlGrid).toContain('/badges/google-play.svg');
     // Grid 2×2: 4 fotos + logo oficial + círculo + G de Google + 2 badges.
@@ -308,7 +318,8 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     );
     expect(htmlTira).toContain('Donatella');
     expect(htmlTira).toContain('Restaurantes');
-    expect(htmlTira).toContain('www.citymap.mx');
+    expect(htmlTira).toContain('@donatella');
+    expect(htmlTira).not.toContain('www.citymap.mx');
     // Tira: 1 grande + 3 miniaturas + logo + círculo + G + 2 badges.
     expect(htmlTira.match(/<img/g)).toHaveLength(9);
     // Collage: hero + dúo (3 fotos) + logo oficial + círculo, sin G.
@@ -319,7 +330,8 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     expect(htmlCollage).toContain('RESTAURANTES · ZAPOPAN');
     expect(htmlCollage).toContain('4.3');
     expect(htmlCollage).toContain('1,853 reseñas en Google');
-    expect(htmlCollage).toContain('www.citymap.mx');
+    expect(htmlCollage).toContain('@donatella');
+    expect(htmlCollage).not.toContain('www.citymap.mx');
     // Collage: hero + dúo (3 fotos) + logo oficial + círculo + 2 badges, sin G.
     expect(htmlCollage.match(/<img/g)).toHaveLength(7);
     // La estrella de la píldora es ámbar en los estilos con grid.

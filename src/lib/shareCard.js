@@ -26,7 +26,7 @@
 // La vista previa (ShareCardTemplate.jsx) y el PNG comparten UNA sola
 // geometría: SHARE_CARD_LAYOUT + computeShareCardLayout. La foto crece
 // (flex: 1 en la plantilla, resto del alto en el canvas) y se come el
-// espacio libre: nunca queda franja vacía entre las píldoras y el pie.
+// espacio libre: nunca queda franja vacía entre el último texto y el pie.
 // El logotipo oficial (/logo-brand.png, el mismo del encabezado y del
 // splash) va arriba en blanco; la calificación es SOLO la de Google
 // (google_ratings_cache, misma fuente que las tarjetas de negocio) con su
@@ -78,7 +78,12 @@ export const SHARE_CARD_LAYOUT = {
     pad: 64,
     logoH: 76,
     logoGap: 40,
-    photoMinH: 900,
+    // photoMinH deja hueco para el peor caso (nombre de 3 líneas +
+    // píldoras en 2 filas + categoría, con círculo): con la categoría
+    // y el Instagram de la propuesta A corregida (22 nov 2026) el
+    // peor caso necesita 844 px de foto, así que el mínimo baja de
+    // 900 a 840.
+    photoMinH: 840,
     photoRadius: 40,
     // Círculo del logo del negocio (PR #144; PR #145: más grande, Ø 240
     // con anillo y sombra proporcionales): mismo estilo que la ficha
@@ -100,6 +105,12 @@ export const SHARE_CARD_LAYOUT = {
     pillGap: 16,
     pillRowGap: 14,
     pillsGap: 52,
+    // Categoría bajo las píldoras (propuesta A corregida, 22 nov 2026).
+    catSize: 45,
+    catGap: 28,
+    // Instagram del negocio (@handle) bajo la categoría.
+    igSize: 30,
+    igGap: 18,
     footSize: 44,
     footGap: 60,
   },
@@ -107,7 +118,9 @@ export const SHARE_CARD_LAYOUT = {
     pad: 48,
     logoH: 76,
     logoGap: 36,
-    photoMinH: 280,
+    // Peor caso en Post: la foto necesita 213 px, así que el mínimo
+    // baja de 280 a 210 (propuesta A corregida, 22 nov 2026).
+    photoMinH: 210,
     photoRadius: 32,
     bizLogoD: 190,
     bizLogoRing: 6,
@@ -124,6 +137,10 @@ export const SHARE_CARD_LAYOUT = {
     pillGap: 14,
     pillRowGap: 12,
     pillsGap: 36,
+    catSize: 34,
+    catGap: 20,
+    igSize: 24,
+    igGap: 14,
     footSize: 40,
     footGap: 44,
   },
@@ -312,7 +329,7 @@ export const SHARE_CARD_STYLE_COLORS = {
 };
 
 // Geometría de la versión clara: los mismos bloques que el estilo
-// oscuro (logo, foto, nombre, píldoras, pie), con medidas propias y
+// oscuro (logo, foto, nombre, categoría, pie), con medidas propias y
 // CON círculo de logo (PR #160: Jonathan pidió que Clara también
 // llevara el logotipo del negocio, con la misma regla que en Oscura —
 // logo_url + plan de pago —; antes no lo llevaba por diseño, «la
@@ -327,13 +344,17 @@ export const SHARE_CARD_STYLE_COLORS = {
 // sube a 76 (era 60 y en la vista previa de 200 px no se apreciaba).
 // PR #160: photoMinH de Post baja a 300 (era 360) para que el peor
 // caso (nombre de 3 líneas + píldoras en 2 filas + círculo) no se
-// coma el hueco del pie.
+// coma el hueco del pie. Propuesta A corregida (22 nov 2026): las
+// píldoras se quedan, la categoría va bajo las píldoras y el Instagram
+// bajo la categoría en ambas versiones.
 export const EDITORIAL_SHARE_CARD_LAYOUT = {
   story: {
     pad: 64,
     logoH: 76,
     logoGap: 40,
-    photoMinH: 950,
+    // Peor caso en Clara Historia: la foto necesita 880 px, así que
+    // el mínimo baja de 950 a 870 (propuesta A corregida, 22 nov 2026).
+    photoMinH: 870,
     photoRadius: 32,
     showBizLogo: true,
     bizLogoD: 240,
@@ -351,6 +372,10 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     pillGap: 14,
     pillRowGap: 12,
     pillsGap: 52,
+    catSize: 40,
+    catGap: 28,
+    igSize: 28,
+    igGap: 18,
     footSize: 44,
     footGap: 60,
   },
@@ -358,7 +383,9 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     pad: 48,
     logoH: 76,
     logoGap: 36,
-    photoMinH: 300,
+    // Peor caso en Clara Post: la foto necesita 243 px, así que el
+    // mínimo baja de 300 a 240 (propuesta A corregida, 22 nov 2026).
+    photoMinH: 240,
     photoRadius: 28,
     showBizLogo: true,
     bizLogoD: 190,
@@ -376,6 +403,10 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     pillGap: 12,
     pillRowGap: 10,
     pillsGap: 36,
+    catSize: 30,
+    catGap: 20,
+    igSize: 22,
+    igGap: 14,
     footSize: 40,
     footGap: 44,
   },
@@ -386,12 +417,12 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
 // fondo blanco, logotipo oficial arriba en negro, las fotos en grid, el
 // círculo del logo del negocio MÁS GRANDE (Ø 292 Historia / 232 Post, 27cqw
 // de la demo, frente a 240/190 de Oscura/Clara) a caballo sobre el borde
-// inferior del grid, nombre, píldoras (calificación Google + ciudad) y la
-// categoría bajo las píldoras, pie con las 3 opciones en una fila
-// (web + App Store + Google Play, 22 nov 2026). El
+// inferior del grid, nombre, píldoras (calificación Google + ciudad) y
+// la categoría bajo las píldoras, pie solo con los 2 badges (propuesta
+// A corregida, 22 nov 2026). El
 // área del grid es el bloque flexible (como la foto en los demás
 // estilos): crece hasta comerse el espacio libre, así nunca queda
-// franja vacía entre las píldoras y el pie.
+// franja vacía entre el último texto y el pie.
 // `gridAspect` es la proporción ancho/alto de las celdas del Grid 2×2
 // (1,14 en la demo); `stripAspect`, la de las miniaturas de la tira
 // (cuadradas en Historia, más anchas en Post para que la foto grande
@@ -424,6 +455,8 @@ export const GRID_SHARE_CARD_LAYOUT = {
     pillsGap: 28,
     catSize: 45,
     catGap: 20,
+    igSize: 30,
+    igGap: 16,
     footSize: 44,
     footGap: 24,
   },
@@ -431,7 +464,9 @@ export const GRID_SHARE_CARD_LAYOUT = {
     pad: 48,
     logoH: 48,
     logoGap: 16,
-    photoMinH: 240,
+    // Peor caso en Grid Post: la foto necesita 221 px, así que el
+    // mínimo baja de 240 a 210 (propuesta A corregida, 22 nov 2026).
+    photoMinH: 210,
     photoRadius: 0,
     gridGap: 14,
     gridRadius: 22,
@@ -454,6 +489,8 @@ export const GRID_SHARE_CARD_LAYOUT = {
     pillsGap: 20,
     catSize: 34,
     catGap: 16,
+    igSize: 24,
+    igGap: 12,
     footSize: 40,
     footGap: 20,
   },
@@ -461,8 +498,8 @@ export const GRID_SHARE_CARD_LAYOUT = {
 
 // Geometría de «Foto grande + tira de miniaturas»: 1 foto grande arriba
 // y tira de 3 miniaturas debajo (o las que haya: 1 grande + hasta 3).
-// Misma base que el Grid 2×2 (logo, círculo, nombre, píldoras,
-// categoría, pie); `bigRadius` es el radio de la foto grande,
+// Misma base que el Grid 2×2 (logo, círculo, nombre, categoría,
+// pie); `bigRadius` es el radio de la foto grande,
 // `stripRadius` y `stripAspect` los de las miniaturas. photoMinH es la
 // tira completa (miniaturas + hueco + foto grande mínima).
 export const TIRA_SHARE_CARD_LAYOUT = {
@@ -515,6 +552,9 @@ export const COLLAGE_SHARE_CARD_LAYOUT = {
     duoGap: 22,
     duoRadius: 24,
     duoAspect: 1.55,
+    // Instagram del negocio (@handle) bajo la calificación, antes del dúo.
+    igSize: 34,
+    igGap: 20,
     footSize: 44,
     footGap: 24,
   },
@@ -541,6 +581,8 @@ export const COLLAGE_SHARE_CARD_LAYOUT = {
     duoGap: 18,
     duoRadius: 20,
     duoAspect: 2.2,
+    igSize: 28,
+    igGap: 16,
     footSize: 40,
     footGap: 20,
   },
@@ -666,21 +708,13 @@ export function shareCardLayoutTable(styleId, formatId) {
   return table[formatId] || table.story;
 }
 
-// El logo circular del negocio es el mismo que muestra la ficha
-// (DetailView.jsx): solo lo tienen los planes de pago (premium / pro /
-// destacado) con logo_url. En la ficha el círculo no sale para los
-// planes gratuitos aunque tengan logo_url (59 negocios tienen logo_url,
-// 52 son de pago); la tarjeta replica esa regla para no regalar un
-// beneficio de plan ni quedar distinta de la ficha. Sin círculo, la
-// tarjeta queda exactamente como en el #143.
-export const BIZ_LOGO_PLANS = ['premium', 'pro', 'destacado'];
-export function bizShowsLogoCircle(biz) {
-  return (
-    typeof biz?.logo_url === 'string' &&
-    biz.logo_url.trim() !== '' &&
-    BIZ_LOGO_PLANS.includes(String(biz?.plan || '').trim().toLowerCase())
-  );
-}
+// El círculo del logo del negocio (propuesta A, 22 nov 2026,
+// Jonathan): el logo_url del negocio; sin logo, su primera foto de
+// la galería recortada en círculo (bizLogoCover); sin fotos, sin
+// círculo. Ya NO exige plan de pago: antes solo lo tenían
+// premium/pro/destacado con logo_url (regla de la ficha, para no
+// regalar un beneficio de plan); el diseño nuevo pone el círculo
+// para todos los negocios con logo o foto.
 
 // Datos que lleva la tarjeta. La calificación es SOLO la de Google: si
 // Etiqueta de la categoría para la tarjeta («restaurantes» →
@@ -693,15 +727,28 @@ export function formatShareCardCategory(raw) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// Instagram del negocio para la tarjeta («Cafebelloy»,
+// «@cafebelloy» o «https://instagram.com/cafebelloy» → «cafebelloy»,
+// en minúsculas como lo muestra Instagram). Vive en
+// `social_links.instagram` (la columna `instagram` está vacía en
+// todos los negocios); sin dato, null y la línea no sale.
+export function formatShareCardInstagram(raw) {
+  let s = String(raw || '').trim();
+  s = s.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '');
+  s = s.replace(/^@/, '').split(/[/?#]/)[0].trim().toLowerCase();
+  return s || null;
+}
+
 // displayRating no trae dato vigente de google_ratings_cache (source
 // 'google'), no hay píldora de calificación — la interna de CityMap no
 // se muestra en la tarjeta y ningún número se inventa. El precio se
 // conserva como dato pero la tarjeta ya no lo muestra (PR #143).
 // PR #155: sin categoría (sale de ambas versiones) y sin los datos de
 // la Ficha (horario, dirección, WhatsApp), que se fue con ese estilo.
-// Los estilos con grid SÍ llevan la categoría (línea bajo las
-// píldoras en Grid 2×2 y tira; kicker en el collage): por eso el dato
-// vuelve, pero solo esos estilos la pintan (ver computeShareCardLayout).
+// Propuesta A corregida (22 nov 2026): las píldoras SE QUEDAN bajo el
+// nombre (calificación de Google + ciudad), la categoría va bajo las
+// píldoras y el Instagram bajo la categoría; el collage lleva la
+// categoría en el kicker y la calificación como texto plano.
 export function buildShareCardData(biz, { disp = null, cityName = '' } = {}) {
   const photoUrl =
     biz?.photos?.find((p) => p?.url)?.url || biz?.banner_url || biz?.logo_url || null;
@@ -715,15 +762,26 @@ export function buildShareCardData(biz, { disp = null, cityName = '' } = {}) {
     .slice(0, 4);
   const google =
     disp?.source === 'google' && typeof disp?.rating === 'number';
+  const logoUrl =
+    typeof biz?.logo_url === 'string' && biz.logo_url.trim() !== ''
+      ? biz.logo_url.trim()
+      : null;
+  const firstPhotoUrl = photoUrls[0] || null;
   return {
     photoUrl,
     photoUrls,
     category: formatShareCardCategory(biz?.category || biz?.type),
-    bizLogoUrl: bizShowsLogoCircle(biz) ? biz.logo_url.trim() : null,
+    bizLogoUrl: logoUrl || firstPhotoUrl,
+    // Sin logo_url, el círculo lleva la primera foto recortada
+    // (cover), no el logo completo (contain): ver drawShareCardCanvas.
+    bizLogoCover: !logoUrl && !!firstPhotoUrl,
     name: biz?.name || '',
     rating: google ? disp.rating : null,
     reviewCount: google ? disp.count || 0 : 0,
     cityName: (cityName || '').trim(),
+    instagram: formatShareCardInstagram(
+      biz?.instagram || biz?.social_links?.instagram,
+    ),
     price:
       typeof biz?.price === 'string' && biz.price.trim() ? biz.price.trim() : null,
   };
@@ -1101,6 +1159,11 @@ function computeCollageShareCardLayout(data, format, L) {
   const hasRating = typeof data?.rating === 'number' && data.rating > 0;
   const ratingH = hasRating ? L.ratingSize * 1.2 : 0;
 
+  // Instagram del negocio (@handle) bajo la calificación, antes del
+  // dúo (propuesta A corregida, 22 nov 2026).
+  const hasInstagram = !!data?.instagram;
+  const igH = hasInstagram ? L.igSize * 1.2 : 0;
+
   // Dúo: 2 fotos chicas (la 2ª y la 3ª de la galería).
   const duoW = (maxW - L.duoGap) / 2;
   const duoH = duoW / L.duoAspect;
@@ -1109,7 +1172,8 @@ function computeCollageShareCardLayout(data, format, L) {
   let bandH = (hasBizLogo ? circleD / 2 : 0) + L.bandPad;
   if (kickerText) bandH += kickerH + L.nameGap;
   if (nameLines.length) bandH += nameBlockH + L.ratingGap;
-  if (hasRating) bandH += ratingH + L.duoGap;
+  if (hasRating) bandH += ratingH + (hasInstagram ? L.igGap : L.duoGap);
+  if (hasInstagram) bandH += igH + L.duoGap;
   bandH += duoH + L.footGap + L.footSize + L.pad;
   const heroH = Math.max(L.heroMinH, H - bandH);
   const hero = { x: 0, y: 0, w: W, h: heroH, radius: 0 };
@@ -1128,18 +1192,14 @@ function computeCollageShareCardLayout(data, format, L) {
     : null;
 
   const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
-  // Pie con las 3 opciones en una fila (22 nov 2026): la píldora web
-  // con los colores de la paleta del collage (fondo blanco).
+  // Pie solo con los 2 badges (propuesta A, 22 nov 2026: en negocios
+  // ya no va la píldora web).
   const footerRow = computeShareCardFooterRow({
     centerX: W / 2,
     maxW,
     y: footer.y,
     height: L.footSize,
-    pill: {
-      bg: GRID_SHARE_CARD_COLORS.pillBg,
-      border: GRID_SHARE_CARD_COLORS.pillBorder || null,
-      text: GRID_SHARE_CARD_COLORS.pillText,
-    },
+    includeWeb: false,
   });
 
   let y = heroBottom + (hasBizLogo ? circleD / 2 : 0) + L.bandPad;
@@ -1170,7 +1230,17 @@ function computeCollageShareCardLayout(data, format, L) {
       y: y + ratingH / 2,
       size: L.ratingSize,
     };
-    y += ratingH + L.duoGap;
+    y += ratingH + (hasInstagram ? L.igGap : L.duoGap);
+  }
+  let instagramBox = null;
+  if (hasInstagram) {
+    instagramBox = {
+      text: `@${data.instagram}`,
+      x: L.pad,
+      y: y + igH / 2,
+      size: L.igSize,
+    };
+    y += igH + L.duoGap;
   }
   const urls = (data?.photoUrls || []).slice(0, 3);
   const duo = [1, 2].map((photoIndex) => ({
@@ -1201,6 +1271,7 @@ function computeCollageShareCardLayout(data, format, L) {
     duo,
     gridCells: null,
     category: null,
+    instagram: instagramBox,
     pillRows: [],
     dishes: [],
     hours: null,
@@ -1231,21 +1302,26 @@ export const SHARE_CARD_FOOTER_BADGE_ASPECTS = {
 export const SHARE_CARD_FOOTER_ROW_GAP = 16;
 export const SHARE_CARD_FOOTER_WEB_TEXT = '🌐 www.citymap.mx';
 
-// Geometría de la fila del pie: los 3 botones centrados en la región
+// Geometría de la fila del pie: los botones centrados en la región
 // (centerX, maxW), con altura `height` (los badges miden lo mismo de
 // alto que la píldora web). Si no caben en maxW, todo se achica en
 // proporción (la columna de información del Grid horizontal es
 // estrecha). `pill` son los colores de la píldora web (los de la
 // paleta de cada tarjeta). La `y` es el CENTRO vertical de la fila.
-export function computeShareCardFooterRow({ centerX, maxW, y, height, pill }) {
+// Propuesta A (22 nov 2026): las tarjetas de NEGOCIOS llevan solo
+// los 2 badges (`includeWeb: false`, sin píldora web); eventos y
+// tours siguen con las 3 opciones.
+export function computeShareCardFooterRow({ centerX, maxW, y, height, pill, includeWeb = true }) {
   const gap = SHARE_CARD_FOOTER_ROW_GAP;
   const textSize = Math.round(height * 0.55);
   const webPadX = Math.round(height * 0.55);
-  const webTextW = measureShareCardText(SHARE_CARD_FOOTER_WEB_TEXT, textSize, 800);
-  const webW = Math.round(webTextW + webPadX * 2);
+  const webTextW = includeWeb
+    ? measureShareCardText(SHARE_CARD_FOOTER_WEB_TEXT, textSize, 800)
+    : 0;
+  const webW = includeWeb ? Math.round(webTextW + webPadX * 2) : 0;
   const appW = Math.round(height * SHARE_CARD_FOOTER_BADGE_ASPECTS.appStore);
   const playW = Math.round(height * SHARE_CARD_FOOTER_BADGE_ASPECTS.googlePlay);
-  const total = webW + gap + appW + gap + playW;
+  const total = includeWeb ? webW + gap + appW + gap + playW : appW + gap + playW;
   const scale = total > maxW ? maxW / total : 1;
   const h = Math.max(16, Math.round(height * scale));
   const wWeb = Math.round(webW * scale);
@@ -1254,7 +1330,7 @@ export function computeShareCardFooterRow({ centerX, maxW, y, height, pill }) {
   const size = Math.max(10, Math.round(textSize * scale));
   const padX = Math.round(webPadX * scale);
   const g = Math.round(gap * scale);
-  const totalW = wWeb + g + wApp + g + wPlay;
+  const totalW = includeWeb ? wWeb + g + wApp + g + wPlay : wApp + g + wPlay;
   const x0 = Math.round(centerX - totalW / 2);
   const top = Math.round(y - h / 2);
   return {
@@ -1263,33 +1339,37 @@ export function computeShareCardFooterRow({ centerX, maxW, y, height, pill }) {
     w: totalW,
     h,
     gap: g,
-    pill,
-    web: { x: x0, y: top, w: wWeb, h, text: SHARE_CARD_FOOTER_WEB_TEXT, size, padX },
-    appStore: { x: x0 + wWeb + g, y: top, w: wApp, h },
-    googlePlay: { x: x0 + wWeb + g + wApp + g, y: top, w: wPlay, h },
+    pill: includeWeb ? pill : null,
+    web: includeWeb
+      ? { x: x0, y: top, w: wWeb, h, text: SHARE_CARD_FOOTER_WEB_TEXT, size, padX }
+      : null,
+    appStore: { x: x0 + (includeWeb ? wWeb + g : 0), y: top, w: wApp, h },
+    googlePlay: { x: x0 + (includeWeb ? wWeb + g : 0) + wApp + g, y: top, w: wPlay, h },
   };
 }
 
 // Dibuja la fila del pie en canvas: la píldora web (colores de la
-// paleta de la tarjeta) y los 2 badges. Sin badge (no cargó), la
-// píldora oscura con el nombre de la tienda: nunca queda un hueco
-// vacío ni roto.
+// paleta de la tarjeta) y los 2 badges. Sin píldora web (negocios,
+// propuesta A), solo los badges. Sin badge (no cargó), la píldora
+// oscura con el nombre de la tienda: nunca queda un hueco vacío ni roto.
 export function drawShareCardFooterRow(ctx, row, assets) {
   if (!row) return;
-  const web = row.web;
-  ctx.fillStyle = row.pill?.bg || 'rgba(255,255,255,0.12)';
-  roundRectPath(ctx, web.x, web.y, web.w, web.h, web.h / 2);
-  ctx.fill();
-  if (row.pill?.border) {
-    ctx.strokeStyle = row.pill.border;
-    ctx.lineWidth = 2;
-    ctx.stroke();
+  if (row.web) {
+    const web = row.web;
+    ctx.fillStyle = row.pill?.bg || 'rgba(255,255,255,0.12)';
+    roundRectPath(ctx, web.x, web.y, web.w, web.h, web.h / 2);
+    ctx.fill();
+    if (row.pill?.border) {
+      ctx.strokeStyle = row.pill.border;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.font = `800 ${web.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = row.pill?.text || '#FFFFFF';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(web.text, web.x + web.w / 2, web.y + web.h / 2);
   }
-  ctx.font = `800 ${web.size}px ${SHARE_CARD_FONT_STACK}`;
-  ctx.fillStyle = row.pill?.text || '#FFFFFF';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(web.text, web.x + web.w / 2, web.y + web.h / 2);
   drawShareCardFooterBadge(ctx, row.appStore, assets?.appStore, 'App Store');
   drawShareCardFooterBadge(ctx, row.googlePlay, assets?.googlePlay, 'Google Play');
 }
@@ -1310,7 +1390,7 @@ function drawShareCardFooterBadge(ctx, box, img, label) {
 }
 
 // Geometría completa de la tarjeta. La foto es el único bloque flexible:
-// su alto es todo lo que sobra tras reservar logo, textos, píldoras y
+// su alto es todo lo que sobra tras reservar logo, textos y
 // pie, con photoMinH como mínimo — por eso nunca queda hueco vacío.
 // Las `y` de nombre y pie son el CENTRO vertical del texto
 // (el canvas dibuja con textBaseline 'middle').
@@ -1318,9 +1398,13 @@ function drawShareCardFooterBadge(ctx, box, img, label) {
 // de medidas. Sin estilo, la geometría es la de siempre.
 // PR #155: sin categoría y sin panel de ficha; la foto es más corta y
 // el nombre y las píldoras más grandes, para que la información tenga
-// más presencia.
-// PR #159: «Para pedir» cambia las píldoras por platillos, horario y
-// botón verde; el QR cambia la foto por el área flexible del QR.
+// más presencia. Propuesta A corregida (22 nov 2026): las píldoras SE
+// QUEDAN bajo el nombre, la categoría va bajo las píldoras y el
+// Instagram bajo la categoría; el pie lleva solo los 2 badges (sin
+// píldora web).
+// PR #159: «Para pedir» lleva platillos, horario y botón verde en
+// vez del bloque de información; el QR cambia la foto por el área
+// flexible del QR.
 export function computeShareCardLayout(data, format, hasGoogleMark = true, styleId = 'glass') {
   const f = format || SHARE_CARD_FORMATS.story;
   const style = resolveShareCardStyle(styleId);
@@ -1330,7 +1414,7 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   const maxW = W - L.pad * 2;
 
   // El Collage editorial tiene su propia geometría (hero a sangre +
-  // banda blanca): no pasa por el flujo de foto + nombre + píldoras.
+  // banda blanca): no pasa por el flujo de foto + nombre + categoría.
   if (style.id === 'collage') {
     return computeCollageShareCardLayout(data, f, L);
   }
@@ -1341,7 +1425,8 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   const isGrid = style.id === 'grid' || style.id === 'tira';
 
   // PR #159: «Para pedir» y el QR del menú tienen sus propios bloques
-  // (platillos/horario/botón y área del QR) en vez de las píldoras.
+  // (platillos/horario/botón y área del QR) en vez del bloque de
+  // información.
   const isPedido = style.id === 'pedido';
   const isQr = style.id === 'qr';
 
@@ -1380,12 +1465,22 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
   const pillsGapU = pillRows.length ? gapAfterPhoto(L.pillsGap) : L.pillsGap;
   const pillsBlock = pillRows.length ? pillsGapU + pillsBlockH : 0;
 
-  // Categoría (solo Grid 2×2 y tira, como la demo): línea de texto
-  // bajo las píldoras («Restaurantes»). En Oscura/Clara no existe
-  // (PR #155) y el collage la lleva en el kicker, no aquí.
-  const hasCategory = isGrid && String(data?.category || '').trim() !== '';
+  // Categoría: línea bajo las píldoras (propuesta A corregida, 22 nov
+  // 2026). En Oscura/Clara vuelve (la PR #155 la había quitado); Grid
+  // y tira ya la llevaban, bajo las píldoras. «Para pedir» y el QR no
+  // la llevan (su bloque es el menú). El collage la lleva en el
+  // kicker, no aquí.
+  const hasCategory =
+    !isPedido && !isQr && String(data?.category || '').trim() !== '';
   const catGapU = hasCategory ? gapAfterPhoto(L.catGap) : L.catGap;
   const catBlock = hasCategory ? catGapU + L.catSize * 1.2 : 0;
+
+  // Instagram del negocio (@handle) bajo la categoría (propuesta A
+  // corregida, 22 nov 2026). «Para pedir» y el QR no lo llevan (su
+  // bloque es el menú).
+  const hasInstagram = !isPedido && !isQr && !!data?.instagram;
+  const igGapU = hasInstagram ? gapAfterPhoto(L.igGap) : L.igGap;
+  const igBlock = hasInstagram ? igGapU + L.igSize * 1.2 : 0;
 
   // PR #159 — bloques de «Para pedir»: los platillos (nombre a la
   // izquierda, precio a la derecha, renglón punteado entre ellos),
@@ -1433,6 +1528,7 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
           nameBlock -
           pillsBlock -
           catBlock -
+          igBlock -
           dishesBlock -
           hoursBlock -
           buttonBlock -
@@ -1542,8 +1638,8 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     y -= L.pillRowGap;
   }
 
-  // Categoría (solo Grid 2×2 y tira): línea centrada bajo las
-  // píldoras, en el color secundario de la paleta.
+  // Categoría: línea centrada bajo las píldoras, en el color
+  // secundario de la paleta (propuesta A corregida, 22 nov 2026).
   let categoryBox = null;
   if (hasCategory) {
     y += catGapU;
@@ -1556,20 +1652,29 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     y += L.catSize * 1.2;
   }
 
+  // Instagram: línea centrada bajo la categoría, en el color
+  // secundario de la paleta.
+  let instagramBox = null;
+  if (hasInstagram) {
+    y += igGapU;
+    instagramBox = {
+      text: `@${data.instagram}`,
+      x: W / 2,
+      y: y + (L.igSize * 1.2) / 2,
+      size: L.igSize,
+    };
+    y += L.igSize * 1.2;
+  }
+
   const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
-  // Pie con las 3 opciones en una fila (22 nov 2026): la píldora web
-  // con los colores de la paleta del estilo.
-  const palette = SHARE_CARD_STYLE_COLORS[style.id] || SHARE_CARD_STYLE_COLORS.glass;
+  // Pie solo con los 2 badges (propuesta A, 22 nov 2026: en negocios
+  // ya no va la píldora web).
   const footerRow = computeShareCardFooterRow({
     centerX: W / 2,
     maxW,
     y: footer.y,
     height: L.footSize,
-    pill: {
-      bg: palette.pillBg,
-      border: palette.pillBorder || null,
-      text: palette.pillText,
-    },
+    includeWeb: false,
   });
 
   // PR #159 — «Para pedir»: los platillos van tras el nombre, cada
@@ -1584,7 +1689,7 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
       return row;
     });
     // El bucle suma dishGap también tras la última fila; se quita
-    // para que el horario quede a su hueco diseñado, como las píldoras.
+    // para que el horario quede a su hueco diseñado.
     y -= L.dishGap;
   }
   let hoursBox = null;
@@ -1652,6 +1757,7 @@ export function computeShareCardLayout(data, format, hasGoogleMark = true, style
     duo: null,
     gridCells,
     category: categoryBox,
+    instagram: instagramBox,
     pillRows: pillRowsOut,
     dishes: dishesOut,
     hours: hoursBox,
@@ -1736,16 +1842,6 @@ export async function loadShareCardLogoDark() {
     x.fillStyle = '#111111';
     x.fillRect(0, 0, c.width, c.height);
     return c;
-  } catch {
-    return null;
-  }
-}
-
-// La «G» de Google que acompaña a la calificación (igual que en las
-// tarjetas de negocio). Si no carga, la píldora sale solo con el texto.
-async function loadGoogleMark() {
-  try {
-    return await loadImage('/googlelogo.svg');
   } catch {
     return null;
   }
@@ -1979,7 +2075,9 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
   // Círculo del logo del negocio (PR #144): mismo estilo que la ficha —
   // blanco, borde fino y sombra — centrado a caballo sobre el borde
   // inferior de la foto. El logo va con contain dentro del círculo
-  // interior, completo y sin recortar.
+  // interior, completo y sin recortar. Sin logo_url, el círculo lleva
+  // la primera foto de la galería con cover (propuesta A, 22 nov
+  // 2026): una foto rectangular en contain dejaría bandas blancas.
   if (geo.bizLogo && assets?.bizLogo) {
     const b = geo.bizLogo;
     const cx = b.x + b.d / 2;
@@ -2007,7 +2105,11 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     ctx.beginPath();
     ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
     ctx.clip();
-    drawContainImage(ctx, assets.bizLogo, cx - innerR, cy - innerR, innerR * 2, innerR * 2);
+    if (data?.bizLogoCover) {
+      drawCoverImage(ctx, assets.bizLogo, cx - innerR, cy - innerR, innerR * 2, innerR * 2);
+    } else {
+      drawContainImage(ctx, assets.bizLogo, cx - innerR, cy - innerR, innerR * 2, innerR * 2);
+    }
     ctx.restore();
   }
 
@@ -2073,7 +2175,8 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     }
   }
 
-  // Categoría (solo Grid 2×2 y tira): línea centrada bajo las píldoras.
+  // Categoría: línea centrada bajo las píldoras (propuesta A corregida,
+  // 22 nov 2026).
   if (geo.category) {
     const c = geo.category;
     ctx.font = `600 ${c.size}px ${SHARE_CARD_FONT_STACK}`;
@@ -2081,6 +2184,18 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(c.text, c.x, c.y);
+  }
+
+  // Instagram del negocio («@handle»): centrado bajo la categoría en
+  // los estilos de flujo; a la izquierda en el collage (su caja ya
+  // lleva la x). En el color secundario de la paleta.
+  if (geo.instagram) {
+    const g = geo.instagram;
+    ctx.font = `600 ${g.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.fillStyle = palette.sub;
+    ctx.textAlign = geo.style === 'collage' ? 'left' : 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(g.text, g.x, g.y);
   }
 
   // Kicker del collage: «RESTAURANTES · ZAPOPAN» (mayúsculas, con
@@ -2121,9 +2236,9 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     );
   }
 
-  // Pie con las 3 opciones en una fila (22 nov 2026): enlace web +
-  // badges de App Store y Google Play (misma geometría que la vista
-  // previa, geo.footerRow). Sin badges, la píldora con el nombre.
+  // Pie solo con los 2 badges (propuesta A, 22 nov 2026): badges de
+  // App Store y Google Play (misma geometría que la vista previa,
+  // geo.footerRow). Sin badges, la píldora con el nombre.
   drawShareCardFooterRow(ctx, geo.footerRow, assets);
 
   // PR #159 — «Para pedir»: platillos (nombre a la izquierda, precio
@@ -2221,6 +2336,16 @@ export async function renderShareCardCanvas(data, format, styleId = 'glass') {
     layout,
     styleId,
   );
+}
+
+// La «G» de Google que acompaña a la calificación (igual que en las
+// tarjetas de negocio). Si no carga, la píldora sale solo con el texto.
+async function loadGoogleMark() {
+  try {
+    return await loadImage('/googlelogo.svg');
+  } catch {
+    return null;
+  }
 }
 
 // El QR del menú como imagen para el canvas: la data URL se genera en

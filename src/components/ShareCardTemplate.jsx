@@ -1,13 +1,18 @@
 // Plantilla de la tarjeta para compartir (PR #142 v1, PR #143): UN estilo
 // oscuro tipo «Glass» — logotipo oficial arriba, foto, nombre grande,
 // píldoras con la calificación de Google (con su conteo de reseñas) y
-// la ciudad, y al pie la fila con el enlace web y los badges de
-// App Store y Google Play (22 nov 2026).
+// la ciudad, categoría, Instagram del negocio y al pie solo los badges
+// de App Store y Google Play (propuesta A corregida, 22 nov 2026: las
+// píldoras se quedan; solo sale la píldora web del pie).
 // PR #144: el logo circular del negocio (mismo que la ficha, solo para
 // planes de pago con logo_url) va centrado a caballo sobre el borde
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
 // tarjeta queda igual que en el #143. PR #145: el círculo es más grande
 // (Ø 240 Historia / 190 Post) con anillo y sombra proporcionales.
+// Propuesta A corregida (22 nov 2026): el círculo ya no exige plan de
+// pago — logo_url del negocio, o su primera foto de la galería
+// recortada en círculo (objectFit cover) si no tiene logo; sin fotos,
+// sin círculo.
 // PR #154: dos estilos (Oscura y Clara): la plantilla pinta el
 // estilo elegido con su paleta y su geometría (SHARE_CARD_STYLE_COLORS
 // + shareCardLayoutTable en lib/shareCard.js). La versión clara es tipo
@@ -66,11 +71,13 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
   // márgenes normales, igual que en el canvas.
   const firstBlock = layout.name && layout.name.lines.length
     ? 'name'
-    : hasRating || data?.cityName
+    : layout.pillRows?.length
       ? 'pills'
       : layout.category
         ? 'category'
-        : 'foot';
+        : layout.instagram
+          ? 'instagram'
+          : 'foot';
   // El logo circular se pide en 300×300, igual que la ficha.
   const logoSrc = data?.bizLogoUrl ? getThumbUrl(data.bizLogoUrl, 300, 300) : null;
   // PR #159: «Para pedir» y el QR no llevan píldoras (nada de
@@ -130,7 +137,9 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'contain',
+            // Logo: completo sin recortar (contain). Primera foto de
+            // la galería como logo: recortada en círculo (cover).
+            objectFit: data?.bizLogoCover ? 'cover' : 'contain',
             borderRadius: '50%',
             display: 'block',
           }}
@@ -292,6 +301,24 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           </div>
         ) : null}
 
+        {/* Instagram del negocio (@handle) bajo la calificación */}
+        {layout.instagram ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: layout.instagram.x,
+              top: layout.instagram.y - (layout.instagram.size * 1.2) / 2,
+              fontSize: layout.instagram.size,
+              fontWeight: 600,
+              lineHeight: 1.2,
+              color: palette.sub,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {layout.instagram.text}
+          </div>
+        ) : null}
+
         {/* Dúo de 2 fotos chicas */}
         {(layout.duo || []).map((cell, i) => {
           const src = cell.photoUrl ? getThumbUrl(cell.photoUrl, 1080) : null;
@@ -341,7 +368,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           );
         })}
 
-        {/* Pie con las 3 opciones en una fila (22 nov 2026) */}
+        {/* Pie solo con los 2 badges (propuesta A, 22 nov 2026) */}
         <div
           style={{
             position: 'absolute',
@@ -632,8 +659,8 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
         </div>
       ) : null}
 
-      {/* Categoría (solo Grid 2×2 y tira): línea centrada bajo las
-          píldoras, en el color secundario de la paleta. */}
+      {/* Categoría: línea centrada bajo las píldoras (propuesta A
+          corregida, 22 nov 2026), en el color secundario de la paleta. */}
       {layout.category ? (
         <div
           style={{
@@ -647,6 +674,24 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           }}
         >
           {layout.category.text}
+        </div>
+      ) : null}
+
+      {/* Instagram del negocio (@handle) bajo la categoría (propuesta A
+          corregida, 22 nov 2026). */}
+      {layout.instagram ? (
+        <div
+          style={{
+            marginTop: firstBlock === 'instagram' ? layout.firstGap : L.igGap,
+            width: photoW,
+            fontSize: L.igSize,
+            fontWeight: 600,
+            lineHeight: 1.2,
+            color: palette.sub,
+            flexShrink: 0,
+          }}
+        >
+          {layout.instagram.text}
         </div>
       ) : null}
 
@@ -756,7 +801,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
         </div>
       ) : null}
 
-      {/* Pie con las 3 opciones en una fila (22 nov 2026) */}
+      {/* Pie solo con los 2 badges (propuesta A, 22 nov 2026) */}
       <div
         style={{
           marginTop: firstBlock === 'foot' ? layout.firstGap : L.footGap,
