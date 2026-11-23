@@ -307,8 +307,8 @@ describe('tarjeta para compartir: estilos con grid (demo 10 nov 2026)', () => {
     // Pie solo con los 2 badges + web en texto limpio sobre ellos
     // (definición final, 22 nov 2026).
     expect(htmlGrid).toContain('🌐 www.citymap.mx');
-    expect(htmlGrid).toContain('/badges/app-store.svg');
-    expect(htmlGrid).toContain('/badges/google-play.svg');
+    expect(htmlGrid).toContain('/badges/app-store-es.svg');
+    expect(htmlGrid).toContain('/badges/google-play-es.svg');
     // Grid 2×2: 4 fotos + logo oficial + círculo + 2 badges (sin G).
     expect(htmlGrid.match(/<img/g)).toHaveLength(8);
     // Tira: 1 grande + 3 miniaturas (mismas 4 fotos).

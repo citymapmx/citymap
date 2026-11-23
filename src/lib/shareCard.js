@@ -37,7 +37,7 @@
 // inferior de la foto, con anillo blanco; si no hay logo o no carga, la
 // tarjeta queda igual que en el #143.
 import qrcode from 'qrcode-generator';
-import { createSlug, getThumbUrl, cleanCityPrefix } from './utils.js';
+import { CAT_EMOJI, createSlug, getThumbUrl, cleanCityPrefix } from './utils.js';
 import { formatReviewCount } from './googleRatings.js';
 import { getProductPriceLabel } from './menuPricing.js';
 import { sb } from './supabase.js';
@@ -366,6 +366,11 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     webGap: 16,
     footSize: 44,
     footGap: 60,
+    // Clara con QR del perfil (diseño de referencia, 22 nov 2026):
+    // hueco entre el texto y el QR, y entre el bloque de información
+    // y la línea divisoria horizontal.
+    qrGap: 48,
+    divGap: 36,
   },
   post: {
     pad: 48,
@@ -395,6 +400,11 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     webGap: 12,
     footSize: 40,
     footGap: 44,
+    // Clara con QR del perfil (diseño de referencia, 22 nov 2026):
+    // hueco entre el texto y el QR, y entre el bloque de información
+    // y la línea divisoria horizontal.
+    qrGap: 36,
+    divGap: 28,
   },
 };
 
@@ -724,6 +734,19 @@ export function formatShareCardCategory(raw) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// Emoji de la categoría para la fila «categoría | Instagram» de la
+// tarjeta Clara con QR (diseño de referencia, 22 nov 2026): el de
+// CAT_EMOJI, con «cafeterias» como alias de «cafe» (la categoría real
+// en base es «cafeterias», no «cafe»). Sin emoji para la categoría, la
+// fila sale solo con el texto. No se toca CAT_EMOJI: el alias vive
+// solo aquí, para no cambiar los pines del mapa.
+const SHARE_CARD_CATEGORY_EMOJI_ALIAS = { cafeterias: 'cafe' };
+export function shareCardCategoryEmoji(raw) {
+  const key = String(raw || '').trim().toLowerCase();
+  if (!key) return null;
+  return CAT_EMOJI[key] || CAT_EMOJI[SHARE_CARD_CATEGORY_EMOJI_ALIAS[key]] || null;
+}
+
 // Instagram del negocio para la tarjeta («Cafebelloy»,
 // «@cafebelloy» o «https://instagram.com/cafebelloy» → «cafebelloy»,
 // en minúsculas como lo muestra Instagram). Vive en
@@ -769,6 +792,7 @@ export function buildShareCardData(biz, { disp = null, cityName = '' } = {}) {
     photoUrl,
     photoUrls,
     category: formatShareCardCategory(biz?.category || biz?.type),
+    categoryEmoji: shareCardCategoryEmoji(biz?.category || biz?.type),
     bizLogoUrl: logoUrl || firstPhotoUrl,
     // Sin logo_url, el círculo lleva la primera foto recortada
     // (cover), no el logo completo (contain): ver drawShareCardCanvas.
@@ -802,7 +826,7 @@ export function shareCardFileName(biz) {
 // línea, nunca se inventa uno.
 export function buildMenuShareCardData(
   biz,
-  { disp = null, cityName = '', menuItems = [], hoursLine = null, whatsappUrl = null, menuUrl = null, qrDataUrl = null } = {},
+  { disp = null, cityName = '', menuItems = [], hoursLine = null, whatsappUrl = null, menuUrl = null, qrDataUrl = null, profileQrDataUrl = null } = {},
 ) {
   return {
     ...buildShareCardData(biz, { disp, cityName }),
@@ -811,6 +835,9 @@ export function buildMenuShareCardData(
     whatsappUrl: whatsappUrl || null,
     menuUrl: menuUrl || null,
     qrDataUrl: qrDataUrl || null,
+    // QR del perfil (Clara con QR, 22 nov 2026): la URL de la ficha;
+    // campo aparte del QR del menú.
+    profileQrDataUrl: profileQrDataUrl || null,
   };
 }
 
@@ -1442,20 +1469,20 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
     return g;
   };
 
-  const nameLines = wrapShareCardName(data?.name, maxW, L);
-  const nameBlockH = nameLines.length * L.nameSize * L.nameLineH;
+  let nameLines = wrapShareCardName(data?.name, maxW, L);
+  let nameBlockH = nameLines.length * L.nameSize * L.nameLineH;
   const nameGapU = nameLines.length ? gapAfterPhoto(L.nameGap) : L.nameGap;
-  const nameBlock = nameLines.length ? nameGapU + nameBlockH : 0;
+  let nameBlock = nameLines.length ? nameGapU + nameBlockH : 0;
 
   // Reseñas + ciudad como UNA línea de texto limpio bajo el nombre
   // (definición final, 22 nov 2026): «★ 4.2 (2,561) · París», sin
   // fondo gris y sin logo G. «Para pedir» y el QR no la llevan (su
   // bloque es el menú).
-  const rcLines = isPedido || isQr ? [] : shareCardRatingCityLines(data, maxW, L);
+  let rcLines = isPedido || isQr ? [] : shareCardRatingCityLines(data, maxW, L);
   const rcLineH = L.rcSize * 1.2;
-  const rcBlockH = rcLines.length * rcLineH;
+  let rcBlockH = rcLines.length * rcLineH;
   const rcGapU = rcLines.length ? gapAfterPhoto(L.rcGap) : L.rcGap;
-  const rcBlock = rcLines.length ? rcGapU + rcBlockH : 0;
+  let rcBlock = rcLines.length ? rcGapU + rcBlockH : 0;
 
   // Categoría: línea bajo la línea de reseñas+ciudad (definición
   // final, 22 nov 2026). En Oscura/Clara vuelve (la PR #155 la había
@@ -1465,14 +1492,94 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
   const hasCategory =
     !isPedido && !isQr && String(data?.category || '').trim() !== '';
   const catGapU = hasCategory ? gapAfterPhoto(L.catGap) : L.catGap;
-  const catBlock = hasCategory ? catGapU + L.catSize * 1.2 : 0;
+  let catBlock = hasCategory ? catGapU + L.catSize * 1.2 : 0;
 
   // Instagram del negocio (@handle) bajo la categoría (propuesta A
   // corregida, 22 nov 2026). «Para pedir» y el QR no lo llevan (su
   // bloque es el menú).
   const hasInstagram = !isPedido && !isQr && !!data?.instagram;
   const igGapU = hasInstagram ? gapAfterPhoto(L.igGap) : L.igGap;
-  const igBlock = hasInstagram ? igGapU + L.igSize * 1.2 : 0;
+  let igBlock = hasInstagram ? igGapU + L.igSize * 1.2 : 0;
+
+  // ─── Clara con QR del perfil (diseño de referencia, 22 nov 2026) ───
+  //
+  // Solo Clara (editorial) y solo cuando hay QR del perfil
+  // (data.profileQrDataUrl, la URL de la ficha): el QR va a la derecha
+  // del bloque de información — nombre a la izquierda, reseñas+ciudad
+  // con estrella dorada, y categoría + Instagram en UNA fila — con una
+  // línea divisoria vertical entre el texto y el QR y otra horizontal
+  // bajo el bloque. Sin al menos un dato de información, no hay rama:
+  // la tarjeta queda con la geometría centrada de siempre.
+  // El lado del QR es el alto del bloque de información (con un mínimo
+  // de 160 px para que se lea al escanear); el texto se estrecha a lo
+  // que queda. Se itera hasta 3 veces: al estrecharse, el nombre puede
+  // crecer a otra línea y el bloque (y el QR) crecen con él.
+  const PROFILE_QR_MIN_SIDE = 160;
+  const wantsProfileQr = style.id === 'editorial' && !!data?.profileQrDataUrl;
+  const hasProfileQr = !!(
+    wantsProfileQr && (nameLines.length || rcLines.length || hasCategory || !!data?.instagram)
+  );
+  let textW = maxW;
+  let qrSide = 0;
+  let catIgBlock = 0;
+  let divBlock = 0;
+  let categoryRow = null;
+  // Hueco antes de la fila «categoría | Instagram»: el de la
+  // categoría si la hay, si no el de Instagram (es el primer bloque
+  // solo cuando no hay nombre ni reseñas).
+  const rowGapU = hasCategory ? catGapU : igGapU;
+  if (hasProfileQr) {
+    const catRowH = L.catSize * 1.2;
+    for (let i = 0; i < 3; i += 1) {
+      nameLines = wrapShareCardName(data?.name, textW, L);
+      nameBlockH = nameLines.length * L.nameSize * L.nameLineH;
+      nameBlock = nameLines.length ? nameGapU + nameBlockH : 0;
+      rcLines = shareCardRatingCityLines(data, textW, L);
+      rcBlockH = rcLines.length * rcLineH;
+      rcBlock = rcLines.length ? rcGapU + rcBlockH : 0;
+      const infoH =
+        nameBlockH + rcBlock + (hasCategory || hasInstagram ? rowGapU + catRowH : 0);
+      const nextSide = Math.max(infoH, PROFILE_QR_MIN_SIDE);
+      if (nextSide === qrSide) break;
+      qrSide = nextSide;
+      textW = Math.max(0, maxW - qrSide - L.qrGap);
+    }
+    // La fila «categoría | Instagram»: emoji de la categoría (si
+    // tiene) + categoría + «|» + glifo de Instagram + @handle, todo a
+    // tamaño de categoría. Si no cabe en textW, se recorta el handle
+    // con «…» (la categoría nunca se recorta).
+    if (hasCategory || hasInstagram) {
+      const emoji = data?.categoryEmoji || null;
+      const catText = hasCategory ? String(data.category).trim() : '';
+      const igText = hasInstagram ? `@${data.instagram}` : null;
+      const glyphW = L.catSize;
+      const gapW = 8;
+      const sepW = measureShareCardText('  |  ', L.catSize, 600);
+      let igW = igText ? glyphW + gapW + measureShareCardText(igText, L.catSize, 600) : 0;
+      let emojiW = emoji ? measureShareCardText(emoji, L.catSize, 600) + gapW : 0;
+      let catW = catText ? measureShareCardText(catText, L.catSize, 600) : 0;
+      let handle = igText;
+      const rowW = emojiW + catW + (igText ? sepW + igW : 0);
+      if (rowW > textW && igText) {
+        const avail = Math.max(0, textW - emojiW - catW - sepW - glyphW - gapW);
+        handle = truncateShareCardText(igText, avail, L.catSize, 600);
+        igW = glyphW + gapW + measureShareCardText(handle, L.catSize, 600);
+      }
+      categoryRow = {
+        emoji,
+        category: catText,
+        instagram: handle ? handle.slice(1) : null,
+        size: L.catSize,
+        width: emojiW + catW + (igText ? sepW + igW : 0),
+      };
+      catIgBlock = rowGapU + catRowH;
+    }
+    // Categoría e Instagram ya no van en sus líneas centradas: van en
+    // la fila. Y bajo el bloque va la divisoria horizontal.
+    catBlock = 0;
+    igBlock = 0;
+    divBlock = L.divGap + 2;
+  }
 
   // PR #159 — bloques de «Para pedir»: los platillos (nombre a la
   // izquierda, precio a la derecha, renglón punteado entre ellos),
@@ -1525,6 +1632,8 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
           rcBlock -
           catBlock -
           igBlock -
+          catIgBlock -
+          divBlock -
           dishesBlock -
           hoursBlock -
           buttonBlock -
@@ -1600,39 +1709,55 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
       }
     : null;
 
+  // Clara con QR: el bloque de información va a la izquierda (el QR
+  // a la derecha). infoTop/infoBottom marcan el bloque para centrar
+  // el QR y la divisoria vertical en él.
+  let infoTop = null;
+  let infoBottom = null;
+
   let nameBox = null;
   if (nameLines.length) {
     y += nameGapU;
+    if (infoTop === null) infoTop = y;
     nameBox = {
       lines: nameLines,
-      x: W / 2,
+      x: hasProfileQr ? L.pad : W / 2,
       y: y + (L.nameSize * L.nameLineH) / 2,
       size: L.nameSize,
       lineH: L.nameSize * L.nameLineH,
+      align: hasProfileQr ? 'left' : undefined,
     };
     y += nameBlockH;
+    infoBottom = y;
   }
 
   // Reseñas + ciudad como texto limpio centrado, hasta 2 líneas
   // (definición final, 22 nov 2026). La `y` es el CENTRO vertical de
   // la primera línea (el canvas dibuja con textBaseline 'middle').
+  // Clara con QR: a la izquierda, con la estrella en dorado y el
+  // resto en oscuro (diseño de referencia, 22 nov 2026).
   let ratingCityBox = null;
   if (rcLines.length) {
     y += rcGapU;
+    if (infoTop === null) infoTop = y;
     ratingCityBox = {
       lines: rcLines,
-      x: W / 2,
+      x: hasProfileQr ? L.pad : W / 2,
       y: y + rcLineH / 2,
       size: L.rcSize,
       lineH: rcLineH,
+      align: hasProfileQr ? 'left' : undefined,
+      goldStar: hasProfileQr || undefined,
     };
     y += rcBlockH;
+    infoBottom = y;
   }
 
   // Categoría: línea centrada bajo la línea de reseñas+ciudad
-  // (definición final, 22 nov 2026).
+  // (definición final, 22 nov 2026). Clara con QR: no va aquí, va en
+  // la fila «categoría | Instagram» (categoryRow, más abajo).
   let categoryBox = null;
-  if (hasCategory) {
+  if (hasCategory && !hasProfileQr) {
     y += catGapU;
     categoryBox = {
       text: data.category,
@@ -1644,9 +1769,10 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
   }
 
   // Instagram: línea centrada bajo la categoría, en el color
-  // secundario de la paleta.
+  // secundario de la paleta. Clara con QR: no va aquí, va en la fila
+  // (categoryRow, más abajo).
   let instagramBox = null;
-  if (hasInstagram) {
+  if (hasInstagram && !hasProfileQr) {
     y += igGapU;
     instagramBox = {
       text: `@${data.instagram}`,
@@ -1655,6 +1781,42 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
       size: L.igSize,
     };
     y += L.igSize * 1.2;
+  }
+
+  // Clara con QR — fila «categoría | Instagram» en UNA línea, y el
+  // QR a la derecha del bloque con su divisoria vertical. El QR se
+  // centra en el bloque (si el mínimo de 160 px lo hace más alto que
+  // el texto, sobresale por arriba y por abajo por igual).
+  let categoryRowBox = null;
+  let qrProfileBox = null;
+  let divVBox = null;
+  let divHBox = null;
+  if (hasProfileQr && categoryRow) {
+    y += rowGapU;
+    if (infoTop === null) infoTop = y;
+    categoryRowBox = {
+      ...categoryRow,
+      x: L.pad,
+      y: y + (L.catSize * 1.2) / 2,
+    };
+    y += L.catSize * 1.2;
+    infoBottom = y;
+  }
+  if (hasProfileQr && infoTop !== null) {
+    const infoH = infoBottom - infoTop;
+    const side = Math.max(infoH, qrSide);
+    const qrX = W - L.pad - side;
+    const qrY = infoTop + (infoH - side) / 2;
+    qrProfileBox = { x: qrX, y: qrY, size: side };
+    divVBox = {
+      x: Math.round(L.pad + textW + (L.qrGap - 2) / 2),
+      yTop: qrY,
+      yBottom: qrY + side,
+    };
+    // Divisoria horizontal bajo el bloque, antes del hueco del pie.
+    y += L.divGap;
+    divHBox = { x: L.pad, y, w: maxW };
+    y += 2;
   }
 
   const footer = { y: H - L.pad - L.footSize / 2, size: L.footSize };
@@ -1765,6 +1927,10 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
     category: categoryBox,
     instagram: instagramBox,
     ratingCity: ratingCityBox,
+    categoryRow: categoryRowBox,
+    qrProfile: qrProfileBox,
+    divV: divVBox,
+    divH: divHBox,
     web: webBox,
     dishes: dishesOut,
     hours: hoursBox,
@@ -1859,10 +2025,15 @@ export async function loadShareCardLogoDark() {
 // así que el canvas los dibuja sin CORS. Si uno no carga, el dibujo
 // usa la píldora con el nombre de la tienda (ver
 // drawShareCardFooterRow), nunca rota.
-export async function loadShareCardFooterBadges() {
+// Badges del pie en español («Descárgalo en App Store» / «DISPONIBLE
+// EN Google Play», diseño de referencia, 22 nov 2026): solo las
+// tarjetas de NEGOCIOS usan la variante 'es'; eventos y tours siguen
+// con los badges en inglés de siempre (variante por defecto 'en').
+export async function loadShareCardFooterBadges(variant = 'en') {
+  const es = variant === 'es';
   const [appStore, googlePlay] = await Promise.all([
-    loadImage('/badges/app-store.svg').catch(() => null),
-    loadImage('/badges/google-play.svg').catch(() => null),
+    loadImage(es ? '/badges/app-store-es.svg' : '/badges/app-store.svg').catch(() => null),
+    loadImage(es ? '/badges/google-play-es.svg' : '/badges/google-play.svg').catch(() => null),
   ]);
   return { appStore, googlePlay };
 }
@@ -1982,6 +2153,30 @@ function drawContainImage(ctx, img, dx, dy, dw, dh) {
   const w = iw * scale;
   const h = ih * scale;
   ctx.drawImage(img, dx + (dw - w) / 2, dy + (dh - h) / 2, w, h);
+}
+
+// Glifo de Instagram (el mismo de Footer.jsx, estilo feather):
+// rectángulo redondeado + círculo + punto, en trazo. Para la fila
+// «categoría | Instagram» de la tarjeta Clara con QR. (x, y) es la
+// esquina superior izquierda; el glifo mide `size` de lado.
+function drawInstagramGlyph(ctx, x, y, size, color) {
+  const s = size;
+  const lw = Math.max(2, Math.round((s * 2) / 24));
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  roundRectPath(ctx, x, y - s / 2, s, s, (s * 5) / 24);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x + s / 2, y, (s * 4) / 24, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x + (s * 17.5) / 24, y - (s * 5.5) / 24, Math.max(1.5, (s * 1.2) / 24), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 export function drawShareCardCanvas(data, format, assets, layout, styleId = 'glass') {
@@ -2143,15 +2338,81 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
   // Reseñas + ciudad como texto limpio centrado, hasta 2 líneas
   // (definición final, 22 nov 2026): «★ 4.2 (2,561) · París», sin
   // fondo gris y sin logo G, en el color secundario de la paleta.
+  // Clara con QR: a la izquierda, con la estrella en dorado y el
+  // resto en oscuro (diseño de referencia, 22 nov 2026).
   if (geo.ratingCity) {
     const r = geo.ratingCity;
     ctx.font = `700 ${r.size}px ${SHARE_CARD_FONT_STACK}`;
-    ctx.fillStyle = palette.sub;
-    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     r.lines.forEach((line, i) => {
-      ctx.fillText(line, r.x, r.y + i * r.lineH);
+      const cy = r.y + i * r.lineH;
+      if (r.align === 'left') {
+        ctx.textAlign = 'left';
+        if (r.goldStar && line.startsWith('★ ')) {
+          ctx.fillStyle = '#F59E0B';
+          ctx.fillText('★', r.x, cy);
+          const starW = ctx.measureText('★').width;
+          ctx.fillStyle = palette.text;
+          ctx.fillText(line.slice(2), r.x + starW + 8, cy);
+        } else {
+          ctx.fillStyle = palette.text;
+          ctx.fillText(line, r.x, cy);
+        }
+      } else {
+        ctx.fillStyle = palette.sub;
+        ctx.textAlign = 'center';
+        ctx.fillText(line, r.x, cy);
+      }
     });
+  }
+
+  // Clara con QR — fila «categoría | Instagram» en UNA línea:
+  // emoji de la categoría (si tiene) + categoría + «|» + glifo de
+  // Instagram + @handle, todo en oscuro salvo el separador.
+  if (geo.categoryRow) {
+    const row = geo.categoryRow;
+    const cy = row.y;
+    ctx.font = `600 ${row.size}px ${SHARE_CARD_FONT_STACK}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    let rx = row.x;
+    if (row.emoji) {
+      ctx.fillStyle = palette.text;
+      ctx.fillText(row.emoji, rx, cy);
+      rx += ctx.measureText(row.emoji).width + 8;
+    }
+    if (row.category) {
+      ctx.fillStyle = palette.text;
+      ctx.fillText(row.category, rx, cy);
+      rx += ctx.measureText(row.category).width;
+    }
+    if (row.instagram) {
+      ctx.fillStyle = palette.sub;
+      ctx.fillText('  |  ', rx, cy);
+      rx += ctx.measureText('  |  ').width;
+      drawInstagramGlyph(ctx, rx, cy, row.size, palette.text);
+      rx += row.size + 8;
+      ctx.fillStyle = palette.text;
+      ctx.fillText(`@${row.instagram}`, rx, cy);
+    }
+  }
+
+  // Clara con QR — divisorias: vertical entre el texto y el QR, y
+  // horizontal bajo el bloque, en gris claro.
+  if (geo.divV) {
+    ctx.fillStyle = '#E5E7EB';
+    ctx.fillRect(geo.divV.x, geo.divV.yTop, 2, geo.divV.yBottom - geo.divV.yTop);
+  }
+  if (geo.divH) {
+    ctx.fillStyle = '#E5E7EB';
+    ctx.fillRect(geo.divH.x, geo.divH.y, geo.divH.w, 2);
+  }
+
+  // Clara con QR — el QR del perfil, directo sobre el fondo blanco
+  // (la data URL ya trae su zona de silencio; sin caja blanca).
+  if (geo.qrProfile && assets?.profileQr) {
+    const q = geo.qrProfile;
+    ctx.drawImage(assets.profileQr, q.x, q.y, q.size, q.size);
   }
 
   // Categoría: línea centrada bajo la línea de reseñas+ciudad
@@ -2299,8 +2560,8 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
   return canvas;
 }
 
-export async function renderShareCardCanvas(data, format, styleId = 'glass') {
-  const [photo, photos, logoWhite, logoDark, bizLogo, qr, badges] = await Promise.all([
+export async function renderShareCardCanvas(data, format, styleId = 'glass', opts = {}) {
+  const [photo, photos, logoWhite, logoDark, bizLogo, qr, profileQr, badges] = await Promise.all([
     loadShareCardPhoto(data?.photoUrl),
     // Las fotos del grid (hasta 4, en orden): si una no se puede leer,
     // null en su posición y la celda sale con el bloque de la inicial.
@@ -2312,17 +2573,27 @@ export async function renderShareCardCanvas(data, format, styleId = 'glass') {
     // si no se pudo generar, la tarjeta sale con el bloque blanco
     // vacío, nunca rota.
     loadShareCardQr(data?.qrDataUrl),
-    // Pie (22 nov 2026): los badges de App Store y Google Play.
-    loadShareCardFooterBadges(),
+    // QR del perfil (Clara con QR, diseño de referencia, 22 nov 2026):
+    // data URL generada en el cliente, igual que el del menú.
+    loadShareCardQr(data?.profileQrDataUrl),
+    // Pie (22 nov 2026): los badges de App Store y Google Play. En
+    // español solo para negocios (opts.badges 'es'); eventos y tours
+    // siguen con los de siempre.
+    loadShareCardFooterBadges(opts.badges || 'en'),
   ]);
   // Si el logo no cargó, la geometría es la de sin círculo: sin hueco
   // vacío y sin círculo a medias.
-  const layoutData = bizLogo ? data : { ...data, bizLogoUrl: null };
+  let layoutData = bizLogo ? data : { ...data, bizLogoUrl: null };
+  // Sin imagen del QR del perfil, la geometría es la centrada de
+  // siempre: sin hueco vacío a la derecha.
+  if (data?.profileQrDataUrl && !profileQr) {
+    layoutData = { ...layoutData, profileQrDataUrl: null };
+  }
   const layout = computeShareCardLayout(layoutData, format, styleId);
   return drawShareCardCanvas(
     layoutData,
     format,
-    { photo, photos, logoWhite, logoDark, bizLogo, qr, appStore: badges?.appStore || null, googlePlay: badges?.googlePlay || null },
+    { photo, photos, logoWhite, logoDark, bizLogo, qr, profileQr, appStore: badges?.appStore || null, googlePlay: badges?.googlePlay || null },
     layout,
     styleId,
   );
@@ -2355,8 +2626,8 @@ export function assertCanvasNotBlank(canvas) {
 // Genera el PNG de la tarjeta dibujando en canvas (nada de DOM ni de
 // html-to-image): lo que se descarga es lo mismo que la vista previa.
 // El estilo es el elegido en la hoja ('glass' por defecto).
-export async function exportShareCardPng(data, format, styleId = 'glass') {
-  const canvas = await renderShareCardCanvas(data, format, styleId);
+export async function exportShareCardPng(data, format, styleId = 'glass', opts = {}) {
+  const canvas = await renderShareCardCanvas(data, format, styleId, opts);
   assertCanvasNotBlank(canvas);
   const blob = await new Promise((resolve, reject) => {
     canvas.toBlob(

@@ -149,11 +149,13 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
   it('sin regla en Clara (la línea negra sobre el título se fue con la categoría)', () => {
     const lib = read('../lib/shareCard.js');
     const template = read('../components/ShareCardTemplate.jsx');
-    expect(lib).not.toContain("style.id === 'editorial'");
+    // La línea negra sobre el título sigue sin existir.
     expect(lib).not.toContain('geo.width / 2 - 36');
-    // La plantilla ya no menciona 'editorial' (la puerta de las
-    // píldoras salió con ellas); la línea negra sobre el título
-    // sigue sin existir.
+    expect(template).not.toContain('geo.width / 2 - 36');
+    // Clara solo tiene UN caso especial: la rama del QR del perfil
+    // (diseño de referencia, 22 nov 2026). La plantilla no ramifica
+    // por estilo, sino por layout.qrProfile.
+    expect(lib.match(/style\.id === 'editorial'/g)?.length).toBe(1);
     expect(template).not.toContain("style.id === 'editorial'");
     // Los estilos con grid llevan la línea de reseñas+ciudad
     // (Grid 2×2 y tira); el Collage editorial no (su calificación va
@@ -304,7 +306,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     expect(sheet).toContain('goStyle(1)');
     expect(sheet).toContain('goToStyle(n)');
     expect(sheet).toContain('setStyleId(availableStyles[next].id)');
-    expect(sheet).toContain('exportShareCardPng(dataToExport, format, styleId)');
+    expect(sheet).toContain("exportShareCardPng(dataToExport, format, styleId, { badges: 'es' })");
     // Con «reducir movimiento» no desliza: cambia al instante.
     expect(sheet).toContain('prefers-reduced-motion: reduce');
     // Los puntos marcan el índice real (styleIndex), no la posición
@@ -469,7 +471,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     expect(sheet).toContain('if (!reduceMotion) setDragX(dx)');
     expect(sheet).toContain('touchStart.current.dx = dx');
     // La exportación no cambia: sigue el estilo elegido.
-    expect(sheet).toContain('exportShareCardPng(dataToExport, format, styleId)');
+    expect(sheet).toContain("exportShareCardPng(dataToExport, format, styleId, { badges: 'es' })");
   });
 
   it('Oscura: el peor caso con logo y círculo tampoco se desborda', () => {
@@ -559,7 +561,7 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     expect(sheet).not.toContain("'Ficha completa'");
     // El PNG se exporta con el estilo elegido y la vista previa lleva
     // los dos estilos en la pista (PR #156).
-    expect(sheet).toContain('exportShareCardPng(dataToExport, format, styleId)');
+    expect(sheet).toContain("exportShareCardPng(dataToExport, format, styleId, { badges: 'es' })");
     expect(sheet).toContain('styleId={s.id}');
     expect(lib).toContain('export async function exportShareCardPng(data, format, styleId');
     expect(lib).toContain('renderShareCardCanvas(data, format, styleId');

@@ -156,7 +156,7 @@ export default function BizShareHub({
     try {
       const data = kind === 'menu' ? qrMenuData : qrPerfilData;
       if (!data) throw new Error('no-data');
-      const blob = await exportShareCardPng(data, SHARE_CARD_FORMATS.post, 'qr');
+      const blob = await exportShareCardPng(data, SHARE_CARD_FORMATS.post, 'qr', { badges: 'es' });
       const how = await shareOrDownloadPng(blob, qrCardFileName(biz, kind));
       toast$(
         how === 'shared'
