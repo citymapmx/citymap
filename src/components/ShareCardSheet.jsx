@@ -199,7 +199,7 @@ export default function ShareCardSheet({
     () => (menuUrl ? generateMenuQrDataUrl(menuUrl) : null),
     [menuUrl],
   );
-  // QR del perfil (Clara con QR, diseño de referencia, 22 nov 2026):
+  // QR del perfil (Clara y Oscura con QR, diseño de referencia, 22 nov 2026):
   // la URL de la ficha del negocio, la misma que abre su página
   // (en París, https://citymap.world/paris/<slug>). Campo aparte del
   // QR del menú (qrDataUrl), que sigue siendo el del menú.

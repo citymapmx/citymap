@@ -342,8 +342,12 @@ describe('tarjeta para compartir: estilos Oscura y Clara (PR #154, ajustes PR #1
     // oscura (mismo diámetro, a caballo sobre el borde de la foto).
     expect(EDITORIAL_SHARE_CARD_LAYOUT.story.showBizLogo).toBe(true);
     expect(EDITORIAL_SHARE_CARD_LAYOUT.post.showBizLogo).toBe(true);
-    expect(EDITORIAL_SHARE_CARD_LAYOUT.story.bizLogoD).toBe(240);
-    expect(EDITORIAL_SHARE_CARD_LAYOUT.post.bizLogoD).toBe(190);
+    // 23 nov 2026: Ø 280/220 (eran 240/190), a petición de Jonathan.
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.story.bizLogoD).toBe(280);
+    expect(EDITORIAL_SHARE_CARD_LAYOUT.post.bizLogoD).toBe(220);
+    // La tabla de Oscura lleva el mismo diámetro que la de Clara.
+    expect(SHARE_CARD_LAYOUT.story.bizLogoD).toBe(280);
+    expect(SHARE_CARD_LAYOUT.post.bizLogoD).toBe(220);
     expect(EDITORIAL_SHARE_CARD_LAYOUT.story.bizLogoGap).toBe(28);
     expect(EDITORIAL_SHARE_CARD_LAYOUT.post.bizLogoGap).toBe(22);
     for (const format of [SHARE_CARD_FORMATS.story, SHARE_CARD_FORMATS.post]) {

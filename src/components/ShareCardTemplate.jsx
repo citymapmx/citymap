@@ -587,10 +587,10 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           #143. */}
       {circleEl}
 
-      {/* Clara con QR del perfil (diseño de referencia, 22 nov 2026):
-          nombre a la izquierda, reseñas+ciudad con estrella dorada,
-          fila «categoría | Instagram» y QR a la derecha con su
-          divisoria vertical; debajo, la divisoria horizontal. */}
+      {/* Clara y Oscura con QR del perfil (diseño de referencia, 22 nov 2026;
+          Oscura se suma el 23 nov 2026): nombre a la izquierda, reseñas+ciudad
+          con estrella dorada, fila «categoría | Instagram» y QR a la derecha
+          con su divisoria vertical; debajo, la divisoria horizontal. */}
       {layout.qrProfile ? (
         <>
           <div
@@ -694,7 +694,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
               style={{
                 width: 2,
                 alignSelf: 'stretch',
-                background: '#E5E7EB',
+                background: palette.divLine || '#E5E7EB',
                 margin: `0 ${Math.round((L.qrGap - 2) / 2)}px`,
                 flexShrink: 0,
               }}
@@ -718,7 +718,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
                 marginTop: L.divGap,
                 width: photoW,
                 height: 2,
-                background: '#E5E7EB',
+                background: palette.divLine || '#E5E7EB',
                 flexShrink: 0,
               }}
             />

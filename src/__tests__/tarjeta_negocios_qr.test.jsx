@@ -8,6 +8,7 @@ import {
   formatShareCardCategory,
   generateMenuQrDataUrl,
   SHARE_CARD_FORMATS,
+  SHARE_CARD_LAYOUT,
   EDITORIAL_SHARE_CARD_LAYOUT,
 } from '../lib/shareCard.js';
 import { buildBizProfileUrl } from '../lib/compartirNegocio.js';
@@ -45,6 +46,28 @@ describe('tarjeta de negocio con QR del perfil (Clara)', () => {
   const withQr = () => ({
     ...buildShareCardData(BELLOY, { disp, cityName: 'París' }),
     profileQrDataUrl: generateMenuQrDataUrl(profileUrl),
+  });
+
+  // Cristina (Zapopan), el negocio de la captura de Jonathan del 23 nov
+  // 2026: la tarjeta Oscura también lleva el diseño con QR.
+  const CRISTINA = {
+    id: 'cristina-zapopan',
+    name: 'Cristina',
+    status: 'approved',
+    plan: 'free',
+    city_slug: 'zapopan',
+    slug: 'zapopan-cristina',
+    category: 'restaurantes',
+    rating: 4.6,
+    review_count: 2039,
+    photos: [{ url: 'https://example.supabase.co/object/public/media/cityguide/cristina.jpg' }],
+    social_links: { instagram: 'cristinamx_' },
+  };
+  const dispCristina = { rating: 4.6, count: 2039, source: 'google' };
+  const profileUrlCristina = 'https://citymap.mx/zapopan/cristina';
+  const withQrCristina = () => ({
+    ...buildShareCardData(CRISTINA, { disp: dispCristina, cityName: 'Zapopan' }),
+    profileQrDataUrl: generateMenuQrDataUrl(profileUrlCristina),
   });
 
   it('la URL del perfil es la de la ficha (en node, sin window, citymap.mx)', () => {
@@ -144,15 +167,161 @@ describe('tarjeta de negocio con QR del perfil (Clara)', () => {
     expect(geo.instagram.text).toBe('@cafebelloy');
   });
 
-  it('otros estilos con QR del perfil: la rama no se aplica (solo Clara)', () => {
+  it('otros estilos con QR del perfil: la rama no se aplica (solo Clara y Oscura)', () => {
     const data = withQr();
-    for (const styleId of ['glass', 'grid', 'tira', 'collage', 'pedido', 'qr']) {
+    for (const styleId of ['grid', 'tira', 'collage', 'pedido', 'qr']) {
       const geo = computeShareCardLayout(data, SHARE_CARD_FORMATS.post, styleId);
       expect(geo.qrProfile).toBeFalsy();
       expect(geo.divV).toBeFalsy();
       expect(geo.divH).toBeFalsy();
       expect(geo.categoryRow).toBeFalsy();
     }
+  });
+
+  it('Oscura Post con QR: misma rama que Clara, con divisoria tenue', () => {
+    const data = withQrCristina();
+    const geo = computeShareCardLayout(data, SHARE_CARD_FORMATS.post, 'glass');
+    const L = SHARE_CARD_LAYOUT.post;
+    const W = SHARE_CARD_FORMATS.post.width;
+    const maxW = W - L.pad * 2;
+
+    // El QR existe, se puede escanear (mínimo 160 px) y llega hasta el
+    // borde derecho de la tarjeta.
+    expect(geo.qrProfile).not.toBeNull();
+    expect(geo.qrProfile.size).toBeGreaterThanOrEqual(160);
+    expect(geo.qrProfile.x + geo.qrProfile.size).toBe(W - L.pad);
+
+    // Nombre y reseñas+ciudad a la izquierda (no centrados).
+    expect(geo.name.align).toBe('left');
+    expect(geo.name.x).toBe(L.pad);
+    expect(geo.name.lines).toEqual(['Cristina']);
+    expect(geo.ratingCity.align).toBe('left');
+    expect(geo.ratingCity.x).toBe(L.pad);
+    expect(geo.ratingCity.goldStar).toBe(true);
+    expect(geo.ratingCity.lines).toEqual(['★ 4.6 (2,039) · Zapopan']);
+
+    // Categoría e Instagram ya no van en sus líneas centradas: van en
+    // UNA fila con el emoji de la categoría.
+    expect(geo.category).toBeNull();
+    expect(geo.instagram).toBeNull();
+    expect(geo.categoryRow).not.toBeNull();
+    expect(geo.categoryRow.emoji).toBe('🍽️');
+    expect(geo.categoryRow.category).toBe('Restaurantes');
+    expect(geo.categoryRow.instagram).toBe('cristinamx_');
+    expect(geo.categoryRow.x).toBe(L.pad);
+
+    // El QR va centrado en el bloque de información y la divisoria
+    // vertical cubre exactamente su alto.
+    const infoTop = geo.name.y - geo.name.lineH / 2;
+    const infoBottom = geo.categoryRow.y + (L.catSize * 1.2) / 2;
+    expect(geo.qrProfile.y + geo.qrProfile.size / 2).toBeCloseTo(
+      (infoTop + infoBottom) / 2,
+      0,
+    );
+    expect(geo.divV).not.toBeNull();
+    expect(geo.divV.yTop).toBe(geo.qrProfile.y);
+    expect(geo.divV.yBottom).toBe(geo.qrProfile.y + geo.qrProfile.size);
+    expect(geo.divV.x).toBeGreaterThan(L.pad);
+    expect(geo.divV.x).toBeLessThan(geo.qrProfile.x);
+
+    // La divisoria horizontal va bajo el bloque y antes de la web.
+    expect(geo.divH).not.toBeNull();
+    expect(geo.divH.y).toBeGreaterThan(infoBottom);
+    expect(geo.divH.y).toBeLessThan(geo.web.y);
+    expect(geo.divH.w).toBe(maxW);
+
+    // La foto no se come el hueco del pie: el pie sigue en su sitio.
+    expect(geo.photo.h).toBeGreaterThanOrEqual(L.photoMinH);
+    expect(geo.web.y).toBeLessThan(geo.footer.y);
+  });
+
+  it('Oscura Historia con QR: la misma rama, con sus huecos', () => {
+    const data = withQrCristina();
+    const geo = computeShareCardLayout(data, SHARE_CARD_FORMATS.story, 'glass');
+    expect(geo.qrProfile).not.toBeNull();
+    expect(geo.qrProfile.size).toBeGreaterThanOrEqual(160);
+    expect(geo.name.align).toBe('left');
+    expect(geo.ratingCity.goldStar).toBe(true);
+    expect(geo.categoryRow).not.toBeNull();
+    expect(geo.divV).not.toBeNull();
+    expect(geo.divH).not.toBeNull();
+  });
+
+  it('sin QR en Oscura: la geometría centrada de siempre, sin cajas nuevas', () => {
+    const data = buildShareCardData(CRISTINA, { disp: dispCristina, cityName: 'Zapopan' });
+    const geo = computeShareCardLayout(data, SHARE_CARD_FORMATS.post, 'glass');
+    expect(geo.qrProfile).toBeNull();
+    expect(geo.divV).toBeNull();
+    expect(geo.divH).toBeNull();
+    expect(geo.categoryRow).toBeNull();
+    expect(geo.name.align).toBeUndefined();
+    expect(geo.name.x).toBe(SHARE_CARD_FORMATS.post.width / 2);
+    expect(geo.ratingCity.goldStar).toBeUndefined();
+    expect(geo.category).not.toBeNull();
+    expect(geo.category.text).toBe('Restaurantes');
+    expect(geo.instagram).not.toBeNull();
+    expect(geo.instagram.text).toBe('@cristinamx_');
+  });
+
+  it('nombre largo en Historia con QR: sin rama QR, el nombre completo y centrado, nunca con «…»', () => {
+    // En Historia el QR estrecha tanto la columna que «Carrito La Paz
+    // Tostadas de Atún» salía truncado («Tostada…»): la rama no se
+    // aplica y la tarjeta queda con la geometría centrada de siempre.
+    // En Post el mismo nombre sí cabe en 2 líneas y la rama sí aplica.
+    const carrito = {
+      id: 'biz-carrito',
+      name: 'Carrito La Paz Tostadas de Atún',
+      status: 'approved',
+      plan: 'premium',
+      city_slug: 'tepic',
+      slug: 'tepic-carrito-la-paz-tostadas-de-atun',
+      category: 'restaurantes',
+      rating: 5,
+      review_count: 12,
+      photos: [{ url: 'https://example.org/carrito.jpg' }],
+      logo_url: 'https://example.org/carrito-logo.png',
+    };
+    const withQrCarrito = () => ({
+      ...buildShareCardData(carrito, {
+        disp: { rating: 5, count: 12, source: 'google' },
+        cityName: 'Tepic',
+      }),
+      profileQrDataUrl: generateMenuQrDataUrl('https://citymap.mx/tepic/carrito-la-paz-tostadas-de-atun'),
+    });
+    for (const styleId of ['glass', 'editorial']) {
+      const data = withQrCarrito();
+      const geoStory = computeShareCardLayout(data, SHARE_CARD_FORMATS.story, styleId);
+      expect(geoStory.qrProfile).toBeNull();
+      expect(geoStory.categoryRow).toBeNull();
+      expect(geoStory.divV).toBeNull();
+      expect(geoStory.divH).toBeNull();
+      expect(geoStory.name.align).toBeUndefined();
+      expect(geoStory.name.lines.join(' ')).toBe('Carrito La Paz Tostadas de Atún');
+      expect(geoStory.name.lines.join(' ')).not.toContain('…');
+      const geoPost = computeShareCardLayout(data, SHARE_CARD_FORMATS.post, styleId);
+      expect(geoPost.qrProfile).not.toBeNull();
+      expect(geoPost.name.lines.join(' ')).toBe('Carrito La Paz Tostadas de Atún');
+    }
+  });
+
+  it('la vista previa Oscura con QR: nombre a la izquierda, estrella dorada, fila, QR y divisoria tenue', () => {
+    const data = withQrCristina();
+    const markup = renderToStaticMarkup(
+      <ShareCardTemplate data={data} format={SHARE_CARD_FORMATS.post} styleId="glass" />,
+    );
+    expect(markup).toContain('Cristina');
+    expect(markup).toContain('text-align:left');
+    // Estrella dorada (no gris) + resto de la línea.
+    expect(markup).toContain('color:#F59E0B');
+    expect(markup).toContain('4.6 (2,039) · Zapopan');
+    // Fila «categoría | Instagram» con su glifo.
+    expect(markup).toContain('Restaurantes');
+    expect(markup).toContain('@cristinamx_');
+    expect(markup).toContain('<svg');
+    // El QR con su divisoria tenue (blanco tenue, no gris claro).
+    expect(markup).toContain('alt="Código QR"');
+    expect(markup).toContain(data.profileQrDataUrl.slice(0, 60));
+    expect(markup).toContain('rgba(255,255,255,0.22)');
   });
 
   it('la vista previa Clara con QR: nombre a la izquierda, estrella dorada, fila y QR', () => {

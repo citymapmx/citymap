@@ -82,15 +82,18 @@ export const SHARE_CARD_LAYOUT = {
     // línea de reseñas+ciudad en 2 líneas + categoría, con círculo):
     // con la categoría y el Instagram de la propuesta A corregida
     // (22 nov 2026) el peor caso necesita 844 px de foto, así que el
-    // mínimo baja de 900 a 840.
-    photoMinH: 840,
+    // mínimo baja de 900 a 840. 23 nov 2026: el círculo crece a Ø 280
+    // (el hueco tras la foto crece 20 px), así que el mínimo baja 20
+    // (840 → 820) para que el peor caso siga cabiendo sin comerse el pie.
+    photoMinH: 820,
     photoRadius: 40,
     // Círculo del logo del negocio (PR #144; PR #145: más grande, Ø 240
-    // con anillo y sombra proporcionales): mismo estilo que la ficha
+    // con anillo y sombra proporcionales; 23 nov 2026: Ø 280 a petición
+    // de Jonathan, «un poco más grande»): mismo estilo que la ficha
     // (DetailView) — blanco, anillo y sombra — centrado a caballo sobre
     // el borde inferior de la foto. bizLogoGap es el hueco entre el
     // círculo y el primer texto.
-    bizLogoD: 240,
+    bizLogoD: 280,
     bizLogoRing: 8,
     bizLogoGap: 28,
     bizLogoShadowY: 8,
@@ -118,6 +121,11 @@ export const SHARE_CARD_LAYOUT = {
     webGap: 16,
     footSize: 44,
     footGap: 60,
+    // Oscura con QR del perfil (23 nov 2026): mismo diseño que Clara —
+    // hueco entre el texto y el QR, y entre el bloque de información
+    // y la línea divisoria horizontal.
+    qrGap: 48,
+    divGap: 36,
   },
   post: {
     pad: 48,
@@ -127,7 +135,8 @@ export const SHARE_CARD_LAYOUT = {
     // baja de 280 a 210 (propuesta A corregida, 22 nov 2026).
     photoMinH: 210,
     photoRadius: 32,
-    bizLogoD: 190,
+    // 23 nov 2026: Ø 220 (era 190), a petición de Jonathan.
+    bizLogoD: 220,
     bizLogoRing: 6,
     bizLogoGap: 22,
     bizLogoShadowY: 8,
@@ -146,6 +155,9 @@ export const SHARE_CARD_LAYOUT = {
     webGap: 12,
     footSize: 40,
     footGap: 44,
+    // Oscura con QR del perfil (23 nov 2026): igual que en Historia.
+    qrGap: 36,
+    divGap: 28,
   },
 };
 
@@ -270,6 +282,9 @@ export const SHARE_CARD_STYLE_COLORS = {
     // Anillo del círculo del logo del negocio: fino y casi invisible
     // sobre fondo oscuro, donde el círculo blanco ya se distingue.
     bizLogoRing: 'rgba(0,0,0,0.06)',
+    // Divisorias del diseño con QR del perfil: blanco tenue sobre el
+    // fondo oscuro (en Clara es gris claro #E5E7EB).
+    divLine: 'rgba(255,255,255,0.22)',
   },
   editorial: {
     bg: ['#FFFFFF', '#FAF9F6'],
@@ -283,6 +298,9 @@ export const SHARE_CARD_STYLE_COLORS = {
     // gris visible #D4D4D8 (PR #160) porque el círculo blanco con su
     // anillo fino casi invisible no se distinguía del fondo.
     bizLogoRing: '#FFFFFF',
+    // Divisorias del diseño con QR del perfil: gris claro sobre fondo
+    // blanco (en Oscura es blanco tenue).
+    divLine: '#E5E7EB',
   },
   // Paleta de los 3 estilos con grid (demo `propuestas-de-tarjetas-con-grid`):
   // fondo blanco, tinta oscura, anillo del círculo SOLO blanco, sin
@@ -344,10 +362,14 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     logoGap: 40,
     // Peor caso en Clara Historia: la foto necesita 880 px, así que
     // el mínimo baja de 950 a 870 (propuesta A corregida, 22 nov 2026).
-    photoMinH: 870,
+    // 23 nov 2026: el círculo crece a Ø 280 (el hueco tras la foto
+    // crece 20 px), así que el mínimo baja 20 (870 → 850) para que el
+    // peor caso siga cabiendo sin comerse el pie.
+    photoMinH: 850,
     photoRadius: 32,
     showBizLogo: true,
-    bizLogoD: 240,
+    // 23 nov 2026: Ø 280 (era 240), a petición de Jonathan.
+    bizLogoD: 280,
     bizLogoRing: 8,
     bizLogoGap: 28,
     bizLogoShadowY: 8,
@@ -381,7 +403,8 @@ export const EDITORIAL_SHARE_CARD_LAYOUT = {
     photoMinH: 240,
     photoRadius: 28,
     showBizLogo: true,
-    bizLogoD: 190,
+    // 23 nov 2026: Ø 220 (era 190), a petición de Jonathan.
+    bizLogoD: 220,
     bizLogoRing: 6,
     bizLogoGap: 22,
     bizLogoShadowY: 8,
@@ -1509,9 +1532,10 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
   const igGapU = hasInstagram ? gapAfterPhoto(L.igGap) : L.igGap;
   let igBlock = hasInstagram ? igGapU + L.igSize * 1.2 : 0;
 
-  // ─── Clara con QR del perfil (diseño de referencia, 22 nov 2026) ───
+  // ─── Clara y Oscura con QR del perfil (diseño de referencia, 22 nov 2026;
+  // Oscura se suma el 23 nov 2026, a petición de Jonathan) ───
   //
-  // Solo Clara (editorial) y solo cuando hay QR del perfil
+  // Solo Clara (editorial) y Oscura (glass), y solo cuando hay QR del perfil
   // (data.profileQrDataUrl, la URL de la ficha): el QR va a la derecha
   // del bloque de información — nombre a la izquierda, reseñas+ciudad
   // con estrella dorada, y categoría + Instagram en UNA fila — con una
@@ -1521,12 +1545,26 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
   // El lado del QR es el alto del bloque de información (con un mínimo
   // de 160 px para que se lea al escanear); el texto se estrecha a lo
   // que queda. Se itera hasta 3 veces: al estrecharse, el nombre puede
-  // crecer a otra línea y el bloque (y el QR) crecen con él.
+  // crecer a otra línea y el bloque (y el QR) crecen con él. Si el
+  // nombre (o la línea de reseñas+ciudad) no cabe en la columna
+  // estrecha sin cortarse con «…», la rama no se aplica: la tarjeta
+  // queda con la geometría centrada de siempre, con el nombre
+  // completo y sin QR (23 nov 2026: en Historia el QR estrecha tanto
+  // la columna que «Carrito La Paz Tostadas de Atún» salía truncado).
   const PROFILE_QR_MIN_SIDE = 160;
-  const wantsProfileQr = style.id === 'editorial' && !!data?.profileQrDataUrl;
-  const hasProfileQr = !!(
+  const wantsProfileQr =
+    (style.id === 'editorial' || style.id === 'glass') && !!data?.profileQrDataUrl;
+  let hasProfileQr = !!(
     wantsProfileQr && (nameLines.length || rcLines.length || hasCategory || !!data?.instagram)
   );
+  // Valores a ancho completo, por si la rama QR no aplica (nombre que
+  // no cabe en la columna estrecha): se restauran tal cual.
+  const fullNameLines = nameLines;
+  const fullNameBlockH = nameBlockH;
+  const fullNameBlock = nameBlock;
+  const fullRcLines = rcLines;
+  const fullRcBlockH = rcBlockH;
+  const fullRcBlock = rcBlock;
   let textW = maxW;
   let qrSide = 0;
   let catIgBlock = 0;
@@ -1552,11 +1590,24 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
       qrSide = nextSide;
       textW = Math.max(0, maxW - qrSide - L.qrGap);
     }
+    // El nombre no cabe en la columna estrecha: sin rama QR (ver el
+    // comentario de arriba). Se restauran las líneas a ancho completo.
+    if (nameLines.some((l) => l.includes('…')) || rcLines.some((l) => l.includes('…'))) {
+      hasProfileQr = false;
+      nameLines = fullNameLines;
+      nameBlockH = fullNameBlockH;
+      nameBlock = fullNameBlock;
+      rcLines = fullRcLines;
+      rcBlockH = fullRcBlockH;
+      rcBlock = fullRcBlock;
+      qrSide = 0;
+      textW = maxW;
+    }
     // La fila «categoría | Instagram»: emoji de la categoría (si
     // tiene) + categoría + «|» + glifo de Instagram + @handle, todo a
     // tamaño de categoría. Si no cabe en textW, se recorta el handle
     // con «…» (la categoría nunca se recorta).
-    if (hasCategory || hasInstagram) {
+    if (hasProfileQr && (hasCategory || hasInstagram)) {
       const emoji = data?.categoryEmoji || null;
       const catText = hasCategory ? String(data.category).trim() : '';
       const igText = hasInstagram ? `@${data.instagram}` : null;
@@ -1583,10 +1634,13 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
       catIgBlock = rowGapU + catRowH;
     }
     // Categoría e Instagram ya no van en sus líneas centradas: van en
-    // la fila. Y bajo el bloque va la divisoria horizontal.
-    catBlock = 0;
-    igBlock = 0;
-    divBlock = L.divGap + 2;
+    // la fila. Y bajo el bloque va la divisoria horizontal. (Si la rama
+    // no aplicó por el nombre, esto no se toca.)
+    if (hasProfileQr) {
+      catBlock = 0;
+      igBlock = 0;
+      divBlock = L.divGap + 2;
+    }
   }
 
   // PR #159 — bloques de «Para pedir»: los platillos (nombre a la
@@ -1717,7 +1771,7 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
       }
     : null;
 
-  // Clara con QR: el bloque de información va a la izquierda (el QR
+  // Clara y Oscura con QR: el bloque de información va a la izquierda (el QR
   // a la derecha). infoTop/infoBottom marcan el bloque para centrar
   // el QR y la divisoria vertical en él.
   let infoTop = null;
@@ -1742,8 +1796,8 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
   // Reseñas + ciudad como texto limpio centrado, hasta 2 líneas
   // (definición final, 22 nov 2026). La `y` es el CENTRO vertical de
   // la primera línea (el canvas dibuja con textBaseline 'middle').
-  // Clara con QR: a la izquierda, con la estrella en dorado y el
-  // resto en oscuro (diseño de referencia, 22 nov 2026).
+  // Clara y Oscura con QR: a la izquierda, con la estrella en dorado y el
+  // resto en el color de texto de la paleta (diseño de referencia, 22 nov 2026).
   let ratingCityBox = null;
   if (rcLines.length) {
     y += rcGapU;
@@ -1762,7 +1816,7 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
   }
 
   // Categoría: línea centrada bajo la línea de reseñas+ciudad
-  // (definición final, 22 nov 2026). Clara con QR: no va aquí, va en
+  // (definición final, 22 nov 2026). Clara y Oscura con QR: no va aquí, va en
   // la fila «categoría | Instagram» (categoryRow, más abajo).
   let categoryBox = null;
   if (hasCategory && !hasProfileQr) {
@@ -1777,7 +1831,7 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
   }
 
   // Instagram: línea centrada bajo la categoría, en el color
-  // secundario de la paleta. Clara con QR: no va aquí, va en la fila
+  // secundario de la paleta. Clara y Oscura con QR: no va aquí, va en la fila
   // (categoryRow, más abajo).
   let instagramBox = null;
   if (hasInstagram && !hasProfileQr) {
@@ -1791,7 +1845,7 @@ export function computeShareCardLayout(data, format, styleId = 'glass') {
     y += L.igSize * 1.2;
   }
 
-  // Clara con QR — fila «categoría | Instagram» en UNA línea, y el
+  // Clara y Oscura con QR — fila «categoría | Instagram» en UNA línea, y el
   // QR a la derecha del bloque con su divisoria vertical. El QR se
   // centra en el bloque (si el mínimo de 160 px lo hace más alto que
   // el texto, sobresale por arriba y por abajo por igual).
@@ -2165,7 +2219,7 @@ function drawContainImage(ctx, img, dx, dy, dw, dh) {
 
 // Glifo de Instagram (el mismo de Footer.jsx, estilo feather):
 // rectángulo redondeado + círculo + punto, en trazo. Para la fila
-// «categoría | Instagram» de la tarjeta Clara con QR. (x, y) es la
+// «categoría | Instagram» de la tarjeta Clara y Oscura con QR. (x, y) es la
 // esquina superior izquierda; el glifo mide `size` de lado.
 function drawInstagramGlyph(ctx, x, y, size, color) {
   const s = size;
@@ -2346,8 +2400,8 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
   // Reseñas + ciudad como texto limpio centrado, hasta 2 líneas
   // (definición final, 22 nov 2026): «★ 4.2 (2,561) · París», sin
   // fondo gris y sin logo G, en el color secundario de la paleta.
-  // Clara con QR: a la izquierda, con la estrella en dorado y el
-  // resto en oscuro (diseño de referencia, 22 nov 2026).
+  // Clara y Oscura con QR: a la izquierda, con la estrella en dorado y el
+  // resto en el color de texto de la paleta (diseño de referencia, 22 nov 2026).
   if (geo.ratingCity) {
     const r = geo.ratingCity;
     ctx.font = `700 ${r.size}px ${SHARE_CARD_FONT_STACK}`;
@@ -2374,9 +2428,10 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     });
   }
 
-  // Clara con QR — fila «categoría | Instagram» en UNA línea:
+  // Clara y Oscura con QR — fila «categoría | Instagram» en UNA línea:
   // emoji de la categoría (si tiene) + categoría + «|» + glifo de
-  // Instagram + @handle, todo en oscuro salvo el separador.
+  // Instagram + @handle, todo en el color de texto de la paleta salvo
+  // el separador.
   if (geo.categoryRow) {
     const row = geo.categoryRow;
     const cy = row.y;
@@ -2405,19 +2460,22 @@ export function drawShareCardCanvas(data, format, assets, layout, styleId = 'gla
     }
   }
 
-  // Clara con QR — divisorias: vertical entre el texto y el QR, y
-  // horizontal bajo el bloque, en gris claro.
+  // Clara y Oscura con QR — divisorias: vertical entre el texto y el QR,
+  // y horizontal bajo el bloque, en el color de divisoria de la paleta
+  // (gris claro en Clara, blanco tenue en Oscura).
   if (geo.divV) {
-    ctx.fillStyle = '#E5E7EB';
+    ctx.fillStyle = palette.divLine || '#E5E7EB';
     ctx.fillRect(geo.divV.x, geo.divV.yTop, 2, geo.divV.yBottom - geo.divV.yTop);
   }
   if (geo.divH) {
-    ctx.fillStyle = '#E5E7EB';
+    ctx.fillStyle = palette.divLine || '#E5E7EB';
     ctx.fillRect(geo.divH.x, geo.divH.y, geo.divH.w, 2);
   }
 
-  // Clara con QR — el QR del perfil, directo sobre el fondo blanco
-  // (la data URL ya trae su zona de silencio; sin caja blanca).
+  // Clara y Oscura con QR — el QR del perfil, directo sobre el fondo
+  // (la imagen del QR ya trae fondo blanco con su zona de silencio,
+  // así que en Oscura se ve el cuadrado blanco con el QR; sin caja
+  // blanca extra).
   if (geo.qrProfile && assets?.profileQr) {
     const q = geo.qrProfile;
     ctx.drawImage(assets.profileQr, q.x, q.y, q.size, q.size);
@@ -2581,7 +2639,7 @@ export async function renderShareCardCanvas(data, format, styleId = 'glass', opt
     // si no se pudo generar, la tarjeta sale con el bloque blanco
     // vacío, nunca rota.
     loadShareCardQr(data?.qrDataUrl),
-    // QR del perfil (Clara con QR, diseño de referencia, 22 nov 2026):
+    // QR del perfil (Clara y Oscura con QR, diseño de referencia, 22 nov 2026):
     // data URL generada en el cliente, igual que el del menú.
     loadShareCardQr(data?.profileQrDataUrl),
     // Pie (22 nov 2026): los badges de App Store y Google Play. En

@@ -182,11 +182,12 @@ describe('tarjeta para compartir el negocio', () => {
     expect(template).toContain('onBizLogoError');
     expect(template).toContain("borderRadius: '50%'");
     // La sombra es la del layout (compartida con el canvas) y crece con
-    // el círculo (PR #145: Ø 240 Historia / 190 Post, anillo 8/6).
+    // el círculo (PR #145: Ø 240 Historia / 190 Post, anillo 8/6;
+    // 23 nov 2026: Ø 280 / 220 a petición de Jonathan).
     expect(template).toContain('L.bizLogoShadowY');
     expect(template).toContain('L.bizLogoShadowBlur');
-    expect(lib).toContain('bizLogoD: 240');
-    expect(lib).toContain('bizLogoD: 190');
+    expect(lib).toContain('bizLogoD: 280');
+    expect(lib).toContain('bizLogoD: 220');
     expect(lib).toContain('bizLogoRing: 8');
     expect(lib).toContain('bizLogoRing: 6');
     expect(lib).toContain('bizLogoShadowY: 8');
