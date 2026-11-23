@@ -9,9 +9,13 @@
 // Propuesta A (22 nov 2026): en NEGOCIOS la fila lleva solo los 2
 // badges (row.web es null y la píldora web no se pinta); eventos y
 // tours siguen con las 3 opciones.
-export default function ShareCardFooterRow({ row }) {
+// Badges en español (diseño de referencia, 22 nov 2026): solo las
+// tarjetas de NEGOCIOS usan badges="es"; eventos y tours siguen con
+// los badges en inglés de siempre (badges por defecto 'en').
+export default function ShareCardFooterRow({ row, badges = 'en' }) {
   if (!row) return null;
   const pill = row.pill || {};
+  const es = badges === 'es';
   return (
     <div
       style={{
@@ -46,14 +50,14 @@ export default function ShareCardFooterRow({ row }) {
         </div>
       ) : null}
       <img
-        src="/badges/app-store.svg"
+        src={es ? '/badges/app-store-es.svg' : '/badges/app-store.svg'}
         alt="Descargar en App Store"
         width={row.appStore.w}
         height={row.appStore.h}
         style={{ display: 'block', width: row.appStore.w, height: row.appStore.h }}
       />
       <img
-        src="/badges/google-play.svg"
+        src={es ? '/badges/google-play-es.svg' : '/badges/google-play.svg'}
         alt="Disponible en Google Play"
         width={row.googlePlay.w}
         height={row.googlePlay.h}

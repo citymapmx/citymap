@@ -100,6 +100,7 @@ import {
   shareCardStyleList,
   shareOrDownloadPng,
 } from '../lib/shareCard.js';
+import { buildBizProfileUrl } from '../lib/compartirNegocio.js';
 
 const PREVIEW_W = 200;
 // Deslizamiento mínimo del dedo para cambiar de estilo (PR #160):
@@ -198,6 +199,15 @@ export default function ShareCardSheet({
     () => (menuUrl ? generateMenuQrDataUrl(menuUrl) : null),
     [menuUrl],
   );
+  // QR del perfil (Clara con QR, diseño de referencia, 22 nov 2026):
+  // la URL de la ficha del negocio, la misma que abre su página
+  // (en París, https://citymap.world/paris/<slug>). Campo aparte del
+  // QR del menú (qrDataUrl), que sigue siendo el del menú.
+  const profileUrl = useMemo(() => buildBizProfileUrl(biz), [biz]);
+  const profileQrDataUrl = useMemo(
+    () => (profileUrl ? generateMenuQrDataUrl(profileUrl) : null),
+    [profileUrl],
+  );
   const data = hasMenuItems
     ? buildMenuShareCardData(biz, {
         disp,
@@ -207,8 +217,9 @@ export default function ShareCardSheet({
         whatsappUrl: orderWhatsappUrl(biz),
         menuUrl,
         qrDataUrl,
+        profileQrDataUrl,
       })
-    : buildShareCardData(biz, { disp, cityName });
+    : { ...buildShareCardData(biz, { disp, cityName }), profileQrDataUrl };
   // Sin foto o sin logo, la tarjeta sale sin esa parte (nunca rota):
   // el fallo de carga quita el dato y la geometría se recalcula sin él.
   // En los estilos con grid, una foto que falla quita TODAS las fotos
@@ -261,7 +272,7 @@ export default function ShareCardSheet({
       // La imagen se dibuja directo en canvas (PR #143): lo que se
       // descarga es lo mismo que la vista previa, nunca en blanco.
       // El PNG es del estilo elegido en la hoja (PR #154).
-      const blob = await exportShareCardPng(dataToExport, format, styleId);
+      const blob = await exportShareCardPng(dataToExport, format, styleId, { badges: 'es' });
       const how = await shareOrDownloadPng(blob, shareCardFileName(biz));
       toast$(how === 'shared' ? 'Imagen lista para compartir' : 'Imagen descargada');
       setStatus('idle');

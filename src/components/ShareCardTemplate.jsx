@@ -79,6 +79,10 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           : layout.web
             ? 'web'
             : 'foot';
+  // Clara con QR: el bloque de información (nombre + reseñas +
+  // fila «categoría | Instagram» + QR) es el primer bloque tras la
+  // foto cuando hay nombre, reseñas, categoría o Instagram.
+  const infoIsFirst = ['name', 'ratingCity', 'category', 'instagram'].includes(firstBlock);
   // El logo circular se pide en 300×300, igual que la ficha.
   const logoSrc = data?.bizLogoUrl ? getThumbUrl(data.bizLogoUrl, 300, 300) : null;
   const isPedido = style.id === 'pedido';
@@ -390,7 +394,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
             height: layout.footerRow.h,
           }}
         >
-          <ShareCardFooterRow row={layout.footerRow} />
+          <ShareCardFooterRow row={layout.footerRow} badges="es" />
         </div>
       </div>
     );
@@ -583,7 +587,146 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           #143. */}
       {circleEl}
 
-      {layout.name && layout.name.lines.length ? (
+      {/* Clara con QR del perfil (diseño de referencia, 22 nov 2026):
+          nombre a la izquierda, reseñas+ciudad con estrella dorada,
+          fila «categoría | Instagram» y QR a la derecha con su
+          divisoria vertical; debajo, la divisoria horizontal. */}
+      {layout.qrProfile ? (
+        <>
+          <div
+            style={{
+              marginTop: infoIsFirst ? layout.firstGap : L.nameGap,
+              width: photoW,
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+              {layout.name && layout.name.lines.length
+                ? layout.name.lines.map((line, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        fontSize: L.nameSize,
+                        fontWeight: 800,
+                        lineHeight: L.nameLineH,
+                        letterSpacing: -1,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {line}
+                    </div>
+                  ))
+                : null}
+              {layout.ratingCity && layout.ratingCity.lines.length
+                ? layout.ratingCity.lines.map((line, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        fontSize: L.rcSize,
+                        fontWeight: 700,
+                        lineHeight: 1.2,
+                        color: palette.text,
+                        whiteSpace: 'nowrap',
+                        marginTop:
+                          i === 0 && layout.name?.lines.length ? L.rcGap : 0,
+                      }}
+                    >
+                      {line.startsWith('★ ') ? (
+                        <>
+                          <span style={{ color: '#F59E0B' }}>★</span>{' '}
+                          {line.slice(2)}
+                        </>
+                      ) : (
+                        line
+                      )}
+                    </div>
+                  ))
+                : null}
+              {layout.categoryRow ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: L.catSize,
+                    fontWeight: 600,
+                    lineHeight: 1.2,
+                    color: palette.text,
+                    whiteSpace: 'nowrap',
+                    marginTop:
+                      layout.name?.lines.length || layout.ratingCity?.lines.length
+                        ? L.catGap
+                        : 0,
+                  }}
+                >
+                  {layout.categoryRow.emoji ? (
+                    <span style={{ marginRight: 8 }}>{layout.categoryRow.emoji}</span>
+                  ) : null}
+                  {layout.categoryRow.category ? (
+                    <span>{layout.categoryRow.category}</span>
+                  ) : null}
+                  {layout.categoryRow.instagram ? (
+                    <>
+                      <span style={{ color: palette.sub, margin: '0 12px' }}>|</span>
+                      <svg
+                        width={L.catSize}
+                        height={L.catSize}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                      </svg>
+                      <span style={{ marginLeft: 8 }}>@{layout.categoryRow.instagram}</span>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+            <div
+              style={{
+                width: 2,
+                alignSelf: 'stretch',
+                background: '#E5E7EB',
+                margin: `0 ${Math.round((L.qrGap - 2) / 2)}px`,
+                flexShrink: 0,
+              }}
+            />
+            {data?.profileQrDataUrl ? (
+              <img
+                src={data.profileQrDataUrl}
+                alt="Código QR"
+                style={{
+                  width: layout.qrProfile.size,
+                  height: layout.qrProfile.size,
+                  display: 'block',
+                  flexShrink: 0,
+                }}
+              />
+            ) : null}
+          </div>
+          {layout.divH ? (
+            <div
+              style={{
+                marginTop: L.divGap,
+                width: photoW,
+                height: 2,
+                background: '#E5E7EB',
+                flexShrink: 0,
+              }}
+            />
+          ) : null}
+        </>
+      ) : null}
+
+      {layout.name && layout.name.lines.length && !layout.qrProfile ? (
         <div style={{ marginTop: firstBlock === 'name' ? layout.firstGap : L.nameGap, width: photoW, flexShrink: 0 }}>
           {/* Cada línea calculada va en UNA línea visual (whiteSpace:
               nowrap, PR #158): si el DOM repartiera una línea en dos
@@ -612,7 +755,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
         </div>
       ) : null}
 
-      {layout.ratingCity && layout.ratingCity.lines.length ? (
+      {layout.ratingCity && layout.ratingCity.lines.length && !layout.qrProfile ? (
         <div
           style={{
             marginTop: firstBlock === 'ratingCity' ? layout.firstGap : L.rcGap,
@@ -644,7 +787,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
 
       {/* Categoría: línea centrada bajo la línea de reseñas+ciudad
           (definición final, 22 nov 2026), en el color secundario de la paleta. */}
-      {layout.category ? (
+      {layout.category && !layout.qrProfile ? (
         <div
           style={{
             marginTop: firstBlock === 'category' ? layout.firstGap : L.catGap,
@@ -662,7 +805,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
 
       {/* Instagram del negocio (@handle) bajo la categoría (propuesta A
           corregida, 22 nov 2026). */}
-      {layout.instagram ? (
+      {layout.instagram && !layout.qrProfile ? (
         <div
           style={{
             marginTop: firstBlock === 'instagram' ? layout.firstGap : L.igGap,
@@ -809,7 +952,7 @@ export default function ShareCardTemplate({ data, format, styleId, onPhotoError,
           flexShrink: 0,
         }}
       >
-        <ShareCardFooterRow row={layout.footerRow} />
+        <ShareCardFooterRow row={layout.footerRow} badges="es" />
       </div>
     </div>
   );
