@@ -727,11 +727,19 @@ export function shareCardLayoutTable(styleId, formatId) {
 // Etiqueta de la categoría para la tarjeta («restaurantes» →
 // «Restaurantes»): la base guarda la categoría en minúsculas y la
 // demo la muestra capitalizada (y en mayúsculas en el kicker del
-// collage, con toUpperCase()).
+// collage, con toUpperCase()). Las de la familia café llevan tilde
+// («cafeterias» → «Cafeterías», «cafe» → «Café»): la base las guarda
+// sin acento y capitalizar la primera letra no basta. Sin entrada en
+// el mapa, se capitaliza la primera letra.
+const SHARE_CARD_CATEGORY_LABELS = {
+  cafeterias: 'Cafeterías',
+  cafeteria: 'Cafetería',
+  cafe: 'Café',
+};
 export function formatShareCardCategory(raw) {
   const s = String(raw || '').trim();
   if (!s) return '';
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  return SHARE_CARD_CATEGORY_LABELS[s.toLowerCase()] || s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 // Emoji de la categoría para la fila «categoría | Instagram» de la

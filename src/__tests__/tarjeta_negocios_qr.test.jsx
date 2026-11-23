@@ -5,6 +5,7 @@ import ShareCardTemplate from '../components/ShareCardTemplate.jsx';
 import {
   buildShareCardData,
   computeShareCardLayout,
+  formatShareCardCategory,
   generateMenuQrDataUrl,
   SHARE_CARD_FORMATS,
   EDITORIAL_SHARE_CARD_LAYOUT,
@@ -86,7 +87,7 @@ describe('tarjeta de negocio con QR del perfil (Clara)', () => {
     expect(geo.instagram).toBeNull();
     expect(geo.categoryRow).not.toBeNull();
     expect(geo.categoryRow.emoji).toBe('☕');
-    expect(geo.categoryRow.category).toBe('Cafeterias');
+    expect(geo.categoryRow.category).toBe('Cafeterías');
     expect(geo.categoryRow.instagram).toBe('cafebelloy');
     expect(geo.categoryRow.x).toBe(L.pad);
 
@@ -138,7 +139,7 @@ describe('tarjeta de negocio con QR del perfil (Clara)', () => {
     expect(geo.name.x).toBe(SHARE_CARD_FORMATS.post.width / 2);
     expect(geo.ratingCity.goldStar).toBeUndefined();
     expect(geo.category).not.toBeNull();
-    expect(geo.category.text).toBe('Cafeterias');
+    expect(geo.category.text).toBe('Cafeterías');
     expect(geo.instagram).not.toBeNull();
     expect(geo.instagram.text).toBe('@cafebelloy');
   });
@@ -165,7 +166,7 @@ describe('tarjeta de negocio con QR del perfil (Clara)', () => {
     expect(markup).toContain('color:#F59E0B');
     expect(markup).toContain('4.2 (2,561) · París');
     // Fila «categoría | Instagram» con su glifo.
-    expect(markup).toContain('Cafeterias');
+    expect(markup).toContain('Cafeterías');
     expect(markup).toContain('@cafebelloy');
     expect(markup).toContain('<svg');
     // El QR con su divisoria horizontal.
@@ -197,5 +198,16 @@ describe('tarjeta de negocio con QR del perfil (Clara)', () => {
     expect(sheet).toContain('profileQrDataUrl');
     const footer = read('../components/ShareCardFooterRow.jsx');
     expect(footer).toContain("badges = 'en'");
+  });
+
+  it('la etiqueta de categoría lleva tilde en la familia café', () => {
+    expect(formatShareCardCategory('cafeterias')).toBe('Cafeterías');
+    expect(formatShareCardCategory('cafeteria')).toBe('Cafetería');
+    expect(formatShareCardCategory('cafe')).toBe('Café');
+    // Sin entrada en el mapa, se capitaliza la primera letra.
+    expect(formatShareCardCategory('restaurantes')).toBe('Restaurantes');
+    expect(formatShareCardCategory('lugares')).toBe('Lugares');
+    expect(formatShareCardCategory('')).toBe('');
+    expect(formatShareCardCategory(null)).toBe('');
   });
 });
