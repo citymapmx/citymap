@@ -196,13 +196,23 @@ describe('api/delete-account: limpieza antes que Auth', () => {
 
 // ── Cliente: botón y hoja en AccountView ────────────────────────────────────
 describe('Mi Perfil: eliminar cuenta', () => {
-  it('el botón «Eliminar mi cuenta» está en rojo, debajo de cerrar sesión', () => {
+  it('«Eliminar mi cuenta» vive en la hoja de Ajustes (engranaje), en rojo, y ya no suelta en Mi Perfil', () => {
     const html = renderAccount();
-    expect(html).toContain('Eliminar mi cuenta');
-    expect(html.indexOf('Cerrar sesión')).toBeLessThan(html.indexOf('Eliminar mi cuenta'));
-    const btnPos = html.indexOf('Eliminar mi cuenta');
-    const btnTag = html.lastIndexOf('<button', btnPos);
-    expect(html.slice(btnTag, html.indexOf('>', btnPos))).toContain('#D94F3D');
+    // En Mi Perfil ya no sale suelta: solo se ve al abrir Ajustes.
+    expect(html).not.toContain('Eliminar mi cuenta');
+    expect(html).toContain('Cerrar sesión');
+    // El engranaje está en el encabezado.
+    expect(html).toContain('aria-label="Ajustes"');
+    // En el código, la hoja de Ajustes lleva el botón en rojo y abre
+    // la confirmación de siempre.
+    const src = read('../components/AccountView.jsx');
+    expect(src).toContain('cuenta_ajustes');
+    const sheetPos = src.indexOf('HOJA DE AJUSTES');
+    expect(sheetPos).toBeGreaterThan(-1);
+    const sheetSrc = src.slice(sheetPos);
+    expect(sheetSrc).toContain('cuenta_eliminar_cuenta');
+    expect(sheetSrc).toContain('#D94F3D');
+    expect(sheetSrc).toContain('setShowDeleteAccount(true)');
   });
 
   it('la hoja de confirmación va con createPortal a document.body (la raíz de Mi Perfil lleva transform)', () => {
@@ -220,6 +230,7 @@ describe('Mi Perfil: eliminar cuenta', () => {
     const es = read('../lib/i18n.js');
     const en = read('../lib/i18n-en.js');
     for (const key of [
+      'cuenta_ajustes',
       'cuenta_eliminar_cuenta',
       'cuenta_eliminar_cuenta_titulo',
       'cuenta_eliminar_cuenta_desc',

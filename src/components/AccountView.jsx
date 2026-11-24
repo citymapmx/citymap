@@ -74,6 +74,10 @@ export default function AccountView({
   }, [myBizList, location]);
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  // Hoja de Ajustes (23 Nov 2026, Jonathan): el engranaje del encabezado
+  // abre esta hoja; «Editar perfil» abre el modal de siempre y
+  // «Eliminar mi cuenta» vive aquí dentro, ya no suelta en Mi Perfil.
+  const [showSettings, setShowSettings] = useState(false);
   const [editName, setEditName] = useState("");
   const [editPhoto, setEditPhoto] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -357,6 +361,28 @@ export default function AccountView({
           </div>
         , document.body)}
 
+        {/* ── HOJA DE AJUSTES ── */}
+        {/* El engranaje del encabezado abre esta hoja (23 Nov 2026):
+            «Editar perfil» abre el modal de siempre y «Eliminar mi cuenta»
+            vive aquí dentro, en rojo y con su confirmación — ya no suelta
+            al final de Mi Perfil. Con createPortal a document.body por la
+            misma razón que la confirmación de borrar (PR #380). */}
+        {showSettings && createPortal(
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => setShowSettings(false)}>
+            <div style={{ width: "100%", maxWidth: 420, background: T.white, borderRadius: 24, padding: "28px 24px", animation: "scaleFadeIn .25s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontWeight: 800, fontSize: 17, color: T.text, marginBottom: 16, textAlign: "center" }}>{t("cuenta_ajustes", "Ajustes")}</div>
+              <button onClick={() => { setShowSettings(false); startEditProfile(); }} style={{ width: "100%", padding: "13px 4px", background: "transparent", border: "none", fontSize: 15, fontWeight: 600, color: T.text, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+                <Icon name="edit" size={18} color={T.text} /> {t("editar_perfil", "Editar perfil")}
+              </button>
+              <div style={{ height: 1, background: T.border, margin: "4px 0" }} />
+              <button onClick={() => { setShowSettings(false); setDeleteAccountError(""); setShowDeleteAccount(true); }} style={{ width: "100%", padding: "13px 4px", background: "transparent", border: "none", fontSize: 15, fontWeight: 600, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+                <Icon name="trash" size={18} color="#D94F3D" /> {t("cuenta_eliminar_cuenta", "Eliminar mi cuenta")}
+              </button>
+              <button onClick={() => setShowSettings(false)} style={{ width: "100%", padding: "12px 0", marginTop: 16, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, color: T.text, cursor: "pointer", fontFamily: "inherit" }}>{t("cancelar", "Cancelar")}</button>
+            </div>
+          </div>
+        , document.body)}
+
         {/* ── USER QR MODAL ── */}
         {showUserQR && createPortal(
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => setShowUserQR(false)}>
@@ -407,10 +433,13 @@ export default function AccountView({
             24 px como antes. */}
         <div style={{ padding: `${safeAreaTop(24)} 20px 24px`, background: T.white, borderBottom: `1px solid ${T.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* Editar perfil — botón redondo */}
-            <button type="button" aria-label={t("editar_perfil", "Editar perfil")} title={t("editar_perfil", "Editar perfil")} onClick={startEditProfile}
+            {/* Ajustes — botón redondo con engranaje (23 Nov 2026):
+                antes era el lápiz que abría directo «Editar perfil»;
+                ahora abre la hoja de Ajustes, donde viven Editar perfil
+                y Eliminar mi cuenta. */}
+            <button type="button" aria-label={t("cuenta_ajustes", "Ajustes")} title={t("cuenta_ajustes", "Ajustes")} onClick={() => setShowSettings(true)}
               style={{ width: 44, height: 44, minWidth: 44, borderRadius: "50%", background: T.bg, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}>
-              <Icon name="edit" size={20} color={T.text} />
+              <Icon name="settings" size={20} color={T.text} />
             </button>
             {/* Avatar centrado */}
             <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
@@ -580,16 +609,13 @@ export default function AccountView({
         {/* ── SEGURIDAD ── */}
         {/* Encabezado (19 Nov 2026, Jonathan): «Cerrar sesión» y
             «Eliminar mi cuenta» estaban sueltos al final de Mi Perfil
-            sin ningún encabezado, como sí tienen las demás secciones. */}
+            sin ningún encabezado, como sí tienen las demás secciones.
+            (23 Nov 2026: «Eliminar mi cuenta» se mudó a la hoja de
+            Ajustes del engranaje; aquí queda solo «Cerrar sesión».) */}
         <div style={{ padding: "16px 16px 0" }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("cuenta_seguridad", "Seguridad")}</div>
           <button onClick={doSignOut} style={{ width: "100%", padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: T.sub, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <Icon name="log-out" size={16} color={T.sub} /> {t("cerrar_sesion", "Cerrar sesión")}
-          </button>
-
-          {/* ── ZONA DE PELIGRO: ELIMINAR CUENTA ── */}
-          <button onClick={() => { setDeleteAccountError(""); setShowDeleteAccount(true); }} style={{ width: "100%", marginTop: 12, padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Icon name="trash" size={16} color="#D94F3D" /> {t("cuenta_eliminar_cuenta", "Eliminar mi cuenta")}
           </button>
         </div>
 
