@@ -38,10 +38,10 @@ const landingSrc = readFileSync(new URL('../components/BusinessLanding.jsx', imp
 const styleBlock = landingSrc.match(/<style>\{`([\s\S]*?)`\}<\/style>/)[1];
 
 describe('Animación «Aparición al bajar» en /negocios', () => {
-  it('los encabezados de las secciones van envueltos en Reveal (20 en el render: 17 en código, «Así se verá» se repite en 4 tarjetas)', () => {
+  it('los encabezados de las secciones van envueltos en Reveal (24 en el render: 20 textos + 4 tarjetas de ejemplo, que entran con el fundido de tarjetas)', () => {
     const html = renderLanding(false);
     const divs = revealDivs(html);
-    expect(divs).toHaveLength(20);
+    expect(divs).toHaveLength(24);
     for (const text of [
       'CityMap para negocios',
       'Haz que más personas encuentren tu negocio.',
@@ -133,7 +133,7 @@ describe('Animación «Aparición al bajar» en /negocios', () => {
 
   it('se ve en oscuro sin romper el render', () => {
     const html = renderLanding(true);
-    expect(revealDivs(html)).toHaveLength(20);
+    expect(revealDivs(html)).toHaveLength(24);
     expect(html).toContain('Haz que más personas encuentren tu negocio.');
     expect(html).toContain('Ya están en CityMap');
   });

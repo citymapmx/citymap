@@ -4,6 +4,11 @@ import { prefersReducedMotion } from "../../hooks/useCountUp.js";
 // Aparición al bajar (textos de /negocios, nov 2026): fundido + subida
 // suave cuando el elemento entra en pantalla, una sola vez.
 //
+// Con fadeOnly (tarjetas de negocio, 24 nov 2026, como el fundido de
+// tepicsonrie.mx/noche.html que le gustó a Jonathan): solo opacidad,
+// ~0.8 s, sin subir ni crecer. La clase `reveal-fade` vive en
+// index.css, junto a cascade-in.
+//
 // Solo transform/opacity: el texto ocupa su espacio final desde el
 // primer render, así que no mueve el diseño ni cambia el CLS. El
 // easing y la duración son los de la cascada del #138 (Animista
@@ -14,7 +19,7 @@ import { prefersReducedMotion } from "../../hooks/useCountUp.js";
 // primer render el elemento ya sale oculto, así que no hay flash del
 // texto visible antes de animar. Con prefers-reduced-motion —o sin
 // IntersectionObserver— empieza visible, sin animar.
-export function Reveal({ children, delay = 0 }) {
+export function Reveal({ children, delay = 0, fadeOnly = false }) {
   const ref = useRef(null);
   const [revealed, setRevealed] = useState(() => prefersReducedMotion());
   useEffect(() => {
@@ -34,7 +39,7 @@ export function Reveal({ children, delay = 0 }) {
     io.observe(el);
     return () => io.disconnect();
   }, [revealed]);
-  const className = revealed ? "reveal is-visible" : "reveal";
+  const className = `reveal${fadeOnly ? " reveal-fade" : ""}${revealed ? " is-visible" : ""}`;
   const style = delay ? { transitionDelay: `${delay}ms` } : undefined;
   return (
     <div ref={ref} className={className} style={style}>

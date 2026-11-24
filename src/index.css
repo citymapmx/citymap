@@ -359,6 +359,7 @@ iframe[id^="credential_picker"] {
   .scale-in-center { -webkit-animation: none; animation: none; }
   .scale-in-ver-top { -webkit-animation: none; animation: none; }
   .cascade-in { -webkit-animation: none; animation: none; }
+  .reveal-fade { opacity: 1; transition: none; }
   .heart-pop-once { -webkit-animation: none; animation: none; }
   .heart-spark { -webkit-animation: none; animation: none; }
   .skel-shimmer { -webkit-animation: none; animation: none; }
@@ -435,6 +436,16 @@ iframe[id^="credential_picker"] {
   0% { -webkit-transform: translateY(22px); transform: translateY(22px); opacity: 0; }
   100% { -webkit-transform: translateY(0); transform: translateY(0); opacity: 1; }
 }
+
+/* ── reveal-fade (fundido de tarjetas al entrar en pantalla) ──
+   Como el de tepicsonrie.mx/noche.html (24 nov 2026): la tarjeta
+   entera pasa de translúcida a opaca en ~0.8 s, una sola vez, sin
+   deslizarse ni crecer. Solo opacity: no mueve el layout ni cambia
+   la altura que Virtuoso mide. La clase la pone Reveal con fadeOnly
+   (tarjetas de negocio). Con "reducir movimiento" no anima (Reveal
+   además empieza visible) y sin JS no hay app. */
+.reveal-fade { opacity: 0; transition: opacity .8s ease; }
+.reveal-fade.is-visible { opacity: 1; }
 
 /* ── skeleton-shimmer (esqueletos con brillo, demo #3 de "15 animaciones") ──
    Mientras una lista tarda en cargar se ven las siluetas de las tarjetas
