@@ -741,7 +741,6 @@ export const EN_TRANSLATIONS = {
     "cuenta_prueba_nota_anual": "Free 7-day trial. Then ${price} a year is charged.",
     "cuenta_prueba_nota": "Free 7-day trial. Then it's charged every month.",
     "cuenta_qr_desc": "Show this code at the business to collect stamps, earn points and redeem your rewards.",
-    "cuenta_seguridad": "Security",
     "cuenta_ajustes": "Settings",
     "cuenta_shot_menu": "Interactive Menu and Cart",
     "cuenta_shot_reservas": "Reservations Management",

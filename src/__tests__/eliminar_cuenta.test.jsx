@@ -199,8 +199,10 @@ describe('Mi Perfil: eliminar cuenta', () => {
   it('«Eliminar mi cuenta» vive en la hoja de Ajustes (engranaje), en rojo, y ya no suelta en Mi Perfil', () => {
     const html = renderAccount();
     // En Mi Perfil ya no sale suelta: solo se ve al abrir Ajustes.
+    // (24 Nov 2026: «Cerrar sesión» también se mudó a la hoja, así
+    // que tampoco sale suelta en Mi Perfil.)
     expect(html).not.toContain('Eliminar mi cuenta');
-    expect(html).toContain('Cerrar sesión');
+    expect(html).not.toContain('Cerrar sesión');
     // El engranaje está en el encabezado.
     expect(html).toContain('aria-label="Ajustes"');
     // En el código, la hoja de Ajustes lleva el botón en rojo y abre
@@ -213,6 +215,9 @@ describe('Mi Perfil: eliminar cuenta', () => {
     expect(sheetSrc).toContain('cuenta_eliminar_cuenta');
     expect(sheetSrc).toContain('#D94F3D');
     expect(sheetSrc).toContain('setShowDeleteAccount(true)');
+    // «Cerrar sesión» vive en la misma hoja.
+    expect(sheetSrc).toContain('cerrar_sesion');
+    expect(sheetSrc).toContain('doSignOut()');
   });
 
   it('la hoja de confirmación va con createPortal a document.body (la raíz de Mi Perfil lleva transform)', () => {

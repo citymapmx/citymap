@@ -363,16 +363,21 @@ export default function AccountView({
 
         {/* ── HOJA DE AJUSTES ── */}
         {/* El engranaje del encabezado abre esta hoja (23 Nov 2026):
-            «Editar perfil» abre el modal de siempre y «Eliminar mi cuenta»
-            vive aquí dentro, en rojo y con su confirmación — ya no suelta
-            al final de Mi Perfil. Con createPortal a document.body por la
-            misma razón que la confirmación de borrar (PR #380). */}
+            «Editar perfil» abre el modal de siempre, «Cerrar sesión»
+            cierra la sesión (24 Nov 2026: se mudó aquí desde la sección
+            SEGURIDAD) y «Eliminar mi cuenta» vive aquí dentro, en rojo
+            y con su confirmación — ya no sueltos al final de Mi Perfil.
+            Con createPortal a document.body por la misma razón que la
+            confirmación de borrar (PR #380). */}
         {showSettings && createPortal(
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => setShowSettings(false)}>
             <div style={{ width: "100%", maxWidth: 420, background: T.white, borderRadius: 24, padding: "28px 24px", animation: "scaleFadeIn .25s cubic-bezier(.34,1.1,.64,1) both", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
               <div style={{ fontWeight: 800, fontSize: 17, color: T.text, marginBottom: 16, textAlign: "center" }}>{t("cuenta_ajustes", "Ajustes")}</div>
               <button onClick={() => { setShowSettings(false); startEditProfile(); }} style={{ width: "100%", padding: "13px 4px", background: "transparent", border: "none", fontSize: 15, fontWeight: 600, color: T.text, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
                 <Icon name="edit" size={18} color={T.text} /> {t("editar_perfil", "Editar perfil")}
+              </button>
+              <button onClick={() => { setShowSettings(false); doSignOut(); }} style={{ width: "100%", padding: "13px 4px", background: "transparent", border: "none", fontSize: 15, fontWeight: 600, color: T.text, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+                <Icon name="log-out" size={18} color={T.text} /> {t("cerrar_sesion", "Cerrar sesión")}
               </button>
               <div style={{ height: 1, background: T.border, margin: "4px 0" }} />
               <button onClick={() => { setShowSettings(false); setDeleteAccountError(""); setShowDeleteAccount(true); }} style={{ width: "100%", padding: "13px 4px", background: "transparent", border: "none", fontSize: 15, fontWeight: 600, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
@@ -605,19 +610,6 @@ export default function AccountView({
           </div>
         )}
 
-
-        {/* ── SEGURIDAD ── */}
-        {/* Encabezado (19 Nov 2026, Jonathan): «Cerrar sesión» y
-            «Eliminar mi cuenta» estaban sueltos al final de Mi Perfil
-            sin ningún encabezado, como sí tienen las demás secciones.
-            (23 Nov 2026: «Eliminar mi cuenta» se mudó a la hoja de
-            Ajustes del engranaje; aquí queda solo «Cerrar sesión».) */}
-        <div style={{ padding: "16px 16px 0" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("cuenta_seguridad", "Seguridad")}</div>
-          <button onClick={doSignOut} style={{ width: "100%", padding: "13px 0", background: "transparent", border: "none", fontSize: 14, fontWeight: 600, color: T.sub, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Icon name="log-out" size={16} color={T.sub} /> {t("cerrar_sesion", "Cerrar sesión")}
-          </button>
-        </div>
 
         {/* ── CONFIRMACIÓN DE ELIMINAR CUENTA ── */}
         {showDeleteAccount && createPortal(
