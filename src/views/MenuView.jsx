@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { sb } from '../lib/supabase.js';
+import { trackAnalyticsEvent } from '../services/dbService.js';
 import Icon from '../components/ui/Icon.jsx';
 import BusinessStore from '../components/store/BusinessStore.jsx';
 import MenuLoadingScreen from '../components/store/MenuLoadingScreen.jsx';
@@ -81,6 +82,18 @@ export default function MenuView({ T, dark, navigate: propNavigate }) {
       setSelected(biz);
     }
   }, [biz, selected, setSelected]);
+
+  // Visita al menú (23 Nov 2026): el contador solo registraba la ficha,
+  // así que quien llegaba directo al menú (Google, QR del menú, enlace
+  // compartido) no aparecía. Cada carga de la página del menú cuenta
+  // como una vista, igual que cada toque en la tarjeta. El ref evita
+  // contar doble si el efecto se invoca dos veces en el mismo montaje.
+  const menuViewTracked = useRef(false);
+  useEffect(() => {
+    if (!biz?.id || menuViewTracked.current) return;
+    menuViewTracked.current = true;
+    trackAnalyticsEvent(biz.id, "view", city);
+  }, [biz?.id, city]);
 
   if (loading || (biz && categoriesLoading)) {
     // Una sola pantalla de carga: con el negocio ya conocido muestra
