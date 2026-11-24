@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {getHomeVisualState, shouldExitSplash, SPLASH_MINIMUM_MS, SPLASH_MAX_WAIT_MS} from '../lib/homeReadiness.js';
+import {getHomeVisualState, shouldExitSplash, SPLASH_MINIMUM_MS, SPLASH_MAX_WAIT_MS, claimSplashAutoRetry, clearSplashAutoRetry, SPLASH_AUTO_RETRY_DELAY_MS} from '../lib/homeReadiness.js';
 const image=(props={},box={top:0,left:0,right:200,bottom:100,width:200,height:100})=>({complete:true,naturalWidth:800,getBoundingClientRect:()=>box,...props});
 const documentWith=(images=[],city='tepic',fonts={status:'loaded',check:()=>true})=>({fonts,querySelectorAll:()=>[{getAttribute:()=>city,querySelectorAll:()=>images}],querySelector:()=>null});
 const viewport={width:390,height:844};
@@ -51,4 +51,30 @@ describe('city arrival splash exit cap',()=>{
  it('exits at the cap on a data error even when images are still loading',()=>{expect(shouldExitSplash({ready:true,error:true,visual:'loading',elapsedMs:3000})).toBe(true);});
  it('does not exit before the cap on a data error',()=>{expect(shouldExitSplash({ready:true,error:true,visual:'ready',elapsedMs:1000})).toBe(false);});
  it('never exits on a data error while the city data is not ready, even past the cap',()=>{expect(shouldExitSplash({ready:false,error:true,visual:'ready',elapsedMs:30000})).toBe(false);});
+});
+
+describe('splash auto retry',()=>{
+ const storage=()=>{const m=new Map();return{getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k)};};
+ it('claims the auto retry only once per error episode',()=>{
+  const s=storage(); vi.stubGlobal('sessionStorage',s);
+  try{
+   expect(claimSplashAutoRetry()).toBe(true);
+   expect(claimSplashAutoRetry()).toBe(false);
+  } finally { vi.unstubAllGlobals(); }
+ });
+ it('allows a new claim after the load succeeds and clears',()=>{
+  const s=storage(); vi.stubGlobal('sessionStorage',s);
+  try{
+   expect(claimSplashAutoRetry()).toBe(true);
+   clearSplashAutoRetry();
+   expect(claimSplashAutoRetry()).toBe(true);
+  } finally { vi.unstubAllGlobals(); }
+ });
+ it('does not claim when session storage is unavailable',()=>{
+  vi.stubGlobal('sessionStorage',undefined);
+  try{ expect(claimSplashAutoRetry()).toBe(false); } finally { vi.unstubAllGlobals(); }
+ });
+ it('waits 1.5 s so the error message can be read before retrying',()=>{
+  expect(SPLASH_AUTO_RETRY_DELAY_MS).toBe(1500);
+ });
 });

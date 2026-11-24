@@ -1,4 +1,4 @@
-import { getHomeVisualState, shouldExitSplash } from "../lib/homeReadiness.js";
+import { claimSplashAutoRetry, clearSplashAutoRetry, getHomeVisualState, shouldExitSplash, SPLASH_AUTO_RETRY_DELAY_MS } from "../lib/homeReadiness.js";
 import BrandSplash from "./ui/BrandSplash.jsx";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -24,6 +24,9 @@ export default function CityArrivalSplash({
   const [slow, setSlow] = useState(false);
   const previousCity = useRef(null);
   const startedAt = useRef(Date.now());
+  const autoRetried = useRef(false);
+  const onRetryRef = useRef(onRetry);
+  onRetryRef.current = onRetry;
   const [reducedMotion] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -41,6 +44,7 @@ export default function CityArrivalSplash({
       startedAt.current = Date.now();
       setIssue(false);
       setSlow(false);
+      autoRetried.current = false;
       setName(cityName || "");
       setPhase("enter");
     } else if (cityName) {
@@ -80,6 +84,31 @@ export default function CityArrivalSplash({
     const timer = setTimeout(() => setPhase("idle"), reducedMotion ? 100 : 620);
     return () => clearTimeout(timer);
   }, [phase, reducedMotion]);
+
+  // Si la carga salió bien, un fallo posterior vuelve a tener su reintento.
+  useEffect(() => {
+    if (!ready) return;
+    autoRetried.current = false;
+    clearSplashAutoRetry();
+  }, [ready]);
+
+  // Reintento automático UNA sola vez cuando la carga falla: el mensaje de
+  // error ya se muestra con botón manual, pero si nadie lo toca la app se
+  // queda en el splash. Se espera 1,5 s para que el mensaje se alcance a
+  // leer; si el reintento vuelve a fallar, queda el mensaje con el botón y
+  // no se reintenta más (la marca en sessionStorage sobrevive a la recarga).
+  useEffect(() => {
+    if (phase !== "enter" || !issue || autoRetried.current) return;
+    if (!claimSplashAutoRetry()) {
+      autoRetried.current = true;
+      return;
+    }
+    autoRetried.current = true;
+    const timer = setTimeout(() => {
+      onRetryRef.current();
+    }, SPLASH_AUTO_RETRY_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [phase, issue]);
 
   if (!enabled || phase === "idle" || !citySlug) return null;
   const message = issue
