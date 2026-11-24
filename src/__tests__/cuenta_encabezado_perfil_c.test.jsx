@@ -207,30 +207,25 @@ describe('Cuenta: encabezado propuesta C (botones redondos de 44 px, nombre cent
     }
   });
 
-  it('«Seguridad» encabeza solo Cerrar sesión; Eliminar mi cuenta vive en la hoja de Ajustes', () => {
+  it('la sección SEGURIDAD ya no existe: «Cerrar sesión» vive en la hoja de Ajustes', () => {
     const html = renderAccount();
-    const segPos = html.indexOf('>Seguridad<');
-    expect(segPos).toBeGreaterThan(0);
-    const signOutPos = html.indexOf('Cerrar sesión');
-    expect(signOutPos).toBeGreaterThan(segPos);
-    // «Eliminar mi cuenta» ya no está suelta en Mi Perfil: vive dentro
-    // de la hoja de Ajustes (cerrada por defecto), así que no sale en
-    // el HTML estático.
+    // Ni el encabezado ni el botón salen sueltos en Mi Perfil: todo
+    // lo de la cuenta vive dentro de la hoja de Ajustes (cerrada por
+    // defecto), así que no sale en el HTML estático.
+    expect(html).not.toContain('>Seguridad<');
+    expect(html).not.toContain('Cerrar sesión');
     expect(html).not.toContain('Eliminar mi cuenta');
-    // Mismo estilo de encabezado chico en mayúsculas que «Mis solicitudes» / «Mis eventos privados».
-    const segDiv = html.lastIndexOf('<div', segPos);
-    const segStyle = html.slice(segDiv, segPos);
-    expect(segStyle).toContain('text-transform:uppercase');
-    expect(segStyle).toContain('font-size:13px');
-    expect(segStyle).toContain('font-weight:700');
-    // La clave existe en es y en.
-    const es = read('../lib/i18n.js');
-    const en = read('../lib/i18n-en.js');
-    expect(es).toContain('"cuenta_seguridad": "Seguridad"');
-    expect(en).toContain('"cuenta_seguridad": "Security"');
-    // Los botones y su flujo no cambiaron.
+    // En el código, la hoja de Ajustes lleva «Cerrar sesión» con su
+    // icono y cierra la hoja antes de cerrar la sesión; la clave
+    // «cuenta_seguridad» ya no se usa en ningún lado.
     const src = read('../components/AccountView.jsx');
-    expect(src).toContain('onClick={doSignOut}');
+    const sheetPos = src.indexOf('HOJA DE AJUSTES');
+    expect(sheetPos).toBeGreaterThan(-1);
+    const sheetSrc = src.slice(sheetPos);
+    expect(sheetSrc).toContain('cerrar_sesion');
+    expect(sheetSrc).toContain('"log-out"');
+    expect(sheetSrc).toContain('doSignOut()');
+    expect(src).not.toContain('cuenta_seguridad');
     expect(src).toContain('setShowDeleteAccount(true)');
     // La hoja de Ajustes la abre el engranaje del encabezado.
     expect(html).toContain('aria-label="Ajustes"');
