@@ -8,6 +8,7 @@ import { CAT_EMOJI, isOpenNow, getScheduleStatus, getThumbUrl, getThumbSrcSet, S
 import ProgressiveImage from "../ProgressiveImage.jsx";
 import { useTranslation } from "../../hooks/useTranslation.js";
 import { useDataStore } from "../../store/useDataStore.js";
+import { Reveal } from "../ui/Reveal.jsx";
 import { displayRating, formatReviewCount } from "../../lib/googleRatings.js";
 
 // Corazón de guardar con el diseño actual intacto (mismo botón 44x44,
@@ -164,7 +165,11 @@ export default memo(function BusinessCard({
   stayTimeStr,
   rank,
   goWhatsApp,
-  showStars = true
+  showStars = true,
+  // reveal: fundido al entrar en pantalla (como tepicsonrie.mx,
+  // 24 nov 2026). En false la tarjeta sale directa, sin fundido
+  // (el slider automático, que ya desliza cada cambio).
+  reveal = true
 }) {
   const thumb = b.photos?.[0] || (b.banner_url ? { url: b.banner_url } : null) || (b.logo_url ? { url: b.logo_url } : null);
   // Placeholder de color mientras carga la foto de la tarjeta
@@ -177,6 +182,10 @@ export default memo(function BusinessCard({
   const [showPlus, setShowPlus] = useState(false);
   const { t } = useTranslation();
   const googleRatings = useDataStore(s => s.googleRatings);
+  // Fundido de entrada (Reveal fadeOnly): envuelve la raíz de cada
+  // variante; solo opacity, así que no cambia el layout ni la altura
+  // que Virtuoso mide. Con reveal={false} devuelve la tarjeta tal cual.
+  const wrapReveal = (node) => (reveal ? <Reveal fadeOnly>{node}</Reveal> : node);
 
   const handleFav = (e) => {
     e.stopPropagation();
@@ -190,7 +199,7 @@ export default memo(function BusinessCard({
 
   // 1. CUSTOM PLACE CARD (Only applicable for compact view / itinerary popup)
   if (b._isCustom) {
-    return (
+    return wrapReveal(
       <m.div 
         transition={{ duration: 0.3, ease: "easeOut" }}
         className={onTap ? "press" : ""} 
@@ -231,7 +240,7 @@ export default memo(function BusinessCard({
   // 2. COMPACT LAYOUT (Horizontal list card)
   if (variant === "compact") {
     const schedHidden = getScheduleStatus(b, forceOpen ? true : isOpenNow(b), true).hidden;
-    return (
+    return wrapReveal(
       <m.div 
         transition={{ duration: 0.3, ease: "easeOut" }}
         whileHover={onTap ? "hover" : undefined} 
@@ -333,7 +342,7 @@ export default memo(function BusinessCard({
 
   // 3. DESTACADO LAYOUT (Grid card with top banner)
   if (variant === "destacado") {
-    return (
+    return wrapReveal(
       <m.div 
         transition={{ duration: 0.3, ease: "easeOut" }}
         whileHover="hover" 
@@ -405,7 +414,7 @@ export default memo(function BusinessCard({
   // 4. FEATURED LAYOUT (Promotional dark style with social and rank overlays)
   if (variant === "featured") {
     const scheduleRow = renderScheduleRow(b, T, t, forceOpen);
-    return (
+    return wrapReveal(
       <m.div 
         transition={{ duration: 0.3, ease: "easeOut" }}
         whileHover="hover" 

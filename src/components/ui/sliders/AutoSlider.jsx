@@ -27,7 +27,7 @@ export default function AutoSlider({ businesses, T, dark, favIds, toggleFav, onT
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
         >
-          <FeaturedCard b={b} T={T} dark={dark} isFav={favIds?.includes(b.id)} toggleFav={toggleFav} onTap={onTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts?.[b.id] || 0} />
+          <FeaturedCard b={b} T={T} dark={dark} isFav={favIds?.includes(b.id)} toggleFav={toggleFav} onTap={onTap} goWhatsApp={goWhatsApp} goDir={goDir} doShare={doShare} distStr={distStr} realFavs={globalFavCounts?.[b.id] || 0} reveal={false} />
         </m.div>
       </AnimatePresence>
       <div style={{ display: "none" }}>
