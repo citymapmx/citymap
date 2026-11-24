@@ -112,11 +112,11 @@ describe('Cuenta: encabezado propuesta C (botones redondos de 44 px, nombre cent
     expect(html).toContain('height:72px');
   });
 
-  it('en la fila del avatar hay dos botones redondos de 44 px: editar a la izquierda y tema a la derecha', () => {
+  it('en la fila del avatar hay dos botones redondos de 44 px: ajustes (engranaje) a la izquierda y tema a la derecha', () => {
     const html = renderAccount();
-    // Botón de editar: abre el modal de edición, 44 px, redondo.
-    expect(html).toContain('aria-label="Editar perfil"');
-    const editPos = html.indexOf('aria-label="Editar perfil"');
+    // Botón de ajustes: abre la hoja de Ajustes, 44 px, redondo.
+    expect(html).toContain('aria-label="Ajustes"');
+    const editPos = html.indexOf('aria-label="Ajustes"');
     const editBtn = html.lastIndexOf('<button', editPos);
     const editTagEnd = html.indexOf('>', editPos);
     const editStyle = html.slice(editBtn, editTagEnd);
@@ -140,10 +140,15 @@ describe('Cuenta: encabezado propuesta C (botones redondos de 44 px, nombre cent
     expect(themePos).toBeLessThan(html.indexOf('Jonathan Arana'));
   });
 
-  it('el botón de editar abre el modal y el de tema cambia el tema (cableado)', () => {
+  it('el engranaje abre la hoja de Ajustes y desde ahí «Editar perfil» abre el modal (cableado)', () => {
     const src = read('../components/AccountView.jsx');
-    // El botón redondo de editar llama startEditProfile (el mismo modal).
-    expect(src).toContain('onClick={startEditProfile}');
+    // El botón redondo del engranaje abre la hoja de Ajustes.
+    expect(src).toContain('onClick={() => setShowSettings(true)}');
+    // La hoja tiene «Editar perfil» (abre el modal de siempre) y
+    // «Eliminar mi cuenta» (abre la confirmación de siempre).
+    expect(src).toContain('cuenta_ajustes');
+    expect(src).toContain('setShowSettings(false); startEditProfile();');
+    expect(src).toContain('setShowDeleteAccount(true)');
     // El botón de tema es el ThemeToggle de siempre, de 44 px y redondo.
     expect(src).toContain('<ThemeToggle size={44} round />');
     const toggleSrc = read('../components/ui/ThemeToggle.jsx');
@@ -202,14 +207,16 @@ describe('Cuenta: encabezado propuesta C (botones redondos de 44 px, nombre cent
     }
   });
 
-  it('«Seguridad» encabeza Cerrar sesión y Eliminar mi cuenta, con el estilo de las demás secciones', () => {
+  it('«Seguridad» encabeza solo Cerrar sesión; Eliminar mi cuenta vive en la hoja de Ajustes', () => {
     const html = renderAccount();
     const segPos = html.indexOf('>Seguridad<');
     expect(segPos).toBeGreaterThan(0);
     const signOutPos = html.indexOf('Cerrar sesión');
-    const deletePos = html.indexOf('Eliminar mi cuenta');
     expect(signOutPos).toBeGreaterThan(segPos);
-    expect(deletePos).toBeGreaterThan(signOutPos);
+    // «Eliminar mi cuenta» ya no está suelta en Mi Perfil: vive dentro
+    // de la hoja de Ajustes (cerrada por defecto), así que no sale en
+    // el HTML estático.
+    expect(html).not.toContain('Eliminar mi cuenta');
     // Mismo estilo de encabezado chico en mayúsculas que «Mis solicitudes» / «Mis eventos privados».
     const segDiv = html.lastIndexOf('<div', segPos);
     const segStyle = html.slice(segDiv, segPos);
@@ -225,6 +232,9 @@ describe('Cuenta: encabezado propuesta C (botones redondos de 44 px, nombre cent
     const src = read('../components/AccountView.jsx');
     expect(src).toContain('onClick={doSignOut}');
     expect(src).toContain('setShowDeleteAccount(true)');
+    // La hoja de Ajustes la abre el engranaje del encabezado.
+    expect(html).toContain('aria-label="Ajustes"');
+    expect(src).toContain('cuenta_ajustes');
   });
 
   it('el encabezado del perfil respeta el área segura: avatar y botones ya no quedan pegados arriba', () => {
