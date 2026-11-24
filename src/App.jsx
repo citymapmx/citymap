@@ -689,8 +689,14 @@ useEffect(() => {
               photos: parseJSON(r[0].photos)
             };
              
-            setSelected(parsedB); 
-            navigate("detail"); 
+            setSelected(parsedB);
+            navigate("detail");
+            // Visita por enlace directo (Google, enlace compartido, QR):
+            // el contador de Actividad de Negocios solo registraba el
+            // toque en la tarjeta (handleCardTap), así que estas visitas
+            // no aparecían. Este resolver corre una sola vez al arranque
+            // (deepLinkHandled), así que no cuenta doble con el toque.
+            trackEvent(parsedB.id, "view");
           }
           else navigate("home");
         } catch { navigate("home"); }
