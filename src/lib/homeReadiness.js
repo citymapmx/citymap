@@ -39,3 +39,32 @@ export function shouldExitSplash({ready, error, visual, elapsedMs}) {
   if (error && elapsedMs < SPLASH_MAX_WAIT_MS) return false;
   return visual === 'ready' || elapsedMs >= SPLASH_MAX_WAIT_MS;
 }
+
+// Reintento automático del splash: cuando la carga de datos falla, el
+// splash ya muestra el mensaje de error con botón manual, pero si nadie lo
+// toca la app se queda ahí. El reintento automático es UNA sola vez por
+// episodio de error: si la recarga vuelve a fallar, queda el mensaje con el
+// botón manual y no se entra en bucle. La marca vive en sessionStorage para
+// sobrevivir a la recarga (onRetry por defecto es window.location.reload()).
+// Al cargar bien (ready), la marca se limpia y un fallo posterior vuelve a
+// tener su reintento.
+export const SPLASH_AUTO_RETRY_DELAY_MS = 1500;
+const SPLASH_AUTO_RETRY_KEY = 'splash_auto_retry_claimed';
+
+export function claimSplashAutoRetry() {
+  try {
+    if (typeof sessionStorage === 'undefined') return false;
+    if (sessionStorage.getItem(SPLASH_AUTO_RETRY_KEY)) return false;
+    sessionStorage.setItem(SPLASH_AUTO_RETRY_KEY, '1');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearSplashAutoRetry() {
+  try {
+    if (typeof sessionStorage === 'undefined') return;
+    sessionStorage.removeItem(SPLASH_AUTO_RETRY_KEY);
+  } catch { /* sin storage no hay marca que limpiar */ }
+}
