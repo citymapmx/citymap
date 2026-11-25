@@ -15,6 +15,26 @@ export function eventLastDay(event) {
   return end && (!start || end >= start) ? end : start;
 }
 
+// Fecha local (del dispositivo) en YYYY-MM-DD: la misma que el filtro de
+// cliente del store (todayStr). La fecha del servidor no sirve: la app se
+// usa en varias zonas horarias y el «hoy» que ve el usuario es el de su
+// teléfono.
+export function localTodayStr(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// Fragmento PostgREST para la consulta de eventos del store (E5, 24 nov
+// 2026): solo eventos vigentes — los que terminan hoy o después, o los
+// que empiezan hoy o después cuando no tienen end_date. Es el mismo
+// predicado que el filtro de cliente (useDataStore validEvents y
+// isPastEvent): un evento pasado — también un recurrente cuyo end_date ya
+// pasó — no se muestra, así que no se pide. Medido 24 nov: 395 → 363
+// aprobados en total; Guadalajara 60 → 50. Verificado en vivo contra
+// PostgREST antes de la PR.
+export function eventsDateFilterOr(todayStr) {
+  return `or=(end_date.gte.${todayStr},and(end_date.is.null,date.gte.${todayStr}))`;
+}
+
 // True when the event already ended (its last day is before today).
 export function isPastEvent(event, today) {
   const lastDay = eventLastDay(event);
