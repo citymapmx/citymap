@@ -67,7 +67,7 @@ export default function AdminCategoriesTab({
 
       onToast("Guardado");
       setCatForm(null);
-      await load();
+      await load("categories");
       // Refresh global store so filteredCats updates immediately in all views
       loadData();
     } catch(e) {
@@ -153,10 +153,10 @@ export default function AdminCategoriesTab({
       </div>}
       {!catForm && [...data.categories].sort((a, b) => a.sort_order - b.sort_order).map((c, i, arr) => <div key={c.id} style={{ background: "#fff", borderRadius: 12, padding: "12px 14px", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <button onClick={async () => { if (i === 0) return; const prev = arr[i-1]; await Promise.all([sb.patch("categories", c.id, { sort_order: prev.sort_order }), sb.patch("categories", prev.id, { sort_order: c.sort_order })]); await load(); }} style={{ background: "none", border: "none", cursor: i === 0 ? "default" : "pointer", padding: "1px 3px", opacity: i === 0 ? 0.2 : 1 }}>
+            <button onClick={async () => { if (i === 0) return; const prev = arr[i-1]; await Promise.all([sb.patch("categories", c.id, { sort_order: prev.sort_order }), sb.patch("categories", prev.id, { sort_order: c.sort_order })]); await load("categories"); }} style={{ background: "none", border: "none", cursor: i === 0 ? "default" : "pointer", padding: "1px 3px", opacity: i === 0 ? 0.2 : 1 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A6872" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"/></svg>
             </button>
-            <button onClick={async () => { if (i === arr.length-1) return; const next = arr[i+1]; await Promise.all([sb.patch("categories", c.id, { sort_order: next.sort_order }), sb.patch("categories", next.id, { sort_order: c.sort_order })]); await load(); }} style={{ background: "none", border: "none", cursor: i === arr.length-1 ? "default" : "pointer", padding: "1px 3px", opacity: i === arr.length-1 ? 0.2 : 1 }}>
+            <button onClick={async () => { if (i === arr.length-1) return; const next = arr[i+1]; await Promise.all([sb.patch("categories", c.id, { sort_order: next.sort_order }), sb.patch("categories", next.id, { sort_order: c.sort_order })]); await load("categories"); }} style={{ background: "none", border: "none", cursor: i === arr.length-1 ? "default" : "pointer", padding: "1px 3px", opacity: i === arr.length-1 ? 0.2 : 1 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A6872" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
           </div>
@@ -175,7 +175,7 @@ export default function AdminCategoriesTab({
           </div>
           <div style={{ display: "flex", gap: 5 }}>
             <button onClick={() => openForm(c)} style={{ background: "#EAF4F0", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer" }}><Icon name="edit" size={13} color="#1A7A5E" /></button>
-            <button onClick={async () => { await sb.patch("categories", c.id, { active: !c.active }); onToast("Actualizado"); await load(); }} style={{ background: c.active ? "#EAF4F0" : "#FEE2E2", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, color: c.active ? "#1A7A5E" : "#D94F3D", fontFamily: "inherit" }}>{c.active ? "Activa" : "Inactiva"}</button>
+            <button onClick={async () => { await sb.patch("categories", c.id, { active: !c.active }); onToast("Actualizado"); await load("categories"); }} style={{ background: c.active ? "#EAF4F0" : "#FEE2E2", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, color: c.active ? "#1A7A5E" : "#D94F3D", fontFamily: "inherit" }}>{c.active ? "Activa" : "Inactiva"}</button>
           </div>
         </div>)}
     </>

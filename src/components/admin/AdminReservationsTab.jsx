@@ -24,7 +24,7 @@ export default function AdminReservationsTab({
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div className="text-xs" style={{ background: statusBg, color: statusColor, borderRadius: 20, padding: "3px 10px", fontWeight: 700 }}>{r.status === "confirmed" ? "Confirmada" : r.status === "cancelled" ? "Cancelada" : "Pendiente"}</div>
-                <button onClick={async () => { if (window.confirm("¿Eliminar reservación permanentemente?")) { await sb.patch("reservations", r.id, { status: "deleted" }); onToast("Eliminada"); await load(); } }} style={{ background: "#FFF5F5", border: "none", borderRadius: 8, padding: "5px 7px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={12} color="#D94F3D" /></button>
+                <button onClick={async () => { if (window.confirm("¿Eliminar reservación permanentemente?")) { await sb.patch("reservations", r.id, { status: "deleted" }); onToast("Eliminada"); await load("reservations"); } }} style={{ background: "#FFF5F5", border: "none", borderRadius: 8, padding: "5px 7px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={12} color="#D94F3D" /></button>
               </div>
             </div>
             <div className="text-xs" style={{ display: "flex", gap: 16, color: "#5A6872", marginBottom: 10 }}>
@@ -37,13 +37,13 @@ export default function AdminReservationsTab({
                 await sb.patch("reservations", r.id, { status: "confirmed" }); 
                 if (r.user_id) { const biz = data.biz.find(b => b.id === r.biz_id); await sb.notify(r.user_id, "Reserva Confirmada", `Tu reserva en ${biz ? biz.name : 'el negocio'} ha sido confirmada.`, "approval", null, businessNotificationImage(biz)); }
                 onToast("Reserva confirmada"); 
-                await load(); 
+                await load("reservations"); 
               }} style={{ flex: 1, padding: "8px 0", background: "#DCFCE7", border: "none", borderRadius: 9, fontSize: 12, fontWeight: 700, color: "#16A34A", cursor: "pointer", fontFamily: "inherit" }}>Confirmar</button>
               <button onClick={async () => { 
                 await sb.patch("reservations", r.id, { status: "cancelled" }); 
                 if (r.user_id) { const biz = data.biz.find(b => b.id === r.biz_id); await sb.notify(r.user_id, "Reserva Cancelada", `Tu reserva en ${biz ? biz.name : 'el negocio'} ha sido cancelada.`, "alert", null, businessNotificationImage(biz)); }
                 onToast("Reserva cancelada"); 
-                await load(); 
+                await load("reservations"); 
               }} style={{ flex: 1, padding: "8px 0", background: "#FEE2E2", border: "none", borderRadius: 9, fontSize: 12, fontWeight: 700, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
             </div>}
           </div>

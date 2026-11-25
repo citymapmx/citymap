@@ -11,7 +11,14 @@
 export const EXPERIENCE_LOOKUP_COLUMNS =
   "id,title,slug,description,price,duration,people,meeting_point,languages,includes,not_includes,faq,gallery,city_slug,booking_config,activity_type,meeting_url,route_url,author_name,affiliate_products,created_at,biz_id,theme";
 
-// Consulta directa por slug/id de revista: acotada a 5 filas aprobadas.
+// Columnas completas para el formulario de edición del Admin: las del
+// lookup más status, active y price_type (el formulario las lee y el
+// guardado las manda). La lista del Admin trae el select ligero
+// (ADMIN_EXPERIENCES_LIST_SELECT en AdminPanel), así que al abrir el
+// formulario se pide la fila completa por id; abrirlo con la fila ligera
+// borraría descripción, FAQ e includes al guardar.
+export const ADMIN_EXPERIENCE_FULL_COLUMNS =
+  `${EXPERIENCE_LOOKUP_COLUMNS},status,active,price_type`;
 // El `or` es el mismo de antes (slug exacto o título parecido); ahora con
 // select recortado, status y limit.
 export function buildExperienceLookupQuery(routeSlug) {

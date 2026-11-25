@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
 const TRAFFIC_THRESHOLDS = {
   dead: 5,    // 0-5 vistas = rojo
@@ -47,6 +47,13 @@ export default function AdminActivityTab({ data, sb, onToast, load, T }) {
     return d.toISOString();
   }, [period]);
 
+  // «Todo el tiempo» pide la historia completa una sola vez (la lista
+  // trae solo 90 días por defecto: optimización Admin 24 nov 2026).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (period === "all") load("analytics-all");
+  }, [period]);
+
   const bizWithViews = useMemo(() => {
     const ACTIVE_EVENTS = new Set(["view", "whatsapp", "phone", "maps", "website", "menu_order"]);
     const analytics = (data.analytics || []).filter(a =>
@@ -81,7 +88,7 @@ export default function AdminActivityTab({ data, sb, onToast, load, T }) {
     if (!window.confirm(`¿Eliminar "${name}"? Esta acción no se puede deshacer.`)) return;
     await sb.del("businesses", id);
     onToast(`"${name}" eliminado`);
-    await load();
+    await load("businesses");
   };
 
   return (

@@ -6,6 +6,7 @@ import FI from './FI';
 import BookingManager from '../BookingManager';
 import { createSlug } from '../../lib/utils.js';
 import { POST_TYPES, POST_THEMES, normalizeExperience, isEditorialType } from '../../lib/postTaxonomy.js';
+import { ADMIN_EXPERIENCE_FULL_COLUMNS } from '../../lib/experienceLookup.js';
 import { cloudDeleteBatch } from '../../lib/supabase.js';
 import RichTextEditor from './RichTextEditor.jsx';
 
@@ -18,6 +19,25 @@ export default function AdminExperiencesTab({
   const [expForm, setExpForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const experiences = Array.isArray(data.experiences) ? data.experiences : [];
+
+  // La fila de la lista es ligera (sin description/faq/includes:
+  // optimización Admin 24 nov 2026, PR #465). El formulario guarda TODOS
+  // los campos, así que antes de abrirlo se pide la fila completa por id.
+  // Si la petición falla, no se abre: abrirlo con la fila ligera borraría
+  // descripción, FAQ e includes al guardar.
+  const openEditExperience = async (exp) => {
+    try {
+      const rows = await sb.get("experiences", `?select=${ADMIN_EXPERIENCE_FULL_COLUMNS}&id=eq.${exp.id}`);
+      const full = Array.isArray(rows) && rows[0] ? rows[0] : null;
+      if (!full) {
+        if (onToast) onToast("No se pudo cargar la ficha, inténtalo de nuevo");
+        return;
+      }
+      setExpForm(normalizeExperience({ ...full }));
+    } catch {
+      if (onToast) onToast("No se pudo cargar la ficha, inténtalo de nuevo");
+    }
+  };
   const [searchQuery, setSearchQuery] = React.useState("");
   const [bizSearch, setBizSearch] = React.useState("");
 
@@ -106,10 +126,10 @@ export default function AdminExperiencesTab({
               {isPending && <button onClick={async () => { 
                   await sb.patch("experiences", exp.id, { status: "approved", active: true }); 
                   onToast("Experiencia aprobada"); 
-                  await load(); 
+                  await load("experiences"); 
                 }} style={{ background: "#DCFCE7", color: "#16A34A", border: "none", borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>}
-              {!isPending && <button onClick={() => setExpForm(normalizeExperience({ ...exp }))} style={{ background: "#EEF2F6", color: "#1A7A5E", border: "none", borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Editar</button>}
-              <button onClick={async () => { if (!window.confirm("¿Eliminar experiencia?")) return; if (exp.gallery?.length) await cloudDeleteBatch(exp.gallery); await sb.del("experiences", exp.id); onToast("Eliminada"); await load(); }} style={{ background: "#FFF5F5", border: "none", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="trash" size={14} color="#D94F3D" /></button>
+              {!isPending && <button onClick={() => openEditExperience(exp)} style={{ background: "#EEF2F6", color: "#1A7A5E", border: "none", borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Editar</button>}
+              <button onClick={async () => { if (!window.confirm("¿Eliminar experiencia?")) return; if (exp.gallery?.length) await cloudDeleteBatch(exp.gallery); await sb.del("experiences", exp.id); onToast("Eliminada"); await load("experiences"); }} style={{ background: "#FFF5F5", border: "none", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name="trash" size={14} color="#D94F3D" /></button>
             </div>
           </div>;
         })}
@@ -577,7 +597,7 @@ export default function AdminExperiencesTab({
               else await sb.patch("experiences", expForm.id, p); 
               onToast("Guardado correctamente"); 
               setExpForm(null); 
-              await load(); 
+              await load("experiences"); 
             } catch(e) { 
               onToast("Error: " + e.message); 
             } finally { 
