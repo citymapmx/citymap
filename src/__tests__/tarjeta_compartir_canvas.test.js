@@ -136,6 +136,36 @@ describe('tarjeta para compartir: datos y geometría (PR #143)', () => {
     }
   });
 
+  it('Post de negocios es vertical 1080×1350 (25 nov 2026, PR #469): la foto es 270 px más alta', () => {
+    expect(SHARE_CARD_FORMATS.post).toEqual({
+      id: 'post',
+      label: 'Post IG',
+      width: 1080,
+      height: 1350,
+    });
+    expect(SHARE_CARD_FORMATS.story).toEqual({
+      id: 'story',
+      label: 'Historia IG',
+      width: 1080,
+      height: 1920,
+    });
+    const d = buildShareCardData(biz, { disp: googleDisp, cityName: 'Guadalajara' });
+    const vertical = computeShareCardLayout(d, SHARE_CARD_FORMATS.post);
+    const cuadrado = computeShareCardLayout(d, {
+      id: 'post',
+      label: 'Post IG',
+      width: 1080,
+      height: 1080,
+    });
+    expect(vertical.height).toBe(1350);
+    expect(vertical.photo.h - cuadrado.photo.h).toBeCloseTo(270, 6);
+    // La foto vertical (671 px) es mucho más alta que la del cuadrado
+    // (401 px): la foto del negocio se ve mejor, que es lo que pedía
+    // Jonathan.
+    expect(vertical.photo.h).toBeGreaterThan(600);
+    expect(vertical.photo.h).toBeGreaterThan(cuadrado.photo.h);
+  });
+
   it('el peor caso (nombre largo, 3 líneas) tampoco deja hueco ni se desborda', () => {
     const longBiz = {
       ...biz,

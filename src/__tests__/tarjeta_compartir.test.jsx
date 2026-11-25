@@ -46,7 +46,7 @@ describe('tarjeta para compartir el negocio', () => {
 
   it('dos formatos con sus medidas exactas', () => {
     expect(lib).toContain('width: 1080, height: 1920');
-    expect(lib).toContain('width: 1080, height: 1080');
+    expect(lib).toContain('width: 1080, height: 1350');
     expect(lib).toContain("label: 'Historia IG'");
     expect(lib).toContain("label: 'Post IG'");
     expect(sheet).toContain('Historia IG');

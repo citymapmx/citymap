@@ -61,7 +61,8 @@
 // affordance de bottom sheet, una tarjeta centrada no lo lleva.
 // Al presionar Compartir se genera un PNG con la foto y los datos del
 // negocio, listo para Instagram/Facebook. v1: UN estilo oscuro, dos
-// formatos (Historia IG 1080×1920, Post IG 1080×1080). El botón de
+// formatos (Historia IG 1080×1920, Post IG vertical 1080×1350 — 25 nov
+// 2026, PR #469: antes cuadrado 1080×1080). El botón de
 // compartir de la ficha abre esta hoja; el «Compartir enlace» de abajo
 // conserva el comportamiento anterior (compartir la liga del negocio).
 // En web NO se puede publicar directo a Instagram: la hoja comparte la

@@ -379,4 +379,13 @@ describe('tarjeta de negocio con QR del perfil (Clara)', () => {
     expect(formatShareCardCategory('')).toBe('');
     expect(formatShareCardCategory(null)).toBe('');
   });
+
+  it('la vista previa del QR respeta la proporción vertical del Post (25 nov 2026, PR #469)', () => {
+    // El alto de la vista previa ya no es el ancho (el Post ya no es
+    // cuadrado): se calcula de la proporción del formato, si no la
+    // tarjeta vertical se recortaría en el hub.
+    const hub = read('../components/BizShareHub.jsx');
+    expect(hub).toContain('SHARE_CARD_FORMATS.post.height');
+    expect(hub).not.toContain('const previewH = QR_PREVIEW_W;');
+  });
 });

@@ -762,7 +762,7 @@ describe('tarjeta para compartir el evento: Post de vuelta, sin descripción (11
 });
 
 describe('tarjeta para compartir el evento: Post vertical 1080×1350 (25 nov 2026)', () => {
-  it('el Post de eventos es vertical 1080×1350; el de negocios sigue cuadrado 1080×1080', () => {
+  it('el Post de eventos es vertical 1080×1350; el de negocios también (25 nov 2026, PR #469)', () => {
     expect(EVENT_SHARE_CARD_FORMATS.post).toEqual({
       id: 'post',
       label: 'Post IG',
@@ -774,7 +774,7 @@ describe('tarjeta para compartir el evento: Post vertical 1080×1350 (25 nov 202
       id: 'post',
       label: 'Post IG',
       width: 1080,
-      height: 1080,
+      height: 1350,
     });
     expect(EVENT_SHARE_CARD_FORMAT_LIST.map((f) => f.id)).toEqual(['story', 'post']);
   });
