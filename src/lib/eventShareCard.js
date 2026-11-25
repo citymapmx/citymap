@@ -7,10 +7,14 @@
 // otro tipo → editorial (estilo por defecto).
 //
 // Reutiliza TODA la base de la tarjeta de negocios (lib/shareCard.js):
-// los formatos Historia 1080×1920 y Post 1080×1080 (el Post se quitó
-// el 10 nov 2026 y volvió el 11 nov 2026, SIN descripción para ahorrar
-// espacio — ver computeEventShareCardLayout — y desde el 11 nov 2026
-// TAMPOCO lleva la categoría en Post), el logotipo oficial en
+// los formatos Historia 1080×1920 y Post VERTICAL 1080×1350 (25 nov
+// 2026, Jonathan: el cuadrado 1080×1080 se sustituye por el vertical
+// porque el póster — casi siempre vertical — se recortaba mucho; el
+// Post cuadrado sigue existiendo para negocios y tours, pero los
+// eventos ya no lo usan — ver EVENT_SHARE_CARD_FORMATS). El Post se
+// quitó el 10 nov 2026 y volvió el 11 nov 2026, SIN descripción para
+// ahorrar espacio — ver computeEventShareCardLayout — y desde el 11 nov
+// 2026 TAMPOCO lleva la categoría en Post), el logotipo oficial en
 // blanco, la exportación a canvas 2D (nada de html-to-image: el PNG
 // salía transparente, PR #143), la foto flexible que llena la tarjeta,
 // el guarda anti-blanco y los helpers de medición/dibujo. La foto se
@@ -58,10 +62,27 @@ import {
 // El formato es Historia y Post (el Post volvió el 11 nov 2026, sin
 // descripción). La hoja ofrece los dos; el tema (Oscura/Clara) es
 // independiente del formato.
+//
+// Formatos de la tarjeta de EVENTO (25 nov 2026, Jonathan: «Quita la
+// opción cuadrada al compartir, súplela con ese tamaño» — la propuesta F,
+// vertical 1080×1350, elegida el mismo día): Historia 1080×1920 y Post
+// VERTICAL 1080×1350. El cuadrado 1080×1080 ya NO se ofrece al compartir
+// eventos: un póster vertical (4:5) en el hueco cuadrado solo mostraba
+// ~38% y se cortaba la cara y la fecha. Con 1350 de alto la foto crece
+// a ~734 px y se ve ~60% del póster, con el título DEBAJO de la foto
+// como siempre (decisión de Jonathan 25 nov 2026). Es SOLO de eventos:
+// los negocios siguen con SHARE_CARD_FORMATS.post (1080×1080) y los
+// tours con EXPERIENCE_SHARE_CARD_FORMATS.post (1080×1080). El id sigue
+// siendo 'post' para no tocar la geometría (EVENT_SHARE_CARD_LAYOUT.post),
+// el sufijo '-post' del archivo ni la hoja: solo cambia el alto.
 export { SHARE_CARD_FORMATS } from './shareCard.js';
+export const EVENT_SHARE_CARD_FORMATS = {
+  story: SHARE_CARD_FORMATS.story,
+  post: { id: 'post', label: 'Post IG', width: 1080, height: 1350 },
+};
 export const EVENT_SHARE_CARD_FORMAT_LIST = [
-  SHARE_CARD_FORMATS.story,
-  SHARE_CARD_FORMATS.post,
+  EVENT_SHARE_CARD_FORMATS.story,
+  EVENT_SHARE_CARD_FORMATS.post,
 ];
 
 export const EVENT_SHARE_CARD_STYLES = {
@@ -181,14 +202,16 @@ export const EVENT_SHARE_CARD_LAYOUT = {
     barcodePadX: 28,
     barcodePadY: 18,
   },
-  // Post 1080×1080 (11 nov 2026, Jonathan): vuelve tras quitarse en el
-  // #183, con las mismas medidas de antes. La descripción NO va en Post
-  // (para ahorrar espacio): computeEventShareCardLayout no produce
-  // subtítulo en este formato, así que subSize/subGap no se usan aquí;
-  // la foto crece y se come ese espacio. La categoría TAMPOCO va en
-  // Post (11 nov 2026, Jonathan: para ahorrar espacio): el chip no se
-  // produce en este formato y la foto crece también ese hueco
-  // (catGap + catSize).
+  // Post VERTICAL 1080×1350 (25 nov 2026, Jonathan): sustituye al
+  // cuadrado 1080×1080 (que volvió tras quitarse en el #183, el 11 nov
+  // 2026). La descripción NO va en Post (para ahorrar espacio):
+  // computeEventShareCardLayout no produce subtítulo en este formato,
+  // así que subSize/subGap no se usan aquí; la foto crece y se come ese
+  // espacio. La categoría TAMPOCO va en Post (11 nov 2026, Jonathan:
+  // para ahorrar espacio): el chip no se produce en este formato y la
+  // foto crece también ese hueco (catGap + catSize). Con el alto nuevo
+  // la foto crece sola (computeEventShareCardLayout la estira hasta
+  // comerse el espacio libre): con título a 2 líneas queda en ~734 px.
   post: {
     pad: 48,
     logoH: 44,

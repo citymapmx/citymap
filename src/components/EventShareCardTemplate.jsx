@@ -9,9 +9,11 @@
 // logotipo es /logo-brand.png: en blanco en Oscura y en negro
 // (brightness(0)) en Clara. Sin foto no hay imagen rota: sale un bloque
 // con la inicial del título. Dos formatos: Historia 1080×1920 y Post
-// 1080×1080 (el Post volvió el 11 nov 2026, SIN descripción para
-// ahorrar espacio: en Post el subtítulo no se produce; y desde el 11
-// nov 2026 TAMPOCO lleva la categoría: en Post no se produce el chip).
+// VERTICAL 1080×1350 (25 nov 2026, Jonathan: sustituye al cuadrado
+// 1080×1080; SIN descripción para ahorrar espacio: en Post el subtítulo
+// no se produce; y desde el 11 nov 2026 TAMPOCO lleva la categoría: en
+// Post no se produce el chip). El título va DEBAJO de la foto, como
+// siempre (decisión de Jonathan 25 nov 2026).
 // La foto se puede reposicionar: el usuario la arrastra en la hoja y
 // la plantilla aplica el desplazamiento con object-position
 // (layout.photoOffset), la misma matemática que el canvas, así lo que
