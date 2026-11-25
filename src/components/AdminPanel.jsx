@@ -6,6 +6,7 @@ import { getThumbUrl } from "../lib/utils.js";
 import Icon from "./ui/Icon.jsx";
 import Uploader from "./Uploader.jsx";
 import { useGMaps } from "./GMap.jsx";
+import { ANALYTICS_PERIODS, analyticsBuckets, analyticsInPeriod, analyticsPeriodRange, countAnalyticsByType } from "../lib/businessAnalytics.js";
 
 
 // ─── ANALYTICS MINI CARD ──────────────────────────────────────────────────────
@@ -45,6 +46,9 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
   const [loading, setLoading] = useState(true);
   const [dashCityFilter, setDashCityFilter] = useState("all");
   const [analyticsTarget, setAnalyticsTarget] = useState(null);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState("7"); // detalle de actividad: 7 días por defecto
+  // Al abrir el detalle de un negocio el periodo vuelve a 7 días.
+  const openAnalytics = (id) => { setAnalyticsTarget(id); setAnalyticsPeriod("7"); };
   const gok = useGMaps();
 
   const parseJSON = (val) => {
@@ -202,7 +206,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
           <Suspense fallback={null}>
             <AdminBizTab
               data={data}
-              setAnalyticsTarget={setAnalyticsTarget}
+              setAnalyticsTarget={openAnalytics}
               setTab={setTab}
               setMediaTarget={setMediaTarget}
               onOpenStoreAdmin={onOpenStoreAdmin}
@@ -432,47 +436,59 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
           const b = data.biz.find(x => x.id === analyticsTarget);
           if (!b) return null;
           const bizAn = data.analytics.filter(a => a.biz_id === b.id);
-          const aViews = bizAn.filter(a => a.event_type === "view").length;
-          const aWa = bizAn.filter(a => a.event_type === "whatsapp").length;
-          const aMaps = bizAn.filter(a => a.event_type === "maps").length;
-          const aPhone = bizAn.filter(a => a.event_type === "phone").length;
-          const aWeb = bizAn.filter(a => a.event_type === "website").length;
-          const aMenuOrders = bizAn.filter(a => a.event_type === "menu_order").length;
-          const aReservations = data.reservations.filter(r => r.biz_id === b.id).length;
-          
-          const chartData = [];
-          for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const targetYMD = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-            
-            const dayAn = bizAn.filter(a => {
-              if (!a.created_at) return false;
-              const aDate = new Date(a.created_at);
-              const aYMD = `${aDate.getFullYear()}-${String(aDate.getMonth()+1).padStart(2,'0')}-${String(aDate.getDate()).padStart(2,'0')}`;
-              return aYMD === targetYMD;
-            });
-            
-            chartData.push({
-              name: d.toLocaleDateString("es-MX", { weekday: 'short', day: 'numeric' }),
-              vistas: dayAn.filter(a => a.event_type === "view").length,
-              llamadas: dayAn.filter(a => a.event_type === "phone").length,
-              whatsapp: dayAn.filter(a => a.event_type === "whatsapp").length,
-              pedidos: dayAn.filter(a => a.event_type === "menu_order").length
-            });
-          }
+          // Todo en el periodo elegido (por defecto últimos 7 días):
+          // las tarjetas y la gráfica cuentan lo mismo.
+          const periodAn = analyticsInPeriod(bizAn, analyticsPeriod);
+          const counts = countAnalyticsByType(periodAn);
+          const aViews = counts.view;
+          const aWa = counts.whatsapp;
+          const aMaps = counts.maps;
+          const aPhone = counts.phone;
+          const aWeb = counts.website;
+          const aMenuOrders = counts.menu_order;
+          const aReservations = analyticsInPeriod(data.reservations.filter(r => r.biz_id === b.id), analyticsPeriod).length;
+          const range = analyticsPeriodRange(analyticsPeriod);
+          const chartData = analyticsBuckets(bizAn, analyticsPeriod);
+          const chartTotals = chartData.reduce((acc, d) => ({ vistas: acc.vistas + d.vistas, llamadas: acc.llamadas + d.llamadas, whatsapp: acc.whatsapp + d.whatsapp, pedidos: acc.pedidos + d.pedidos }), { vistas: 0, llamadas: 0, whatsapp: 0, pedidos: 0 });
+          // Más de 7 cubetas (30 días, mes): una sola barra apilada por
+          // día/mes, para que quepa en el teléfono.
+          const stacked = chartData.length > 7;
 
           return <div>
             <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 20 }}>
               <button onClick={() => { setTab("biz"); setAnalyticsTarget(null); }} style={{ background: "#F3F4F6", border: "none", borderRadius: 10, padding: 10, cursor: "pointer", display: "flex", alignItems: "center" }}><Icon name="x" size={16} color="#5A6872" /></button>
               <h2 className="text-xl" style={{ fontFamily: "var(--heading)", color: "#0F1A14", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</h2>
             </div>
+
+            {/* Periodo: 7 días, 30 días, este mes, mes anterior, todo */}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+              {ANALYTICS_PERIODS.map((p) => (
+                <button key={p.id} onClick={() => setAnalyticsPeriod(p.id)} style={{ padding: "7px 12px", borderRadius: 999, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: analyticsPeriod === p.id ? "#0F1A14" : "#F3F4F6", color: analyticsPeriod === p.id ? "#FFFFFF" : "#5A6872" }}>{p.short}</button>
+              ))}
+            </div>
             
             <div style={{ background: "#fff", borderRadius: 14, padding: "20px", marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
-              <p className="text-sm" style={{ fontWeight: 700, color: "#0F1A14", marginBottom: 20 }}>Interacciones los últimos 7 días</p>
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", height: 200, gap: 8, paddingBottom: 10 }}>
+              <p className="text-sm" style={{ fontWeight: 700, color: "#0F1A14", marginBottom: 20 }}>Interacciones {range.chartLabel}</p>
+              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", height: 200, gap: stacked ? 2 : 8, paddingBottom: 10 }}>
                 {(() => {
                   const maxVal = Math.max(1, ...chartData.map(d => Math.max(d.vistas, d.llamadas, d.whatsapp, d.pedidos)));
+                  const maxTotal = Math.max(1, ...chartData.map(d => d.total));
+                  if (stacked) {
+                    return chartData.map((d, i) => (
+                      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", position: "relative" }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", width: "100%", paddingBottom: 6 }}>
+                          {d.total > 0 && <span style={{ fontSize: 8, fontWeight: 800, color: "#3B82F6", marginBottom: 3 }}>{d.total}</span>}
+                          <div style={{ width: "100%", maxWidth: 18, height: `${(d.total / maxTotal) * 100}%`, minHeight: d.total > 0 ? 4 : 0, borderRadius: "3px 3px 0 0", overflow: "hidden", display: "flex", flexDirection: "column-reverse" }}>
+                            {d.vistas > 0 && <div style={{ flex: d.vistas, background: "#3B82F6" }} />}
+                            {d.llamadas > 0 && <div style={{ flex: d.llamadas, background: "#8B5CF6" }} />}
+                            {d.whatsapp > 0 && <div style={{ flex: d.whatsapp, background: "#25D366" }} />}
+                            {d.pedidos > 0 && <div style={{ flex: d.pedidos, background: "#F97316" }} />}
+                          </div>
+                        </div>
+                        <div className="text-micro" style={{ color: "#5A6872", whiteSpace: "nowrap", textAlign: "center", textTransform: "capitalize", borderTop: "1px solid #E4E8E4", paddingTop: 8, width: "100%" }}>{d.label}</div>
+                      </div>
+                    ));
+                  }
                   return chartData.map((d, i) => (
                     <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", position: "relative" }}>
                       <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: "100%", width: "100%", justifyContent: "center", paddingBottom: 6 }}>
@@ -497,7 +513,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                           <div style={{ width: "100%", height: `${(d.pedidos / maxVal) * 100}%`, minHeight: d.pedidos > 0 ? 4 : 0, background: "#F97316", borderRadius: "3px 3px 0 0", transition: "height 0.3s ease" }} />
                         </div>
                       </div>
-                      <div className="text-micro" style={{ color: "#5A6872", whiteSpace: "nowrap", textAlign: "center", textTransform: "capitalize", borderTop: "1px solid #E4E8E4", paddingTop: 8, width: "100%" }}>{d.name.split(',')[0]}</div>
+                      <div className="text-micro" style={{ color: "#5A6872", whiteSpace: "nowrap", textAlign: "center", textTransform: "capitalize", borderTop: "1px solid #E4E8E4", paddingTop: 8, width: "100%" }}>{d.label}</div>
                     </div>
                   ));
                 })()}
@@ -508,6 +524,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: "50%", background: "#25D366" }} /><span className="text-xs" style={{ color: "#5A6872", fontWeight: 600 }}>WhatsApp</span></div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: "50%", background: "#F97316" }} /><span className="text-xs" style={{ color: "#5A6872", fontWeight: 600 }}>Pedidos</span></div>
               </div>
+              <p style={{ textAlign: "center", fontSize: 12, color: "#5A6872", margin: "16px 0 0", fontWeight: 600 }}>Total en {range.label}: {chartTotals.vistas} vistas · {chartTotals.llamadas} llamadas · {chartTotals.whatsapp} WhatsApp · {chartTotals.pedidos} pedidos</p>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
