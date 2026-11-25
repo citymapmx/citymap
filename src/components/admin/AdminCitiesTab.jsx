@@ -37,14 +37,14 @@ export default function AdminCitiesTab({
             <div style={{ display: "flex", gap: 5 }}>
               <button onClick={() => setCityForm({ ...c, state: c.state?.split(";")[0], metro_zone: c.state?.split(";")[1] || "", country_code: c.country_code || "mx" })} style={{ background: "#EAF4F0", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer" }}><Icon name="edit" size={13} color="#1A7A5E" /></button>
               <button onClick={() => setCityEditId(cityEditId === c.id ? null : c.id)} style={{ background: cityEditId === c.id ? "#1A7A5E" : "#EAF4F0", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, color: cityEditId === c.id ? "#fff" : "#1A7A5E", fontFamily: "inherit" }}>Imagen</button>
-              <button onClick={async () => { await sb.patch("cities", c.id, { active: !c.active }); onToast(c.active ? "Ciudad desactivada" : "Ciudad activada"); await load(); }} style={{ background: c.active ? "#EAF4F0" : "#FEE2E2", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, color: c.active ? "#1A7A5E" : "#D94F3D", fontFamily: "inherit" }}>{c.active ? "Activa" : "Inactiva"}</button>
+              <button onClick={async () => { await sb.patch("cities", c.id, { active: !c.active }); onToast(c.active ? "Ciudad desactivada" : "Ciudad activada"); await load("cities"); }} style={{ background: c.active ? "#EAF4F0" : "#FEE2E2", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, color: c.active ? "#1A7A5E" : "#D94F3D", fontFamily: "inherit" }}>{c.active ? "Activa" : "Inactiva"}</button>
             </div>
           </div>
           {cityEditId === c.id && <div style={{ borderTop: "1px solid #EAF4F0", padding: "12px 14px", background: "#F8FFFE" }}>
-            <Uploader label="Subir imagen de fondo" onDone={async url => { await sb.patch("cities", c.id, { bg_image: url }); onToast("Imagen guardada"); await load(); setCityEditId(null); }} />
+            <Uploader label="Subir imagen de fondo" onDone={async url => { await sb.patch("cities", c.id, { bg_image: url }); onToast("Imagen guardada"); await load("cities"); setCityEditId(null); }} />
             {c.bg_image && <div style={{ marginTop: 8, borderRadius: 8, overflow: "hidden", height: 64, position: "relative" }}>
               <OptimizedImage src={c.bg_image} widthRequest={800} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              <button onClick={async () => { if (c.bg_image) await cloudDelete(c.bg_image); await sb.patch("cities", c.id, { bg_image: null }); onToast("Imagen eliminada"); await load(); setCityEditId(null); }} style={{ position: "absolute", top: 6, right: 6, background: "#D94F3D", border: "none", borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>Quitar</button>
+              <button onClick={async () => { if (c.bg_image) await cloudDelete(c.bg_image); await sb.patch("cities", c.id, { bg_image: null }); onToast("Imagen eliminada"); await load("cities"); setCityEditId(null); }} style={{ position: "absolute", top: 6, right: 6, background: "#D94F3D", border: "none", borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>Quitar</button>
             </div>}
           </div>}
         </div>)}
@@ -88,7 +88,7 @@ export default function AdminCitiesTab({
                 onToast(cityForm._new ? "Ciudad creada" : "Ciudad actualizada");
                 setCityForm(null);
                 await useDataStore.getState().refreshCities();
-                await load();
+                await load("cities");
               } catch (e) { onToast("Error: " + e.message); } finally { setSaving(false); }
             }} disabled={saving || !cityForm.name || !cityForm.slug} style={{ flex: 2, padding: 14, background: (saving || !cityForm.name || !cityForm.slug) ? "#9CA3AF" : "#1A7A5E", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 15, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>{saving ? "Guardando…" : "Guardar"}</button>
           </div>

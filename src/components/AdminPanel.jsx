@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { sb, cloudDeleteBatch, cloudListAllFiles } from "../lib/supabase.js";
 import { buildEditBizDeepLink, businessNotificationImage, changeRequestTitle, changeRequestBody, eventNotificationImage, isDuplicateChangeRequest } from "../lib/notifications.js";
 import { PLAN_META } from "../lib/constants.js";
@@ -7,6 +7,29 @@ import Icon from "./ui/Icon.jsx";
 import Uploader from "./Uploader.jsx";
 import { useGMaps } from "./GMap.jsx";
 import { ANALYTICS_PERIODS, analyticsBuckets, analyticsInPeriod, analyticsPeriodRange, countAnalyticsByType } from "../lib/businessAnalytics.js";
+
+// Select ligero para la lista de experiencias del Admin (optimización
+// Admin 24 nov 2026, PR #465): solo lo que lee la lista (título, galería,
+// precio, estado, ciudad, tipo, tema, fecha). Medido: 666 KB con select=*
+// → ~66 KB. La ficha completa se pide al abrir el formulario de edición
+// (AdminExperiencesTab): el formulario guarda TODOS los campos y abrirlo
+// con la fila ligera borraría descripción, FAQ e includes.
+const ADMIN_EXPERIENCES_LIST_SELECT = "id,slug,title,city_slug,price,gallery,activity_type,theme,status,active,created_at";
+
+// La actividad del Admin trae solo los últimos 90 días por defecto
+// (optimización Admin 24 nov 2026, PR #465): 7.948 filas (~144 KB) →
+// 3.530 filas (~26 KB). Cubre los periodos 7/30/90 días, «Este mes» y
+// «Mes anterior». «Todo el tiempo» se pide aparte con load("analytics-all").
+const ADMIN_ANALYTICS_DAYS = 90;
+
+// Medianoche local de hace ADMIN_ANALYTICS_DAYS días, en ISO: el mismo
+// corte que analyticsInPeriod usa en cliente para el periodo de 90 días.
+function adminAnalyticsSince() {
+  const d = new Date();
+  d.setDate(d.getDate() - ADMIN_ANALYTICS_DAYS);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
 
 
 // ─── ANALYTICS MINI CARD ──────────────────────────────────────────────────────
@@ -58,63 +81,120 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
     return val || {};
   };
 
-  const load = useCallback(async () => { 
-    setLoading(true); 
-    try { 
-      const [b, e, ex, p, c, bn, ci, ca, cc, an, rv, cl, rf, ml] = await Promise.all([
-        (async () => {
-          const [allLite, pendingFull] = await Promise.all([
-            sb.get("businesses", "?select=id,name,status,city_slug,plan,photos,menu_pdf_url,logo_url,banner_url,owner_id,slug,booking_config,social_links,schedule,blocked_slots"),
-            sb.get("businesses", "?status=in.(pending,needs_changes)")
-          ]);
-          const pendingMap = {};
-          pendingFull.forEach(b => pendingMap[b.id] = b);
-          return allLite.map(b => pendingMap[b.id] || b);
-        })(),
-        sb.get("events", "?order=created_at.desc"), 
-        sb.get("experiences", "?order=created_at.desc").catch(() => []),
-        sb.get("promos", "?order=created_at.desc"), 
-        sb.get("coupons", "?order=created_at.desc"), 
-        sb.get("banners", "?order=sort_order.asc"), 
-        sb.get("cities", "?order=name.asc"), 
-        sb.get("categories", "?order=sort_order.asc"), 
-        sb.get("city_categories").catch(() => []),
-        (async () => {
-          let all = [];
-          let offset = 0;
-          while (true) {
-            const chunk = await sb.get("analytics", `?select=event_type,city_slug,biz_id,created_at&limit=1000&offset=${offset}`);
-            all = all.concat(chunk);
-            if (chunk.length < 1000) break;
-            offset += 1000;
-          }
-          return all;
-        })(),
-        sb.get("reservations", "?order=created_at.desc&limit=200"), 
-        sb.get("business_claims", "?status=eq.pending"),
-        sb.get("raffles", "?order=created_at.desc").catch(() => []),
-        sb.get("mercadolibre_products", "?order=created_at.desc").catch(() => [])
-      ]); 
-      
-      const parsedBiz = Array.isArray(b) ? b.map(biz => ({
-        ...biz,
-        schedule: parseJSON(biz.schedule),
-        social_links: parseJSON(biz.social_links),
-        booking_config: parseJSON(biz.booking_config),
-        blocked_slots: parseJSON(biz.blocked_slots),
-        photos: parseJSON(biz.photos)
-      })) : [];
+  // «Todo el tiempo» ya descargado: no se vuelve a pedir.
+  const analyticsFullRef = useRef(false);
 
-      setData({ biz: parsedBiz, events: e, experiences: Array.isArray(ex) ? ex : [], promos: p, coupons: c, raffles: Array.isArray(rf) ? rf : [], banners: bn, cities: ci, categories: ca, city_categories: cc, analytics: an, reservations: Array.isArray(rv) ? rv : [], claims: Array.isArray(cl) ? cl : [],  }); 
-    } catch (e) { 
+  // Una página de actividad (paginación por offset de PostgREST, 1000 por
+  // página). `since` null = toda la historia.
+  const loadAnalyticsPage = async (since) => {
+    let all = [];
+    let offset = 0;
+    while (true) {
+      const chunk = await sb.get("analytics", `?select=event_type,city_slug,biz_id,created_at${since ? `&created_at=gte.${since}` : ""}&limit=1000&offset=${offset}`);
+      all = all.concat(chunk);
+      if (chunk.length < 1000) break;
+      offset += 1000;
+    }
+    return all;
+  };
+
+  // Carga UNA tabla y devuelve el parche para `data` (la clave es la de
+  // `data`, no la de la tabla: businesses → biz, business_claims → claims).
+  const loadTable = async (table) => {
+    switch (table) {
+      case "businesses": {
+        const [allLite, pendingFull] = await Promise.all([
+          sb.get("businesses", "?select=id,name,status,city_slug,plan,photos,menu_pdf_url,logo_url,banner_url,owner_id,slug,booking_config,social_links,schedule,blocked_slots"),
+          sb.get("businesses", "?status=in.(pending,needs_changes)")
+        ]);
+        const pendingMap = {};
+        pendingFull.forEach(b => pendingMap[b.id] = b);
+        const parsedBiz = allLite.map(b => pendingMap[b.id] || b).map(biz => ({
+          ...biz,
+          schedule: parseJSON(biz.schedule),
+          social_links: parseJSON(biz.social_links),
+          booking_config: parseJSON(biz.booking_config),
+          blocked_slots: parseJSON(biz.blocked_slots),
+          photos: parseJSON(biz.photos)
+        }));
+        return { biz: parsedBiz };
+      }
+      case "events":
+        return { events: await sb.get("events", "?order=created_at.desc") };
+      case "experiences":
+        return { experiences: await sb.get("experiences", `?select=${ADMIN_EXPERIENCES_LIST_SELECT}&order=created_at.desc`).catch(() => []) };
+      case "promos":
+        return { promos: await sb.get("promos", "?order=created_at.desc") };
+      case "coupons":
+        return { coupons: await sb.get("coupons", "?order=created_at.desc") };
+      case "banners":
+        return { banners: await sb.get("banners", "?order=sort_order.asc") };
+      case "cities":
+        return { cities: await sb.get("cities", "?order=name.asc") };
+      case "categories":
+        return { categories: await sb.get("categories", "?order=sort_order.asc") };
+      case "city_categories":
+        return { city_categories: await sb.get("city_categories").catch(() => []) };
+      case "analytics":
+        return { analytics: await loadAnalyticsPage(adminAnalyticsSince()) };
+      case "analytics-all": {
+        if (analyticsFullRef.current) return {};
+        const all = await loadAnalyticsPage(null);
+        analyticsFullRef.current = true;
+        return { analytics: all };
+      }
+      case "reservations":
+        return { reservations: await sb.get("reservations", "?order=created_at.desc&limit=200") };
+      case "business_claims":
+        return { claims: await sb.get("business_claims", "?status=eq.pending") };
+      case "raffles":
+        return { raffles: await sb.get("raffles", "?order=created_at.desc").catch(() => []) };
+      default:
+        return {};
+    }
+  };
+
+  const load = useCallback(async (table) => {
+    setLoading(true);
+    try {
+      // Recarga por tabla (optimización Admin 24 nov 2026, PR #465): tras
+      // editar solo se vuelve a pedir la tabla editada, no todo el Admin
+      // (~1 MB por edición). Sin argumento (montaje) se pide todo como
+      // antes. Acepta una tabla o un arreglo (aprobar un reclamo toca
+      // businesses y business_claims).
+      if (table) {
+        const tables = Array.isArray(table) ? table : [table];
+        const patches = await Promise.all(tables.map(t => loadTable(t)));
+        const patch = Object.assign({}, ...patches);
+        if (Object.keys(patch).length) setData(prev => ({ ...prev, ...patch }));
+        return;
+      }
+      // mercadolibre_products se pedía y se descartaba (no iba a `data`):
+      // ya no se pide.
+      const patches = await Promise.all([
+        loadTable("businesses"), loadTable("events"), loadTable("experiences"),
+        loadTable("promos"), loadTable("coupons"), loadTable("banners"),
+        loadTable("cities"), loadTable("categories"), loadTable("city_categories"),
+        loadTable("analytics"), loadTable("reservations"), loadTable("business_claims"),
+        loadTable("raffles"),
+      ]);
+      setData(Object.assign({}, ...patches));
+    } catch (e) {
       onToast("Error cargando datos");
-    } finally { 
-      setLoading(false); 
-    } 
+    } finally {
+      setLoading(false);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
+
+  // «Todo el tiempo» (detalle de actividad) pide la historia completa una
+  // sola vez; los demás periodos ya vienen con los 90 días.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (analyticsPeriod === "all") load("analytics-all");
+  }, [analyticsPeriod]);
 
   // ─ Dashboard stats ─
   const dashBiz = dashCityFilter === "all" ? data.biz : data.biz.filter(b => b.city_slug === "all" || (b.city_slug && b.city_slug.split(",").includes(dashCityFilter)));
@@ -132,9 +212,9 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
     const targetUserId = b?.owner_id || b?.user_id;
     if (targetUserId) await sb.notify(targetUserId, "¡Negocio aprobado!", `Tu negocio ${b.name} ya es público.`, "approval", null, businessNotificationImage(b));
     onToast("Negocio aprobado ✓"); 
-    await load(); 
+    await load("businesses"); 
   };
-  const rejectBiz = async (id) => { if (!window.confirm("¿Estás seguro de que deseas rechazar y eliminar este negocio por completo?")) return; const b = data.biz.find(x => x.id === id); if (b) { const paths = [b.logo_url, b.menu_pdf_url, ...(b.photos || []).map(p => p.url)].filter(Boolean); await cloudDeleteBatch(paths); } await sb.del("businesses", id); onToast("Negocio eliminado"); await load(); };
+  const rejectBiz = async (id) => { if (!window.confirm("¿Estás seguro de que deseas rechazar y eliminar este negocio por completo?")) return; const b = data.biz.find(x => x.id === id); if (b) { const paths = [b.logo_url, b.menu_pdf_url, ...(b.photos || []).map(p => p.url)].filter(Boolean); await cloudDeleteBatch(paths); } await sb.del("businesses", id); onToast("Negocio eliminado"); await load("businesses"); };
 
   // Pedir cambios al dueño: el botón se bloquea mientras se envía (sin
   // eso un doble clic creaba dos notificaciones idénticas) y no se vuelve
@@ -157,7 +237,7 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
         if (!dup) await sb.notify(targetUserId, changeRequestTitle(), changeRequestBody(b.name), "alert", buildEditBizDeepLink(b.id), businessNotificationImage(b));
       }
       onToast("Enviado");
-      await load();
+      await load("businesses");
     } finally {
       setRequestingChangesId(null);
     }
@@ -165,11 +245,11 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
 
   // Photo management for a business
   const [mediaTarget, setMediaTarget] = useState(null);
-  const addPhoto = async (url) => { const b = data.biz.find(x => x.id === mediaTarget); const photos = [...(b.photos || []), { url, label: "Foto" }]; await sb.patch("businesses", mediaTarget, { photos }); onToast("Foto añadida ✓"); await load(); };
-  const removePhoto = async (bizId, idx) => { const b = data.biz.find(x => x.id === bizId); const photos = b.photos.filter((_, i) => i !== idx); await sb.patch("businesses", bizId, { photos }); onToast("Foto eliminada"); await load(); };
-  const movePhoto = async (bizId, from, to) => { const b = data.biz.find(x => x.id === bizId); const photos = [...b.photos]; const [moved] = photos.splice(from, 1); photos.splice(to, 0, moved); await sb.patch("businesses", bizId, { photos }); await load(); };
-  const uploadPDF = async (url, bizId) => { await sb.patch("businesses", bizId, { menu_pdf_url: url }); onToast("Menú PDF actualizado ✓"); await load(); };
-  const removePDF = async (bizId) => { await sb.patch("businesses", bizId, { menu_pdf_url: null }); onToast("PDF eliminado"); await load(); };
+  const addPhoto = async (url) => { const b = data.biz.find(x => x.id === mediaTarget); const photos = [...(b.photos || []), { url, label: "Foto" }]; await sb.patch("businesses", mediaTarget, { photos }); onToast("Foto añadida ✓"); await load("businesses"); };
+  const removePhoto = async (bizId, idx) => { const b = data.biz.find(x => x.id === bizId); const photos = b.photos.filter((_, i) => i !== idx); await sb.patch("businesses", bizId, { photos }); onToast("Foto eliminada"); await load("businesses"); };
+  const movePhoto = async (bizId, from, to) => { const b = data.biz.find(x => x.id === bizId); const photos = [...b.photos]; const [moved] = photos.splice(from, 1); photos.splice(to, 0, moved); await sb.patch("businesses", bizId, { photos }); await load("businesses"); };
+  const uploadPDF = async (url, bizId) => { await sb.patch("businesses", bizId, { menu_pdf_url: url }); onToast("Menú PDF actualizado ✓"); await load("businesses"); };
+  const removePDF = async (bizId) => { await sb.patch("businesses", bizId, { menu_pdf_url: null }); onToast("PDF eliminado"); await load("businesses"); };
 
   return <div style={{ position: "fixed", inset: 0, background: "#F7F8F6", zIndex: 9999, display: "flex", flexDirection: "column", fontFamily: "'DM Sans',system-ui,sans-serif", overflowY: "auto" }}>
     <div style={{ background: "linear-gradient(135deg, #111827 0%, #000000 100%)", padding: "52px 16px 0", flexShrink: 0 }}>
@@ -246,9 +326,9 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                       const b = data.biz.find(x => x.id === claim.business_id);
                       await sb.notify(claim.user_id, "Reclamo aprobado", `Eres el administrador oficial de ${b ? b.name : 'tu negocio'}.`, "approval", null, businessNotificationImage(b));
                       onToast("Reclamo aprobado ✓"); 
-                      await load(); 
+                      await load(["business_claims", "businesses"]); 
                     }} style={{ flex: 1, padding: "9px 0", background: LT.text, border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, color: LT.bg, cursor: "pointer", fontFamily: "inherit" }}>Aprobar Reclamo</button>
-                    <button onClick={async () => { await sb.patch("business_claims", claim.id, { status: "rejected" }); onToast("Reclamo rechazado"); await load(); }} style={{ flex: 1, padding: "9px 0", background: "transparent", border: `1px solid ${LT.border}`, borderRadius: 10, fontWeight: 800, fontSize: 12, color: LT.sub, cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
+                    <button onClick={async () => { await sb.patch("business_claims", claim.id, { status: "rejected" }); onToast("Reclamo rechazado"); await load("business_claims"); }} style={{ flex: 1, padding: "9px 0", background: "transparent", border: `1px solid ${LT.border}`, borderRadius: 10, fontWeight: 800, fontSize: 12, color: LT.sub, cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
                   </div>
                 </div>
               })}
@@ -301,9 +381,9 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                   await sb.patch("events", ev.id, { status: "approved", active: true }); 
                   if (ev.user_id) await sb.notify(ev.user_id, "Evento Aprobado", `Tu evento "${ev.title}" ya es público.`, "system", null, eventNotificationImage(ev));
                   onToast("Evento aprobado"); 
-                  await load(); 
+                  await load("events"); 
                 }} style={{ flex: 1, padding: "9px 0", background: "#DCFCE7", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, color: "#16A34A", cursor: "pointer", fontFamily: "inherit" }}>Aprobar</button>
-                <button onClick={async () => { if (!window.confirm("¿Rechazar y eliminar este evento por completo?")) return; await sb.del("events", ev.id); onToast("Evento eliminado"); await load(); }} style={{ flex: 1, padding: "9px 0", background: "#FEE2E2", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
+                <button onClick={async () => { if (!window.confirm("¿Rechazar y eliminar este evento por completo?")) return; await sb.del("events", ev.id); onToast("Evento eliminado"); await load("events"); }} style={{ flex: 1, padding: "9px 0", background: "#FEE2E2", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, color: "#D94F3D", cursor: "pointer", fontFamily: "inherit" }}>Rechazar</button>
                 <button onClick={() => { setTab("events");  }} style={{ padding: "9px 12px", background: "#EAF4F0", border: "none", borderRadius: 10, cursor: "pointer" }}><Icon name="edit" size={13} color="#1A7A5E" /></button>
               </div>
              </div>;
