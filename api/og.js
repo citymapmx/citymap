@@ -106,7 +106,7 @@ async function isRealCategory(value) {
 async function getReviews(bizId) {
   try {
     const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/reviews?biz_id=eq.${bizId}&select=rating,text,comment,user_name,created_at&order=created_at.desc&limit=3`,
+      `${SUPABASE_URL}/rest/v1/reviews?biz_id=eq.${bizId}&select=stars,text,user_name,created_at&order=created_at.desc&limit=3`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
     );
     if (!r.ok) return [];
@@ -1103,11 +1103,11 @@ ${bodyExtra}
         "@type": "Review",
         "reviewRating": {
           "@type": "Rating",
-          "ratingValue": String(r.rating || 5),
+          "ratingValue": String(r.stars || 5),
           "bestRating": "5"
         },
         "author": { "@type": "Person", "name": esc(r.user_name || `Usuario ${SITE_NAME}`) },
-        "reviewBody": esc(r.text || r.comment || ""),
+        "reviewBody": esc(r.text || ""),
         "datePublished": r.created_at ? r.created_at.split("T")[0] : undefined
       }));
     }
