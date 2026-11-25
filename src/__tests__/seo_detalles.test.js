@@ -162,3 +162,33 @@ describe('og:locale alineado a es_MX', () => {
     expect(html).toContain('<meta property="og:locale" content="es_MX"/>');
   });
 });
+
+describe('reseñas en el JSON-LD del negocio: columna stars, no rating', () => {
+  // Auditoría Supabase 24 nov 2026: og.js pedía
+  // select=rating,text,comment,... a reviews, pero la tabla tiene stars
+  // (no rating) y text (no comment). La consulta fallaba siempre (error
+  // 42703, el nº 1 del proyecto: 45/50 errores recientes) y el JSON-LD
+  // nunca llevaba reseñas. Con la columna vieja, ratingValue salía
+  // siempre "5" por el fallback; con stars sale el valor real.
+  it('el JSON-LD del negocio trae la reseña con su valor real de estrellas', async () => {
+    records.reviews = [{
+      id: 'r1', biz_id: 'biz-1', stars: 4, text: 'Muy buen café.',
+      user_name: 'Ana', created_at: '2026-11-01T10:00:00.000Z',
+    }];
+    try {
+      const html = await (await og(request('/api/og?b=tepic-cafe&city=tepic&_bot=1'))).text();
+      expect(html).toContain('"@type":"Review"');
+      expect(html).toContain('"ratingValue":"4"');
+      expect(html).toContain('Muy buen café.');
+    } finally {
+      records.reviews = [];
+    }
+  });
+  it('og.js ya no pide las columnas inexistentes rating ni comment', () => {
+    const src = readFileSync(new URL('../../api/og.js', import.meta.url), 'utf8');
+    expect(src).toContain('select=stars,text,user_name,created_at');
+    expect(src).not.toContain('select=rating,text,comment');
+    expect(src).not.toContain('r.rating');
+    expect(src).not.toContain('r.comment');
+  });
+});
