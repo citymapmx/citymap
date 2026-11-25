@@ -272,7 +272,7 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
   const savedExpIds = ctx?.savedExpIds || [];
   const setSavedExpIds = ctx?.setSavedExpIds || (() => {});
   
-  const { experiences, dbReady } = useDataStore();
+  const { experiences, setExperiences, dbReady } = useDataStore();
   const routerNavigate = useNavigate();
   const location = useLocation();
   const routeParams = useParams();
@@ -287,7 +287,10 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
   }, [routeSlug, experiences]);
 
   const [fetchedPlan, setFetchedPlan] = useState(null);
-  const viewingPlan = initialMatch || (fetchedPlan && fetchedPlan.slug === routeSlug ? fetchedPlan.exp : null);
+  // La fila completa pedida bajo demanda manda sobre la ligera del store:
+  // si no, el detalle seguiría mostrando la fila ligera (sin descripción)
+  // aunque ya hubiera llegado la completa.
+  const viewingPlan = (fetchedPlan && fetchedPlan.slug === routeSlug ? fetchedPlan.exp : null) || initialMatch;
   const isViewing = Boolean(routeSlug);
 
   // Al volver de un artículo, la tarjeta que se abrió quedaba a medias
@@ -329,9 +332,15 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
       return;
     }
 
+    // La fila del store es ligera (sin description/faq/includes: auditoría
+    // Supabase 24 nov 2026, PR #464). La ficha necesita la fila completa:
+    // si el store ya la tiene (caché anterior al recorte), no se pide nada;
+    // si está ligera, se pide por id y se mezcla en el store (sobre la
+    // ligera, que conserva title_en) para no volver a pedirla.
+    let match = null;
     if (experiences && experiences.length > 0) {
-      const match = experiences.find(e => e.id === routeSlug || e.slug === routeSlug || createSlug(e.title) === routeSlug);
-      if (match) {
+      match = experiences.find(e => e.id === routeSlug || e.slug === routeSlug || createSlug(e.title) === routeSlug) || null;
+      if (match && 'description' in match) {
         return;
       }
     }
@@ -340,12 +349,16 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     // (consultas acotadas: select recortado, solo aprobadas, con limit —
     // antes era `select=*` sin limit y el fallback descargaba toda la tabla).
     let cancelled = false;
+    const lookupSlug = match ? match.id : routeSlug;
 
-    sb.get("experiences", buildExperienceLookupQuery(routeSlug)).then(res => {
+    sb.get("experiences", buildExperienceLookupQuery(lookupSlug)).then(res => {
       if (cancelled) return;
       if (Array.isArray(res) && res.length > 0) {
-        const exact = res.find(e => e.id === routeSlug || e.slug === routeSlug || createSlug(e.title) === routeSlug) || res[0];
+        const exact = res.find(e => e.id === lookupSlug || e.slug === routeSlug || createSlug(e.title) === routeSlug) || res[0];
         setFetchedPlan({ slug: routeSlug, exp: exact });
+        if (match) {
+          setExperiences(prev => Array.isArray(prev) ? prev.map(e => (e.id === exact.id ? { ...e, ...exact } : e)) : prev);
+        }
       } else {
         sb.get("experiences", buildExperienceFallbackQuery()).then(allRes => {
           if (cancelled) return;

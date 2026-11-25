@@ -50,7 +50,18 @@ const mergeById = (first, second) => {
 //   listas (botón «Reservar», test reservar_boton_siempre) y photos la
 //   usan el popup del mapa y las tarjetas cercanas.
 const EVENTS_SELECT = "id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,is_recurring,biz_id,price,price_type,currency,website,visibility,active";
-const EXPERIENCES_SELECT = "id,slug,title,title_en,description,description_en,city_slug,price,duration,gallery,booking_config,activity_type,theme,meeting_point,meeting_url,route_url,includes,not_includes,languages,faq,people,author_name,affiliate_products,biz_id,created_at";
+// Select LIGERO para el listado del arranque (auditoría Supabase 24 nov 2026,
+// PR #464): solo lo que leen las tarjetas y la hoja de compartir — título,
+// galería, precio, duración, tema, personas, idiomas y booking_config (el
+// fallback de duración lee booking_config.quick_facts). Medido en
+// Guadalajara (58 filas): 141 KB gzip con el select completo → 10 KB con
+// este. Fuera: description, description_en, meeting_point, meeting_url,
+// route_url, includes, not_includes, faq, author_name, affiliate_products
+// y biz_id — solo los usa la ficha, que pide la fila completa bajo demanda
+// (experienceLookup.js) cuando se abre el detalle. Sin limit de filas: la
+// ciudad mayor (Guadalajara) tiene 58 y la Revista las muestra todas con
+// «Cargar más»; un limit rompería el listado.
+const EXPERIENCES_SELECT = "id,slug,title,title_en,city_slug,price,duration,gallery,activity_type,theme,people,created_at,languages,booking_config";
 const CITIES_SELECT = "id,slug,name,state,country,country_code,lat,lng,bg_image,timezone,active";
 
 let inFlightLoadPromise = null;

@@ -37,10 +37,18 @@ describe('optimización 1: selects recortados en el arranque', () => {
     }
   });
 
-  it('experiencias: select explícito sin las columnas que nadie lee', () => {
+  it('experiencias: select ligero con solo lo que leen las tarjetas (la ficha pide la fila completa bajo demanda)', () => {
+    // Auditoría Supabase 24 nov 2026 (PR #464): el select completo pesaba
+    // 141 KB gzip en Guadalajara; el ligero, 10 KB. La lista (tarjetas,
+    // TopImperdibles, hoja de compartir) solo lee estas 14 columnas;
+    // description, faq, includes y demás solo los usa la ficha, que pide
+    // la fila completa con experienceLookup.js al abrir el detalle.
     const cols = selectConst(store, 'EXPERIENCES_SELECT');
-    for (const col of ['id', 'slug', 'title', 'title_en', 'description', 'description_en', 'city_slug', 'price', 'duration', 'gallery', 'booking_config', 'activity_type', 'theme', 'meeting_point', 'meeting_url', 'route_url', 'includes', 'not_includes', 'languages', 'faq', 'people', 'author_name', 'affiliate_products', 'biz_id', 'created_at']) {
+    for (const col of ['id', 'slug', 'title', 'title_en', 'city_slug', 'price', 'duration', 'gallery', 'booking_config', 'activity_type', 'theme', 'languages', 'people', 'created_at']) {
       expect(cols).toContain(col);
+    }
+    for (const col of ['description', 'description_en', 'meeting_point', 'meeting_url', 'route_url', 'includes', 'not_includes', 'faq', 'author_name', 'affiliate_products', 'biz_id']) {
+      expect(cols).not.toContain(col);
     }
     for (const col of ['updated_at', 'status', 'active', 'rating', 'review_count']) {
       expect(cols).not.toContain(col);

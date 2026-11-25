@@ -62,9 +62,34 @@ describe('TripsView: consulta directa de revista acotada', () => {
 
   it('TripsView usa los constructores y ya no tiene el select=* sin límite', () => {
     const src = read('../components/TripsView.jsx');
-    expect(src).toContain('buildExperienceLookupQuery(routeSlug)');
+    expect(src).toContain('buildExperienceLookupQuery(lookupSlug)');
     expect(src).toContain('buildExperienceFallbackQuery()');
     expect(src).not.toContain('"?select=*"');
     expect(src).not.toContain("'?select=*'");
+  });
+});
+
+describe('TripsView: la ficha pide la fila completa si el store trae la ligera', () => {
+  // Auditoría Supabase 24 nov 2026 (PR #464): el store trae el select
+  // ligero (sin description/faq/includes). La ficha necesita la fila
+  // completa: si el store ya la tiene (caché anterior al recorte), no se
+  // pide nada; si está ligera, se pide por id y se mezcla en el store.
+  const src = read('../components/TripsView.jsx');
+
+  it('solo se salta la petición si la fila del store ya trae description', () => {
+    expect(src).toContain("'description' in match");
+  });
+
+  it('la petición va por id cuando hay coincidencia en el store', () => {
+    expect(src).toContain('const lookupSlug = match ? match.id : routeSlug');
+    expect(src).toContain('buildExperienceLookupQuery(lookupSlug)');
+  });
+
+  it('la fila completa pedida manda sobre la ligera del store', () => {
+    expect(src).toContain('(fetchedPlan && fetchedPlan.slug === routeSlug ? fetchedPlan.exp : null) || initialMatch');
+  });
+
+  it('la fila completa se mezcla en el store sin perder title_en', () => {
+    expect(src).toContain('{ ...e, ...exact }');
   });
 });
