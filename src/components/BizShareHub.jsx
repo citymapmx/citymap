@@ -242,7 +242,12 @@ export default function BizShareHub({
   );
 
   const qrCardBlock = (kind, data, title) => {
-    const previewH = QR_PREVIEW_W; // el formato Post es cuadrado
+    // La vista previa del QR usa el formato Post: el alto se calcula
+    // de la proporción del formato (25 nov 2026: el Post ya no es
+    // cuadrado, es vertical 1080×1350; antes era QR_PREVIEW_W a secas).
+    const previewH = Math.round(
+      (QR_PREVIEW_W * SHARE_CARD_FORMATS.post.height) / SHARE_CARD_FORMATS.post.width,
+    );
     const busy = downloading === kind;
     return (
       <div key={kind} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

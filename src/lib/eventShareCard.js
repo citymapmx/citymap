@@ -71,8 +71,8 @@ import {
 // ~38% y se cortaba la cara y la fecha. Con 1350 de alto la foto crece
 // a ~734 px y se ve ~60% del póster, con el título DEBAJO de la foto
 // como siempre (decisión de Jonathan 25 nov 2026). Es SOLO de eventos:
-// los negocios siguen con SHARE_CARD_FORMATS.post (1080×1080) y los
-// tours con EXPERIENCE_SHARE_CARD_FORMATS.post (1080×1080). El id sigue
+// los negocios TAMBIÉN pasaron a 1080×1350 (25 nov 2026, PR #469) y
+// los tours siguen con EXPERIENCE_SHARE_CARD_FORMATS.post (1080×1080). El id sigue
 // siendo 'post' para no tocar la geometría (EVENT_SHARE_CARD_LAYOUT.post),
 // el sufijo '-post' del archivo ni la hoja: solo cambia el alto.
 export { SHARE_CARD_FORMATS } from './shareCard.js';

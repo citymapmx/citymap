@@ -8,6 +8,10 @@
 // DOS estilos (Oscura y Editorial), que se cambian con chevrones y
 // puntos en vez de botones; la categoría sale de ambas versiones y el
 // logo de Editorial va en oscuro (el PNG es blanco y no se veía).
+// 25 nov 2026 (Jonathan, PR #469): el Post de negocios TAMBIÉN pasa
+// a vertical 1080×1350 — como el de eventos (PR #468) — para que la
+// foto se vea mejor. La Historia sigue 1080×1920; los tours siguen
+// con su Post cuadrado (EXPERIENCE_SHARE_CARD_FORMATS.post).
 //
 // PR #143 — POR QUÉ YA NO SE USA html-to-image: la exportación del #142
 // salía 100% transparente (0 píxeles opacos, verificado por análisis de
@@ -44,7 +48,14 @@ import { sb } from './supabase.js';
 
 export const SHARE_CARD_FORMATS = {
   story: { id: 'story', label: 'Historia IG', width: 1080, height: 1920 },
-  post: { id: 'post', label: 'Post IG', width: 1080, height: 1080 },
+  // Post VERTICAL 1080×1350 (25 nov 2026, Jonathan, PR #469): sustituye
+  // al cuadrado 1080×1080 para que la foto se vea mejor — igual que el
+  // Post de eventos (PR #468). La foto crece sola (computeShareCardLayout
+  // la estira hasta comerse el espacio libre) en los 7 estilos; el id
+  // sigue siendo 'post', así que no cambian la geometría, el sufijo
+  // '-post' ni la hoja. Los tours NO usan este formato: tienen el suyo
+  // propio (EXPERIENCE_SHARE_CARD_FORMATS.post, cuadrado).
+  post: { id: 'post', label: 'Post IG', width: 1080, height: 1350 },
 };
 export const SHARE_CARD_FORMAT_LIST = [
   SHARE_CARD_FORMATS.story,
