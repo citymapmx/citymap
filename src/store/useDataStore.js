@@ -1,5 +1,6 @@
 import { searchCandidatePattern } from '../lib/searchPattern.js';
 import { deriveEventBooking } from '../lib/eventDetails.js';
+import { eventsDateFilterOr, localTodayStr } from '../lib/eventListing.js';
 import { create } from 'zustand';
 import { sb } from '../lib/supabase.js';
 import { preloadWheelFirstImage } from '../lib/wheelPreload.js';
@@ -543,7 +544,7 @@ export const useDataStore = create((set, get) => ({
         // igual al ancho: no hay nada que repetir).
         const citiesKnown = (get().cities?.length || 0) > 0;
         const earlySecondary = (earlyCity && citiesKnown) ? Promise.all([
-          sb.get("events", `?select=${EVENTS_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
+          sb.get("events", `?select=${EVENTS_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})&${eventsDateFilterOr(localTodayStr())}`).catch(() => null),
           sb.get("experiences", `?select=${EXPERIENCES_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(earlyCity)})`).catch(() => null),
         ]) : null;
 
@@ -576,7 +577,7 @@ export const useDataStore = create((set, get) => ({
           let [e, ex] = earlySecondary
             ? await earlySecondary
             : await Promise.all([
-              sb.get("events", `?select=${EVENTS_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+              sb.get("events", `?select=${EVENTS_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})&${eventsDateFilterOr(localTodayStr())}`).catch(() => null),
               sb.get("experiences", `?select=${EXPERIENCES_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
             ]);
 
@@ -590,7 +591,7 @@ export const useDataStore = create((set, get) => ({
           // con ciudades en caché la zona ya está y no se repite.
           if (earlySecondary && !earlyZoneReady && METRO_ZONES[targetCity] && METRO_ZONES[targetCity].length > 1) {
             const [e2, ex2] = await Promise.all([
-              sb.get("events", `?select=${EVENTS_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
+              sb.get("events", `?select=${EVENTS_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})&${eventsDateFilterOr(localTodayStr())}`).catch(() => null),
               sb.get("experiences", `?select=${EXPERIENCES_SELECT}&status=eq.approved&or=(city_slug.eq.all,${getCityFilterOr(targetCity)})`).catch(() => null),
             ]);
             e = mergeById(e, e2);
