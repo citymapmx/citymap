@@ -880,6 +880,14 @@ useEffect(() => {
         setTimeout(() => setFade(true), 50);
         return;
       }
+      // Ir arriba ANTES de cambiar la categoría y con salto instantáneo:
+      // con el desplazamiento suave, al resetear la categoría la lista
+      // larga (Virtuoso) se desmontaba, la página se acortaba y el
+      // navegador dejaba el scroll clavado abajo, en el pie (bug 24 nov
+      // 2026: pulsar Inicio desde Restaurantes abría el pie). El salto
+      // instantáneo ocurre con la lista aún montada, así que al
+      // confirmarse el cambio el scroll ya está en 0.
+      window.scrollTo(0, 0);
       setActiveCat("explorar");
       setSearch("");
       setSelected(null);
@@ -900,7 +908,6 @@ useEffect(() => {
         routerNavigate(path, { replace: false, viewTransition: true });
         setFade(true);
       }
-      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
