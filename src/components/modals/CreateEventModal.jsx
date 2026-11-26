@@ -5,7 +5,7 @@ import { useDataStore } from '../../store/useDataStore';
 import { useUIStore } from '../../store/useUIStore';
 import { sb } from '../../lib/supabase';
 import { getT, EVENT_CATEGORIES } from '../../lib/constants';
-import { createSlug, randomToken } from '../../lib/utils';
+import { createSlug, randomToken, normalizeWhatsapp, isValidWhatsapp } from '../../lib/utils';
 import { privateEventUrl } from '../../lib/privateEvents.js';
 import { EVENT_IMAGE_OPTIMIZE } from '../../lib/imageOptimize.js';
 import Icon from '../ui/Icon';
@@ -97,12 +97,24 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
 
   const canContinue = () => {
     if (step === 1 && !createEvForm.title.trim()) { toast$(t('modal_titulo_obligatorio', 'El título es obligatorio')); return false; }
+    if (step === 1 && (createEvForm.description || "").trim().length < 10) { toast$('La descripción es obligatoria (mín. 10 caracteres)'); return false; }
+    if (step === 1 && !createEvForm.event_category) { toast$('Elige una categoría'); return false; }
     if (step === 2 && !createEvForm.date) { toast$(t('modal_fecha_obligatoria', 'La fecha es obligatoria')); return false; }
+    if (step === 2 && !(createEvForm.venue_name || "").trim()) { toast$('El lugar es obligatorio'); return false; }
     return true;
   };
 
   const submitEvent = async () => {
     if (!createEvForm.title.trim()) { toast$(t('modal_titulo_obligatorio', 'El título es obligatorio')); return; }
+    // Revisión final (25 nov 2026: los eventos llegaban con solo título
+    // y fecha): descripción, categoría, fecha, lugar y WhatsApp son
+    // obligatorios; si es de pago, también el precio.
+    if ((createEvForm.description || "").trim().length < 10) { toast$('La descripción es obligatoria (mín. 10 caracteres)'); return; }
+    if (!createEvForm.event_category) { toast$('Elige una categoría'); return; }
+    if (!createEvForm.date) { toast$(t('modal_fecha_obligatoria', 'La fecha es obligatoria')); return; }
+    if (!(createEvForm.venue_name || "").trim()) { toast$('El lugar es obligatorio'); return; }
+    if (!isValidWhatsapp(createEvForm.whatsapp)) { toast$('El WhatsApp es obligatorio: 10 dígitos'); return; }
+    if (createEvForm.price_type === "paid" && !(createEvForm.price || "").trim()) { toast$('Si es de pago, el precio es obligatorio'); return; }
     try {
       let baseSlug = createSlug(createEvForm.title);
       if (!baseSlug.startsWith(activeCity + "-")) baseSlug = `${activeCity}-${baseSlug}`;
@@ -117,6 +129,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
       // activo de inmediato y solo se abre con su enlace.
       const rows = await sb.post("events", {
         ...createEvForm,
+        whatsapp: normalizeWhatsapp(createEvForm.whatsapp),
         slug: newSlug,
         city_slug: activeCity,
         user_id: user.id,
@@ -319,7 +332,7 @@ export default function CreateEventModal({ showCreateEvent, setShowCreateEvent }
                 </div>
                 {createEvForm.price_type === "paid" && <input className="inp" placeholder={t('modal_placeholder_precio', 'Ej: $200')} value={createEvForm.price} onChange={e => setCreateEvForm(f => ({ ...f, price: e.target.value }))} style={{ marginTop: 8 }} />}
               </div>
-              <div><div className="text-xs" style={labelStyle}>{t('modal_whatsapp_contacto', 'WhatsApp de contacto')}</div><input className="inp" placeholder="3111234567" value={createEvForm.whatsapp} onChange={e => setCreateEvForm(f => ({ ...f, whatsapp: e.target.value }))} /></div>
+              <div><div className="text-xs" style={labelStyle}>{t('modal_whatsapp_contacto', 'WhatsApp de contacto')} *</div><input className="inp" placeholder="3111234567" value={createEvForm.whatsapp} onChange={e => setCreateEvForm(f => ({ ...f, whatsapp: e.target.value }))} /><div style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>Obligatorio · 10 dígitos. Es el número donde te contactamos para aprobar tu evento.</div></div>
               <div><div className="text-xs" style={labelStyle}>{t('modal_sitio_boletos', 'Sitio web / Boletos')} <span className="text-micro" style={{ opacity: 0.6 }}>{t('modal_opcional', '(Opcional)')}</span></div><input className="inp" placeholder="https://..." value={createEvForm.website || ""} onChange={e => setCreateEvForm(f => ({ ...f, website: e.target.value }))} /></div>
               <div style={{ background: T.greenL, borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 4 }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: .6 }}>{t('modal_tu_evento', 'Tu evento')}</div>
