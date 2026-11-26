@@ -35,6 +35,11 @@ export function selectHomeEvents(events = [], today = eventDayKey()) {
   const todayEvents = [], thisWeek = [], later = new Map(), seasonal = [];
   for (const event of events) {
     if (!event || event.status !== 'approved') continue;
+    // Recurrente semanal (is_recurring, píldora «Cada semana»): fuera de
+    // la rueda (26 nov 2026, Jonathan) — se repite cada semana y el
+    // carrusel parecía no actualizarse. Sigue en la lista de Eventos y
+    // en su ficha, con su píldora.
+    if (event.is_recurring) continue;
     const start = dayNumber(event.date);
     if (start === null) continue;
     const end = Math.max(start, dayNumber(event.end_date) ?? start);
