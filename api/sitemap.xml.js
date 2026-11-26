@@ -139,7 +139,10 @@ export default async function handler(req) {
       const path = `${cityPath(city)}/${slug}`;
       const photos = asArray(business.photos);
       add(path, [business.logo_url, ...photos], business.updated_at, business.name);
-      if (['restaurantes', 'cafe'].includes(business.category)) add(`${path}/menu`, [], business.updated_at);
+      // Sin /menu: su canónica apunta a la ficha del negocio, así que
+      // listarlo aquí contradice la canónica y llena el informe de
+      // Search Console «Página alternativa con etiqueta canónica
+      // adecuada» con URLs que Google nunca va a indexar.
     }
     for (const event of liveEvents) {
       if (event.slug || event.id) add(eventUrl(event), [event.img_url || event.img], event.updated_at, event.title);

@@ -134,3 +134,32 @@ describe('sitemap: paginación en bloques de 1000 con índice', () => {
     }
   });
 });
+
+describe('sitemap: las URLs /menu de negocios quedan fuera', () => {
+  // La página /menu tiene como canónica la ficha del negocio; listarla
+  // aquí contradice la canónica y llena el informe de Search Console
+  // «Página alternativa con etiqueta canónica adecuada».
+  const businesses = [
+    { id: 'b-rest', slug: 'tepic-pangea', city_slug: 'tepic', category: 'restaurantes', updated_at: '2026-11-01T08:00:00Z', name: 'Pangea', photos: [] },
+    { id: 'b-cafe', slug: 'tepic-cafe-belloy', city_slug: 'tepic', category: 'cafe', updated_at: '2026-11-01T08:00:00Z', name: 'Café Belloy', photos: [] },
+    { id: 'b-tienda', slug: 'tepic-tienda', city_slug: 'tepic', category: 'compras', updated_at: '2026-11-01T08:00:00Z', name: 'Tienda', photos: [] },
+  ];
+  beforeEach(() => {
+    vi.stubGlobal('fetch', mockFetch({ cities, businesses, events: [], experiences: [] }));
+  });
+  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+  const page1 = async () => (await sitemap(request('/sitemap.xml?page=1'))).text();
+
+  it('la ficha del negocio sí está en el sitemap', async () => {
+    const xml = await page1();
+    expect(xml).toContain('https://citymap.mx/tepic/pangea');
+    expect(xml).toContain('https://citymap.mx/tepic/cafe-belloy');
+  });
+  it('ninguna URL /menu aparece en el sitemap', async () => {
+    const xml = await page1();
+    expect(xml).not.toContain('/menu</loc>');
+    expect(xml).not.toContain('https://citymap.mx/tepic/pangea/menu');
+    expect(xml).not.toContain('https://citymap.mx/tepic/cafe-belloy/menu');
+  });
+});
