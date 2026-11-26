@@ -146,6 +146,11 @@ export const useUIStore = create((set) => ({
   selectedEvent: null,
   setSelectedEvent: (val) => set(s => ({ selectedEvent: typeof val === 'function' ? val(s.selectedEvent) : val })),
 
+  // Página de «evento no disponible» (25 nov 2026): el enlace apunta a un
+  // evento que ya no existe (borrado o slug erróneo). { slug, city } o null.
+  eventNotFound: null,
+  setEventNotFound: (val) => set(s => ({ eventNotFound: typeof val === 'function' ? val(s.eventNotFound) : val })),
+
   installPromptEvent: null,
   setInstallPromptEvent: (event) => set({ installPromptEvent: event }),
 
