@@ -7,6 +7,7 @@ import { bookingButtonState } from "../lib/bookingButtonState.js";
 import { useQuery } from "@tanstack/react-query";
 import useGMaps from "../components/map/useGMaps.js";
 import { FONT_BIZ } from "../lib/constants.js";
+import { isPaidPlanKey } from "../lib/crearNegocio.js";
 import { isBookingPath, bookingModalApplies } from "../lib/bookingLink.js";
 import GoogleReviewItem from '../components/detail/GoogleReviewItem.jsx';
 import ReviewAvatar from '../components/ReviewAvatar.jsx';
@@ -521,13 +522,13 @@ export default function DetailView() {
             )}
 
             {/* Quick Actions Pills */}
-            <div style={{ display: (selected.phone || (selected.whatsapp && ['premium', 'pro', 'destacado'].includes(selected.plan)) || (!selected.hide_location && selected.address && selected.address.trim() !== '')) ? "flex" : "none", gap: 8, padding: "0" }}>
+            <div style={{ display: (selected.phone || (selected.whatsapp && isPaidPlanKey(selected.plan)) || (!selected.hide_location && selected.address && selected.address.trim() !== '')) ? "flex" : "none", gap: 8, padding: "0" }}>
               {(selected.phone) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => callPhone(selected, null)} style={{ flex: "1 1 0", minWidth: 0, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                 <Icon name="phone" size={20} color={dText} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>{t('detalle_llamar', 'Llamar')}</span>
               </m.button>}
               
-              {(selected.whatsapp && ['premium', 'pro', 'destacado'].includes(selected.plan)) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goWhatsApp(selected, null)} style={{ flex: "1 1 0", minWidth: 0, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+              {(selected.whatsapp && isPaidPlanKey(selected.plan)) && <m.button whileTap={{ scale: 0.95 }} className="press" onClick={() => goWhatsApp(selected, null)} style={{ flex: "1 1 0", minWidth: 0, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 0", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                 <Icon name="whatsapp" size={20} color={dText} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "#E2E8F0" : "#334155" }}>WhatsApp</span>
               </m.button>}
