@@ -15,6 +15,27 @@ export function getEventStatus(ev) {
  
 }
 
+// WhatsApp mexicano (25 nov 2026, Jonathan: obligatorio al crear negocio
+// y evento): 10 dígitos. Acepta espacios, guiones y el prefijo +52 / 521
+// y guarda solo los 10 dígitos. Rechaza números con los 10 dígitos
+// iguales (1111111111) y cualquier otra longitud.
+export function normalizeWhatsapp(value) {
+  const d = String(value || "").replace(/\D/g, "");
+  if (d.length === 12 && d.startsWith("52")) return d.slice(2);
+  if (d.length === 13 && d.startsWith("521")) return d.slice(3);
+  return d;
+}
+export function isValidWhatsapp(value) {
+  const d = normalizeWhatsapp(value);
+  if (d.length !== 10) return false;
+  if (/^(\d)\1{9}$/.test(d)) return false;
+  return true;
+}
+export function whatsappLink(value) {
+  const d = normalizeWhatsapp(value);
+  return d ? `https://wa.me/52${d}` : "";
+}
+
 export function getKm(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return 9999;
   const p = 0.017453292519943295;

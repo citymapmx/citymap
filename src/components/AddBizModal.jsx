@@ -13,6 +13,7 @@ import {
   effectivePlanFeatures, comparePlanFeatures, planPrice,
   isPaidPlanKey, hasTrial, parsePriceNumber,
 } from '../lib/crearNegocio.js';
+import { normalizeWhatsapp, isValidWhatsapp } from '../lib/utils.js';
 
 export default function AddBizModal({
   showAddBiz,
@@ -149,6 +150,16 @@ export default function AddBizModal({
   };
   const goStep2 = () => {
     if (!addBizForm.name || !addBizForm.category || !citySlug) { toast$('Nombre, categoría y ciudad son obligatorios'); return; }
+    // Solo en creación: descripción, dirección y al menos 1 foto son
+    // obligatorias (25 nov 2026: las solicitudes llegaban casi vacías).
+    // En edición no se exigen: los negocios viejos pueden no tenerlas.
+    if (!isEdit) {
+      const falta = [];
+      if ((addBizForm.description || "").trim().length < 10) falta.push("descripción");
+      if (!(addBizForm.address || "").trim()) falta.push("dirección");
+      if ((addBizForm.photos || []).length < 1) falta.push("al menos 1 foto");
+      if (falta.length) { toast$(`Falta: ${falta.join(", ")}`); return; }
+    }
     // Solo en creación se abren todos los días por defecto. En edición el
     // horario guardado se respeta tal cual (si no tiene días, el dueño los
     // elige en el paso 2).
@@ -158,11 +169,28 @@ export default function AddBizModal({
     setStep(2);
   };
 
+  // Paso 2 → 3: solo en creación el WhatsApp es obligatorio, con 10
+  // dígitos (25 nov 2026). Se guarda normalizado (solo dígitos).
+  const goStep3 = () => {
+    if (!isEdit) {
+      if (!isValidWhatsapp(addBizForm.whatsapp)) { toast$("El WhatsApp es obligatorio: 10 dígitos"); return; }
+      const wa = normalizeWhatsapp(addBizForm.whatsapp);
+      if (wa !== addBizForm.whatsapp) setAddBizForm(f => ({ ...f, whatsapp: wa }));
+    }
+    setStep(3);
+  };
+
   // Envío (creación y edición): la lógica es la de siempre; solo cambia
   // que al crear con plan de pago se fija el plan pendiente para que App
   // abra el pago de Stripe en cuanto el negocio exista.
   const submitForm = async () => {
     if (!addBizForm.name || !addBizForm.category || !(addBizForm.city || activeCity)) { toast$("Nombre, categoría y ciudad son obligatorios"); return; }
+    // Solo en creación: revisión final de los datos obligatorios (el
+    // flujo de edición no pasa por goStep2/goStep3).
+    if (!isEdit) {
+      if (!isValidWhatsapp(addBizForm.whatsapp)) { toast$("El WhatsApp es obligatorio: 10 dígitos"); return; }
+      if ((addBizForm.description || "").trim().length < 10 || !(addBizForm.address || "").trim() || (addBizForm.photos || []).length < 1) { toast$("Faltan datos obligatorios: descripción, dirección y al menos 1 foto"); return; }
+    }
     setAddBizLoading(true);
     try {
       const existingBiz = biz.find(b => b.id === editBizId);
@@ -193,7 +221,7 @@ export default function AddBizModal({
         address: addBizForm.address,
         city_slug: finalCitySlug,
         phone: addBizForm.phone,
-        whatsapp: addBizForm.whatsapp,
+        whatsapp: normalizeWhatsapp(addBizForm.whatsapp),
         website: addBizForm.website,
         video_url: addBizForm.video_url || null,
         logo_url: addBizForm.logo_url || null,
@@ -377,8 +405,9 @@ export default function AddBizModal({
                 <>
                   {!isLimitedEdit && (
                     <div style={{ marginBottom: 12 }}>
-                      <label style={labelStyle}>{t('crear_negocio_whatsapp', 'WhatsApp')}</label>
+                      <label style={labelStyle}>{t('crear_negocio_whatsapp', 'WhatsApp')}{!isEdit && ' *'}</label>
                       <input className="cn-input" style={inputStyle} type="tel" value={addBizForm.whatsapp} onChange={e => setAddBizForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="311 000 0000" autoComplete="off" />
+                      {!isEdit && <div style={captionStyle}>Obligatorio · 10 dígitos. Es el número donde te contactamos para aprobar tu negocio.</div>}
                     </div>
                   )}
 
@@ -431,7 +460,7 @@ export default function AddBizModal({
                     {addBizLoading ? 'Guardando...' : editSubmitLabel}
                   </button>
                 ) : (
-                  <button type="button" onClick={() => setStep(3)} style={primaryBtn}>{t('crear_negocio_siguiente', 'Siguiente')}</button>
+                  <button type="button" onClick={goStep3} style={primaryBtn}>{t('crear_negocio_siguiente', 'Siguiente')}</button>
                 )}
               </div>
             </div>

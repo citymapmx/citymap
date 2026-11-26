@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react"
 import { sb, cloudDeleteBatch, cloudListAllFiles } from "../lib/supabase.js";
 import { buildEditBizDeepLink, businessNotificationImage, changeRequestTitle, changeRequestBody, eventNotificationImage, isDuplicateChangeRequest } from "../lib/notifications.js";
 import { PLAN_META } from "../lib/constants.js";
-import { getThumbUrl } from "../lib/utils.js";
+import { getThumbUrl, whatsappLink } from "../lib/utils.js";
 import Icon from "./ui/Icon.jsx";
 import Uploader from "./Uploader.jsx";
 import { useGMaps } from "./GMap.jsx";
@@ -344,7 +344,12 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                   <span className="text-micro" style={{ background: LT.bg, color: LT.text, border: `1px solid ${LT.border}`, borderRadius: 20, padding: "3px 10px", fontWeight: 800, flexShrink: 0, marginLeft: 6 }}>{b.status === "needs_changes" ? "Requiere cambios" : "Pendiente"}</span>
                 </div>
                 <div className="text-xs" style={{ color: "#5A6872", marginTop: 2 }}>{b.type || b.category} · {b.address}</div>
-                {b.phone && <div className="text-xs" style={{ color: "#5A6872" }}>Tel: {b.phone}{b.whatsapp && " · WA: " + b.whatsapp}</div>}
+                {b.phone && <div className="text-xs" style={{ color: "#5A6872" }}>Tel: {b.phone}</div>}
+                {/* WhatsApp siempre que exista, aunque no haya teléfono
+                (25 nov 2026: antes solo se veía si había Tel, y las dos
+                solicitudes pendientes no tenían WhatsApp). Enlace directo
+                para escribirle al propietario. */}
+                {b.whatsapp && <div className="text-xs" style={{ color: "#5A6872" }}>WhatsApp: <a href={whatsappLink(b.whatsapp)} target="_blank" rel="noreferrer" style={{ color: "#1A7A5E", fontWeight: 700 }}>{b.whatsapp}</a></div>}
                 {b.description && <div className="text-xs" style={{ color: "#5A6872", marginTop: 4, lineHeight: 1.4 }}>{b.description}</div>}
                 {(b.facebook || b.instagram || b.tiktok) && <div className="text-xs" style={{ color: "#5A6872", marginTop: 4 }}>{[b.facebook && "FB", b.instagram && "IG", b.tiktok && "TK"].filter(Boolean).join(" · ")}</div>}
               </div>
@@ -374,6 +379,9 @@ function AdminPanel({ onClose, onToast, onOpenStoreAdmin, T }) {
                   <div className="text-xs" style={{ color: "#5A6872", marginTop: 2 }}>{ev.date}{ev.time && " · " + ev.time}</div>
                   {ev.venue_name && <div className="text-xs" style={{ color: "#5A6872" }}>Lugar: {ev.venue_name}</div>}
                   {ev.description && <div className="text-xs" style={{ color: "#5A6872", marginTop: 4, lineHeight: 1.4 }}>{ev.description}</div>}
+                  {ev.price_type === "paid" && ev.price && <div className="text-xs" style={{ color: "#5A6872" }}>Precio: {ev.price}</div>}
+                  {ev.price_type === "gratis" && <div className="text-xs" style={{ color: "#5A6872" }}>Gratis</div>}
+                  {ev.whatsapp && <div className="text-xs" style={{ color: "#5A6872" }}>WhatsApp: <a href={whatsappLink(ev.whatsapp)} target="_blank" rel="noreferrer" style={{ color: "#1A7A5E", fontWeight: 700 }}>{ev.whatsapp}</a></div>}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
