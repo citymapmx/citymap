@@ -150,9 +150,10 @@ describe('Tarjetas modernas de /negocios: cifras y beneficios', () => {
     expect(html).toContain('>153<');
   });
 
-  it('las tarjetas de beneficios existen con su icono y su texto', () => {
+  it('los beneficios existen como lista iOS, con su icono y su texto', () => {
     const html = renderLanding(false);
-    expect(html.match(/class="benefit-card"/g)).toHaveLength(6);
+    expect(html).toContain('class="benefits-list"');
+    expect(html.match(/class="benefits-row"/g)).toHaveLength(6);
     expect(html).toContain('Te encuentran en el mapa');
     expect(html).toContain('Sabes qué está funcionando');
   });

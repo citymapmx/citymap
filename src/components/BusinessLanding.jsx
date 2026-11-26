@@ -276,7 +276,6 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         .business-landing .plans-feature{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.5}
         .business-landing .plans-features{flex:1;display:flex;flex-direction:column;gap:12px;padding-top:22px;margin-top:22px;border-top:1px solid var(--plans-line)}
         .business-landing .stat-card{box-shadow:var(--plans-shadow)}
-        .business-landing .benefit-card{box-shadow:var(--plans-shadow)}
         .business-landing .ya-estan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
         .business-landing .ya-estan-viewport{overflow:hidden}
         .business-landing .ya-estan-track{display:flex;transition:transform .5s ease}
@@ -340,18 +339,28 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
           <Reveal><p style={{ fontSize: 14, lineHeight: 1.6, color: muted, textAlign: 'center', margin: '20px auto 0', maxWidth: 560 }}>{t("negocios_google_ejemplos", "El menú de Formentera recibió ${formentera} visitas desde Google; Campomar, ${campomar}; y Akami Sushi, ${akami}.", { formentera: GOOGLE_SEARCH_CONSOLE.examples.formentera, campomar: GOOGLE_SEARCH_CONSOLE.examples.campomar, akami: GOOGLE_SEARCH_CONSOLE.examples.akami })}</p></Reveal>
           <Reveal delay={90}><p style={{ fontSize: 13, lineHeight: 1.5, color: muted, textAlign: 'center', margin: '12px auto 0', maxWidth: 560 }}>{t("negocios_google_solo_google", "Esto es solo el tráfico que llega desde Google.")}</p></Reveal>
         </section>
-        <section style={{ marginTop: 64 }}>
-          <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_beneficios_titulo", "Por qué CityMap")}</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_beneficios_sub", "Lo que gana tu negocio")}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
-            {benefits.map(b => (
-              <article className="benefit-card" key={b.title} style={{ padding: '24px', background: surface, border: `1px solid ${line}`, borderRadius: 24 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 16, background: dark ? '#18304A' : '#EDF5FF', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-                  <Icon name={b.icon} size={24} color={accent} />
+        {/* Beneficios estilo iOS (25 nov 2026, Jonathan, opción A):
+        lista agrupada como Ajustes: una sola caja blanca, filas con
+        línea fina entre ellas, icono de línea en tinta (sin cuadro azul
+        ni color de acento) a la izquierda y título + texto a la derecha.
+        Título y subtítulo alineados a la izquierda, como en el mockup. */}
+        <section style={{ maxWidth: 720, margin: '64px auto 0' }}>
+          <h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'left', margin: '0 0 8px' }}>{t("negocios_beneficios_titulo", "Por qué CityMap")}</h2>
+          <p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'left', margin: '0 0 28px', maxWidth: 480 }}>{t("negocios_beneficios_sub", "Lo que gana tu negocio")}</p>
+          <div className="benefits-list" style={{ background: surface, border: `1px solid ${line}`, borderRadius: 24, boxShadow: 'var(--plans-shadow)' }}>
+            {benefits.map((b, i) => (
+              <div key={b.title}>
+                {i > 0 && <div aria-hidden="true" style={{ height: 1, background: line, margin: '0 20px' }} />}
+                <div className="benefits-row" style={{ display: 'flex', gap: 16, padding: '20px', alignItems: 'flex-start' }}>
+                  <div style={{ flex: '0 0 30px', display: 'flex', justifyContent: 'center', paddingTop: 2 }}>
+                    <Icon name={b.icon} size={30} color={ink} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.3, margin: '0 0 6px' }}>{b.title}</h3>
+                    <p style={{ fontSize: 14, lineHeight: 1.6, color: muted, margin: 0 }}>{b.text}</p>
+                  </div>
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.3, margin: '0 0 8px' }}>{b.title}</h3>
-                <p style={{ fontSize: 14, lineHeight: 1.6, color: muted, margin: 0 }}>{b.text}</p>
-              </article>
+              </div>
             ))}
           </div>
         </section>
