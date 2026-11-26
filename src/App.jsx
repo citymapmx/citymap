@@ -129,6 +129,7 @@ const EventsView = lazy(() => import("./views/EventsView.jsx"));
 const ReservationsAgenda = lazy(() => import("./components/ReservationsAgenda.jsx"));
 const CreateEventModal = lazy(() => import("./components/modals/CreateEventModal.jsx"));
 const EventDetailModal = lazy(() => import("./components/modals/EventDetailModal.jsx"));
+const EventNotFound = lazy(() => import("./components/modals/EventNotFound.jsx"));
 const ScheduleModal = lazy(() => import("./components/modals/ScheduleModal.jsx"));
 
 import AutoSlider from './components/ui/sliders/AutoSlider.jsx';
@@ -230,7 +231,7 @@ export default function CityGuide() {
     initialCatParam,
     initialExpSlugParam
   } = useAppInitialization();
-  const { activeCat, setActiveCat, selected, setSelected, mapPin, setMapPin, mapFullScreen, showAdmin, setShowAdmin, showPlans, setShowPlans, claimBiz, setClaimBiz, showAddBiz, setShowAddBiz, showGallery, setShowGallery, showMenuGallery, setShowMenuGallery, showSchedule, setShowSchedule, showLocPicker, setShowLocPicker, selectedEvent, setSelectedEvent, activeCity, setActiveCity, showCountryPicker, setShowCountryPicker, dark, setDark, toast, toast$, setInstallPromptEvent, ownerView, setOwnerView } = useUIStore(useShallow(s => ({ activeCat: s.activeCat, setActiveCat: s.setActiveCat, selected: s.selected, setSelected: s.setSelected, mapPin: s.mapPin, setMapPin: s.setMapPin, mapFullScreen: s.mapFullScreen, showAdmin: s.showAdmin, setShowAdmin: s.setShowAdmin, showPlans: s.showPlans, setShowPlans: s.setShowPlans, claimBiz: s.claimBiz, setClaimBiz: s.setClaimBiz, showAddBiz: s.showAddBiz, setShowAddBiz: s.setShowAddBiz, showGallery: s.showGallery, setShowGallery: s.setShowGallery, showMenuGallery: s.showMenuGallery, setShowMenuGallery: s.setShowMenuGallery, showSchedule: s.showSchedule, setShowSchedule: s.setShowSchedule, showLocPicker: s.showLocPicker, setShowLocPicker: s.setShowLocPicker, selectedEvent: s.selectedEvent, setSelectedEvent: s.setSelectedEvent, activeCity: s.activeCity, setActiveCity: s.setActiveCity, showCountryPicker: s.showCountryPicker, setShowCountryPicker: s.setShowCountryPicker, dark: s.dark, setDark: s.setDark, toast: s.toast, toast$: s.toast$, setInstallPromptEvent: s.setInstallPromptEvent, ownerView: s.ownerView, setOwnerView: s.setOwnerView })));
+  const { activeCat, setActiveCat, selected, setSelected, mapPin, setMapPin, mapFullScreen, showAdmin, setShowAdmin, showPlans, setShowPlans, claimBiz, setClaimBiz, showAddBiz, setShowAddBiz, showGallery, setShowGallery, showMenuGallery, setShowMenuGallery, showSchedule, setShowSchedule, showLocPicker, setShowLocPicker, selectedEvent, setSelectedEvent, eventNotFound, setEventNotFound, activeCity, setActiveCity, showCountryPicker, setShowCountryPicker, dark, setDark, toast, toast$, setInstallPromptEvent, ownerView, setOwnerView } = useUIStore(useShallow(s => ({ activeCat: s.activeCat, setActiveCat: s.setActiveCat, selected: s.selected, setSelected: s.setSelected, mapPin: s.mapPin, setMapPin: s.setMapPin, mapFullScreen: s.mapFullScreen, showAdmin: s.showAdmin, setShowAdmin: s.setShowAdmin, showPlans: s.showPlans, setShowPlans: s.setShowPlans, claimBiz: s.claimBiz, setClaimBiz: s.setClaimBiz, showAddBiz: s.showAddBiz, setShowAddBiz: s.setShowAddBiz, showGallery: s.showGallery, setShowGallery: s.setShowGallery, showMenuGallery: s.showMenuGallery, setShowMenuGallery: s.setShowMenuGallery, showSchedule: s.showSchedule, setShowSchedule: s.setShowSchedule, showLocPicker: s.showLocPicker, setShowLocPicker: s.setShowLocPicker, selectedEvent: s.selectedEvent, setSelectedEvent: s.setSelectedEvent, eventNotFound: s.eventNotFound, setEventNotFound: s.setEventNotFound, activeCity: s.activeCity, setActiveCity: s.setActiveCity, showCountryPicker: s.showCountryPicker, setShowCountryPicker: s.setShowCountryPicker, dark: s.dark, setDark: s.setDark, toast: s.toast, toast$: s.toast$, setInstallPromptEvent: s.setInstallPromptEvent, ownerView: s.ownerView, setOwnerView: s.setOwnerView })));
   
   const { t } = useTranslation();
 
@@ -731,7 +732,14 @@ useEffect(() => {
               setActiveCity(r[0].city_slug);
               loadData(r[0].city_slug);
             }
-          } else navigate("events");
+          } else {
+            // El enlace apunta a un evento que ya no existe (borrado o slug
+            // erróneo): NO redirigir en silencio a la lista — eso es lo que
+            // veía el visitante («no encontraron nada», caso Mesitas 25 nov
+            // 2026). Se abre la página de «no disponible» con los próximos
+            // eventos de la ciudad; la URL se queda como está.
+            setEventNotFound({ slug: urlEv, city: initialParams.current.citySlug || '' });
+          }
         } catch { navigate("events"); }
          
         finally { setResolvingDeepLink(false); }
@@ -876,6 +884,7 @@ useEffect(() => {
       if (location.state?.background) {
         setSelected(null);
         setSelectedEvent(null);
+        setEventNotFound(null);
         routerNavigate(-1, { viewTransition: true });
         setTimeout(() => setFade(true), 50);
         return;
@@ -892,6 +901,7 @@ useEffect(() => {
       setSearch("");
       setSelected(null);
       setSelectedEvent(null);
+      setEventNotFound(null);
       setMapPin(null);
       // En el muro global ("/"), Inicio se queda en el muro, no salta a la ciudad.
       // La ciudad se lee del store en vivo: este navigate también se llama
@@ -995,6 +1005,7 @@ useEffect(() => {
         if (!isEventView) {
            
           setSelectedEvent(null);
+          setEventNotFound(null);
         }
         if (!isDetailView || !isEventView) {
            
@@ -1891,6 +1902,13 @@ useEffect(() => {
             su chunk (13,4 KB) en cada carga inicial aunque nunca se abriera. */}
         <Suspense fallback={null}>
           {selectedEvent && <EventDetailModal savedEventIds={savedEventIds} setSavedEventIds={setSavedEventIds} />}
+        </Suspense>
+
+        {/* ════ EVENTO NO DISPONIBLE ════ */}
+        {/* Solo se monta cuando el enlace apunta a un evento que ya no existe:
+            mismo patrón lazy que el detalle para no crecer la carga inicial. */}
+        <Suspense fallback={null}>
+          {eventNotFound && <EventNotFound />}
         </Suspense>
 
         {showLocPicker && <Suspense fallback={null}><MapPicker
