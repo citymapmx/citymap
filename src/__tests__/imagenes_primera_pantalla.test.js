@@ -9,8 +9,11 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 // primera pantalla frenaban la salida del splash. El póster frontal de
 // la rueda se pedía a 800 px con decoding="sync" (decodificación
 // síncrona en el hilo principal). Arreglo: frente a 600 px (la cara se
-// ve a ~216 px CSS, a 3x son ~650 px de dispositivo: 600 cubre sin que
+// veía a ~216 px CSS, a 3x son ~650 px de dispositivo: 600 cubre sin que
 // se vea blando, a 400 sí se veía, PR #264) y decoding="async".
+// Con la opción B (26 Nov 2026) la cara del frente creció a ~263 px CSS
+// (~790 px de dispositivo a 3x), así que el frente vuelve a 800 px;
+// el decoding sigue en async.
 //
 // Ojo: getThumbUrl redondea a buckets (200/400/600/800/1000/1200/1600/2400), así que
 // pedir 600 devolvía el archivo de 800. El bucket de 600 es lo que hace
@@ -18,9 +21,9 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const POSTER_SB = 'https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/poster.jpg';
 const POSTER_CLOUD = 'https://res.cloudinary.com/demo/image/upload/sample.jpg';
 
-describe('primera pantalla: frente de la rueda a 600 px, decodificación asíncrona', () => {
-  it('WHEEL_IMG_W es 600 y la hilera simple sigue en 800', () => {
-    expect(WHEEL_IMG_W).toBe(600);
+describe('primera pantalla: frente de la rueda a 800 px, decodificación asíncrona', () => {
+  it('WHEEL_IMG_W es 800 y la hilera simple sigue en 800', () => {
+    expect(WHEEL_IMG_W).toBe(800);
     // La hilera (tarjetas de 300 px CSS, ~900 px de dispositivo a 3x)
     // sí necesita 800: a 400 se veía blanda (PR #264).
     expect(WHEEL_ROW_W).toBe(800);
@@ -38,15 +41,15 @@ describe('primera pantalla: frente de la rueda a 600 px, decodificación asíncr
     expect(getThumbUrl(POSTER_SB, 800)).toContain('width=800');
   });
 
-  it('SRCSET_WHEEL_FRONT es [400, 600] y su srcset no ofrece 800', () => {
-    expect([...SRCSET_WHEEL_FRONT]).toEqual([400, 600]);
+  it('SRCSET_WHEEL_FRONT es [400, 600, 800] y su srcset ofrece 800', () => {
+    expect([...SRCSET_WHEEL_FRONT]).toEqual([400, 600, 800]);
     const srcset = getThumbSrcSet(POSTER_SB, SRCSET_WHEEL_FRONT);
     expect(srcset).toContain('400w');
     expect(srcset).toContain('600w');
-    expect(srcset).not.toContain('800w');
+    expect(srcset).toContain('800w');
   });
 
-  it('EventWheel3D: la imagen de frente usa el preset de 600 y decoding async', () => {
+  it('EventWheel3D: la imagen de frente usa el preset de 800 y decoding async', () => {
     const src = read('../components/home/EventWheel3D.jsx');
     expect(src).toContain('getThumbSrcSet(item.img, SRCSET_WHEEL_FRONT)');
     expect(src).toContain('decoding="async"');

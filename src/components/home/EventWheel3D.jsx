@@ -88,7 +88,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   const [canHover] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(hover: hover) and (pointer: fine)').matches));
   const [reducedMotion] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches));
   // Formato corto de la tarjeta: nominal 162 px en escritorio, 140 px en
-  // teléfono (la perspectiva la magnifica a ~216 px y ~178 px al frente).
+  // teléfono (la perspectiva la magnifica a ~263 px y ~209 px al frente).
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 640px)').matches));
   useEffect(() => {
     const mq = typeof window !== 'undefined' ? window.matchMedia?.('(max-width: 640px)') : null;
@@ -128,12 +128,12 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   // (el CSS trae el nominal de 10 caras como base).
   //
   // A sangre en teléfono: con menos de 10 eventos la referencia de
-  // siempre (frente a 178 px) dejaba el tambor en ~174 px a cada lado
+  // siempre (frente a 209 px) dejaba el tambor en ~185 px a cada lado
   // del centro en una pantalla de 390 (mitad 195 px): las tarjetas ya
   // estaban juntas pero no llegaban a los extremos. En teléfono se pasa
-  // la referencia ancha (WHEEL_PROJECTED_W_MOBILE_FEW, 215 px): la cara
-  // del frente se ve más grande (~215x283 con 7 eventos) y el tambor
-  // abarca 205 px a cada lado, así las laterales se cortan por los
+  // la referencia ancha (WHEEL_PROJECTED_W_MOBILE_FEW, 230 px): la cara
+  // del frente se ve más grande (~229x302 con 7 eventos) y el tambor
+  // abarca 199 px a cada lado, así las laterales se cortan por los
   // bordes de la pantalla como en el global. El global (10 eventos) y
   // el escritorio no cambian.
   const drum = wheelDrumGeometry(
@@ -144,14 +144,17 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     isMobile && n < WHEEL_DRUM_FACES ? WHEEL_PROJECTED_W_MOBILE_FEW : null,
   );
   const radius = drum.radius;
-  // Alto de la escena: la cara ancha de teléfono se ve más alta (~283 px
-  // con 7 eventos) que la escena del CSS (262 px). La escena crece solo
-  // cuando hace falta (móvil y pocos eventos): el tambor no se sale por
-  // arriba ni tapa el título, y los puntos quedan debajo con su margen.
-  // Con 10 eventos o en escritorio la escena queda como siempre.
-  const viewportHeight = isMobile
-    ? Math.max(262, wheelProjectedFace(drum.faceW, drum.faceH, n).h + 16)
-    : undefined;
+  // Alto de la escena: con la perspectiva de 650 px la cara del frente
+  // se ve más alta (~344 px en escritorio, ~275 px en teléfono) que la
+  // escena del CSS (306 px / 262 px). La escena crece solo cuando hace
+  // falta, en escritorio y en teléfono: el tambor no se sale por arriba
+  // ni tapa el título, y los puntos quedan debajo con su margen.
+  // Con 10 eventos la escena queda en ~360 px en escritorio y ~291 px
+  // en teléfono; con pocos eventos en teléfono, ~318 px.
+  const viewportHeight = Math.max(
+    isMobile ? 262 : 306,
+    wheelProjectedFace(drum.faceW, drum.faceH, n).h + 16,
+  );
 
   useEffect(() => {
     nRef.current = n;
@@ -453,7 +456,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
       {header}
       <div
         className={`event-wheel-viewport${dragging ? ' event-wheel-dragging' : ''}`}
-        style={{ perspective: '1000px', height: viewportHeight }}
+        style={{ perspective: `${WHEEL_PERSPECTIVE}px`, height: viewportHeight }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -467,7 +470,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
             // Sin imagen montada hasta que la cara se acerca al frente:
             // la cara muestra el placeholder (shimmer + título), nunca
             // el fondo oscuro vacío. La base es de 400 px y la cara del
-            // frente lleva encima la versión nítida a 600 px, que se
+            // frente lleva encima la versión nítida a 800 px, que se
             // funde al cargar sin tapar nunca la base (si tarda o falla,
             // la base sigue viéndose).
             const faceLoaded = loadedFacesRef.current.has(i) || nearFaces.includes(i);

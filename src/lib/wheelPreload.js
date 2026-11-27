@@ -5,18 +5,19 @@ import { getThumbSrcSet, getThumbUrl, isNear, SRCSET_THUMB, SRCSET_WHEEL_FRONT }
 // Tamaño que la rueda muestra en la cara del frente: el mismo srcset y
 // sizes que EventWheel3D usa en la imagen nítida de frente, para que la
 // precarga y el <img> pidan el mismo candidato y el navegador no
-// descargue la imagen dos veces. La cara del frente se ve a ~216 px CSS
-// y en el teléfono a 3x son ~650 px de dispositivo: a 400 px el póster se
-// veía blando, así que el frente se queda en 600 px (antes 800 px: el
-// archivo de 600 pesa ~25% menos y a 3x casi no se nota). Las caras
-// laterales (mucho más chicas por la perspectiva) usan la base de 400 px.
-export const WHEEL_IMG_W = 600;
+// descargue la imagen dos veces. La cara del frente se ve a ~263 px CSS
+// y en el teléfono a 3x son ~790 px de dispositivo: a 600 px el póster se
+// vería blando, así que el frente vuelve a 800 px (antes 600 px con la
+// cara a 216 px: el archivo de 600 pesa ~25% menos y a 3x casi no se
+// notaba). Las caras laterales (mucho más chicas por la perspectiva)
+// usan la base de 400 px.
+export const WHEEL_IMG_W = 800;
 // La hilera simple (3 o menos eventos) muestra tarjetas de 300 px CSS:
 // a 3x en teléfono son ~900 px de dispositivo, así que ahí el póster sí
 // va a 800 px (a 400 se veía blando, PR #264).
 export const WHEEL_ROW_W = 800;
 // Base que cargan todas las caras montadas: la cara mide 140-162 px CSS
-// (hasta ~178 px magnificada al frente), así que 400 px sobra en
+// (hasta ~209 px magnificada al frente), así que 400 px sobra en
 // teléfono y escritorio. Medido en vivo: 400w WebP 15-25 KB frente a
 // 800w 43-57 KB (utils.js), así que la base descarga ~50-65% menos.
 export const WHEEL_BASE_W = 400;
