@@ -1,9 +1,11 @@
 import React from 'react';
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
 import TopLugaresIncreibles from '../components/home/TopLugaresIncreibles.jsx';
 import { LUGARES_AUTOPLAY_MS, LUGARES_MIN_CANDIDATOS, LUGARES_TOP_N, nextLugaresIndex, topLugaresIncreibles } from '../lib/lugaresIncreibles.js';
+import { useDataStore } from '../store/useDataStore.js';
+import { sb } from '../lib/supabase.js';
 import { TRANSLATIONS, ensureEnglishTranslations } from '../lib/i18n.js';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
@@ -30,6 +32,27 @@ function renderLugares(businesses = LUGARES) {
     <TopLugaresIncreibles businesses={businesses} T={T} city={{ slug: 'guadalajara', name: 'Guadalajara' }} cities={[]} handleCardTap={() => {}} />,
   );
 }
+
+// Los 14 lugares reales de Guadalajara (medido por PostgREST 27 nov
+// 2026, en el orden que devuelve la consulta rating DESC,
+// review_count DESC): todos con foto y rating. Seis empatan a 5.0 con
+// 1 reseña, así que el top 5 son los 5 primeros en ese orden.
+const GUADALAJARA_REAL = [
+  { id: 'g-1', name: 'Arena Guadalajara', slug: 'arena-guadalajara', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/arena-gdl.jpg' }], rating: 5.0, review_count: 1 },
+  { id: 'g-2', name: 'Catedral Metropolitana de Guadalajara', slug: 'catedral-metropolitana-de-guadalajara', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/catedral-gdl.jpg' }], rating: 5.0, review_count: 1 },
+  { id: 'g-3', name: 'Museo Cabañas', slug: 'museo-cabanas', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/cabanas.jpg' }], rating: 5.0, review_count: 1 },
+  { id: 'g-4', name: 'Parroquia El Expiatorio Eucarístico de Guadalajara', slug: 'parroquia-el-expiatorio-eucaristico-de-guadalajara', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/expiatorio.jpg' }], rating: 5.0, review_count: 1 },
+  { id: 'g-5', name: 'Bosque Los Colomos', slug: 'bosque-los-colomos', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/colomos.jpg' }], rating: 5.0, review_count: 1 },
+  { id: 'g-6', name: 'Expo Guadalajara', slug: 'expo-guadalajara', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/expo.jpg' }], rating: 5.0, review_count: 1 },
+  { id: 'g-7', name: 'MUSA Museo de las Artes UDG', slug: 'musa-museo-de-las-artes-udg', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/musa.jpg' }], rating: 4.8, review_count: 10094 },
+  { id: 'g-8', name: 'Zoológico Guadalajara', slug: 'zoologico-guadalajara', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/zoologico.jpg' }], rating: 4.7, review_count: 66483 },
+  { id: 'g-9', name: 'Rotonda de los Jaliscienses Ilustres', slug: 'rotonda-de-los-jaliscienses-ilustres', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/rotonda.jpg' }], rating: 4.7, review_count: 9077 },
+  { id: 'g-10', name: 'Arena Coliseo de Guadalajara', slug: 'arena-coliseo-de-guadalajara', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/coliseo.jpg' }], rating: 4.7, review_count: 5005 },
+  { id: 'g-11', name: 'Plaza de Armas', slug: 'plaza-de-armas', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/plaza.jpg' }], rating: 4.7, review_count: 3459 },
+  { id: 'g-12', name: 'Ex Convento del Carmen', slug: 'ex-convento-del-carmen', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/carmen.jpg' }], rating: 4.7, review_count: 2895 },
+  { id: 'g-13', name: 'Plaza Tapatía', slug: 'plaza-tapatia', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/tapatia.jpg' }], rating: 4.6, review_count: 10134 },
+  { id: 'g-14', name: 'Museo Panteón de Belén', slug: 'museo-panteon-de-belen', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/belen.jpg' }], rating: 4.4, review_count: 1071 },
+];
 
 beforeAll(async () => {
   await ensureEnglishTranslations();
@@ -181,7 +204,136 @@ describe('Lugares increíbles: tarjetas con foto llena y tap a la ficha', () => 
     expect(src).toContain('handleCardTap(b)');
     const home = read('../views/HomeView.jsx');
     expect(home).toContain('TopLugaresIncreibles');
-    expect(home).toContain('businesses={biz}');
+    // La sección ya no recibe la lista paginada (`biz`): HomeView le
+    // pasa la lista propia del store.
+    expect(home).toContain('businesses={topLugares}');
+    expect(home).not.toContain('businesses={biz}');
     expect(home).toContain('handleCardTap={handleCardTap}');
+  });
+});
+
+describe('Lugares increíbles: fuente propia en el store (no la lista paginada)', () => {
+  it('HomeView lee topLugares del store y pide la carga por ciudad', () => {
+    const home = read('../views/HomeView.jsx');
+    expect(home).toContain('topLugares');
+    expect(home).toContain('loadTopLugares');
+    expect(home).toContain('loadTopLugares(activeCity)');
+    expect(home).toContain('businesses={topLugares}');
+    // El componente sigue siendo por props (patrón del repo): no lee
+    // el store directamente, así que se puede renderizar en tests.
+    const src = read('../components/home/TopLugaresIncreibles.jsx');
+    expect(src).not.toContain('useDataStore');
+  });
+
+  it('el loader consulta solo lugares aprobados de la ciudad, top por rating, límite 10', () => {
+    const store = read('../store/useDataStore.js');
+    expect(store).toContain('loadTopLugares');
+    expect(store).toContain('category=eq.lugares');
+    expect(store).toContain('status=eq.approved');
+    expect(store).toContain('order=rating.desc.nullslast,review_count.desc');
+    expect(store).toContain('limit=10');
+    // Solo las columnas que usa la tarjeta.
+    expect(store).toContain('id,name,photos,rating,review_count,category,city_slug,slug,status');
+    // Caché por ciudad: no se re-pide para la misma ciudad en la sesión.
+    expect(store).toContain('topLugaresCity');
+    expect(store).toContain('topLugaresRequests');
+  });
+
+  it('al cambiar de ciudad se vacían los lugares de la anterior', () => {
+    const store = read('../store/useDataStore.js');
+    expect(store).toContain('topLugares: [], topLugaresCity: null');
+  });
+
+  it('loadTopLugares pide el top por rating y publica filas + ciudad', async () => {
+    useDataStore.setState({ mapPinsCity: 'guadalajara', topLugares: [], topLugaresCity: null });
+    const rows = [
+      { id: 'g-1', name: 'Arena Guadalajara', photos: '[{"url":"https://example.org/arena.jpg"}]', rating: 5.0, review_count: 1, category: 'lugares', city_slug: 'guadalajara', slug: 'arena-guadalajara', status: 'approved' },
+      { id: 'g-2', name: 'Catedral Metropolitana de Guadalajara', photos: '[{"url":"https://example.org/catedral.jpg"}]', rating: 5.0, review_count: 1, category: 'lugares', city_slug: 'guadalajara', slug: 'catedral-metropolitana-de-guadalajara', status: 'approved' },
+    ];
+    const getSpy = vi.spyOn(sb, 'get').mockResolvedValue(rows);
+    try {
+      await useDataStore.getState().loadTopLugares('guadalajara');
+      expect(getSpy).toHaveBeenCalledTimes(1);
+      const [table, params] = getSpy.mock.calls[0];
+      expect(table).toBe('businesses');
+      expect(params).toContain('category=eq.lugares');
+      expect(params).toContain('status=eq.approved');
+      expect(params).toContain('order=rating.desc.nullslast,review_count.desc');
+      expect(params).toContain('limit=10');
+      const s = useDataStore.getState();
+      expect(s.topLugaresCity).toBe('guadalajara');
+      expect(s.topLugares).toHaveLength(2);
+      // `photos` llega como JSON de PostgREST y se parsea.
+      expect(s.topLugares[0].photos).toEqual([{ url: 'https://example.org/arena.jpg' }]);
+    } finally {
+      getSpy.mockRestore();
+    }
+  });
+
+  it('caché por ciudad: la misma ciudad no se re-pide; otra ciudad sí', async () => {
+    useDataStore.setState({ mapPinsCity: 'tepic', topLugares: LUGARES.slice(0, 3), topLugaresCity: 'guadalajara' });
+    const getSpy = vi.spyOn(sb, 'get').mockResolvedValue([]);
+    try {
+      await useDataStore.getState().loadTopLugares('guadalajara');
+      expect(getSpy).not.toHaveBeenCalled();
+      await useDataStore.getState().loadTopLugares('tepic');
+      expect(getSpy).toHaveBeenCalledTimes(1);
+      expect(getSpy.mock.calls[0][1]).toContain('city_slug=eq.tepic');
+    } finally {
+      getSpy.mockRestore();
+    }
+  });
+
+  it('con los 14 lugares reales de Guadalajara se monta el top 5', () => {
+    // La forma real de las filas (nombres, ratings y conteos medidos
+    // por PostgREST 27 nov 2026) pasa por la regla del top y la
+    // sección se monta con 5 tarjetas.
+    const html = renderLugares(topLugaresIncreibles(GUADALAJARA_REAL));
+    const order = ['Arena Guadalajara', 'Catedral Metropolitana de Guadalajara', 'Museo Cabañas', 'Parroquia El Expiatorio Eucarístico de Guadalajara', 'Bosque Los Colomos'];
+    let prev = -1;
+    for (const name of order) {
+      const idx = html.indexOf(name);
+      expect(idx).toBeGreaterThan(prev);
+      prev = idx;
+    }
+    // El 6º con 5.0 (Expo Guadalajara) y el 4.8 (MUSA) quedan fuera del top 5.
+    expect(html).not.toContain('Expo Guadalajara');
+    expect(html).not.toContain('MUSA Museo de las Artes UDG');
+    expect(html).toContain('aria-label="Ver lugar 5 de 5"');
+  });
+});
+
+describe('Lugares increíbles: cambio de ciudad vacía la lista vieja', () => {
+  let storage;
+  beforeEach(() => {
+    storage = new Map();
+    vi.stubGlobal('localStorage', {
+      getItem: key => (storage.has(key) ? storage.get(key) : null),
+      setItem: (key, value) => { storage.set(key, String(value)); },
+      removeItem: key => { storage.delete(key); },
+    });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+  it('loadData a otra ciudad vacía topLugares en el acto, antes de que resuelva la red', async () => {
+    useDataStore.setState({ mapPinsCity: 'guadalajara', topLugares: LUGARES.slice(0, 3), topLugaresCity: 'guadalajara' });
+    const getSpy = vi.spyOn(sb, 'get').mockImplementation(async (table) => {
+      if (table === 'cities') return [{ slug: 'tepic', name: 'Tepic', state: 'Nayarit' }, { slug: 'guadalajara', name: 'Guadalajara', state: 'Jalisco' }];
+      return [];
+    });
+    const rpc = vi.spyOn(sb, 'rpc').mockResolvedValue([]);
+    try {
+      const p = useDataStore.getState().loadData('tepic');
+      // Síncrono: la limpieza ya corrió, aunque la red no resolvió nada.
+      const s = useDataStore.getState();
+      expect(s.topLugares).toEqual([]);
+      expect(s.topLugaresCity).toBeNull();
+      await p;
+    } finally {
+      getSpy.mockRestore();
+      rpc.mockRestore();
+    }
   });
 });
