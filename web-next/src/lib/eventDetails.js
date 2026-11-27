@@ -29,6 +29,17 @@ export function getEventPrice(event) {
   return { text: `${from ? 'Desde' : 'Entrada:'} ${withCurrency}`, free: false };
 }
 
+// Hora "HH:MM" (24 h, la de la base) en 12 h («9:00 p. m.» / «9:00 PM»).
+// '' cuando no hay hora válida: el que llama muestra «Hora por
+// confirmar» (R2, UX 26 nov 2026) en vez de inventar una hora.
+export function formatEventTime12h(value, lang = 'es') {
+  if (!/^\d{1,2}:\d{2}(?::\d{2})?$/.test(value || '')) return '';
+  const [hours, minutes] = value.split(':').map(Number);
+  if (hours > 23 || minutes > 59) return '';
+  const suffix = lang === 'en' ? (hours >= 12 ? 'PM' : 'AM') : (hours >= 12 ? 'p. m.' : 'a. m.');
+  return `${hours % 12 || 12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+}
+
 export function normalizeEventLink(value) {
   if (typeof value !== 'string' || !value.trim()) return null;
   const raw = value.trim();

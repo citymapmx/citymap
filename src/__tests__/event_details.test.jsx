@@ -2,7 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs';
-import { getEventPrice, getEventLinks, deriveEventBooking, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, getEventMusicFallbackQuery, buildItunesSearchUrl, buildServerMusicUrl, fetchServerTracks, fetchItunesTracks, loadMusicTracks, clearMusicTracksCache, eventCurrencyCode } from '../lib/eventDetails.js';
+import { getEventPrice, getEventLinks, deriveEventBooking, normalizeEventLink, splitDescription, getEventPriceAmount, matchesPriceFilter, priceSortValue, getEventMusicQuery, getEventMusicFallbackQuery, buildItunesSearchUrl, buildServerMusicUrl, fetchServerTracks, fetchItunesTracks, loadMusicTracks, clearMusicTracksCache, eventCurrencyCode, formatEventTime12h } from '../lib/eventDetails.js';
 import { getEventPrice as getNextPrice, eventCurrencyCode as getNextCurrencyCode } from '../../web-next/src/lib/eventDetails.js';
 import EventInformation, { EventTicketBar } from '../components/detail/EventInformation.jsx';
 const T={text:'#111',sub:'#666',bg:'#fff',border:'#ddd'};
@@ -467,5 +467,35 @@ describe('ficha de evento recurrente: «Todos los jueves» en vez del rango', ()
     const en = fs.readFileSync(new URL('../lib/i18n-en.js', import.meta.url), 'utf8');
     expect(es).toContain('"eventos_todos_los_dias": "Todos los ${dia}"');
     expect(en).toContain('"eventos_todos_los_dias": "Every ${dia}"');
+  });
+});
+
+// R2 (UX 26 nov 2026): sin precio ni hora publicados, la ficha dice
+// «Precio no publicado» / «Hora por confirmar» en vez de quedarse en
+// silencio — que no se confunda con «gratis» ni con «todo el día».
+describe('Precio y hora no publicados (R2)', () => {
+  it('formats event times in 12-hour time', () => {
+    expect(formatEventTime12h('21:00')).toBe('9:00 p. m.');
+    expect(formatEventTime12h('09:30')).toBe('9:30 a. m.');
+    expect(formatEventTime12h('12:00')).toBe('12:00 p. m.');
+    expect(formatEventTime12h('00:15')).toBe('12:15 a. m.');
+    expect(formatEventTime12h('21:00', 'en')).toBe('9:00 PM');
+    expect(formatEventTime12h('')).toBe('');
+    expect(formatEventTime12h('25:00')).toBe('');
+    expect(formatEventTime12h(null)).toBe('');
+  });
+  it('shows "Precio no publicado" when the event has no price', () => {
+    const html = render({ date: '2026-12-05', time: '20:00', venue_name: 'Teatro', price_type: 'paid', price: '' });
+    expect(html).toContain('Precio no publicado');
+    expect(html).not.toContain('Entrada gratuita');
+  });
+  it('shows "Hora por confirmar" when the event has a date but no time', () => {
+    const html = render({ date: '2026-12-05', venue_name: 'Teatro', price_type: 'paid', price: '$200' });
+    expect(html).toContain('Hora por confirmar');
+    expect(html).toContain('Entrada: $200 MXN');
+  });
+  it('keeps free and priced events as before', () => {
+    expect(render({ date: '2026-12-05', time: '20:00', price_type: 'gratis' })).toContain('Entrada gratuita');
+    expect(render({ date: '2026-12-05', time: '20:00', price_type: 'paid', price: '$200' })).toContain('Entrada: $200 MXN');
   });
 });

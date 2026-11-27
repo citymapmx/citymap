@@ -357,43 +357,26 @@ describe('Pin y reloj remotos en el detalle del tour (solo la 1 y la 2)', () => 
   });
 });
 
-describe('Corazón que late en blanco en el héroe del detalle del tour', () => {
-  it('la ruta remota es la URL verificada de la vista previa «Animaciones de corazón»', () => {
+describe('Corazón del héroe del detalle del tour: quitado (R4, UX 26 nov 2026)', () => {
+  it('la ruta remota sigue exportada en el lib (el archivo .lottie queda)', () => {
     expect(CORAZON_LATE_SRC).toBe('https://assets-v2.lottiefiles.com/a/1b1f4610-1178-11ee-ac0f-df86f528f719/nW2jpdbaX3.lottie');
   });
 
-  it('el detalle monta el corazón animado junto al contador de likes, en blanco y a 16 px', () => {
+  it('el detalle ya no monta el corazón animado ni el contador de likes inventado', () => {
     const src = read('../components/ExperienceViewer.jsx');
-    expect(src).toContain('CORAZON_LATE_SRC');
-    expect(src).toContain('<LottieAnim src={CORAZON_LATE_SRC}');
-    // Mismo tamaño que el icono estático anterior, bucle lento.
-    expect(src).toContain('width={16}');
-    expect(src).toContain('height={16}');
-    expect(src).toContain('speed={0.7}');
-    // Blanco: el arte original es rojo; el filtro lo deja blanco
-    // como el corazón estático anterior sobre la foto oscura.
-    expect(src).toContain("filter: 'brightness(0) invert(1)'");
-    // El corazón estático del héroe ya no está (el de las tarjetas
-    // de Revista es otro, aparte, y no se toca).
-    expect(src).not.toContain('name="heart"');
-    // El contador de likes sigue igual, junto a la animación.
-    expect(src).toContain("exp.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 350 + 24");
-  });
-
-  it('el corazón del héroe es solo visual: no tiene acción al tocar', () => {
-    const src = read('../components/ExperienceViewer.jsx');
-    // El bloque del corazón no está dentro de un botón ni tiene
-    // onClick: la animación reemplaza un icono estático sin acción.
-    const i = src.indexOf('<LottieAnim src={CORAZON_LATE_SRC}');
-    const ventana = src.slice(Math.max(0, i - 600), i);
-    expect(ventana).not.toContain('onClick');
-    expect(ventana).not.toContain('<button');
-  });
-
-  it('las tarjetas de Revista conservan su corazón estático (no se tocan)', () => {
-    const src = read('../components/TripsView.jsx');
-    expect(src).toContain('name="heart"');
     expect(src).not.toContain('CORAZON_LATE_SRC');
+    expect(src).not.toContain('<LottieAnim src={CORAZON_LATE_SRC}');
+    // El corazón era decorativo (sin acción) y el contador se inventaba
+    // con los charCodes del id: los dos fuera.
+    expect(src).not.toContain('name="heart"');
+    expect(src).not.toContain("exp.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 350 + 24");
+  });
+
+  it('las tarjetas de Revista ya no llevan corazón con «me gusta» inventado', () => {
+    const src = read('../components/TripsView.jsx');
+    expect(src).not.toContain('name="heart"');
+    expect(src).not.toContain('CORAZON_LATE_SRC');
+    expect(src).not.toContain('350 + 24');
   });
 
   it('el reproductor renderiza el canvas con el filtro de blanco', () => {

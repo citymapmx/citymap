@@ -23,7 +23,7 @@ import { sanitizeHtml, isHtmlContent } from './admin/blogSanitizer';
 import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle, localizedDescription } from "../lib/i18nContent.js";
 import LottieAnim from './LottieAnim.jsx';
-import { PIN_UBICACION_SRC, RELOJ_DURACION_SRC, CORAZON_LATE_SRC } from '../lib/lottieAnimaciones.js';
+import { PIN_UBICACION_SRC, RELOJ_DURACION_SRC } from '../lib/lottieAnimaciones.js';
 
 const Gallery = lazy(() => import('./Gallery').catch(() => {
   window.location.reload();
@@ -389,13 +389,6 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
               <Icon name="user" size={16} color="#fff" /> {exp.people}
             </div>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#fff", fontSize: 14, fontWeight: 600, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
-            {/* Corazón animado (remoto, en blanco con filtro): el arte
-                original es rojo; brightness(0) invert(1) lo deja blanco
-                como el icono estático anterior. Solo visual: el corazón
-                no tiene acción al tocar, el contador sigue igual. */}
-            <LottieAnim src={CORAZON_LATE_SRC} loop speed={0.7} width={16} height={16} ariaLabel="Me gusta" style={{ filter: 'brightness(0) invert(1)' }} /> {exp.id ? (exp.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 350 + 24) : 120}
-          </div>
         </div>
       </div>
 
@@ -411,15 +404,20 @@ export default function ExperienceViewer({ exp, T, dark, onClose }) {
           </h1>
         </div>
         
-        {exp.author_name && (
+        {/* R12 (UX 26 nov 2026): la fecha se muestra aunque no haya autor
+            — antes vivía dentro del bloque `author_name && (...)` y 73 de
+            85 artículos no mostraban cuándo se publicaron. */}
+        {(exp.author_name || exp.created_at) && (
           <div style={{ color: T.sub, fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <div style={{ width: 24, height: 24, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.1)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Icon name="user" size={12} color={T.sub} />
-            </div>
-            <span>{t("revista_escrito_por", "Escrito por ")}<strong style={{ color: T.text }}>{exp.author_name}</strong></span>
+            {exp.author_name && (<>
+              <div style={{ width: 24, height: 24, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.1)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="user" size={12} color={T.sub} />
+              </div>
+              <span>{t("revista_escrito_por", "Escrito por ")}<strong style={{ color: T.text }}>{exp.author_name}</strong></span>
+            </>)}
             {exp.created_at && (
               <>
-                <span style={{ margin: "0 4px", color: dark ? "#71717A" : T.border }}>•</span>
+                {exp.author_name && <span style={{ margin: "0 4px", color: dark ? "#71717A" : T.border }}>•</span>}
                 <span>{new Date(exp.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
               </>
             )}

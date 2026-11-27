@@ -252,7 +252,10 @@ async function getNegociosExamples(origin) {
 // y el texto no lleva cifra.
 async function getCityCount() {
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/cities?select=slug&country_code=eq.mx&limit=100`, {
+    // R11 (UX 26 nov 2026): el conteo es de TODAS las ciudades (40),
+    // no solo las mexicanas (26): la FAQ decía «En 26 ciudades» aunque
+    // el sitio ya tiene 40.
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/cities?select=slug&limit=100`, {
       headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` }
     });
     if (!response.ok) return null;
@@ -344,7 +347,7 @@ function cityLinksHtml(cities, origin, isWorld) {
 // puede venir vacío. Los privados no se listan (igual que el sitemap).
 async function getEventsListing(city, origin, allowedCities = null) {
   try {
-    const query = new URLSearchParams({ status: 'eq.approved', select: 'id,slug,title,date,end_date,venue_name,city_slug,visibility', order: 'date.asc', limit: '500' });
+    const query = new URLSearchParams({ status: 'eq.approved', select: 'id,slug,title,date,end_date,is_recurring,venue_name,city_slug,visibility', order: 'date.asc', limit: '500' });
     const response = await fetch(`${SUPABASE_URL}/rest/v1/events?${query}`, {
       headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` }
     });
@@ -354,6 +357,12 @@ async function getEventsListing(city, origin, allowedCities = null) {
     const today = todayStr();
     const upcoming = rows.filter(ev => {
       if (ev.visibility === 'private') return false;
+      // R3 (UX 26 nov 2026): los recurrentes no salen en «Próximos
+      // eventos» — igual que la rueda de la app (PR #474), que ya los
+      // excluye. Su fecha de inicio es vieja y su end_date lejano, así
+      // que el filtro de «próximo» los dejaba pasar y la cáscara los
+      // listaba con fechas de octubre/noviembre ya pasadas.
+      if (ev.is_recurring) return false;
       if (!isUpcomingEvent(ev, today)) return false;
       if (city) return eventBelongsToCity(ev.city_slug, city);
       if (allowedCities) return eventBelongsToDomain(ev.city_slug, allowedCities);
@@ -362,7 +371,12 @@ async function getEventsListing(city, origin, allowedCities = null) {
     if (!upcoming.length) return '';
     return `<section><h2>Próximos eventos</h2><ul>${upcoming.map(ev => {
       const url = eventUrl(ev, origin);
-      const dateText = eventDateText(ev.date);
+      // Un evento de varios días en curso muestra su rango («1 de
+      // octubre – 20 de diciembre de 2026»), no solo su fecha de inicio,
+      // que ya pasó y se leía como evento caducado.
+      const dateText = ev.end_date && ev.end_date > ev.date
+        ? `${eventDateText(ev.date)} – ${eventDateText(ev.end_date)}`
+        : eventDateText(ev.date);
       return `<li><article><h3><a href="${esc(url)}">${esc(ev.title)}</a></h3>${dateText ? `<p>📅 ${esc(dateText)}</p>` : ''}${ev.venue_name ? `<p>📍 ${esc(ev.venue_name)}</p>` : ''}</article></li>`;
     }).join('')}</ul></section>`;
   } catch { return ''; }
@@ -1217,7 +1231,7 @@ ${bodyExtra}
 
     if (bizData.category) bodyContent += `<p><strong>Categoría:</strong> ${esc(bizData.category)}</p>`;
     if (bizData.address) bodyContent += `<p><strong>Dirección:</strong> ${esc(bizData.address)}</p>`;
-    if (bizData.rating) bodyContent += `<p><strong>Calificación:</strong> ${bizData.rating}/5${bizData.review_count ? ` (${bizData.review_count} reseñas)` : ""}</p>`;
+    if (bizData.rating) bodyContent += `<p><strong>Calificación:</strong> ${bizData.rating}/5${bizData.review_count ? ` (${bizData.review_count} reseña${Number(bizData.review_count) === 1 ? '' : 's'})` : ""}</p>`;
     if (bizData.description) bodyContent += `<p>${esc(bizData.description)}</p>`;
     if (bizData.city_slug) {
       const cityName = bizData.city_slug.charAt(0).toUpperCase() + bizData.city_slug.slice(1).replace("-", " ");

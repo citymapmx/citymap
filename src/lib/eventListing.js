@@ -73,10 +73,41 @@ export function formatEventCardDate(event, { today, tomorrow, lang = 'es' } = {}
     const [year, month, day] = value.split('-').map(Number);
     return new Intl.DateTimeFormat(locale, { day:'numeric', month:'short' }).format(new Date(year, month - 1, day));
   };
-  if (end && end > start) return `${format(start)} – ${format(end)}`;
+  if (end && end > start) {
+    // Recurrente semanal (R19, UX 26 nov 2026): la tarjeta dice cuándo
+    // es la próxima ocurrencia («1 dic») en vez del rango del serial
+    // («17 nov – 12 ene»), que no dice si hoy hay función. Sin `today`
+    // (o ya sin ocurrencias) cae al rango de siempre.
+    if (event.is_recurring) {
+      const next = nextOccurrenceDate(event, today);
+      if (next) {
+        if (next === today) return lang === 'en' ? 'Today' : 'Hoy';
+        if (next === tomorrow) return lang === 'en' ? 'Tomorrow' : 'Mañana';
+        return format(next);
+      }
+    }
+    return `${format(start)} – ${format(end)}`;
+  }
   if (start === today) return lang === 'en' ? 'Today' : 'Hoy';
   if (start === tomorrow) return lang === 'en' ? 'Tomorrow' : 'Mañana';
   return format(start);
+}
+
+// Próxima fecha en que ocurre un recurrente semanal (mismo día de semana
+// que su fecha de inicio), a partir de `today` (inclusive). Null si no
+// es recurrente, si no hay fecha válida o si el serial ya terminó.
+export function nextOccurrenceDate(event, today) {
+  const start = dateOnly(event?.date);
+  if (!start || !today || !event?.is_recurring) return null;
+  const last = eventLastDay(event) || start;
+  const target = weekdayOfDay(start);
+  if (target === null) return null;
+  let day = start > today ? start : today;
+  if (day > last) return null;
+  const first = weekdayOfDay(day);
+  if (first === null) return null;
+  const next = addDays(day, (target - first + 7) % 7);
+  return next <= last ? next : null;
 }
 
 // ── Filtros de la página de Eventos ──
@@ -201,8 +232,10 @@ export function matchesEventSearch(event, query) {
   const needle = fold(query).trim();
   if (!needle) return true;
   // Búsqueda en español e inglés: el título y la descripción en inglés
-  // también cuentan, para que buscar en inglés encuentre el evento.
-  const hay = fold([event.title, event.title_en, event.description_en, event.venue_name, event.event_category, event.category].filter(Boolean).join(' '));
+  // también cuentan, para que buscar en inglés encuentre el evento. La
+  // descripción en español también está en el índice (R18, UX 26 nov
+  // 2026): buscar una palabra que solo aparece ahí no encontraba nada.
+  const hay = fold([event.title, event.title_en, event.description, event.description_en, event.venue_name, event.event_category, event.category].filter(Boolean).join(' '));
   return needle.split(/\s+/).every(word => hay.includes(word));
 }
 

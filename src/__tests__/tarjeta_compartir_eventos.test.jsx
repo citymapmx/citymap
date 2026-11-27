@@ -203,18 +203,19 @@ describe('tarjeta para compartir el evento: datos reales', () => {
     expect(d.priceKind).toBe('paid');
   });
 
-  it('gratis → «Entrada gratuita»; sin precio publicado → sin mención de precio (PR #153)', () => {
+  it('gratis → «Entrada gratuita»; sin precio publicado → «Precio no publicado» (R2, UX 26 nov 2026)', () => {
     const free = buildEventShareCardData(
       { ...CONCIERTO, price: '0', price_type: 'gratis' },
       { cityName: 'Guadalajara' },
     );
     expect(free.priceText).toBe('Entrada gratuita');
     expect(free.priceKind).toBe('free');
-    // Sin precio no se menciona nada: ni píldora ni línea de precio.
+    // Sin precio se dice: «sin precio» no es «gratis» (R2 reemplaza
+    // la regla de PR #153, que no mencionaba nada).
     const unknown = buildEventShareCardData(EXPOSICION, {
       cityName: 'Puerto Vallarta',
     });
-    expect(unknown.priceText).toBe('');
+    expect(unknown.priceText).toBe('Precio no publicado');
     expect(unknown.priceKind).toBe('none');
   });
 
@@ -341,8 +342,8 @@ describe('tarjeta para compartir el evento: geometría (vista previa = PNG)', ()
       buildEventShareCardData(EXPOSICION, { cityName: 'Puerto Vallarta' }),
       EVENT_SHARE_CARD_FORMATS.story,
     );
-    // Sin precio publicado la tarjeta no lleva píldora (PR #153).
-    expect(edit.pill).toBeNull();
+    // Sin precio publicado la píldora dice «Precio no publicado» (R2).
+    expect(edit.pill?.text).toBe('Precio no publicado');
     const exp = computeEventShareCardLayout(
       buildEventShareCardData(
         { ...CONCIERTO, event_category: 'Gastronomía', price: '', price_type: 'paid' },
@@ -454,8 +455,8 @@ describe('tarjeta para compartir el evento: la plantilla se renderiza (vista pre
   });
 });
 
-describe('tarjeta para compartir el evento: sin precio no se menciona (PR #153)', () => {
-  it('sin precio: la geometría no lleva píldora en ningún formato ni estilo', () => {
+describe('tarjeta para compartir el evento: sin precio se lee «Precio no publicado» (R2, UX 26 nov 2026)', () => {
+  it('sin precio: la geometría lleva la píldora «Precio no publicado» en cualquier formato y estilo', () => {
     for (const format of [EVENT_SHARE_CARD_FORMATS.story, EVENT_SHARE_CARD_FORMATS.post]) {
       // Editorial sin precio (Expo Tattoo) y festival sin precio (Eslabón).
       for (const ev of [EXPOSICION, ESLABON]) {
@@ -463,7 +464,7 @@ describe('tarjeta para compartir el evento: sin precio no se menciona (PR #153)'
           buildEventShareCardData(ev, { cityName: 'Guadalajara' }),
           format,
         );
-        expect(geo.pill).toBeNull();
+        expect(geo.pill?.text).toBe('Precio no publicado');
       }
     }
     // Con precio y gratis la píldora sigue como antes.
@@ -482,13 +483,14 @@ describe('tarjeta para compartir el evento: sin precio no se menciona (PR #153)'
     expect(free.pill?.text).toBe('Entrada gratuita');
   });
 
-  it('la plantilla sin precio no pinta ningún texto de precio', () => {
+  it('la plantilla sin precio pinta «Precio no publicado», no otro precio', () => {
     for (const format of [EVENT_SHARE_CARD_FORMATS.story, EVENT_SHARE_CARD_FORMATS.post]) {
       for (const ev of [EXPOSICION, ESLABON]) {
         const d = buildEventShareCardData(ev, { cityName: 'Guadalajara' });
         const html = renderToStaticMarkup(
           <EventShareCardTemplate data={d} format={format} />,
         );
+        expect(html).toContain('Precio no publicado');
         expect(html).not.toContain('Precio mínimo');
         expect(html).not.toContain('Boletos desde');
         expect(html).not.toContain('Entrada gratuita');
@@ -950,9 +952,13 @@ describe('tarjeta para compartir el evento: Post sin categoría (11 nov 2026)', 
     const post = computeEventShareCardLayout(d, EVENT_SHARE_CARD_FORMATS.post);
     const L = EVENT_SHARE_CARD_LAYOUT.post;
     expect(post.chip).toBeNull();
+    // Sin precio, la píldora «Precio no publicado» también quita
+    // espacio a la foto (R2): pillGap + alto de píldora.
+    expect(post.pill?.text).toBe('Precio no publicado');
+    const pillBlockH = L.pillGap + L.pillSize + L.pillPadY * 2;
     expect(post.photo.h).toBeGreaterThan(L.photoMinH);
     // Sin chip ni subtítulo en Post, todo el espacio libre es foto:
-    // la foto mide la tarjeta menos logo, título, información y pie.
+    // la foto mide la tarjeta menos logo, título, información, píldora y pie.
     const titleBlockH =
       post.title.lines.length * post.title.size * L.titleLineH;
     const infoBlockH = post.info.length * L.infoSize * L.infoLineH;
@@ -962,6 +968,7 @@ describe('tarjeta para compartir el evento: Post sin categoría (11 nov 2026)', 
       (L.logoH + L.logoGap) -
       (L.titleGap + titleBlockH) -
       (L.infoGap + infoBlockH) -
+      pillBlockH -
       (L.footGap + L.footSize);
     expect(post.photo.h).toBeCloseTo(expected, 9);
     expect(post.photo.h - L.photoMinH).toBeGreaterThanOrEqual(L.catGap + L.catSize);

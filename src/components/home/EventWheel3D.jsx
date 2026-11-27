@@ -71,7 +71,7 @@ function WheelFacePlaceholder({ title, dark }) {
   );
 }
 
-export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading, isToday, T = {} }) {
+export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading, isToday, seeAllHref, T = {} }) {
   const { t } = useTranslation();
   // Título por defecto en t(): el llamador puede pasar su propio heading
   // (la página de ciudad pasa el suyo); si no, se traduce aquí. Sin
@@ -378,9 +378,13 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
 
   // Encabezado: solo el título de sección, mismo tamaño (22 px) y estilo
   // que los demás títulos de la página (PR #196): mayúsculas y centrado.
+  // R13 (UX 26 nov 2026): enlace «Ver todos los eventos» bajo el título
+  // — salida directa de la rueda a la lista completa; antes solo se
+  // llegaba desde la pestaña Eventos.
   const header = (
     <header style={{ margin: '0 20px 16px', textAlign: 'center' }}>
       <h2 style={{ margin: 0, fontFamily: 'var(--heading)', fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px', textTransform: 'uppercase', color: T.text }}>{headingText}</h2>
+      {seeAllHref && <a href={seeAllHref} style={{ display: 'inline-flex', alignItems: 'center', minHeight: 36, marginTop: 2, fontSize: 14, fontWeight: 700, color: T.sub || T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>{t('eventos_ver_todos', 'Ver todos los eventos')} →</a>}
     </header>
   );
 

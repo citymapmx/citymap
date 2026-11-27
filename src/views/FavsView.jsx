@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useUIStore } from "../store/useUIStore.js";
 import { useDataStore } from "../store/useDataStore.js";
+import { sb } from "../lib/supabase.js";
+import { eventsDateFilterOr, localTodayStr } from "../lib/eventListing.js";
 import Icon from "../components/ui/Icon.jsx";
 import FavoriteCollectionModal from "../components/FavoriteCollectionModal.jsx";
 import FavoritosMapa from "../components/favoritos/FavoritosMapa.jsx";
@@ -12,9 +14,14 @@ import { ordenarAgendaEventos } from "../lib/countdownEvento.js";
 import { loadVisitados, saveVisitados, loadAlertasCalendario, saveAlertasCalendario, toggleIdInList } from "../lib/favoritosLocales.js";
 import { getEventCalendarUrl } from "../lib/eventCalendar.js";
 import { useShallow } from 'zustand/react/shallow';
-import { getThumbUrl, isNear, getLocalIsoDate } from "../lib/utils.js";
+import { getThumbUrl, getLocalIsoDate } from "../lib/utils.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { safeAreaTop } from "../lib/safeArea.js";
+
+// Columnas para traer por id los favoritos de otras ciudades (R14, UX
+// 26 nov 2026): las mismas que el store usa para pines y eventos.
+const FAV_BIZ_SELECT = "id,name,lat,lng,category,emoji,logo_url,photos,rating,review_count,schedule,plan,city_slug,status,address,created_at,slug,is_place,type,tagline,whatsapp,phone,social_links,hide_location,tags,banner_url,is_catalog,booking_config";
+const FAV_EVENTS_SELECT = "id,title,title_en,description_en,slug,date,end_date,time,end_time,venue_name,venue_address,lat,lng,city_slug,img_url,img,status,description,event_category,is_recurring,biz_id,price,price_type,currency,website,visibility,active";
 
 export default function FavsView({ hideHeader }) {
   const { t, lang } = useTranslation();
@@ -32,6 +39,41 @@ export default function FavsView({ hideHeader }) {
   // Trofeo de logro: se dispara una vez cuando al marcar un lugar como
   // visitado se completa una colección (todos sus lugares visitados).
   const [showTrofeo, setShowTrofeo] = useState(false);
+  // R14 (UX 26 nov 2026): los favoritos ya no se filtran por la ciudad
+  // activa. Pero mapPins/events son solo de esa ciudad, así que quitar
+  // el filtro no bastaba: los favoritos de otras ciudades no estaban ni
+  // en los datos. Los que faltan se traen por id (en lotes de 50, como
+  // el store) para que se vean de verdad al cambiar de ciudad.
+  const [extraBiz, setExtraBiz] = useState([]);
+  const [extraEvents, setExtraEvents] = useState([]);
+  useEffect(() => {
+    const missingBizIds = (favIds || []).filter(id => !mapPins.some(b => b.id === id));
+    const missingEvIds = (savedEventIds || []).filter(id => !events.some(e => e.id === id));
+    if (!missingBizIds.length && !missingEvIds.length) { setExtraBiz([]); setExtraEvents([]); return; }
+    let cancelled = false;
+    const fetchByIds = async (table, select, ids, extra = '') => {
+      const out = [];
+      for (let i = 0; i < ids.length; i += 50) {
+        const chunk = ids.slice(i, i + 50);
+        const rows = await sb.get(table, `?select=${select}&id=in.(${chunk.join(',')})${extra}`);
+        if (Array.isArray(rows)) out.push(...rows);
+      }
+      return out;
+    };
+    (async () => {
+      try {
+        const [bizRows, evRows] = await Promise.all([
+          missingBizIds.length ? fetchByIds('businesses', FAV_BIZ_SELECT, missingBizIds, '&status=eq.approved') : Promise.resolve([]),
+          missingEvIds.length ? fetchByIds('events', FAV_EVENTS_SELECT, missingEvIds, `&status=eq.approved&${eventsDateFilterOr(localTodayStr())}`) : Promise.resolve([]),
+        ]);
+        if (cancelled) return;
+        const parseJSON = useDataStore.getState().parseJSON;
+        setExtraBiz(bizRows.map(b => ({ ...b, schedule: parseJSON(b.schedule), social_links: parseJSON(b.social_links), photos: parseJSON(b.photos) })));
+        setExtraEvents(evRows);
+      } catch { if (!cancelled) { setExtraBiz([]); setExtraEvents([]); } }
+    })();
+    return () => { cancelled = true; };
+  }, [favIds, savedEventIds, mapPins, events]);
 
   return (
     <div style={hideHeader ? { paddingBottom: 20 } : { paddingBottom: 84, ...viewStyle, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
@@ -48,11 +90,15 @@ export default function FavsView({ hideHeader }) {
       )}
       <div style={{ padding: "20px", flex: 1 }}>
         {(() => {
-              const allSavedBiz = mapPins.filter(b => favIds.includes(b.id) && isNear(b, userCoords, activeCity));
-              const savedEv = events.filter(e => {
-                if (!savedEventIds.includes(e.id)) return false;
-                return isNear(e, userCoords, activeCity);
-              });
+              // R14 (UX 26 nov 2026): sin filtro por ciudad activa; los
+              // favoritos de otras ciudades llegan en extraBiz/extraEvents
+              // (traídos por id). Se mezclan sin duplicar por id.
+              const bizById = new Map();
+              [...mapPins, ...extraBiz].forEach(b => { if (!bizById.has(b.id)) bizById.set(b.id, b); });
+              const allSavedBiz = [...bizById.values()].filter(b => favIds.includes(b.id));
+              const evById = new Map();
+              [...events, ...extraEvents].forEach(e => { if (!evById.has(e.id)) evById.set(e.id, e); });
+              const savedEv = [...evById.values()].filter(e => savedEventIds.includes(e.id));
               const hasFavs = allSavedBiz.length > 0 || savedEv.length > 0;
               // Propuesta C: lista de lugares guardados y agenda de
               // eventos guardados. La fecha de hoy es la local del

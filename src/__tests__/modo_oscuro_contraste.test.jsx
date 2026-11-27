@@ -169,9 +169,10 @@ describe('modo oscuro: contraste en todo el sitio', () => {
     expect(header).toContain("objectFit: 'cover'");
   });
 
-  it('ficha del negocio: las 5 estrellas vacías son gris medio en modo oscuro (no T.border, casi negro sobre negro)', () => {
+  it('ficha del negocio: sin reseñas se lee «Sin reseñas aún», no 5 estrellas vacías (R10, UX 26 nov 2026)', () => {
     const src = read('../views/DetailView.jsx');
-    expect(src).toContain('color={isElite ? "rgba(255,255,255,0.2)" : (dark ? "#71717A" : T.border)}');
+    expect(src).toContain("t('detalle_sin_resenas', 'Sin reseñas aún')");
+    expect(src).not.toContain('color={isElite ? "rgba(255,255,255,0.2)" : (dark ? "#71717A" : T.border)}');
   });
 
   it('aviso legal del pie del menú: gris claro en modo oscuro (estaba invertido: gris oscuro en oscuro) y sin opacity que lo apagara; con estilo, usa el texto del tema atenuado', () => {

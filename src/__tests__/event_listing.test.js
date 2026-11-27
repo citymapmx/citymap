@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { eventCalendarDay, isListedEvent, isPastEvent, eventLastDay, upcomingEvents, formatEventCardDate, eventCoversDay, isEventToday, eventOverlapsRange, matchesDateFilter, matchesEventSearch, monthLabel, groupEventsByMonth } from '../lib/eventListing.js';
+import { eventCalendarDay, isListedEvent, isPastEvent, eventLastDay, upcomingEvents, formatEventCardDate, nextOccurrenceDate, eventCoversDay, isEventToday, eventOverlapsRange, matchesDateFilter, matchesEventSearch, monthLabel, groupEventsByMonth } from '../lib/eventListing.js';
 describe('event listings', () => {
   const today = '2026-10-18';
   it('removes expired events with database times that contain seconds', () => {
@@ -136,5 +136,25 @@ describe('filtros de la página de Eventos', () => {
     expect(groups.map(g => g.key)).toEqual(['2026-12', '2026-11', 'sin-fecha']);
     expect(groups.map(g => g.label)).toEqual(['Diciembre 2026', 'Noviembre 2026', 'Sin fecha']);
     expect(groups[1].events.map(e => e.id)).toEqual([2, 3]);
+  });
+  // R18/R19 (UX 26 nov 2026).
+  it('busca también en la descripción en español', () => {
+    const ev = { title: 'Noche de Museos', description: 'Recorrido guiado con música en vivo por el centro histórico', venue_name: 'Centro', event_category: 'Cultura' };
+    expect(matchesEventSearch(ev, 'música en vivo')).toBe(true);
+    expect(matchesEventSearch(ev, 'recorrido guiado')).toBe(true);
+    expect(matchesEventSearch(ev, 'teatro')).toBe(false);
+  });
+  it('muestra la próxima ocurrencia de un recurrente, no el rango del serial', () => {
+    // Martes de Glamour: 17 nov 2026 – 12 ene 2027, solo martes.
+    const ev = { date: '2026-11-17', end_date: '2027-01-12', is_recurring: true };
+    expect(nextOccurrenceDate(ev, '2026-11-26')).toBe('2026-12-01');
+    expect(nextOccurrenceDate(ev, '2026-12-01')).toBe('2026-12-01');
+    expect(nextOccurrenceDate(ev, '2027-01-13')).toBeNull();
+    expect(nextOccurrenceDate({ ...ev, is_recurring: false }, '2026-11-26')).toBeNull();
+    expect(formatEventCardDate(ev, { today: '2026-11-26', tomorrow: '2026-11-27' })).toContain('dic');
+    expect(formatEventCardDate(ev, { today: '2026-12-01', tomorrow: '2026-12-02' })).toBe('Hoy');
+    // Sin `today` cae al rango de siempre; un no recurrente no cambia.
+    expect(formatEventCardDate(ev)).toContain('nov');
+    expect(formatEventCardDate({ date: '2026-10-20', end_date: '2026-11-26' })).toContain('oct');
   });
 });
