@@ -327,6 +327,7 @@ export const TRANSLATIONS = {
     "home_ver_banner": "Ver banner",
     "home_ver_evento": "Ver evento",
     "home_ver_experiencia": "Ver experiencia",
+    "home_ver_lugar": "Ver lugar",
     "home_ver_mas_detalles": "Ver más detalles",
     "home_ver_todas_ciudades": "Ver todas las ciudades",
     "home_ver_todas_guias": "Ver todas las guías",

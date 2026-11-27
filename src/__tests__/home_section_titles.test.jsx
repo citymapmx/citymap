@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { MemoryRouter } from 'react-router-dom';
 import SquareCarousel from '../components/home/SquareCarousel.jsx';
 import TopImperdibles from '../components/home/TopImperdibles.jsx';
+import TopLugaresIncreibles from '../components/home/TopLugaresIncreibles.jsx';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
@@ -51,6 +52,28 @@ describe('home section titles (PR #196)', () => {
     // Sin la medalla 🥇 del título (las insignias de ranking de las
     // tarjetas, si las hay, no son el título y no se tocan).
     expect(html).not.toContain('🥇');
+    expect(html).toContain('font-size:22px');
+    expect(html).toContain('text-transform:uppercase');
+    expect(html).toContain('text-align:center');
+  });
+
+  it('TopLugaresIncreibles: title in uppercase, 22 px, centered, no city', () => {
+    const html = renderToStaticMarkup(
+      <TopLugaresIncreibles
+        businesses={[
+          { id: 'l-1', name: 'Museo Cabañas', slug: 'museo-cabanas', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/cabanas.jpg' }], rating: 4.9, review_count: 1200 },
+          { id: 'l-2', name: 'Catedral de Guadalajara', slug: 'catedral-de-guadalajara', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/catedral.jpg' }], rating: 4.8, review_count: 3000 },
+          { id: 'l-3', name: 'El Expiatorio', slug: 'el-expiatorio', city_slug: 'guadalajara', category: 'lugares', photos: [{ url: 'https://example.org/expiatorio.jpg' }], rating: 4.8, review_count: 500 },
+        ]}
+        T={T}
+        city={{ slug: 'guadalajara', name: 'Guadalajara' }}
+        cities={[]}
+        handleCardTap={() => {}}
+      />,
+    );
+    expect(html).toContain('Lugares increíbles');
+    expect(html).toContain('>Lugares increíbles</h2>');
+    expect(html).not.toContain('Lugares increíbles de');
     expect(html).toContain('font-size:22px');
     expect(html).toContain('text-transform:uppercase');
     expect(html).toContain('text-align:center');
