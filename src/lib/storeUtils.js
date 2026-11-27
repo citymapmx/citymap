@@ -1,4 +1,7 @@
-export function buildWhatsAppMessage(cartItems, business, customerName = "", orderType = "pickup", address = "", generalNotes = "") {
+export function buildWhatsAppMessage(cartItems, business, customerName = "", orderType = "pickup", address = "", generalNotes = "", paymentMethod = "efectivo") {
+  // Forma de pago: efectivo | transferencia | tarjeta (efectivo por defecto).
+  const paymentLabels = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta" };
+  const paymentLabel = paymentLabels[paymentMethod] || paymentLabels.efectivo;
   // Format price ($95 or $95.50)
   const f = (val) => {
     const n = Number(val) || 0;
@@ -25,9 +28,12 @@ export function buildWhatsAppMessage(cartItems, business, customerName = "", ord
     if (address.trim()) {
       msg += `Dirección: ${address.trim()}\n`;
     }
+  } else if (orderType === "dinein") {
+    msg += `Método: Comer en el lugar\n`;
   } else {
     msg += `Método: Pasar a recoger\n`;
   }
+  msg += `Pago: ${paymentLabel}\n`;
   
   msg += `\n${SEP}`;
   msg += `*DETALLE DEL PEDIDO*\n\n`;

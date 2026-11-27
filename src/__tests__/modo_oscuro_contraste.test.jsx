@@ -107,8 +107,12 @@ describe('modo oscuro: contraste en todo el sitio', () => {
     expect(src).not.toContain('opacity(40%)');
     expect(src).toContain("filter: orderType === 'pickup' ? 'none' : 'grayscale(100%)'");
     expect(src).toContain("filter: orderType === 'delivery' ? 'none' : 'grayscale(100%)'");
-    const count = src.split("(dark ? '#D4D4D8' : '#71717A')").length - 1;
-    expect(count).toBe(2);
+    // Los 3 botones del método (Recoger, Domicilio, Comer en el lugar):
+    // el conteo se hace solo en ese bloque, porque la forma de pago
+    // reutiliza el mismo gris #D4D4D8 para sus botones no elegidos.
+    const block = src.slice(src.indexOf('Método de entrega *'), src.indexOf('Forma de pago *'));
+    const count = block.split("(dark ? '#D4D4D8' : '#71717A')").length - 1;
+    expect(count).toBe(3);
   });
 
   it('modal «¿Cómo nos visitas hoy?» de la ficha: el logo LLENA el círculo BLANCO (cover + zoom), como en el perfil', () => {

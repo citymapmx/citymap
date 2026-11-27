@@ -12,7 +12,9 @@ export default function CartDrawer({ business, T }) {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, updateNotes, getCartTotal, clearCart } = useCart();
   const { dark } = useUIStore();
   const [customerName, setCustomerName] = useState('');
-  const [orderType, setOrderType] = useState('pickup'); // 'pickup' | 'delivery'
+  const [orderType, setOrderType] = useState('pickup'); // 'pickup' | 'delivery' | 'dinein'
+  const [paymentMethod, setPaymentMethod] = useState('efectivo'); // 'efectivo' | 'transferencia' | 'tarjeta'
+  const [showSentConfirm, setShowSentConfirm] = useState(false); // ¿Ya se envió por WhatsApp?
   const [address, setAddress] = useState('');
   const [references, setReferences] = useState('');
   const [generalNotes, setGeneralNotes] = useState('');
@@ -53,7 +55,7 @@ export default function CartDrawer({ business, T }) {
     }
 
     const finalAddress = references.trim() ? `${address.trim()} (Ref: ${references.trim()})` : address.trim();
-    const message = buildWhatsAppMessage(items, business, customerName, orderType, finalAddress, generalNotes);
+    const message = buildWhatsAppMessage(items, business, customerName, orderType, finalAddress, generalNotes, paymentMethod);
     const encoded = encodeURIComponent(message);
     let waNumber = business.whatsapp.replace(/\D/g, '');
     if (!waNumber.startsWith('52')) waNumber = '52' + waNumber; // Default to Mexico if missing country code
@@ -72,9 +74,10 @@ export default function CartDrawer({ business, T }) {
       console.error(e);
     }
     
-    // Vaciar el carrito y cerrar el modal tras enviar el pedido
-    clearCart();
-    setIsOpen(false);
+    // No se vacía el carrito todavía: al volver de WhatsApp se pregunta
+    // si ya se envió el pedido; solo entonces se vacía (antes se vaciaba
+    // al abrir WhatsApp, aunque no se hubiera enviado nada).
+    setShowSentConfirm(true);
   };
 
   // Shared input style
@@ -230,7 +233,7 @@ export default function CartDrawer({ business, T }) {
             
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E4E4E7' : '#232326', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Método de entrega *</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <button onClick={() => setOrderType('pickup')} style={{ background: orderType === 'pickup' ? (dark ? '#232326' : '#FFFFFF') : 'transparent', border: `2px solid ${orderType === 'pickup' ? (dark ? '#A1A1AA' : '#18181B') : (dark ? '#3F3F46' : '#E4E4E7')}`, padding: '16px 8px', borderRadius: 16, color: orderType === 'pickup' ? (dark ? '#FAFAFA' : '#18181B') : (dark ? '#D4D4D8' : '#71717A'), fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontSize: 15, boxShadow: orderType === 'pickup' ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', borderRadius: 12, padding: 4 }}><img src="/pedido.png" alt="Recoger" style={{ width: 44, height: 44, objectFit: 'contain', filter: orderType === 'pickup' ? 'none' : 'grayscale(100%)', transition: 'all 0.2s' }} /></span>
                   Recoger
@@ -239,6 +242,25 @@ export default function CartDrawer({ business, T }) {
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', borderRadius: 12, padding: 4 }}><img src="/scooter-reparto.png" alt="Domicilio" style={{ width: 44, height: 44, objectFit: 'contain', filter: orderType === 'delivery' ? 'none' : 'grayscale(100%)', transition: 'all 0.2s' }} /></span>
                   Domicilio
                 </button>
+                <button onClick={() => setOrderType('dinein')} style={{ background: orderType === 'dinein' ? (dark ? '#232326' : '#FFFFFF') : 'transparent', border: `2px solid ${orderType === 'dinein' ? (dark ? '#A1A1AA' : '#18181B') : (dark ? '#3F3F46' : '#E4E4E7')}`, padding: '16px 8px', borderRadius: 16, color: orderType === 'dinein' ? (dark ? '#FAFAFA' : '#18181B') : (dark ? '#D4D4D8' : '#71717A'), fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontSize: 15, boxShadow: orderType === 'dinein' ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', borderRadius: 12, padding: 4, width: 52, height: 52 }}><Icon name="utensils" size={30} color={orderType === 'dinein' ? '#18181B' : '#71717A'} /></span>
+                  Comer en el lugar
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: dark ? '#E4E4E7' : '#232326', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Forma de pago *</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                {[
+                  { id: 'efectivo', label: 'Efectivo' },
+                  { id: 'transferencia', label: 'Transferencia' },
+                  { id: 'tarjeta', label: 'Tarjeta' },
+                ].map(opt => (
+                  <button key={opt.id} onClick={() => setPaymentMethod(opt.id)} style={{ background: paymentMethod === opt.id ? (dark ? '#232326' : '#FFFFFF') : 'transparent', border: `2px solid ${paymentMethod === opt.id ? (dark ? '#A1A1AA' : '#18181B') : (dark ? '#3F3F46' : '#E4E4E7')}`, padding: '14px 8px', borderRadius: 16, color: paymentMethod === opt.id ? (dark ? '#FAFAFA' : '#18181B') : (dark ? '#D4D4D8' : '#71717A'), fontWeight: 800, cursor: 'pointer', fontSize: 14, boxShadow: paymentMethod === opt.id ? '0 4px 12px rgba(0, 0, 0, 0.05)' : 'none' }}>
+                    {opt.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -293,7 +315,7 @@ export default function CartDrawer({ business, T }) {
               <textarea 
                 value={generalNotes}
                 onChange={e => setGeneralNotes(e.target.value)}
-                placeholder={orderType === 'delivery' ? "Ej. Tocar el timbre, llegar por la puerta trasera..." : "Ej. Paso a nombre de Juan, en 20 minutos, auto rojo..."}
+                placeholder={orderType === 'delivery' ? "Ej. Tocar el timbre, llegar por la puerta trasera..." : orderType === 'dinein' ? "Ej. Mesa para 4, llego en 20 minutos..." : "Ej. Paso a nombre de Juan, en 20 minutos, auto rojo..."}
                 style={{ ...inputStyle, resize: 'vertical', minHeight: 60, fontSize: 14 }}
               />
             </div>
@@ -327,6 +349,19 @@ export default function CartDrawer({ business, T }) {
               </div>
             </div>
           </button>
+        </div>
+      )}
+
+      {/* Confirmación tras abrir WhatsApp: solo se vacía el carrito si el
+          cliente confirma que ya envió el pedido. */}
+      {showSentConfirm && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 20, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ width: '100%', maxWidth: 380, background: dark ? '#232326' : '#FFFFFF', borderRadius: 20, padding: 24, textAlign: 'center', boxShadow: '0 16px 48px rgba(0,0,0,0.3)' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', marginBottom: 8 }}>¿Ya enviaste tu pedido?</div>
+            <div style={{ fontSize: 14, color: dark ? '#D4D4D8' : '#71717A', lineHeight: 1.5, marginBottom: 20 }}>Se abrió WhatsApp con tu pedido. Si ya lo enviaste, puedes vaciar el carrito.</div>
+            <button onClick={() => { clearCart(); setShowSentConfirm(false); setIsOpen(false); }} style={{ width: '100%', background: '#18181B', color: '#FFFFFF', border: 'none', borderRadius: 14, padding: '14px 20px', fontSize: 16, fontWeight: 800, cursor: 'pointer', marginBottom: 10 }}>Sí, ya lo envié</button>
+            <button onClick={() => setShowSentConfirm(false)} style={{ width: '100%', background: 'transparent', border: `1px solid ${dark ? '#3F3F46' : '#E4E4E7'}`, color: dark ? '#FAFAFA' : '#18181B', borderRadius: 14, padding: '14px 20px', fontSize: 16, fontWeight: 800, cursor: 'pointer' }}>No, volver al carrito</button>
+          </div>
         </div>
       )}
 
