@@ -107,8 +107,9 @@ describe('event wheel 3D', () => {
     expect(html).toContain('font-size:22px');
     expect(html).toContain('text-transform:uppercase');
     expect(html).toContain('text-align:center');
-    // Opción #5: las tarjetas del tambor son solo imagen, sin texto
-    // encima (sin píldora de ciudad ni de fecha).
+    // Opción #5: las tarjetas del tambor son solo imagen, sin píldora
+    // de ciudad; la de fecha solo se pinta si el llamador pasa datePill
+    // (aquí no se pasa).
     expect(html).not.toContain('event-wheel-city');
     expect(html).not.toContain('Guadalajara');
     expect(html).not.toContain('2026-11');
@@ -336,39 +337,77 @@ describe('event wheel 3D', () => {
     expect(html.match(/event-wheel-dot[ "]/g)).toHaveLength(10);
   });
 
-  it('shows the «ES HOY» pill on the drum faces whose event is today, and on no other face', () => {
-    // Sin isToday no hay píldora: el tambor sigue siendo solo imagen.
-    expect(renderWheel()).not.toContain('Es hoy');
-    // Solo el primer evento es hoy: una sola píldora, en la parte
-    // superior de su cara y centrada, con el MISMO estilo y medidas
-    // que la píldora del popup de evento en el mapa (MapView.jsx:
-    // fondo #111111, 9 px, 800, mayúsculas) pero SIN emoji.
-    const oneToday = renderWheel({ isToday: (item) => item.key === 'e-1' });
-    expect(oneToday.match(/>Es hoy</g)).toHaveLength(1);
-    expect(oneToday).not.toContain('🎉');
-    expect(oneToday).toContain('background:#111111');
-    expect(oneToday).toContain('font-size:9px');
-    expect(oneToday).toContain('border-radius:10px');
-    expect(oneToday).toContain('text-transform:uppercase');
-    expect(oneToday).toContain('top:8px');
-    expect(oneToday).toContain('left:50%');
-    expect(oneToday).toContain('translateX(-50%)');
-    expect(oneToday).not.toContain('rgba(0,0,0,0.55)');
-    // Todos hoy: una por cara.
-    const allToday = renderWheel({ isToday: () => true });
-    expect(allToday.match(/>Es hoy</g)).toHaveLength(10);
-    // La píldora de fecha sigue sin pintarse en el tambor aunque el
-    // evento sea hoy: solo «Es hoy», nunca el rango ni la fecha.
-    expect(allToday).not.toContain('13 NOV');
-    expect(allToday).not.toContain('event-wheel-city');
+  it('does not render the «Ver todos los eventos» link above the wheel', () => {
+    // 27 nov 2026, Jonathan: el enlace se quita de encima de la rueda;
+    // la lista completa sigue en la pestaña Eventos. Aunque se pase la
+    // prop vieja, no se pinta nada.
+    const html = renderWheel({ seeAllHref: '/eventos' });
+    expect(html).toContain('Próximos eventos');
+    expect(html).not.toContain('Ver todos los eventos');
+    expect(html).not.toContain('/eventos');
   });
 
-  it('shows the «ES HOY» pill in the row too, keeping the foot pill', () => {
-    const html = renderWheel({ events: events.slice(0, 3), isToday: (item) => item.key === 'e-2' });
-    expect(html.match(/>Es hoy</g)).toHaveLength(1);
+  it('pauses the auto-rotate loop when the wheel scrolls out of view (IntersectionObserver)', () => {
+    // En renderToStaticMarkup no corre useEffect (ni hay DOM), así que el
+    // cableado se afirma sobre el fuente: el observador mira la sección
+    // del carrusel (tambor y fila) y «fuera de vista» es una condición
+    // más de pausa del bucle, junto a paused/dragging/tabHidden.
+    // El comportamiento (no girar con inView false) se prueba en
+    // wheel_motion.test.js, sobre wheelShouldAutoRotate.
+    const src = readFileSync(new URL('../components/home/EventWheel3D.jsx', import.meta.url), 'utf8');
+    expect(src).toContain('IntersectionObserver');
+    expect(src).toContain('inViewRef');
+    expect(src).toContain('inView: inViewRef.current');
+    expect(src).toContain('ref={observeSection}');
+    // Sin IntersectionObserver (o sin DOM, como en este test) se asume
+    // visible: la rueda gira como siempre.
+    expect(src).toContain("typeof IntersectionObserver === 'undefined'");
+  });
+
+  it('shows the compact date pill on every drum face (Hoy / Mañana / weekday+day), never «ES HOY»', () => {
+    // Sin datePill no hay píldora: el tambor sigue siendo solo imagen.
+    expect(renderWheel()).not.toContain('background:#111111');
+    const labels = { 'e-1': 'Hoy', 'e-2': 'Mañana', 'e-3': 'Martes 27' };
+    const html = renderWheel({ datePill: (item) => labels[item.key] || 'Viernes 30' });
+    expect(html.match(/>Hoy</g)).toHaveLength(1);
+    expect(html.match(/>Mañana</g)).toHaveLength(1);
+    expect(html.match(/>Martes 27</g)).toHaveLength(1);
+    expect(html.match(/>Viernes 30</g)).toHaveLength(7);
+    // Una píldora por cara, en la parte superior y centrada.
+    expect(html.match(/background:#111111/g)).toHaveLength(10);
+    expect(html).not.toContain('Es hoy');
+    expect(html).not.toContain('🎉');
+    // Más compacta que la «ES HOY» anterior (9 px, 4px 10px, radio 10,
+    // top 8): 8 px, 3px 8px, radio 8, top 6.
+    expect(html).toContain('font-size:8px');
+    expect(html).toContain('padding:3px 8px');
+    expect(html).toContain('border-radius:8px');
+    expect(html).toContain('top:6px');
+    expect(html).not.toContain('font-size:9px');
+    expect(html).not.toContain('padding:4px 10px');
+    expect(html).not.toContain('border-radius:10px');
+    expect(html).not.toContain('top:8px');
+    // Sin mayúsculas: las etiquetas ya vienen con mayúscula inicial
+    // («Martes 27», no «MARTES 27»); la píldora no lleva textTransform.
+    const pills = [...html.matchAll(/<span aria-hidden="true" style="([^"]*)">(Hoy|Mañana|Martes 27|Viernes 30)<\/span>/g)];
+    expect(pills).toHaveLength(10);
+    expect(pills.every((m) => !m[1].includes('text-transform'))).toBe(true);
+    // La píldora del pie (ciudad) sigue sin pintarse en el tambor.
+    expect(html).not.toContain('event-wheel-city');
+  });
+
+  it('shows the compact date pill in the row too, keeping the foot pill', () => {
+    // Las claves son e-0, e-1, e-2 (makeEvent indexa desde 0).
+    const labels = { 'e-0': 'Hoy', 'e-1': 'Mañana', 'e-2': 'Martes 27' };
+    const html = renderWheel({ events: events.slice(0, 3), datePill: (item) => labels[item.key] });
+    expect(html.match(/>Hoy</g)).toHaveLength(1);
+    expect(html.match(/>Mañana</g)).toHaveLength(1);
+    expect(html.match(/>Martes 27</g)).toHaveLength(1);
+    expect(html).not.toContain('Es hoy');
     expect(html).not.toContain('🎉');
     expect(html).toContain('background:#111111');
-    expect(html).toContain('top:8px');
+    expect(html).toContain('font-size:8px');
+    expect(html).toContain('top:6px');
     // La píldora del pie (ciudad/fecha) sigue en las 3 tarjetas.
     expect(html.match(/event-wheel-city/g)).toHaveLength(3);
   });

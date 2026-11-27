@@ -1,9 +1,10 @@
 // Movimiento de la rueda 3D de eventos (opción #5 elegida por Jonathan,
 // PR #192): giro automático continuo y fluido, sin saltos de cara en cara.
 // Una vuelta completa tarda WHEEL_AUTO_SECONDS_PER_TURN segundos; el giro
-// se pausa al tocar, arrastrar, pasar el mouse o esconder la pestaña, y se
-// reanuda solo WHEEL_AUTO_RESUME_MS después de un salto manual (flecha,
-// punto o lanzamiento con el dedo). Con prefers-reduced-motion no gira.
+// se pausa al tocar, arrastrar, pasar el mouse, esconder la pestaña o
+// cuando la rueda sale de la pantalla, y se reanuda solo
+// WHEEL_AUTO_RESUME_MS después de un salto manual (flecha, punto o
+// lanzamiento con el dedo). Con prefers-reduced-motion no gira.
 
 // Segundos por vuelta completa del tambor (360°).
 export const WHEEL_AUTO_SECONDS_PER_TURN = 33;
@@ -43,9 +44,12 @@ export function wheelAutoStep(rotation, dtSeconds) {
 
 // ¿Puede girar solo el tambor en este momento? hasTarget: hay un resorte
 // en marcha hacia una cara; heldUntil: instante (performance.now) hasta el
-// que el giro queda en pausa tras un salto manual.
-export function wheelShouldAutoRotate({ paused, dragging, tabHidden, reducedMotion, hasTarget, heldUntil, now }) {
-  if (paused || dragging || tabHidden || reducedMotion || hasTarget) return false;
+// que el giro queda en pausa tras un salto manual; inView: la rueda se ve
+// en pantalla (27 nov 2026, parpadeo al bajar: fuera de vista el giro
+// seguía a 60 fps — churn del compositor mientras se hace scroll —, así
+// que es una condición más de pausa, no un reemplazo de las demás).
+export function wheelShouldAutoRotate({ paused, dragging, tabHidden, reducedMotion, hasTarget, heldUntil, now, inView = true }) {
+  if (paused || dragging || tabHidden || reducedMotion || hasTarget || !inView) return false;
   return now >= heldUntil;
 }
 

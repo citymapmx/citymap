@@ -41,6 +41,13 @@ describe('wheelMotion: giro automático continuo', () => {
     // Tras un salto manual, el giro espera hasta heldUntil y luego reanuda.
     expect(wheelShouldAutoRotate({ ...base, heldUntil: 5000, now: 4999 })).toBe(false);
     expect(wheelShouldAutoRotate({ ...base, heldUntil: 5000, now: 5000 })).toBe(true);
+    // Fuera de vista (27 nov 2026, parpadeo al bajar): el giro se pausa
+    // aunque nada más lo impida, y reanuda al volver a verse. Es una
+    // condición más, no un reemplazo: con inView en true no cambia nada.
+    expect(wheelShouldAutoRotate({ ...base, inView: false })).toBe(false);
+    expect(wheelShouldAutoRotate({ ...base, inView: true })).toBe(true);
+    // Sin `inView` no cambia nada (llamadores viejos).
+    expect(wheelShouldAutoRotate(base)).toBe(true);
   });
 });
 

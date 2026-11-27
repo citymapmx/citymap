@@ -21,7 +21,7 @@ import Footer from '../components/Footer.jsx';
 import { useTranslation } from '../hooks/useTranslation.js';
 import { localizedTitle } from '../lib/i18nContent.js';
 import { IS_WORLD, hostIncludesCity, hostIncludesCityList, currencyForCity, currencyForCountryCode } from '../lib/domain.js';
-import { eventCalendarDay, isEventToday, eventCityTimeZone } from '../lib/eventListing.js';
+import { eventCalendarDay, formatWheelDayPill, eventCityTimeZone } from '../lib/eventListing.js';
 import { isEventUpcoming } from '../lib/homeEventSelection.js';
 import { CITY_TZ } from '../lib/constants.js';
 import { readCachedPopCounts, savePopCounts, isPlainRootWithSavedCity } from '../lib/arranque.js';
@@ -410,16 +410,17 @@ export default function GlobalHomeView() {
   // Secciones del muro (opción A): cada una con sus propios items, sin mezclar.
   // Eventos por fecha (los más cercanos primero); lugares y restaurantes por
   // calificación (los mejores primero).
-  // «Hoy» se juzga en la zona horaria de LA CIUDAD de cada evento, no en
-  // la del dispositivo (misma regla que isEventUpcoming): un evento de
-  // Tijuana que terminó ayer en hora de Cancún puede seguir siendo hoy
-  // en Tijuana. Antes era el día local del dispositivo para toda la
-  // rueda, así que un visitante en otra zona horaria veía «ES HOY» donde
-  // no tocaba (hallazgo A8, 21 nov 2026).
-  const isTodayFor = useCallback((item) => {
+  // Píldora de fecha de la rueda: «Hoy», «Mañana» o día de la semana +
+  // número («Martes 27»), juzgada en la zona horaria de LA CIUDAD de
+  // cada evento, no en la del dispositivo (misma regla que
+  // isEventUpcoming): un evento de Tijuana que terminó ayer en hora de
+  // Cancún puede seguir siendo hoy en Tijuana. Antes era el día local
+  // del dispositivo para toda la rueda, así que un visitante en otra
+  // zona horaria veía «ES HOY» donde no tocaba (hallazgo A8, 21 nov 2026).
+  const datePillFor = useCallback((item) => {
     const ev = item.raw || item;
-    return isEventToday(ev, eventCalendarDay(Date.now(), eventCityTimeZone(ev, cityBySlug)));
-  }, [cityBySlug]);
+    return formatWheelDayPill(ev, { today: eventCalendarDay(Date.now(), eventCityTimeZone(ev, cityBySlug)), lang });
+  }, [cityBySlug, lang]);
   const upcomingEvents = useMemo(() => feed.filter((it) => it.kind === 'eventos').slice().sort((a, b) => String(a.date || '').localeCompare(String(b.date || ''))), [feed]);
   // El orden sigue el número que se muestra en la tarjeta (Google si hay
   // dato en caché, si no el de CityMap).
@@ -710,8 +711,7 @@ export default function GlobalHomeView() {
                 events={upcomingEvents}
                 onSelect={(item) => openItem(item)}
                 cityName={(slug) => cityBySlug.get(slug)?.name || ''}
-                isToday={isTodayFor}
-                seeAllHref="/eventos"
+                datePill={datePillFor}
                 T={T}
               />
             )}
