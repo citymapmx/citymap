@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { eventCalendarDay, isListedEvent, isPastEvent, eventLastDay, upcomingEvents, formatEventCardDate, nextOccurrenceDate, eventCoversDay, isEventToday, eventOverlapsRange, matchesDateFilter, matchesEventSearch, monthLabel, groupEventsByMonth } from '../lib/eventListing.js';
+import { eventCalendarDay, isListedEvent, isPastEvent, eventLastDay, upcomingEvents, formatEventCardDate, formatWheelDayPill, nextOccurrenceDate, eventCoversDay, isEventToday, eventOverlapsRange, matchesDateFilter, matchesEventSearch, monthLabel, groupEventsByMonth } from '../lib/eventListing.js';
 describe('event listings', () => {
   const today = '2026-10-18';
   it('removes expired events with database times that contain seconds', () => {
@@ -156,5 +156,39 @@ describe('filtros de la página de Eventos', () => {
     // Sin `today` cae al rango de siempre; un no recurrente no cambia.
     expect(formatEventCardDate(ev)).toContain('nov');
     expect(formatEventCardDate({ date: '2026-10-20', end_date: '2026-11-26' })).toContain('oct');
+  });
+});
+
+describe('píldora de fecha de la rueda (formatWheelDayPill, 27 nov 2026)', () => {
+  // Sábado 24 oct 2026 (verificado con `date -d`: 27 oct 2026 es martes).
+  const today = '2026-10-24';
+  it('dice «Hoy» y «Mañana» para hoy y mañana', () => {
+    expect(formatWheelDayPill({ date: '2026-10-24' }, { today })).toBe('Hoy');
+    expect(formatWheelDayPill({ date: '2026-10-25' }, { today })).toBe('Mañana');
+    expect(formatWheelDayPill({ date: '2026-10-24' }, { today, lang: 'en' })).toBe('Today');
+    expect(formatWheelDayPill({ date: '2026-10-25' }, { today, lang: 'en' })).toBe('Tomorrow');
+  });
+  it('dice día de la semana + número, sin mes, para fechas posteriores', () => {
+    expect(formatWheelDayPill({ date: '2026-10-27' }, { today })).toBe('Martes 27');
+    expect(formatWheelDayPill({ date: '2026-10-27' }, { today, lang: 'en' })).toBe('Tuesday 27');
+    expect(formatWheelDayPill({ date: '2026-10-31' }, { today })).toBe('Sábado 31');
+  });
+  it('en varios días manda la cobertura: hoy o mañana dentro del rango', () => {
+    expect(formatWheelDayPill({ date: '2026-10-23', end_date: '2026-10-27' }, { today })).toBe('Hoy');
+    expect(formatWheelDayPill({ date: '2026-10-25', end_date: '2026-10-28' }, { today })).toBe('Mañana');
+    // Fuera del rango de hoy/mañana: día de la semana del inicio.
+    expect(formatWheelDayPill({ date: '2026-10-27', end_date: '2026-10-30' }, { today })).toBe('Martes 27');
+  });
+  it('en un recurrente semanal muestra la próxima ocurrencia', () => {
+    // Martes de Glamour: 17 nov 2026 – 12 ene 2027, solo martes.
+    const ev = { date: '2026-11-17', end_date: '2027-01-12', is_recurring: true };
+    expect(formatWheelDayPill(ev, { today: '2026-11-21' })).toBe('Martes 24'); // sábado → próximo martes
+    expect(formatWheelDayPill(ev, { today: '2026-11-24' })).toBe('Hoy'); // martes, su día
+    expect(formatWheelDayPill(ev, { today: '2026-11-23' })).toBe('Mañana'); // lunes → mañana es martes
+    expect(formatWheelDayPill(ev, { today: '2027-01-19' })).toBeNull(); // serial terminado
+  });
+  it('sin fecha no hay píldora', () => {
+    expect(formatWheelDayPill({}, { today })).toBeNull();
+    expect(formatWheelDayPill({ title: 'Sin fecha' }, { today })).toBeNull();
   });
 });

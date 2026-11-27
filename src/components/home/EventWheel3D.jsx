@@ -37,8 +37,9 @@ import { useTranslation } from '../../hooks/useTranslation.js';
 // vuelta en ~33 s). Debajo de la rueda van los puntos y el nombre del
 // evento de enfrente en mayúsculas. Sin chevrones (PR #194): se navega
 // con los puntos, el giro automático o el arrastre. El giro se pausa al
-// pasar el mouse, al tocar o al esconder la pestaña, y se reanuda solo
-// unos segundos después de un salto manual (punto o lanzamiento
+// pasar el mouse, al tocar, al esconder la pestaña o al salir de la
+// pantalla (27 nov 2026, parpadeo al bajar), y se reanuda solo unos
+// segundos después de un salto manual (punto o lanzamiento
 // con el dedo). Con prefers-reduced-motion no gira solo.
 //
 // El giro continuo lo mueve un bucle requestAnimationFrame (el tambor
@@ -60,8 +61,8 @@ export const WHEEL_ROW_MAX_EVENTS = 3;
 // negra vacía): fondo claro u oscuro según el tema + el shimmer del repo
 // (.skel-shimmer) + el título del evento. Va DEBAJO del <img> (que lo
 // tapa al cargar, con su fundido de opacidad) y encima del fondo #111 de
-// la cara. El título es solo texto: en el tambor las tarjetas son solo
-// imagen, sin píldora de ciudad ni fecha.
+// la cara. El título es solo texto: la fecha va en la píldora superior
+// de la cara (datePillTag), no en el placeholder.
 function WheelFacePlaceholder({ title, dark }) {
   return (
     <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: dark ? '#232326' : '#e8ecf0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, overflow: 'hidden' }}>
@@ -71,7 +72,7 @@ function WheelFacePlaceholder({ title, dark }) {
   );
 }
 
-export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading, isToday, seeAllHref, T = {} }) {
+export default function EventWheel3D({ events, onSelect, cityName, pillLabel, heading, datePill, T = {} }) {
   const { t } = useTranslation();
   // Título por defecto en t(): el llamador puede pasar su propio heading
   // (la página de ciudad pasa el suyo); si no, se traduce aquí. Sin
@@ -87,6 +88,14 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   const [tabHidden, setTabHidden] = useState(false);
   const [canHover] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(hover: hover) and (pointer: fine)').matches));
   const [reducedMotion] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches));
+  // ¿Se ve la rueda en pantalla? (27 nov 2026, parpadeo blanco al bajar:
+  // el tambor giraba solo a 60 fps aunque ya no se viera — churn del
+  // compositor justo mientras se hace scroll, además de batería.) Con
+  // IntersectionObserver sobre la sección, «fuera de vista» es una
+  // condición más de pausa (como hover, arrastre o pestaña oculta): el
+  // bucle rAF se para y se reanuda al volver a verse. Sin
+  // IntersectionObserver (o sin DOM, en las pruebas) se asume visible.
+  const [inView, setInView] = useState(true);
   // Formato corto de la tarjeta: nominal 162 px en escritorio, 140 px en
   // teléfono (la perspectiva la magnifica a ~263 px y ~209 px al frente).
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 640px)').matches));
@@ -113,6 +122,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   const pausedRef = useRef(false);
   const draggingRef = useRef(false);
   const tabHiddenRef = useRef(false);
+  const inViewRef = useRef(true);
   const nRef = useRef(n);
   const stepRef = useRef(0);
   const reducedMotionRef = useRef(reducedMotion);
@@ -161,6 +171,23 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     stepRef.current = step;
     reducedMotionRef.current = reducedMotion;
   }, [n, step, reducedMotion]);
+
+  // Observador de visibilidad: ref de callback porque la sección cambia
+  // entre la fila (n <= 3) y el tambor, así que el observador se vuelve
+  // a colgar en cada cambio de sección.
+  const observerRef = useRef(null);
+  const observeSection = useCallback((el) => {
+    if (observerRef.current) { observerRef.current.disconnect(); observerRef.current = null; }
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((entries) => {
+      const visible = entries.some((e) => e.isIntersecting);
+      inViewRef.current = visible;
+      setInView(visible);
+    });
+    io.observe(el);
+    observerRef.current = io;
+  }, []);
+  useEffect(() => () => { observerRef.current?.disconnect(); }, []);
 
   // Caras con <img> montada: las cercanas al frente ahora (la del frente y
   // 3 a cada lado, wheelNearFaces) más las que ya estuvieron cerca
@@ -254,6 +281,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
         hasTarget: false,
         heldUntil: holdUntilRef.current,
         now,
+        inView: inViewRef.current,
       })) {
         rotationRef.current = wheelAutoStep(rotationRef.current, dt);
         // La rotación se mantiene en una vuelta para que el número no
@@ -273,9 +301,11 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   // Arranca (o reanuda) el giro al montar y cada vez que cambia algo que
   // lo pausa; al desmontar se cancela el bucle y el temporizador. Sin
   // tambor (fila de pocos eventos) no se arranca: no hay nada que girar.
+  // Fuera de vista tampoco se arranca: el tick lo pararía en el primer
+  // fotograma, así que ni se pide el rAF.
   useEffect(() => {
-    if (n > WHEEL_ROW_MAX_EVENTS) ensureLoop();
-  }, [paused, dragging, tabHidden, reducedMotion, n, ensureLoop]);
+    if (n > WHEEL_ROW_MAX_EVENTS && inView) ensureLoop();
+  }, [paused, dragging, tabHidden, reducedMotion, n, inView, ensureLoop]);
   useEffect(() => () => {
     stopLoop();
     if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
@@ -378,13 +408,11 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
 
   // Encabezado: solo el título de sección, mismo tamaño (22 px) y estilo
   // que los demás títulos de la página (PR #196): mayúsculas y centrado.
-  // R13 (UX 26 nov 2026): enlace «Ver todos los eventos» bajo el título
-  // — salida directa de la rueda a la lista completa; antes solo se
-  // llegaba desde la pestaña Eventos.
+  // Sin enlace «Ver todos los eventos» (27 nov 2026, Jonathan): se quita
+  // de encima de la rueda; la lista completa sigue en la pestaña Eventos.
   const header = (
     <header style={{ margin: '0 20px 16px', textAlign: 'center' }}>
       <h2 style={{ margin: 0, fontFamily: 'var(--heading)', fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px', textTransform: 'uppercase', color: T.text }}>{headingText}</h2>
-      {seeAllHref && <a href={seeAllHref} style={{ display: 'inline-flex', alignItems: 'center', minHeight: 36, marginTop: 2, fontSize: 14, fontWeight: 700, color: T.sub || T.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>{t('eventos_ver_todos', 'Ver todos los eventos')} →</a>}
     </header>
   );
 
@@ -398,23 +426,21 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
     return <span className="event-wheel-city" aria-hidden="true">{label}</span>;
   };
 
-  // Píldora «ES HOY» en la parte superior de la tarjeta, centrada:
-  // MISMO estilo y medidas que la píldora de cuenta atrás del popup de
-  // evento en el mapa (src/views/MapView.jsx): fondo #111111, blanca,
-  // 9 px, 800, mayúsculas, letterSpacing 0.5, padding 4px 10px, radio 10
-  // y sombra 0 2px 8px rgba(0,0,0,0.5); el texto sale en mayúsculas por
-  // el textTransform, igual que en el mapa. Solo cambia la posición (en
-  // el mapa va abajo, bottom: 88, y aquí arriba, top: 8, como pidió
-  // Jonathan) y el texto: aquí SIN emoji («Es hoy», clave rueda_es_hoy),
-  // mientras el mapa se queda con su «Es hoy 🎉». Solo en las tarjetas
-  // cuyo evento ocurre hoy: de un día, de varios días con hoy dentro del
-  // rango, o recurrente semanal en su día (un Martes de Glamour no marca
-  // «Hoy» un sábado — ver eventCoversDay). El llamador decide con
-  // isToday; sin esa prop no se pinta nada, así el tambor sigue siendo
-  // solo imagen en los demás usos.
-  const todayPill = (item) => {
-    if (!isToday?.(item)) return null;
-    return <span aria-hidden="true" style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#111111', color: '#fff', padding: '4px 10px', borderRadius: 10, fontSize: 9, fontWeight: 800, textTransform: 'uppercase', lineHeight: 1.2, letterSpacing: 0.5, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5)', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{t('rueda_es_hoy', 'Es hoy')}</span>;
+  // Píldora de fecha en la parte superior de TODAS las tarjetas,
+  // centrada (27 nov 2026, Jonathan): «Hoy», «Mañana» o día de la semana
+  // + número («Martes 27»). Reemplaza la píldora «ES HOY», que solo se
+  // pintaba en las de hoy. El texto lo calcula el llamador con
+  // formatWheelDayPill (src/lib/eventListing.js) en la zona horaria de
+  // la ciudad del evento; sin esa prop no se pinta nada. Más compacta
+  // que la anterior (8 px, padding 3px 8px, radio 8, top 6, en vez de
+  // 9 px, 4px 10px, radio 10, top 8) y SIN mayúsculas: las etiquetas ya
+  // vienen con mayúscula inicial («Martes 27», no «MARTES 27»).
+  // El fondo sigue siendo #111111 con sombra, como la píldora de cuenta
+  // atrás del popup de evento en el mapa (src/views/MapView.jsx).
+  const datePillTag = (item) => {
+    const label = datePill?.(item);
+    if (!label) return null;
+    return <span aria-hidden="true" style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: '#111111', color: '#fff', padding: '3px 8px', borderRadius: 8, fontSize: 8, fontWeight: 800, lineHeight: 1.2, letterSpacing: 0.5, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5)', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{label}</span>;
   };
 
   if (n === 0) return null;
@@ -436,7 +462,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   if (n <= WHEEL_ROW_MAX_EVENTS) {
     const single = n === 1;
     return (
-      <section style={{ marginBottom: 16 }}>
+      <section ref={observeSection} style={{ marginBottom: 16 }}>
         {header}
         <div className="event-wheel-row scroll-fade-x" style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', margin: '0 -20px', padding: '0 20px 16px', justifyContent: single ? 'center' : undefined }}>
           {items.map((item) => (
@@ -444,7 +470,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
               <div style={{ position: 'relative', aspectRatio: '3 / 4' }}>
                 {item.img ? (<><WheelFacePlaceholder title={item.title} dark={T.dark} /><OptimizedImage src={item.img} alt={item.title || ''} widthRequest={WHEEL_ROW_W} srcSetWidths={SRCSET_CARD} sizes="(max-width: 640px) 78vw, 300px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative' }} /></>) : <EventPosterFallback title={item.title} radius={0} />}
                 {pill(item)}
-                {todayPill(item)}
+                {datePillTag(item)}
               </div>
             </article>
           ))}
@@ -456,7 +482,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
   const frontItem = items[frontIdx];
 
   return (
-    <section className="event-wheel" aria-label={headingText}>
+    <section ref={observeSection} className="event-wheel" aria-label={headingText}>
       {header}
       <div
         className={`event-wheel-viewport${dragging ? ' event-wheel-dragging' : ''}`}
@@ -503,7 +529,7 @@ export default function EventWheel3D({ events, onSelect, cityName, pillLabel, he
                   </>)
                   : <EventPosterFallback title={item.title} radius={12} dark={T.dark} />}
                 <span className="event-wheel-shade" aria-hidden="true" style={{ opacity: shadeOpacity }} />
-                {todayPill(item)}
+                {datePillTag(item)}
               </div>
             );
           })}

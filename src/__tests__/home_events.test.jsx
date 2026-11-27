@@ -14,6 +14,9 @@ function dayKey(offset) {
   return d.toISOString().slice(0, 10);
 }
 const tagDate = value => new Date(`${value}T12:00:00Z`).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: 'UTC' }).replace('.', '').toUpperCase();
+const WEEKDAY_ES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+// Etiqueta que pinta la rueda: día de la semana + número («Martes 27»).
+const dayLabel = value => `${WEEKDAY_ES[new Date(`${value}T12:00:00Z`).getUTCDay()]} ${Number(value.slice(8, 10))}`;
 const shortDate = value => new Date(`${value}T12:00:00Z`).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
 const singleDate = dayKey(3);
@@ -51,18 +54,24 @@ describe('Vite home events (rueda 3D, como el inicio global)', () => {
     expect(html).toContain(`HASTA ${tagDate(longEnd)}`);
     expect(html.match(/event-wheel-city/g)).toHaveLength(2);
   });
-  it('shows the «ES HOY» pill on the event that covers today (multi-day included)', () => {
+  it('shows the date pill on every card (Hoy for today, weekday+day for later ones)', () => {
     const html = renderToStaticMarkup(
       <HomeEvents events={events} activeCity="guadalajara" userCoords={null} dbReady dark={false} handleEventTap={() => {}} T={T} />,
     );
-    // El largo empieza hoy (dayKey(0)) y dura 8 días: lleva «Es hoy»
-    // con el estilo del popup del mapa, pero sin emoji. El corto es
-    // dentro de 3 días: no la lleva.
-    expect(html.match(/>Es hoy</g)).toHaveLength(1);
+    // El largo empieza hoy (dayKey(0)) y dura 8 días: lleva «Hoy».
+    // El corto es dentro de 3 días: lleva su día de la semana + número.
+    expect(html.match(/>Hoy</g)).toHaveLength(1);
+    expect(html).toContain(`>${dayLabel(singleDate)}<`);
+    expect(html).not.toContain('Es hoy');
     expect(html).not.toContain('🎉');
     expect(html).toContain('background:#111111');
+    // Más compacta que la «ES HOY» anterior (9 px, top 8).
+    expect(html).toContain('font-size:8px');
+    expect(html).toContain('top:6px');
     // La píldora del pie sigue con su fecha/rango en las 2 tarjetas.
     expect(html.match(/event-wheel-city/g)).toHaveLength(2);
+    // Sin enlace «Ver todos los eventos» encima de la rueda.
+    expect(html).not.toContain('Ver todos los eventos');
   });
   it('con lang en muestra el título en inglés cuando hay title_en (fase 2 i18n)', () => {
     const bilingual = [
