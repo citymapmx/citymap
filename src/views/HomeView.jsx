@@ -46,6 +46,7 @@ const CURRENT_SEED = (() => {
 import DebouncedSearchBar from "../components/home/DebouncedSearchBar.jsx";
 
 import TopImperdibles from "../components/home/TopImperdibles.jsx";
+import TopLugaresIncreibles from "../components/home/TopLugaresIncreibles.jsx";
 import SquareCarousel from "../components/home/SquareCarousel.jsx";
 import BannerSlider from "../components/home/BannerSlider.jsx";
 import { getDailyScore, getKm, createSlug, cleanCityPrefix, CAT_EMOJI } from '../lib/utils.js';
@@ -516,6 +517,10 @@ export default function HomeView({ isBackground }) {
             {(experiences?.length || 0) > 0
               ? <TopImperdibles experiences={experiences} T={T} FONT_BIZ={FONT_BIZ} city={city} />
               : ((pinsLoading || !dbReady) ? <ImperdiblesSk dark={dark} /> : null)}
+
+            {/* ── LUGARES INCREÍBLES ── top 5 de `lugares` de la ciudad
+                por rating; el componente no se monta con menos de 3. */}
+            <TopLugaresIncreibles businesses={biz} T={T} city={city} cities={cities} handleCardTap={handleCardTap} />
 
           </div>}
 
