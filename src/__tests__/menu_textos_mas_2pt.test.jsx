@@ -1,7 +1,8 @@
 // Menú con textos 2 pt más grandes (nov 2026, pedido de Jonathan con la
 // captura del menú de Carrito La Paz): todos los textos del menú suben
-// 2 puntos EXCEPTO el título (nombre del negocio), el horario (píldora
-// «Cerrado, abre...» / «Abierto ahora») y la dirección, que no se tocan.
+// 2 puntos EXCEPTO el título (nombre del negocio), el horario (texto
+// «Cerrado, abre...» / «Abierto ahora», sin píldora desde el 26 nov 2026)
+// y la dirección, que no se tocan.
 // El cambio es global: BusinessStore es compartido por todos los negocios.
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -13,8 +14,8 @@ describe('menú con textos 2 pt más grandes', () => {
   it('título, horario y dirección NO se tocan', () => {
     // Título: nombre del negocio.
     expect(src).toContain('<h1 style={{ margin: 0, fontSize: 26,');
-    // Horario: texto de la píldora oscura.
-    expect(src).toContain("<span style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF' }}>");
+    // Horario: texto discreto en 13 (sin píldora desde el 26 nov 2026).
+    expect(src).toContain("<span style={{ fontSize: 13, fontWeight: 700, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A') }}>");
     // Dirección: enlace con la dirección corta.
     expect(src).toContain('fontSize: 13,\n                            fontWeight: 600,');
     // El separador • entre píldora y dirección tampoco cambia.

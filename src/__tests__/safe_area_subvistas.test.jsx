@@ -53,6 +53,7 @@ describe('encabezados de sub-vista usan safeAreaTop con su base original', () =>
     ['../components/AdminNotifs.jsx', 16, 'Notificaciones del admin'],
     ['../components/Terms.jsx', 16, 'Términos de Uso'],
     ['../components/About.jsx', 12, 'Acerca de'],
+    ['../components/store/StoreAdminPanel.jsx', 16, 'Gestor de Menú/Catálogo'],
     ['../Privacy.jsx', 20, 'Aviso de Privacidad'],
     ['../components/SideMenu.jsx', 24, 'Drawer lateral'],
     ['../components/CountryPickerDropdown.jsx', 24, 'Selector de ciudad'],
@@ -65,8 +66,8 @@ describe('encabezados de sub-vista usan safeAreaTop con su base original', () =>
     expect(src).toContain(`safeAreaTop(${base})`);
   });
 
-  it('son 15 sitios con el mismo helper (si se agrega otra sub-vista, agregarla aquí)', () => {
-    expect(SITES).toHaveLength(15);
+  it('son 16 sitios con el mismo helper (si se agrega otra sub-vista, agregarla aquí)', () => {
+    expect(SITES).toHaveLength(16);
   });
 });
 
