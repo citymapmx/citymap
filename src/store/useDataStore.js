@@ -87,6 +87,7 @@ let cityPinsLoadId = 0;
 let cityPinsPromise = null;
 let cityPinsPromiseCity = null;
 const highlightRequests = new Map();
+const topLugaresRequests = new Map();
 
 export const useDataStore = create((set, get) => ({
   events: [], setEvents: (val) => set(s => ({ events: typeof val === 'function' ? val(s.events) : val })),
@@ -175,12 +176,18 @@ export const useDataStore = create((set, get) => ({
   initialBizCount: null,
   homeHighlights: [],
   highlightsCity: null,
+  // «Lugares increíbles»: top por rating con fuente propia (ver
+  // loadTopLugares). No sale de mapPins: los primeros 20 de la lista
+  // paginada traían 1-2 lugares en la zona de Guadalajara y la sección
+  // no se montaba.
+  topLugares: [],
+  topLugaresCity: null,
 
   loadMapPins: async (targetCity) => {
     if (!targetCity) return;
     const requestId = ++businessLoadId;
     const cacheKey = `cg_mapPins_${targetCity}`;
-    set({ mapPinsCity: targetCity, initialBizCount: null, mapPins: [], homeHighlights: [], highlightsCity: null });
+    set({ mapPinsCity: targetCity, initialBizCount: null, mapPins: [], homeHighlights: [], highlightsCity: null, topLugares: [], topLugaresCity: null });
     try {
       // Old caches may contain the entire city. Restore only the first page.
       const cached = typeof localStorage !== 'undefined' ? localStorage.getItem(cacheKey) : null;
@@ -429,6 +436,36 @@ export const useDataStore = create((set, get) => ({
     return request;
   },
 
+  // «Lugares increíbles»: fuente propia, independiente de la lista
+  // paginada (bug 27 nov 2026: los primeros 20 de loadMapPins traían
+  // 1-2 lugares en la zona de Guadalajara y la sección devolvía null
+  // con menos de 3 candidatos, aunque la base tiene 24 lugares con
+  // foto+rating en la zona). Mismo patrón que loadHomeHighlights:
+  // consulta por rating con límite 10, caché por ciudad en memoria y
+  // peticiones concurrentes para la misma ciudad compartiendo la misma
+  // promesa. Solo las columnas que usa la tarjeta. El top 5, el mínimo
+  // de 3 y el orden (rating DESC, desempate review_count DESC) los
+  // aplica topLugaresIncreibles en el componente, sobre estas filas.
+  loadTopLugares: async (targetCity) => {
+    if (!targetCity) return;
+    if (get().topLugaresCity === targetCity) return;
+    if (topLugaresRequests.has(targetCity)) return topLugaresRequests.get(targetCity);
+    const request = (async () => {
+      try {
+        const columns = "id,name,photos,rating,review_count,category,city_slug,slug,status";
+        const rows = await sb.get("businesses", `?select=${columns}&category=eq.lugares&status=eq.approved&${getCityFilterEq(targetCity)}&order=rating.desc.nullslast,review_count.desc&limit=10`);
+        if (get().mapPinsCity !== targetCity) return;
+        if (!Array.isArray(rows)) throw new Error("Invalid top lugares response");
+        set({ topLugares: rows.map(b => ({ ...b, photos: get().parseJSON(b.photos) })), topLugaresCity: targetCity });
+      } catch (e) {
+        console.warn("Error fetching top lugares", e);
+      }
+    })();
+    topLugaresRequests.set(targetCity, request);
+    request.finally(() => topLugaresRequests.delete(targetCity));
+    return request;
+  },
+
   loadData: (cityOverride) => {
     const rawTarget = cityOverride || localStorage.getItem("cg_city_slug") || (get().cities?.[0]?.slug) || "";
     if (inFlightLoadPromise && inFlightCity === rawTarget && rawTarget !== "") {
@@ -457,7 +494,7 @@ export const useDataStore = create((set, get) => ({
     if (rawTarget && prevCity && rawTarget !== prevCity) {
       businessLoadId++;
       cityPinsLoadId++;
-      set({ dbReady: false, events: [], experiences: [], banners: [], promos: [], coupons: [], mapPins: [], cityPins: [], cityPinsCity: null, mapPinsCity: null, timeBasedBiz: [], timeBasedBizCity: null, homeHighlights: [], highlightsCity: null, initialBizCount: null });
+      set({ dbReady: false, events: [], experiences: [], banners: [], promos: [], coupons: [], mapPins: [], cityPins: [], cityPinsCity: null, mapPinsCity: null, timeBasedBiz: [], timeBasedBizCity: null, homeHighlights: [], highlightsCity: null, topLugares: [], topLugaresCity: null, initialBizCount: null });
     }
 
     // Instant synchronous cache restoration before any network call

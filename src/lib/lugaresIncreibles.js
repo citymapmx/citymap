@@ -13,7 +13,8 @@
 // Kioto 14, Tepic 10, Tokio 10.
 //
 // El filtrado por ciudad NO vive aquí: quien monta el componente ya
-// pasa solo los negocios de la ciudad activa (`biz` en HomeView).
+// pasa solo los negocios de la ciudad activa (HomeView pasa
+// `topLugares` del store).
 export const LUGARES_AUTOPLAY_MS = 4500;
 export const LUGARES_RESUME_AFTER_MS = 6000;
 export const LUGARES_TOP_N = 5;

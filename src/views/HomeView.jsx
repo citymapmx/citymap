@@ -161,6 +161,16 @@ export default function HomeView({ isBackground }) {
   const recoveryLocation = useLocation();
   const [ratedRecoveryStatus, setRatedRecoveryStatus] = React.useState(null);
   const loadHomeHighlights = useDataStore(state => state.loadHomeHighlights);
+  // «Lugares increíbles» con fuente propia (27 nov 2026): la lista
+  // paginada (`biz`, primeros 20) traía 1-2 lugares en la zona de
+  // Guadalajara y la sección no se montaba. `topLugares` sale de su
+  // propia consulta por rating (loadTopLugares, caché por ciudad).
+  const topLugares = useDataStore(state => state.topLugares);
+  const loadTopLugares = useDataStore(state => state.loadTopLugares);
+  React.useEffect(() => {
+    if (!dbReady || !activeCity) return;
+    loadTopLugares(activeCity);
+  }, [dbReady, activeCity, loadTopLugares]);
   const isRatedRecovery = recoveryLocation.hash === '#mejor-calificados';
   React.useEffect(() => {
     if (!isRatedRecovery || search || activeCat !== 'explorar' || !dbReady || pinsLoading) return;
@@ -541,8 +551,9 @@ export default function HomeView({ isBackground }) {
             )}
 
             {/* ── LUGARES INCREÍBLES ── top 5 de `lugares` de la ciudad
-                por rating; el componente no se monta con menos de 3. */}
-            <TopLugaresIncreibles businesses={biz} T={T} city={city} cities={cities} handleCardTap={handleCardTap} />
+                por rating, con fuente propia en el store (loadTopLugares);
+                el componente no se monta con menos de 3. */}
+            <TopLugaresIncreibles businesses={topLugares} T={T} city={city} cities={cities} handleCardTap={handleCardTap} />
 
           </div>}
 

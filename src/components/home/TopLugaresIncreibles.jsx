@@ -12,6 +12,12 @@ import { useTranslation } from "../../hooks/useTranslation.js";
 // lib/lugaresIncreibles.js). Tocar una tarjeta abre la ficha del
 // lugar con el flujo de siempre (handleCardTap, como «Para cerrar
 // el día»). No se monta si hay menos de 3 candidatos.
+//
+// FUENTE PROPIA (27 nov 2026): la lista ya NO es la paginada
+// (`biz`, primeros 20 de loadMapPins: en la zona de Guadalajara solo
+// traían 1-2 lugares y la sección no se montaba). HomeView pasa
+// `topLugares` del store, cargados por `loadTopLugares` con su propia
+// consulta por rating (caché por ciudad).
 export default memo(function TopLugaresIncreibles({ businesses, T, city, cities, handleCardTap }) {
   const { t } = useTranslation();
   const top5 = React.useMemo(() => topLugaresIncreibles(businesses), [businesses]);
