@@ -15,6 +15,8 @@ import { getThumbUrl, getCategoryDescription, haptic, getScheduleStatus, isOpenN
 import { shouldShowCityEmptyState, shouldShowCategoryEmptyState } from "../lib/cityEmptyState.js";
 import { getAvailableSubcats } from "../lib/businessSubcats.js";
 import { getTimeSlot, spotForSlot, isFoodSpot, seededRand, shuffleBySeed } from "../lib/timeBasedLists.js";
+import { deriveAntojos } from "../lib/antojos.js";
+import AntojosSection from "../components/home/AntojosSection.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import Footer from "../components/Footer.jsx";
 import { PageLogo } from "../components/Brand.jsx";
@@ -306,6 +308,16 @@ export default function HomeView({ isBackground }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapPins, timeBasedBiz, activeCity]);
 
+  // «¿Qué se te antoja?» — mismo pool que las listas por horario
+  // (toda la ciudad, respaldo mapPins) y mismo «abierto ahora» de la
+  // ficha (`isOpen`). Solo antojos con al menos un lugar abierto ahora y
+  // con foto; si no queda ninguno, la sección no se monta.
+  const antojosGroups = React.useMemo(() => {
+    const pool = timeBasedBiz.length > 0 ? timeBasedBiz : mapPins;
+    return deriveAntojos(pool.filter(b => isNear(b, userCoords, activeCity)), isOpen);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapPins, timeBasedBiz, activeCity, isOpen]);
+
   const activeBannersMemo = React.useMemo(() => {
     const today = now.toISOString().split("T")[0];
     const todayMD = today.slice(5);
@@ -516,6 +528,16 @@ export default function HomeView({ isBackground }) {
             {(experiences?.length || 0) > 0
               ? <TopImperdibles experiences={experiences} T={T} FONT_BIZ={FONT_BIZ} city={city} />
               : ((pinsLoading || !dbReady) ? <ImperdiblesSk dark={dark} /> : null)}
+
+            {antojosGroups.length > 0 && (
+              <AntojosSection
+                groups={antojosGroups}
+                T={T}
+                cityName={(city || activeCity || "").split(",")[0]}
+                onSelect={handleCardTap}
+                onSeeAll={(term) => setSearch(term)}
+              />
+            )}
 
           </div>}
 

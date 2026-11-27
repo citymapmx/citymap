@@ -249,7 +249,9 @@ export const useDataStore = create((set, get) => ({
   // listas de columnas, pines del mapa incluidos). photos SÍ va (nov 2026:
   // sin ella el popup del mapa y las tarjetas de «Lo más cerca de ti»
   // mostraban solo el emoji; medido +20% gzip en Tepic y +22% en
-  // Guadalajara, una sola petición por ciudad y sesión). Sin
+  // Guadalajara, una sola petición por ciudad y sesión). subcategory SÍ va
+  // (nov 2026, «¿Qué se te antoja?»: el antojo se deriva de subcategory +
+  // nombre; sin ella la precarga solo vería el nombre). Sin
   // social_links, description, tags ni banner_url: eso era lo que pesaba.
   // Se cachea por ciudad en memoria: no se re-pide para la misma ciudad
   // en la sesión; al cambiar de ciudad se vuelve a pedir. Llamadas
@@ -265,7 +267,7 @@ export const useDataStore = create((set, get) => ({
       // con la ciudad completa. Se ven los pines viejos un instante.
       set({ cityPinsCity: targetCity });
       try {
-        const selectCols = "id,name,lat,lng,category,emoji,logo_url,plan,slug,city_slug,status,schedule,rating,review_count,booking_config,photos";
+        const selectCols = "id,name,lat,lng,category,emoji,logo_url,plan,slug,city_slug,status,schedule,rating,review_count,booking_config,photos,subcategory";
         const pageSize = 1000;
         const all = [];
         let offset = 0;
