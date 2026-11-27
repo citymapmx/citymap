@@ -132,7 +132,7 @@ export default function CartDrawer({ business, T }) {
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                     <div style={{ fontSize: 16, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', paddingRight: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{item.product.name}</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', flexShrink: 0 }}>${(Number(item.product.price) * item.quantity).toFixed(2)}</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: dark ? '#FAFAFA' : '#18181B', flexShrink: 0 }}>${(Number(item.unitTotal ?? item.product.price) * item.quantity).toFixed(2)}</div>
                   </div>
                   
                   {/* Options */}
