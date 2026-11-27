@@ -11,7 +11,15 @@ export function isCatalogBusiness(business, storage) {
 }
 export async function saveStoreKind(business, catalog, client, storage) {
   const value = Boolean(catalog);
-  await client.patch('businesses', business.id, {is_catalog:value});
+  // PostgREST devuelve [] (200) cuando RLS bloquea el UPDATE sin error:
+  // sin esta comprobación el cambio parecía guardado («Menú guardado») y
+  // al recargar volvía al tipo anterior (Fresas con crema Tepic, 26 nov
+  // 2026: owner_id NULL, ningún UPDATE de businesses pasa por la app).
+  // Si no hay filas actualizadas, es un fallo y no se toca localStorage.
+  const updated = await client.patch('businesses', business.id, {is_catalog:value});
+  if (!Array.isArray(updated) || updated.length === 0) {
+    throw new Error('No se pudo guardar el tipo en la base. Intenta de nuevo.');
+  }
   try {
     const target = storage || (typeof window !== 'undefined' ? window.localStorage : null);
     target?.setItem(`biz_iscatalog_${business.id}`,String(value));

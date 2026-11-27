@@ -14,7 +14,7 @@ describe('Saved menu/catalog presentation',()=>{
     expect(readLegacyCatalog('a',storage('false'))).toBe(false);
   });
   it('saves the choice to the business before updating the browser preference',async()=>{
-    const local=storage(null),client={patch:vi.fn().mockResolvedValue([])},business={id:'a',name:'Tienda'};
+    const local=storage(null),client={patch:vi.fn().mockResolvedValue([{id:'a',is_catalog:true}])},business={id:'a',name:'Tienda'};
     const saved=await saveStoreKind(business,true,client,local);
     expect(client.patch).toHaveBeenCalledWith('businesses','a',{is_catalog:true});
     expect(local.setItem).toHaveBeenCalledWith('biz_iscatalog_a','true');
@@ -27,14 +27,22 @@ describe('Saved menu/catalog presentation',()=>{
     await expect(saveStoreKind({id:'a',is_catalog:false},true,client,local)).rejects.toThrow('No se pudo guardar');
     expect(local.setItem).not.toHaveBeenCalled();
   });
+  it('rejects when the database updates no rows (RLS bloquea el UPDATE sin error: PostgREST devuelve [])',async()=>{
+    // 26 nov 2026: el PATCH a businesses devolvía [] con 200 y el cambio
+    // parecía guardado («Menú guardado») hasta recargar. Sin filas
+    // actualizadas no hay guardado y no se toca el navegador.
+    const local=storage('false'),client={patch:vi.fn().mockResolvedValue([])};
+    await expect(saveStoreKind({id:'a',is_catalog:false},true,client,local)).rejects.toThrow('No se pudo guardar');
+    expect(local.setItem).not.toHaveBeenCalled();
+  });
   it('allows a saved catalog to be switched back to menu',async()=>{
-    const saved=await saveStoreKind({id:'a',is_catalog:true},false,{patch:vi.fn().mockResolvedValue([])},storage('true'));
+    const saved=await saveStoreKind({id:'a',is_catalog:true},false,{patch:vi.fn().mockResolvedValue([{id:'a',is_catalog:false}])},storage('true'));
     expect(isCatalogBusiness(saved)).toBe(false);
   });
   it('works when local storage is blocked',async()=>{
     const blocked={getItem:()=>{throw Error('blocked');},setItem:()=>{throw Error('blocked');}};
     expect(isCatalogBusiness({id:'a',is_catalog:true},blocked)).toBe(true);
     expect(readLegacyCatalog('a',blocked)).toBeNull();
-    expect((await saveStoreKind({id:'a'},true,{patch:vi.fn().mockResolvedValue([])},blocked)).is_catalog).toBe(true);
+    expect((await saveStoreKind({id:'a'},true,{patch:vi.fn().mockResolvedValue([{id:'a',is_catalog:true}])},blocked)).is_catalog).toBe(true);
   });
 });

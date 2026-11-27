@@ -5,6 +5,7 @@ import {isCatalogBusiness,readLegacyCatalog,saveStoreKind} from '../../lib/store
 import {useUIStore} from '../../store/useUIStore.js';
 import {useDataStore} from '../../store/useDataStore.js';
 import { sb } from '../../lib/supabase.js';
+import { safeAreaTop } from '../../lib/safeArea.js';
 import Icon from '../ui/Icon.jsx';
 import { lazy } from "react";
 import { useAuthStore } from "../../store/useAuthStore.js";
@@ -109,8 +110,10 @@ export default function StoreAdminPanel({ business, onClose, T, dataClient = sb 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', flexDirection: 'column', background: T.bg, animation: 'slideUp .3s cubic-bezier(0.16, 1, 0.3, 1)', overflowY: 'auto' }}>
         
-        {/* HEADER */}
-        <div style={{ padding: "16px", background: T.bg, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", gap: 12 }}>
+        {/* HEADER: con safe-area arriba como los demás encabezados de
+            sub-vista (26 nov 2026, Jonathan: el título y la X del editor
+            chocaban con la hora y la barra de estado del iPhone). */}
+        <div style={{ padding: `${safeAreaTop(16)} 16px 16px`, background: T.bg, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", gap: 12 }}>
           {view !== 'cats' && (
             <button onClick={() => {
               if (view === 'optForm') setView('opts');

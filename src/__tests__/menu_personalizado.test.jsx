@@ -632,26 +632,20 @@ describe('Menú público: un solo degradado parejo en toda la página (no por pa
   });
 });
 
-describe('Menú público: el texto de horario/estado va en píldora oscura con texto blanco', () => {
-  // Mezcla rgba(0,0,0,alpha) sobre un fondo hex y devuelve el hex resultante.
-  function pillOver(alpha, hex) {
-    const n = parseInt(hex.slice(1), 16);
-    const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.round(v * (1 - alpha)));
-    return `#${ch.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
-  }
-
-  it('el estado del encabezado es una píldora oscura translúcida con reloj y texto en blanco (ya no verde/rojo)', () => {
+describe('Menú público: el texto de horario/estado va discreto, sin píldora oscura', () => {
+  it('el estado del encabezado es texto atenuado con reloj, sin píldora oscura (26 nov 2026, Jonathan: la píldora se veía demasiado grande)', () => {
     const src = read('../components/store/BusinessStore.jsx');
     const at = src.indexOf('scheduleInfo?.text?.[0]');
     expect(at).toBeGreaterThan(-1);
     const block = src.slice(Math.max(0, at - 900), at + 300);
-    // Píldora: fondo negro translúcido, blur, bordes redondeados.
-    expect(block).toContain("background: 'rgba(0, 0, 0, 0.55)'");
-    expect(block).toContain("backdropFilter: 'blur(4px)'");
-    expect(block).toContain('borderRadius: 999');
-    // Reloj y texto en blanco, sin el verde/rojo según abierto o cerrado.
-    expect(block).toContain('<Icon name="clock" size={13} color="#FFFFFF" />');
-    expect(block).toContain("color: '#FFFFFF'");
+    // Sin píldora: sin fondo oscuro, sin blur, sin bordes redondeados.
+    expect(block).not.toContain("rgba(0, 0, 0, 0.55)");
+    expect(block).not.toContain('backdropFilter');
+    expect(block).not.toContain('borderRadius: 999');
+    // Reloj y texto en el color atenuado del tema, igual que la dirección.
+    expect(block).toContain("menuHexAlpha(menuTheme.text, 'B3')");
+    expect(block).toContain('<Icon name="clock" size={13} color={menuTheme ? menuHexAlpha(menuTheme.text, \'B3\')');
+    // Sin el verde/rojo según abierto o cerrado.
     expect(block).not.toContain('#10B981');
     expect(block).not.toContain('#EF4444');
     // Cubre todos los estados que muestra ese texto (abierto, cerrado,
@@ -659,29 +653,14 @@ describe('Menú público: el texto de horario/estado va en píldora oscura con t
     expect(block).toContain('isOpen ? "Abierto ahora" : "Cerrado"');
   });
 
-  it('blanco sobre la píldora (0.55) se lee >= 4.5:1 sobre cada parada de los 29 estilos y sin estilo', () => {
-    // Con la opacidad 0.25-0.30 que se sugirió, el blanco solo llega a
-    // 2.05:1 sobre Crema #FFFBEB (y sobre el fondo claro sin estilo):
-    // por eso la píldora va en 0.55. El fondo real tras la píldora es el
-    // degradado (135deg) o #FAFAFA sin estilo; el peor caso es cada parada.
-    const stops = [...new Set(LOYALTY_COLOR_STYLES.flatMap((s) => s.bg)), '#FAFAFA'];
-    for (const stop of stops) {
-      expect(contrastRatio('#FFFFFF', pillOver(0.55, stop))).toBeGreaterThanOrEqual(4.5);
-    }
-    // El caso justo, documentado: Crema, la parada más clara.
-    expect(contrastRatio('#FFFFFF', pillOver(0.55, '#FFFBEB'))).toBeGreaterThanOrEqual(4.8);
-    // Y que 0.28 sí fallaría ahí (para que el 0.55 no se «abarate» luego).
-    expect(contrastRatio('#FFFFFF', pillOver(0.28, '#FFFBEB'))).toBeLessThan(3);
-  });
-
-  it('Atardecer (Carrito La Paz), Esmeralda (oscuro) y Crema (claro): el estado se lee sobre sus paradas', () => {
-    for (const id of ['atardecer', 'esmeralda', 'crema']) {
-      const theme = menuThemeForStyle(findMenuStyleById(id));
-      expect(theme).not.toBe(null);
-      for (const stop of theme.style.bg) {
-        expect(contrastRatio('#FFFFFF', pillOver(0.55, stop))).toBeGreaterThanOrEqual(4.5);
-      }
-    }
+  it('el estado usa el mismo color atenuado que la dirección de al lado, así que se lee igual que ella', () => {
+    const src = read('../components/store/BusinessStore.jsx');
+    const at = src.indexOf('scheduleInfo?.text?.[0]');
+    const block = src.slice(Math.max(0, at - 900), at + 300);
+    expect(block).toContain("menuHexAlpha(menuTheme.text, 'B3')");
+    // La dirección (el enlace de al lado, en la misma fila) usa el mismo
+    // tratamiento de color atenuado del tema.
+    expect(src).toContain("menuHexAlpha(menuTheme.text, 'B3')");
   });
 });
 

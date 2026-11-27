@@ -527,17 +527,15 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 6, flexWrap: 'wrap', padding: '0 8px' }}>
-                    {/* Estado/horario en píldora oscura translúcida con
-                        texto blanco: el verde/rojo de antes (según abierto
-                        o cerrado) chocaba con el degradado de algunos
-                        estilos. Opacidad 0.55 (no 0.25-0.30): con 0.28 el
-                        blanco solo llega a 2.05:1 sobre las paradas más
-                        claras (Crema #FFFBEB) y sin estilo; con 0.55 el
-                        peor caso de los 36 estilos y sin estilo es
-                        >= 4.5:1 (ver el test del bloque de la píldora). */}
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0, background: 'rgba(0, 0, 0, 0.55)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', borderRadius: 999, padding: '3px 10px' }}>
-                      <Icon name="clock" size={13} color="#FFFFFF" />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF' }}>
+                    {/* Estado/horario como texto discreto en el color
+                        atenuado del tema (igual que la dirección de al
+                        lado), sin píldora: la píldora oscura ocupaba
+                        demasiado (26 nov 2026, Jonathan: «se me hace
+                        demasiado grande»). Sin verde/rojo según abierto
+                        o cerrado. */}
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                      <Icon name="clock" size={13} color={menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A')} />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: menuTheme ? menuHexAlpha(menuTheme.text, 'B3') : (dark ? '#A1A1AA' : '#71717A') }}>
                         {scheduleInfo?.text?.[0] || (isOpen ? "Abierto ahora" : "Cerrado")}
                       </span>
                     </div>

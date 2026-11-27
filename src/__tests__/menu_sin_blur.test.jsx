@@ -3,9 +3,10 @@
 // bajar y en el WebView del moto g54 se notaba como tirón. La barra vuelve
 // a su diseño documentado (menuColorStyles: "encabezado fijo: la primera
 // parada (sólido, para que tape al bajar)"): fondo sólido con
-// menuTheme.firstColor, sin backdrop-filter. La píldora de horario
-// (blur 4px, su contraste depende de ella), el blur del modal y los toasts
-// NO se tocan: no se mueven al hacer scroll.
+// menuTheme.firstColor, sin backdrop-filter. El blur del modal y los toasts
+// NO se tocan: no se mueven al hacer scroll. (La píldora de horario con
+// blur 4px ya no existe: desde el 26 nov 2026 el horario es texto
+// discreto sin fondo, a pedido de Jonathan.)
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
@@ -60,10 +61,13 @@ describe('Menú sin blur en el encabezado fijo (hallazgo #4)', () => {
     }
   });
 
-  it('fuera de alcance, intacto: píldora de horario con blur(4px) y toasts con blur(12px)', () => {
+  it('fuera de alcance, intacto: los toasts con blur(12px); el horario ya no lleva píldora ni blur (26 nov 2026)', () => {
     const src = read('../components/store/BusinessStore.jsx');
-    // La píldora de horario (0.55 + blur 4px, #303) sigue igual.
-    expect(src).toContain("backdropFilter: 'blur(4px)'");
+    // El horario es texto discreto sin fondo desde el 26 nov 2026: sin
+    // píldora oscura y sin blur.
+    const at = src.indexOf('scheduleInfo?.text?.[0]');
+    expect(at).toBeGreaterThan(-1);
+    expect(src.slice(Math.max(0, at - 900), at + 300)).not.toContain('backdropFilter');
     // Los dos toasts conservan su blur(12px).
     const toastBlurs = src.match(/backdropFilter: 'blur\(12px\)'/g) || [];
     expect(toastBlurs.length).toBe(2);
