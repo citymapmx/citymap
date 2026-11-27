@@ -1,5 +1,5 @@
 import { eventCalendarDay, isListedEvent, formatEventCardDate, matchesDateFilter, matchesEventSearch, groupEventsByMonth, eventCoversDay } from '../lib/eventListing.js';
-import { matchesPriceFilter, priceSortValue } from '../lib/eventDetails.js';
+import { matchesPriceFilter, priceSortValue, getEventPrice, formatEventTime12h } from '../lib/eventDetails.js';
 import { CITY_TZ } from '../lib/constants.js';
 import React, { useState, useMemo, useEffect } from "react";
 import { createPortal } from 'react-dom';
@@ -582,6 +582,8 @@ export default function EventsView() {
                       {group.events.map((ev, index) => {
                   const isSaved = savedEventIds.includes(ev.id);
                   const imgSrc = ev.img_url || ev.img;
+                  const price = getEventPrice(ev);
+                  const timeText = formatEventTime12h(ev.time, lang);
 
                   return (
                     <article key={ev.id} data-event-id={ev.id} ref={registerFlip(ev.id)} style={{ minWidth: 0, position:'relative', borderRadius:18, overflow:'hidden' }}>
@@ -621,6 +623,20 @@ export default function EventsView() {
                           <div style={{ position:'absolute', top:8, left:8, right:56, zIndex:2, display:'flex', gap:6, flexWrap:'wrap' }}>
                             <div style={{ borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF', flexShrink:0, whiteSpace:'nowrap' }}>{fmtCardDate(ev)}</div>
                             {ev.is_recurring && <div style={{ borderRadius:999, padding:'4px 10px', fontSize:12, fontWeight:700, background:'rgba(0,0,0,0.55)', color:'#FFFFFF', flexShrink:0, whiteSpace:'nowrap' }}>{t('evento_cada_semana', 'Cada semana')}</div>}
+                          </div>
+                        </div>
+                        {/* R1+R2 (UX 26 nov 2026): la tarjeta ya no es solo
+                            foto — título, lugar, hora y precio debajo, para
+                            hojear la cartelera sin abrir ficha por ficha.
+                            Sin precio publicado: «Precio no publicado» (el
+                            evento sigue fuera de los filtros de precio, como
+                            antes); sin hora: «Hora por confirmar». */}
+                        <div style={{ padding: '10px 12px 12px', textAlign: 'left' }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{localizedTitle(ev, lang) || 'Evento'}</div>
+                          {ev.venue_name && <div style={{ marginTop: 3, fontSize: 12.5, color: T.sub, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.venue_name}</div>}
+                          <div style={{ marginTop: 3, fontSize: 12.5, lineHeight: 1.3, color: T.sub }}>
+                            <span style={{ fontWeight: 800, color: T.text }}>{price ? price.text : t("eventos_precio_no_publicado", "Precio no publicado")}</span>
+                            {' · '}{timeText || t("eventos_hora_por_confirmar", "Hora por confirmar")}
                           </div>
                         </div>
                       </button>

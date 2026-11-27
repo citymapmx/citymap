@@ -70,7 +70,10 @@ export default function ToursView({ T, dark, cities, initialTours }) {
   useEffect(() => {
     if (initialTours) return;
     let cancelled = false;
-    sb.get('experiences', '?select=id,title,title_en,description_en,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=200')
+    // R5 (UX 26 nov 2026): el límite era 200 con 282 tours en base — 82
+    // invisibles sin aviso. 1000 es el tope de PostgREST; sin paginación
+    // en esta PR.
+    sb.get('experiences', '?select=id,title,title_en,description_en,city_slug,price,duration,gallery,booking_config,created_at&activity_type=eq.Tour&status=eq.approved&active=eq.true&order=created_at.desc&limit=1000')
       .then((res) => { if (!cancelled) setTours(Array.isArray(res) ? res : []); })
       .catch(() => { if (!cancelled) setTours([]); })
       .finally(() => { if (!cancelled) setLoading(false); });

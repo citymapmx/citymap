@@ -93,7 +93,7 @@ export default function DetailView() {
   const isOpen = (b) => isOpenNow(b, city?.timezone || "America/Mexico_City");
 
   
-  const { data: hasLoyalty = false, isLoading: loyaltyLoading } = useQuery({
+  const { data: hasLoyalty = false } = useQuery({
     queryKey: ['loyalty', selected?.id],
     queryFn: async () => {
       const res = await sb.get("loyalty_cards", `?biz_id=eq.${selected.id}&active=eq.true&limit=1`);
@@ -504,10 +504,11 @@ export default function DetailView() {
                             </>
                           );
                         } else {
+                          // R10 (UX 26 nov 2026): sin reseñas, texto «Sin
+                          // reseñas aún» en vez de 5 estrellas vacías,
+                          // que se leían como una calificación de 0.
                           return (
-                            <div style={{ display: "flex", gap: 2 }}>
-                              {[1,2,3,4,5].map(i => <Icon key={i} name="star" size={12} color={isElite ? "rgba(255,255,255,0.2)" : (dark ? "#71717A" : T.border)} />)}
-                            </div>
+                            <span className="text-xs" style={{ color: dSub }}>{t('detalle_sin_resenas', 'Sin reseñas aún')}</span>
                           );
                         }
                       })()}
@@ -539,7 +540,12 @@ export default function DetailView() {
             </div>
 
 
-            <div style={{ display: (hasLoyalty || bookingBtn.mode !== 'hidden' || (["premium", "elite", "fideliza"].includes(selected.plan) && hasMenu)) ? "flex" : "none", flexWrap: "wrap", gap: 8, padding: "0 20px", marginTop: 12, opacity: loyaltyLoading ? 0 : 1, transition: "opacity 0.3s ease", pointerEvents: loyaltyLoading ? "none" : "auto" }}>
+            {/* R15 (UX 26 nov 2026): la fila ya no se bloquea mientras
+                carga la lealtad — antes opacity 0 + pointerEvents none
+                dejaban VER MENÚ y Reservar muertos sin indicador con red
+                lenta. La píldora de Lealtad aparece sola cuando su
+                consulta resuelve. */}
+            <div style={{ display: (hasLoyalty || bookingBtn.mode !== 'hidden' || (["premium", "elite", "fideliza"].includes(selected.plan) && hasMenu)) ? "flex" : "none", flexWrap: "wrap", gap: 8, padding: "0 20px", marginTop: 12 }}>
               {/* LOYALTY PILL */}
               {hasLoyalty && (
                 <button 
@@ -952,6 +958,14 @@ export default function DetailView() {
                         ? <img src={getThumbUrl(ev.img_url || ev.img || "", 300, 420)} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
                         : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>🎭</div>
                       }
+                      {/* R9 (UX 26 nov 2026): la tarjeta de Agenda ya no es
+                          solo foto — título y fecha/hora encima del
+                          degradado inferior. fmtDate/fmtTime ya se
+                          calculaban y nunca se pintaban. */}
+                      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "28px 10px 10px", background: "linear-gradient(180deg, transparent, rgba(0,0,0,0.78))", textAlign: "left" }}>
+                        <div style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 800, lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ev.title}</div>
+                        {(d || fmtTime(ev.time)) && <div style={{ marginTop: 3, color: "rgba(255,255,255,0.85)", fontSize: 11.5, fontWeight: 600 }}>{[d ? `${d.day} ${d.month}` : null, fmtTime(ev.time)].filter(Boolean).join(' · ')}</div>}
+                      </div>
                     </div>
                   );
                 })}

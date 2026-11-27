@@ -125,7 +125,7 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
   const addressWords = words(address);
   const venueInAddress = venueWords.length > 0 && addressWords.some((_, i) => venueWords.every((w, j) => addressWords[i + j] === w));
   const showVenueLine = Boolean(venue && !venueInAddress);
-  const showPriceRow = Boolean(price && !hideTickets && !(isPrivateEvent(event) && price.free) && !hidePriceRow);
+  const showPriceRow = Boolean(!hideTickets && !hidePriceRow && (price ? !(isPrivateEvent(event) && price.free) : !isPrivateEvent(event)));
   // «Añadir a mi calendario»: enlace a Google Calendar con fecha, hora,
   // título y recinto reales del evento; null si la fecha no es válida.
   const calendarUrl = getEventCalendarUrl(event);
@@ -155,6 +155,10 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
         <div style={{ minWidth: 0 }}>
           {dateText && <p style={{ margin: 0, color: '#FFFFFF', fontSize: 15, lineHeight: 1.5, fontWeight: 650, textWrap: 'balance' }}>{dateText}</p>}
           {times && <p style={{ margin: dateText ? '3px 0 0' : 0, color: 'rgba(255,255,255,0.75)', fontSize: 14, lineHeight: 1.5 }}>{times}</p>}
+          {/* R2 (UX 26 nov 2026): con fecha pero sin hora, «Hora por
+              confirmar» en vez de silencio — no es lo mismo que un
+              evento de todo el día. */}
+          {!times && start && <p style={{ margin: dateText ? '3px 0 0' : 0, color: 'rgba(255,255,255,0.75)', fontSize: 14, lineHeight: 1.5 }}>{t("eventos_hora_por_confirmar", "Hora por confirmar")}</p>}
           {calendarUrl && <a href={calendarUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 36, marginTop: 2, color: '#FFFFFF', fontSize: 13, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}><Icon name="calendar" size={14} color="#FFFFFF" />{t("eventos_anadir_calendario", "Añadir a mi calendario")}</a>}
         </div>
       </div>}
@@ -168,7 +172,9 @@ export default function EventInformation({ event, associatedBiz, T, hideTickets 
       </div>}
       {showPriceRow && <div style={rowStyle}>
         <Icon name="ticket" size={26} color="#FFFFFF" style={iconStyle} />
-        <div><p style={{ margin: 0, color: '#FFFFFF', fontSize: 15, lineHeight: 1.5, fontWeight: 650 }}>{price.text}</p></div>
+        {/* R2 (UX 26 nov 2026): sin precio publicado la fila dice
+            «Precio no publicado» — no es «gratis» ni falta de datos. */}
+        <div><p style={{ margin: 0, color: '#FFFFFF', fontSize: 15, lineHeight: 1.5, fontWeight: 650 }}>{price ? price.text : t("eventos_precio_no_publicado", "Precio no publicado")}</p></div>
       </div>}
     </div>}
   </>;

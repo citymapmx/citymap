@@ -266,7 +266,9 @@ export default function EventDetailModal() {
         // precio se quita de la tarjeta de datos de abajo.
         const price = getEventPrice(ev);
         const priceAmount = getEventPriceAmount(ev);
-        const topPriceLabel = !isPrivateEvent(ev) && !isPast && price ? (price.free ? t("eventos_entrada_gratuita", "Entrada gratuita") : (priceAmount ? `${t("eventos_boletos_desde", "Boletos desde:")} ${priceAmount}` : null)) : null;
+        // R2 (UX 26 nov 2026): sin precio publicado la fila superior dice
+        // «Precio no publicado» en vez de quedarse sin precio.
+        const topPriceLabel = !isPrivateEvent(ev) && !isPast ? (price ? (price.free ? t("eventos_entrada_gratuita", "Entrada gratuita") : (priceAmount ? `${t("eventos_boletos_desde", "Boletos desde:")} ${priceAmount}` : null)) : t("eventos_precio_no_publicado", "Precio no publicado")) : null;
         const category = ev.event_category || ev.category;
         const showTopRow = !isPrivateEvent(ev) && Boolean(category || topPriceLabel);
 

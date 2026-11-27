@@ -1,7 +1,7 @@
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {describe,it,expect,vi,afterEach} from 'vitest';
-import {isPromotionActive,validatePromotion,getPromotionProduct,isCartPromotionValid} from '../lib/menuPromotions.js';
+import {isPromotionActive,validatePromotion,getPromotionProduct,isCartPromotionValid,promotionScheduleLabel} from '../lib/menuPromotions.js';
 import {isPromotionActive as isNextActive} from '../../web-next/src/lib/menuPromotions.js';
 import {calculateItemTotal,useCart} from '../hooks/useCart.js';
 import StorePromotions from '../components/store/StorePromotions.jsx';
@@ -73,5 +73,13 @@ describe('Promotion pricing and ordering',()=>{
     vi.useFakeTimers();vi.setSystemTime(noon);
     const html=renderToStaticMarkup(<StorePromotions products={[product({conditions:'No acumulable.'}),{...product({enabled:false}),id:'hidden',name:'Oferta oculta'}]} intent="delivery" timeZone="America/Mazatlan" T={{text:'#111',sub:'#666'}} onSelect={()=>{}}/>);
     expect(html).toContain('$99');expect(html).toContain('$130');expect(html).toContain('Agregar promoción');expect(html).toContain('No acumulable.');expect(html).not.toContain('Oferta oculta');
+  });
+  // R11 (UX 26 nov 2026): la vigencia de la promo se escribe en 12 h,
+  // como el resto de la app, no en 24 h.
+  it('labels promotion hours in 12-hour time',()=>{
+    const label=promotionScheduleLabel({enabled:true,start_time:'14:00',end_time:'18:00',ends_on:'2026-10-31',days:[0,1,2,3,4,5,6],intents:['delivery']});
+    expect(label).toContain('2:00 p. m.–6:00 p. m.');
+    expect(label).not.toContain('14:00');
+    expect(promotionScheduleLabel({enabled:true,start_time:'09:30',end_time:'11:00'})).toContain('9:30 a. m.–11:00 a. m.');
   });
 });

@@ -37,7 +37,15 @@ export function isPromotionActive(product, {now = new Date(), timeZone = 'Americ
 export function promotionScheduleLabel(p) {
   const weekdays = ['dom','lun','mar','mié','jue','vie','sáb'];
   const days = p.days?.length < 7 ? p.days.map(day=>weekdays[day]).join(', ') : '';
-  const hours = p.start_time || p.end_time ? `${p.start_time || '00:00'}–${p.end_time || '23:59'}` : '';
+  // Hora "HH:MM" (24 h) en 12 h («2:00 p. m.»): la vigencia se lee igual
+  // que el resto de la app (R11, UX 26 nov 2026).
+  const hour12 = value => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(value || ''));
+    if (!m) return value || '';
+    const h = Number(m[1]);
+    return `${h % 12 || 12}:${m[2]} ${h >= 12 ? 'p. m.' : 'a. m.'}`;
+  };
+  const hours = p.start_time || p.end_time ? `${hour12(p.start_time || '00:00')}–${hour12(p.end_time || '23:59')}` : '';
   const date = p.ends_on ? `Hasta el ${new Date(`${p.ends_on}T12:00:00Z`).toLocaleDateString('es-MX',{day:'numeric',month:'short',timeZone:'UTC'})}` : '';
   const mode = p.intents?.length === 1 ? (p.intents[0] === 'local' ? 'Solo en el local' : 'Para llevar / domicilio') : '';
   return [days,hours,date,mode].filter(Boolean).join(' · ');

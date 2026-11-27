@@ -711,6 +711,7 @@ export default function GlobalHomeView() {
                 onSelect={(item) => openItem(item)}
                 cityName={(slug) => cityBySlug.get(slug)?.name || ''}
                 isToday={isTodayFor}
+                seeAllHref="/eventos"
                 T={T}
               />
             )}

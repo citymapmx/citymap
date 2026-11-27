@@ -386,10 +386,10 @@ export function buildEventShareCardData(event, { cityName = '' } = {}) {
     priceText = `Boletos desde ${amount}`;
     priceKind = 'paid';
   } else {
-    // Sin precio publicado no se menciona nada (PR #153): priceText
-    // vacío → eventPillText no devuelve píldora y la tarjeta no lleva
-    // ninguna línea de precio, ni en la vista previa ni en el PNG.
-    priceText = '';
+    // R2 (UX 26 nov 2026): sin precio publicado la tarjeta dice
+    // «Precio no publicado» en vez de no mencionar nada — «sin precio»
+    // no es «gratis». priceKind sigue 'none' (píldora neutra).
+    priceText = 'Precio no publicado';
     priceKind = 'none';
   }
   const dateText = eventShareCardDateShort(event?.date) || 'Fecha por confirmar';

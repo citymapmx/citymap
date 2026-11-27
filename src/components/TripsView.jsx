@@ -237,9 +237,6 @@ function ExperienceCard({ exp, href, onClick, isSaved, onToggleSave, T, dark, pr
               <Icon name="user" size={12} color="#fff" /> {exp.people}
             </span>
           )}
-          <span style={{ fontSize: 12, color: "#fff", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
-            <Icon name="heart" size={12} color="#fff" /> {exp.id ? (exp.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 350 + 24) : 120}
-          </span>
         </div>
         
       </div>
@@ -287,6 +284,10 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
   }, [routeSlug, experiences]);
 
   const [fetchedPlan, setFetchedPlan] = useState(null);
+  // R6 (UX 26 nov 2026): si la búsqueda del slug termina sin encontrar
+  // nada, la vista dejaba el spinner para siempre. lookupFailed marca
+  // ese final para pintar la página «no existe» en vez del spinner.
+  const [lookupFailed, setLookupFailed] = useState(false);
   // La fila completa pedida bajo demanda manda sobre la ligera del store:
   // si no, el detalle seguiría mostrando la fila ligera (sin descripción)
   // aunque ya hubiera llegado la completa.
@@ -331,6 +332,8 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
     if (!routeSlug) {
       return;
     }
+    // Nuevo slug: la búsqueda anterior ya no vale.
+    setLookupFailed(false);
 
     // La fila del store es ligera (sin description/faq/includes: auditoría
     // Supabase 24 nov 2026, PR #464). La ficha necesita la fila completa:
@@ -368,15 +371,16 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
               setFetchedPlan({ slug: routeSlug, exp: found });
             } else {
               setFetchedPlan(null);
+              setLookupFailed(true);
             }
           }
         }).catch(() => {
-          if (!cancelled) setFetchedPlan(null);
+          if (!cancelled) { setFetchedPlan(null); setLookupFailed(true); }
         });
       }
     }).catch(err => {
       console.warn("Error fetching experience directly:", err);
-      if (!cancelled) setFetchedPlan(null);
+      if (!cancelled) { setFetchedPlan(null); setLookupFailed(true); }
     });
 
     return () => {
@@ -721,9 +725,20 @@ export default function TripsView({ T, dark, navigate, mapPins = [], activeCity 
         {/* Tiqets widget — solo en París */}
         {activeCity === "paris" && <TiqetsParisWidget T={T} dark={dark} />}
       </div>
-      {routeSlug && !viewingPlan && createPortal(
+      {routeSlug && !viewingPlan && !lookupFailed && createPortal(
         <div role="status" aria-label={t("revista_cargando_articulo", "Cargando artículo")} style={{ position: "fixed", inset: 0, bottom: "calc(57px + env(safe-area-inset-bottom, 8px))", zIndex: 40, background: T.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTopColor: T.text, borderRadius: "50%", animation: "spin .8s linear infinite" }} />
+        </div>, document.body
+      )}
+      {/* R6 (UX 26 nov 2026): artículo inexistente — página «no existe»
+          con salida, mismo patrón que EventNotFound, en vez del spinner
+          infinito. */}
+      {routeSlug && !viewingPlan && lookupFailed && createPortal(
+        <div role="status" aria-label={t("revista_articulo_no_existe", "Este artículo ya no está disponible")} style={{ position: "fixed", inset: 0, bottom: "calc(57px + env(safe-area-inset-bottom, 8px))", zIndex: 40, background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 24, textAlign: "center" }}>
+          <div style={{ fontSize: 44 }}>📰</div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: T.text }}>{t("revista_articulo_no_existe", "Este artículo ya no está disponible")}</h1>
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: T.sub, maxWidth: 360 }}>{t("revista_articulo_no_existe_desc", "Puede que se haya eliminado o que el enlace tenga un error.")}</p>
+          <button type="button" onClick={() => { if (location.state?.articleOrigin) routerNavigate(-1); else routerNavigate(`/revista/${routeCity || activeCity || ''}`, { replace: true }); }} className="press" style={{ marginTop: 8, minHeight: 48, padding: "12px 24px", border: "none", borderRadius: 12, background: T.green, color: dark ? "#18181B" : "#FFFFFF", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{t("revista_explorar", "Explorar la Revista")}</button>
         </div>, document.body
       )}
       <AnimatePresence>

@@ -1,5 +1,19 @@
 import {isCartPromotionValid} from '../lib/menuPromotions.js';
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+// Almacenamiento del carrito: localStorage en el navegador; en
+// entornos sin él (tests, SSR) un mapa en memoria, para que crear el
+// store no reviente por `localStorage is not defined`.
+const memoryCartStorage = (() => {
+  const store = new Map();
+  return {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, value) => { store.set(key, value); },
+    removeItem: (key) => { store.delete(key); },
+  };
+})();
+const cartStorage = createJSONStorage(() => (typeof localStorage !== 'undefined' ? localStorage : memoryCartStorage));
 
 // Calculate the total price of a cart item including its selected options
 export const calculateItemTotal = (product, selectedOptions, quantity) => {
@@ -21,7 +35,11 @@ export const calculateItemTotal = (product, selectedOptions, quantity) => {
   return (basePrice + optionsExtra) * quantity;
 };
 
-export const useCart = create((set, get) => ({
+// El carrito sobrevive a recargar o cerrar la página (R20, UX 26 nov
+// 2026): antes era solo memoria y el pedido se perdía sin aviso. Solo
+// se persisten los datos del pedido (items + negocio); isOpen no: al
+// volver, el carrito no se abre solo.
+export const useCart = create(persist((set, get) => ({
   businessId: null, // To track which business the cart belongs to
   items: [],
   isOpen: false,
@@ -99,4 +117,8 @@ export const useCart = create((set, get) => ({
     const { items } = get();
     return items.reduce((sum, item) => sum + (item.unitTotal * item.quantity), 0);
   }
+}), {
+  name: 'citymap-cart',
+  storage: cartStorage,
+  partialize: (state) => ({ businessId: state.businessId, items: state.items }),
 }));

@@ -100,8 +100,9 @@ export default function OwnerStatsView() {
         <div style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 12, fontWeight: 800, color: T.text, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Visibilidad</h3>
           <StatCard T={T}>
-            <StatItem T={T} value={ownerStats.views} label="Vistas (Real)" borderRight />
-            <StatItem T={T} value={Math.floor(ownerStats.views * 1.8)} label="Impresiones (Est.)" />
+            {/* R16 (UX 26 nov 2026): la fila «Impresiones (Est.)» era
+                vistas × 1,8 inventadas junto a cifras reales — se quita. */}
+            <StatItem T={T} value={ownerStats.views} label="Vistas (Real)" />
           </StatCard>
         </div>
 

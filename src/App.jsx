@@ -1055,7 +1055,11 @@ useEffect(() => {
    
   }, [location.pathname, location.state?.background, activeCat]);
 
-  const goDir = useCallback((b, e) => { if (e) e.stopPropagation(); trackEvent(b.id, "maps"); window.open(`https://www.google.com/maps/dir/?api=1&destination=${b.lat},${b.lng}`, "_blank"); }, [trackEvent]);
+  // R17 (UX 26 nov 2026): sin coordenadas, «Cómo llegar» abría Google
+  // Maps con destino `undefined,undefined`. Con coordenadas se usa el
+  // pin; sin ellas, la dirección (mismo fallback que el menú,
+  // BusinessStore.jsx); si tampoco hay dirección, no se abre nada.
+  const goDir = useCallback((b, e) => { if (e) e.stopPropagation(); trackEvent(b.id, "maps"); const hasCoords = b && Number.isFinite(Number(b.lat)) && Number.isFinite(Number(b.lng)); const destination = hasCoords ? `${b.lat},${b.lng}` : encodeURIComponent([b?.address, b?.name].filter(Boolean).join(', ')); if (!destination) return; window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, "_blank"); }, [trackEvent]);
   const callPhone = useCallback((b, e) => { if (e) e.stopPropagation(); trackEvent(b.id, "phone"); window.open(`tel:${b.phone}`); }, [trackEvent]);
   const goWhatsApp = useCallback((b, e) => { if (e) e.stopPropagation(); trackEvent(b.id, "whatsapp"); window.open(`https://wa.me/${(b.whatsapp || b.phone || "").replace(/\D/g, "")}`, "_blank"); }, [trackEvent]);
   const goWeb = useCallback((b, e) => { if (e) e.stopPropagation(); trackEvent(b.id, "website"); const url = (b.website.startsWith('http://') || b.website.startsWith('https://')) ? b.website : `https://${b.website}`; window.open(url, "_blank"); }, [trackEvent]);
@@ -1544,6 +1548,12 @@ useEffect(() => {
       sb.delWhere2('event_favorites', 'user_id', user.id, 'event_id', id).catch(() => {});
     } else {
       sb.upsert('event_favorites', { user_id: user.id, event_id: id }, 'user_id,event_id').catch(() => {});
+      // R8 (UX 26 nov 2026): al guardar un evento, abrir el prompt de
+      // recordatorio («Añádelo a tu calendario…»). EventReminderPrompt
+      // estaba montado en App pero nadie llamaba a setEventReminder, así
+      // que ningún usuario lo había visto jamás.
+      const savedEvent = useDataStore.getState().events?.find(e => e.id === id);
+      if (savedEvent) useUIStore.getState().setEventReminder(savedEvent);
     }
     if (toast$) toast$(isSaved ? 'Evento eliminado de guardados' : 'Evento guardado');
   // savedEventIds y user se leen en vivo: sin ellos el cierre guardaría
