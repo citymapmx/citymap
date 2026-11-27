@@ -578,7 +578,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
               </div>
             </div>
 
-            <div style={{ paddingBottom: cartCount > 0 ? 100 : 80 }}>
+            <div style={{ paddingBottom: cartCount > 0 ? 120 : 80 }}>
       <StorePromotions products={promotionProducts} intent={menuIntent} timeZone={timeZone} T={menuT} onSelect={handlePromotionSelect} />
       {/* Sticky Header: Search + Tabs. Con estilo, fondo sólido con la
           primera parada del degradado (menuTheme.firstColor): sin blur, el
@@ -642,7 +642,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                       isClickScrolling.current = true;
                       
                       if (cat.id === 'all') {
-                        window.scrollTo({ top: tabsRef.current?.offsetTop - 140 || 0, behavior: 'smooth' });
+                        window.scrollTo({ top: tabsRef.current?.offsetTop - 160 || 0, behavior: 'smooth' });
                       } else {
                         const el = categoryRefs.current[cat.id];
                         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -695,7 +695,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-10px" }}
             transition={{ duration: 0.35, ease: "easeOut" }}
-            key={cat.id} data-catid={cat.id} ref={el => categoryRefs.current[cat.id] = el} style={{ marginBottom: 24, scrollMarginTop: '130px' }}>
+            key={cat.id} data-catid={cat.id} ref={el => categoryRefs.current[cat.id] = el} style={{ marginBottom: 24, scrollMarginTop: '160px' }}>
             <div style={{ margin: '0 16px 12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
               <h3 style={{ fontSize: 21, fontWeight: 800, color: menuTheme ? menuTheme.primary : (dark ? '#F87171' : '#EF4444'), margin: 0, letterSpacing: '-0.5px', textTransform: 'uppercase' }}>{cat.name}</h3>
               {offHours && (
@@ -759,8 +759,10 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                     boxShadow: viewMode === 'grid' ? (dark ? '0 2px 10px rgba(0,0,0,0.2)' : '0 2px 12px rgba(0,0,0,0.04)') : 'none',
                   }}
                 >
-                  {/* Image */}
-                  {(product.image_url || viewMode === 'grid') && (
+                  {/* Image: solo si el producto tiene foto. Antes en cuadrícula
+                      se pintaba siempre el hueco (fondo gris + icono), y el
+                      93% de los productos no tiene foto. */}
+                  {product.image_url && (
                     <div style={viewMode === 'list' ? { width: 120, height: 120, margin: 12, flexShrink: 0, position: 'relative' } : { width: '100%', aspectRatio: '1', position: 'relative', flexShrink: 0 }}>
                       <div style={{ width: '100%', height: '100%', borderRadius: viewMode === 'list' ? 16 : 0, overflow: 'hidden', background: dark ? '#3F3F46' : '#FAFAFA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {product.image_url ? (
