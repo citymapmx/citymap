@@ -301,7 +301,7 @@ export function useAppSEO({ city }) {
         canonical = `${BASE_URL}/precios`;
       } else if (location.pathname.startsWith("/negocios")) {
         title = `CityMap para negocios — Publica tu negocio gratis | CityMap`;
-        desc = `CityMap ayuda a que más personas descubran negocios, lugares y servicios cuando buscan en internet. Las páginas de nuestra plataforma ya generan visitas desde Google, acercando a nuevos clientes a los negocios publicados.`;
+        desc = `Pon tu negocio en el mapa y en Google, donde la gente ya busca. Sin anuncios y sin comisiones.`;
 
         canonical = `${BASE_URL}/negocios`;
       } else if (location.pathname.startsWith("/mis-planes") || location.pathname.startsWith("/experiencias") || location.pathname.startsWith("/revista")) {

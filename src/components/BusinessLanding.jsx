@@ -206,11 +206,11 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     : `${GOOGLE_SEARCH_CONSOLE.impressionsThousands} mil`;
   const benefits = [
     { icon: "pin", title: t("negocios_ben_mapa_titulo", "Te encuentran en el mapa"), text: t("negocios_ben_mapa_texto", "Tu negocio aparece con su pin en el mapa de tu ciudad, junto a los lugares, restaurantes y eventos que la gente ya busca. Los planes de pago muestran tu logotipo directo en el mapa.") },
-    { icon: "globe", title: t("negocios_ben_google_titulo", "Te encuentran en Google"), text: t("negocios_ben_google_texto", "Tu página queda indexada y aparece en las búsquedas de Google. Con Presencia, tu posicionamiento mejora; con Ventas, hasta tu menú interactivo aparece en Google.") },
+    { icon: "globe", title: t("negocios_ben_google_titulo", "Te encuentran en Google"), text: t("negocios_ben_google_texto", "Tu página queda indexada y aparece en las búsquedas de Google. Con el plan Presencia, tu posicionamiento mejora; con el plan Ventas, hasta tu menú interactivo aparece en Google.") },
     { icon: "whatsapp", title: t("negocios_ben_whatsapp_titulo", "Pedidos por WhatsApp, sin comisiones"), text: t("negocios_ben_whatsapp_texto", "Tus clientes ven tu menú, arman su pedido y te lo mandan por WhatsApp. CityMap no cobra comisión por tus ventas: el pago es directo entre tu cliente y tú.") },
-    { icon: "menu", title: t("negocios_ben_menu_titulo", "Un menú digital que vende solo"), text: t("negocios_ben_menu_texto", "Con Ventas, tu menú es interactivo: fotos, precios, opciones y carrito. Tus clientes piden desde el celular sin llamarte. Con Presencia, tienes tu menú en QR para ponerlo en las mesas del local.") },
-    { icon: "calendar", title: t("negocios_ben_eventos_titulo", "Tus eventos y promociones llegan a la gente"), text: t("negocios_ben_eventos_texto", "Con Fideliza, publicas tus eventos y reservas, lanzas cupones y creas tarjetas de lealtad para que tus clientes regresen.") },
-    { icon: "bar_chart", title: t("negocios_ben_datos_titulo", "Sabes qué está funcionando"), text: t("negocios_ben_datos_texto", "Desde tu panel ves tus visitas y tus pedidos, y con Fideliza tienes estadísticas avanzadas y soporte prioritario.") },
+    { icon: "menu", title: t("negocios_ben_menu_titulo", "Un menú digital que vende solo"), text: t("negocios_ben_menu_texto", "Con el plan Ventas, tu menú es interactivo: fotos, precios, opciones y carrito. Tus clientes piden desde el celular sin llamarte. Con el plan Presencia, tienes tu menú en QR para ponerlo en las mesas del local.") },
+    { icon: "calendar", title: t("negocios_ben_eventos_titulo", "Tus eventos y promociones llegan a la gente"), text: t("negocios_ben_eventos_texto", "Con el plan Fideliza, publicas tus eventos y reservas, lanzas cupones y creas tarjetas de lealtad para que tus clientes regresen.") },
+    { icon: "bar_chart", title: t("negocios_ben_datos_titulo", "Sabes qué está funcionando"), text: t("negocios_ben_datos_texto", "Desde tu panel ves tus visitas y tus pedidos, y con el plan Fideliza tienes estadísticas avanzadas y soporte prioritario.") },
   ];
   const steps = [
     { n: "1", title: t("negocios_paso1_titulo", "Crea tu perfil gratis"), text: t("negocios_paso1_texto", "Te registras y publicas tu negocio en minutos: nombre, fotos, horarios y contacto.") },
@@ -218,7 +218,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     { n: "3", title: t("negocios_paso3_titulo", "Te encuentran y te escriben"), text: t("negocios_paso3_texto", "Tu negocio aparece en el mapa, en el buscador, en la guía de tu ciudad y en Google. Los clientes te escriben directo por WhatsApp.") },
   ];
   const faqs = [
-    [t("negocios_faq1_q", "¿Cuánto cuesta empezar?"), t("negocios_faq1_a", "Nada. Crear tu perfil y publicar tu negocio es gratis. Solo pagas si quieres Presencia, Ventas o Fideliza.")],
+    [t("negocios_faq1_q", "¿Cuánto cuesta empezar?"), t("negocios_faq1_a", "Nada. Crear tu perfil y publicar tu negocio es gratis. Solo pagas si quieres uno de los planes: Presencia, Ventas o Fideliza.")],
     [t("negocios_faq2_q", "¿Necesito pagar para aparecer en CityMap?"), t("negocios_faq2_a", "No. Con el plan gratuito tu negocio ya tiene su página pública, con teléfono, dirección, horarios y portada.")],
     [t("negocios_faq3_q", "¿CityMap cobra comisión por mis ventas?"), t("negocios_faq3_a", "No. Los pedidos te llegan por WhatsApp y el pago es directo entre tu cliente y tú.")],
     [t("negocios_faq4_q", "¿Puedo probar los planes de pago gratis?"), t("negocios_faq4_a", "Sí. Los tres planes de pago tienen 7 días de prueba gratis, en pago mensual y anual, sin compromiso.")],
@@ -250,7 +250,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
     <div className="business-landing" style={{ minHeight: '100vh', background: pageBg, color: ink, fontFamily: 'inherit', letterSpacing: 0, '--plans-accent': accent, '--plans-line': line, '--plans-surface': surface, '--plans-shadow': dark ? '0 10px 28px rgba(0,0,0,0.40)' : '0 10px 28px rgba(15,26,20,0.08)', '--plans-shadow-pro': dark ? '0 16px 40px rgba(112,173,255,0.25)' : '0 16px 40px rgba(0,102,204,0.18)', '--plans-accent-fideliza': dark ? '#A78BFA' : '#6D28D9', '--plans-shadow-fideliza': dark ? '0 16px 40px rgba(167,139,250,0.25)' : '0 16px 40px rgba(109,40,217,0.18)' }}>
       <Helmet>
         <title>{`${t("negocios_h1", "Haz que más personas encuentren tu negocio.")} | CityMap`}</title>
-        <meta name="description" content={t("negocios_sub", "CityMap ayuda a que más personas descubran negocios, lugares y servicios cuando buscan en internet. Las páginas de nuestra plataforma ya generan visitas desde Google, acercando a nuevos clientes a los negocios publicados.")} />
+        <meta name="description" content={t("negocios_sub", "Pon tu negocio en el mapa y en Google, donde la gente ya busca. Sin anuncios y sin comisiones.")} />
         <link rel="canonical" href="https://citymap.mx/negocios" />
       </Helmet>
       <style>{`
@@ -300,7 +300,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         <section style={{ textAlign: 'center', padding: '48px 0 24px', maxWidth: 680, margin: 'auto' }}>
           <Reveal><p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '.06em', color: muted, margin: '0 0 12px', textTransform: 'uppercase' }}>{t("negocios_eyebrow", "CityMap para negocios")}</p></Reveal>
           <Reveal delay={90}><h1 style={{ fontFamily: 'var(--heading)', fontSize: 'clamp(30px,5vw,44px)', fontWeight: 700, lineHeight: 1.08, letterSpacing: '-.045em', margin: '0 auto 16px', maxWidth: 620 }}>{t("negocios_h1", "Haz que más personas encuentren tu negocio.")}</h1></Reveal>
-          <Reveal delay={180}><p style={{ fontSize: 16, lineHeight: 1.55, color: muted, margin: '0 auto 24px', maxWidth: 560 }}>{t("negocios_sub", "CityMap ayuda a que más personas descubran negocios, lugares y servicios cuando buscan en internet. Las páginas de nuestra plataforma ya generan visitas desde Google, acercando a nuevos clientes a los negocios publicados.")}</p></Reveal>
+          <Reveal delay={180}><p style={{ fontSize: 16, lineHeight: 1.55, color: muted, margin: '0 auto 24px', maxWidth: 560 }}>{t("negocios_sub", "Pon tu negocio en el mapa y en Google, donde la gente ya busca. Sin anuncios y sin comisiones.")}</p></Reveal>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12 }}>
             <button onClick={() => onAddBiz?.()} style={{ minHeight: 48, padding: '12px 24px', border: 0, borderRadius: 999, background: accent, color: dark ? '#101827' : '#FFFFFF', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t("cuenta_crear_perfil_gratis", "Crear perfil gratis")}</button>
             <button onClick={scrollToPlans} style={{ minHeight: 48, padding: '12px 24px', border: `1px solid ${line}`, borderRadius: 999, background: 'transparent', color: ink, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t("ver_planes", "Ver planes")}</button>
@@ -398,7 +398,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
                     <span style={{ fontSize: 12, color: muted, fontWeight: 500 }}>{tagline}</span>
                     {p.badge && <span style={{ fontSize: 11, fontWeight: 600, color: planAccent, background: p.key === 'fideliza' ? (dark ? 'rgba(167,139,250,0.18)' : '#F5F0FF') : (dark ? '#18304A' : '#EDF5FF'), padding: '5px 10px', borderRadius: 999 }}>{p.badge}</span>}
                   </div>
-                  <h3 style={{ fontFamily: 'inherit', fontSize: 22, fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.2, margin: '0 0 7px' }}>{p.name}</h3>
+                  <h3 style={{ fontFamily: 'inherit', fontSize: 22, fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.2, margin: '0 0 7px' }}>Plan {p.name}</h3>
                   <p style={{ fontSize: 14, lineHeight: 1.5, color: muted, margin: '0 0 20px' }}>{p.desc}</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}><strong style={{ fontSize: 36, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-.05em', fontVariantNumeric: 'tabular-nums' }}>{billing === 'annual' ? p.priceAnnual : p.priceMonthly}</strong><span style={{ fontSize: 12, color: muted }}>{pricing.currency} / {billing === 'annual' ? t("cuenta_ano", "año") : t("cuenta_mes", "mes")}</span></div>
                   <p style={{ minHeight: 34, margin: '7px 0 18px', fontSize: 12, lineHeight: 1.5, color: muted }}>{priceNote(p)}</p>
@@ -458,7 +458,7 @@ export default function BusinessLanding({ T, dark, navigate, user, myBizList, on
         una función, la fila lleva ✓. En móvil hace scroll horizontal. */}
         <section style={{ marginTop: 64 }}>
           <Reveal><h2 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 600, letterSpacing: '-.035em', textAlign: 'center', margin: '0 0 8px' }}>{t("negocios_compara_titulo", "Compara los planes")}</h2></Reveal>
-          <Reveal delay={90}><p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_compara_sub", "Todo lo que incluye cada plan. Los planes superiores incluyen todo lo de los inferiores.")}</p></Reveal>
+          <Reveal delay={90}><p style={{ fontSize: 15, lineHeight: 1.55, color: muted, textAlign: 'center', margin: '0 auto 28px', maxWidth: 480 }}>{t("negocios_compara_sub", "Todo lo que incluye cada plan. Cada plan incluye todo lo del anterior.")}</p></Reveal>
           <div style={{ overflowX: 'auto', background: surface, border: `1px solid ${line}`, borderRadius: 24, boxShadow: 'var(--plans-shadow)' }}>
             <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>

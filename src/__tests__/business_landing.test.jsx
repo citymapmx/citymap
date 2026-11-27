@@ -20,7 +20,7 @@ describe('business landing', () => {
   it('muestra el h1 aprobado y los 4 números', () => {
     const html = renderLanding();
     expect(html).toContain('Haz que más personas encuentren tu negocio.');
-    expect(html).toContain('CityMap ayuda a que más personas descubran negocios, lugares y servicios cuando buscan en internet. Las páginas de nuestra plataforma ya generan visitas desde Google, acercando a nuevos clientes a los negocios publicados.');
+    expect(html).toContain('Pon tu negocio en el mapa y en Google, donde la gente ya busca. Sin anuncios y sin comisiones.');
     expect(html).not.toContain('Publica tu negocio gratis en citymap. Te encuentran en el mapa, en el buscador y en Google, y te escriben directo por WhatsApp, sin comisiones.');
     expect(html).toContain('330');
     expect(html).toContain('35');

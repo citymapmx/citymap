@@ -45,7 +45,7 @@ describe('Animación «Aparición al bajar» en /negocios', () => {
     for (const text of [
       'CityMap para negocios',
       'Haz que más personas encuentren tu negocio.',
-      'CityMap ayuda a que más personas descubran negocios, lugares y servicios cuando buscan en internet.',
+      'Pon tu negocio en el mapa y en Google, donde la gente ya busca. Sin anuncios y sin comisiones.',
       'Tu negocio ya aparece en Google',
       'Los negocios de CityMap reciben visitas reales desde el buscador',
       'El menú de Formentera recibió',
