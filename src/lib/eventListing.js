@@ -110,6 +110,41 @@ export function nextOccurrenceDate(event, today) {
   return next <= last ? next : null;
 }
 
+const WEEKDAY_ES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const WEEKDAY_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// Píldora de fecha de la rueda del inicio (27 nov 2026, Jonathan): «Hoy»,
+// «Mañana» o día de la semana + número («Martes 27»), en la zona horaria
+// de la ciudad del evento (el `today` que pasa el llamador, no la del
+// dispositivo). El día que se muestra es la próxima ocurrencia en un
+// serial semanal; en un evento de varios días, hoy o mañana si caen
+// dentro del rango; si no, el día de inicio. Sin fecha no hay píldora
+// (null); un serial terminado tampoco tiene próxima ocurrencia (null).
+// El día de la semana se calcula desde el 'YYYY-MM-DD' en UTC (ver
+// weekdayOfDay): nunca depende de la zona horaria del dispositivo.
+export function formatWheelDayPill(event, { today, lang = 'es' } = {}) {
+  const start = dateOnly(event?.date);
+  if (!start) return null;
+  const tomorrow = today ? addDays(today, 1) : null;
+  let day = start;
+  if (event?.is_recurring) {
+    const next = nextOccurrenceDate(event, today);
+    if (next) day = next;
+    else if (!today) day = start; // sin `today` no se sabe la próxima: el inicio
+    else return null; // serial terminado: ya no hay próxima ocurrencia
+  } else if (today && eventCoversDay(event, today)) {
+    return lang === 'en' ? 'Today' : 'Hoy';
+  } else if (tomorrow && eventCoversDay(event, tomorrow)) {
+    return lang === 'en' ? 'Tomorrow' : 'Mañana';
+  }
+  if (day === today) return lang === 'en' ? 'Today' : 'Hoy';
+  if (day === tomorrow) return lang === 'en' ? 'Tomorrow' : 'Mañana';
+  const dow = weekdayOfDay(day);
+  if (dow === null) return null;
+  const names = lang === 'en' ? WEEKDAY_EN : WEEKDAY_ES;
+  return `${names[dow]} ${Number(day.slice(8, 10))}`;
+}
+
 // ── Filtros de la página de Eventos ──
 
 // Día de la semana (0 dom … 6 sáb) de un 'YYYY-MM-DD', en UTC para no

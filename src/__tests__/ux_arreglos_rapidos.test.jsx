@@ -64,10 +64,12 @@ describe('UX arreglos rápidos R1–R20', () => {
   it('R12: la fecha del artículo se ve aunque no haya autor', () => {
     expect(read('../components/ExperienceViewer.jsx')).toContain('{(exp.author_name || exp.created_at) && (');
   });
-  it('R13: la rueda enlaza «Ver todos los eventos»', () => {
-    expect(read('../components/home/EventWheel3D.jsx')).toContain('seeAllHref');
-    expect(read('../components/home/HomeEvents.jsx')).toContain("seeAllHref={activeCity ? `/eventos/${activeCity}` : '/eventos'}");
-    expect(read('../views/GlobalHomeView.jsx')).toContain('seeAllHref="/eventos"');
+  it('R13: la rueda YA NO enlaza «Ver todos los eventos» (27 nov 2026, Jonathan)', () => {
+    expect(read('../components/home/EventWheel3D.jsx')).not.toContain('seeAllHref');
+    expect(read('../components/home/HomeEvents.jsx')).not.toContain('seeAllHref');
+    expect(read('../views/GlobalHomeView.jsx')).not.toContain('seeAllHref');
+    // La clave i18n se queda: la siguen usando EventDetailModal y
+    // EventNotFound.
     expect(read('../lib/i18n.js')).toContain('"eventos_ver_todos": "Ver todos los eventos"');
   });
   it('R14: «Mis Favoritos» ya no filtra por la ciudad activa', () => {

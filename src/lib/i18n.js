@@ -634,7 +634,6 @@ export const TRANSLATIONS = {
     "mapa_brujula_no_disponible": "La brújula no está disponible en este dispositivo o navegador.",
     "mapa_brujula_permiso": "Permite el acceso a la orientación del teléfono.",
     "mapa_es_hoy": "Es hoy 🎉",
-    "rueda_es_hoy": "Es hoy",
     "mapa_faltan_dias": "Faltan ${diff} días",
     "mapa_lo_mas_cerca": "Lo más cerca de ti",
     "mapa_lugares": "Lugares",
