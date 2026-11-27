@@ -49,16 +49,16 @@ describe('event wheel 3D', () => {
     const html = renderWheel({ events: events.slice(0, 7) });
     expect(html.match(/event-wheel-face/g)).toHaveLength(7);
     expect(html.match(/event-wheel-dot[ "]/g)).toHaveLength(7);
-    // Con 7 eventos la cara se ensancha a 176x230 y el radio se achica a
-    // 183 px (escritorio): las vecinas quedan PEGADAS al frente, como
+    // Con 7 eventos la cara se ensancha a 185x242 y el radio se achica a
+    // 192 px (escritorio): las vecinas quedan PEGADAS al frente, como
     // con 10 caras en el global. Con el radio fijo de la #290 (249 px)
     // quedaban ~60 px de aire entre tarjetas y la de la izquierda ni se
     // veía; y con la apotema de 7 caras (168 px) el tambor se veía chico
     // y centrado. La cara del frente se sigue viendo igual de grande que
-    // en el global (~216x282 en escritorio).
-    expect(html).toContain('rotateY(0deg) translateZ(183px)');
-    expect(html).toContain('width:176px');
-    expect(html).toContain('height:230px');
+    // en el global (~263x344 en escritorio).
+    expect(html).toContain('rotateY(0deg) translateZ(192px)');
+    expect(html).toContain('width:185px');
+    expect(html).toContain('height:242px');
     expect(html).not.toContain('translateZ(249px)');
     expect(html).not.toContain('translateZ(168px)');
     // La cara del frente sigue siendo la primera.
@@ -81,15 +81,15 @@ describe('event wheel 3D', () => {
     try {
       const html = renderWheel({ events: events.slice(0, 7) });
       expect(html.match(/event-wheel-face/g)).toHaveLength(7);
-      // Referencia ancha (215 px): cara 176x231 y radio 183 px, no los
-      // 150x197 y 156 px de la referencia de siempre.
-      expect(html).toContain('rotateY(0deg) translateZ(183px)');
-      expect(html).toContain('width:176px');
-      expect(html).toContain('height:231px');
-      expect(html).not.toContain('translateZ(156px)');
+      // Referencia ancha (230 px): cara 168x221 y radio 174 px, no los
+      // 157x206 y 163 px de la referencia de siempre.
+      expect(html).toContain('rotateY(0deg) translateZ(174px)');
+      expect(html).toContain('width:168px');
+      expect(html).toContain('height:221px');
+      expect(html).not.toContain('translateZ(163px)');
       // La escena crece para que quepa la cara del frente, que se ve a
-      // 283 px de alto: 283 + 16 = 299 px (la escena del CSS es 262 px).
-      expect(html).toContain('height:299px');
+      // 302 px de alto: 302 + 16 = 318 px (la escena del CSS es 262 px).
+      expect(html).toContain('height:318px');
     } finally {
       if (origWindow === undefined) delete globalThis.window;
       else globalThis.window = origWindow;
@@ -208,22 +208,24 @@ describe('event wheel 3D', () => {
     expect(html).toContain('Evento 7');
   });
 
-  it('the front face gets a sharp 600 px image over the 400 px base', () => {
+  it('the front face gets a sharp 800 px image over the 400 px base', () => {
     const sb = (n) => `https://dpkjxhjkzdlkvyotoeai.supabase.co/storage/v1/object/public/media/cityguide/poster-${n}.jpg`;
     const sbEvents = Array.from({ length: 10 }, (_, i) => ({ ...makeEvent(i), img: sb(i + 1) }));
     const html = renderWheel({ events: sbEvents });
     const imgs = [...html.matchAll(/<img[^>]*>/g)].map((m) => m[0]);
-    // 7 bases (400 px) + 1 nítida de frente (600 px).
+    // 7 bases (400 px) + 1 nítida de frente (800 px): con la opción B la
+    // cara del frente se ve a ~263 px CSS (~790 px de dispositivo a 3x),
+    // así que a 600 px el póster se vería blando.
     expect(imgs).toHaveLength(8);
     const front = imgs.filter((t) => t.includes('event-wheel-front-img'));
     expect(front).toHaveLength(1);
-    expect(front[0]).toContain('width=600');
-    expect(front[0]).toContain('600w');
-    expect(front[0]).not.toContain('width=800');
-    expect(front[0]).not.toContain('800w');
+    expect(front[0]).toContain('width=800');
+    expect(front[0]).toContain('800w');
+    // El src es el candidato mayor (800 px); el srcset conserva el 600
+    // como candidato intermedio para pantallas de menor densidad.
     // La nítida decodifica sin bloquear el hilo principal: con
-    // decoding="sync" el navegador decodificaba 800 px en el hilo
-    // principal al pintar la rueda; con "async" no frena la salida.
+    // decoding="sync" el navegador decodificaba la imagen nítida en el
+    // hilo principal al pintar la rueda; con "async" no frena la salida.
     expect(front[0]).toContain('decoding="async"');
     const base = imgs.filter((t) => !t.includes('event-wheel-front-img'));
     expect(base).toHaveLength(7);

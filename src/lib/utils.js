@@ -531,7 +531,7 @@ export const SRCSET_CARD = Object.freeze([400, 800]);
 // teléfono a 3x son ~650 px de dispositivo, así que 600 px cubre sin
 // que se vea blando (a 400 sí se veía, PR #264) y sin pagar los 800 px
 // de antes (43-57 KB por póster).
-export const SRCSET_WHEEL_FRONT = Object.freeze([400, 600]);
+export const SRCSET_WHEEL_FRONT = Object.freeze([400, 600, 800]);
 export const SRCSET_BANNER = Object.freeze([400, 800, 1200]);
 
 // srcset para una misma imagen en varios anchos, sin bajar la calidad
