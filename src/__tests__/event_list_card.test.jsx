@@ -47,8 +47,10 @@ describe('event list card: image only', () => {
   });
 
   it('keeps tap-to-detail, the save heart and screen-reader title/date', () => {
-    // onClick y aria-label van antes de className en el botón, se verifican en src.
-    expect(src).toContain('onClick={() => handleEventTap(ev)}');
+    // El toque va por touchTap (27 nov 2026, cacería nº 1): mismo
+    // handler en `touchend` y en `onClick`, con el clic sintético
+    // suprimido. aria-label va antes de className en el botón.
+    expect(src).toContain('tapFor(ev.id, () => handleEventTap(ev))');
     expect(src).toContain("aria-label={`${localizedTitle(ev, lang) || 'Evento'}. ${fmtCardDate(ev)}`");
     expect(card).toContain("alt={localizedTitle(ev, lang) || 'Evento'}");
     expect(src).toContain('handleToggleSaveEvent(ev, e)');

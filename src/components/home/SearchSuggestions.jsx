@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Icon from '../ui/Icon.jsx';
 import { getKm, getThumbUrl } from '../../lib/utils.js';
 import { useTranslation } from '../../hooks/useTranslation.js';
+import { useTouchTapList } from '../../lib/touchTap.js';
 
 function PlaceThumbnail({ business, T }) {
   const [failed, setFailed] = useState(false);
@@ -14,6 +15,10 @@ function PlaceThumbnail({ business, T }) {
 
 export default function SearchSuggestions({ results, cats = [], userCoords, onSelect, onViewAll, T }) {
   const { t } = useTranslation();
+  // Toque en las sugerencias (27 nov 2026, cacería nº 1): la fila solo
+  // tenía `onClick` y el primer toque tras frenar el scroll de la
+  // página con el dedo se perdía en iOS.
+  const tapFor = useTouchTapList();
   return <div aria-label={t("home_sugerencias_lugares", "Sugerencias de lugares")} style={{ border: `1px solid ${T.border}`, borderRadius: 16, overflow: 'hidden', background: T.white }}>
     {results.slice(0, 5).map(business => {
       const category = cats.find(cat => cat.id === business.category)?.label || business.category || business.type || t("home_lugar", "Lugar");
@@ -21,7 +26,7 @@ export default function SearchSuggestions({ results, cats = [], userCoords, onSe
       const hasCoordinates = coordinates.every(value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) && Number(value) !== 0);
       const distance = hasCoordinates ? getKm(...coordinates.map(Number)) : null;
       const distanceLabel = distance === null ? '' : distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(1)} km`;
-      return <button key={business.id} type="button" onClick={() => onSelect(business)}
+      return <button key={business.id} type="button" {...tapFor(business.id, () => onSelect(business))}
         style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', width: '100%', background: 'transparent', border: 0, borderBottom: `1px solid ${T.border}`, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', color: T.text }}>
         <PlaceThumbnail key={business.id} business={business} T={T} />
         <span style={{ flex: 1, minWidth: 0 }}><strong style={{ display: 'block', fontSize: 15, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{business.name}</strong><span style={{ display: 'block', fontSize: 13, lineHeight: 1.5, color: T.sub }}>{category}{distanceLabel ? ` · ${distanceLabel}` : ''}</span></span>

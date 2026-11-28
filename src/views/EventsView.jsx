@@ -22,6 +22,7 @@ import useTimeStore from "../store/useTimeStore.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { localizedTitle } from "../lib/i18nContent.js";
 import { EventGridSk } from "../components/ui/Skeleton.jsx";
+import { useTouchTapList } from "../lib/touchTap.js";
 
 const PAGE_SIZE = 20;
 const DATE_FILTERS = [
@@ -52,6 +53,11 @@ export default function EventsView() {
 
   // Secondary sub-filters
   const [eventCategoryFilter, setEventCategoryFilter] = useState("Todos");
+  // Toque en las tarjetas de /eventos (27 nov 2026, cacería nº 1): la
+  // tarjeta solo tenía `onClick` y el primer toque tras frenar el
+  // scroll vertical con el dedo se perdía en iOS. El corazón de
+  // Guardar es hermano de la tarjeta, no hijo: no se ve afectado.
+  const tapFor = useTouchTapList();
   // Buscador, filtro rápido por fecha y paginación ("Cargar más")
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("todos");
@@ -597,7 +603,7 @@ export default function EventsView() {
                           corazón va dentro para que toda la tarjeta anime
                           como una sola pieza. */}
                       <div className={newBatchIds?.has(ev.id) ? 'scale-in-ver-top' : cascadeDelayById?.has(ev.id) ? 'cascade-in' : undefined} style={{ position: 'relative', ...(cascadeDelayById?.has(ev.id) ? { animationDelay: `${cascadeDelayById.get(ev.id)}s` } : {}) }}>
-                      <button type="button" onClick={() => handleEventTap(ev)} aria-label={`${localizedTitle(ev, lang) || 'Evento'}. ${fmtCardDate(ev)}`} className="event-list-card" style={{ display:'block', width:'100%', textAlign:'left', border:0, padding:0, background:'transparent', color:T.text, cursor:'pointer', fontFamily:'inherit' }}>
+                      <button type="button" {...tapFor(ev.id, () => handleEventTap(ev))} aria-label={`${localizedTitle(ev, lang) || 'Evento'}. ${fmtCardDate(ev)}`} className="event-list-card" style={{ display:'block', width:'100%', textAlign:'left', border:0, padding:0, background:'transparent', color:T.text, cursor:'pointer', fontFamily:'inherit' }}>
                         <div style={{ aspectRatio:'5 / 7', position:'relative', overflow:'hidden', background:dark ? '#23252b' : '#edf0f4' }}>
                           {/* La foto LLENA la tarjeta (cover, PR #153): sin
                               bandas ni fondo difuminado. Un póster vertical

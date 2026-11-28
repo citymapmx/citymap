@@ -25,6 +25,7 @@ import { eventCalendarDay, formatWheelDayPill, eventCityTimeZone } from '../lib/
 import { isEventUpcoming } from '../lib/homeEventSelection.js';
 import { CITY_TZ } from '../lib/constants.js';
 import { readCachedPopCounts, savePopCounts, isPlainRootWithSavedCity } from '../lib/arranque.js';
+import { useTouchTapList } from '../lib/touchTap.js';
 
 const BIZ_PAGE = 60;
 
@@ -134,6 +135,12 @@ export default function GlobalHomeView() {
   const [tours, setTours] = useState([]);
   const [tourCity, setTourCity] = useState(null);
   const [allCities, setAllCities] = useState([]);
+  // Toque en el muro global (27 nov 2026, cacería nº 1): tarjetas de
+  // ciudad, tour y guía solo tenían `onClick` dentro de tiras con
+  // scroll; el primer toque tras deslizar se lo comía el momentum en
+  // iOS. La tarjeta de guía lleva el corazón anidado: no debe navegar
+  // al tocarlo (`ignoreNestedControls`).
+  const tapFor = useTouchTapList();
   // «Explora por ciudad» lista TODAS las ciudades activas en los dos
   // dominios (21 nov 2026); el muro (allCities) sigue siendo solo del
   // dominio actual.
@@ -689,7 +696,7 @@ export default function GlobalHomeView() {
                   {shownCities.map((city) => (
                     <button
                       key={city.id || city.slug}
-                      onClick={() => navigate(`/${city.slug}`)}
+                      {...tapFor(`ciudad-${city.slug}`, () => navigate(`/${city.slug}`))}
                       style={{ flex: '0 0 168px', position: 'relative', height: 132, borderRadius: 16, overflow: 'hidden', border: 'none', padding: 0, cursor: 'pointer', background: '#111', textAlign: 'left' }}
                     >
                       {city.bg_image && <OptimizedImage src={city.bg_image} alt={city.name} widthRequest={400} srcSetWidths={SRCSET_THUMB} sizes="168px" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
@@ -761,7 +768,7 @@ export default function GlobalHomeView() {
                     const price = tourPriceLabel(tour, lang, currencyForCity(tour.city_slug, allCities));
                     const duration = tourDurationLabel(tour);
                     return (
-                      <article key={`t-${tour.id}`} onClick={() => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } })} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.card, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
+                      <article key={`t-${tour.id}`} {...tapFor(`tour-${tour.id}`, () => routerNavigate(tourCardUrl(tour), { state: { articleOrigin: true } }))} style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.card, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
                         <div style={{ position: 'relative', height: 180, background: 'linear-gradient(135deg,#111,#333)' }}>
                           {typeof img === 'string' && img
                             ? <OptimizedImage src={img} alt={localizedTitle(tour, lang) || ''} widthRequest={520} srcSetWidths={SRCSET_CARD} sizes="260px" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -799,7 +806,7 @@ export default function GlobalHomeView() {
                     return (
                       <article
                         key={`g-${exp.id}`}
-                        onClick={() => navigate(`/revista/${exp.city_slug || ''}/${createSlug(exp.title || '')}`)}
+                        {...tapFor(`guia-${exp.id}`, () => navigate(`/revista/${exp.city_slug || ''}/${createSlug(exp.title || '')}`), { ignoreNestedControls: true })}
                         style={{ flex: '0 0 260px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, background: dark ? '#1e1e1e' : '#fff', cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}
                       >
                         <div style={{ position: 'relative', height: 150, background: 'linear-gradient(135deg,#111,#333)' }}>

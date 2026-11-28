@@ -5,9 +5,14 @@ import { useUIStore } from '../store/useUIStore.js';
 import { useDataStore } from '../store/useDataStore.js';
 import { markAllReadLocal, resolveNotifAction } from '../lib/notifications.js';
 import { safeAreaTop } from '../lib/safeArea.js';
+import { useTouchTapList } from '../lib/touchTap.js';
 
 export default function UserNotifs({ T, onBack, user }) {
   const [loading, setLoading] = useState(true);
+  // Toque en las notificaciones (27 nov 2026, cacería nº 1): la fila
+  // solo tenía `onClick`; la papelera es botón anidado y no debe abrir
+  // el destino al tocarla (`ignoreNestedControls`).
+  const tapFor = useTouchTapList();
   const [notifs, setNotifs] = useState([]);
   const [error, setError] = useState(false);
   // Mis negocios: para resolver el destino de las notificaciones viejas
@@ -158,7 +163,7 @@ export default function UserNotifs({ T, onBack, user }) {
               return (
                 <div
                   key={n.id}
-                  onClick={() => handleTap(n)}
+                  {...tapFor(n.id, () => handleTap(n), { ignoreNestedControls: true })}
                   style={{
                     background: T.white,
                     borderRadius: 16,
