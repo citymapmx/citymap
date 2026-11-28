@@ -17,6 +17,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { getThumbUrl, getLocalIsoDate } from "../lib/utils.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import { safeAreaTop } from "../lib/safeArea.js";
+import { useTouchTapList } from "../lib/touchTap.js";
 
 // Columnas para traer por id los favoritos de otras ciudades (R14, UX
 // 26 nov 2026): las mismas que el store usa para pines y eventos.
@@ -25,6 +26,10 @@ const FAV_EVENTS_SELECT = "id,title,title_en,description_en,slug,date,end_date,t
 
 export default function FavsView({ hideHeader }) {
   const { t, lang } = useTranslation();
+  // Toque en las tarjetas de colección (27 nov 2026, cacería nº 1): la
+  // tarjeta solo tenía `onClick`; el corazón y «Cómo llegar» son
+  // botones anidados y no deben abrir la ficha al tocarlos.
+  const tapFor = useTouchTapList();
   const ctx = useAppContext();
   const { dark, activeCity, toast$ } = useUIStore(useShallow(s => ({ dark: s.dark, activeCity: s.activeCity, toast$: s.toast$ })));
   const { mapPins, events } = useDataStore(useShallow(s => ({ mapPins: s.mapPins, events: s.events })));
@@ -178,7 +183,7 @@ export default function FavsView({ hideHeader }) {
                   ) : (
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                       {colItems.map(b => (
-                        <div key={b.id} className="press" onClick={() => { setSelected(b); navigate("detail"); }} style={{ background: T.bg, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", position: "relative" }}>
+                        <div key={b.id} className="press" {...tapFor(b.id, () => { setSelected(b); navigate("detail"); }, { ignoreNestedControls: true })} style={{ background: T.bg, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", position: "relative" }}>
                           <div style={{ height: 140, background: T.border, position: "relative" }}>
                             {b.photos?.[0]?.url ? <img src={getThumbUrl(b.photos[0].url, 400, 300)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="store" size={24} color={T.sub} /></div>}
                             <button onClick={e => toggleFav(b.id, e)} style={{ position: "absolute", top: 10, right: 10, background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}><Icon name="heart_overlay_f" size={26} color="none" /></button>

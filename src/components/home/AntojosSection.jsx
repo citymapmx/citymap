@@ -3,6 +3,7 @@ import { useTranslation } from "../../hooks/useTranslation.js";
 import { ANTOJO_LABEL_KEYS, ANTOJO_SEARCH_TERMS, bizCanHaveMenu, bizPhotoUrl } from "../../lib/antojos.js";
 import OptimizedImage from "../ui/OptimizedImage.jsx";
 import { FONT_BIZ } from "../../lib/constants.js";
+import { useTouchTapList } from "../../lib/touchTap.js";
 
 // «¿Qué se te antoja?» — fila de círculos con foto (estilo historias) y,
 // debajo, los lugares abiertos ahora del antojo seleccionado.
@@ -15,6 +16,9 @@ import { FONT_BIZ } from "../../lib/constants.js";
 export default memo(function AntojosSection({ groups, T, cityName, onSelect, onSeeAll }) {
   const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState(() => groups?.[0]?.id || null);
+  // Toque en las filas con scroll (27 nov 2026, cacería nº 1): círculos
+  // y lugares con solo `onClick` perdían el primer toque tras deslizar.
+  const tapFor = useTouchTapList();
 
   const availableIds = (groups || []).map((g) => g.id).join(",");
   useEffect(() => {
@@ -54,7 +58,7 @@ export default memo(function AntojosSection({ groups, T, cityName, onSelect, onS
               role="tab"
               aria-selected={isSelected}
               aria-label={label}
-              onClick={() => setSelectedId(g.id)}
+              {...tapFor(`antojo-${g.id}`, () => setSelectedId(g.id))}
               style={{ flexShrink: 0, width: 76, padding: 0, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
             >
               <span style={{ display: "block", width: 72, height: 72, margin: "0 auto", borderRadius: "50%", overflow: "hidden", background: T.border, border: isSelected ? "3px solid #0ea5e9" : `2px solid ${T.border}`, boxSizing: "border-box" }}>
@@ -82,7 +86,7 @@ export default memo(function AntojosSection({ groups, T, cityName, onSelect, onS
               className="press"
               role="button"
               tabIndex={0}
-              onClick={() => onSelect?.(b)}
+              {...tapFor(`lugar-${b.id}`, () => onSelect?.(b))}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(b); } }}
               style={{ width: "100%", background: T.white, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 14, boxShadow: T.shadow, cursor: "pointer", border: `1px solid ${T.border}` }}
             >

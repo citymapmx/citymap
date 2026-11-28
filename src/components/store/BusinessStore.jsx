@@ -27,9 +27,15 @@ import { fetchStoreCategories } from '../../lib/storeCategories.js';
 import { resolveMenuIntent, readSavedMenuIntent } from '../../lib/menuIntent.js';
 import MenuLoadingScreen from './MenuLoadingScreen.jsx';
 import { safeAreaTop } from '../../lib/safeArea.js';
+import { useTouchTapList } from '../../lib/touchTap.js';
 
 export default function BusinessStore({ business, T, isElite, inline = false, onBack, initialIntent = null, initialCategories = null }) {
   const navigate = useNavigate();
+  // Toque en el menú (27 nov 2026, cacería nº 1): fila de producto y
+  // pestañas de categoría solo tenían `onClick` dentro de listas con
+  // scroll, y el primer toque tras deslizar se lo comía el momentum
+  // en iOS. Un tracker por fila/pestaña, guardado en un ref.
+  const tapFor = useTouchTapList();
   const isCatalog = isCatalogBusiness(business);
   const storeLabel = isCatalog ? 'catálogo' : 'menú';
   // Categorías: MenuView ya las trae (carga única del menú, hallazgo
@@ -629,25 +635,26 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 // La pestaña de una sección fuera de horario se atenúa, pero
                 // sigue siendo tocable: lleva a la sección atenuada.
                 const tabOffHours = cat.id !== 'all' && isCatOffHours(cat);
+                const activateTab = () => {
+                  setMenuSearch('');
+                  setActiveTabId(cat.id);
+                  isClickScrolling.current = true;
+
+                  if (cat.id === 'all') {
+                    window.scrollTo({ top: tabsRef.current?.offsetTop - 160 || 0, behavior: 'smooth' });
+                  } else {
+                    const el = categoryRefs.current[cat.id];
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+
+                  setTimeout(() => { isClickScrolling.current = false; }, 800);
+                };
                 return (
                   <button
                     key={cat.id}
                     id={`tab-${cat.id}`}
                     aria-pressed={isActive}
-                    onClick={() => { 
-                      setMenuSearch(''); 
-                      setActiveTabId(cat.id);
-                      isClickScrolling.current = true;
-                      
-                      if (cat.id === 'all') {
-                        window.scrollTo({ top: tabsRef.current?.offsetTop - 160 || 0, behavior: 'smooth' });
-                      } else {
-                        const el = categoryRefs.current[cat.id];
-                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                      
-                      setTimeout(() => { isClickScrolling.current = false; }, 800);
-                    }}
+                    {...tapFor(`tab-${cat.id}`, activateTab)}
                     style={{
                       background: isActive ? (menuTheme ? menuTheme.primary : (dark ? '#FFFFFF' : '#111111')) : (menuTheme ? 'transparent' : (dark ? '#232326' : '#F3F4F6')),
                       color: isActive ? (menuTheme ? menuTheme.onPrimary : (dark ? '#111111' : '#FFFFFF')) : (menuTheme ? textOnMenuSurface(menuTheme.firstColor) : (dark ? '#E4E4E7' : '#111111')),
@@ -735,14 +742,19 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                 // se puede abrir el detalle (solo lectura) para consultarlos.
                 const canOpenModal = menuIntent !== 'local' || hasOptions;
 
+                // El mismo handler abre el modal desde el toque (`touchend`)
+                // y desde el clic de ratón/teclado; el clic sintético que
+                // sigue al toque se suprime en `touchTapProps`.
+                const openProduct = () => {
+                  // Fuera de horario el toque no abre el detalle: avisa.
+                  if (offHours) { showOffHoursNotice(cat); return; }
+                  if (canOpenModal) setSelectedProduct(productWithCategory);
+                };
+
                 return (
                 <div 
                   key={product.id} 
-                  onClick={() => {
-                    // Fuera de horario el toque no abre el detalle: avisa.
-                    if (offHours) { showOffHoursNotice(cat); return; }
-                    if (canOpenModal) setSelectedProduct(productWithCategory);
-                  }}
+                  {...tapFor(`${cat.id}:${product.id}`, openProduct, { ignoreNestedControls: true })}
                   style={{ 
                     display: 'flex', 
                     cursor: (offHours || canOpenModal) ? 'pointer' : 'default',
@@ -827,6 +839,7 @@ export default function BusinessStore({ business, T, isElite, inline = false, on
                             </m.button>
                           ) : (
                             <div 
+                              data-touch-tap-ignore
                               onClick={(e) => { 
                                 if (hasOptions) {
                                    // allow bubble to open modal

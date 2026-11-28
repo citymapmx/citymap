@@ -4,6 +4,7 @@ import { createSlug, getThumbUrl, getThumbSrcSet, SRCSET_CARD } from "../../lib/
 import { EXPERIENCIAS_AUTOPLAY_MS, EXPERIENCIAS_RESUME_AFTER_MS, nextExperienciasIndex } from "../../lib/experienciasCarousel.js";
 import { useTranslation } from "../../hooks/useTranslation.js";
 import { localizedTitle } from "../../lib/i18nContent.js";
+import { useTouchTapList } from "../../lib/touchTap.js";
 
 export default memo(function TopImperdibles({ experiences, T, city }) {
   const { t, lang } = useTranslation();
@@ -39,6 +40,10 @@ export default memo(function TopImperdibles({ experiences, T, city }) {
   const [tabHidden, setTabHidden] = useState(false);
   const [canHover] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(hover: hover) and (pointer: fine)').matches));
   const [reducedMotion] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches));
+  // Toque en el carrusel con scroll-snap (27 nov 2026, cacería nº 1):
+  // la tarjeta `<a>` solo tenía `onClick` y el primer toque tras
+  // deslizar se lo comía el scroll con momentum en iOS.
+  const tapFor = useTouchTapList();
 
   // Al cambiar la lista (otra ciudad), vuelve a la primera tarjeta.
   const firstId = top5[0]?.id;
@@ -175,10 +180,10 @@ export default memo(function TopImperdibles({ experiences, T, city }) {
               className="press"
               href={href}
               aria-label={localizedTitle(exp, lang)}
-              onClick={(e) => {
+              {...tapFor(exp.id, (e) => {
                 e.preventDefault();
                 navigate(href, { state: { articleOrigin: true } });
-              }}
+              }, { preventDefaultOnSuppress: true })}
               style={{
                  display: "flex",
                  alignItems: "flex-end",

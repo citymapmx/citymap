@@ -3,6 +3,7 @@ import { createSlug, getThumbUrl, getThumbSrcSet, SRCSET_CARD, cleanCityPrefix }
 import { buildCityPath } from "../../lib/domain.js";
 import { LUGARES_AUTOPLAY_MS, LUGARES_RESUME_AFTER_MS, LUGARES_MIN_CANDIDATOS, nextLugaresIndex, topLugaresIncreibles, lugarPhotoUrl } from "../../lib/lugaresIncreibles.js";
 import { useTranslation } from "../../hooks/useTranslation.js";
+import { useTouchTapList } from "../../lib/touchTap.js";
 
 // «Lugares increíbles»: mismo formato que «Experiencias destacadas»
 // (TopImperdibles) — tarjeta ancha con la foto llena, título grande
@@ -31,6 +32,10 @@ export default memo(function TopLugaresIncreibles({ businesses, T, city, cities,
   const [tabHidden, setTabHidden] = useState(false);
   const [canHover] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(hover: hover) and (pointer: fine)').matches));
   const [reducedMotion] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches));
+  // Toque en el carrusel con scroll-snap (27 nov 2026, cacería nº 1):
+  // la tarjeta `<a>` solo tenía `onClick` y el primer toque tras
+  // deslizar se lo comía el scroll con momentum en iOS.
+  const tapFor = useTouchTapList();
 
   // Al cambiar la lista (otra ciudad), vuelve a la primera tarjeta.
   const firstId = top5[0]?.id;
@@ -168,10 +173,10 @@ export default memo(function TopLugaresIncreibles({ businesses, T, city, cities,
               className="press"
               href={href}
               aria-label={b.name}
-              onClick={(e) => {
+              {...tapFor(b.id, (e) => {
                 e.preventDefault();
                 handleCardTap(b);
-              }}
+              }, { preventDefaultOnSuppress: true })}
               style={{
                  display: "flex",
                  alignItems: "flex-end",

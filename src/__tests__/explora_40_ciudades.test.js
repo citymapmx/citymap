@@ -50,7 +50,10 @@ describe('Explora por ciudad: las 40 ciudades en los dos dominios', () => {
   });
 
   it('la tarjeta sigue navegando con navigate(`/${slug}`) y «Ver más/menos» sigue igual', () => {
-    expect(src).toContain('onClick={() => navigate(`/${city.slug}`)}');
+    // El toque va por touchTap (27 nov 2026, cacería nº 1): mismo
+    // handler en `touchend` y en `onClick`, con el clic sintético
+    // suprimido.
+    expect(src).toContain('tapFor(`ciudad-${city.slug}`, () => navigate(`/${city.slug}`))');
     expect(src).toContain('const shownCities = showAllCities ? sortedCities : sortedCities.slice(0, 5);');
   });
 });

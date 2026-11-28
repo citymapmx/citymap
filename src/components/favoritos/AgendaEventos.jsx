@@ -9,6 +9,7 @@ import { countdownEvento } from '../../lib/countdownEvento.js';
 import { formatReminderTime } from '../../lib/recordatoriosEventos.js';
 import { colorParaLugar } from '../../lib/mapaFavoritos.js';
 import { FONT_BIZ } from '../../lib/constants.js';
+import { useTouchTapList } from '../../lib/touchTap.js';
 
 const MESES_ES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
 const MESES_EN = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -22,6 +23,10 @@ function fechaCorta(dateStr, lang) {
 
 export default function AgendaEventos({ T, t, lang, events, todayStr, alertIds, onOpen, onBell }) {
   const dark = !!T.dark;
+  // Toque en la agenda (27 nov 2026, cacería nº 1): la tarjeta solo
+  // tenía `onClick`; la campana es botón anidado y no debe abrir el
+  // evento al tocarla (`ignoreNestedControls`).
+  const tapFor = useTouchTapList();
   const chipStyle = (kind) => {
     if (kind === 'hoy') return { background: 'rgba(220,38,38,0.12)', color: T.red };
     if (kind === 'manana') return { background: 'rgba(184,135,42,0.14)', color: T.gold };
@@ -53,7 +58,7 @@ export default function AgendaEventos({ T, t, lang, events, todayStr, alertIds, 
             <div
               key={ev.id}
               className="press"
-              onClick={() => onOpen(ev)}
+              {...tapFor(ev.id, () => onOpen(ev), { ignoreNestedControls: true })}
               style={{
                 display: 'flex', gap: 12, background: T.bg, borderRadius: 16,
                 overflow: 'hidden', position: 'relative',
