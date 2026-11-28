@@ -7,10 +7,71 @@ import { useTypewriter, TYPEWRITER_CARET_STYLE } from '../lib/useTypewriter.js';
 import { COUNTRY_NAMES, COUNTRY_FLAGS, citySelectionTarget } from '../lib/domain.js';
 import { fuzzyMatch } from '../lib/utils.js';
 import { safeAreaTop } from '../lib/safeArea.js';
+import { createTouchTap } from '../lib/touchTap.js';
 
 const FLAG_MAP = Object.fromEntries(
   Object.entries(COUNTRY_NAMES).map(([code, name]) => [name, COUNTRY_FLAGS[code] || '🌍'])
 );
+
+// Fila de ciudad (27 nov 2026): vive a nivel de módulo, no dentro del
+// componente, para que su identidad no cambie en cada render: definida
+// dentro, React la desmontaba y remontaba en cada tick de la máquina de
+// escribir del buscador (cada 15–40 ms), y un toque que empieza sobre
+// una fila y termina tras un remontaje pierde el `touchend` (y a veces
+// hasta el `click`).
+function CityRow({ city, selected, dark, T, onSelect }) {
+  // Rastreador del toque (27 nov 2026, doble toque en iOS): la lista
+  // solo tenía `onClick` y el toque que detiene el scroll con momentum
+  // no dispara `click`, así que el primer toque se perdía. Al soltar
+  // el dedo, si apenas se movió (~10 px), se selecciona aquí; si fue
+  // un deslizamiento (scroll) no se selecciona; y el clic sintético
+  // que sigue al toque se suprime para no seleccionar dos veces. Sin
+  // toque previo (ratón, teclado), el `onClick` de siempre funciona.
+  const tapRef = useRef(null);
+  if (tapRef.current === null) tapRef.current = createTouchTap();
+  const tap = tapRef.current;
+  return (
+    <button
+      onClick={() => { if (tap.shouldIgnoreClick()) return; onSelect(city); }}
+      onTouchStart={(e) => tap.touchStart(e)}
+      onTouchEnd={(e) => { if (tap.touchEnd(e)) onSelect(city); }}
+      onTouchCancel={() => tap.touchCancel()}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "11px 14px",
+        background: selected ? (dark ? "#F4F4F5" : "#0F172A") : "transparent",
+        border: "none",
+        borderRadius: selected ? 10 : 0,
+        cursor: "pointer",
+        color: selected ? (dark ? "#18181B" : "#FFFFFF") : T.text,
+        fontSize: 15,
+        fontWeight: selected ? 700 : 600,
+        textAlign: "left",
+        transition: "all 0.15s",
+        width: "100%"
+      }}
+      onMouseOver={e => { if (!selected) e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"; }}
+      onMouseOut={e => { if (!selected) e.currentTarget.style.background = "transparent"; }}
+    >
+      <span style={{ flex: 1, textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", paddingRight: 8 }}>
+        {city.name}
+      </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {city.count > 0 && <span style={{ fontSize: 11, color: selected ? (dark ? "#52525B" : "rgba(255,255,255,0.8)") : T.sub, fontWeight: 500 }}>{city.count}</span>}
+        <Icon name="chevron" size={14} color={selected ? (dark ? "#18181B" : "#FFFFFF") : T.sub} />
+      </div>
+    </button>
+  );
+}
+
+// Conteos que ordenan Populares (27 nov 2026, doble toque): con la
+// hoja abierta mandan los congelados al abrir; cerrada o sin congelar,
+// los vivos. Puro, para poder probar el congelamiento sin montar nada.
+export function orderCountsForPicker({ show, frozenCounts, liveCounts }) {
+  return show && frozenCounts ? frozenCounts : liveCounts;
+}
 
 export default function CountryPickerDropdown({ show, cities, activeCity, onSelectCity, onDetectCity, locating, onClose, dark, isWelcome }) {
   const T = getT(dark);
@@ -19,6 +80,18 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
   const [expandedCountry, setExpandedCountry] = useState(null);
   const [expandedStates, setExpandedStates] = useState({});
   const [cityCounts, setCityCounts] = useState({});
+  // Orden de Populares congelado mientras la hoja está abierta (27 nov
+  // 2026, doble toque): al abrir, los conteos son 0 y ~1 s después
+  // resuelve la consulta y la lista se reordena bajo el dedo. Se congela
+  // el orden al abrir con los conteos ya conocidos; al volver a abrir
+  // se actualiza. La consulta de conteos es una sola por sesión.
+  const [frozenCounts, setFrozenCounts] = useState(null);
+  const cityCountsRef = useRef(cityCounts);
+  useEffect(() => { cityCountsRef.current = cityCounts; });
+  useEffect(() => {
+    if (show) setFrozenCounts(cityCountsRef.current);
+    else setFrozenCounts(null);
+  }, [show]);
   const ref = useRef(null);
 
   // Máquina de escribir (22 nov 2026): el buscador de ciudad escribe los
@@ -98,12 +171,13 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
   // Sort all cities by business count
   // La búsqueda ignora acentos (20 nov 2026: «Los Angeles» no encontraba
   // «Los Ángeles» porque el filtro comparaba el texto tal cual).
+  const countsForOrder = orderCountsForPicker({ show, frozenCounts, liveCounts: cityCounts });
   const sortedCities = [...(cities || [])]
     .filter(c => !searchQuery.trim() || fuzzyMatch(searchQuery, c.name))
     .map(city => ({
       ...city,
       country: COUNTRY_NAMES[city.country_code] || "México",
-      count: cityCounts[city.slug] || 0
+      count: countsForOrder[city.slug] || 0
     }))
     .sort((a, b) => b.count - a.count);
 
@@ -133,38 +207,6 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
   // La frase animada se parte en dos: «Buscar » en gris y el nombre de la
   // ciudad en azul, para que resalte (22 nov 2026).
   const hintText = focusedPlaceholder ?? animatedHint;
-
-  const CityRow = ({ city, selected }) => (
-    <button
-      onClick={() => handleSelectCity(city)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "11px 14px",
-        background: selected ? (dark ? "#F4F4F5" : "#0F172A") : "transparent",
-        border: "none",
-        borderRadius: selected ? 10 : 0,
-        cursor: "pointer",
-        color: selected ? (dark ? "#18181B" : "#FFFFFF") : T.text,
-        fontSize: 15,
-        fontWeight: selected ? 700 : 600,
-        textAlign: "left",
-        transition: "all 0.15s",
-        width: "100%"
-      }}
-      onMouseOver={e => { if (!selected) e.currentTarget.style.background = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"; }}
-      onMouseOut={e => { if (!selected) e.currentTarget.style.background = "transparent"; }}
-    >
-      <span style={{ flex: 1, textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", paddingRight: 8 }}>
-        {city.name}
-      </span>
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        {city.count > 0 && <span style={{ fontSize: 11, color: selected ? (dark ? "#52525B" : "rgba(255,255,255,0.8)") : T.sub, fontWeight: 500 }}>{city.count}</span>}
-        <Icon name="chevron" size={14} color={selected ? (dark ? "#18181B" : "#FFFFFF") : T.sub} />
-      </div>
-    </button>
-  );
 
   const renderSectionLabel = (label) => (
     <div style={{ padding: "12px 14px 4px 14px", fontSize: 11, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: 0.8 }}>
@@ -336,7 +378,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
               <div style={cardStyle}>
                 {renderSectionLabel("🔥 Populares")}
                 {popularCities.map(city => (
-                  <CityRow key={city.slug} city={city} selected={city.slug === activeCity} />
+                  <CityRow key={city.slug} city={city} selected={city.slug === activeCity} dark={dark} T={T} onSelect={handleSelectCity} />
                 ))}
               </div>
             )}
@@ -349,7 +391,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
                   {sortedCities.length === 0 ? (
                     <div style={{ padding: "16px 14px", fontSize: 13, color: T.sub, textAlign: "center" }}>Sin resultados</div>
                   ) : (
-                    sortedCities.map(city => <CityRow key={city.slug} city={city} selected={city.slug === activeCity} />)
+                    sortedCities.map(city => <CityRow key={city.slug} city={city} selected={city.slug === activeCity} dark={dark} T={T} onSelect={handleSelectCity} />)
                   )}
                 </>
               ) : (
@@ -415,7 +457,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
                                     {isStateExpanded && (
                                       <div className="scale-in-ver-top" style={{ display: "flex", flexDirection: "column" }}>
                                         {st.cities.map(city => (
-                                          <CityRow key={city.slug} city={city} selected={city.slug === activeCity} />
+                                          <CityRow key={city.slug} city={city} selected={city.slug === activeCity} dark={dark} T={T} onSelect={handleSelectCity} />
                                         ))}
                                       </div>
                                     )}
@@ -423,7 +465,7 @@ export default function CountryPickerDropdown({ show, cities, activeCity, onSele
                                 );
                               })}
                               {directCities.map(city => (
-                                <CityRow key={city.slug} city={city} selected={city.slug === activeCity} />
+                                <CityRow key={city.slug} city={city} selected={city.slug === activeCity} dark={dark} T={T} onSelect={handleSelectCity} />
                               ))}
                             </div>
                           );
